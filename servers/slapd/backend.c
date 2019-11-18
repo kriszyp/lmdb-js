@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ int backend_init(void)
 	if((nBackendInfo != 0) || !LDAP_STAILQ_EMPTY(&backendInfo)) {
 		/* already initialized */
 		Debug( LDAP_DEBUG_ANY,
-			"backend_init: already initialized\n", 0, 0, 0 );
+			"backend_init: already initialized\n" );
 		return -1;
 	}
 
@@ -98,7 +98,7 @@ int backend_init(void)
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_init: initialized for type \"%s\"\n",
-				bi->bi_type, 0, 0 );
+				bi->bi_type );
 			/* destroy those we've already inited */
 			for( nBackendInfo--;
 				nBackendInfo >= 0 ;
@@ -124,8 +124,7 @@ int backend_init(void)
 #else
 
 	Debug( LDAP_DEBUG_ANY,
-		"backend_init: failed\n",
-		0, 0, 0 );
+		"backend_init: failed\n" );
 
 	return rc;
 #endif /* SLAPD_MODULES */
@@ -138,7 +137,7 @@ int backend_add(BackendInfo *aBackendInfo)
 	if ( aBackendInfo->bi_init == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "backend_add: "
 			"backend type \"%s\" does not have the (mandatory)init function\n",
-			aBackendInfo->bi_type, 0, 0 );
+			aBackendInfo->bi_type );
 		return -1;
 	}
 
@@ -146,7 +145,7 @@ int backend_add(BackendInfo *aBackendInfo)
 	if ( rc != 0) {
 		Debug( LDAP_DEBUG_ANY,
 			"backend_add:  initialization for type \"%s\" failed\n",
-			aBackendInfo->bi_type, 0, 0 );
+			aBackendInfo->bi_type );
 		return rc;
 	}
 
@@ -203,8 +202,7 @@ int backend_startup_one(Backend *be, ConfigReply *cr)
 
 	Debug( LDAP_DEBUG_TRACE,
 		"backend_startup_one: starting \"%s\"\n",
-		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)",
-		0, 0 );
+		be->be_suffix ? be->be_suffix[0].bv_val : "(unknown)" );
 
 	/* set database controls */
 	(void)backend_set_controls( be );
@@ -259,7 +257,7 @@ int backend_startup(Backend *be)
 		/* no databases */
 		Debug( LDAP_DEBUG_ANY,
 			"backend_startup: %d databases to startup.\n",
-			nBackendDB, 0, 0 );
+			nBackendDB );
 		return 1;
 	}
 
@@ -271,8 +269,7 @@ int backend_startup(Backend *be)
 			rc = be->bd_info->bi_open( be->bd_info );
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-					"backend_startup: bi_open failed!\n",
-					0, 0, 0 );
+					"backend_startup: bi_open failed!\n" );
 
 				return rc;
 			}
@@ -287,7 +284,7 @@ int backend_startup(Backend *be)
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_open(frontend) failed! (%d)\n",
-				rc, 0, 0 );
+				rc );
 			return rc;
 		}
 	}
@@ -306,7 +303,7 @@ int backend_startup(Backend *be)
 			if ( rc != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"backend_startup: bi_open %d (%s) failed!\n",
-					i, bi->bi_type, 0 );
+					i, bi->bi_type );
 				return rc;
 			}
 		}
@@ -324,7 +321,7 @@ int backend_startup(Backend *be)
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: warning, database %d (%s) "
 				"has no suffix\n",
-				i, be->bd_info->bi_type, 0 );
+				i, be->bd_info->bi_type );
 		}
 
 		rc = backend_startup_one( be, &cr );
@@ -386,7 +383,7 @@ int backend_shutdown( Backend *be )
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_db_close %s failed!\n",
-				be->be_type, 0, 0 );
+				be->be_type );
 		}
 	}
 
@@ -408,7 +405,7 @@ int backend_shutdown( Backend *be )
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
-				rc, 0, 0 );
+				rc );
 		}
 	}
 
@@ -1025,12 +1022,12 @@ backend_check_controls(
 					/* should not be reachable */ 
 					Debug( LDAP_DEBUG_ANY, "backend_check_controls: "
 						"unrecognized critical control: %s\n",
-						(*ctrls)->ldctl_oid, 0, 0 );
+						(*ctrls)->ldctl_oid );
 					assert( 0 );
 				} else {
 					Debug( LDAP_DEBUG_TRACE, "backend_check_controls: "
 						"unrecognized non-critical control: %s\n",
-						(*ctrls)->ldctl_oid, 0, 0 );
+						(*ctrls)->ldctl_oid );
 				}
 				break;
 
@@ -1062,7 +1059,7 @@ backend_check_controls(
 				/* unreachable */
 				Debug( LDAP_DEBUG_ANY,
 					"backend_check_controls: unable to check control: %s\n",
-					(*ctrls)->ldctl_oid, 0, 0 );
+					(*ctrls)->ldctl_oid );
 				assert( 0 );
 
 				rs->sr_text = "unable to check control";
@@ -1570,7 +1567,7 @@ fe_acl_group(
 					 * or if filter parsing fails.
 					 * In the latter case,
 					 * we should give up. */
-					if ( ludp->lud_filter != NULL && ludp->lud_filter != '\0') {
+					if ( ludp->lud_filter != NULL && *ludp->lud_filter != '\0') {
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter == NULL ) {
 							/* give up... */
@@ -1590,7 +1587,7 @@ fe_acl_group(
 							op->o_private = o_priv;
 							if ( rc2 != 0 ) {
 								/* give up... */
-								rc = LDAP_OTHER;
+								rc = (rc2 == LDAP_NO_SUCH_OBJECT) ? rc2 : LDAP_OTHER;
 								goto loopit;
 							}
 						}

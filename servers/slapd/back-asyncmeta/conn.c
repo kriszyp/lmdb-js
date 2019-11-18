@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2017 The OpenLDAP Foundation.
+ * Copyright 2016-2019 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -27,56 +27,10 @@
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
-
-
-#define AVL_INTERNAL
 #include "slap.h"
+#include "../../../libraries/libldap/ldap-int.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-asyncmeta.h"
-
-
-/*
- * Debug stuff (got it from libavl)
- */
-#if META_BACK_PRINT_CONNTREE > 0
-
-static void
-asyncmeta_back_ravl_print( Avlnode *root, int depth )
-{
-	int     	i;
-
-	if ( root == 0 ) {
-		return;
-	}
-
-	asyncmeta_back_ravl_print( root->avl_right, depth + 1 );
-
-	for ( i = 0; i < depth; i++ ) {
-		fprintf( stderr, "-" );
-	}
-	fputc( ' ', stderr );
-
-	asyncmeta_back_print( (a_metaconn_t *)root->avl_data,
-		avl_bf2str( root->avl_bf ) );
-
-	asyncmeta_back_ravl_print( root->avl_left, depth + 1 );
-}
-
-/* NOTE: duplicate from back-ldap/bind.c */
-static char* priv2str[] = {
-	"privileged",
-	"privileged/TLS",
-	"anonymous",
-	"anonymous/TLS",
-	"bind",
-	"bind/TLS",
-	NULL
-};
-
-#endif /* META_BACK_PRINT_CONNTREE */
-/*
- * End of debug stuff
- */
 
 /*
  * asyncmeta_conn_alloc
@@ -127,8 +81,6 @@ asyncmeta_init_one_conn(
 	a_dncookie		dc;
 	int			isauthz = ( candidate == mc->mc_authz_target );
 	int			do_return = 0;
-	int                     nretries = 2;
-
 #ifdef HAVE_TLS
 	int			is_ldaps = 0;
 	int			do_start_tls = 0;
@@ -149,16 +101,11 @@ asyncmeta_init_one_conn(
 				dont_retry = ( ri->ri_num[ ri->ri_idx ] == SLAP_RETRYNUM_TAIL
 					|| slap_get_time() < ri->ri_last + ri->ri_interval[ ri->ri_idx ] );
 				if ( !dont_retry ) {
-					if ( LogTest( LDAP_DEBUG_ANY ) ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
-						snprintf( buf, sizeof( buf ),
-							"asyncmeta_init_one_conn[%d]: quarantine "
-							"retry block #%d try #%d",
-							candidate, ri->ri_idx, ri->ri_count );
-						Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-							op->o_log_prefix, buf, 0 );
-					}
+					Debug(LDAP_DEBUG_ANY,
+					      "%s asyncmeta_init_one_conn[%d]: quarantine " "retry block #%d try #%d.\n",
+					      op->o_log_prefix,
+					      candidate, ri->ri_idx,
+					      ri->ri_count );
 
 					mt->mt_isquarantined = LDAP_BACK_FQ_RETRYING;
 				}
@@ -169,15 +116,16 @@ asyncmeta_init_one_conn(
 
 		if ( dont_retry ) {
 			rs->sr_err = LDAP_UNAVAILABLE;
+			rs->sr_text = "Target is quarantined";
+			Debug( LDAP_DEBUG_ANY, "%s asyncmeta_init_one_conn: Target is quarantined\n",
+			       op->o_log_prefix );
 			if ( op->o_conn && ( sendok & LDAP_BACK_SENDERR ) ) {
-				rs->sr_text = "Target is quarantined";
 					send_ldap_result( op, rs );
 			}
 			return rs->sr_err;
 		}
 	}
 		msc = &mc->mc_conns[candidate];
-retry_lock:;
 	/*
 	 * Already init'ed
 	 */
@@ -191,13 +139,7 @@ retry_lock:;
 	} else if ( META_BACK_CONN_CREATING( msc )
 		|| LDAP_BACK_CONN_BINDING( msc ) )
 	{
-		/* sounds more appropriate */
-		if (nretries >= 0) {
-			nretries--;
-			ldap_pvt_thread_yield();
-			goto retry_lock;
-		}
-		rs->sr_err = LDAP_UNAVAILABLE;
+		rs->sr_err = LDAP_SUCCESS;
 		do_return = 1;
 
 	} else if ( META_BACK_CONN_INITED( msc ) ) {
@@ -236,8 +178,13 @@ retry_lock:;
 #endif /* HAVE_TLS */
 	ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "%s asyncmeta_init_one_conn: ldap_initialize failed err=%d\n",
+		       op->o_log_prefix, rs->sr_err );
 		goto error_return;
 	}
+
+	ldap_set_option( msc->msc_ld, LDAP_OPT_KEEPCONN, LDAP_OPT_ON);
+
 	msc->msc_ldr = ldap_dup(msc->msc_ld);
 	if (!msc->msc_ldr) {
 		ldap_ld_free(msc->msc_ld, 0, NULL, NULL);
@@ -277,17 +224,10 @@ retry_lock:;
 			sb = &mt->mt_tls;
 		}
 
-		if ( sb->sb_tls_do_init ) {
-			bindconf_tls_set( sb, msc->msc_ld );
-		} else if ( sb->sb_tls_ctx ) {
-			ldap_set_option( msc->msc_ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
-		}
+		bindconf_tls_set( sb, msc->msc_ld );
 
 		if ( !is_ldaps ) {
-			if ( sb == &mt->mt_idassert.si_bc && sb->sb_tls_ctx ) {
-				do_start_tls = 1;
-
-			} else if ( META_BACK_TGT_USE_TLS( mt )
+			if ( META_BACK_TGT_USE_TLS( mt )
 				|| ( op->o_conn->c_is_tls && META_BACK_TGT_PROPAGATE_TLS( mt ) ) )
 			{
 				do_start_tls = 1;
@@ -332,8 +272,8 @@ retry:;
 
 			default:
 				/* only touch when activity actually took place... */
-				if ( mi->mi_idle_timeout != 0 && msc->msc_time < op->o_time ) {
-					msc->msc_time = op->o_time;
+				if ( mi->mi_idle_timeout != 0 ) {
+					asyncmeta_set_msc_time(msc);
 				}
 				break;
 			}
@@ -353,6 +293,7 @@ retry:;
 					res = NULL;
 
 					if ( rs->sr_err == LDAP_SUCCESS ) {
+
 						rs->sr_err = err;
 					}
 					rs->sr_err = slap_map_api2result( rs );
@@ -390,7 +331,10 @@ retry:;
 		 */
 		rs->sr_err = ldap_start_tls_s( msc->msc_ld, NULL, NULL );
 #endif /* ! SLAP_STARTTLS_ASYNCHRONOUS */
-
+		if (rs->sr_err != LDAP_SUCCESS) {
+			Debug( LDAP_DEBUG_ANY, "%s asyncmeta_init_one_conn: ldap_start_tls_s failed err=%d\n",
+			       op->o_log_prefix, rs->sr_err );
+		}
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case
 		 * of misconfiguration, but also when used in the chain
@@ -412,18 +356,16 @@ retry:;
 		}
 	}
 #endif /* HAVE_TLS */
-
 	/*
 	 * Set the network timeout if set
 	 */
 	if ( mt->mt_network_timeout != 0 ) {
-		struct timeval	network_timeout;
-
-		network_timeout.tv_usec = 0;
-		network_timeout.tv_sec = mt->mt_network_timeout;
+		struct timeval  network_timeout;
+		network_timeout.tv_sec = 0;
+		network_timeout.tv_usec = mt->mt_network_timeout*1000;
 
 		ldap_set_option( msc->msc_ld, LDAP_OPT_NETWORK_TIMEOUT,
-				(void *)&network_timeout );
+				 (void *)&network_timeout );
 	}
 
 	/*
@@ -457,38 +399,22 @@ retry:;
 			BER_BVZERO( &msc->msc_bound_ndn );
 		}
 		if ( !BER_BVISEMPTY( &op->o_ndn )
-			&& SLAP_IS_AUTHZ_BACKEND( op )
 			&& isauthz )
 		{
+			dc.op = op;
 			dc.target = mt;
-			dc.conn = op->o_conn;
-			dc.rs = rs;
-			dc.ctx = "bindDN";
+			dc.memctx = NULL;
+			dc.to_from = MASSAGE_REQ;
 
 			/*
 			 * Rewrite the bind dn if needed
 			 */
-			if ( asyncmeta_dn_massage( &dc, &op->o_conn->c_dn,
-						&msc->msc_bound_ndn ) )
-			{
-
-#ifdef DEBUG_205
-				Debug( LDAP_DEBUG_ANY,
-					"### %s asyncmeta_init_one_conn(rewrite) "
-					"ldap_unbind_ext[%d] ld=%p\n",
-					op->o_log_prefix, candidate,
-					(void *)msc->msc_ld );
-#endif /* DEBUG_205 */
-				goto error_return;
-			}
+			asyncmeta_dn_massage( &dc, &op->o_conn->c_dn, &msc->msc_bound_ndn );
 
 			/* copy the DN if needed */
 			if ( msc->msc_bound_ndn.bv_val == op->o_conn->c_dn.bv_val ) {
 				ber_dupbv( &msc->msc_bound_ndn, &op->o_conn->c_dn );
 			}
-
-			assert( !BER_BVISNULL( &msc->msc_bound_ndn ) );
-
 		} else {
 			ber_dupbv( &msc->msc_bound_ndn, (struct berval *)&slap_empty_bv );
 		}
@@ -501,10 +427,6 @@ error_return:;
 		META_BACK_CONN_CREATING_CLEAR( msc );
 	}
 	if ( rs->sr_err == LDAP_SUCCESS && msc != NULL) {
-		/*
-		 * Sets a cookie for the rewrite session
-		 */
-		( void )rewrite_session_init( mt->mt_rwmap.rwm_rw, op->o_conn );
 		META_BACK_CONN_INITED_SET( msc );
 	}
 
@@ -515,132 +437,6 @@ error_return:;
 		}
 	}
 	return rs->sr_err;
-}
-
-/*
- * asyncmeta_retry
- *
- * Retries one connection
- */
-int
-asyncmeta_retry(
-	Operation		*op,
-	SlapReply		*rs,
-	a_metaconn_t		**mcp,
-	int			candidate,
-	ldap_back_send_t	sendok )
-{
-	a_metaconn_t		*mc = *mcp;
-	a_metainfo_t		*mi = mc->mc_info;
-	a_metatarget_t		*mt = mi->mi_targets[ candidate ];
-	a_metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
-	int			rc = LDAP_UNAVAILABLE,
-				binding,
-				quarantine = 1;
-
-	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );
-	struct berval save_cred;
-
-	if ( LogTest( LDAP_DEBUG_ANY ) ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
-
-		/* this lock is required; however,
-		 * it's invoked only when logging is on */
-			ldap_pvt_thread_mutex_lock( &mt->mt_uri_mutex );
-			snprintf( buf, sizeof( buf ),
-				  "retrying URI=\"%s\" DN=\"%s\"",
-				  mt->mt_uri,
-				  BER_BVISNULL( &msc->msc_bound_ndn ) ?
-				  "" : msc->msc_bound_ndn.bv_val );
-			ldap_pvt_thread_mutex_unlock( &mt->mt_uri_mutex );
-
-			Debug( LDAP_DEBUG_ANY,
-			       "%s asyncmeta_retry[%d]: %s.\n",
-			       op->o_log_prefix, candidate, buf );
-	}
-
-	( void )rewrite_session_delete( mt->mt_rwmap.rwm_rw, op->o_conn );
-	/* mc here must be the regular mc, reset and ready for init */
-	rc = asyncmeta_init_one_conn( op, rs, mc, candidate,
-				      LDAP_BACK_CONN_ISPRIV( mc ), sendok, 0 );
-
-	if ( rc != LDAP_SUCCESS ) {
-		if ( sendok & LDAP_BACK_SENDERR ) {
-			/* init_one_conn has set the result */
-			send_ldap_result( op, rs );
-		}
-	}
-
-	if ( rc == LDAP_SUCCESS ) {
-		quarantine = 0;
-		LDAP_BACK_CONN_BINDING_SET( msc ); binding = 1;
-		/* todo this must be dobind_init */
-		rc = asyncmeta_back_single_dobind( op, rs, mcp, candidate,
-						   sendok, mt->mt_nretries, 0 );
-
-		Debug( LDAP_DEBUG_ANY,
-		       "%s asyncmeta_retry[%d]: "
-		       "asyncmeta_single_dobind=%d\n",
-		       op->o_log_prefix, candidate, rc );
-		if ( rc == LDAP_SUCCESS ) {
-			if ( !BER_BVISNULL( &msc->msc_bound_ndn ) &&
-			     !BER_BVISEMPTY( &msc->msc_bound_ndn ) )
-			{
-				LDAP_BACK_CONN_ISBOUND_SET( msc );
-
-			} else {
-				LDAP_BACK_CONN_ISANON_SET( msc );
-			}
-
-			/* when bound, dispose of the "binding" flag */
-			if ( binding ) {
-				LDAP_BACK_CONN_BINDING_CLEAR( msc );
-			}
-		}
-	}
-
-
-	if ( rc != LDAP_SUCCESS ) {
-		if (mc->mc_active < 1) {
-			asyncmeta_clear_one_msc(NULL, mc, candidate);
-		}
-		if ( sendok & LDAP_BACK_SENDERR ) {
-			rs->sr_err = rc;
-			rs->sr_text = "Unable to retry";
-			send_ldap_result( op, rs );
-		}
-	}
-
-	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex );
-	if ( quarantine && META_BACK_TGT_QUARANTINE( mt ) ) {
-		asyncmeta_quarantine( op, mi, rs, candidate );
-	}
-
-	return rc == LDAP_SUCCESS ? 1 : 0;
-}
-
-/*
- * callback for unique candidate selection
- */
-static int
-asyncmeta_conn_cb( Operation *op, SlapReply *rs )
-{
-	assert( op->o_tag == LDAP_REQ_SEARCH );
-
-	switch ( rs->sr_type ) {
-	case REP_SEARCH:
-		((long *)op->o_callback->sc_private)[0] = (long)op->o_private;
-		break;
-
-	case REP_SEARCHREF:
-	case REP_RESULT:
-		break;
-
-	default:
-		return rs->sr_err;
-	}
-
-	return 0;
 }
 
 
@@ -666,77 +462,11 @@ asyncmeta_get_candidate(
 		rs->sr_err = LDAP_NO_SUCH_OBJECT;
 		rs->sr_text = "No suitable candidate target found";
 
-	} else if ( candidate == META_TARGET_MULTIPLE ) {
-		Operation	op2 = *op;
-		SlapReply	rs2 = { REP_RESULT };
-		slap_callback	cb2 = { 0 };
-		int		rc;
-
-		/* try to get a unique match for the request ndn
-		 * among the multiple candidates available */
-		op2.o_tag = LDAP_REQ_SEARCH;
-		op2.o_req_dn = *ndn;
-		op2.o_req_ndn = *ndn;
-		op2.ors_scope = LDAP_SCOPE_BASE;
-		op2.ors_deref = LDAP_DEREF_NEVER;
-		op2.ors_attrs = slap_anlist_no_attrs;
-		op2.ors_attrsonly = 0;
-		op2.ors_limit = NULL;
-		op2.ors_slimit = 1;
-		op2.ors_tlimit = SLAP_NO_LIMIT;
-
-		op2.ors_filter = (Filter *)slap_filter_objectClass_pres;
-		op2.ors_filterstr = *slap_filterstr_objectClass_pres;
-
-		op2.o_callback = &cb2;
-		cb2.sc_response = asyncmeta_conn_cb;
-		cb2.sc_private = (void *)&candidate;
-
-		rc = op->o_bd->be_search( &op2, &rs2 );
-
-		switch ( rs2.sr_err ) {
-		case LDAP_SUCCESS:
-		default:
-			rs->sr_err = rs2.sr_err;
-			break;
-
-		case LDAP_SIZELIMIT_EXCEEDED:
-			/* if multiple candidates can serve the operation,
-			 * and a default target is defined, and it is
-			 * a candidate, try using it (FIXME: YMMV) */
-			if ( mi->mi_defaulttarget != META_DEFAULT_TARGET_NONE
-				&& asyncmeta_is_candidate( mi->mi_targets[ mi->mi_defaulttarget ],
-						ndn, op->o_tag == LDAP_REQ_SEARCH ? op->ors_scope : LDAP_SCOPE_BASE ) )
-			{
-				candidate = mi->mi_defaulttarget;
-				rs->sr_err = LDAP_SUCCESS;
-				rs->sr_text = NULL;
-
-			} else {
-				rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-				rs->sr_text = "Unable to select unique candidate target";
-			}
-			break;
-		}
-
 	} else {
 		rs->sr_err = LDAP_SUCCESS;
 	}
 
 	return candidate;
-}
-
-static void	*asyncmeta_candidates_dummy;
-
-static void
-asyncmeta_candidates_keyfree(
-	void		*key,
-	void		*data )
-{
-	a_metacandidates_t	*mc = (a_metacandidates_t *)data;
-
-	ber_memfree_x( mc->mc_candidates, NULL );
-	ber_memfree_x( data, NULL );
 }
 
 
@@ -922,7 +652,7 @@ asyncmeta_getconn(
 
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
-					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+					rs->sr_matched = mi->mi_suffix.bv_val;
 				}
 				send_ldap_result( op, rs );
 				rs->sr_matched = NULL;
@@ -945,9 +675,6 @@ asyncmeta_getconn(
 	}
 
 	if ( op_type == META_OP_REQUIRE_SINGLE ) {
-		a_metatarget_t		*mt = NULL;
-		a_metasingleconn_t	*msc = NULL;
-
 		int			j;
 
 		for ( j = 0; j < mi->mi_ntargets; j++ ) {
@@ -968,7 +695,7 @@ asyncmeta_getconn(
 			if ( i < 0 || rs->sr_err != LDAP_SUCCESS ) {
 				if ( sendok & LDAP_BACK_SENDERR ) {
 					if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
-						rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+						rs->sr_matched = mi->mi_suffix.bv_val;
 					}
 					send_ldap_result( op, rs );
 					rs->sr_matched = NULL;
@@ -997,7 +724,7 @@ asyncmeta_getconn(
 
 		Debug( LDAP_DEBUG_TRACE,
 		       "==>asyncmeta__getconn: got target=%d for ndn=\"%s\" from cache\n",
-		       i, op->o_req_ndn.bv_val, 0 );
+		       i, op->o_req_ndn.bv_val );
 			if ( LDAP_BACK_CONN_ISPRIV( &mc_curr ) ) {
 				LDAP_BACK_CONN_ISPRIV_SET( mc );
 
@@ -1009,9 +736,6 @@ asyncmeta_getconn(
 		 * Clear all other candidates
 		 */
 			( void )asyncmeta_clear_unused_candidates( op, i , mc, candidates);
-
-		mt = mi->mi_targets[ i ];
-		msc = &mc->mc_conns[ i ];
 
 		/*
 		 * The target is activated; if needed, it is
@@ -1076,7 +800,7 @@ asyncmeta_getconn(
 					ncandidates++;
 
 					Debug( LDAP_DEBUG_TRACE, "%s: asyncmeta_getconn[%d]\n",
-						op->o_log_prefix, i, 0 );
+						op->o_log_prefix, i );
 
 				} else if ( lerr == LDAP_UNAVAILABLE && !META_BACK_ONERR_STOP( mi ) ) {
 					META_CANDIDATE_SET( &candidates[ i ] );
@@ -1130,7 +854,7 @@ asyncmeta_getconn(
 
 			if ( sendok & LDAP_BACK_SENDERR ) {
 				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
-					rs->sr_matched = op->o_bd->be_suffix[ 0 ].bv_val;
+					rs->sr_matched = mi->mi_suffix.bv_val;
 				}
 				send_ldap_result( op, rs );
 				rs->sr_matched = NULL;
@@ -1145,7 +869,6 @@ asyncmeta_getconn(
 	}
 
 done:;
-	/* clear out meta_back_init_one_conn non-fatal errors */
 	rs->sr_err = LDAP_SUCCESS;
 	rs->sr_text = NULL;
 
@@ -1226,22 +949,17 @@ asyncmeta_quarantine(
 
 			Debug( LDAP_DEBUG_ANY,
 				"%s asyncmeta_quarantine[%d]: enter.\n",
-				op->o_log_prefix, candidate, 0 );
+				op->o_log_prefix, candidate );
 
 			ri->ri_idx = 0;
 			ri->ri_count = 0;
 			break;
 
 		case LDAP_BACK_FQ_RETRYING:
-			if ( LogTest( LDAP_DEBUG_ANY ) ) {
-				char	buf[ SLAP_TEXT_BUFLEN ];
-
-				snprintf( buf, sizeof( buf ),
-					"asyncmeta_quarantine[%d]: block #%d try #%d failed",
-					candidate, ri->ri_idx, ri->ri_count );
-				Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-					op->o_log_prefix, buf, 0 );
-			}
+			Debug(LDAP_DEBUG_ANY,
+			      "%s asyncmeta_quarantine[%d]: block #%d try #%d failed.\n",
+			      op->o_log_prefix, candidate, ri->ri_idx,
+			      ri->ri_count );
 
 			++ri->ri_count;
 			if ( ri->ri_num[ ri->ri_idx ] != SLAP_RETRYNUM_FOREVER
@@ -1262,7 +980,7 @@ asyncmeta_quarantine(
 	} else if ( mt->mt_isquarantined == LDAP_BACK_FQ_RETRYING ) {
 		Debug( LDAP_DEBUG_ANY,
 			"%s asyncmeta_quarantine[%d]: exit.\n",
-			op->o_log_prefix, candidate, 0 );
+			op->o_log_prefix, candidate );
 
 		if ( mi->mi_quarantine_f ) {
 			(void)mi->mi_quarantine_f( mi, candidate,
@@ -1283,6 +1001,7 @@ a_metaconn_t *
 asyncmeta_get_next_mc( a_metainfo_t *mi )
 {
 	a_metaconn_t *mc = NULL;
+
 	ldap_pvt_thread_mutex_lock( &mi->mi_mc_mutex );
 	if (mi->mi_next_conn >= mi->mi_num_conns-1) {
 		mi->mi_next_conn = 0;
@@ -1311,14 +1030,13 @@ int asyncmeta_start_one_listener(a_metaconn_t *mc,
 {
 	a_metasingleconn_t *msc;
 	ber_socket_t s;
-	int i;
 
 	msc = &mc->mc_conns[candidate];
-	if (msc->msc_ld == NULL || !META_IS_CANDIDATE( &candidates[ candidate ] )) {
+	if ( slapd_shutdown || !META_BACK_CONN_INITED( msc ) || msc->msc_ld == NULL
+	    || META_BACK_CONN_INVALID(msc) || !META_IS_CANDIDATE( &candidates[ candidate ] )) {
 		return LDAP_SUCCESS;
 	}
 	bc->msgids[candidate] = candidates[candidate].sr_msgid;
-	msc->msc_pending_ops++;
 	if ( msc->conn == NULL) {
 		ldap_get_option( msc->msc_ld, LDAP_OPT_DESC, &s );
 		if (s < 0) {
@@ -1329,4 +1047,131 @@ int asyncmeta_start_one_listener(a_metaconn_t *mc,
 	}
 	connection_client_enable( msc->conn );
 	return LDAP_SUCCESS;
+}
+
+int
+asyncmeta_clear_one_msc(
+	Operation	*op,
+	a_metaconn_t	*mc,
+	int		candidate,
+	int             unbind,
+	const char *caller)
+{
+	a_metasingleconn_t *msc;
+	if (mc == NULL) {
+		return 0;
+	}
+	msc = &mc->mc_conns[candidate];
+	if ( LogTest( asyncmeta_debug ) ) {
+		char	time_buf[ SLAP_TEXT_BUFLEN ];
+		asyncmeta_get_timestamp(time_buf);
+		Debug( asyncmeta_debug, "[%s] Resetting msc: %p, msc_ld: %p, "
+		       "msc_bound_ndn: %s, msc->conn: %p, %s \n",
+		       time_buf, msc, msc->msc_ld, msc->msc_bound_ndn.bv_val,
+		       msc->conn, caller ? caller : "" );
+	}
+	msc->msc_mscflags = 0;
+	if (msc->conn) {
+		connection_client_stop( msc->conn );
+		msc->conn = NULL;
+	}
+
+	if ( msc->msc_ld != NULL ) {
+
+#ifdef DEBUG_205
+		Debug( LDAP_DEBUG_ANY, "### %s asyncmeta_clear_one_msc ldap_unbind_ext[%d] ld=%p\n",
+		       op ? op->o_log_prefix : "", candidate, (void *)msc->msc_ld );
+#endif /* DEBUG_205 */
+
+		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
+		msc->msc_ld = NULL;
+		ldap_ld_free( msc->msc_ldr, 0, NULL, NULL );
+		msc->msc_ldr = NULL;
+	}
+
+	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
+		ber_memfree_x( msc->msc_bound_ndn.bv_val, NULL );
+		BER_BVZERO( &msc->msc_bound_ndn );
+	}
+
+	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
+		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
+		ber_memfree_x( msc->msc_cred.bv_val, NULL );
+		BER_BVZERO( &msc->msc_cred );
+	}
+	msc->msc_time = 0;
+	msc->msc_binding_time = 0;
+	msc->msc_result_time = 0;
+	return 0;
+}
+
+void asyncmeta_get_timestamp(char *buf)
+{
+	struct timespec tp;
+	struct tm *ttm;
+	clock_gettime(CLOCK_REALTIME, &tp);
+	ttm = gmtime(&tp.tv_sec);
+	sprintf(buf, "%d:%d:%d.%ld", ttm->tm_hour, ttm->tm_min, ttm->tm_sec, tp.tv_nsec/1000);
+}
+
+int
+asyncmeta_reset_msc(
+	Operation	*op,
+	a_metaconn_t	*mc,
+	int		candidate,
+	int             unbind,
+	const char *caller)
+{
+	a_metasingleconn_t *msc = &mc->mc_conns[candidate];
+	if ( LogTest( asyncmeta_debug ) ) {
+		char	time_buf[ SLAP_TEXT_BUFLEN ];
+		asyncmeta_get_timestamp(time_buf);
+		Debug(asyncmeta_debug, "[%x] Will attempt to reset [%s] msc: %p, "
+		      "msc->msc_binding_time: %x, msc->msc_flags:%x %s\n",
+		      (unsigned int)slap_get_time(), time_buf, msc,
+		      (unsigned int)msc->msc_binding_time, msc->msc_mscflags, caller );
+	}
+	if (msc->msc_active <= 1 && mc->mc_active < 1) {
+		bm_context_t *om;
+		asyncmeta_clear_one_msc(NULL, mc, candidate, 0, caller);
+		/* set whatever's in the queue to invalid, so the timeout loop cleans it up,
+		 * but do not invalidate the current op*/
+		LDAP_STAILQ_FOREACH( om, &mc->mc_om_list, bc_next ) {
+			if (om->candidates[candidate].sr_msgid >= 0 && (om->op != op)) {
+				om->bc_invalid = 1;
+			}
+		}
+		return LDAP_SUCCESS;
+	} else {
+		META_BACK_CONN_INVALID_SET(msc);
+		Debug( asyncmeta_debug, "[%x] Failed to reset msc %p, msc_active=%d, mc_active=%d, %s\n",
+		       (unsigned int)slap_get_time(), msc, msc->msc_active, mc->mc_active, caller );
+	}
+	return LDAP_OTHER;
+}
+
+
+void asyncmeta_log_msc(a_metasingleconn_t *msc)
+{
+	ber_socket_t s = 0;
+	if (msc->msc_ld) {
+		ldap_get_option( msc->msc_ld, LDAP_OPT_DESC, &s );
+	}
+	Debug( asyncmeta_debug, "msc: %p, msc_ld: %p, msc_ld socket: %d, "
+	       "msc_bound_ndn: %s, msc->conn: %p\n", msc, msc->msc_ld,
+	       (int)s, msc->msc_bound_ndn.bv_val, msc->conn );
+}
+
+void asyncmeta_log_conns(a_metainfo_t *mi)
+{
+	a_metaconn_t *mc;
+	int i, j;
+	for (i = 0; i < mi->mi_num_conns; i++) {
+		mc = &mi->mi_conns[i];
+		Debug(asyncmeta_debug, "mc: %p, mc->pending_ops: %d\n", mc, mc->pending_ops);
+		for (j = 0; j < mi->mi_ntargets; j++ ) {
+			asyncmeta_log_msc(&mc->mc_conns[j]);
+		}
+
+	}
 }

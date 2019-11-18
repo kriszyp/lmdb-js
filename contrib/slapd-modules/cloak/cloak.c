@@ -1,8 +1,8 @@
-/* cloak.c - Overlay to hide some attribute except if explicitely requested */
+/* cloak.c - Overlay to hide some attribute except if explicitly requested */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2017 The OpenLDAP Foundation.
+ * Copyright 2008-2019 The OpenLDAP Foundation.
  * Portions Copyright 2008 Emmanuel Dreyfus
  * All rights reserved.
  *
@@ -129,7 +129,7 @@ cloak_cfgen( ConfigArgs *c )
 					  "unable to find ObjectClass \"%s\"",
 					  c->argv[ 2 ] );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				       c->log, c->cr_msg, 0 );
+				       c->log, c->cr_msg );
 				return 1;
 			}
 		}
@@ -140,7 +140,7 @@ cloak_cfgen( ConfigArgs *c )
 				"unable to find AttributeDescription \"%s\"",
 				c->argv[ 1 ] );
 			Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-				c->log, c->cr_msg, 0 );
+				c->log, c->cr_msg );
 			return 1;
 		}
 
@@ -153,7 +153,7 @@ cloak_cfgen( ConfigArgs *c )
 					"invalid index {%d}\n",
 					c->valx );
 				Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 			ci_next = *cip;
@@ -235,8 +235,7 @@ cloak_search_response_cb( Operation *op, SlapReply *rs )
 				continue;
 
 			Debug( LDAP_DEBUG_TRACE, "cloak_search_response_cb: cloak %s\n", 
-			       a->a_desc->ad_cname.bv_val,
-			       0, 0 );
+			       a->a_desc->ad_cname.bv_val );
 
 			if ( pa != NULL ) 
 				pa->a_next = a->a_next;

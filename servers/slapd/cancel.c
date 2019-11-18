@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,8 +56,8 @@ int cancel_extop( Operation *op, SlapReply *rs )
 
 	(void) ber_free( ber, 1 );
 
-	Statslog( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
-		op->o_log_prefix, opid, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
+		op->o_log_prefix, opid );
 
 	if ( opid < 0 ) {
 		rs->sr_text = "message ID invalid";

@@ -7,6 +7,7 @@ LDAP_LIB = $(LDAP_BUILD)/libraries/libldap_r/libldap_r.la \
 	$(LDAP_BUILD)/libraries/liblber/liblber.la
 
 LIBTOOL = $(LDAP_BUILD)/libtool
+INSTALL = /usr/bin/install
 CC = gcc
 OPT = -g -O2 -Wall
 #DEFS = -DSLAPD_PBKDF2_DEBUG
@@ -15,6 +16,7 @@ INCS = $(LDAP_INC)
 LIBS = $(LDAP_LIB) -lcrypto
 
 PROGRAMS = pw-pbkdf2.la
+MANPAGES = slapd-pw-pbkdf2.5
 LTVER = 0:0:0
 
 #prefix=/usr/local
@@ -26,6 +28,8 @@ ldap_subdir=/openldap
 libdir=$(exec_prefix)/lib
 libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
+mandir = $(exec_prefix)/share/man
+man5dir = $(mandir)/man5
 
 .SUFFIXES: .c .o .lo
 
@@ -41,8 +45,17 @@ pw-pbkdf2.la: pw-pbkdf2.lo
 clean:
 	rm -rf *.o *.lo *.la .libs
 
-install:	$(PROGRAMS)
+install: install-lib install-man FORCE
+
+install-lib: $(PROGRAMS)
 	mkdir -p $(DESTDIR)$(moduledir)
 	for p in $(PROGRAMS) ; do \
 		$(LIBTOOL) --mode=install cp $$p $(DESTDIR)$(moduledir) ; \
 	done
+
+install-man: $(MANPAGES)
+	mkdir -p  $(DESTDIR)$(man5dir)
+	$(INSTALL) -m 644 $(MANPAGES) $(DESTDIR)$(man5dir)
+
+FORCE:
+

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,7 @@ struct ldap_int_thread_poolq_s {
 	ldap_pvt_thread_cond_t ltp_cond;
 
 	/* ltp_pause == 0 ? &ltp_pending_list : &empty_pending_list,
-	 * maintaned to reduce work for pool_wrapper()
+	 * maintained to reduce work for pool_wrapper()
 	 */
 	ldap_int_tpool_plist_t *ltp_work_list;
 
@@ -443,7 +443,7 @@ ldap_pvt_thread_pool_submit2 (
 				 */
 				ldap_int_thread_task_t *ptr;
 
-				/* let pool_destroy know there are no more threads */
+				/* let pool_close know there are no more threads */
 				ldap_pvt_thread_cond_signal(&pq->ltp_cond);
 
 				LDAP_STAILQ_FOREACH(ptr, &pq->ltp_pending_list, ltt_next.q)
@@ -514,6 +514,46 @@ ldap_pvt_thread_pool_retract (
 		}
 	ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
 	return task != NULL;
+}
+
+/* Walk the pool and allow tasks to be retracted, only to be called while the
+ * pool is paused */
+int
+ldap_pvt_thread_pool_walk(
+	ldap_pvt_thread_pool_t *tpool,
+	ldap_pvt_thread_start_t *start,
+	ldap_pvt_thread_walk_t *cb, void *arg )
+{
+	struct ldap_int_thread_pool_s *pool;
+	struct ldap_int_thread_poolq_s *pq;
+	ldap_int_thread_task_t *task;
+	int i;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(-1);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+	assert(pool->ltp_pause == PAUSED);
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+
+	for (i=0; i<pool->ltp_numqs; i++) {
+		pq = pool->ltp_wqs[i];
+		LDAP_STAILQ_FOREACH(task, &pq->ltp_pending_list, ltt_next.q) {
+			if ( task->ltt_start_routine == start ) {
+				if ( cb( task->ltt_start_routine, task->ltt_arg, arg ) ) {
+					/* retract */
+					task->ltt_start_routine = no_task;
+					task->ltt_arg = NULL;
+				}
+			}
+		}
+	}
+	return 0;
 }
 
 /* Set number of work queues in this pool. Should not be
@@ -771,9 +811,26 @@ ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
 	return rc;
 }
 
-/* Destroy the pool after making its threads finish */
+
+/*
+ * wrapper for ldap_pvt_thread_pool_close+free(), left around
+ * for backwards compatibility
+ */
 int
 ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
+{
+	int rc;
+
+	if ( (rc = ldap_pvt_thread_pool_close( tpool, run_pending )) ) {
+		return rc;
+	}
+
+	return ldap_pvt_thread_pool_free( tpool );
+}
+
+/* Shut down the pool making its threads finish */
+int
+ldap_pvt_thread_pool_close ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
 	struct ldap_int_thread_pool_s *pool, *pptr;
 	struct ldap_int_thread_poolq_s *pq;
@@ -790,9 +847,6 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	LDAP_STAILQ_FOREACH(pptr, &ldap_int_thread_pool_list, ltp_next)
 		if (pptr == pool) break;
-	if (pptr == pool)
-		LDAP_STAILQ_REMOVE(&ldap_int_thread_pool_list, pool,
-			ldap_int_thread_pool_s, ltp_next);
 	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
 
 	if (pool != pptr) return(-1);
@@ -830,15 +884,46 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 			LDAP_FREE(task);
 		}
 		ldap_pvt_thread_mutex_unlock(&pq->ltp_mutex);
-		ldap_pvt_thread_cond_destroy(&pq->ltp_cond);
-		ldap_pvt_thread_mutex_destroy(&pq->ltp_mutex);
 	}
+
+	return(0);
+}
+
+/* Destroy the pool, everything must have already shut down */
+int
+ldap_pvt_thread_pool_free ( ldap_pvt_thread_pool_t *tpool )
+{
+	struct ldap_int_thread_pool_s *pool, *pptr;
+	struct ldap_int_thread_poolq_s *pq;
+	int i;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL) return(-1);
+
+	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
+	LDAP_STAILQ_FOREACH(pptr, &ldap_int_thread_pool_list, ltp_next)
+		if (pptr == pool) break;
+	if (pptr == pool)
+		LDAP_STAILQ_REMOVE(&ldap_int_thread_pool_list, pool,
+			ldap_int_thread_pool_s, ltp_next);
+	ldap_pvt_thread_mutex_unlock(&ldap_pvt_thread_pool_mutex);
+
+	if (pool != pptr) return(-1);
 
 	ldap_pvt_thread_cond_destroy(&pool->ltp_pcond);
 	ldap_pvt_thread_cond_destroy(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_destroy(&pool->ltp_mutex);
 	for (i=0; i<pool->ltp_numqs; i++) {
 		pq = pool->ltp_wqs[i];
+
+		assert( !pq->ltp_open_count );
+		assert( LDAP_SLIST_EMPTY(&pq->ltp_free_list) );
+		ldap_pvt_thread_cond_destroy(&pq->ltp_cond);
+		ldap_pvt_thread_mutex_destroy(&pq->ltp_mutex);
 		if (pq->ltp_free) {
 			LDAP_FREE(pq->ltp_free);
 		}

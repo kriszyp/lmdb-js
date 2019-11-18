@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,6 +138,7 @@ LDAP_BEGIN_DECL
 #define	LDAP_OPT_CONNECT_ASYNC		0x5010	/* create connections asynchronously */
 #define	LDAP_OPT_CONNECT_CB			0x5011	/* connection callbacks */
 #define	LDAP_OPT_SESSION_REFCNT		0x5012	/* session reference count */
+#define	LDAP_OPT_KEEPCONN		0x5013	/* keep the connection on read error or NoD */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
@@ -165,6 +166,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_CACERT		0x6016
 #define LDAP_OPT_X_TLS_CERT			0x6017
 #define LDAP_OPT_X_TLS_KEY			0x6018
+#define LDAP_OPT_X_TLS_PEERKEY_HASH	0x6019
 
 #define LDAP_OPT_X_TLS_NEVER	0
 #define LDAP_OPT_X_TLS_HARD		1
@@ -345,7 +347,16 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_X_TREE_DELETE		"1.2.840.113556.1.4.805"
 
 /* MS Active Directory controls - not implemented in slapd(8) */
+#define LDAP_CONTROL_X_SERVER_NOTIFICATION	"1.2.840.113556.1.4.528"
 #define LDAP_CONTROL_X_EXTENDED_DN		"1.2.840.113556.1.4.529"
+#define LDAP_CONTROL_X_SHOW_DELETED		"1.2.840.113556.1.4.417"
+#define LDAP_CONTROL_X_DIRSYNC			"1.2.840.113556.1.4.841"
+
+#define LDAP_CONTROL_X_DIRSYNC_OBJECT_SECURITY		0x00000001
+#define LDAP_CONTROL_X_DIRSYNC_ANCESTORS_FIRST		0x00000800
+#define LDAP_CONTROL_X_DIRSYNC_PUBLIC_DATA_ONLY		0x00002000
+#define LDAP_CONTROL_X_DIRSYNC_INCREMENTAL_VALUES	0x80000000
+
 
 /* <draft-wahl-ldap-session> */
 #define LDAP_CONTROL_X_SESSION_TRACKING		"1.3.6.1.4.1.21008.108.63.1"
@@ -1548,6 +1559,9 @@ LDAP_F( LDAP * )
 ldap_dup LDAP_P((
 	LDAP *old ));
 
+LDAP_F( int )
+ldap_connect( LDAP *ld );
+
 /*
  * in tls.c
  */
@@ -2063,6 +2077,12 @@ LDAP_F( int )
 ldap_is_ldapi_url LDAP_P((
 	LDAP_CONST char *url ));
 
+#ifdef LDAP_CONNECTIONLESS
+LDAP_F( int )
+ldap_is_ldapc_url LDAP_P((
+	LDAP_CONST char *url ));
+#endif
+
 LDAP_F( int )
 ldap_url_parse LDAP_P((
 	LDAP_CONST char *url,
@@ -2544,6 +2564,62 @@ ldap_parse_session_tracking_control LDAP_P((
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
 /*
+ * in msctrl.c
+ */
+#ifdef LDAP_CONTROL_X_DIRSYNC
+LDAP_F( int )
+ldap_create_dirsync_value LDAP_P((
+	LDAP		*ld,
+	int		flags,
+	int		maxAttrCount,
+	struct berval	*cookie,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_dirsync_control LDAP_P((
+	LDAP		*ld,
+	int		flags,
+	int		maxAttrCount,
+	struct berval	*cookie,
+	LDAPControl	**ctrlp ));
+
+LDAP_F( int )
+ldap_parse_dirsync_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	*ctrl,
+	int		*continueFlag,
+	struct berval	*cookie ));
+#endif /* LDAP_CONTROL_X_DIRSYNC */
+
+#ifdef LDAP_CONTROL_X_EXTENDED_DN
+LDAP_F( int )
+ldap_create_extended_dn_value LDAP_P((
+	LDAP		*ld,
+	int		flag,
+	struct berval	*value ));
+
+LDAP_F( int )
+ldap_create_extended_dn_control LDAP_P((
+	LDAP		*ld,
+	int		flag,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_EXTENDED_DN */
+
+#ifdef LDAP_CONTROL_X_SHOW_DELETED
+LDAP_F( int )
+ldap_create_show_deleted_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_SHOW_DELETED */
+
+#ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
+LDAP_F( int )
+ldap_create_server_notification_control LDAP_P((
+	LDAP		*ld,
+	LDAPControl	**ctrlp ));
+#endif /* LDAP_CONTROL_X_SERVER_NOTIFICATION */
+
+/*
  * in assertion.c
  */
 LDAP_F (int)
@@ -2611,11 +2687,44 @@ ldap_parse_deref_control LDAP_P((
 	LDAPDerefRes	**drp ));
 
 /*
+ * in psearch.c
+ */
+
+LDAP_F( int )
+ldap_create_persistentsearch_control_value LDAP_P((
+	LDAP *ld,
+	int changetypes,
+	int changesonly,
+	int return_echg_ctls,
+	struct berval *value ));
+
+LDAP_F( int )
+ldap_create_persistentsearch_control LDAP_P((
+	LDAP *ld,
+	int changetypes,
+	int changesonly,
+	int return_echg_ctls,
+	int isCritical,
+	LDAPControl **ctrlp ));
+
+LDAP_F( int )
+ldap_parse_entrychange_control LDAP_P((
+	LDAP *ld,
+	LDAPControl *ctrl,
+	int *chgtypep,
+	struct berval *prevdnp,
+	int *chgnumpresentp,
+	long *chgnump ));
+
+
+/*
  * high level LDIF to LDAP structure support
  */
 #define LDIF_DEFAULT_ADD  0x01 /* if changetype missing, assume LDAP_ADD */
 #define LDIF_ENTRIES_ONLY 0x02 /* ignore changetypes other than add */
 #define LDIF_NO_CONTROLS  0x04 /* ignore control specifications */
+#define LDIF_MODS_ONLY    0x08 /* no changetypes, assume LDAP_MODIFY */
+#define LDIF_NO_DN        0x10 /* dn is not present */
 
 typedef struct ldifrecord {
 	ber_tag_t lr_op; /* type of operation - LDAP_REQ_MODIFY, LDAP_REQ_ADD, etc. */

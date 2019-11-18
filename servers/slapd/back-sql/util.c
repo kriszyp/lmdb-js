@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
@@ -76,7 +76,7 @@ backsql_strcat_x( struct berbuf *dest, void *memctx, ... )
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
  
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_strcat()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_strcat()\n" );
 #endif /* BACKSQL_TRACE */
 
 	va_start( strs, memctx );
@@ -103,8 +103,7 @@ backsql_strcat_x( struct berbuf *dest, void *memctx, ... )
 					dest->bb_len + grow * sizeof( char ), memctx );
 			if ( tmp_dest == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "backsql_strcat(): "
-					"could not reallocate string buffer.\n",
-					0, 0, 0 );
+					"could not reallocate string buffer.\n" );
 				va_end( strs );
 				return NULL;
 			}
@@ -114,7 +113,7 @@ backsql_strcat_x( struct berbuf *dest, void *memctx, ... )
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_strcat(): "
 				"new buflen=%d, dest=%p\n",
-				dest->bb_len, dest, 0 );
+				dest->bb_len, dest );
 #endif /* BACKSQL_TRACE */
 		}
 		AC_MEMCPY( dest->bb_val.bv_val + cdlen, cstr, cslen + 1 );
@@ -124,7 +123,7 @@ backsql_strcat_x( struct berbuf *dest, void *memctx, ... )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_strcat() (dest=\"%s\")\n", 
-			dest->bb_val.bv_val, 0, 0 );
+			dest->bb_val.bv_val );
 #endif /* BACKSQL_TRACE */
 
 	dest->bb_val.bv_len = cdlen;
@@ -145,7 +144,7 @@ backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... )
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
  
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_strfcat()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_strfcat()\n" );
 #endif /* BACKSQL_TRACE */
 
 	va_start( strs, fmt );
@@ -211,8 +210,7 @@ backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... )
 					( dest->bb_len ) + grow * sizeof( char ), memctx );
 			if ( tmp_dest == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "backsql_strfcat(): "
-					"could not reallocate string buffer.\n",
-					0, 0, 0 );
+					"could not reallocate string buffer.\n" );
 				va_end( strs );
 				return NULL;
 			}
@@ -221,7 +219,7 @@ backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... )
 
 #ifdef BACKSQL_TRACE
 			Debug( LDAP_DEBUG_TRACE, "backsql_strfcat(): "
-				"new buflen=%d, dest=%p\n", dest->bb_len, dest, 0 );
+				"new buflen=%d, dest=%p\n", dest->bb_len, dest );
 #endif /* BACKSQL_TRACE */
 		}
 
@@ -235,7 +233,7 @@ backsql_strfcat_x( struct berbuf *dest, void *memctx, const char *fmt, ... )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_strfcat() (dest=\"%s\")\n", 
-			dest->bb_val.bv_val, 0, 0 );
+			dest->bb_val.bv_val );
 #endif /* BACKSQL_TRACE */
 
 	dest->bb_val.bv_len = cdlen;
@@ -268,7 +266,7 @@ backsql_entry_addattr(
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_entry_addattr(\"%s\")\n",
-		e->e_name.bv_val, 0, 0 );
+		e->e_name.bv_val );
 #endif /* BACKSQL_TRACE */
 
 	return LDAP_SUCCESS;
@@ -335,7 +333,7 @@ backsql_merge_from_clause(
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_merge_from_clause(): "
 		"dest_from=\"%s\",src_from=\"%s\"\n",
  		dest_from ? dest_from->bb_val.bv_val : "<NULL>",
-		src_from->bv_val, 0 );
+		src_from->bv_val );
 #endif /* BACKSQL_TRACE */
 
 	srcc = ch_strdup( src_from->bv_val );
@@ -350,7 +348,7 @@ backsql_merge_from_clause(
 
 #ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_merge_from_clause(): "
-			"p=\"%s\" s=\"%s\"\n", p, s, 0 );
+			"p=\"%s\" s=\"%s\"\n", p, s );
 #endif /* BACKSQL_TRACE */
 
 		if ( BER_BVISNULL( &res.bb_val ) ) {
@@ -369,7 +367,7 @@ backsql_merge_from_clause(
 	}
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_merge_from_clause()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_merge_from_clause()\n" );
 #endif /* BACKSQL_TRACE */
 
 	free( srcc );

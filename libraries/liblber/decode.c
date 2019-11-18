@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -234,6 +234,25 @@ ber_skip_element( BerElement *ber, struct berval *bv )
 	return tag;
 }
 
+/* Move past next element, point *bv at the complete element in-place, and
+ * return its tag. The caller may \0-terminate *bv, as next octet is saved in
+ * ber->ber_tag. Similar to ber_skip_element(ber, bv) except the tag+length
+ * header is also included in *bv.
+ */
+ber_tag_t
+ber_skip_raw( BerElement *ber, struct berval *bv )
+{
+	char		*val = ber->ber_ptr;
+	ber_tag_t	tag = ber_skip_element( ber, bv );
+
+	if ( tag != LBER_DEFAULT ) {
+		bv->bv_len += bv->bv_val - val;
+		bv->bv_val = val;
+	}
+
+	return tag;
+}
+
 ber_tag_t
 ber_peek_tag(
 	BerElement *ber,
@@ -264,21 +283,28 @@ ber_get_int(
 	BerElement *ber,
 	ber_int_t *num )
 {
-	ber_tag_t	tag;
-	ber_len_t	len;
 	struct berval bv;
+	ber_tag_t	tag = ber_skip_element( ber, &bv );
+
+	if ( tag == LBER_DEFAULT ) {
+		return tag;
+	}
+
+	return ber_decode_int( &bv, num ) ? LBER_DEFAULT : tag;
+}
+
+int
+ber_decode_int( const struct berval *bv, ber_int_t *num )
+{
+	ber_len_t	len = bv->bv_len;
+	if ( len > sizeof(ber_int_t) )
+		return -1;
 
 	assert( num != NULL );
 
-	tag = ber_skip_element( ber, &bv );
-	len = bv.bv_len;
-	if ( tag == LBER_DEFAULT || len > sizeof(ber_int_t) ) {
-		return LBER_DEFAULT;
-	}
-
 	/* parse two's complement integer */
 	if( len ) {
-		unsigned char *buf = (unsigned char *) bv.bv_val;
+		unsigned char *buf = (unsigned char *) bv->bv_val;
 		ber_len_t i;
 		ber_int_t netnum = buf[0] & 0xff;
 
@@ -296,7 +322,7 @@ ber_get_int(
 		*num = 0;
 	}
 
-	return tag;
+	return 0;
 }
 
 ber_tag_t

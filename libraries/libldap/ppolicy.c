@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * Portions Copyright 2004 Howard Chu, Symas Corp.
  * All rights reserved.
@@ -81,7 +81,7 @@ ldap_create_passwordpolicy_control( LDAP *ld,
    
    ctrl         (IN)   The address of an
 					   LDAPControl structure, either obtained 
-					   by running thorugh the list of response controls or
+					   by running through the list of response controls or
 					   by a call to ldap_control_find().
 
    exptimep     (OUT)  This result parameter is filled in with the number of seconds before

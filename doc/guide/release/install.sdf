@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 P1: Making and Installing the OpenLDAP Distribution
@@ -84,7 +84,7 @@ if you have not done so already.
 + Test the standalone system:
 
 .This step requires the standalone LDAP server, {{slapd}}(8),
-with {{HDB}} and/or {{BDB}} support.
+with {{MDB}} support.
 
 E:	% make test
 

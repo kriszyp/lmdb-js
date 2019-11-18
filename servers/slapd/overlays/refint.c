@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * Portions Copyright 2004 Symas Corporation.
  * All rights reserved.
  *
@@ -119,11 +119,13 @@ static ConfigTable refintcfg[] = {
 	  ARG_DN|ARG_MAGIC|REFINT_NOTHING, refint_cf_gen,
 	  "( OLcfgOvAt:11.2 NAME 'olcRefintNothing' "
 	  "DESC 'Replacement DN to supply when needed' "
+	  "EQUALITY distinguishedNameMatch "
 	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "refint_modifiersName", "DN", 2, 2, 0,
 	  ARG_DN|ARG_MAGIC|REFINT_MODIFIERSNAME, refint_cf_gen,
 	  "( OLcfgOvAt:11.3 NAME 'olcRefintModifiersName' "
 	  "DESC 'The DN to use as modifiersName' "
+	  "EQUALITY distinguishedNameMatch "
 	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -235,7 +237,7 @@ refint_cf_gen(ConfigArgs *c)
 		}
 		break;
 	case SLAP_CONFIG_ADD:
-		/* fallthrough to LDAP_MOD_ADD */
+		/* fallthru to LDAP_MOD_ADD */
 	case LDAP_MOD_ADD:
 		switch ( c->type ) {
 		case REFINT_ATTRS:
@@ -253,7 +255,7 @@ refint_cf_gen(ConfigArgs *c)
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"%s <%s>: %s", c->argv[0], c->argv[i], text );
 					Debug ( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-						"%s: %s\n", c->log, c->cr_msg, 0 );
+						"%s: %s\n", c->log, c->cr_msg );
 					rc = ARG_BAD_CONF;
 				}
 			}
@@ -382,15 +384,14 @@ refint_open(
 				bi = db->bd_info;
 			if ( !bi->bi_op_search || !bi->bi_op_modify ) {
 				Debug( LDAP_DEBUG_CONFIG,
-					"refint_response: backend missing search and/or modify\n",
-					0, 0, 0 );
+					"refint_response: backend missing search and/or modify\n" );
 				return -1;
 			}
 			id->db = db;
 		} else {
 			Debug( LDAP_DEBUG_CONFIG,
 				"refint_response: no backend for our baseDN %s??\n",
-				id->dn.bv_val, 0, 0 );
+				id->dn.bv_val );
 			return -1;
 		}
 	}
@@ -443,7 +444,7 @@ refint_search_cb(
 	int i;
 
 	Debug(LDAP_DEBUG_TRACE, "refint_search_cb <%s>\n",
-		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "NOTHING", 0, 0);
+		rs->sr_entry ? rs->sr_entry->e_name.bv_val : "NOTHING" );
 
 	if (rs->sr_type != REP_SEARCH || !rs->sr_entry) return(0);
 
@@ -599,15 +600,14 @@ refint_repair(
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"refint_repair: search failed: %d\n",
-			rc, 0, 0 );
+			rc );
 		return rc;
 	}
 
 	/* safety? paranoid just in case */
 	if ( op->o_callback->sc_private == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"refint_repair: callback wiped out sc_private?!\n",
-			0, 0, 0 );
+			"refint_repair: callback wiped out sc_private?!\n" );
 		return 0;
 	}
 
@@ -636,7 +636,7 @@ refint_repair(
 		if ( !op2.o_bd ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"refint_repair: no backend for DN %s!\n",
-				dp->dn.bv_val, 0, 0 );
+				dp->dn.bv_val );
 			continue;
 		}
 		op2.o_tag = LDAP_REQ_MODIFY;
@@ -738,7 +738,7 @@ refint_repair(
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"refint_repair: dependent modify failed: %d\n",
-				rs2.sr_err, 0, 0 );
+				rs2.sr_err );
 		}
 
 		while ( ( m = op2.orm_modlist ) ) {
@@ -1057,8 +1057,7 @@ int refint_initialize() {
 	mr_dnSubtreeMatch = mr_find( "dnSubtreeMatch" );
 	if ( mr_dnSubtreeMatch == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "refint_initialize: "
-			"unable to find MatchingRule 'dnSubtreeMatch'.\n",
-			0, 0, 0 );
+			"unable to find MatchingRule 'dnSubtreeMatch'.\n" );
 		return 1;
 	}
 

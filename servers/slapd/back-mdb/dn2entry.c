@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ mdb_dn2entry(
 	MDB_cursor *mc;
 
 	Debug(LDAP_DEBUG_TRACE, "mdb_dn2entry(\"%s\")\n",
-		dn->bv_val ? dn->bv_val : "", 0, 0 );
+		dn->bv_val ? dn->bv_val : "" );
 
 	*e = NULL;
 

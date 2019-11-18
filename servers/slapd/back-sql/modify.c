@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
@@ -46,13 +46,12 @@ backsql_modify( Operation *op, SlapReply *rs )
 	 * should be rolled-back
 	 */
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_modify(): modifying entry \"%s\"\n",
-		op->o_req_ndn.bv_val, 0, 0 );
+		op->o_req_ndn.bv_val );
 
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
-			"could not get connection handle - exiting\n", 
-			0, 0, 0 );
+			"could not get connection handle - exiting\n" );
 		/*
 		 * FIXME: we don't want to send back 
 		 * excessively detailed messages
@@ -90,8 +89,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 
 	default:
 		Debug( LDAP_DEBUG_TRACE, "backsql_modify(): "
-			"could not retrieve modifyDN ID - no such entry\n", 
-			0, 0, 0 );
+			"could not retrieve modifyDN ID - no such entry\n" );
 		if ( !BER_BVISNULL( &m.e_nname ) ) {
 			/* FIXME: should always be true! */
 			e = &m;
@@ -105,7 +103,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modify(): "
 		"modifying entry \"%s\" (id=" BACKSQL_IDFMT ")\n", 
 		bsi.bsi_base_id.eid_dn.bv_val,
-		BACKSQL_IDARG(bsi.bsi_base_id.eid_id), 0 );
+		BACKSQL_IDARG(bsi.bsi_base_id.eid_id) );
 
 	if ( get_assert( op ) &&
 			( test_filter( op, &m, get_assertion( op ) )
@@ -151,7 +149,7 @@ backsql_modify( Operation *op, SlapReply *rs )
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modify(\"%s\"): "
 				"entry failed schema check -- aborting\n",
-				m.e_name.bv_val, 0, 0 );
+				m.e_name.bv_val );
 			e = NULL;
 			goto do_transact;
 		}
@@ -207,7 +205,7 @@ done:;
 		rs->sr_ref = NULL;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_modify()\n" );
 
 	return rs->sr_err;
 }

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 Lars Uffmann.
  * All rights reserved.
  *
@@ -50,19 +50,6 @@ int ldap_int_inet4or6 = AF_INET;
 #  endif
 #endif
 
-#ifdef LDAP_DEBUG
-
-#define osip_debug(ld,fmt,arg1,arg2,arg3) \
-do { \
-	ldap_log_printf(NULL, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
-} while(0)
-
-#else
-
-#define osip_debug(ld,fmt,arg1,arg2,arg3) ((void)0)
-
-#endif /* LDAP_DEBUG */
-
 static void
 ldap_pvt_set_errno(int err)
 {
@@ -97,14 +84,14 @@ ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 static int
 ldap_pvt_ndelay_on(LDAP *ld, int fd)
 {
-	osip_debug(ld, "ldap_ndelay_on: %d\n",fd,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_ndelay_on: %d\n",fd );
 	return ber_pvt_socket_set_nonblock( fd, 1 );
 }
    
 static int
 ldap_pvt_ndelay_off(LDAP *ld, int fd)
 {
-	osip_debug(ld, "ldap_ndelay_off: %d\n",fd,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_ndelay_off: %d\n",fd );
 	return ber_pvt_socket_set_nonblock( fd, 0 );
 }
 
@@ -112,7 +99,7 @@ static ber_socket_t
 ldap_int_socket(LDAP *ld, int family, int type )
 {
 	ber_socket_t s = socket(family, type, 0);
-	osip_debug(ld, "ldap_new_socket: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_new_socket: %d\n",s );
 #ifdef FD_CLOEXEC
 	fcntl(s, F_SETFD, FD_CLOEXEC);
 #endif
@@ -122,14 +109,14 @@ ldap_int_socket(LDAP *ld, int family, int type )
 static int
 ldap_pvt_close_socket(LDAP *ld, int s)
 {
-	osip_debug(ld, "ldap_close_socket: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_close_socket: %d\n",s );
 	return tcp_close(s);
 }
 
 static int
 ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 {
-	osip_debug( ld, "ldap_prepare_socket: %d\n", s, 0, 0 );
+	Debug1(LDAP_DEBUG_TRACE, "ldap_prepare_socket: %d\n", s );
 
 #if defined( SO_KEEPALIVE ) || defined( TCP_NODELAY )
 	if ( proto == LDAP_PROTO_TCP ) {
@@ -138,9 +125,9 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 		if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
 			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
 		{
-			osip_debug( ld, "ldap_prepare_socket: "
+			Debug1(LDAP_DEBUG_TRACE, "ldap_prepare_socket: "
 				"setsockopt(%d, SO_KEEPALIVE) failed (ignored).\n",
-				s, 0, 0 );
+				s );
 		}
 		if ( ld->ld_options.ldo_keepalive_idle > 0 )
 		{
@@ -149,14 +136,14 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 					(void*) &ld->ld_options.ldo_keepalive_idle,
 					sizeof(ld->ld_options.ldo_keepalive_idle) ) == AC_SOCKET_ERROR )
 			{
-				osip_debug( ld, "ldap_prepare_socket: "
+				Debug1(LDAP_DEBUG_TRACE,
+					"ldap_prepare_socket: "
 					"setsockopt(%d, TCP_KEEPIDLE) failed (ignored).\n",
-					s, 0, 0 );
+					s );
 			}
 #else
-			osip_debug( ld, "ldap_prepare_socket: "
-					"sockopt TCP_KEEPIDLE not supported on this system.\n", 
-					0, 0, 0 );
+			Debug0(LDAP_DEBUG_TRACE, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPIDLE not supported on this system.\n" );
 #endif /* TCP_KEEPIDLE */
 		}
 		if ( ld->ld_options.ldo_keepalive_probes > 0 )
@@ -166,14 +153,14 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 					(void*) &ld->ld_options.ldo_keepalive_probes,
 					sizeof(ld->ld_options.ldo_keepalive_probes) ) == AC_SOCKET_ERROR )
 			{
-				osip_debug( ld, "ldap_prepare_socket: "
+				Debug1(LDAP_DEBUG_TRACE,
+					"ldap_prepare_socket: "
 					"setsockopt(%d, TCP_KEEPCNT) failed (ignored).\n",
-					s, 0, 0 );
+					s );
 			}
 #else
-			osip_debug( ld, "ldap_prepare_socket: "
-					"sockopt TCP_KEEPCNT not supported on this system.\n", 
-					0, 0, 0 );
+			Debug0(LDAP_DEBUG_TRACE, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPCNT not supported on this system.\n" );
 #endif /* TCP_KEEPCNT */
 		}
 		if ( ld->ld_options.ldo_keepalive_interval > 0 )
@@ -183,14 +170,14 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 					(void*) &ld->ld_options.ldo_keepalive_interval,
 					sizeof(ld->ld_options.ldo_keepalive_interval) ) == AC_SOCKET_ERROR )
 			{
-				osip_debug( ld, "ldap_prepare_socket: "
+				Debug1(LDAP_DEBUG_TRACE,
+					"ldap_prepare_socket: "
 					"setsockopt(%d, TCP_KEEPINTVL) failed (ignored).\n",
-					s, 0, 0 );
+					s );
 			} 
 #else
-			osip_debug( ld, "ldap_prepare_socket: "
-					"sockopt TCP_KEEPINTVL not supported on this system.\n", 
-					0, 0, 0 );
+			Debug0(LDAP_DEBUG_TRACE, "ldap_prepare_socket: "
+					"sockopt TCP_KEEPINTVL not supported on this system.\n" );
 #endif /* TCP_KEEPINTVL */
 		}
 #endif /* SO_KEEPALIVE */
@@ -198,9 +185,9 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 		if ( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
 			(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
 		{
-			osip_debug( ld, "ldap_prepare_socket: "
+			Debug1(LDAP_DEBUG_TRACE, "ldap_prepare_socket: "
 				"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
-				s, 0, 0 );
+				s );
 		}
 #endif /* TCP_NODELAY */
 	}
@@ -213,8 +200,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 
 #undef TRACE
 #define TRACE do { \
-	osip_debug(ld, \
-		"ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
+	Debug3(LDAP_DEBUG_TRACE, "ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
 		sock_errstr(errno) ); \
@@ -226,7 +212,7 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 static int
 ldap_pvt_is_socket_ready(LDAP *ld, int s)
 {
-	osip_debug(ld, "ldap_is_sock_ready: %d\n",s,0,0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_is_sock_ready: %d\n",s );
 
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
@@ -282,8 +268,8 @@ ldap_int_poll(
 	int		rc;
 		
 
-	osip_debug(ld, "ldap_int_poll: fd: %d tm: %ld\n",
-		s, tvp ? tvp->tv_sec : -1L, 0);
+	Debug2(LDAP_DEBUG_TRACE, "ldap_int_poll: fd: %d tm: %ld\n",
+		s, tvp ? tvp->tv_sec : -1L );
 
 #ifdef HAVE_POLL
 	{
@@ -383,7 +369,8 @@ ldap_int_poll(
 				so_errno = WSAGetLastError();
 			}
 			ldap_pvt_set_errno( so_errno );
-			osip_debug(ld, "ldap_int_poll: error on socket %d: "
+			Debug3(LDAP_DEBUG_TRACE,
+			       "ldap_int_poll: error on socket %d: "
 			       "errno: %d (%s)\n", s, errno, sock_errstr( errno ));
 			return -1;
 		}
@@ -402,7 +389,7 @@ ldap_int_poll(
 	}
 #endif
 
-	osip_debug(ld, "ldap_int_poll: timed out\n",0,0,0);
+	Debug0(LDAP_DEBUG_TRACE, "ldap_int_poll: timed out\n" );
 	ldap_pvt_set_errno( ETIMEDOUT );
 	return -1;
 }
@@ -432,23 +419,24 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 		opt_tv = &tv;
 	}
 
-	osip_debug(ld, "ldap_pvt_connect: fd: %d tm: %ld async: %d\n",
+	Debug3(LDAP_DEBUG_TRACE,
+			"ldap_pvt_connect: fd: %d tm: %ld async: %d\n",
 			s, opt_tv ? tv.tv_sec : -1L, async);
 
 	if ( opt_tv && ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
 	do{
-		osip_debug(ld, "attempting to connect: \n", 0, 0, 0);
+		Debug0(LDAP_DEBUG_TRACE, "attempting to connect: \n" );
 		if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
-			osip_debug(ld, "connect success\n", 0, 0, 0);
+			Debug0(LDAP_DEBUG_TRACE, "connect success\n" );
 
-			if ( opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
+			if ( !async && opt_tv && ldap_pvt_ndelay_off(ld, s) == -1 )
 				return ( -1 );
 			return ( 0 );
 		}
 		err = sock_errno();
-		osip_debug(ld, "connect errno: %d\n", err, 0, 0);
+		Debug1(LDAP_DEBUG_TRACE, "connect errno: %d\n", err );
 
 	} while(err == EINTR &&
 		LDAP_BOOL_GET( &ld->ld_options, LDAP_BOOL_RESTART ));
@@ -464,7 +452,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 
 	rc = ldap_int_poll( ld, s, opt_tv, 1 );
 
-	osip_debug(ld, "ldap_pvt_connect: %d\n", rc, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_pvt_connect: %d\n", rc );
 
 	return rc;
 }
@@ -577,18 +565,17 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 	switch(proto) {
 	case LDAP_PROTO_TCP: socktype = SOCK_STREAM;
-		osip_debug( ld,
-			"ldap_connect_to_host: TCP %s:%d\n",
-			host, port, 0);
+		Debug2(LDAP_DEBUG_TRACE, "ldap_connect_to_host: TCP %s:%d\n",
+			host, port );
 		break;
 	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM;
-		osip_debug( ld,
-			"ldap_connect_to_host: UDP %s:%d\n",
-			host, port, 0);
+		Debug2(LDAP_DEBUG_TRACE, "ldap_connect_to_host: UDP %s:%d\n",
+			host, port );
 		break;
 	default:
-		osip_debug( ld, "ldap_connect_to_host: unknown proto: %d\n",
-			proto, 0, 0 );
+		Debug1(LDAP_DEBUG_TRACE,
+			"ldap_connect_to_host: unknown proto: %d\n",
+			proto );
 		return -1;
 	}
 
@@ -610,19 +597,24 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	LDAP_MUTEX_UNLOCK(&ldap_int_resolv_mutex);
 
 	if ( err != 0 ) {
-		osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
-			AC_GAI_STRERROR(err), 0, 0);
+		Debug1(LDAP_DEBUG_TRACE,
+			"ldap_connect_to_host: getaddrinfo failed: %s\n",
+			AC_GAI_STRERROR(err) );
 		return -1;
 	}
 	rc = -1;
 
 	for( sai=res; sai != NULL; sai=sai->ai_next) {
 		if( sai->ai_addr == NULL ) {
-			osip_debug(ld, "ldap_connect_to_host: getaddrinfo "
-				"ai_addr is NULL?\n", 0, 0, 0);
+			Debug0(LDAP_DEBUG_TRACE,
+				"ldap_connect_to_host: getaddrinfo "
+				"ai_addr is NULL?\n" );
 			continue;
 		}
 
+#ifndef LDAP_PF_INET6
+		if ( sai->ai_family == AF_INET6 ) continue;
+#endif
 		/* we assume AF_x and PF_x are equal for all x */
 		s = ldap_int_socket( ld, sai->ai_family, socktype );
 		if ( s == AC_SOCKET_INVALID ) {
@@ -641,8 +633,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				inet_ntop( AF_INET6,
 					&((struct sockaddr_in6 *)sai->ai_addr)->sin6_addr,
 					addr, sizeof addr);
-				osip_debug(ld, "ldap_connect_to_host: Trying %s %s\n", 
-					addr, serv, 0);
+				Debug2(LDAP_DEBUG_TRACE,
+				      "ldap_connect_to_host: Trying %s %s\n",
+					addr, serv );
 			} break;
 #endif
 			case AF_INET: {
@@ -650,8 +643,9 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				inet_ntop( AF_INET,
 					&((struct sockaddr_in *)sai->ai_addr)->sin_addr,
 					addr, sizeof addr);
-				osip_debug(ld, "ldap_connect_to_host: Trying %s:%s\n", 
-					addr, serv, 0);
+				Debug2(LDAP_DEBUG_TRACE,
+				      "ldap_connect_to_host: Trying %s:%s\n",
+					addr, serv );
 			} break;
 		}
 
@@ -720,12 +714,14 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 			/* for VxWorks */
 			char address[INET_ADDR_LEN];
 			inet_ntoa_b(sin.sin_address, address);
-			osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
-				address, port, 0);
+			Debug2(LDAP_DEBUG_TRACE,
+			      "ldap_connect_to_host: Trying %s:%d\n",
+				address, port );
 		}
 #else
-		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
-			inet_ntoa(sin.sin_addr), port, 0);
+		Debug2(LDAP_DEBUG_TRACE,
+		      "ldap_connect_to_host: Trying %s:%d\n",
+			inet_ntoa(sin.sin_addr), port );
 #endif
 
 		rc = ldap_pvt_connect(ld, s,
@@ -1124,7 +1120,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 	int rc;
 	struct selectinfo	*sip;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_int_select\n" );
 
 #ifndef HAVE_POLL
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();

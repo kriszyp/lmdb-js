@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -679,6 +679,7 @@ LDAP_SLAPD_F (int) register_supported_control2 LDAP_P((
 LDAP_SLAPD_F (int) unregister_supported_control LDAP_P((
 	const char* controloid ));
 #endif /* SLAP_CONFIG_DELETE */
+LDAP_SLAPD_F (int) register_control_exop LDAP_P (( const char *controloid, char *exopoid ));
 LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
 LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
 LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
@@ -754,6 +755,7 @@ LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 LDAP_SLAPD_F (int) bindconf_tls_set LDAP_P((
 	slap_bindconf *bc, LDAP *ld ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+LDAP_SLAPD_F (void) slap_client_keepalive LDAP_P(( LDAP *ld, slap_keepalive *sk ));
 LDAP_SLAPD_F (int) slap_client_connect LDAP_P(( LDAP **ldp, slap_bindconf *sb ));
 LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
 	const char *fname, int lineno, int argc, char **argv ));
@@ -805,6 +807,9 @@ LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 
 LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
+
+LDAP_SLAPD_F (void) connection_op_finish LDAP_P((
+	Operation *op ));
 
 LDAP_SLAPD_F (unsigned long) connections_nextid(void);
 
@@ -882,6 +887,9 @@ LDAP_SLAPD_F (void) slap_wake_listener LDAP_P((void));
 
 LDAP_SLAPD_F (void) slap_suspend_listeners LDAP_P((void));
 LDAP_SLAPD_F (void) slap_resume_listeners LDAP_P((void));
+
+LDAP_SLAPD_F (int) slap_pause_server LDAP_P((void));
+LDAP_SLAPD_F (int) slap_unpause_server LDAP_P((void));
 
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
@@ -1674,7 +1682,10 @@ LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
 
 LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
 	slap_ssf_t ssf,	/* relative strength of external security */
-	struct berval *authid );	/* asserted authenication id */
+	struct berval *authid );	/* asserted authentication id */
+
+LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c,
+	struct berval *cbv );
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
@@ -1855,6 +1866,11 @@ LDAP_SLAPD_F (void *) slap_sl_calloc LDAP_P((
 	ber_len_t nelem, ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void) slap_sl_free LDAP_P((
 	void *, void *ctx ));
+LDAP_SLAPD_F (void) slap_sl_release LDAP_P((
+	void *, void *ctx ));
+LDAP_SLAPD_F (void *) slap_sl_mark LDAP_P((
+	void *ctx ));
+
 
 LDAP_SLAPD_V (BerMemoryFunctions) slap_sl_mfuncs;
 

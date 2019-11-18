@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 2008 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -533,7 +533,7 @@ deref_db_init( BackendDB *be, ConfigReply *cr)
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"deref_init: Failed to register control (%d)\n",
-				rc, 0, 0 );
+				rc );
 			return rc;
 		}
 	}

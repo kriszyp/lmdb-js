@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * All rights reserved.
@@ -39,13 +39,12 @@ backsql_compare( Operation *op, SlapReply *rs )
 	int			manageDSAit = get_manageDSAit( op );
 	AttributeName		anlist[2];
 
- 	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare()\n" );
 
 	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
-			"could not get connection handle - exiting\n",
-			0, 0, 0 );
+			"could not get connection handle - exiting\n" );
 
 		rs->sr_text = ( rs->sr_err == LDAP_OTHER )
 			? "SQL-backend error" : NULL;
@@ -84,8 +83,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 
 	default:
 		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
-			"could not retrieve compareDN ID - no such entry\n", 
-			0, 0, 0 );
+			"could not retrieve compareDN ID - no such entry\n" );
 		goto return_results;
 	}
 
@@ -183,7 +181,7 @@ return_results:;
 		op->o_tmpfree( bsi.bsi_attrs, op->o_tmpmemctx );
 	}
 
-	Debug(LDAP_DEBUG_TRACE,"<==backsql_compare()\n",0,0,0);
+	Debug(LDAP_DEBUG_TRACE,"<==backsql_compare()\n" );
 	switch ( rs->sr_err ) {
 	case LDAP_COMPARE_TRUE:
 	case LDAP_COMPARE_FALSE:

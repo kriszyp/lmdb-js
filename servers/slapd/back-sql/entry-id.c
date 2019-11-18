@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 Dmitry Kovalev.
  * Portions Copyright 2002 Pierangelo Masarati.
  * Portions Copyright 2004 Mark Adamson.
@@ -184,13 +184,13 @@ backsql_dn2id(
 	/* begin TimesTen */
 	assert( bi->sql_id_query != NULL );
 	Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): id_query \"%s\"\n",
-			ndn->bv_val, bi->sql_id_query, 0 );
+			ndn->bv_val, bi->sql_id_query );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_id_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"   backsql_dn2id(\"%s\"): "
 			"error preparing SQL:\n   %s", 
-			ndn->bv_val, bi->sql_id_query, 0 );
+			ndn->bv_val, bi->sql_id_query );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		res = LDAP_OTHER;
 		goto done;
@@ -201,7 +201,7 @@ backsql_dn2id(
 		if ( backsql_api_dn2odbc( op, rs, &realndn ) ) {
 			Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): "
 				"backsql_api_dn2odbc(\"%s\") failed\n", 
-				ndn->bv_val, realndn.bv_val, 0 );
+				ndn->bv_val, realndn.bv_val );
 			res = LDAP_OTHER;
 			goto done;
 		}
@@ -222,7 +222,7 @@ backsql_dn2id(
 
 		Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): "
 				"upperdn=\"%s\"\n",
-				ndn->bv_val, upperdn, 0 );
+				ndn->bv_val, upperdn );
 		ber_str2bv( upperdn, 0, 0, &tbbDN );
 
 	} else {
@@ -232,7 +232,7 @@ backsql_dn2id(
 			Debug( LDAP_DEBUG_TRACE,
 				"   backsql_dn2id(\"%s\"): "
 				"upperdn=\"%s\"\n",
-				ndn->bv_val, upperdn, 0 );
+				ndn->bv_val, upperdn );
 			ber_str2bv( upperdn, 0, 0, &tbbDN );
 
 		} else {
@@ -245,7 +245,7 @@ backsql_dn2id(
 		/* end TimesTen */ 
 		Debug( LDAP_DEBUG_TRACE, "   backsql_dn2id(\"%s\"): "
 			"error binding dn=\"%s\" parameter:\n", 
-			ndn->bv_val, tbbDN.bv_val, 0 );
+			ndn->bv_val, tbbDN.bv_val );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		res = LDAP_OTHER;
 		goto done;
@@ -264,16 +264,11 @@ backsql_dn2id(
 	backsql_BindRowAsStrings_x( sth, &row, op->o_tmpmemctx );
 	rc = SQLFetch( sth );
 	if ( BACKSQL_SUCCESS( rc ) ) {
-		char	buf[ SLAP_TEXT_BUFLEN ];
-
 #ifdef LDAP_DEBUG
-		snprintf( buf, sizeof(buf),
-			"id=%s keyval=%s oc_id=%s dn=%s",
-			row.cols[ 0 ], row.cols[ 1 ],
-			row.cols[ 2 ], row.cols[ 3 ] );
-		Debug( LDAP_DEBUG_TRACE,
-			"   backsql_dn2id(\"%s\"): %s\n",
-			ndn->bv_val, buf, 0 );
+		Debug(LDAP_DEBUG_TRACE,
+		      "   backsql_dn2id(\"%s\"): id=%s keyval=%s oc_id=%s dn=%s\n",
+		      ndn->bv_val, row.cols[0], row.cols[1], row.cols[2],
+		      row.cols[3] );
 #endif /* LDAP_DEBUG */
 
 		res = LDAP_SUCCESS;
@@ -369,7 +364,7 @@ done:;
 
 	Debug( LDAP_DEBUG_TRACE,
 		"<==backsql_dn2id(\"%s\"): err=%d\n",
-		ndn->bv_val, res, 0 );
+		ndn->bv_val, res );
 	if ( sth != SQL_NULL_HSTMT ) {
 		SQLFreeStmt( sth, SQL_DROP );
 	}
@@ -395,7 +390,7 @@ backsql_count_children(
 	int			res = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_count_children(): dn=\"%s\"\n", 
-			dn->bv_val, 0, 0 );
+			dn->bv_val );
 
 	if ( dn->bv_len > BACKSQL_MAX_DN_LEN ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -408,12 +403,12 @@ backsql_count_children(
 	/* begin TimesTen */
 	assert( bi->sql_has_children_query != NULL );
 	Debug(LDAP_DEBUG_TRACE, "children id query \"%s\"\n", 
-			bi->sql_has_children_query, 0, 0);
+			bi->sql_has_children_query );
  	rc = backsql_Prepare( dbh, &sth, bi->sql_has_children_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"backsql_count_children(): error preparing SQL:\n%s", 
-			bi->sql_has_children_query, 0, 0);
+			bi->sql_has_children_query );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
@@ -424,7 +419,7 @@ backsql_count_children(
 		/* end TimesTen */ 
 		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error binding dn=\"%s\" parameter:\n", 
-			dn->bv_val, 0, 0 );
+			dn->bv_val );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
@@ -434,7 +429,7 @@ backsql_count_children(
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_count_children(): "
 			"error executing query (\"%s\", \"%s\"):\n", 
-			bi->sql_has_children_query, dn->bv_val, 0 );
+			bi->sql_has_children_query, dn->bv_val );
 		backsql_PrintErrors( bi->sql_db_env, dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return LDAP_OTHER;
@@ -479,7 +474,7 @@ backsql_count_children(
 	SQLFreeStmt( sth, SQL_DROP );
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_count_children(): %lu\n",
-			*nchildren, 0, 0 );
+			*nchildren );
 
 	return res;
 }
@@ -560,7 +555,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error preparing count query: %s\n",
-			at->bam_countquery, 0, 0 );
+			at->bam_countquery );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		return 1;
 	}
@@ -569,7 +564,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 			&bsi->bsi_c_eid->eid_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-			"error binding key value parameter\n", 0, 0, 0 );
+			"error binding key value parameter\n" );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
 	}
@@ -578,7 +573,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( ! BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error executing attribute count query '%s'\n",
-			at->bam_countquery, 0, 0 );
+			at->bam_countquery );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
@@ -593,14 +588,14 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error fetch results of count query: %s\n",
-			at->bam_countquery, 0, 0 );
+			at->bam_countquery );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 		return 1;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-		"number of values in query: %u\n", count, 0, 0 );
+		"number of values in query: %u\n", count );
 	SQLFreeStmt( sth, SQL_DROP );
 	if ( count == 0 ) {
 		return 1;
@@ -642,7 +637,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 		attr->a_numvals = count;
 		attr->a_vals = ch_calloc( count + 1, sizeof( struct berval ) );
 		if ( attr->a_vals == NULL ) {
-			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n", 0,0,0 );
+			Debug( LDAP_DEBUG_TRACE, "Out of memory!\n" );
 			ch_free( attr );
 			return 1;
 		}
@@ -664,7 +659,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 	rc = backsql_Prepare( bsi->bsi_dbh, &sth, at->bam_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-			"error preparing query: %s\n", at->bam_query, 0, 0 );
+			"error preparing query: %s\n", at->bam_query );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 #ifdef BACKSQL_COUNTQUERY
 		if ( append ) {
@@ -678,7 +673,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 			&bsi->bsi_c_eid->eid_keyval );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
-			"error binding key value parameter\n", 0, 0, 0 );
+			"error binding key value parameter\n" );
 #ifdef BACKSQL_COUNTQUERY
 		if ( append ) {
 			attr_free( attr );
@@ -690,14 +685,14 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 		"query=\"%s\" keyval=" BACKSQL_IDFMT "\n", at->bam_query,
-		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval), 0 );
+		BACKSQL_IDARG(bsi->bsi_c_eid->eid_keyval) );
 #endif /* BACKSQL_TRACE */
 
 	rc = SQLExecute( sth );
 	if ( ! BACKSQL_SUCCESS( rc ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_get_attr_vals(): "
 			"error executing attribute query \"%s\"\n",
-			at->bam_query, 0, 0 );
+			at->bam_query );
 		backsql_PrintErrors( bi->sql_db_env, bsi->bsi_dbh, sth, rc );
 		SQLFreeStmt( sth, SQL_DROP );
 #ifdef BACKSQL_COUNTQUERY
@@ -786,21 +781,16 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				}
 
 				if ( retval != LDAP_SUCCESS ) {
-					char	buf[ SLAP_TEXT_BUFLEN ];
-
 					/* FIXME: we're ignoring invalid values,
 					 * but we're accepting the attributes;
 					 * should we fail at all? */
-					snprintf( buf, sizeof( buf ),
-							"unable to %s value #%lu "
-							"of AttributeDescription %s",
-							pretty ? "prettify" : "validate",
-							k - oldcount,
-							at->bam_ad->ad_cname.bv_val );
-					Debug( LDAP_DEBUG_TRACE,
-						"==>backsql_get_attr_vals(\"%s\"): "
-						"%s (%d)\n",
-						bsi->bsi_e->e_name.bv_val, buf, retval );
+					Debug(LDAP_DEBUG_TRACE,
+					      "==>backsql_get_attr_vals(\"%s\"): " "unable to %s value #%lu " "of AttributeDescription %s (%d)\n",
+					      bsi->bsi_e->e_name.bv_val,
+					      pretty ? "prettify" : "validate",
+					      k - oldcount,
+					      at->bam_ad->ad_cname.bv_val,
+					      retval );
 					continue;
 				}
 #endif /* BACKSQL_PRETTY_VALIDATE */
@@ -821,20 +811,15 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 						bsi->bsi_op->o_tmpmemctx );
 
 					if ( retval != LDAP_SUCCESS ) {
-						char	buf[ SLAP_TEXT_BUFLEN ];
-
 						/* FIXME: we're ignoring invalid values,
 						 * but we're accepting the attributes;
 						 * should we fail at all? */
-						snprintf( buf, sizeof( buf ),
-							"unable to normalize value #%lu "
-							"of AttributeDescription %s",
-							k - oldcount,
-							at->bam_ad->ad_cname.bv_val );
-						Debug( LDAP_DEBUG_TRACE,
-							"==>backsql_get_attr_vals(\"%s\"): "
-							"%s (%d)\n",
-							bsi->bsi_e->e_name.bv_val, buf, retval );
+						Debug(LDAP_DEBUG_TRACE,
+						      "==>backsql_get_attr_vals(\"%s\"): " "unable to normalize value #%lu " "of AttributeDescription %s (%d)\n",
+						      bsi->bsi_e->e_name.bv_val,
+						      k - oldcount,
+						      at->bam_ad->ad_cname.bv_val,
+						      retval );
 
 #ifdef BACKSQL_PRETTY_VALIDATE
 						if ( pretty ) {
@@ -865,12 +850,12 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 
 #ifdef BACKSQL_TRACE
 				Debug( LDAP_DEBUG_TRACE, "prec=%d\n",
-					(int)row.col_prec[ i ], 0, 0 );
+					(int)row.col_prec[ i ] );
 
 			} else {
       				Debug( LDAP_DEBUG_TRACE, "NULL value "
 					"in this row for attribute \"%s\"\n",
-					row.col_names[ i ].bv_val, 0, 0 );
+					row.col_names[ i ].bv_val );
 #endif /* BACKSQL_TRACE */
 			}
 		}
@@ -891,7 +876,7 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 #endif /* BACKSQL_COUNTQUERY */
 
 	SQLFreeStmt( sth, SQL_DROP );
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_get_attr_vals()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_get_attr_vals()\n" );
 
 	if ( at->bam_next ) {
 		res = backsql_get_attr_vals( at->bam_next, v_bsi );
@@ -915,7 +900,7 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	int			i;
 	int			rc;
 
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n" );
 
 	assert( bsi->bsi_e != NULL );
 
@@ -963,13 +948,13 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 	if ( bsi->bsi_attrs == NULL || ( bsi->bsi_flags & BSQL_SF_ALL_USER ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
-			"retrieving all attributes\n", 0, 0, 0 );
+			"retrieving all attributes\n" );
 		avl_apply( bsi->bsi_oc->bom_attrs, backsql_get_attr_vals,
 				bsi, 0, AVL_INORDER );
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
-			"custom attribute list\n", 0, 0, 0 );
+			"custom attribute list\n" );
 		for ( i = 0; !BER_BVISNULL( &bsi->bsi_attrs[ i ].an_name ); i++ ) {
 			backsql_at_map_rec	**vat;
 			AttributeName		*an = &bsi->bsi_attrs[ i ];
@@ -998,9 +983,9 @@ backsql_id2entry( backsql_srch_info *bsi, backsql_entryID *eid )
 			if ( rc != 0 || vat == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 						"attribute \"%s\" is not defined "
-						"for objectlass \"%s\"\n",
+						"for objectclass \"%s\"\n",
 						an->an_name.bv_val, 
-						BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
+						BACKSQL_OC_NAME( bsi->bsi_oc ) );
 				continue;
 			}
 
@@ -1100,7 +1085,7 @@ next:;
 	}
 
 done:;
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_id2entry()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_id2entry()\n" );
 
 	return LDAP_SUCCESS;
 }

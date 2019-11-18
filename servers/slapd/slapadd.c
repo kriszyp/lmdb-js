@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -290,16 +290,13 @@ again:
 			}
 
 			if ( SLAP_SINGLE_SHADOW(be) && got != GOT_ALL ) {
-				char buf[SLAP_TEXT_BUFLEN];
-
-				snprintf( buf, sizeof(buf),
-					"%s%s%s",
-					( !(got & GOT_UUID) ? slap_schema.si_ad_entryUUID->ad_cname.bv_val : "" ),
-					( !(got & GOT_CSN) ? "," : "" ),
-					( !(got & GOT_CSN) ? slap_schema.si_ad_entryCSN->ad_cname.bv_val : "" ) );
-
-				Debug( LDAP_DEBUG_ANY, "%s: warning, missing attrs %s from entry dn=\"%s\"\n",
-					progname, buf, e->e_name.bv_val );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s: warning, missing attrs %s%s%s from entry dn=\"%s\"\n",
+				      progname,
+				      (!(got & GOT_UUID) ? slap_schema.si_ad_entryUUID->ad_cname.bv_val : ""),
+				      (!(got & GOT_CSN) ? "," : ""),
+				      (!(got & GOT_CSN) ? slap_schema.si_ad_entryCSN->ad_cname.bv_val : ""),
+				      e->e_name.bv_val );
 			}
 
 			sid = slap_tool_update_ctxcsn_check( progname, e );

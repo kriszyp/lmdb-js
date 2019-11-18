@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2017 The OpenLDAP Foundation.
+ * Copyright 2008-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@
 
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
+#include <gnutls/abstract.h>
+#include <gnutls/crypto.h>
 
 typedef struct tlsg_ctx {
 	gnutls_certificate_credentials_t cred;
@@ -67,51 +69,10 @@ static int tlsg_cert_verify( tlsg_session *s );
 
 #ifdef LDAP_R_COMPILE
 
-static int
-tlsg_mutex_init( void **priv )
-{
-	int err = 0;
-	ldap_pvt_thread_mutex_t *lock = LDAP_MALLOC( sizeof( ldap_pvt_thread_mutex_t ));
-
-	if ( !lock )
-		err = ENOMEM;
-	if ( !err ) {
-		err = ldap_pvt_thread_mutex_init( lock );
-		if ( err )
-			LDAP_FREE( lock );
-		else
-			*priv = lock;
-	}
-	return err;
-}
-
-static int
-tlsg_mutex_destroy( void **lock )
-{
-	int err = ldap_pvt_thread_mutex_destroy( *lock );
-	LDAP_FREE( *lock );
-	return err;
-}
-
-static int
-tlsg_mutex_lock( void **lock )
-{
-	return ldap_pvt_thread_mutex_lock( *lock );
-}
-
-static int
-tlsg_mutex_unlock( void **lock )
-{
-	return ldap_pvt_thread_mutex_unlock( *lock );
-}
-
 static void
 tlsg_thr_init( void )
 {
-	gnutls_global_set_mutex (tlsg_mutex_init,
-		tlsg_mutex_destroy,
-		tlsg_mutex_lock,
-		tlsg_mutex_unlock);
+	/* do nothing */
 }
 #endif /* LDAP_R_COMPILE */
 
@@ -219,16 +180,15 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 
  	if ( lo->ldo_tls_ciphersuite &&
 		tlsg_parse_ciphers( ctx, lt->lt_ciphersuite )) {
- 		Debug( LDAP_DEBUG_ANY,
+		Debug1( LDAP_DEBUG_ANY,
  			   "TLS: could not set cipher list %s.\n",
- 			   lo->ldo_tls_ciphersuite, 0, 0 );
+			   lo->ldo_tls_ciphersuite );
 		return -1;
  	}
 
 	if (lo->ldo_tls_cacertdir != NULL) {
-		Debug( LDAP_DEBUG_ANY, 
-		       "TLS: warning: cacertdir not implemented for gnutls\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: warning: cacertdir not implemented for gnutls\n" );
 	}
 
 	if (lo->ldo_tls_cacertfile != NULL) {
@@ -309,14 +269,12 @@ tlsg_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		rc = gnutls_certificate_set_x509_key( ctx->cred, certs, max, key );
 		if ( rc ) return -1;
 	} else if (( lo->ldo_tls_certfile || lo->ldo_tls_keyfile )) {
-		Debug( LDAP_DEBUG_ANY,
-		       "TLS: only one of certfile and keyfile specified\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: only one of certfile and keyfile specified\n" );
 		return -1;
 	} else if (( lo->ldo_tls_cert.bv_val || lo->ldo_tls_key.bv_val )) {
-		Debug( LDAP_DEBUG_ANY,
-		       "TLS: only one of cert and key specified\n",
-		       NULL, NULL, NULL );
+		Debug0( LDAP_DEBUG_ANY,
+		       "TLS: only one of cert and key specified\n" );
 		return -1;
 	}
 
@@ -552,9 +510,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	peer_cert_list = gnutls_certificate_get_peers( s->session, 
 						&list_size );
 	if ( !peer_cert_list ) {
-		Debug( LDAP_DEBUG_ANY,
-			"TLS: unable to get peer certificate.\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY,
+			"TLS: unable to get peer certificate.\n" );
 		/* If this was a fatal condition, things would have
 		 * aborted long before now.
 		 */
@@ -647,9 +604,8 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 		}
 
 		if ( ret < 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"TLS: unable to get common name from peer certificate.\n",
-				0, 0, 0 );
+			Debug0( LDAP_DEBUG_ANY,
+				"TLS: unable to get common name from peer certificate.\n" );
 			ret = LDAP_CONNECT_ERROR;
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -674,9 +630,9 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 
 		if( ret == LDAP_LOCAL_ERROR ) {
 			altname[altnamesize] = '\0';
-			Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+			Debug2( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 				"common name in certificate (%s).\n", 
-				name, altname, 0 );
+				name, altname );
 			ret = LDAP_CONNECT_ERROR;
 			if ( ld->ld_error ) {
 				LDAP_FREE( ld->ld_error );
@@ -748,6 +704,109 @@ tlsg_session_peercert( tls_session *sess, struct berval *der )
 		return -1;
 	memcpy(der->bv_val, peer_cert_list[0].data, der->bv_len);
 	return 0;
+}
+
+static int
+tlsg_session_pinning( LDAP *ld, tls_session *sess, char *hashalg, struct berval *hash )
+{
+	tlsg_session *s = (tlsg_session *)sess;
+	const gnutls_datum_t *cert_list;
+	unsigned int cert_list_size = 0;
+	gnutls_x509_crt_t crt;
+	gnutls_pubkey_t pubkey;
+	gnutls_datum_t key = {};
+	gnutls_digest_algorithm_t alg;
+	struct berval keyhash;
+	size_t len;
+	int rc = -1;
+
+	if ( hashalg ) {
+		alg = gnutls_digest_get_id( hashalg );
+		if ( alg == GNUTLS_DIG_UNKNOWN ) {
+			Debug1( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+					"unknown hashing algorithm for GnuTLS: '%s'\n",
+					hashalg );
+			return rc;
+		}
+	}
+
+	cert_list = gnutls_certificate_get_peers( s->session, &cert_list_size );
+	if ( cert_list_size == 0 ) {
+		return rc;
+	}
+
+	if ( gnutls_x509_crt_init( &crt ) < 0 ) {
+		return rc;
+	}
+
+	if ( gnutls_x509_crt_import( crt, &cert_list[0], GNUTLS_X509_FMT_DER ) ) {
+		goto done;
+	}
+
+	if ( gnutls_pubkey_init( &pubkey ) ) {
+		goto done;
+	}
+
+	if ( gnutls_pubkey_import_x509( pubkey, crt, 0 ) < 0 ) {
+		goto done;
+	}
+
+	gnutls_pubkey_export( pubkey, GNUTLS_X509_FMT_DER, key.data, &len );
+	if ( len <= 0 ) {
+		goto done;
+	}
+
+	key.data = LDAP_MALLOC( len );
+	if ( !key.data ) {
+		goto done;
+	}
+
+	key.size = len;
+
+	if ( gnutls_pubkey_export( pubkey, GNUTLS_X509_FMT_DER,
+				key.data, &len ) < 0 ) {
+		goto done;
+	}
+
+	if ( hashalg ) {
+		keyhash.bv_len = gnutls_hash_get_len( alg );
+		keyhash.bv_val = LDAP_MALLOC( keyhash.bv_len );
+		if ( !keyhash.bv_val || gnutls_fingerprint( alg, &key,
+					keyhash.bv_val, &keyhash.bv_len ) < 0 ) {
+			goto done;
+		}
+	} else {
+		keyhash.bv_val = (char *)key.data;
+		keyhash.bv_len = key.size;
+	}
+
+	if ( ber_bvcmp( hash, &keyhash ) ) {
+		rc = LDAP_CONNECT_ERROR;
+		Debug0( LDAP_DEBUG_ANY, "tlsg_session_pinning: "
+				"public key hash does not match provided pin.\n" );
+		if ( ld->ld_error ) {
+			LDAP_FREE( ld->ld_error );
+		}
+		ld->ld_error = LDAP_STRDUP(
+			_("TLS: public key hash does not match provided pin"));
+	} else {
+		rc = LDAP_SUCCESS;
+	}
+
+done:
+	if ( pubkey ) {
+		gnutls_pubkey_deinit( pubkey );
+	}
+	if ( crt ) {
+		gnutls_x509_crt_deinit( crt );
+	}
+	if ( keyhash.bv_val != (char *)key.data ) {
+		LDAP_FREE( keyhash.bv_val );
+	}
+	if ( key.data ) {
+		LDAP_FREE( key.data );
+	}
+	return rc;
 }
 
 /* suites is a string of colon-separated cipher suite names. */
@@ -952,35 +1011,31 @@ tlsg_cert_verify( tlsg_session *ssl )
 
 	err = gnutls_certificate_verify_peers2( ssl->session, &status );
 	if ( err < 0 ) {
-		Debug( LDAP_DEBUG_ANY,"TLS: gnutls_certificate_verify_peers2 failed %d\n",
-			err,0,0 );
+		Debug1( LDAP_DEBUG_ANY,"TLS: gnutls_certificate_verify_peers2 failed %d\n",
+			err );
 		return -1;
 	}
 	if ( status ) {
-		Debug( LDAP_DEBUG_TRACE,"TLS: peer cert untrusted or revoked (0x%x)\n",
-			status, 0,0 );
+		Debug1( LDAP_DEBUG_TRACE,"TLS: peer cert untrusted or revoked (0x%x)\n",
+			status );
 		return -1;
 	}
 	peertime = gnutls_certificate_expiration_time_peers( ssl->session );
 	if ( peertime == (time_t) -1 ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_expiration_time_peers failed\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_expiration_time_peers failed\n" );
 		return -1;
 	}
 	if ( peertime < now ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: peer certificate is expired\n" );
 		return -1;
 	}
 	peertime = gnutls_certificate_activation_time_peers( ssl->session );
 	if ( peertime == (time_t) -1 ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_activation_time_peers failed\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: gnutls_certificate_activation_time_peers failed\n" );
 		return -1;
 	}
 	if ( peertime > now ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n",
-			0, 0, 0 );
+		Debug0( LDAP_DEBUG_ANY, "TLS: peer certificate not yet active\n" );
 		return -1;
 	}
 	return 0;
@@ -1010,6 +1065,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsg_session_version,
 	tlsg_session_cipher,
 	tlsg_session_peercert,
+	tlsg_session_pinning,
 
 	&tlsg_sbio,
 

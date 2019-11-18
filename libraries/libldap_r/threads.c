@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@ int ldap_pvt_thread_initialize( void )
 {
 	int rc;
 	static int init = 0;
-	ldap_pvt_thread_rmutex_t rm;
 	ldap_pvt_thread_t tid;
 
 	/* we only get one shot at this */
@@ -53,14 +52,7 @@ int ldap_pvt_thread_initialize( void )
 #endif
 
 	/* kludge to pull symbol definitions in */
-	ldap_pvt_thread_rmutex_init( &rm );
 	tid = ldap_pvt_thread_self();
-	ldap_pvt_thread_rmutex_lock( &rm, tid );
-	ldap_pvt_thread_rmutex_trylock( &rm, tid );
-	ldap_pvt_thread_rmutex_unlock( &rm, tid );
-	ldap_pvt_thread_rmutex_unlock( &rm, tid );
-	ldap_pvt_thread_rmutex_destroy( &rm );
-
 	return 0;
 }
 

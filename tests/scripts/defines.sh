@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -21,6 +21,7 @@ TESTWD=`pwd`
 MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
+BACKASYNCMETA=${AC_asyncmeta-asyncmetano}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 	RDBMS=${SLAPD_USE_SQL-rdbmsno}
@@ -46,6 +47,9 @@ VALSORT=${AC_valsort-valsortno}
 # misc
 WITH_SASL=${AC_WITH_SASL-no}
 USE_SASL=${SLAPD_USE_SASL-no}
+WITH_TLS=${AC_WITH_TLS-no}
+WITH_TLS_TYPE=${AC_TLS_TYPE-no}
+
 ACI=${AC_ACI_ENABLED-acino}
 THREADS=${AC_THREADS-threadsno}
 SLEEP0=${SLEEP0-1}
@@ -102,8 +106,13 @@ R2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh2.conf
 P1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist1.conf
 P2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist2.conf
 P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
+DIRSYNC1CONF=$DATADIR/slapd-dirsync1.conf
+DSEESYNC1CONF=$DATADIR/slapd-dsee-slave1.conf
+DSEESYNC2CONF=$DATADIR/slapd-dsee-slave2.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
+TLSCONF=$DATADIR/slapd-tls.conf
+TLSSASLCONF=$DATADIR/slapd-tls-sasl.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 RETCODECONF=$DATADIR/slapd-retcode.conf
@@ -127,6 +136,7 @@ TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
 METACONF1=$DATADIR/slapd-meta-target1.conf
 METACONF2=$DATADIR/slapd-meta-target2.conf
+ASYNCMETACONF=$DATADIR/slapd-asyncmeta.conf
 GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
@@ -164,11 +174,13 @@ SLURPLOG=$TESTDIR/slurp.log
 CONFIGPWF=$TESTDIR/configpw
 
 # args
+SASLARGS="-Q"
 TOOLARGS="-x $LDAP_TOOLARGS"
 TOOLPROTO="-P 3"
 
 # cmds
 CONFFILTER=$SRCDIR/scripts/conf.sh
+CONFDIRSYNC=$SRCDIR/scripts/confdirsync.sh
 
 MONITORDATA=$SRCDIR/scripts/monitor_data.sh
 
@@ -186,7 +198,8 @@ BCMP="diff -iB"
 CMPOUT=/dev/null
 SLAPD="$TESTWD/../servers/slapd/slapd -s0"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
-LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $LDAP_TOOLARGS -LLL"
+LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $SASLARGS $TOOLPROTO $LDAP_TOOLARGS -LLL"
+LDAPSASLWHOAMI="$CLIENTDIR/ldapwhoami $SASLARGS $LDAP_TOOLARGS"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
 LDAPRSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS"
 LDAPDELETE="$CLIENTDIR/ldapdelete $TOOLPROTO $TOOLARGS"
@@ -201,6 +214,7 @@ LDIFFILTER=$PROGDIR/ldif-filter
 SLAPDMTREAD=$PROGDIR/slapd-mtread
 LVL=${SLAPD_DEBUG-0x4105}
 LOCALHOST=localhost
+LOCALIP=127.0.0.1
 BASEPORT=${SLAPD_BASEPORT-9010}
 PORT1=`expr $BASEPORT + 1`
 PORT2=`expr $BASEPORT + 2`
@@ -209,11 +223,29 @@ PORT4=`expr $BASEPORT + 4`
 PORT5=`expr $BASEPORT + 5`
 PORT6=`expr $BASEPORT + 6`
 URI1="ldap://${LOCALHOST}:$PORT1/"
+URIP1="ldap://${LOCALIP}:$PORT1/"
 URI2="ldap://${LOCALHOST}:$PORT2/"
+URIP2="ldap://${LOCALIP}:$PORT2/"
 URI3="ldap://${LOCALHOST}:$PORT3/"
+URIP3="ldap://${LOCALIP}:$PORT3/"
 URI4="ldap://${LOCALHOST}:$PORT4/"
+URIP4="ldap://${LOCALIP}:$PORT4/"
 URI5="ldap://${LOCALHOST}:$PORT5/"
+URIP5="ldap://${LOCALIP}:$PORT5/"
 URI6="ldap://${LOCALHOST}:$PORT6/"
+URIP6="ldap://${LOCALIP}:$PORT6/"
+SURI1="ldaps://${LOCALHOST}:$PORT1/"
+SURIP1="ldaps://${LOCALIP}:$PORT1/"
+SURI2="ldaps://${LOCALHOST}:$PORT2/"
+SURIP2="ldaps://${LOCALIP}:$PORT2/"
+SURI3="ldaps://${LOCALHOST}:$PORT3/"
+SURIP3="ldaps://${LOCALIP}:$PORT3/"
+SURI4="ldaps://${LOCALHOST}:$PORT4/"
+SURIP4="ldaps://${LOCALIP}:$PORT4/"
+SURI5="ldaps://${LOCALHOST}:$PORT5/"
+SURIP5="ldaps://${LOCALIP}:$PORT5/"
+SURI6="ldaps://${LOCALHOST}:$PORT6/"
+SURIP6="ldaps://${LOCALIP}:$PORT6/"
 
 # LDIF
 LDIF=$DATADIR/test.ldif
@@ -254,6 +286,8 @@ SQLADD=$DATADIR/sql-add.ldif
 LDIFUNORDERED=$DATADIR/test-unordered.ldif
 LDIFREORDERED=$DATADIR/test-reordered.ldif
 LDIFMODIFY=$DATADIR/test-modify.ldif
+LDIFDIRSYNCCP=$DATADIR/test-dirsync-cp.ldif
+LDIFDIRSYNCNOCP=$DATADIR/test-dirsync-nocp.ldif
 
 # strings
 MONITOR=""
@@ -264,6 +298,7 @@ UPDATEDN="cn=Replica,$BASEDN"
 PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
+BADBJORNSDN="cn=Bjorn JensenNotReally,ou=Information Technology DivisioN,ou=People,$BASEDN"
 JAJDN="cn=James A Jones 1,ou=Alumni Association,ou=People,$BASEDN"
 JOHNDDN="cn=John Doe,ou=Information Technology Division,ou=People,$BASEDN"
 MELLIOTDN="cn=Mark Elliot,ou=Alumni Association,ou=People,$BASEDN"
@@ -291,6 +326,7 @@ SEARCHOUT2=$TESTDIR/ldapsearch2.out
 SEARCHFLT=$TESTDIR/ldapsearch.flt
 SEARCHFLT2=$TESTDIR/ldapsearch2.flt
 LDIFFLT=$TESTDIR/ldif.flt
+LDIFFLT2=$TESTDIR/ldif2.flt
 TESTOUT=$TESTDIR/test.out
 INITOUT=$TESTDIR/init.out
 VALSORTOUT1=$DATADIR/valsort1.out

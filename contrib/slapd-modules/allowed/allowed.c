@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2006-2017 The OpenLDAP Foundation.
+ * Copyright 2006-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
  * Caveats:
  * - right now, the overlay assumes that all values of the objectClass
  *   attribute will be returned in rs->sr_entry; this may not be true
- *   in general, but it usually is for back-bdb/back-hdb.  To generalize,
+ *   in general, but it usually is for back-mdb.  To generalize,
  *   the search request should be analyzed, and if allowedAttributes or
  *   allowedAttributesEffective are requested, add objectClass to the
  *   requested attributes
@@ -462,7 +462,7 @@ register_at( char *def, AttributeDescription **rad, int dupok )
 	}
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "register_at: AttributeType \"%s\": %s\n",
-			def, err, 0 );
+			def, err );
 	}
 	if ( rad ) *rad = ad;
 	return code;
@@ -488,7 +488,7 @@ aa_initialize( void )
 		code = register_at( aa_attrs[i].at, aa_attrs[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"aa_initialize: register_at failed\n", 0, 0, 0 );
+				"aa_initialize: register_at failed\n" );
 			return -1;
 		}
 	}

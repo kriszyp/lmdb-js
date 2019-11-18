@@ -4,7 +4,7 @@
 /* begin of portable.h.pre */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation
+ * Copyright 1998-2019 The OpenLDAP Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -96,12 +96,6 @@
 /* Define to 1 if you have the `bcopy' function. */
 #undef HAVE_BCOPY
 
-/* define this if Berkeley DB is available */
-#undef HAVE_BERKELEY_DB
-
-/* define if Berkeley DB has DB_THREAD support */
-#undef HAVE_BERKELEY_DB_THREAD
-
 /* Define to 1 if you have the <bits/types.h> header file. */
 #undef HAVE_BITS_TYPES_H
 
@@ -117,11 +111,11 @@
 /* define if crypt(3) is available */
 #undef HAVE_CRYPT
 
+/* define if crypt_r(3) is available */
+#undef HAVE_CRYPT_R
+
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
-
-/* Define to 1 if you have the <cthreads.h> header file. */
-#undef HAVE_CTHREADS_H
 
 /* Define to 1 if you have the `ctime_r' function. */
 #undef HAVE_CTIME_R
@@ -280,6 +274,9 @@
 /* Define to 1 if you have the <io.h> header file. */
 #undef HAVE_IO_H
 
+/* define if your system supports kqueue */
+#undef HAVE_KQUEUE
+
 /* Define to 1 if you have the `gen' library (-lgen). */
 #undef HAVE_LIBGEN
 
@@ -330,12 +327,6 @@
 
 /* Define to 1 if you have the <ltdl.h> header file. */
 #undef HAVE_LTDL_H
-
-/* define if you have Mach Cthreads */
-#undef HAVE_MACH_CTHREADS
-
-/* Define to 1 if you have the <mach/cthreads.h> header file. */
-#undef HAVE_MACH_CTHREADS_H
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
@@ -665,6 +656,9 @@
 /* Define to 1 if you have the <sys/errno.h> header file. */
 #undef HAVE_SYS_ERRNO_H
 
+/* Define to 1 if you have the <sys/event.h> header file. */
+#undef HAVE_SYS_EVENT_H
+
 /* Define to 1 if you have the <sys/file.h> header file. */
 #undef HAVE_SYS_FILE_H
 
@@ -798,6 +792,9 @@
 /* Define to 1 if you have the <winsock.h> header file. */
 #undef HAVE_WINSOCK_H
 
+/* Define to 1 if you have the <wiredtiger.h> header file. */
+#undef HAVE_WIREDTIGER_H
+
 /* Define to 1 if you have the `write' function. */
 #undef HAVE_WRITE
 
@@ -921,8 +918,8 @@
 /* define to support per-object ACIs */
 #undef SLAPD_ACI_ENABLED
 
-/* define to support BDB backend */
-#undef SLAPD_BDB
+/* define to support LDAP Async Metadirectory backend */
+#undef SLAPD_ASYNCMETA
 
 /* define to support cleartext passwords */
 #undef SLAPD_CLEARTEXT
@@ -932,9 +929,6 @@
 
 /* define to support DNS SRV backend */
 #undef SLAPD_DNSSRV
-
-/* define to support HDB backend */
-#undef SLAPD_HDB
 
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
@@ -972,6 +966,9 @@
 /* define for Audit Logging overlay */
 #undef SLAPD_OVER_AUDITLOG
 
+/* define for Automatic Certificate Authority overlay */
+#undef SLAPD_OVER_AUTOCA
+
 /* define for Collect overlay */
 #undef SLAPD_OVER_COLLECT
 
@@ -1002,7 +999,7 @@
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
 
-/* define for Referential Integrity overlay */
+/* define for Return Code Integrity overlay */
 #undef SLAPD_OVER_RETCODE
 
 /* define for Rewrite/Remap overlay */
@@ -1049,6 +1046,9 @@
 
 /* define to support SQL backend */
 #undef SLAPD_SQL
+
+/* define to support WiredTiger backend */
+#undef SLAPD_WT
 
 /* define to support run-time loadable ACL */
 #undef SLAP_DYNACL

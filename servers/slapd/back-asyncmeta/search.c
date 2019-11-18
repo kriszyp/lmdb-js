@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2017 The OpenLDAP Foundation.
+ * Copyright 2016-2019 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -27,59 +27,297 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-
-#include "lutil.h"
 #include "slap.h"
+#include "../../../libraries/liblber/lber-int.h"
+#include "../../../libraries/libldap/ldap-int.h"
+#include "lutil.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-asyncmeta.h"
-#include "../../../libraries/liblber/lber-int.h"
-
-#include "../../../libraries/libldap/ldap-int.h"
-#undef	ldap_debug
-#define	ldap_debug	slap_debug
 
 static void
 asyncmeta_handle_onerr_stop(Operation *op,
 			    SlapReply *rs,
 			    a_metaconn_t *mc,
 			    bm_context_t *bc,
-			    int candidate,
-			    slap_callback *cb)
+			    int candidate)
 {
 	a_metainfo_t *mi = mc->mc_info;
 	int j;
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
-	if (bc->bc_active > 0) {
+	if (asyncmeta_bc_in_queue(mc,bc) == NULL || bc->bc_active > 1) {
+		bc->bc_active--;
 		ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 		return;
 	}
-	bc->bc_active = 1;
 	asyncmeta_drop_bc(mc, bc);
-	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
-
 	for (j=0; j<mi->mi_ntargets; j++) {
 		if (j != candidate && bc->candidates[j].sr_msgid >= 0
-		    && mc->mc_conns[j].msc_ld != NULL) {
-			asyncmeta_back_abandon_candidate( mc, op,
+		    && mc->mc_conns[j].msc_ld != NULL && !META_BACK_CONN_CREATING( &mc->mc_conns[j] )) {
+			asyncmeta_back_cancel( mc, op,
 						bc->candidates[ j ].sr_msgid, j );
 		}
 	}
-	if (cb != NULL) {
-		op->o_callback = cb;
-	}
+	slap_sl_mem_setctx(op->o_threadctx, op->o_tmpmemctx);
+	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 	send_ldap_result(op, rs);
-	asyncmeta_clear_bm_context(bc);
 }
 
+static int
+asyncmeta_int_filter2bv( a_dncookie		*dc,
+			 Filter			*f,
+			 struct berval	*fstr )
+{
+	int		i;
+	Filter		*p;
+	struct berval	atmp,
+			vtmp,
+			ntmp,
+			*tmp;
+	static struct berval
+			/* better than nothing... */
+			ber_bvfalse = BER_BVC( "(!(objectClass=*))" ),
+			ber_bvtf_false = BER_BVC( "(|)" ),
+			/* better than nothing... */
+			ber_bvtrue = BER_BVC( "(objectClass=*)" ),
+			ber_bvtf_true = BER_BVC( "(&)" ),
+			ber_bverror = BER_BVC( "(?=error)" ),
+			ber_bvunknown = BER_BVC( "(?=unknown)" ),
+			ber_bvnone = BER_BVC( "(?=none)" );
+	ber_len_t	len;
+	void *memctx = dc->memctx;
+
+	assert( fstr != NULL );
+	BER_BVZERO( fstr );
+
+	if ( f == NULL ) {
+		ber_dupbv_x( fstr, &ber_bvnone, memctx );
+		return LDAP_OTHER;
+	}
+
+	switch ( ( f->f_choice & SLAPD_FILTER_MASK ) ) {
+	case LDAP_FILTER_EQUALITY:
+		if ( f->f_av_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+			asyncmeta_dn_massage( dc, &f->f_av_value, &vtmp );
+		} else {
+			vtmp = f->f_av_value;
+		}
+
+		filter_escape_value_x( &vtmp, &ntmp, memctx );
+		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
+			+ ( sizeof("(=)") - 1 );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
+			f->f_av_desc->ad_cname.bv_val, ntmp.bv_len ? ntmp.bv_val : "" );
+
+		ber_memfree_x( ntmp.bv_val, memctx );
+		break;
+
+	case LDAP_FILTER_GE:
+		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
+		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
+			+ ( sizeof("(>=)") - 1 );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
+			f->f_av_desc->ad_cname.bv_val, ntmp.bv_len ? ntmp.bv_val : "" );
+
+		ber_memfree_x( ntmp.bv_val, memctx );
+		break;
+
+	case LDAP_FILTER_LE:
+		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
+		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
+			+ ( sizeof("(<=)") - 1 );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
+			f->f_av_desc->ad_cname.bv_val,  ntmp.bv_len ? ntmp.bv_val : "" );
+
+		ber_memfree_x( ntmp.bv_val, memctx );
+		break;
+
+	case LDAP_FILTER_APPROX:
+		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
+		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
+			+ ( sizeof("(~=)") - 1 );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
+			f->f_av_desc->ad_cname.bv_val,  ntmp.bv_len ? ntmp.bv_val : "" );
+
+		ber_memfree_x( ntmp.bv_val, memctx );
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len + ( STRLENOF( "(=*)" ) );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 128, memctx ); /* FIXME: why 128 ? */
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+			f->f_sub_desc->ad_cname.bv_val );
+
+		if ( !BER_BVISNULL( &f->f_sub_initial ) ) {
+			len = fstr->bv_len;
+
+			filter_escape_value_x( &f->f_sub_initial, &ntmp, memctx );
+
+			fstr->bv_len += ntmp.bv_len;
+			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+
+			snprintf( &fstr->bv_val[len - 2], ntmp.bv_len + 3,
+				/* "(attr=" */ "%s*)",
+				ntmp.bv_len ? ntmp.bv_val : "" );
+
+			ber_memfree_x( ntmp.bv_val, memctx );
+		}
+
+		if ( f->f_sub_any != NULL ) {
+			for ( i = 0; !BER_BVISNULL( &f->f_sub_any[i] ); i++ ) {
+				len = fstr->bv_len;
+				filter_escape_value_x( &f->f_sub_any[i], &ntmp, memctx );
+
+				fstr->bv_len += ntmp.bv_len + 1;
+				fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+
+				snprintf( &fstr->bv_val[len - 1], ntmp.bv_len + 3,
+					/* "(attr=[init]*[any*]" */ "%s*)",
+					ntmp.bv_len ? ntmp.bv_val : "" );
+				ber_memfree_x( ntmp.bv_val, memctx );
+			}
+		}
+
+		if ( !BER_BVISNULL( &f->f_sub_final ) ) {
+			len = fstr->bv_len;
+
+			filter_escape_value_x( &f->f_sub_final, &ntmp, memctx );
+
+			fstr->bv_len += ntmp.bv_len;
+			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+
+			snprintf( &fstr->bv_val[len - 1], ntmp.bv_len + 3,
+				/* "(attr=[init*][any*]" */ "%s)",
+				ntmp.bv_len ? ntmp.bv_val : "" );
+
+			ber_memfree_x( ntmp.bv_val, memctx );
+		}
+
+		break;
+
+	case LDAP_FILTER_PRESENT:
+		fstr->bv_len = f->f_desc->ad_cname.bv_len + ( STRLENOF( "(=*)" ) );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+			f->f_desc->ad_cname.bv_val );
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT:
+		fstr->bv_len = STRLENOF( "(%)" );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 128, memctx );	/* FIXME: why 128? */
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
+			f->f_choice == LDAP_FILTER_AND ? '&' :
+			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
+
+		for ( p = f->f_list; p != NULL; p = p->f_next ) {
+			int	rc;
+
+			len = fstr->bv_len;
+
+			rc = asyncmeta_int_filter2bv( dc, p, &vtmp );
+			if ( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
+
+			fstr->bv_len += vtmp.bv_len;
+			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+
+			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2,
+				/*"("*/ "%s)", vtmp.bv_len ? vtmp.bv_val : "" );
+
+			ber_memfree_x( vtmp.bv_val, memctx );
+		}
+
+		break;
+
+	case LDAP_FILTER_EXT:
+		if ( f->f_mr_desc ) {
+			atmp = f->f_mr_desc->ad_cname;
+
+		} else {
+			BER_BVSTR( &atmp, "" );
+		}
+		filter_escape_value_x( &f->f_mr_value, &ntmp, memctx );
+
+		/* FIXME: cleanup (less ?: operators...) */
+		fstr->bv_len = atmp.bv_len +
+			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
+			( !BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
+			ntmp.bv_len + ( STRLENOF( "(:=)" ) );
+		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+			atmp.bv_val,
+			f->f_mr_dnattrs ? ":dn" : "",
+			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? ":" : "",
+			!BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_val : "",
+			ntmp.bv_len ? ntmp.bv_val : "" );
+		ber_memfree_x( ntmp.bv_val, memctx );
+		break;
+
+	case SLAPD_FILTER_COMPUTED:
+		switch ( f->f_result ) {
+		/* FIXME: treat UNDEFINED as FALSE */
+		case SLAPD_COMPARE_UNDEFINED:
+			if ( META_BACK_TGT_NOUNDEFFILTER( dc->target ) ) {
+				return LDAP_COMPARE_FALSE;
+			}
+			/* fallthru */
+
+		case LDAP_COMPARE_FALSE:
+			if ( META_BACK_TGT_T_F( dc->target ) ) {
+				tmp = &ber_bvtf_false;
+				break;
+			}
+			tmp = &ber_bvfalse;
+			break;
+
+		case LDAP_COMPARE_TRUE:
+			if ( META_BACK_TGT_T_F( dc->target ) ) {
+				tmp = &ber_bvtf_true;
+				break;
+			}
+
+			tmp = &ber_bvtrue;
+			break;
+
+		default:
+			tmp = &ber_bverror;
+			break;
+		}
+
+		ber_dupbv_x( fstr, tmp, memctx );
+		break;
+
+	default:
+		ber_dupbv_x( fstr, &ber_bvunknown, memctx );
+		break;
+	}
+
+	return 0;
+}
 meta_search_candidate_t
 asyncmeta_back_search_start(
 				Operation *op,
 				SlapReply *rs,
-			    a_metaconn_t *mc,
-			    bm_context_t *bc,
-			    int candidate,
-			    struct berval		*prcookie,
-			    ber_int_t		prsize )
+				a_metaconn_t *mc,
+				bm_context_t *bc,
+				int candidate,
+				struct berval		*prcookie,
+				ber_int_t		prsize,
+				int do_lock)
 {
 	SlapReply		*candidates = bc->candidates;
 	a_metainfo_t		*mi = ( a_metainfo_t * )mc->mc_info;
@@ -87,16 +325,15 @@ asyncmeta_back_search_start(
 	a_metasingleconn_t	*msc = &mc->mc_conns[ candidate ];
 	a_dncookie		dc;
 	struct berval		realbase = op->o_req_dn;
+	char		**attrs;
 	int			realscope = op->ors_scope;
 	struct berval		mbase = BER_BVNULL;
-	struct berval		mfilter = BER_BVNULL;
-	char			**mapped_attrs = NULL;
 	int			rc;
+	struct berval	filterbv = BER_BVNULL;
 	meta_search_candidate_t	retcode;
 	int timelimit;
-	int			nretries = 1;
 	LDAPControl		**ctrls = NULL;
-	BerElement *ber;
+	BerElement *ber = NULL;
 	ber_int_t	msgid;
 #ifdef SLAPD_META_CLIENT_PR
 	LDAPControl		**save_ctrls = NULL;
@@ -116,7 +353,8 @@ asyncmeta_back_search_start(
 		return META_SEARCH_NOT_CANDIDATE;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "%s >>> asyncmeta_back_search_start[%d]\n", op->o_log_prefix, candidate, 0 );
+	Debug( LDAP_DEBUG_TRACE, "%s >>> asyncmeta_back_search_start: dn=%s filter=%s\n",
+	       op->o_log_prefix, op->o_req_dn.bv_val, op->ors_filterstr.bv_val );
 	/*
 	 * modifies the base according to the scope, if required
 	 */
@@ -199,59 +437,13 @@ asyncmeta_back_search_start(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc.op = op;
 	dc.target = mt;
-	dc.ctx = "searchBase";
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-	switch ( asyncmeta_dn_massage( &dc, &realbase, &mbase ) ) {
-	case LDAP_SUCCESS:
-		break;
+	dc.memctx = op->o_tmpmemctx;
+	dc.to_from = MASSAGE_REQ;
+	asyncmeta_dn_massage( &dc, &realbase, &mbase );
 
-	case LDAP_UNWILLING_TO_PERFORM:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Operation not allowed";
-		retcode = META_SEARCH_ERR;
-		goto doreturn;
-
-	default:
-
-		/*
-		 * this target is no longer candidate
-		 */
-		retcode = META_SEARCH_NOT_CANDIDATE;
-		goto doreturn;
-	}
-
-	/*
-	 * Maps filter
-	 */
-	rc = asyncmeta_filter_map_rewrite( &dc, op->ors_filter,
-			&mfilter, BACKLDAP_MAP, NULL );
-	switch ( rc ) {
-	case LDAP_SUCCESS:
-		break;
-
-	case LDAP_COMPARE_FALSE:
-	default:
-		/*
-		 * this target is no longer candidate
-		 */
-		retcode = META_SEARCH_NOT_CANDIDATE;
-		goto done;
-	}
-
-	/*
-	 * Maps required attributes
-	 */
-	rc = asyncmeta_map_attrs( op, &mt->mt_rwmap.rwm_at,
-			op->ors_attrs, BACKLDAP_MAP, &mapped_attrs );
-	if ( rc != LDAP_SUCCESS ) {
-		/*
-		 * this target is no longer candidate
-		 */
-		retcode = META_SEARCH_NOT_CANDIDATE;
-		goto done;
-	}
+	attrs = anlist2charray_x( op->ors_attrs, 0, op->o_tmpmemctx );
 
 	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
 		timelimit = op->ors_tlimit > 0 ? op->ors_tlimit : 1;
@@ -338,21 +530,10 @@ done_pr:;
 	}
 #endif /* SLAPD_META_CLIENT_PR */
 
-retry:;
 	asyncmeta_set_msc_time(msc);
 	ctrls = op->o_ctrls;
-	if (nretries == 0)
-	{
-		if (rc != LDAP_SUCCESS)
-		{
-			rs->sr_err = LDAP_BUSY;
-			retcode = META_SEARCH_ERR;
-			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
-		        goto done;
-		}
-	}
 
-	if ( asyncmeta_controls_add( op, rs, mc, candidate, &ctrls )
+	if ( asyncmeta_controls_add( op, rs, mc, candidate, bc->is_root, &ctrls )
 		!= LDAP_SUCCESS )
 	{
 		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
@@ -363,48 +544,114 @@ retry:;
 	/*
 	 * Starts the search
 	 */
+		/* someone reset the connection */
+	if (!( LDAP_BACK_CONN_ISBOUND( msc )
+	       || LDAP_BACK_CONN_ISANON( msc )) || msc->msc_ld == NULL ) {
+		Debug( asyncmeta_debug, "msc %p not initialized at %s:%d\n", msc, __FILE__, __LINE__ );
+		goto error_unavailable;
+	}
+	rc = asyncmeta_int_filter2bv( &dc, op->ors_filter, &filterbv );
+	if ( rc ) {
+		retcode = META_SEARCH_ERR;
+		goto done;
+	}
+
 	ber = ldap_build_search_req( msc->msc_ld,
-			mbase.bv_val, realscope, mfilter.bv_val,
-			mapped_attrs, op->ors_attrsonly,
+			mbase.bv_val, realscope, filterbv.bv_val,
+			attrs, op->ors_attrsonly,
 			ctrls, NULL, timelimit, op->ors_slimit, op->ors_deref,
 			&msgid );
+	if (!ber) {
+		Debug( asyncmeta_debug, "%s asyncmeta_back_search_start: Operation encoding failed with errno %d\n",
+		       op->o_log_prefix, msc->msc_ld->ld_errno );
+		rs->sr_err = LDAP_OPERATIONS_ERROR;
+		rs->sr_text = "Failed to encode proxied request";
+		retcode = META_SEARCH_ERR;
+		goto done;
+	}
+
 	if (ber) {
-		candidates[ candidate ].sr_msgid = msgid;
-		rc = ldap_send_initial_request( msc->msc_ld, LDAP_REQ_SEARCH,
-			mbase.bv_val, ber, msgid );
-		if (rc == msgid)
-			rc = LDAP_SUCCESS;
-		else
-			rc = LDAP_SERVER_DOWN;
+		struct timeval tv = {0, mt->mt_network_timeout*1000};
+		ber_socket_t s;
+
+		if (!( LDAP_BACK_CONN_ISBOUND( msc )
+		       || LDAP_BACK_CONN_ISANON( msc )) || msc->msc_ld == NULL ) {
+			Debug( asyncmeta_debug, "msc %p not initialized at %s:%d\n", msc, __FILE__, __LINE__ );
+			goto error_unavailable;
+		}
+
+		ldap_get_option( msc->msc_ld, LDAP_OPT_DESC, &s );
+		if (s < 0) {
+			Debug( asyncmeta_debug, "msc %p not initialized at %s:%d\n", msc, __FILE__, __LINE__ );
+			goto error_unavailable;
+		}
+
+		rc = ldap_int_poll( msc->msc_ld, s, &tv, 1);
+		if (rc < 0) {
+			Debug( asyncmeta_debug, "msc %p not writable within network timeout %s:%d\n", msc, __FILE__, __LINE__ );
+			if ((msc->msc_result_time + META_BACK_RESULT_INTERVAL) < slap_get_time()) {
+				rc = LDAP_SERVER_DOWN;
+			} else {
+				goto error_unavailable;
+			}
+		} else {
+			candidates[ candidate ].sr_msgid = msgid;
+			rc = ldap_send_initial_request( msc->msc_ld, LDAP_REQ_SEARCH,
+							mbase.bv_val, ber, msgid );
+			if (rc == msgid)
+				rc = LDAP_SUCCESS;
+			else
+				rc = LDAP_SERVER_DOWN;
+			ber = NULL;
+		}
+
 		switch ( rc ) {
 		case LDAP_SUCCESS:
 			retcode = META_SEARCH_CANDIDATE;
 			asyncmeta_set_msc_time(msc);
-			break;
+			goto done;
 
 		case LDAP_SERVER_DOWN:
-			ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
-			if (mc->mc_active < 1) {
-				asyncmeta_clear_one_msc(NULL, mc, candidate);
+			/* do not lock if called from asyncmeta_handle_bind_result. Also do not reset the connection */
+			if (do_lock > 0) {
+				ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
+				asyncmeta_reset_msc(NULL, mc, candidate, 0, __FUNCTION__);
+				ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 			}
-			ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
-			if ( nretries && asyncmeta_retry( op, rs, &mc, candidate, LDAP_BACK_DONTSEND ) ) {
-				nretries = 0;
-				/* if the identity changed, there might be need to re-authz */
-				(void)mi->mi_ldap_extra->controls_free( op, rs, &ctrls );
-				goto retry;
-			}
-			rs->sr_err = LDAP_UNAVAILABLE;
-			retcode = META_SEARCH_ERR;
-			break;
+			Debug( asyncmeta_debug, "msc %p ldap_send_initial_request failed. %s:%d\n", msc, __FILE__, __LINE__ );
+			goto error_unavailable;
+
 		default:
 			candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
 			retcode = META_SEARCH_NOT_CANDIDATE;
+			goto done;
 		}
 	}
 
+error_unavailable:
+	if (ber)
+		ber_free(ber, 1);
+	switch (bc->nretries[candidate]) {
+	case -1: /* nretries = forever */
+		retcode = META_SEARCH_NEED_BIND;
+		ldap_pvt_thread_yield();
+		break;
+	case 0: /* no retries left */
+		candidates[ candidate ].sr_msgid = META_MSGID_IGNORE;
+		rs->sr_err = LDAP_UNAVAILABLE;
+		rs->sr_text = "Unable to send search request to target";
+		retcode = META_SEARCH_ERR;
+		break;
+	default: /* more retries left - try to rebind and go again */
+		retcode = META_SEARCH_NEED_BIND;
+		bc->nretries[candidate]--;
+		ldap_pvt_thread_yield();
+		break;
+	}
 done:;
+#if 0
 	(void)mi->mi_ldap_extra->controls_free( op, rs, &ctrls );
+#endif
 #ifdef SLAPD_META_CLIENT_PR
 	if ( save_ctrls != op->o_ctrls ) {
 		op->o_tmpfree( op->o_ctrls, op->o_tmpmemctx );
@@ -412,14 +659,8 @@ done:;
 	}
 #endif /* SLAPD_META_CLIENT_PR */
 
-	if ( mapped_attrs ) {
-		ber_memfree_x( mapped_attrs, op->o_tmpmemctx );
-	}
-	if ( mfilter.bv_val != op->ors_filterstr.bv_val ) {
-		ber_memfree_x( mfilter.bv_val, NULL );
-	}
 	if ( mbase.bv_val != realbase.bv_val ) {
-		free( mbase.bv_val );
+		op->o_tmpfree( mbase.bv_val, op->o_tmpmemctx );
 	}
 
 doreturn:;
@@ -431,25 +672,16 @@ int
 asyncmeta_back_search( Operation *op, SlapReply *rs )
 {
 	a_metainfo_t	*mi = ( a_metainfo_t * )op->o_bd->be_private;
-	struct timeval	save_tv = { 0, 0 },
-			tv;
-	time_t		stoptime = (time_t)(-1),
-			lastres_time = slap_get_time(),
-			timeout = 0;
-	int		rc = 0, sres = LDAP_SUCCESS;
-	char		*matched = NULL;
-	int		last = 0, ncandidates = 0,
-			initial_candidates = 0, candidate_match = 0,
-			needbind = 0;
-	ldap_back_send_t	sendok = LDAP_BACK_SENDERR;
-	long		i,j;
-	int		is_ok = 0;
-	void		*savepriv;
+	time_t          timeout = 0;
+	int		rc = 0;
+	int		ncandidates = 0, initial_candidates = 0;
+	long		i;
 	SlapReply	*candidates = NULL;
-	int		do_taint = 0;
+	void *thrctx = op->o_threadctx;
 	bm_context_t *bc;
 	a_metaconn_t *mc;
-	slap_callback *cb = op->o_callback;
+	int msc_decr = 0;
+	int max_pending_ops = (mi->mi_max_pending_ops == 0) ? META_BACK_CFG_MAX_PENDING_OPS : mi->mi_max_pending_ops;
 
 	rs_assert_ready( rs );
 	rs->sr_flags &= ~REP_ENTRY_MASK; /* paranoia, we can set rs = non-entry */
@@ -461,7 +693,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 	 * to map attrs and maybe rewrite value
 	 */
 
-	asyncmeta_new_bm_context(op, rs, &bc, mi->mi_ntargets );
+	asyncmeta_new_bm_context(op, rs, &bc, mi->mi_ntargets, mi );
 	if (bc == NULL) {
 		rs->sr_err = LDAP_OTHER;
 		send_ldap_result(op, rs);
@@ -471,9 +703,7 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 	candidates = bc->candidates;
 	mc = asyncmeta_getconn( op, rs, candidates, NULL, LDAP_BACK_DONTSEND, 0);
 	if ( !mc || rs->sr_err != LDAP_SUCCESS) {
-		op->o_callback = cb;
 		send_ldap_result(op, rs);
-		asyncmeta_clear_bm_context(bc);
 		return rs->sr_err;
 	}
 
@@ -511,27 +741,33 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 		}
 	}
 
-	bc->timeout = timeout;
-	bc->stoptime = op->o_time + bc->timeout;
+	if ( op->ors_tlimit != SLAP_NO_LIMIT && (timeout == 0 || op->ors_tlimit < timeout)) {
+		bc->searchtime = 1;
+		bc->timeout = op->ors_tlimit;
+	} else {
+		bc->timeout = timeout;
+	}
 
-	if ( op->ors_tlimit != SLAP_NO_LIMIT ) {
-		stoptime = op->o_time + op->ors_tlimit;
-		if (stoptime < bc->stoptime) {
-			bc->stoptime = stoptime;
-			bc->searchtime = 1;
-			bc->timeout = op->ors_tlimit;
-		}
+	bc->stoptime = op->o_time + bc->timeout;
+	bc->bc_active = 1;
+
+	if (mc->pending_ops >= max_pending_ops) {
+		rs->sr_err = LDAP_BUSY;
+		rs->sr_text = "Maximum pending ops limit exceeded";
+		send_ldap_result(op, rs);
+		return rs->sr_err;
 	}
 
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
 	rc = asyncmeta_add_message_queue(mc, bc);
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		mc->mc_conns[i].msc_active++;
+	}
 	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
 
 	if (rc != LDAP_SUCCESS) {
 		rs->sr_err = LDAP_BUSY;
 		rs->sr_text = "Maximum pending ops limit exceeded";
-		asyncmeta_clear_bm_context(bc);
-		op->o_callback = cb;
 		send_ldap_result(op, rs);
 		goto finish;
 	}
@@ -542,6 +778,30 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 		{
 			continue;
 		}
+retry:
+		if (bc->timeout && bc->stoptime < slap_get_time() && META_BACK_ONERR_STOP( mi )) {
+			int		timeout_err;
+			const char *timeout_text;
+			if (bc->searchtime) {
+				timeout_err = LDAP_TIMELIMIT_EXCEEDED;
+				timeout_text = NULL;
+			} else {
+				timeout_err = op->o_protocol >= LDAP_VERSION3 ?
+					LDAP_ADMINLIMIT_EXCEEDED : LDAP_OTHER;
+				timeout_text = "Operation timed out before it was sent to target";
+			}
+			rs->sr_err = timeout_err;
+			rs->sr_text = timeout_text;
+			asyncmeta_handle_onerr_stop(op,rs,mc,bc,i);
+			goto finish;
+
+		}
+
+		if (op->o_abandon) {
+			rs->sr_err = SLAPD_ABANDON;
+			asyncmeta_handle_onerr_stop(op,rs,mc,bc,i);
+			goto finish;
+		}
 
 		rc = asyncmeta_dobind_init_with_retry(op, rs, bc, mc, i);
 		switch (rc)
@@ -550,44 +810,30 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 			/* target is already bound, just send the search request */
 			ncandidates++;
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: IS_CANDIDATE "
-			       "cnd=\"%ld\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ld\"\n", op->o_log_prefix, i );
 
-			rc = asyncmeta_back_search_start( op, rs, mc, bc, i,  NULL, 0 );
+			rc = asyncmeta_back_search_start( op, rs, mc, bc, i,  NULL, 0 , 1);
 			if (rc == META_SEARCH_ERR) {
 				META_CANDIDATE_CLEAR(&candidates[i]);
 				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 				if ( META_BACK_ONERR_STOP( mi ) ) {
-					asyncmeta_handle_onerr_stop(op,rs,mc,bc,i,cb);
+					asyncmeta_handle_onerr_stop(op,rs,mc,bc,i);
 					goto finish;
 				}
 				else {
 					continue;
 				}
+			} else if (rc == META_SEARCH_NEED_BIND) {
+				goto retry;
 			}
 			break;
 		case META_SEARCH_NOT_CANDIDATE:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: NOT_CANDIDATE "
-			       "cnd=\"%ld\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ld\"\n", op->o_log_prefix, i );
 			candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 			break;
 
 		case META_SEARCH_NEED_BIND:
-		case META_SEARCH_CONNECTING:
-			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: NEED_BIND "
-			       "cnd=\"%ld\" %p\n", op->o_log_prefix, i , &mc->mc_conns[i]);
-			ncandidates++;
-			rc = asyncmeta_dobind_init(op, rs, bc, mc, i);
-			if (rc == META_SEARCH_ERR) {
-				candidates[ i ].sr_msgid = META_MSGID_IGNORE;
-				if ( META_BACK_ONERR_STOP( mi ) ) {
-					asyncmeta_handle_onerr_stop(op,rs,mc,bc,i,cb);
-					goto finish;
-				}
-				else {
-					continue;
-				}
-			}
-			break;
 		case META_SEARCH_BINDING:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: BINDING "
 			       "cnd=\"%ld\" %p\n", op->o_log_prefix, i , &mc->mc_conns[i]);
@@ -599,12 +845,12 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 
 		case META_SEARCH_ERR:
 			Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_back_search: SEARCH_ERR "
-			       "cnd=\"%ldd\"\n", op->o_log_prefix, i , 0);
+			       "cnd=\"%ldd\"\n", op->o_log_prefix, i );
 			candidates[ i ].sr_msgid = META_MSGID_IGNORE;
 			candidates[ i ].sr_type = REP_RESULT;
 
 			if ( META_BACK_ONERR_STOP( mi ) ) {
-				asyncmeta_handle_onerr_stop(op,rs,mc,bc,i,cb);
+				asyncmeta_handle_onerr_stop(op,rs,mc,bc,i);
 				goto finish;
 			}
 			else {
@@ -666,14 +912,29 @@ asyncmeta_back_search( Operation *op, SlapReply *rs )
 		ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
 		asyncmeta_drop_bc(mc, bc);
 		ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
-		op->o_callback = cb;
 		send_ldap_result(op, rs);
-		asyncmeta_clear_bm_context(bc);
 		goto finish;
 	}
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
+	for ( i = 0; i < mi->mi_ntargets; i++ ) {
+		mc->mc_conns[i].msc_active--;
+	}
+	msc_decr = 1;
+
 	asyncmeta_start_listeners(mc, candidates, bc);
+	bc->bc_active--;
+	asyncmeta_memctx_toggle(thrctx);
 	ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
+	rs->sr_err = SLAPD_ASYNCOP;
+
 finish:
+	/* we ended up straight here due to error and need to reset the msc_active*/
+	if (msc_decr == 0) {
+		ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex);
+		for ( i = 0; i < mi->mi_ntargets; i++ ) {
+			mc->mc_conns[i].msc_active--;
+		}
+		ldap_pvt_thread_mutex_unlock( &mc->mc_om_mutex);
+	}
 	return rs->sr_err;
 }

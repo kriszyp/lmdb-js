@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,12 +40,9 @@
 
 int ldif_debug = 0;
 
-#include "ldap_log.h"
-#include "lber_pvt.h"
+#include "ldap-int.h"
 #include "ldif.h"
 
-#define RIGHT2			0x03
-#define RIGHT4			0x0f
 #define CONTINUED_LINE_MARKER	'\r'
 
 #ifdef CSRIMALLOC
@@ -57,25 +54,6 @@ int ldif_debug = 0;
 
 static const char nib2b64[0x40] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-static const unsigned char b642nib[0x80] = {
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0x3e, 0xff, 0xff, 0xff, 0x3f,
-	0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b,
-	0x3c, 0x3d, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
-	0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
-	0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
-	0x17, 0x18, 0x19, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
-	0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
-	0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30,
-	0x31, 0x32, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff
-};
 
 /*
  * ldif_parse_line - takes a line of the form "type:[:] value" and splits it
@@ -117,7 +95,6 @@ ldif_parse_line2(
 )
 {
 	char	*s, *p, *d; 
-	char	nib;
 	int	b64, url;
 
 	BER_BVZERO( type );
@@ -196,49 +173,15 @@ ldif_parse_line2(
 			return( -1 );
 		}
 
-		byte = value->bv_val = s;
-
-		for ( p = s, value->bv_len = 0; p < d; p += 4, value->bv_len += 3 ) {
-			int i;
-			for ( i = 0; i < 4; i++ ) {
-				if ( p[i] != '=' && (p[i] & 0x80 ||
-				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
-					ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-						_("ldif_parse_line: %s: invalid base64 encoding"
-						" char (%c) 0x%x\n"),
-					    type->bv_val, p[i], p[i] );
-					if ( !freeval ) ber_memfree( line );
-					return( -1 );
-				}
-			}
-
-			/* first digit */
-			nib = b642nib[ p[0] & 0x7f ];
-			byte[0] = nib << 2;
-			/* second digit */
-			nib = b642nib[ p[1] & 0x7f ];
-			byte[0] |= nib >> 4;
-			byte[1] = (nib & RIGHT4) << 4;
-			/* third digit */
-			if ( p[2] == '=' ) {
-				value->bv_len += 1;
-				break;
-			}
-			nib = b642nib[ p[2] & 0x7f ];
-			byte[1] |= nib >> 2;
-			byte[2] = (nib & RIGHT2) << 6;
-			/* fourth digit */
-			if ( p[3] == '=' ) {
-				value->bv_len += 2;
-				break;
-			}
-			nib = b642nib[ p[3] & 0x7f ];
-			byte[2] |= nib;
-
-			byte += 3;
+		value->bv_val = s;
+		value->bv_len = d - s;
+		if ( ldap_int_decode_b64_inplace( value ) != LDAP_SUCCESS ) {
+			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
+				_("ldif_parse_line: %s base64 decode failed\n"),
+				type->bv_val );
+			if ( !freeval ) ber_memfree( line );
+			return( -1 );
 		}
-		s[ value->bv_len ] = '\0';
-
 	} else if ( url ) {
 		if ( *s == '\0' ) {
 			/* no value is present, error out */

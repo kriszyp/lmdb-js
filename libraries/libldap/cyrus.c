@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -14,6 +14,10 @@
  */
 
 #include "portable.h"
+
+#include "ldap-int.h"
+
+#ifdef HAVE_CYRUS_SASL
 
 #include <stdio.h>
 
@@ -29,16 +33,12 @@
 #include <limits.h>
 #endif
 
-#include "ldap-int.h"
-
-#ifdef HAVE_CYRUS_SASL
-
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif
-
 #ifndef INT_MAX
 #define	INT_MAX	2147483647	/* 32 bit signed max */
+#endif
+
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif
 
 #ifdef HAVE_SASL_SASL_H
@@ -69,11 +69,11 @@ static const sasl_callback_t client_callbacks[] = {
 	{ SASL_CB_LIST_END, NULL, NULL }
 };
 
+/*
+ * ldap_int_initialize is responsible for calling this only once.
+ */
 int ldap_int_sasl_init( void )
 {
-	/* XXX not threadsafe */
-	static int sasl_initialized = 0;
-
 #ifdef HAVE_SASL_VERSION
 	/* stringify the version number, sasl.h doesn't do it for us */
 #define VSTR0(maj, min, pat)	#maj "." #min "." #pat
@@ -88,17 +88,14 @@ int ldap_int_sasl_init( void )
 		sprintf( version, "%u.%d.%d", (unsigned)rc >> 24, (rc >> 16) & 0xff,
 			rc & 0xffff );
 
-		Debug( LDAP_DEBUG_ANY,
+		Debug1( LDAP_DEBUG_ANY,
 		"ldap_int_sasl_init: SASL library version mismatch:"
 		" expected " SASL_VERSION_STRING ","
-		" got %s\n", version, 0, 0 );
+		" got %s\n", version );
 		return -1;
 	}
 	}
 #endif
-	if ( sasl_initialized ) {
-		return 0;
-	}
 
 /* SASL 2 takes care of its own memory completely internally */
 #if SASL_VERSION_MAJOR < 2 && !defined(CSRIMALLOC)
@@ -118,7 +115,6 @@ int ldap_int_sasl_init( void )
 #endif
 
 	if ( sasl_client_init( NULL ) == SASL_OK ) {
-		sasl_initialized = 1;
 		return 0;
 	}
 
@@ -329,11 +325,6 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-	if ( ldap_int_sasl_init() ) {
-		ld->ld_errno = LDAP_LOCAL_ERROR;
-		return ld->ld_errno;
-	}
-
 #if SASL_VERSION_MAJOR >= 2
 	rc = sasl_client_new( "ldap", host, NULL, NULL,
 		client_callbacks, 0, &ctx );
@@ -347,8 +338,8 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: host=%s\n",
-		host, 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: host=%s\n",
+		host );
 
 	lc->lconn_sasl_authctx = ctx;
 
@@ -398,9 +389,13 @@ ldap_int_sasl_bind(
 	struct berval	ccred = BER_BVNULL;
 	int saslrc, rc;
 	unsigned credlen;
+#if !defined(_WIN32)
+	char my_hostname[HOST_NAME_MAX + 1];
+#endif
+	int free_saslhost = 0;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_bind: %s\n",
-		mechs ? mechs : "<null>", 0, 0 );
+	Debug1( LDAP_DEBUG_TRACE, "ldap_int_sasl_bind: %s\n",
+		mechs ? mechs : "<null>" );
 
 	/* do a quick !LDAPv3 check... ldap_sasl_bind will do the rest. */
 	if (ld->ld_version < LDAP_VERSION3) {
@@ -458,14 +453,29 @@ ldap_int_sasl_bind(
 
 			/* If we don't need to canonicalize just use the host
 			 * from the LDAP URI.
+			 * Always use the result of gethostname() for LDAPI.
+			 * Skip for Windows which doesn't support LDAPI.
 			 */
+#if !defined(_WIN32)
+			if (ld->ld_defconn->lconn_server->lud_scheme != NULL &&
+			    strcmp("ldapi", ld->ld_defconn->lconn_server->lud_scheme) == 0) {
+				rc = gethostname(my_hostname, HOST_NAME_MAX + 1);
+				if (rc == 0) {
+					saslhost = my_hostname;
+				} else {
+					saslhost = "localhost";
+				}
+			} else
+#endif
 			if ( nocanon )
 				saslhost = ld->ld_defconn->lconn_server->lud_host;
-			else 
+			else {
 				saslhost = ldap_host_connected_to( ld->ld_defconn->lconn_sb,
 				"localhost" );
+				free_saslhost = 1;
+			}
 			rc = ldap_int_sasl_open( ld, ld->ld_defconn, saslhost );
-			if ( !nocanon )
+			if ( free_saslhost )
 				LDAP_FREE( saslhost );
 		}
 
@@ -490,7 +500,8 @@ ldap_int_sasl_bind(
 			{
 				char cbinding[64];
 				struct berval cbv = { sizeof(cbinding), cbinding };
-				if ( ldap_pvt_tls_get_unique( ssl, &cbv, 0 )) {
+				if ( ld->ld_defconn->lconn_sasl_cbind == NULL &&
+					ldap_pvt_tls_get_unique( ssl, &cbv, 0 )) {
 					sasl_channel_binding_t *cb = ldap_memalloc( sizeof(*cb) +
 						cbv.bv_len);
 					void *cb_data; /* used since cb->data is const* */
@@ -578,9 +589,9 @@ ldap_int_sasl_bind(
 		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
 			if( scred ) {
 				/* and server provided us with data? */
-				Debug( LDAP_DEBUG_TRACE,
+				Debug2( LDAP_DEBUG_TRACE,
 					"ldap_int_sasl_bind: rc=%d len=%ld\n",
-					rc, scred ? (long) scred->bv_len : -1L, 0 );
+					rc, scred ? (long) scred->bv_len : -1L );
 				ber_bvfree( scred );
 				scred = NULL;
 			}
@@ -597,9 +608,8 @@ ldap_int_sasl_bind(
 		do {
 			if( ! scred ) {
 				/* no data! */
-				Debug( LDAP_DEBUG_TRACE,
-					"ldap_int_sasl_bind: no data in step!\n",
-					0, 0, 0 );
+				Debug0( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: no data in step!\n" );
 			}
 
 			saslrc = sasl_client_step( ctx,
@@ -609,8 +619,8 @@ ldap_int_sasl_bind(
 				(SASL_CONST char **)&ccred.bv_val,
 				&credlen );
 
-			Debug( LDAP_DEBUG_TRACE, "sasl_client_step: %d\n",
-				saslrc, 0, 0 );
+			Debug1( LDAP_DEBUG_TRACE, "sasl_client_step: %d\n",
+				saslrc );
 
 			if( saslrc == SASL_INTERACT ) {
 				int res;
@@ -936,8 +946,6 @@ int
 ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 {
 	if ( option == LDAP_OPT_X_SASL_MECHLIST ) {
-		if ( ldap_int_sasl_init() )
-			return -1;
 		*(char ***)arg = (char **)sasl_global_listmech();
 		return 0;
 	}

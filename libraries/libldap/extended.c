@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,10 +103,9 @@ ldap_extended_operation(
 	int				*msgidp )
 {
 	BerElement *ber;
-	int rc;
 	ber_int_t id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_extended_operation\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -144,7 +143,7 @@ ldap_extended_operation_s(
     int     msgid;
     LDAPMessage *res;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation_s\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_extended_operation_s\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -195,7 +194,7 @@ ldap_parse_extended_result (
 	assert( LDAP_VALID( ld ) );
 	assert( res != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n" );
 
 	if( ld->ld_version < LDAP_VERSION3 ) {
 		ld->ld_errno = LDAP_NOT_SUPPORTED;
@@ -319,7 +318,7 @@ ldap_parse_intermediate (
 	assert( LDAP_VALID( ld ) );
 	assert( res != NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_parse_intermediate\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_parse_intermediate\n" );
 
 	if( ld->ld_version < LDAP_VERSION3 ) {
 		ld->ld_errno = LDAP_NOT_SUPPORTED;

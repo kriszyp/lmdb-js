@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ static ConfigTable wtcfg[] = {
 static ConfigOCs wtocs[] = {
 	{ "( OLcfgDbOc:9.1 "
 	  "NAME 'olcWtConfig' "
-	  "DESC 'Wt backend ocnfiguration' "
+	  "DESC 'Wt backend configuration' "
 	  "SUP olcDatabaseConfig "
 	  "MUST olcDbDirectory "
 	  "MAY ( olcWtConfig $ olcDbIndex ) )",

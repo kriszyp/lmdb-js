@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 2000 Mark Adamson, Carnegie Mellon.
  * All rights reserved.
  *
@@ -225,7 +225,7 @@ authzValidate(
 	assert( !BER_BVISNULL( in ) );
 
 	Debug( LDAP_DEBUG_TRACE,
-		"authzValidate: parsing %s\n", in->bv_val, 0, 0 );
+		"authzValidate: parsing %s\n", in->bv_val );
 
 	/*
 	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
@@ -874,12 +874,12 @@ authzNormalize(
 	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, ">>> authzNormalize: <%s>\n",
-		val->bv_val, 0, 0 );
+		val->bv_val );
 
 	rc = authzPrettyNormal( val, normalized, ctx, 1 );
 
 	Debug( LDAP_DEBUG_TRACE, "<<< authzNormalize: <%s> (%d)\n",
-		normalized->bv_val, rc, 0 );
+		normalized->bv_val, rc );
 
 	return rc;
 }
@@ -894,12 +894,12 @@ authzPretty(
 	int		rc;
 
 	Debug( LDAP_DEBUG_TRACE, ">>> authzPretty: <%s>\n",
-		val->bv_val, 0, 0 );
+		val->bv_val );
 
 	rc = authzPrettyNormal( val, out, ctx, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<<< authzPretty: <%s> (%d)\n",
-		out->bv_val, rc, 0 );
+		out->bv_val, rc );
 
 	return rc;
 }
@@ -930,7 +930,7 @@ slap_parseURI(
 	*filter = NULL;
 
 	Debug( LDAP_DEBUG_TRACE,
-		"slap_parseURI: parsing %s\n", uri->bv_val, 0, 0 );
+		"slap_parseURI: parsing %s\n", uri->bv_val );
 
 	rc = LDAP_PROTOCOL_ERROR;
 
@@ -1261,7 +1261,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 				Debug( LDAP_DEBUG_ANY,
 					"SASL replace pattern %s has too many $n "
 						"placeholders (max %d)\n",
-					rep, SASLREGEX_REPLACE, 0 );
+					rep, SASLREGEX_REPLACE );
 
 				return( LDAP_OTHER );
 			}
@@ -1374,7 +1374,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			"SASL match pattern %s could not be compiled by regexp engine\n",
-			match, 0, 0 );
+			match );
 
 #ifdef ENABLE_REWRITE
 		/* Dummy block to force symbol references in librewrite */
@@ -1550,7 +1550,7 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 	memset( out, 0, sizeof( *out ) );
 
 	Debug( LDAP_DEBUG_TRACE, "slap_authz_regexp: converting SASL name %s\n",
-	   saslname, 0, 0 );
+	   saslname );
 
 	if (( saslname == NULL ) || ( nSaslRegexp == 0 )) {
 		return( 0 );
@@ -1575,7 +1575,7 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_authz_regexp: converted SASL name to %s\n",
-		BER_BVISEMPTY( out ) ? "" : out->bv_val, 0, 0 );
+		BER_BVISEMPTY( out ) ? "" : out->bv_val );
 
 	return( 1 );
 #endif /* ! SLAP_AUTH_REWRITE */
@@ -1595,7 +1595,7 @@ static int sasl_sc_sasl2dn( Operation *op, SlapReply *rs )
 
 		Debug( LDAP_DEBUG_TRACE,
 			"%s: slap_sc_sasl2dn: search DN returned more than 1 entry\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		return LDAP_UNAVAILABLE; /* short-circuit the search */
 	}
 
@@ -1668,7 +1668,7 @@ slap_sasl_match( Operation *opx, struct berval *rule,
 
 	Debug( LDAP_DEBUG_TRACE,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n",
-		assertDN->bv_len ? assertDN->bv_val : "(null)", rule->bv_val, 0 );
+		assertDN->bv_len ? assertDN->bv_val : "(null)", rule->bv_val );
 
 	/* NOTE: don't normalize rule if authz syntax is enabled */
 	rc = slap_parseURI( opx, rule, &base, &op.o_req_ndn,
@@ -1807,7 +1807,7 @@ exact_match:
 
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-	   op.o_req_ndn.bv_val, op.ors_scope, 0 );
+	   op.o_req_ndn.bv_val, op.ors_scope );
 
 	op.o_bd = select_backend( &op.o_req_ndn, 1 );
 	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
@@ -1850,7 +1850,7 @@ CONCLUDED:
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
 
 	Debug( LDAP_DEBUG_TRACE,
-	   "<===slap_sasl_match: comparison returned %d\n", rc, 0, 0);
+	   "<===slap_sasl_match: comparison returned %d\n", rc );
 
 	return( rc );
 }
@@ -1893,7 +1893,7 @@ COMPLETE:
 
 	Debug( LDAP_DEBUG_TRACE,
 	   "<==slap_sasl_check_authz: %s check returning %d\n",
-		ad->ad_cname.bv_val, rc, 0);
+		ad->ad_cname.bv_val, rc );
 
 	return( rc );
 }
@@ -1922,7 +1922,7 @@ slap_sasl2dn(
 
 	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
 		"converting SASL name %s to a DN\n",
-		saslname->bv_val, 0,0 );
+		saslname->bv_val );
 
 	BER_BVZERO( sasldn );
 	cb.sc_private = sasldn;
@@ -1973,7 +1973,7 @@ slap_sasl2dn(
 
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		op.o_req_ndn.bv_val, op.ors_scope, 0 );
+		op.o_req_ndn.bv_val, op.ors_scope );
 
 	if ( ( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL) ) {
 		goto FINISHED;
@@ -2025,7 +2025,7 @@ FINISHED:
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
-		!BER_BVISEMPTY( sasldn ) ? sasldn->bv_val : "<nothing>", 0, 0 );
+		!BER_BVISEMPTY( sasldn ) ? sasldn->bv_val : "<nothing>" );
 
 	return;
 }
@@ -2054,7 +2054,7 @@ int slap_sasl_authorized( Operation *op,
 	Debug( LDAP_DEBUG_TRACE,
 	   "==>slap_sasl_authorized: can %s become %s?\n",
 		authcDN->bv_len ? authcDN->bv_val : "(null)",
-		authzDN->bv_len ? authzDN->bv_val : "(null)",  0 );
+		authzDN->bv_len ? authzDN->bv_val : "(null)" );
 
 	/* If person is authorizing to self, succeed */
 	if ( dn_match( authcDN, authzDN ) ) {
@@ -2062,19 +2062,22 @@ int slap_sasl_authorized( Operation *op,
 		goto DONE;
 	}
 
-	/* Allow the manager to authorize as any DN. */
-	if( op->o_conn->c_authz_backend &&
-		be_isroot_dn( op->o_conn->c_authz_backend, authcDN ))
+	/* Allow the manager to authorize as any DN in its own DBs. */
 	{
-		rc = LDAP_SUCCESS;
-		goto DONE;
+		Backend *zbe = select_backend( authzDN, 1 );
+		if ( zbe && be_isroot_dn( zbe, authcDN )) {
+			rc = LDAP_SUCCESS;
+			goto DONE;
+		}
 	}
 
 	/* Check source rules */
 	if( authz_policy & SASL_AUTHZ_TO ) {
 		rc = slap_sasl_check_authz( op, authcDN, authzDN,
 			slap_schema.si_ad_saslAuthzTo, authcDN );
-		if( rc == LDAP_SUCCESS && !(authz_policy & SASL_AUTHZ_AND) ) {
+		if(( rc == LDAP_SUCCESS ) ^ (( authz_policy & SASL_AUTHZ_AND) != 0)) {
+			if( rc != LDAP_SUCCESS )
+				rc = LDAP_INAPPROPRIATE_AUTH;
 			goto DONE;
 		}
 	}
@@ -2093,7 +2096,7 @@ int slap_sasl_authorized( Operation *op,
 DONE:
 
 	Debug( LDAP_DEBUG_TRACE,
-		"<== slap_sasl_authorized: return %d\n", rc, 0, 0 );
+		"<== slap_sasl_authorized: return %d\n", rc );
 
 	return( rc );
 }

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1859,7 +1859,7 @@ ure_write_dfa(ure_dfa_t dfa, FILE *out)
                     if (sym->props & (1 << k)) {
                         if (h != 0)
                           putc(',', out);
-                        fprintf(out, "%hd", k + 1);
+                        fprintf(out, "%d", k + 1);
                         h = 1;
                     }
                 }

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2008-2017 The OpenLDAP Foundation.
+ * Copyright 2008-2019 The OpenLDAP Foundation.
  * Portions Copyright 2008 Howard Chu.
  * Portions Copyright 2013 Ted C. Cheng, Symas Corp.
  * All rights reserved.
@@ -116,15 +116,15 @@ void nssov_cfg_init(nssov_info *ni,const char *fname);
    stream */
 
 #define ERROR_OUT_WRITEERROR(fp) \
-  Debug(LDAP_DEBUG_ANY,"nssov: error writing to client\n",0,0,0); \
+  Debug(LDAP_DEBUG_ANY,"nssov: error writing to client\n"); \
   return -1;
 
 #define ERROR_OUT_READERROR(fp) \
-  Debug(LDAP_DEBUG_ANY,"nssov: error reading from client\n",0,0,0); \
+  Debug(LDAP_DEBUG_ANY,"nssov: error reading from client\n"); \
   return -1;
 
 #define ERROR_OUT_BUFERROR(fp) \
-  Debug(LDAP_DEBUG_ANY,"nssov: client supplied argument too large\n",0,0,0); \
+  Debug(LDAP_DEBUG_ANY,"nssov: client supplied argument too large\n"); \
   return -1;
 
 #define WRITE_BERVAL(fp, bv)                                                   \
@@ -322,7 +322,7 @@ int pam_pwmod(nssov_info *ni,TFILE *fp,Operation *op,uid_t calleruid);
     /* prepare the search filter */ \
     if (mkfilter) \
     { \
-      Debug(LDAP_DEBUG_ANY,"nssov_" __STRING(db) "_" __STRING(fn) "(): filter buffer too small",0,0,0); \
+      Debug(LDAP_DEBUG_ANY,"nssov_" __STRING(db) "_" __STRING(fn) "(): filter buffer too small"); \
       return -1; \
     } \
 	cb.sc_private = &cbp; \

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -52,7 +52,7 @@ rwm_map_config(
 	if ( argc < 3 || argc > 4 ) {
 		Debug( LDAP_DEBUG_ANY,
 	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -67,7 +67,7 @@ rwm_map_config(
 		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is "
 			"\"map {objectclass | attribute} [<local> | *] "
 			"{<foreign> | *}\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -100,7 +100,7 @@ rwm_map_config(
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: objectclass attribute cannot be mapped\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -109,7 +109,7 @@ rwm_map_config(
 	if ( mapping == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: out of memory\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 	ber_str2bv( src, 0, 1, &mapping[0].m_src );
@@ -184,12 +184,10 @@ rwm_map_config(
 						&mapping[0].m_src_ad, &text,
 						SLAP_AD_PROXIED );
 				if ( rc != LDAP_SUCCESS ) {
-					char prefix[1024];
-					snprintf( prefix, sizeof(prefix),
-	"%s: line %d: source attributeType '%s': %d",
-						fname, lineno, src, rc );
-					Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-						prefix, text ? text : "null", 0 );
+					Debug(LDAP_DEBUG_ANY,
+					      "%s: line %d: source attributeType '%s': %d (%s)\n",
+					      fname, lineno, src, rc,
+					      text ? text : "null" );
 					goto error_return;
 				}
 
@@ -208,12 +206,10 @@ rwm_map_config(
 					&mapping[0].m_dst_ad, &text,
 					SLAP_AD_PROXIED );
 			if ( rc != LDAP_SUCCESS ) {
-				char prefix[1024];
-				snprintf( prefix, sizeof(prefix), 
-	"%s: line %d: destination attributeType '%s': %d",
-					fname, lineno, dst, rc );
-				Debug( LDAP_DEBUG_ANY, "%s (%s)\n",
-					prefix, text ? text : "null", 0 );
+				Debug(LDAP_DEBUG_ANY,
+				      "%s: line %d: destination attributeType '%s': %d (%s)\n",
+				      fname, lineno, dst, rc,
+				      text ? text : "null" );
 				goto error_return;
 			}
 		}
@@ -225,7 +221,7 @@ rwm_map_config(
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"%s: line %d: duplicate mapping found.\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		/* FIXME: free stuff */
 		goto error_return;
 	}

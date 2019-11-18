@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -113,7 +113,7 @@ passwd_back_search(
 			 * DN that was configured for this backend, but it's
 			 * better than nothing.
 			 *
-			 * should be a configuratable item
+			 * should be a configurable item
 			 */
 			BER_BVSTR( &val, "organizationalUnit" );
 			attr_merge_one( &e, ad_objectClass, &val, NULL );
@@ -291,7 +291,7 @@ pw2entry( Backend *be, struct passwd *pw, Entry *e )
 	val.bv_len = STRLENOF("uid=,") + ( pwlen + be->be_suffix[0].bv_len );
 	val.bv_val = ch_malloc( val.bv_len + 1 );
 
-	/* rdn attribute type should be a configuratable item */
+	/* rdn attribute type should be a configurable item */
 	sprintf( val.bv_val, "uid=%s,%s",
 		pw->pw_name, be->be_suffix[0].bv_val );
 

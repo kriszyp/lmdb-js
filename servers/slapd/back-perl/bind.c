@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 John C. Quillan.
  * Portions Copyright 2002 myinternet Limited.
  * All rights reserved.
@@ -70,7 +70,7 @@ perl_back_bind(
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", rs->sr_err, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl BIND returned 0x%04x\n", rs->sr_err );
 
 	/* frontend will send result on success (0) */
 	if( rs->sr_err != LDAP_SUCCESS )

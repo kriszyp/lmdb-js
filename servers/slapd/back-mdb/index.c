@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -172,7 +172,7 @@ static int indexer(
 	int opid,
 	slap_mask_t mask )
 {
-	int rc, i;
+	int rc;
 	struct berval *keys;
 	MDB_cursor *mc = ai->ai_cursor;
 	mdb_idl_keyfunc *keyfunc;
@@ -312,7 +312,7 @@ static int index_at_values(
 	/* If this type has no AD, we've never used it before */
 	if( type->sat_ad ) {
 		ai = mdb_attr_mask( op->o_bd->be_private, type->sat_ad );
-		if ( ai ) {
+		if ( ai && ( ai->ai_indexmask || ai->ai_newmask )) {
 #ifdef LDAP_COMP_MATCH
 			/* component indexing */
 			if ( ai->ai_cr ) {
@@ -351,7 +351,7 @@ static int index_at_values(
 		if( desc ) {
 			ai = mdb_attr_mask( op->o_bd->be_private, desc );
 
-			if( ai ) {
+			if( ai && ( ai->ai_indexmask || ai->ai_newmask )) {
 				if ( opid == MDB_INDEX_UPDATE_OP )
 					mask = ai->ai_newmask & ~ai->ai_indexmask;
 				else

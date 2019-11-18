@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,9 @@ static struct berval	builtin_supportedFeatures[] = {
 	BER_BVC(LDAP_FEATURE_ABSOLUTE_FILTERS),		/* (&) and (|) search filters */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_TAG_OPTIONS),	/* Language Tag Options */
 	BER_BVC(LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS),	/* Language Range Options */
+#ifdef LDAP_DEVEL
 	BER_BVC(LDAP_FEATURE_SUBORDINATE_SCOPE),	/* "children" search scope */
+#endif
 	BER_BVNULL
 };
 static struct berval	*supportedFeatures;
@@ -214,7 +216,7 @@ root_dse_info(
 	e = entry_alloc();
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"root_dse_info: entry_alloc failed", 0, 0, 0 );
+			"root_dse_info: entry_alloc failed" );
 		return LDAP_OTHER;
 	}
 
@@ -250,6 +252,9 @@ fail:
 		if ( be->be_suffix == NULL
 				|| be->be_nsuffix == NULL ) {
 			/* no suffix! */
+			continue;
+		}
+		if ( SLAP_DBHIDDEN( be )) {
 			continue;
 		}
 		if ( SLAP_MONITOR( be )) {
@@ -406,7 +411,7 @@ root_dse_read_file( const char *fname )
 	if ( (fp = ldif_open( fname, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"root_dse_read_file: could not open rootdse attr file \"%s\" - absolute path?\n",
-			fname, 0, 0 );
+			fname );
 		perror( fname );
 		return EXIT_FAILURE;
 	}
@@ -414,7 +419,7 @@ root_dse_read_file( const char *fname )
 	usr_attr = entry_alloc();
 	if( usr_attr == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			"root_dse_read_file: entry_alloc failed", 0, 0, 0 );
+			"root_dse_read_file: entry_alloc failed" );
 		ldif_close( fp );
 		return LDAP_OTHER;
 	}
@@ -427,7 +432,7 @@ root_dse_read_file( const char *fname )
 		if( e == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "root_dse_read_file: "
 				"could not parse entry (file=\"%s\" line=%lu)\n",
-				fname, lineno, 0 );
+				fname, lineno );
 			rc = LDAP_OTHER;
 			break;
 		}
@@ -474,7 +479,7 @@ root_dse_read_file( const char *fname )
 
 	ldif_close( fp );
 
-	Debug(LDAP_DEBUG_CONFIG, "rootDSE file=\"%s\" read.\n", fname, 0, 0);
+	Debug(LDAP_DEBUG_CONFIG, "rootDSE file=\"%s\" read.\n", fname );
 	return rc;
 }
 

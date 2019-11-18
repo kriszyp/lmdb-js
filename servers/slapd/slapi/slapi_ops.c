@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -225,9 +225,7 @@ slapi_int_connection_init_pb( Slapi_PBlock *pb, ber_tag_t tag )
 	/* should check status of thread calls */
 	ldap_pvt_thread_mutex_init( &conn->c_mutex );
 	ldap_pvt_thread_mutex_init( &conn->c_write1_mutex );
-	ldap_pvt_thread_mutex_init( &conn->c_write2_mutex );
 	ldap_pvt_thread_cond_init( &conn->c_write1_cv );
-	ldap_pvt_thread_cond_init( &conn->c_write2_cv );
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 

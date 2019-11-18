@@ -1,5 +1,5 @@
 .TH SLAPD.BACKENDS 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2006-2017 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2006-2019 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -19,14 +19,6 @@ corresponding
 .BR slapd\-<backend> (5)
 manual pages.
 .TP
-.B bdb
-This was the recommended primary backend through OpenLDAP 2.3, but it has
-since been superseded by the
-.BR hdb
-backend.  It takes care to configure it properly.
-It uses the transactional database interface of the Oracle Berkeley
-DB (BDB) package to store data.
-.TP
 .B config
 This backend is used to manage the configuration of slapd at run-time.
 Unlike other backends, only a single instance of the
@@ -41,19 +33,6 @@ This backend is experimental.
 It serves up referrals based upon SRV resource records held in the
 Domain Name System.
 .TP
-.B hdb
-This is the recommended primary backend for a normal slapd database.
-.B hdb
-is a variant of the
-.B bdb
-backend that uses a hierarchical database
-layout.
-This layout stores entry DNs more efficiently than the
-.B bdb
-backend,
-using less space and requiring less work to create, delete, and rename
-entries. It is also one of the few backends to support subtree renames.
-.TP
 .B ldap
 This backend acts as a proxy to forward incoming requests to another
 LDAP server.
@@ -65,14 +44,9 @@ Its usage should be limited to very simple databases, where performance
 is not a requirement. This backend also supports subtree renames.
 .TP
 .B mdb
-This will soon be the recommended primary backend, superseding
-.BR hdb .
+This is the recommended primary backend.
 This backend uses OpenLDAP's own MDB transactional database
-library. It is extremely compact and extremely efficient, delivering
-much higher performance than the Berkeley DB backends while using
-significantly less memory.  Also, unlike Berkeley DB, MDB is crash proof,
-and requires no special tuning or maintenance.
-This backend also supports subtree renames.
+library.  This backend also supports subtree renames.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
@@ -135,10 +109,8 @@ ETCDIR/slapd.d
 default slapd configuration directory
 .SH SEE ALSO
 .BR ldap (3),
-.BR slapd\-bdb (5),
 .BR slapd\-config (5),
 .BR slapd\-dnssrv (5),
-.BR slapd\-hdb (5),
 .BR slapd\-ldap (5),
 .BR slapd\-ldif (5),
 .BR slapd\-mdb (5),

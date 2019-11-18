@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ do_compare(
 	AttributeAssertion ava = ATTRIBUTEASSERTION_INIT;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_compare\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 	/*
 	 * Parse the compare request.  It looks like this:
 	 *
@@ -57,28 +57,28 @@ do_compare(
 
 	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_compare: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, "{mm}", &desc, &value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_compare: get ava failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_compare: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_compare: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		goto cleanup;
 	} 
 
@@ -86,15 +86,15 @@ do_compare(
 		op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_compare: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
+			op->o_log_prefix, dn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
 
-	Statslog( LDAP_DEBUG_STATS,
+	Debug( LDAP_DEBUG_STATS,
 		"%s CMP dn=\"%s\" attr=\"%s\"\n",
 		op->o_log_prefix, op->o_req_dn.bv_val,
-		desc.bv_val, 0, 0 );
+		desc.bv_val );
 
 	rs->sr_err = slap_bv2ad( &desc, &ava.aa_desc, &rs->sr_text );
 	if( rs->sr_err != LDAP_SUCCESS ) {
@@ -125,6 +125,10 @@ do_compare(
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_compare( op, rs );
+	if ( rs->sr_err == SLAPD_ASYNCOP ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
 
 cleanup:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );

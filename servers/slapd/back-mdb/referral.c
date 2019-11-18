@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ mdb_referrals( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			LDAP_XSTRING(mdb_referrals)
 			": dn2entry failed: %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		rs->sr_text = "internal error";
 		rc = LDAP_OTHER;
 		goto done;

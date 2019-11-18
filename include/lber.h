@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -173,7 +173,7 @@ typedef struct sockbuf Sockbuf;
 
 typedef struct sockbuf_io Sockbuf_IO;
 
-/* Structure for LBER IO operarion descriptor */
+/* Structure for LBER IO operation descriptor */
 typedef struct sockbuf_io_desc {
 	int			sbiod_level;
 	Sockbuf			*sbiod_sb;
@@ -256,6 +256,11 @@ ber_peek_tag LDAP_P((
 	ber_len_t *len ));
 
 LBER_F( ber_tag_t )
+ber_skip_raw LDAP_P((
+	BerElement *ber,
+	struct berval *bv ));
+
+LBER_F( ber_tag_t )
 ber_skip_element LDAP_P((
 	BerElement *ber,
 	struct berval *bv ));
@@ -273,6 +278,11 @@ ber_get_int LDAP_P((
 LBER_F( ber_tag_t )
 ber_get_enum LDAP_P((
 	BerElement *ber,
+	ber_int_t *num ));
+
+LBER_F( int )
+ber_decode_int LDAP_P((
+	const struct berval *bv,
 	ber_int_t *num ));
 
 LBER_F( ber_tag_t )

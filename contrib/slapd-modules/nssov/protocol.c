@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>. 
  *
- * Copyright 2008-2017 The OpenLDAP Foundation.
+ * Copyright 2008-2019 The OpenLDAP Foundation.
  * Portions Copyright 2008 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
@@ -63,7 +63,7 @@ static int write_protocol(nssov_protocol_cbp *cbp,Entry *entry)
 	if ( !a || !a->a_vals )
 	{
 		Debug(LDAP_DEBUG_ANY,"protocol entry %s does not contain %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[0].an_desc->ad_cname.bv_val );
 		return 0;
 	}
 	names = a->a_vals;
@@ -86,17 +86,17 @@ static int write_protocol(nssov_protocol_cbp *cbp,Entry *entry)
 	if ( !a || !a->a_vals )
 	{
 		Debug(LDAP_DEBUG_ANY,"protocol entry %s does not contain %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 		return 0;
 	} else if ( a->a_numvals > 1 ) {
 		Debug(LDAP_DEBUG_ANY,"protocol entry %s contains multiple %s values\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 	}
 	proto=(int)strtol(a->a_vals[0].bv_val,&tmp,0);
 	if (*tmp)
 	{
 		Debug(LDAP_DEBUG_ANY,"protocol entry %s contains non-numeric %s value\n",
-			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val, 0 );
+			entry->e_name.bv_val, cbp->mi->mi_attrs[1].an_desc->ad_cname.bv_val );
 		return 0;
 	}
 	/* write the entry */
@@ -126,7 +126,7 @@ NSSOV_HANDLE(
 	READ_STRING(fp,cbp.buf);
 	cbp.name.bv_len = tmpint32;
 	cbp.name.bv_val = cbp.buf;,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_byname(%s)\n",cbp.name.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_byname(%s)\n",cbp.name.bv_val);,
 	NSLCD_ACTION_PROTOCOL_BYNAME,
 	nssov_filter_byname(cbp.mi,0,&cbp.name,&filter)
 )
@@ -141,7 +141,7 @@ NSSOV_HANDLE(
 	cbp.numb.bv_val = cbp.buf;
 	cbp.numb.bv_len = snprintf(cbp.buf,sizeof(cbp.buf),"%d",protocol);
 	BER_BVZERO(&cbp.name);,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_bynumber(%s)\n",cbp.numb.bv_val,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_bynumber(%s)\n",cbp.numb.bv_val);,
 	NSLCD_ACTION_PROTOCOL_BYNUMBER,
 	nssov_filter_byid(cbp.mi,1,&cbp.numb,&filter)
 )
@@ -150,7 +150,7 @@ NSSOV_HANDLE(
 	protocol,all,
 	struct berval filter;
 	/* no parameters to read */,
-	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_all()\n",0,0,0);,
+	Debug(LDAP_DEBUG_TRACE,"nssov_protocol_all()\n");,
 	NSLCD_ACTION_PROTOCOL_ALL,
 	(filter=cbp.mi->mi_filter,0)
 )

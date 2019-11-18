@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -140,7 +140,7 @@ relay_back_select_backend( Operation *op, SlapReply *rs, int which )
 
 		Debug( LDAP_DEBUG_ANY,
 			"%s: back-relay for DN=\"%s\" would call self.\n",
-			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+			op->o_log_prefix, op->o_req_dn.bv_val );
 
 	} else if ( useDN && ( fail_mode & RB_REF ) && default_referral ) {
 		rc = LDAP_REFERRAL;

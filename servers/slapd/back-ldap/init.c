@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -209,7 +209,7 @@ ldap_back_db_open( BackendDB *be, ConfigReply *cr )
 
 	Debug( LDAP_DEBUG_TRACE,
 		"ldap_back_db_open: URI=%s\n",
-		li->li_uri != NULL ? li->li_uri : "", 0, 0 );
+		li->li_uri != NULL ? li->li_uri : "" );
 
 	/* by default, use proxyAuthz control on each operation */
 	switch ( li->li_idassert_mode ) {

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2007-2017 The OpenLDAP Foundation.
+ * Copyright 2007-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,8 @@ extern BI_op_modify	sock_back_modify;
 extern BI_op_modrdn	sock_back_modrdn;
 extern BI_op_add	sock_back_add;
 extern BI_op_delete	sock_back_delete;
+
+extern BI_op_extended	sock_back_extended;
 
 extern int sock_back_init_cf( BackendInfo *bi );
 

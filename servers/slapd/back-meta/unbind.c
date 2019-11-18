@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -46,7 +46,7 @@ meta_back_conn_destroy(
 	Debug( LDAP_DEBUG_TRACE,
 		"=>meta_back_conn_destroy: fetching conn=%ld DN=\"%s\"\n",
 		conn->c_connid,
-		BER_BVISNULL( &conn->c_ndn ) ? "" : conn->c_ndn.bv_val, 0 );
+		BER_BVISNULL( &conn->c_ndn ) ? "" : conn->c_ndn.bv_val );
 	
 	mc_curr.mc_conn = conn;
 	

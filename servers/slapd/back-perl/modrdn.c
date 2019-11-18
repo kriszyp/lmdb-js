@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999 John C. Quillan.
  * Portions Copyright 2002 myinternet Limited.
  * All rights reserved.
@@ -58,6 +58,6 @@ perl_back_modrdn(
 	
 	send_ldap_result( op, rs );
 
-	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Perl MODRDN\n" );
 	return( 0 );
 }

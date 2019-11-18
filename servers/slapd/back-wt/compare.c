@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,14 +37,13 @@ wt_compare( Operation *op, SlapReply *rs )
 	wt_ctx *wc = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(wt_compare) ": %s\n",
-		   op->o_req_dn.bv_val, 0, 0 );
+		   op->o_req_dn.bv_val );
 
 	wc = wt_ctx_get(op, wi);
 	if( !wc ){
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_compare)
-			   ": wt_ctx_get failed\n",
-			   0, 0, 0 );
+			   ": wt_ctx_get failed\n" );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
         send_ldap_result( op, rs );
@@ -111,7 +110,7 @@ wt_compare( Operation *op, SlapReply *rs )
 			rs->sr_matched = e->e_name.bv_val;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is referral\n" );
 
 		send_ldap_result( op, rs );
 

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ static int base_candidate(
 	Debug(LDAP_DEBUG_ARGS,
 		  LDAP_XSTRING(base_candidate)
 		  ": base: \"%s\" (0x%08lx)\n",
-		  e->e_nname.bv_val, (long) e->e_id, 0);
+		  e->e_nname.bv_val, (long) e->e_id );
 
 	ids[0] = 1;
 	ids[1] = e->e_id;
@@ -213,7 +213,7 @@ static int search_candidates(
 		Debug(LDAP_DEBUG_TRACE,
 			  LDAP_XSTRING(wt_search_candidates)
 			  ": failed (rc=%d)\n",
-			  rc, NULL, NULL );
+			  rc );
 
 	} else {
 		Debug(LDAP_DEBUG_TRACE,
@@ -287,7 +287,7 @@ send_paged_response(
 	Debug(LDAP_DEBUG_ARGS,
 		  LDAP_XSTRING(send_paged_response)
 		  ": lastid=0x%08lx nentries=%d\n",
-		  lastid ? *lastid : 0, rs->sr_nentries, NULL );
+		  lastid ? *lastid : 0, rs->sr_nentries );
 
 	ctrls[1] = NULL;
 
@@ -350,7 +350,7 @@ wt_search( Operation *op, SlapReply *rs )
 	unsigned nentries = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(wt_search) ": %s\n",
-		   op->o_req_dn.bv_val, 0, 0 );
+		   op->o_req_dn.bv_val );
     attrs = op->oq_search.rs_attrs;
 
 	manageDSAit = get_manageDSAit( op );
@@ -360,7 +360,7 @@ wt_search( Operation *op, SlapReply *rs )
         Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_search)
 			   ": wt_ctx_get failed: %d\n",
-			   rc, 0, 0 );
+			   rc );
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
         return rc;
 	}
@@ -374,7 +374,7 @@ wt_search( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ARGS,
 			   "<== " LDAP_XSTRING(wt_search)
 			   ": no such object %s\n",
-			   op->o_req_dn.bv_val, 0, 0);
+			   op->o_req_dn.bv_val );
 		rs->sr_err = LDAP_REFERRAL;
 		rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
 		send_ldap_result( op, rs );
@@ -384,7 +384,7 @@ wt_search( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_delete)
 			   ": error at wt_dn2entry() rc=%d\n",
-			   rc, 0, 0 );
+			   rc );
 		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 		goto done;
 	}
@@ -446,8 +446,7 @@ wt_search( Operation *op, SlapReply *rs )
 			break;
 		default:
 			Debug( LDAP_DEBUG_ANY,
-				   LDAP_XSTRING(wt_search) ": error search_candidates\n",
-				   0, 0, 0 );
+				   LDAP_XSTRING(wt_search) ": error search_candidates\n" );
 			send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
 			goto done;
 		}
@@ -459,8 +458,7 @@ wt_search( Operation *op, SlapReply *rs )
 
 	if ( candidates[0] == 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			   LDAP_XSTRING(wt_search) ": no candidates\n",
-			   0, 0, 0 );
+			   LDAP_XSTRING(wt_search) ": no candidates\n" );
 		goto nochange;
 	}
 
@@ -501,8 +499,7 @@ wt_search( Operation *op, SlapReply *rs )
 		if ( id == NOID ) {
 			Debug( LDAP_DEBUG_TRACE,
 				   LDAP_XSTRING(wt_search)
-				   ": no paged results candidates\n",
-				   0, 0, 0 );
+				   ": no paged results candidates\n" );
 			send_paged_response( op, rs, &lastid, 0 );
 
 			rs->sr_err = LDAP_OTHER;
@@ -611,7 +608,7 @@ loop_begin:
 			Debug( LDAP_DEBUG_TRACE,
 				   LDAP_XSTRING(wt_search)
 				   ": %ld scope not okay\n",
-				   (long) id, 0, 0 );
+				   (long) id );
 			goto loop_continue;
 		}
 
@@ -663,7 +660,7 @@ loop_begin:
 			Debug( LDAP_DEBUG_TRACE,
 				   LDAP_XSTRING(wt_search)
 				   ": %ld does not match filter\n",
-				   (long) id, 0, 0 );
+				   (long) id );
 		}
 
 	loop_continue:

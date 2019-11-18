@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,8 @@ int txn_start_extop(
 	int rc;
 	struct berval *bv;
 
-	Statslog( LDAP_DEBUG_STATS, "%s TXN START\n",
-		op->o_log_prefix, 0, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s TXN START\n",
+		op->o_log_prefix );
 
 	if( op->ore_reqdata != NULL ) {
 		rs->sr_text = "no request data expected";
@@ -164,8 +164,8 @@ int txn_end_extop(
 	Operation *o, *p;
 	Connection *c = op->o_conn;
 
-	Statslog( LDAP_DEBUG_STATS, "%s TXN END\n",
-		op->o_log_prefix, 0, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s TXN END\n",
+		op->o_log_prefix );
 
 	if( op->ore_reqdata == NULL ) {
 		rs->sr_text = "request data expected";

@@ -102,7 +102,6 @@ NOSYNC
 env
 pagedResultsControl
 dup
-hdb
 LDIFv
 syslog
 monitorTimestamp
@@ -221,8 +220,6 @@ AVAs
 associatedDomain
 organizationalRole
 initgroups
-olcDbCachesize
-olcDbCacheSize
 ETCDIR
 colaligns
 olcReadOnly
@@ -427,10 +424,8 @@ txt
 UTR
 XER
 roomNumber
-olcDbIDLcacheSize
 namespace
 LDAPControl
-dbconfig
 olcAttributeOptions
 dsaparam
 searchResult
@@ -858,7 +853,6 @@ datadir
 slapadd
 reqFilter
 matcheddomain
-CThreads
 slapacl
 requestName
 randkey
@@ -887,7 +881,6 @@ proxyAttrSet
 proxyAttrset
 mary
 crlcheck
-olcBdbConfig
 kadmin
 mech
 slapcat
@@ -967,7 +960,6 @@ unwillingToPerform
 PhotoURI
 MyCompany
 mkdep
-idlcachesize
 irresponsive
 PasswordModify
 readOnly
@@ -1185,12 +1177,10 @@ monitorRuntimeConfig
 olcAuditlogFile
 namingContexts
 referralAttrDN
-idlecachesize
 moddn
 calloc
 LDFLAGS
 attributeOrValueExists
-olcHdbConfig
 bsize
 auditObject
 dnssrv
@@ -1378,7 +1368,6 @@ spasswd
 sprintf
 monitorCounterObject
 Instanstantiation
-olcDbConfig
 olcLastMod
 vals
 param
@@ -1492,7 +1481,6 @@ ghenry
 odbcinst
 reqType
 slapover
-BerkeleyDB's
 attributename
 lwrap
 reqStart
@@ -1628,7 +1616,6 @@ DSAIT
 olcHidden
 mySNMP
 metainformation
-BerkeleyDB
 ldapuri
 auditAbandon
 RANDFILE
@@ -1662,7 +1649,6 @@ olcPasswordHash
 ldapc
 loopback
 ldapi
-BDB's
 GETREALM
 functionalities
 noplain
@@ -1670,7 +1656,6 @@ NOECHOPROMPT
 AES
 ldaps
 notoc
-bdb
 LDAPv
 IPsec
 olcServerID

@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 2007-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2007-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Common errors encountered when using OpenLDAP Software
@@ -210,7 +210,7 @@ class chain.
 
 Modify operation attempts to change the structural class of the entry. 
 
->      Instanstantiation of abstract objectClass.
+>      Instantiation of abstract objectClass.
 
 An abstract class is not subordinate to any listed structural or auxiliary class. 
 
@@ -636,7 +636,7 @@ values of <n>.
 
 H3: ldap_*: Internal (implementation specific) error (80) - additional info: entry index delete failed
 
-This seems to be related with wrong ownership of the BDB's dir (/var/lib/ldap) 
+This seems to be related with wrong ownership of the MDB's dir (/var/lib/ldap)
 and files. The files must be owned by the user that slapd runs as.
 
 >    chown -R ldap:ldap /var/lib/ldap 
@@ -652,11 +652,3 @@ immediately and client gets an error :
 >     SASL/GSSAPI authentication started ldap_sasl_interactive_bind_s: Can't contact LDAP server (-1)
 
 Then check the slapd service, it stopped.
-
-This may come from incompatible of using different versions of BerkeleyDB for 
-installing of SASL and installing of OpenLDAP. The problem arises in case of 
-using multiple version of BerkeleyDB. Solution: - Check which version of 
-BerkeleyDB when install Cyrus SASL. 
-
-Reinstall OpenLDAP with the version of BerkeleyDB above.
-

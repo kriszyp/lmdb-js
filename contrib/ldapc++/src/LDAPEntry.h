@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2000-2017 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2019 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -37,7 +37,7 @@ class LDAPEntry{
          * Used internally only.
          *
          * The constructor is used internally to create a LDAPEntry from
-         * the C-API's data structurs.
+         * the C-API's data structures.
          */ 
         LDAPEntry(const LDAPAsynConnection *ld, LDAPMessage *msg);
 

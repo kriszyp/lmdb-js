@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -789,12 +789,10 @@ main( int argc, char **argv )
 	bargs[banum++] = bloops;
 	bargs[banum++] = "-L";
 	bargs[banum++] = outerloops;
-#if 0
 	bargs[banum++] = "-r";
 	bargs[banum++] = retries;
 	bargs[banum++] = "-t";
 	bargs[banum++] = delay;
-#endif
 	if ( friendly ) {
 		bargs[banum++] = friendlyOpt;
 	}

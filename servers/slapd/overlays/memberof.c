@@ -130,6 +130,11 @@
 
 #define	SLAPD_MEMBEROF_ATTR	"memberOf"
 
+static AttributeDescription	*ad_member;
+static AttributeDescription	*ad_memberOf;
+
+static ObjectClass			*oc_group;
+
 static slap_overinst		memberof;
 
 typedef struct memberof_t {
@@ -359,6 +364,12 @@ memberof_value_modify(
 	struct berval	values[ 4 ], nvalues[ 4 ];
 	int		mcnt = 0;
 
+	if ( old_ndn != NULL && new_ndn != NULL &&
+		ber_bvcmp( old_ndn, new_ndn ) == 0 ) {
+	    /* DNs compare equal, it's a noop */
+	    return;
+	}
+
 	op2.o_tag = LDAP_REQ_MODIFY;
 
 	op2.o_req_dn = *ndn;
@@ -425,12 +436,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" add %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, new_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -467,12 +476,10 @@ memberof_value_modify(
 		op2.o_bd->bd_info = bi;
 		LDAP_SLIST_REMOVE(&op2.o_extra, &oex, OpExtra, oe_next);
 		if ( rs2.sr_err != LDAP_SUCCESS ) {
-			char buf[ SLAP_TEXT_BUFLEN ];
-			snprintf( buf, sizeof( buf ),
-				"memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d",
-				op2.o_req_dn.bv_val, ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
-			Debug( LDAP_DEBUG_ANY, "%s: %s\n",
-				op->o_log_prefix, buf, 0 );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s: memberof_value_modify DN=\"%s\" delete %s=\"%s\" failed err=%d\n",
+			      op->o_log_prefix, op2.o_req_dn.bv_val,
+			      ad->ad_cname.bv_val, old_dn->bv_val, rs2.sr_err );
 		}
 
 		assert( op2.orm_modlist == &mod[ mcnt ] );
@@ -538,7 +545,7 @@ memberof_op_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_ANY, "%s: memberof_op_add(\"%s\"): "
 			"consistency checks not implemented when overlay "
 			"is instantiated as global.\n",
-			op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+			op->o_log_prefix, op->o_req_dn.bv_val );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1610,11 +1617,44 @@ memberof_db_init(
 {
 	slap_overinst	*on = (slap_overinst *)be->bd_info;
 	memberof_t		*mo;
+	const char		*text = NULL;
+	int rc;
 
 	mo = (memberof_t *)ch_calloc( 1, sizeof( memberof_t ) );
 
 	/* safe default */
 	mo->mo_dangling_err = LDAP_CONSTRAINT_VIOLATION;
+
+	if ( !ad_memberOf ) {
+		rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &ad_memberOf, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_init: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_MEMBEROF_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+	if ( !ad_member ) {
+		rc = slap_str2ad( SLAPD_GROUP_ATTR, &ad_member, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "memberof_db_init: "
+					"unable to find attribute=\"%s\": %s (%d)\n",
+					SLAPD_GROUP_ATTR, text, rc );
+			return rc;
+		}
+	}
+
+	if ( !oc_group ) {
+		oc_group = oc_find( SLAPD_GROUP_CLASS );
+		if ( oc_group == NULL ) {
+			Debug( LDAP_DEBUG_ANY,
+					"memberof_db_init: "
+					"unable to find objectClass=\"%s\"\n",
+					SLAPD_GROUP_CLASS );
+			return 1;
+		}
+	}
 
 	on->on_bi.bi_private = (void *)mo;
 
@@ -1651,6 +1691,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_DN|MO_DN, mo_cf_gen,
 		"( OLcfgOvAt:18.0 NAME 'olcMemberOfDN' "
 			"DESC 'DN to be used as modifiersName' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1659,6 +1700,7 @@ static ConfigTable mo_cfg[] = {
 		"( OLcfgOvAt:18.1 NAME 'olcMemberOfDangling' "
 			"DESC 'Behavior with respect to dangling members, "
 				"constrained to ignore, drop, error' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1666,6 +1708,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|MO_REFINT, mo_cf_gen,
 		"( OLcfgOvAt:18.2 NAME 'olcMemberOfRefInt' "
 			"DESC 'Take care of referential integrity' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1673,20 +1716,23 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_GROUP_OC, mo_cf_gen,
 		"( OLcfgOvAt:18.3 NAME 'olcMemberOfGroupOC' "
 			"DESC 'Group objectClass' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
 	{ "memberof-member-ad", "member attribute",
-		2, 2, 0, ARG_MAGIC|MO_MEMBER_AD, mo_cf_gen,
+		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.4 NAME 'olcMemberOfMemberAD' "
 			"DESC 'member attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
 	{ "memberof-memberof-ad", "memberOf attribute",
-		2, 2, 0, ARG_MAGIC|MO_MEMBER_OF_AD, mo_cf_gen,
+		2, 2, 0, ARG_MAGIC|ARG_ATDESC|MO_MEMBER_OF_AD, mo_cf_gen,
 		"( OLcfgOvAt:18.5 NAME 'olcMemberOfMemberOfAD' "
 			"DESC 'memberOf attribute' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1704,6 +1750,7 @@ static ConfigTable mo_cfg[] = {
 		2, 2, 0, ARG_MAGIC|MO_DANGLING_ERROR, mo_cf_gen,
 		"( OLcfgOvAt:18.7 NAME 'olcMemberOfDanglingError' "
 			"DESC 'Error code returned in case of dangling back reference' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )",
 		NULL, NULL },
 
@@ -1857,15 +1904,11 @@ mo_cf_gen( ConfigArgs *c )
 			break;
 
 		case MO_MEMBER_AD:
-			if ( mo->mo_ad_member != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_member->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_member;
 			break;
 
 		case MO_MEMBER_OF_AD:
-			if ( mo->mo_ad_memberof != NULL ){
-				value_add_one( &c->rvalue_vals, &mo->mo_ad_memberof->ad_cname );
-			}
+			c->value_ad = mo->mo_ad_memberof;
 			break;
 
 		default:
@@ -1876,7 +1919,52 @@ mo_cf_gen( ConfigArgs *c )
 		return rc;
 
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		return 1;	/* FIXME */
+		switch( c->type ) {
+		case MO_DN:
+			if ( !BER_BVISNULL( &mo->mo_dn ) ) {
+				ber_memfree( mo->mo_dn.bv_val );
+				ber_memfree( mo->mo_ndn.bv_val );
+				BER_BVZERO( &mo->mo_dn );
+				BER_BVZERO( &mo->mo_ndn );
+			}
+			break;
+
+		case MO_DANGLING:
+			mo->mo_flags &= ~MEMBEROF_FDANGLING_MASK;
+			break;
+
+		case MO_DANGLING_ERROR:
+			mo->mo_dangling_err = LDAP_CONSTRAINT_VIOLATION;
+			break;
+
+		case MO_REFINT:
+			mo->mo_flags &= ~MEMBEROF_FREFINT;
+			break;
+
+#if 0
+		case MO_REVERSE:
+			mo->mo_flags &= ~MEMBEROF_FREVERSE;
+			break;
+#endif
+
+		case MO_GROUP_OC:
+			mo->mo_oc_group = oc_group;
+			memberof_make_group_filter( mo );
+			break;
+
+		case MO_MEMBER_AD:
+			mo->mo_ad_member = ad_member;
+			break;
+
+		case MO_MEMBER_OF_AD:
+			mo->mo_ad_memberof = ad_memberOf;
+			memberof_make_member_filter( mo );
+			break;
+
+		default:
+			assert( 0 );
+			return 1;
+		}
 
 	} else {
 		switch( c->type ) {
@@ -1937,7 +2025,7 @@ mo_cf_gen( ConfigArgs *c )
 					"unable to find group objectClass=\"%s\"",
 					c->argv[ 1 ] );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -1946,19 +2034,7 @@ mo_cf_gen( ConfigArgs *c )
 			} break;
 
 		case MO_MEMBER_AD: {
-			AttributeDescription	*ad = NULL;
-			const char		*text = NULL;
-
-
-			rc = slap_str2ad( c->argv[ 1 ], &ad, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"unable to find member attribute=\"%s\": %s (%d)",
-					c->argv[ 1 ], text, rc );
-				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
-				return 1;
-			}
+			AttributeDescription	*ad = c->value_ad;
 
 			if ( !is_at_syntax( ad->ad_type, SLAPD_DN_SYNTAX )		/* e.g. "member" */
 				&& !is_at_syntax( ad->ad_type, SLAPD_NAMEUID_SYNTAX ) )	/* e.g. "uniqueMember" */
@@ -1968,7 +2044,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -1976,19 +2052,7 @@ mo_cf_gen( ConfigArgs *c )
 			} break;
 
 		case MO_MEMBER_OF_AD: {
-			AttributeDescription	*ad = NULL;
-			const char		*text = NULL;
-
-
-			rc = slap_str2ad( c->argv[ 1 ], &ad, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"unable to find memberof attribute=\"%s\": %s (%d)",
-					c->argv[ 1 ], text, rc );
-				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
-				return 1;
-			}
+			AttributeDescription	*ad = c->value_ad;
 
 			if ( !is_at_syntax( ad->ad_type, SLAPD_DN_SYNTAX )		/* e.g. "member" */
 				&& !is_at_syntax( ad->ad_type, SLAPD_NAMEUID_SYNTAX ) )	/* e.g. "uniqueMember" */
@@ -1998,7 +2062,7 @@ mo_cf_gen( ConfigArgs *c )
 					"have DN (%s) or nameUID (%s) syntax",
 					c->argv[ 1 ], SLAPD_DN_SYNTAX, SLAPD_NAMEUID_SYNTAX );
 				Debug( LDAP_DEBUG_CONFIG, "%s: %s.\n",
-					c->log, c->cr_msg, 0 );
+					c->log, c->cr_msg );
 				return 1;
 			}
 
@@ -2024,37 +2088,17 @@ memberof_db_open(
 	memberof_t	*mo = (memberof_t *)on->on_bi.bi_private;
 	
 	int		rc;
-	const char	*text = NULL;
 
-	if( ! mo->mo_ad_memberof ){
-		rc = slap_str2ad( SLAPD_MEMBEROF_ATTR, &mo->mo_ad_memberof, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
-					"unable to find attribute=\"%s\": %s (%d)\n",
-					SLAPD_MEMBEROF_ATTR, text, rc );
-			return rc;
-		}
+	if ( !mo->mo_ad_memberof ) {
+		mo->mo_ad_memberof = ad_memberOf;
 	}
 
-	if( ! mo->mo_ad_member ){
-		rc = slap_str2ad( SLAPD_GROUP_ATTR, &mo->mo_ad_member, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "memberof_db_open: "
-					"unable to find attribute=\"%s\": %s (%d)\n",
-					SLAPD_GROUP_ATTR, text, rc );
-			return rc;
-		}
+	if ( ! mo->mo_ad_member ) {
+		mo->mo_ad_member = ad_member;
 	}
 
-	if( ! mo->mo_oc_group ){
-		mo->mo_oc_group = oc_find( SLAPD_GROUP_CLASS );
-		if ( mo->mo_oc_group == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-					"memberof_db_open: "
-					"unable to find objectClass=\"%s\"\n",
-					SLAPD_GROUP_CLASS, 0, 0 );
-			return 1;
-		}
+	if ( ! mo->mo_oc_group ) {
+		mo->mo_oc_group = oc_group;
 	}
 
 	if ( BER_BVISNULL( &mo->mo_dn ) && !BER_BVISNULL( &be->be_rootdn ) ) {
@@ -2101,9 +2145,6 @@ memberof_db_destroy(
 	return 0;
 }
 
-/* unused */
-static AttributeDescription	*ad_memberOf;
-
 static struct {
 	char	*desc;
 	AttributeDescription **adp;
@@ -2133,7 +2174,7 @@ memberof_initialize( void )
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
 				"memberof_initialize: register_at #%d failed\n",
-				i, 0, 0 );
+				i );
 			return code;
 		}
 	}

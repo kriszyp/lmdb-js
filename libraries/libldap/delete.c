@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,7 @@
 
 /*
  * A delete request looks like this:
- *	DelRequet ::= DistinguishedName,
+ *	DelRequest ::= DistinguishedName,
  */
 
 BerElement *
@@ -96,7 +96,7 @@ ldap_delete_ext(
 	BerElement	*ber;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_delete_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_delete_ext\n" );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -157,10 +157,10 @@ ldap_delete( LDAP *ld, LDAP_CONST char *dn )
 
 	/*
 	 * A delete request looks like this:
-	 *	DelRequet ::= DistinguishedName,
+	 *	DelRequest ::= DistinguishedName,
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_delete\n" );
 
 	return ldap_delete_ext( ld, dn, NULL, NULL, &msgid ) == LDAP_SUCCESS
 		? msgid : -1 ;

@@ -2,7 +2,7 @@
 ## $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 2016-2017 The OpenLDAP Foundation.
+## Copyright 2016-2019 The OpenLDAP Foundation.
 ## Portions Copyright 2016 Symas Corporation.
 ## All rights reserved.
 ##
@@ -19,12 +19,12 @@
 ## based on back-meta module for inclusion in OpenLDAP Software.
 ## This work was sponsored by Ericsson
 
-SRCS	= init.c config.c search.c message_queue.c bind.c unbind.c add.c compare.c \
-		delete.c modify.c modrdn.c suffixmassage.c map.c \
-		conn.c candidates.c dncache.c meta_result.c abandon.c
-OBJS	= init.lo config.lo search.lo message_queue.lo bind.lo unbind.lo add.lo compare.lo \
-		delete.lo modify.lo modrdn.lo suffixmassage.lo map.lo \
-		conn.lo candidates.lo dncache.lo meta_result.lo abandon.lo
+SRCS	= init.c config.c search.c message_queue.c bind.c add.c compare.c \
+		delete.c modify.c modrdn.c map.c \
+		conn.c candidates.c dncache.c meta_result.c
+OBJS	= init.lo config.lo search.lo message_queue.lo bind.lo add.lo compare.lo \
+		delete.lo modify.lo modrdn.lo map.lo \
+		conn.lo candidates.lo dncache.lo meta_result.lo
 
 LDAP_INCDIR= ../../../include
 LDAP_LIBDIR= ../../../libraries

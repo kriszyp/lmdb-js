@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2006-2017 The OpenLDAP Foundation.
+ * Copyright 2006-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -535,7 +535,7 @@ dupent_initialize( void )
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"dupent_initialize: Failed to register control (%d)\n",
-			rc, 0, 0 );
+			rc );
 		return -1;
 	}
 

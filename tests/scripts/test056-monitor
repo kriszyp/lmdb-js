@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,6 @@ $LDAPSEARCH -S "" -b "$DATABASESMONITORDN" -h $LOCALHOST -p $PORT1 \
 	'objectclass=*' \
 	structuralObjectClass entryDN namingContexts readOnly \
 	monitorIsShadow monitorContext \
-	olmBDBEntryCache olmBDBDNCache olmBDBIDLCache \
 	> $SEARCHOUT 2>&1
 RC=$?
 
@@ -99,18 +98,8 @@ fi
 echo "Filtering ldapsearch results..."
 $LDIFFILTER -b monitor < $SEARCHOUT > $SEARCHFLT
 
-TMPMONITOROUT2=$MONITOROUT2
-case $BACKEND in
-bdb|hdb)
-	;;
-*)
-	TMPMONITOROUT2=$TESTDIR/monitor2.out
-	grep -v "olmBDB" $MONITOROUT2 > $TMPMONITOROUT2
-	;;
-esac
-
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $TMPMONITOROUT2 > $CMPOUT
+$CMP $SEARCHFLT $MONITOROUT2 > $CMPOUT
 
 if test $? != 0 ; then
         echo "comparison failed - database monitor output is not correct"

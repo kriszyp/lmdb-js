@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2000-2017 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2019 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -10,7 +10,7 @@
 #include<string>
 
 /**
- * This class represent Authenication information for the case that the
+ * This class represent Authentication information for the case that the
  * library is chasing referrals.
  *
  * The LDAPRebind::getRebindAuth() method returns an object of this type.

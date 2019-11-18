@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2017 The OpenLDAP Foundation.
+ * Copyright 2005-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -113,7 +113,7 @@ static int write_data( int fd, const char *spew, int len, int *save_errno );
 #endif /* !_WIN32 */
 
 /*
- * Left and Right "{num}" prefix to ordered RDNs ("olcDatabase={1}bdb").
+ * Left and Right "{num}" prefix to ordered RDNs ("olcDatabase={1}mdb").
  * IX_DN* are for LDAP RDNs, IX_FS* for their .ldif filenames.
  */
 #define IX_DNL	'{'
@@ -266,7 +266,7 @@ fullpath_alloc( struct berval *dest, const struct berval *dir, ber_len_t more )
 	dest->bv_val = s;
 	if ( s == NULL ) {
 		dest->bv_len = 0;
-		Debug( LDAP_DEBUG_ANY, "back-ldif: out of memory\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "back-ldif: out of memory\n" );
 	} else {
 		s = lutil_strcopy( dest->bv_val, dir->bv_val );
 		*s++ = LDAP_DIRSEP[0];
@@ -395,7 +395,6 @@ crc32(const void *vbuf, int len)
 {
 	const unsigned char	*buf = vbuf;
 	ber_uint_t		crc = 0xffffffff;
-	int				i;
 
 	while (len > 7) {
 		CRC8;
@@ -473,22 +472,22 @@ ldif_read_file( const char *path, char **datap )
 				}
 				if ( crc1 != crc2 ) {
 					Debug( LDAP_DEBUG_ANY, "ldif_read_file: checksum error on \"%s\"\n",
-						path, 0, 0 );
+						path );
 					return rc;
 				}
 			}
 		}
-		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n", msg, path, 0 );
+		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n", msg, path );
 #endif /* LDAP_DEBUG */
 	} else {
 		if ( res < 0 && errno == ENOENT ) {
 			Debug( LDAP_DEBUG_TRACE, "ldif_read_file: "
-				"no entry file \"%s\"\n", path, 0, 0 );
+				"no entry file \"%s\"\n", path );
 			rc = LDAP_NO_SUCH_OBJECT;
 		} else {
 			msg = res < 0 ? STRERROR( errno ) : "bad stat() size";
 			Debug( LDAP_DEBUG_ANY, "ldif_read_file: %s for \"%s\"\n",
-				msg, path, 0 );
+				msg, path );
 			rc = LDAP_OTHER;
 		}
 		if ( data != NULL )
@@ -597,13 +596,13 @@ ldif_write_entry(
 		if ( res >= 0 ) {
 			if ( move_file( tmpfname, path->bv_val ) == 0 ) {
 				Debug( LDAP_DEBUG_TRACE, "ldif_write_entry: "
-					"wrote entry \"%s\"\n", e->e_name.bv_val, 0, 0 );
+					"wrote entry \"%s\"\n", e->e_name.bv_val );
 				rc = LDAP_SUCCESS;
 			} else {
 				save_errno = errno;
 				Debug( LDAP_DEBUG_ANY, "ldif_write_entry: "
 					"could not put entry file for \"%s\" in place: %s\n",
-					e->e_name.bv_val, STRERROR( save_errno ), 0 );
+					e->e_name.bv_val, STRERROR( save_errno ) );
 				*text = "internal error (could not put entry file in place)";
 			}
 		} else if ( res == -1 ) {
@@ -751,7 +750,7 @@ ldif_send_entry( Operation *op, SlapReply *rs, Entry *e, int scope )
 					sizeof(Entry *) * elen );
 				if ( entries == NULL ) {
 					Debug( LDAP_DEBUG_ANY,
-						"ldif_send_entry: out of memory\n", 0, 0, 0 );
+						"ldif_send_entry: out of memory\n" );
 					rc = LDAP_OTHER;
 					goto done;
 				}
@@ -822,7 +821,7 @@ ldif_readdir(
 		if ( is_rootDSE || save_errno != ENOENT ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> ldif_search_entry: failed to opendir \"%s\": %s\n",
-				path->bv_val, STRERROR( save_errno ), 0 );
+				path->bv_val, STRERROR( save_errno ) );
 			rc = LDAP_OTHER;
 			if ( rs != NULL )
 				rs->sr_text =
@@ -929,7 +928,7 @@ ldif_search_entry(
 			 ber_dupbv( &ndn, &e->e_nname ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY,
-				"ldif_search_entry: out of memory\n", 0, 0, 0 );
+				"ldif_search_entry: out of memory\n" );
 			rc = LDAP_OTHER;
 			goto done;
 		}
@@ -983,7 +982,7 @@ ldif_search_entry(
 								"(did someone just remove an entry file?)";
 						Debug( LDAP_DEBUG_ANY, "ldif_search_entry: "
 							"file listed in parent directory does not exist: "
-							"\"%s\"\n", fpath.bv_val, 0, 0 );
+							"\"%s\"\n", fpath.bv_val );
 						break;
 					}
 				}
@@ -1068,7 +1067,7 @@ ldif_prepare_create(
 	} else if ( errno != ENOENT ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldif_prepare_create: cannot stat \"%s\": %s\n",
-			dnpath->bv_val, STRERROR( errno ), 0 );
+			dnpath->bv_val, STRERROR( errno ) );
 		rc = LDAP_OTHER;
 		*text = "internal error (cannot check entry file)";
 
@@ -1121,7 +1120,7 @@ ldif_prepare_create(
 		case LDAP_OTHER:
 			Debug( LDAP_DEBUG_ANY,
 				"ldif_prepare_create: cannot stat \"%s\" parent dir: %s\n",
-				ndn->bv_val, STRERROR( errno ), 0 );
+				ndn->bv_val, STRERROR( errno ) );
 			*text = "internal error (cannot stat parent dir)";
 			break;
 		}
@@ -1396,7 +1395,7 @@ ldif_back_add( Operation *op, SlapReply *rs )
 	char textbuf[SLAP_TEXT_BUFLEN];
 	int rc;
 
-	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: \"%s\"\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: \"%s\"\n", e->e_dn );
 
 	rc = entry_schema_check( op, e, NULL, 0, 1, NULL,
 		&rs->sr_text, textbuf, sizeof( textbuf ) );
@@ -1425,7 +1424,7 @@ ldif_back_add( Operation *op, SlapReply *rs )
  send_res:
 	rs->sr_err = rc;
 	Debug( LDAP_DEBUG_TRACE, "ldif_back_add: err: %d text: %s\n",
-		rc, rs->sr_text ? rs->sr_text : "", 0 );
+		rc, rs->sr_text ? rs->sr_text : "" );
 	send_ldap_result( op, rs );
 	slap_graduate_commit_csn( op );
 	rs->sr_text = NULL;	/* remove possible pointer to textbuf */
@@ -1605,11 +1604,10 @@ ldif_move_entry(
 			}
 
 			if ( rc != LDAP_SUCCESS ) {
-				char s[128];
-				snprintf( s, sizeof s, "%s (%s)", *text, STRERROR( errno ));
-				Debug( LDAP_DEBUG_ANY,
-					"ldif_move_entry: %s: \"%s\" -> \"%s\"\n",
-					s, op->o_req_dn.bv_val, entry->e_dn );
+				Debug(LDAP_DEBUG_ANY,
+				      "ldif_move_entry: %s (%s): \"%s\" -> \"%s\"\n",
+				      *text, STRERROR(errno),
+				      op->o_req_dn.bv_val, entry->e_dn );
 			}
 		}
 
@@ -1973,7 +1971,7 @@ ldif_back_db_open( Backend *be, ConfigReply *cr )
 {
 	struct ldif_info *li = (struct ldif_info *) be->be_private;
 	if( BER_BVISEMPTY(&li->li_base_path)) {/* missing base path */
-		Debug( LDAP_DEBUG_ANY, "missing base path for back-ldif\n", 0, 0, 0);
+		Debug( LDAP_DEBUG_ANY, "missing base path for back-ldif\n" );
 		return 1;
 	}
 	return 0;

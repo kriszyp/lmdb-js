@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2017 The OpenLDAP Foundation.
+ * Copyright 2001-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -277,13 +277,13 @@ slapi_op_bind_callback( Operation *op, SlapReply *rs, int prc )
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 			/* log authorization identity */
-			Statslog( LDAP_DEBUG_STATS,
+			Debug( LDAP_DEBUG_STATS,
 				"%s BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn )
 					? "<empty>" : op->o_conn->c_dn.bv_val,
 				BER_BVISNULL( &op->orb_mech )
-					? "<empty>" : op->orb_mech.bv_val, 0, 0 );
+					? "<empty>" : op->orb_mech.bv_val );
 
 			return -1;
 		}
@@ -927,7 +927,7 @@ int slapi_over_config( BackendDB *be, ConfigReply *cr )
 	if ( slapi_over_initialized == 0 ) {
 		int rc;
 
-		/* do global initializaiton */
+		/* do global initialization */
 		ldap_pvt_thread_mutex_init( &slapi_hn_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_time_mutex );
 		ldap_pvt_thread_mutex_init( &slapi_printmessage_mutex );

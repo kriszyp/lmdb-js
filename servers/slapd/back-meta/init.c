@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -101,8 +101,7 @@ meta_back_db_init(
 	bi = backend_info( "ldap" );
 	if ( !bi || !bi->bi_extra ) {
 		Debug( LDAP_DEBUG_ANY,
-			"meta_back_db_init: needs back-ldap\n",
-			0, 0, 0 );
+			"meta_back_db_init: needs back-ldap\n" );
 		return 1;
 	}
 
@@ -195,12 +194,9 @@ meta_target_finish(
 	if ( ( mt->mt_idassert_flags & LDAP_BACK_AUTH_AUTHZ_ALL )
 		&& !( mt->mt_idassert_flags & LDAP_BACK_AUTH_PRESCRIPTIVE ) )
 	{
-		snprintf( msg, msize,
-			"%s: inconsistent idassert configuration "
-			"(likely authz=\"*\" used with \"non-prescriptive\" flag)",
-			log );
-		Debug( LDAP_DEBUG_ANY, "%s (target %s)\n",
-			msg, mt->mt_uri, 0 );
+		Debug(LDAP_DEBUG_ANY,
+		      "%s: inconsistent idassert configuration " "(likely authz=\"*\" used with \"non-prescriptive\" flag) (target %s)\n",
+		      log, mt->mt_uri );
 		return 1;
 	}
 
@@ -251,8 +247,7 @@ meta_back_db_open(
 			return 0;
 
 		Debug( LDAP_DEBUG_ANY,
-			"meta_back_db_open: no targets defined\n",
-			0, 0, 0 );
+			"meta_back_db_open: no targets defined\n" );
 		return 1;
 	}
 

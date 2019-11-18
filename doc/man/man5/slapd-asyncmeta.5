@@ -1,5 +1,5 @@
 .TH SLAPD-ASYNCMETA 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2016-2017 The OpenLDAP Foundation.
+.\" Copyright 2016-2019 The OpenLDAP Foundation.
 .\" Portions Copyright 2016 Symas Corporation.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" $OpenLDAP$
@@ -116,7 +116,7 @@ trying to return as much data as possible.
 If the value is set to \fBstop\fP, the search is terminated as soon
 as an error is returned by one target, and the error is immediately
 propagated to the client.
-If the value is set to \fBreport\fP, the search is continuated to the end
+If the value is set to \fBreport\fP, the search is continued to the end
 but, in case at least one target returned an error code, the first
 non-success error code is returned.
 
@@ -376,16 +376,18 @@ Sets the network timeout value after which
 .BR poll (2)/ select (2)
 following a
 .BR connect (2)
-returns in case of no activity.
-The value is in seconds, and it can be specified as for
+returns in case of no activity while sending an operation to the remote target.
+The value is in milliseconds, and it can be specified as for
 .BR idle\-timeout .
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
 
 .TP
 .B nretries {forever|never|<nretries>}
-This directive defines how many times a bind should be retried
-in case of temporary failure in contacting a target.  If defined
+This directive defines how many times forwarding an operation should be retried
+in case of temporary failure in contacting a target. The number of retries
+is per operation, so if a bind to the target is necessary first, the remaining
+number is decremented. If defined
 before any target specification, it applies to all targets (by default,
 .BR 3
 times);
@@ -409,11 +411,13 @@ by a target. See
 for details.
 
 .TP
-.B suffixmassage "<virtual naming context>" "<real naming context>"
-All the directives starting with "rewrite" refer to the rewrite engine
-that has been added to slapd. See
-.B slapd\-meta(5)
-for details.
+.B suffixmassage "<local suffix>" "<remote suffix>"
+.B slapd\-asyncmeta
+does not support the rewrite engine used by
+the LDAP and META backends.
+.B suffixmassage
+can be used to perform DN suffix rewriting, the same way as the obsoleted suffixmassage directive
+previously used by the LDAP backend.
 
 .TP
 .B t\-f\-support {NO|yes|discover}

@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Replication
@@ -225,8 +225,8 @@ in the replication context.
 
 The syncrepl engine, which is a consumer-side replication engine,
 can work with any backends. The LDAP Sync provider can be configured
-as an overlay on any backend, but works best with the {{back-bdb}},
-{{back-hdb}}, or {{back-mdb}} backends.
+as an overlay on any backend, but works best with the {{back-mdb}}
+backend.
 
 The LDAP Sync provider maintains a {{EX:contextCSN}} for each
 database as the current synchronization state indicator of the
@@ -423,9 +423,6 @@ writes have to go to just one of the mirror nodes at a time
 server (slapd in proxy mode) or device (hardware load balancer)
 is needed to manage which provider is currently active
 * Backups are managed slightly differently
-- If backing up the Berkeley database itself and periodically backing up the 
-transaction log files, then the same member of the mirror pair needs to be 
-used to collect logfiles until the next database backup is taken 
 
 For configuration, please see the {{SECT:MirrorMode}} section below
 
@@ -674,8 +671,8 @@ replica servers:
 >     # Set the module path location
 >     modulepath /opt/symas/lib/openldap
 >     
->     # Load the hdb backend
->     moduleload back_hdb.la
+>     # Load the mdb backend
+>     moduleload back_mdb.la
 >     
 >     # Load the accesslog overlay
 >     moduleload accesslog.la
@@ -684,12 +681,12 @@ replica servers:
 >     moduleload syncprov.la
 >     
 >     # Accesslog database definitions
->     database hdb
+>     database mdb
 >     suffix cn=accesslog
 >     directory /db/accesslog
 >     rootdn cn=accesslog
 >     index default eq
->     index entryCSN,objectClass,reqEnd,reqResult,reqStart
+>     index entryCSN,objectClass,reqEnd,reqResult,reqStart,reqDN
 >     
 >     overlay syncprov
 >     syncprov-nopresent TRUE
@@ -699,7 +696,7 @@ replica servers:
 >     limits dn.exact="cn=replicator,dc=symas,dc=com" time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
 >     
 >     # Primary database definitions
->     database hdb
+>     database mdb
 >     suffix "dc=symas,dc=com"
 >     rootdn "cn=manager,dc=symas,dc=com"
 >     
@@ -730,7 +727,7 @@ For more information, always consult the relevant man pages ({{slapo-accesslog}}
 H4: Delta-syncrepl Consumer configuration
 
 >     # Replica database configuration
->     database hdb
+>     database mdb
 >     suffix "dc=symas,dc=com"
 >     rootdn "cn=manager,dc=symas,dc=com"
 >     
@@ -759,11 +756,10 @@ H4: Delta-syncrepl Consumer configuration
 
 
 The above configuration assumes that you have a replicator identity defined 
-in your database that can be used to bind to the provider. In addition, 
-all of the databases (primary, replica, and the accesslog 
-storage database) should also have properly tuned {{DB_CONFIG}} files that meet 
-your needs.
+in your database that can be used to bind to the provider.
 
+Note: An accesslog database is unique to a given master. It should
+never be replicated.
 
 H3: N-Way Multi-Master
 
@@ -976,7 +972,7 @@ The following example is for a self-contained push-based replication solution:
 >	include     /usr/local/etc/openldap/slapd.acl
 >	
 >	modulepath  /usr/local/libexec/openldap
->	moduleload  back_hdb.la
+>	moduleload  back_mdb.la
 >	moduleload  syncprov.la
 >	moduleload  back_monitor.la
 >	moduleload  back_ldap.la
@@ -986,13 +982,11 @@ The following example is for a self-contained push-based replication solution:
 >	
 >	loglevel    sync stats
 >	
->	database    hdb
+>	database    mdb
 >	suffix      "dc=suretecsystems,dc=com"
 >	directory   /usr/local/var/openldap-data
 >	
 >	checkpoint      1024 5
->	cachesize       10000
->	idlcachesize    10000
 >	
 >	index       objectClass eq
 >	# rest of indexes
@@ -1062,7 +1056,7 @@ A replica configuration for this type of setup could be:
 >	include     /usr/local/etc/openldap/slapd.acl
 >	
 >	modulepath  /usr/local/libexec/openldap
->	moduleload  back_hdb.la
+>	moduleload  back_mdb.la
 >	moduleload  syncprov.la
 >	moduleload  back_monitor.la
 >	moduleload  back_ldap.la
@@ -1072,13 +1066,11 @@ A replica configuration for this type of setup could be:
 >	
 >	loglevel    sync stats
 >	
->	database    hdb
+>	database    mdb
 >	suffix      "dc=suretecsystems,dc=com"
 >	directory   /usr/local/var/openldap-slave/data
 >	
 >	checkpoint      1024 5
->	cachesize       10000
->	idlcachesize    10000
 >	
 >	index       objectClass eq
 >	# rest of indexes

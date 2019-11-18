@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Building and Installing OpenLDAP Software
@@ -118,29 +118,12 @@ OpenLDAP's {{slapd}}(8) {{TERM:MDB}} primary database backend uses the {{TERM:LM
 software included with the OpenLDAP source.  There is no need to download any
 additional software to have {{MDB}} support.
 
-OpenLDAP's {{slapd}}(8) {{TERM:BDB}} and {{TERM:HDB}} deprecated database backends
-require {{ORG[expand]Oracle}}'s Berkeley DB.
-If not available at configure time, you will not be able to build
-{{slapd}}(8) with these deprecated database backends.
-
-Your operating system may provide a supported version of
-Berkeley DB in the base system or as an optional
-software component.  If not, you'll have to obtain and
-install it yourself.  Berkeley DB is available from
-{{ORG[expand]Oracle}}'s Berkeley DB download page if required.
-
-There are several versions available from {{ORG[expand]Oracle}}.
-Berkeley DB version 6.0.20 and later uses a software license that is
-incompatible with LDAP technology and should not be used with OpenLDAP.
-
-Note: Please see {{SECT:Recommended OpenLDAP Software Dependency Versions}} for
-more information.
 
 
 H3: Threads
 
 OpenLDAP is designed to take advantage of threads.  OpenLDAP
-supports POSIX {{pthreads}}, Mach {{CThreads}}, and a number of
+supports POSIX {{pthreads}}, NT threads and a number of
 other varieties.  {{EX:configure}} will complain if it cannot
 find a suitable thread subsystem.   If this occurs, please
 consult the {{F:Software|Installation|Platform Hints}} section

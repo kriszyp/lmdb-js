@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,6 +127,13 @@ int
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_mutex_init( mutex ) ? 0 : errno );
+}
+
+int
+ldap_pvt_thread_mutex_recursive_init( ldap_pvt_thread_mutex_t *mutex )
+{
+	/* All pth mutexes are recursive */
+	return ldap_pvt_thread_mutex_init( mutex );
 }
 
 int 

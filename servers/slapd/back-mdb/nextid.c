@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ int mdb_next_id( BackendDB *be, MDB_cursor *mc, ID *out )
 	default:
 		Debug( LDAP_DEBUG_ANY,
 			"=> mdb_next_id: get failed: %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		goto done;
 	}
 	mdb->mi_nextid = *out;

@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 2004-2017 The OpenLDAP Foundation.
+## Copyright 2004-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -344,7 +344,7 @@ givenName: Bill
 EOTUNIQ2
 RC=$?
 if test $RC != $RCODEconstraint ; then
-	echo "olcUniqueAttribtue single deletion hit the wrong value"
+	echo "olcUniqueAttribute single deletion hit the wrong value"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit -1
 fi

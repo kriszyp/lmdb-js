@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1009,15 +1009,15 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_seeAlso) },
 
-	{ "x509PrivateKey", "( 1.3.6.1.4.1.4203.666.1.60 "
-			"NAME 'x509PrivateKey' "
-			"DESC 'X.509 private key, use ;binary' "
+	{ "pKCS8PrivateKey", "( 1.3.6.1.4.1.4203.666.1.60 "
+			"NAME 'pKCS8PrivateKey' "
+			"DESC 'PKCS#8 PrivateKeyInfo, use ;binary' "
 			"EQUALITY privateKeyMatch "
-			"SYNTAX 1.3.6.1.4.1.4203.666.2.13 )",
+			"SYNTAX 1.2.840.113549.1.8.1.1 )",
 		NULL, 0,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
-		offsetof(struct slap_internal_schema, si_ad_x509PrivateKey) },
+		offsetof(struct slap_internal_schema, si_ad_pKCS8PrivateKey) },
 
 	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0 }
 };

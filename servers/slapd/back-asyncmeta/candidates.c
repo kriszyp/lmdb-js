@@ -3,7 +3,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2016-2017 The OpenLDAP Foundation.
+ * Copyright 2016-2019 The OpenLDAP Foundation.
  * Portions Copyright 2016 Symas Corporation.
  * All rights reserved.
  *
@@ -206,8 +206,6 @@ asyncmeta_select_unique_candidate(
 			if ( candidate == META_TARGET_NONE ) {
 				candidate = i;
 
-			} else {
-				return META_TARGET_MULTIPLE;
 			}
 		}
 	}
@@ -237,54 +235,5 @@ asyncmeta_clear_unused_candidates(
 		META_CANDIDATE_RESET( &candidates[ i ] );
 	}
 
-	return 0;
-}
-
-int
-asyncmeta_clear_one_msc(
-	Operation	*op,
-	a_metaconn_t	*mc,
-	int		candidate )
-{
-	a_metasingleconn_t *msc;
-	if (mc == NULL) {
-		return 0;
-	}
-	msc = &mc->mc_conns[candidate];
-	if (msc->conn) {
-		connection_client_stop( msc->conn );
-		msc->conn = NULL;
-	}
-	if ( msc->msc_ld != NULL ) {
-
-#ifdef DEBUG_205
-		char	buf[ BUFSIZ ];
-
-		snprintf( buf, sizeof( buf ), "asyncmeta_clear_one_msc ldap_unbind_ext[%d] ld=%p",
-			candidate, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-		       op ? op->o_log_prefix : "", buf, 0 );
-#endif /* DEBUG_205 */
-
-		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
-		msc->msc_ld = NULL;
-		ldap_ld_free( msc->msc_ldr, 0, NULL, NULL );
-		msc->msc_ldr = NULL;
-	}
-
-	if ( !BER_BVISNULL( &msc->msc_bound_ndn ) ) {
-		ber_memfree_x( msc->msc_bound_ndn.bv_val, NULL );
-		BER_BVZERO( &msc->msc_bound_ndn );
-	}
-
-	if ( !BER_BVISNULL( &msc->msc_cred ) ) {
-		memset( msc->msc_cred.bv_val, 0, msc->msc_cred.bv_len );
-		ber_memfree_x( msc->msc_cred.bv_val, NULL );
-		BER_BVZERO( &msc->msc_cred );
-	}
-	msc->msc_time = 0;
-	msc->msc_mscflags = 0;
-	msc->msc_timeout_ops = 0;
-	msc->msc_pending_ops = 0;
 	return 0;
 }

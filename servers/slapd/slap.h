@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,17 +58,19 @@
 
 LDAP_BEGIN_DECL
 
+#ifdef LDAP_DEVEL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define LDAP_COMP_MATCH
 #define LDAP_SYNC_TIMESTAMP
 #define SLAP_CONTROL_X_WHATFAILED
 #define SLAP_CONTROL_X_LAZY_COMMIT
 #define SLAP_CONFIG_DELETE
-#define SLAP_AUXPROP_DONTUSECOPY
 #ifndef SLAP_SCHEMA_EXPOSE
 #define SLAP_SCHEMA_EXPOSE
 #endif
+#endif
 
+#define SLAP_AUXPROP_DONTUSECOPY
 #define LDAP_DYNAMIC_OBJECTS
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #define SLAP_CONTROL_X_SESSION_TRACKING
@@ -154,6 +156,9 @@ LDAP_BEGIN_DECL
 
 /* unknown config file directive */
 #define SLAP_CONF_UNKNOWN (-1026)
+
+/* pseudo error code indicating async operation */
+#define SLAPD_ASYNCOP (-1027)
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
@@ -980,7 +985,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_seeAlso;
 
 	/* privateKeys */
-	AttributeDescription *si_ad_x509PrivateKey;
+	AttributeDescription *si_ad_pKCS8PrivateKey;
 
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
@@ -1813,7 +1818,6 @@ struct BackendDB {
 
 /*
  * define to honor hasSubordinates operational attribute in search filters
- * (in previous use there was a flaw with back-bdb; now it is fixed).
  */
 #define		be_has_subordinates bd_info->bi_has_subordinates
 
@@ -1987,6 +1991,8 @@ struct BackendDB {
 typedef int (BI_bi_func) LDAP_P((BackendInfo *bi));
 typedef BI_bi_func BI_init;
 typedef BI_bi_func BI_open;
+typedef BI_bi_func BI_pause;
+typedef BI_bi_func BI_unpause;
 typedef BI_bi_func BI_close;
 typedef BI_bi_func BI_destroy;
 typedef int (BI_config) LDAP_P((BackendInfo *bi,
@@ -2241,11 +2247,13 @@ struct BackendInfo {
 	 *		bi_close() is called from backend_shutdown()
 	 * bi_destroy: called to destroy each database, called
 	 *		once during shutdown after all bi_db_destroy calls.
-	 *		bi_destory() is called from backend_destroy()
+	 *		bi_destroy() is called from backend_destroy()
 	 */
 	BI_init	*bi_init;
 	BI_config	*bi_config;
 	BI_open *bi_open;
+	BI_pause	*bi_pause;
+	BI_unpause	*bi_unpause;
 	BI_close	*bi_close;
 	BI_destroy	*bi_destroy;
 
@@ -2267,8 +2275,8 @@ struct BackendInfo {
 	 *  called only by backend_shutdown()
 	 * bi_db_destroy: called to destroy each database
 	 *  called once per database during shutdown AFTER all
-	 *  bi_close calls but before bi_destory calls.
-	 *  called only by backend_destory()
+	 *  bi_close calls but before bi_destroy calls.
+	 *  called only by backend_destroy()
 	 */
 	BI_db_init	*bi_db_init;
 	BI_db_config	*bi_db_config;
@@ -2291,7 +2299,7 @@ struct BackendInfo {
 	BI_op_extended	*bi_extended;
 	BI_op_cancel	*bi_op_cancel;
 
-	/* Auxilary Functions */
+	/* Auxiliary Functions */
 	BI_operational		*bi_operational;
 	BI_chk_referrals	*bi_chk_referrals;
 	BI_chk_controls		*bi_chk_controls;
@@ -2336,6 +2344,7 @@ struct BackendInfo {
 #define SLAP_BFLAG_REFERRALS		0x2000U
 #define SLAP_BFLAG_SUBENTRIES		0x4000U
 #define SLAP_BFLAG_DYNAMIC			0x8000U
+#define SLAP_BFLAG_STANDALONE		0x10000U /* started up regardless of whether any databases use it */
 
 /* overlay specific */
 #define	SLAPO_BFLAG_SINGLE		0x01000000U
@@ -2458,10 +2467,9 @@ typedef struct PagedResultsState {
 } PagedResultsState;
 
 struct slap_csn_entry {
+	Operation *ce_op;
 	struct berval ce_csn;
 	int ce_sid;
-	unsigned long ce_opid;
-	unsigned long ce_connid;
 #define SLAP_CSN_PENDING	1
 #define SLAP_CSN_COMMIT		2
 	long ce_state;
@@ -2920,8 +2928,6 @@ struct Connection {
 
 	ldap_pvt_thread_mutex_t	c_write1_mutex;	/* only one pdu written at a time */
 	ldap_pvt_thread_cond_t	c_write1_cv;	/* only one pdu written at a time */
-	ldap_pvt_thread_mutex_t	c_write2_mutex;	/* used to wait for sd write-ready */
-	ldap_pvt_thread_cond_t	c_write2_cv;	/* used to wait for sd write-ready*/
 
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int			c_writers;		/* number of writers waiting */
@@ -2997,37 +3003,7 @@ struct Connection {
 #ifdef LOG_LOCAL4
 #define SLAP_DEFAULT_SYSLOG_USER	LOG_LOCAL4
 #endif /* LOG_LOCAL4 */
-
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
-	Log5( (level), ldap_syslog_level, (fmt), (connid), (opid), (arg1), (arg2), (arg3) )
-#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 )				\
-	Log6( (level), ldap_syslog_level, (fmt), (a1), (a2), (a3), (a4), (a5), (a6) )
-#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 )				\
-	Log7( (level), ldap_syslog_level, (fmt), (a1), (a2), (a3), (a4), (a5), (a6), (a7) )
-#define StatslogTest( level ) ((ldap_debug | ldap_syslog) & (level))
-#else /* !LDAP_SYSLOG */
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )	\
-	do { \
-		if ( ldap_debug & (level) ) \
-			lutil_debug( ldap_debug, (level), (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
-	} while (0)
-#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 )				\
-	do { \
-		if ( ldap_debug & (level) ) \
-			lutil_debug( ldap_debug, (level), (fmt), (a1), (a2), (a3), (a4), (a5), (a6) ); \
-	} while (0)
-#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 )				\
-	do { \
-		if ( ldap_debug & (level) ) \
-			lutil_debug( ldap_debug, (level), (fmt), (a1), (a2), (a3), (a4), (a5), (a6), (a7) ); \
-	} while (0)
-#define StatslogTest( level ) (ldap_debug & (level))
 #endif /* !LDAP_SYSLOG */
-#else /* !LDAP_DEBUG */
-#define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 ) ((void) 0)
-#define Statslog6( level, fmt, a1, a2, a3, a4, a5, a6 ) ((void) 0)
-#define Statslog7( level, fmt, a1, a2, a3, a4, a5, a6, a7 ) ((void) 0)
-#define StatslogTest( level ) (0)
 #endif /* !LDAP_DEBUG */
 
 /*

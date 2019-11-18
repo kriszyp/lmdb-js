@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 1999-2003 Howard Chu.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * All rights reserved.
@@ -108,7 +108,7 @@ rwm_dn_massage_pretty(
  * "pdn" may be untouched if no massaging occurred and its value was not null;
  * "ndn" may be untouched if no massaging occurred and its value was not null;
  * if no massage occurred and "ndn" value was not null, it is filled
- * with the normaized value of "pdn", much like ndn = dnNormalize( pdn )
+ * with the normalized value of "pdn", much like ndn = dnNormalize( pdn )
  */
 int
 rwm_dn_massage_pretty_normalize(

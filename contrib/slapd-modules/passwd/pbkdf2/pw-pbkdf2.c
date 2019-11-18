@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2009-2017 The OpenLDAP Foundation.
+ * Copyright 2009-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,15 +59,14 @@ const struct berval pbkdf2_sha512_scheme = BER_BVC("{PBKDF2-SHA512}");
 static int b64_to_ab64(char *str)
 {
 	char *p = str;
-	while(*p++){
+	do {
 		if(*p == '+'){
 			*p = '.';
 		}
 		if(*p == '='){
 			*p = '\0';
-			break;
 		}
-	}
+	} while(*p++);
 	return 0;
 }
 

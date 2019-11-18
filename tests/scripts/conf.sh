@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${BACKENDTYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"				\
 	-e "s/^#${AC_meta}#//"				\
+	-e "s/^#${AC_asyncmeta}#//"			\
 	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_sql}#//"				\
 		-e "s/^#${RDBMS}#//"			\
@@ -75,6 +76,24 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@PORT4@;${PORT4};"			\
 	-e "s;@PORT5@;${PORT5};"			\
 	-e "s;@PORT6@;${PORT6};"			\
+	-e "s;@SURI1@;${SURI1};"			\
+	-e "s;@SURI2@;${SURI2};"			\
+	-e "s;@SURI3@;${SURI3};"			\
+	-e "s;@SURI4@;${SURI4};"			\
+	-e "s;@SURI5@;${SURI5};"			\
+	-e "s;@SURI6@;${SURI6};"			\
+	-e "s;@URIP1@;${URIP1};"			\
+	-e "s;@URIP2@;${URIP2};"			\
+	-e "s;@URIP3@;${URIP3};"			\
+	-e "s;@URIP4@;${URIP4};"			\
+	-e "s;@URIP5@;${URIP5};"			\
+	-e "s;@URIP6@;${URIP6};"			\
+	-e "s;@SURIP1@;${SURIP1};"			\
+	-e "s;@SURIP2@;${SURIP2};"			\
+	-e "s;@SURIP3@;${SURIP3};"			\
+	-e "s;@SURIP4@;${SURIP4};"			\
+	-e "s;@SURIP5@;${SURIP5};"			\
+	-e "s;@SURIP6@;${SURIP6};"			\
 	-e "s/@SASL_MECH@/${SASL_MECH}/"		\
 	-e "s;@TESTDIR@;${TESTDIR};"			\
 	-e "s;@TESTWD@;${TESTWD};"			\

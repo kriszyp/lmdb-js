@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>. 
  *
- * Copyright 2008-2017 The OpenLDAP Foundation.
+ * Copyright 2008-2019 The OpenLDAP Foundation.
  * Copyright 2008 Emmanuel Dreyfus.
  * All rights reserved.
  *
@@ -130,8 +130,8 @@ nops_modify( Operation *op, SlapReply *rs )
 			continue;
 
 		/* This is a nop, remove it */
-		Debug(LDAP_DEBUG_TRACE, "removing nop on %s%s%s",
-			a->a_desc->ad_cname.bv_val, "", "");
+		Debug(LDAP_DEBUG_TRACE, "removing nop on %s",
+			a->a_desc->ad_cname.bv_val );
 
 		nops_rm_mod(&op->orm_modlist, mc);
 	}

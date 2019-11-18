@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2009-2017 The OpenLDAP Foundation.
+ * Copyright 2009-2019 The OpenLDAP Foundation.
  * Portions copyright 2009 Symas Corporation.
  * All rights reserved.
  *
@@ -116,6 +116,7 @@ typedef struct sort_op
 	int so_vlv_target;
 	int so_session;
 	unsigned long so_vcontext;
+	int so_running;
 } sort_op;
 
 /* There is only one conn table for all overlay instances */
@@ -154,8 +155,7 @@ static struct berval* select_value(
 
 	Debug(LDAP_DEBUG_TRACE, "%s: value selected for compare: %s\n",
 		debug_header,
-		SAFESTR(ber1->bv_val, "<Empty>"),
-		0);
+		SAFESTR(ber1->bv_val, "<Empty>") );
 
 	return ber1;
 }
@@ -396,30 +396,35 @@ static int find_next_session(
 static void free_sort_op( Connection *conn, sort_op *so )
 {
 	int sess_id;
-	if ( so->so_tree ) {
-		if ( so->so_paged > SLAP_CONTROL_IGNORED ) {
-			TAvlnode *cur_node, *next_node;
-			cur_node = so->so_tree;
-			while ( cur_node ) {
-				next_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
-				ch_free( cur_node->avl_data );
-				ber_memfree( cur_node );
-
-				cur_node = next_node;
-			}
-		} else {
-			tavl_free( so->so_tree, ch_free );
-		}
-		so->so_tree = NULL;
-	}
-
+		
 	ldap_pvt_thread_mutex_lock( &sort_conns_mutex );
 	sess_id = find_session_by_so( so->so_info->svi_max_percon, conn->c_conn_idx, so );
-	sort_conns[conn->c_conn_idx][sess_id] = NULL;
-	so->so_info->svi_num--;
+	if ( sess_id > -1 ) {
+	    sort_conns[conn->c_conn_idx][sess_id] = NULL;
+	    so->so_info->svi_num--;
+	}
 	ldap_pvt_thread_mutex_unlock( &sort_conns_mutex );
+	
+	if ( sess_id > -1 ){
+	    if ( so->so_tree ) {
+		    if ( so->so_paged > SLAP_CONTROL_IGNORED ) {
+			    TAvlnode *cur_node, *next_node;
+			    cur_node = so->so_tree;
+			    while ( cur_node ) {
+				    next_node = tavl_next( cur_node, TAVL_DIR_RIGHT );
+				    ch_free( cur_node->avl_data );
+				    ber_memfree( cur_node );
 
-	ch_free( so );
+				    cur_node = next_node;
+			    }
+		    } else {
+			    tavl_free( so->so_tree, ch_free );
+		    }
+		    so->so_tree = NULL;
+	    }
+
+	    ch_free( so );
+	}
 }
 
 static void free_sort_ops( Connection *conn, sort_op **sos, int svi_max_percon )
@@ -649,7 +654,7 @@ static void send_entry(
 		return;
 
 	/* RFC 2891: If critical then send the entries iff they were
-	 * succesfully sorted.  If non-critical send all entries
+	 * successfully sorted.  If non-critical send all entries
 	 * whether they were sorted or not.
 	 */
 	if ( (op->o_ctrlflag[sss_cid] != SLAP_CONTROL_CRITICAL) ||
@@ -704,6 +709,8 @@ static void send_result(
 	if ( so->so_tree == NULL ) {
 		/* Search finished, so clean up */
 		free_sort_op( op->o_conn, so );
+	} else {
+	    so->so_running = 0;
 	}
 }
 
@@ -859,26 +866,40 @@ static int sssvlv_op_search(
 	sess_id = find_session_by_context( si->svi_max_percon, op->o_conn->c_conn_idx, vc ? vc->vc_context : NO_VC_CONTEXT, ps ? ps->ps_cookie : NO_PS_COOKIE );
 	if ( sess_id >= 0 ) {
 		so = sort_conns[op->o_conn->c_conn_idx][sess_id];
-		/* Is it a continuation of a VLV search? */
-		if ( !vc || so->so_vlv <= SLAP_CONTROL_IGNORED ||
-			vc->vc_context != so->so_vcontext ) {
-			/* Is it a continuation of a paged search? */
-			if ( !ps || so->so_paged <= SLAP_CONTROL_IGNORED ||
-				op->o_conn->c_pagedresults_state.ps_cookie != ps->ps_cookie ) {
-				ok = 0;
-			} else if ( !ps->ps_size ) {
-			/* Abandoning current request */
-				ok = 0;
-				so->so_nentries = 0;
-				rs->sr_err = LDAP_SUCCESS;
-			}
-		}
-		if (( vc && so->so_paged > SLAP_CONTROL_IGNORED ) ||
-			( ps && so->so_vlv > SLAP_CONTROL_IGNORED )) {
-			/* changed from paged to vlv or vice versa, abandon */
-			ok = 0;
-			so->so_nentries = 0;
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		
+		if( so->so_running > 0 ){
+		    /* another thread is handling, response busy to client */
+		    so = NULL;
+		    ok = 0;
+		} else {
+		
+		    /* Is it a continuation of a VLV search? */
+		    if ( !vc || so->so_vlv <= SLAP_CONTROL_IGNORED ||
+			    vc->vc_context != so->so_vcontext ) {
+			    /* Is it a continuation of a paged search? */
+			    if ( !ps || so->so_paged <= SLAP_CONTROL_IGNORED ||
+				    op->o_conn->c_pagedresults_state.ps_cookie != ps->ps_cookie ) {
+				    ok = 0;
+			    } else if ( !ps->ps_size ) {
+			    /* Abandoning current request */
+				    ok = 0;
+				    so->so_nentries = 0;
+				    rs->sr_err = LDAP_SUCCESS;
+			    }
+		    }
+		    if (( vc && so->so_paged > SLAP_CONTROL_IGNORED ) ||
+			    ( ps && so->so_vlv > SLAP_CONTROL_IGNORED )) {
+			    /* changed from paged to vlv or vice versa, abandon */
+			    ok = 0;
+			    so->so_nentries = 0;
+			    rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		    }
+
+		    if ( ok ) {
+			/* occupy before mutex unlock */
+			so->so_running = 1;
+		    }
+		
 		}
 	/* Are there too many running overall? */
 	} else if ( si->svi_num >= si->svi_max ) {
@@ -947,6 +968,7 @@ static int sssvlv_op_search(
 			so->so_vlv = op->o_ctrlflag[vlv_cid];
 			so->so_vcontext = (unsigned long)so;
 			so->so_nentries = 0;
+			so->so_running = 1;
 
 			op->o_callback		= cb;
 		}
@@ -979,7 +1001,7 @@ static int get_ordering_rule(
 			rs->sr_err = LDAP_INAPPROPRIATE_MATCHING;
 			rs->sr_text = "serverSort control: No ordering rule";
 			Debug(LDAP_DEBUG_TRACE, "%s: no ordering rule function for %s\n",
-				debug_header, matchrule->bv_val, 0);
+				debug_header, matchrule->bv_val );
 		}
 	}
 	else {
@@ -989,7 +1011,7 @@ static int get_ordering_rule(
 			rs->sr_text = "serverSort control: No ordering rule";
 			Debug(LDAP_DEBUG_TRACE,
 				"%s: no ordering rule specified and no default ordering rule for attribute %s\n",
-				debug_header, ad->ad_cname.bv_val, 0);
+				debug_header, ad->ad_cname.bv_val );
 		}
 	}
 
@@ -1073,7 +1095,7 @@ static int build_key(
 			"serverSort control: Unrecognized attribute type in sort key";
 		Debug(LDAP_DEBUG_TRACE,
 			"%s: Unrecognized attribute type in sort key: %s\n",
-			debug_header, SAFESTR(attr.bv_val, "<None>"), 0);
+			debug_header, SAFESTR(attr.bv_val, "<None>") );
 		rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
 		return rs->sr_err;
 	}
@@ -1262,18 +1284,21 @@ static ConfigTable sssvlv_cfg[] = {
 			(void *)offsetof(sssvlv_info, svi_max),
 		"( OLcfgOvAt:21.1 NAME 'olcSssVlvMax' "
 			"DESC 'Maximum number of concurrent Sort requests' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "sssvlv-maxkeys", "num",
 		2, 2, 0, ARG_INT|ARG_OFFSET,
 			(void *)offsetof(sssvlv_info, svi_max_keys),
 		"( OLcfgOvAt:21.2 NAME 'olcSssVlvMaxKeys' "
 			"DESC 'Maximum number of Keys in a Sort request' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "sssvlv-maxperconn", "num",
 		2, 2, 0, ARG_INT|ARG_OFFSET,
 			(void *)offsetof(sssvlv_info, svi_max_percon),
 		"( OLcfgOvAt:21.3 NAME 'olcSssVlvMaxPerConn' "
 			"DESC 'Maximum number of concurrent paged search requests per connection' "
+			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -1306,7 +1331,7 @@ static int sssvlv_db_init(
 			&sss_cid );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "Failed to register Sort Request control '%s' (%d)\n",
-				LDAP_CONTROL_SORTREQUEST, rc, 0 );
+				LDAP_CONTROL_SORTREQUEST, rc );
 			return rc;
 		}
 
@@ -1318,7 +1343,7 @@ static int sssvlv_db_init(
 			&vlv_cid );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "Failed to register VLV Request control '%s' (%d)\n",
-				LDAP_CONTROL_VLVREQUEST, rc, 0 );
+				LDAP_CONTROL_VLVREQUEST, rc );
 #ifdef SLAP_CONFIG_DELETE
 			overlay_unregister_control( be, LDAP_CONTROL_SORTREQUEST );
 			unregister_supported_control( LDAP_CONTROL_SORTREQUEST );
@@ -1395,7 +1420,7 @@ int sssvlv_initialize()
 
 	rc = overlay_register( &sssvlv );
 	if ( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "Failed to register server side sort overlay\n" );
 	}
 
 	return rc;

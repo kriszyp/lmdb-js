@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,9 @@ int lutil_srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 	HKEY		hKey;
 	DWORD		dwValue, dwDisposition;
 	SC_HANDLE	schSCManager, schService;
-	char *sp = strchr( lpszBinaryPathName, ' ');
+	char *sp = strrchr( lpszBinaryPathName, '\\');
 
+	if ( sp ) sp = strchr(sp, ' ');
 	if ( sp ) *sp = '\0';
 	fprintf( stderr, "The install path is %s.\n", lpszBinaryPathName );
 	if ( sp ) *sp = ' ';

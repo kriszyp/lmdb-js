@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
  
 #
@@ -167,7 +167,6 @@ AuthcId|Authentication Identity
 AuthzDN|Authorization DN
 AuthzId|Authorization Identity
 BCP|Best Current Practice
-BDB|Berkeley DB (Backend)
 BER|Basic Encoding Rules
 BNF|Backus-Naur Form
 C|The C Programming Language
@@ -201,7 +200,6 @@ FYI|For Your Information
 GSER|Generic String Encoding Rules
 GSS-API|Generic Security Service Application Program Interface
 GSSAPI|SASL Kerberos V GSS-API Authentication Mechanism
-HDB|Hierarchical Database (Backend)
 I-D|Internet-Draft
 IA5|International Alphabet 5
 IDNA|Internationalized Domain Names in Applications

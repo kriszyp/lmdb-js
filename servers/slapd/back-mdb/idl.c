@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -21,6 +21,12 @@
 
 #include "back-mdb.h"
 #include "idl.h"
+
+unsigned int MDB_idl_logn = MDB_IDL_LOGN;
+unsigned int MDB_idl_db_size = 1 << MDB_IDL_LOGN;
+unsigned int MDB_idl_um_size = 1 << (MDB_IDL_LOGN+1);
+unsigned int MDB_idl_db_max = (1 << MDB_IDL_LOGN) - 1;
+unsigned int MDB_idl_um_max = (1 << (MDB_IDL_LOGN+1)) - 1;
 
 #define IDL_MAX(x,y)	( (x) > (y) ? (x) : (y) )
 #define IDL_MIN(x,y)	( (x) < (y) ? (x) : (y) )
@@ -50,22 +56,33 @@ static void idl_dump( ID *ids )
 
 	} else {
 		ID i;
-		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0], 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "IDL: size %ld", (long) ids[0] );
 
 		for( i=1; i<=ids[0]; i++ ) {
 			if( i % 16 == 1 ) {
-				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "\n" );
 			}
-			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i], 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i] );
 		}
 
-		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "\n" );
 	}
 
 	idl_check( ids );
 }
 #endif /* IDL_DEBUG > 1 */
 #endif /* IDL_DEBUG > 0 */
+
+void mdb_idl_reset()
+{
+	if ( !MDB_idl_logn )
+		MDB_idl_logn = MDB_IDL_LOGN;
+
+	MDB_idl_db_size = 1 << MDB_idl_logn;
+	MDB_idl_um_size = 1 << (MDB_idl_logn+1);
+	MDB_idl_db_max = MDB_idl_db_size - 1;
+	MDB_idl_um_max = MDB_idl_um_size - 1;
+}
 
 unsigned mdb_idl_search( ID *ids, ID id )
 {
@@ -130,7 +147,7 @@ int mdb_idl_insert( ID *ids, ID id )
 	unsigned x;
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );
@@ -160,7 +177,7 @@ int mdb_idl_insert( ID *ids, ID id )
 		return -1;
 	}
 
-	if ( ++ids[0] >= MDB_IDL_DB_MAX ) {
+	if ( ++ids[0] >= MDB_idl_db_max ) {
 		if( id < ids[1] ) {
 			ids[1] = id;
 			ids[2] = ids[ids[0]-1];
@@ -191,7 +208,7 @@ static int mdb_idl_delete( ID *ids, ID id )
 	unsigned x;
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );
@@ -279,7 +296,7 @@ mdb_idl_fetch_key(
 
 	Debug( LDAP_DEBUG_ARGS,
 		"mdb_idl_fetch_key: %s\n", 
-		mdb_show_key( keybuf, key->mv_data, key->mv_size ), 0, 0 );
+		mdb_show_key( keybuf, key->mv_data, key->mv_size ) );
 
 	assert( ids != NULL );
 
@@ -298,7 +315,7 @@ mdb_idl_fetch_key(
 		rc = mdb_cursor_open( txn, dbi, &cursor );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY, "=> mdb_idl_fetch_key: "
-				"cursor failed: %s (%d)\n", mdb_strerror(rc), rc, 0 );
+				"cursor failed: %s (%d)\n", mdb_strerror(rc), rc );
 			return rc;
 		}
 	} else {
@@ -346,7 +363,7 @@ mdb_idl_fetch_key(
 			if (ids[0] != MDB_IDL_RANGE_SIZE) {
 				Debug( LDAP_DEBUG_ANY, "=> mdb_idl_fetch_key: "
 					"range size mismatch: expected %d, got %ld\n",
-					MDB_IDL_RANGE_SIZE, ids[0], 0 );
+					MDB_IDL_RANGE_SIZE, ids[0] );
 				mdb_cursor_close( cursor );
 				return -1;
 			}
@@ -368,21 +385,21 @@ mdb_idl_fetch_key(
 	} else if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_fetch_key: "
 			"get failed: %s (%d)\n",
-			mdb_strerror(rc), rc, 0 );
+			mdb_strerror(rc), rc );
 		return rc;
 
 	} else if ( data.mv_size == 0 || data.mv_size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
 		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_fetch_key: "
 			"odd size: expected %ld multiple, got %ld\n",
-			(long) sizeof( ID ), (long) data.mv_size, 0 );
+			(long) sizeof( ID ), (long) data.mv_size );
 		return -1;
 
 	} else if ( data.mv_size != MDB_IDL_SIZEOF(ids) ) {
 		/* size mismatch */
 		Debug( LDAP_DEBUG_ANY, "=> mdb_idl_fetch_key: "
 			"get size mismatch: expected %ld, got %ld\n",
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.mv_size, 0 );
+			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.mv_size );
 		return -1;
 	}
 
@@ -410,7 +427,7 @@ mdb_idl_insert_keys(
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
 			"mdb_idl_insert_keys: %lx %s\n", 
-			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ), 0 );
+			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ) );
 	}
 
 	assert( id != NOID );
@@ -447,7 +464,7 @@ mdb_idl_insert_keys(
 				err = "c_count";
 				goto fail;
 			}
-			if ( count >= MDB_IDL_DB_MAX ) {
+			if ( count >= MDB_idl_db_max ) {
 			/* No room, convert to a range */
 				lo = *i;
 				rc = mdb_cursor_get( cursor, &key, &data, MDB_LAST_DUP );
@@ -569,7 +586,7 @@ mdb_idl_delete_keys(
 		char buf[16];
 		Debug( LDAP_DEBUG_ARGS,
 			"mdb_idl_delete_keys: %lx %s\n", 
-			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ), 0 );
+			(long) id, mdb_show_key( buf, keys->bv_val, keys->bv_len ) );
 	}
 	assert( id != NOID );
 
@@ -711,18 +728,11 @@ mdb_idl_intersection(
 	}
 
 	/* If a range completely covers the list, the result is
-	 * just the list. If idmin to idmax is contiguous, just
-	 * turn it into a range.
+	 * just the list.
 	 */
 	if ( MDB_IDL_IS_RANGE( b )
 		&& MDB_IDL_RANGE_FIRST( b ) <= MDB_IDL_FIRST( a )
 		&& MDB_IDL_RANGE_LAST( b ) >= MDB_IDL_LLAST( a ) ) {
-		if (idmax - idmin + 1 == a[0])
-		{
-			a[0] = NOID;
-			a[1] = idmin;
-			a[2] = idmax;
-		}
 		goto done;
 	}
 
@@ -791,7 +801,7 @@ over:		ida = IDL_MIN( MDB_IDL_FIRST(a), MDB_IDL_FIRST(b) );
 	/* The distinct elements of a are cat'd to b */
 	while( ida != NOID || idb != NOID ) {
 		if ( ida < idb ) {
-			if( ++cursorc > MDB_IDL_UM_MAX ) {
+			if( ++cursorc > MDB_idl_um_max ) {
 				goto over;
 			}
 			b[cursorc] = ida;
@@ -956,7 +966,7 @@ int mdb_idl_append_one( ID *ids, ID id )
 		}
 	}
 	ids[0]++;
-	if ( ids[0] >= MDB_IDL_UM_MAX ) {
+	if ( ids[0] >= MDB_idl_um_max ) {
 		ids[0] = NOID;
 		ids[2] = id;
 	} else {
@@ -984,7 +994,7 @@ int mdb_idl_append( ID *a, ID *b )
 	ida = MDB_IDL_LAST( a );
 	idb = MDB_IDL_LAST( b );
 	if ( MDB_IDL_IS_RANGE( a ) || MDB_IDL_IS_RANGE(b) ||
-		a[0] + b[0] >= MDB_IDL_UM_MAX ) {
+		a[0] + b[0] >= MDB_idl_um_max ) {
 		a[2] = IDL_MAX( ida, idb );
 		a[1] = IDL_MIN( a[1], b[1] );
 		a[0] = NOID;
@@ -1246,7 +1256,7 @@ int mdb_id2l_insert( ID2L ids, ID2 *id )
 		return -1;
 	}
 
-	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+	if ( ids[0].mid >= MDB_idl_um_max ) {
 		/* too big */
 		return -2;
 

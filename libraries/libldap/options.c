@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,8 @@ ldap_get_option(
 
 	if( lo->ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize(lo, NULL);
+		if ( lo->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
 	}
 
 	if(ld != NULL) {
@@ -377,6 +379,11 @@ ldap_get_option(
 		rc = LDAP_OPT_SUCCESS;
 		break;
 
+	case LDAP_OPT_KEEPCONN:
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_KEEPCONN);
+		rc = LDAP_OPT_SUCCESS;
+		break;
+
 	case LDAP_OPT_X_KEEPALIVE_IDLE:
 		* (int *) outvalue = lo->ldo_keepalive_idle;
 		rc = LDAP_OPT_SUCCESS;
@@ -446,6 +453,8 @@ ldap_set_option(
 
 	if( lo->ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize(lo, dbglvl);
+		if ( lo->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
 	}
 
 	if(ld != NULL) {
@@ -490,6 +499,14 @@ ldap_set_option(
 		rc = LDAP_OPT_SUCCESS;
 		break;
 
+	case LDAP_OPT_KEEPCONN:
+		if(invalue == LDAP_OPT_OFF) {
+			LDAP_BOOL_CLR(lo, LDAP_BOOL_KEEPCONN);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_KEEPCONN);
+		}
+		rc = LDAP_OPT_SUCCESS;
+		break;
 	/* options which can withstand invalue == NULL */
 	case LDAP_OPT_SERVER_CONTROLS: {
 			LDAPControl *const *controls =

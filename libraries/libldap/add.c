@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -207,10 +207,10 @@ ldap_add_ext(
 	int	*msgidp )
 {
 	BerElement	*ber;
-	int		i, rc;
+	int		rc;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_add_ext\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_add_ext\n" );
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( dn != NULL );

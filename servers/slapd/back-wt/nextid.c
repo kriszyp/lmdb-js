@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@ int wt_last_id( BackendDB *be, WT_SESSION *session, ID *out )
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_last_id)
 			   ": open_cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		return rc;
     }
 
@@ -55,7 +55,7 @@ int wt_last_id( BackendDB *be, WT_SESSION *session, ID *out )
 			Debug( LDAP_DEBUG_ANY,
 				   LDAP_XSTRING(wt_last_id)
 				   ": get_key failed: %s (%d)\n",
-				   wiredtiger_strerror(rc), rc, 0 );
+				   wiredtiger_strerror(rc), rc );
 			return rc;
 		}
 		*out = id;
@@ -68,7 +68,7 @@ int wt_last_id( BackendDB *be, WT_SESSION *session, ID *out )
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_last_id)
 			   ": prev failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
     }
 
     rc = cursor->close(cursor);
@@ -76,7 +76,7 @@ int wt_last_id( BackendDB *be, WT_SESSION *session, ID *out )
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_last_id)
 			   ": close failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		return rc;
     }
 

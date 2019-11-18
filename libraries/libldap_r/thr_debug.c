@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2017 The OpenLDAP Foundation.
+ * Copyright 2005-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,7 +70,7 @@
  *      noabort  - Do not abort() on errors.
  *      noerror  - Do not report errors.  Implies noabort.
  *      nocount  - Do not report counts of unreleased resources.
- *      nosync   - Disable tests that use synchronizaion and thus
+ *      nosync   - Disable tests that use synchronization and thus
  *                 clearly affect thread scheduling:
  *                 Implies nocount, and cancels threadID if that is set.
  *                 Note that if you turn on tracethreads or malloc
@@ -513,7 +513,7 @@ typedef void ldap_debug_thread_t;
 #else /* LDAP_THREAD_DEBUG_THREAD_ID */
 
 /*
- * Thread ID tracking.  Currently acieves little.
+ * Thread ID tracking.  Currently achieves little.
  * Should be either expanded or deleted.
  */
 
@@ -1213,6 +1213,36 @@ ldap_pvt_thread_pool_destroy( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	if( has_pool ) {
 		if( rc ) {
 			ERROR( rc, "ldap_pvt_thread_pool_destroy" );
+		} else {
+			adjust_count( Idx_tpool, -1 );
+		}
+	}
+	return rc;
+}
+
+int
+ldap_pvt_thread_pool_close( ldap_pvt_thread_pool_t *tpool, int run_pending )
+{
+	int rc, has_pool;
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_close" );
+	has_pool = (tpool && *tpool);
+	rc = ldap_int_thread_pool_close( tpool, run_pending );
+	if( has_pool && rc ) {
+		ERROR( rc, "ldap_pvt_thread_pool_close" );
+	}
+	return rc;
+}
+
+int
+ldap_pvt_thread_pool_free( ldap_pvt_thread_pool_t *tpool )
+{
+	int rc, has_pool;
+	ERROR_IF( !threading_enabled, "ldap_pvt_thread_pool_free" );
+	has_pool = (tpool && *tpool);
+	rc = ldap_int_thread_pool_free( tpool );
+	if( has_pool ) {
+		if( rc ) {
+			ERROR( rc, "ldap_pvt_thread_pool_free" );
 		} else {
 			adjust_count( Idx_tpool, -1 );
 		}

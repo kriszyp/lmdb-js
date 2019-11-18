@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * Copyright 2003 by Howard Chu.
  * All rights reserved.
  *
@@ -35,7 +35,7 @@ overlay_init(void)
 		if ( rc ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s overlay setup failed, err %d\n",
-				slap_oinfo[i].ov_type, rc, 0 );
+				slap_oinfo[i].ov_type, rc );
 			break;
 		}
 	}

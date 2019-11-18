@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * All rights reserved.
  *
@@ -15,7 +15,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* ACKNOWLEDGEMENTS:
- * This program was orignally developed by Kurt D. Zeilenga for inclusion in
+ * This program was originally developed by Kurt D. Zeilenga for inclusion in
  * OpenLDAP Software.
  */
 #include "portable.h"

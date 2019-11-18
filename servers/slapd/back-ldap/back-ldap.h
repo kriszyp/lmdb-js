@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -89,6 +89,7 @@ typedef struct ldapconn_base_t {
 	(BER_BVISEMPTY(&(op)->o_ndn) ? \
 		LDAP_BACK_PCONN_ANON_SET((lc), (op)) : LDAP_BACK_PCONN_ROOTDN_SET((lc), (op)))
 
+	struct ldapinfo_t	*lcb_ldapinfo;
 	struct berval		lcb_local_ndn;
 	unsigned		lcb_refcnt;
 	time_t			lcb_create_time;
@@ -98,6 +99,7 @@ typedef struct ldapconn_base_t {
 typedef struct ldapconn_t {
 	ldapconn_base_t		lc_base;
 #define	lc_conn			lc_base.lcb_conn
+#define	lc_ldapinfo			lc_base.lcb_ldapinfo
 #define	lc_local_ndn		lc_base.lcb_local_ndn
 #define	lc_refcnt		lc_base.lcb_refcnt
 #define	lc_create_time		lc_base.lcb_create_time
@@ -289,7 +291,7 @@ typedef struct ldapinfo_t {
 
 	unsigned		li_flags;
 
-/* 0xFFF00000U are reserved for back-meta */
+/* 0xFF000000U are reserved for back-meta */
 
 #define LDAP_BACK_F_NONE		(0x00000000U)
 #define LDAP_BACK_F_SAVECRED		(0x00000001U)
@@ -331,8 +333,9 @@ typedef struct ldapinfo_t {
 
 #define LDAP_BACK_F_NOREFS		(0x00080000U)
 #define LDAP_BACK_F_NOUNDEFFILTER	(0x00100000U)
+#define LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA (0x00200000U)
 
-#define LDAP_BACK_F_ONERR_STOP		(0x00200000U)
+#define LDAP_BACK_F_ONERR_STOP		(0x00400000U)
 
 #define	LDAP_BACK_ISSET_F(ff,f)		( ( (ff) & (f) ) == (f) )
 #define	LDAP_BACK_ISMASK_F(ff,m,f)	( ( (ff) & (m) ) == (f) )
@@ -374,7 +377,7 @@ typedef struct ldapinfo_t {
 
 #define	LDAP_BACK_NOREFS(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOREFS)
 #define	LDAP_BACK_NOUNDEFFILTER(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_NOUNDEFFILTER)
-
+#define	LDAP_BACK_OMIT_UNKNOWN_SCHEMA(li)		LDAP_BACK_ISSET( (li), LDAP_BACK_F_OMIT_UNKNOWN_SCHEMA)
 #define	LDAP_BACK_ONERR_STOP(li)	LDAP_BACK_ISSET( (li), LDAP_BACK_F_ONERR_STOP)
 
 	int			li_version;

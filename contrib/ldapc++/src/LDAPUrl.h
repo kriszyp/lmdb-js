@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2000-2017 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2019 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -85,7 +85,7 @@ class LDAPUrl{
 
         /**
          * Set the Protocol Scheme of the URL
-         * @param host The Protcol scheme. Allowed values are 
+         * @param host The Protocol scheme. Allowed values are
          *       ldap,ldapi,ldaps and cldap
          */
         void setScheme( const std::string &scheme );
@@ -120,7 +120,7 @@ class LDAPUrl{
         
         /**
          * Set the Attributes part of the URL
-         * @param attrs StringList constaining the List of Attributes
+         * @param attrs StringList containing the List of Attributes
          */
         void setAttrs( const StringList &attrs);
         void setExtensions( const StringList &ext);
@@ -146,7 +146,7 @@ class LDAPUrl{
     protected : 
         /**
          * Split the url string that is associated with this Object into
-         * it components. The compontens of the URL can be access via the 
+         * it components. The components of the URL can be access via the
          * get...() methods.
          * (this function is mostly for internal use and gets called 
          * automatically whenever necessary)

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,7 @@ mdb_db_init( BackendDB *be, ConfigReply *cr )
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE,
-		LDAP_XSTRING(mdb_db_init) ": Initializing mdb database\n",
-		0, 0, 0 );
+		LDAP_XSTRING(mdb_db_init) ": Initializing mdb database\n" );
 
 	/* allocate backend-database-specific stuff */
 	mdb = (struct mdb_info *) ch_calloc( 1, sizeof(struct mdb_info) );
@@ -68,7 +67,7 @@ mdb_db_init( BackendDB *be, ConfigReply *cr )
 	mdb->mi_multi_lo = UINT_MAX;
 
 	be->be_private = mdb;
-	be->be_cf_ocs = be->bd_info->bi_cf_ocs;
+	be->be_cf_ocs = be->bd_info->bi_cf_ocs+1;
 
 #ifndef MDB_MULTIPLE_SUFFIXES
 	SLAP_DBFLAGS( be ) |= SLAP_DBFLAG_ONE_SUFFIX;
@@ -94,14 +93,13 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 
 	if ( be->be_suffix == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-			LDAP_XSTRING(mdb_db_open) ": need suffix.\n",
-			1, 0, 0 );
+			LDAP_XSTRING(mdb_db_open) ": need suffix.\n" );
 		return -1;
 	}
 
 	Debug( LDAP_DEBUG_ARGS,
 		LDAP_XSTRING(mdb_db_open) ": \"%s\"\n",
-		be->be_suffix[0].bv_val, 0, 0 );
+		be->be_suffix[0].bv_val );
 
 	/* Check existence of dbenv_home. Any error means trouble */
 	rc = stat( mdb->mi_dbenv_home, &stat1 );
@@ -165,7 +163,7 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(mdb_db_open) ": database \"%s\": "
 		"dbenv_open(%s).\n",
-		be->be_suffix[0].bv_val, mdb->mi_dbenv_home, 0);
+		be->be_suffix[0].bv_val, mdb->mi_dbenv_home );
 
 	flags = mdb->mi_dbenv_flags;
 
@@ -223,7 +221,7 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 				mdb_strerror(rc), rc );
 			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(mdb_db_open) ": %s\n",
-				cr->msg, 0, 0 );
+				cr->msg );
 			goto fail;
 		}
 
@@ -235,7 +233,6 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 		} else if ( i == MDB_DN2ID ) {
 			MDB_cursor *mc;
 			MDB_val key, data;
-			ID id;
 			mdb_set_dupsort( txn, mdb->mi_dbis[i], mdb_dup_compare );
 			/* check for old dn2id format */
 			rc = mdb_cursor_open( txn, mdb->mi_dbis[i], &mc );
@@ -255,7 +252,7 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 						be->be_suffix[0].bv_val );
 						Debug( LDAP_DEBUG_ANY,
 							LDAP_XSTRING(mdb_db_open) ": %s\n",
-							cr->msg, 0, 0 );
+							cr->msg );
 						if ( !(slapMode & SLAP_TOOL_READMAIN ))
 							rc = LDAP_OTHER;
 						mdb->mi_flags |= MDB_NEED_UPGRADE;
@@ -406,7 +403,7 @@ mdb_back_initialize(
 	/* initialize the underlying database system */
 	Debug( LDAP_DEBUG_TRACE,
 		LDAP_XSTRING(mdb_back_initialize) ": initialize " 
-		MDB_UCTYPE " backend\n", 0, 0, 0 );
+		MDB_UCTYPE " backend\n" );
 
 	bi->bi_flags |=
 		SLAP_BFLAG_INCREMENT |
@@ -437,12 +434,12 @@ mdb_back_initialize(
 				LDAP_XSTRING(mdb_back_initialize) ": "
 				"MDB library version mismatch:"
 				" expected " MDB_VERSION_STRING ","
-				" got %s\n", version, 0, 0 );
+				" got %s\n", version );
 			return -1;
 		}
 
 		Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(mdb_back_initialize)
-			": %s\n", version, 0, 0 );
+			": %s\n", version );
 	}
 
 	bi->bi_open = 0;

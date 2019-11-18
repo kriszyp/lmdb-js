@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,7 +138,7 @@ syn_insert(
 		sir = (struct sindexrec *)
 			SLAP_CALLOC( 1, sizeof(struct sindexrec) );
 		if( sir == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n" );
 			return LDAP_OTHER;
 		}
 		sir->sir_name = ssyn->ssyn_oid;
@@ -184,7 +184,7 @@ syn_add(
 
 	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
 	if ( ssyn == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n" );
 		return SLAP_SCHERR_OUTOFMEM;
 	}
 
@@ -219,11 +219,11 @@ syn_add(
 			}
 
 			assert( (*lsei)->lsei_values != NULL );
-			if ( (*lsei)->lsei_values[0] == '\0'
-				|| (*lsei)->lsei_values[1] != '\0' )
+			if ( (*lsei)->lsei_values[0] == NULL
+				|| (*lsei)->lsei_values[1] != NULL )
 			{
 				Debug( LDAP_DEBUG_ANY, "syn_add(%s): exactly one substitute syntax must be present\n",
-					ssyn->ssyn_syn.syn_oid, 0, 0 );
+					ssyn->ssyn_syn.syn_oid );
 				SLAP_FREE( ssyn );
 				return SLAP_SCHERR_SYN_SUBST_NOT_SPECIFIED;
 			}
@@ -231,7 +231,7 @@ syn_add(
 			subst = syn_find( (*lsei)->lsei_values[0] );
 			if ( subst == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "syn_add(%s): substitute syntax %s not found\n",
-					ssyn->ssyn_syn.syn_oid, (*lsei)->lsei_values[0], 0 );
+					ssyn->ssyn_syn.syn_oid, (*lsei)->lsei_values[0] );
 				SLAP_FREE( ssyn );
 				return SLAP_SCHERR_SYN_SUBST_NOT_FOUND;
 			}
@@ -261,7 +261,7 @@ syn_add(
 		ssyn->ssyn_sups = (Syntax **)SLAP_CALLOC( cnt + 1,
 			sizeof( Syntax * ) );
 		if ( ssyn->ssyn_sups == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n" );
 			code = SLAP_SCHERR_OUTOFMEM;
 
 		} else {
@@ -351,7 +351,7 @@ syn_schema_info( Entry *e )
 		}
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
-	       (long) val.bv_len, val.bv_val, 0 );
+	       (long) val.bv_len, val.bv_val );
 #endif
 
 		nval.bv_val = syn->ssyn_oid;

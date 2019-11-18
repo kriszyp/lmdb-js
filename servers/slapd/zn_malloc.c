@@ -2,7 +2,7 @@
 /* $OpenLDAP$*/
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -127,10 +127,10 @@ slap_zn_mem_create(
 
 	Debug(LDAP_DEBUG_NONE,
 		"--> slap_zn_mem_create: initsize=%d, maxsize=%d\n",
-		initsize, maxsize, 0);
+		initsize, maxsize );
 	Debug(LDAP_DEBUG_NONE,
 		"++> slap_zn_mem_create: deltasize=%d, zonesize=%d\n",
-		deltasize, zonesize, 0);
+		deltasize, zonesize );
 
 	zh = (struct zone_heap *)ch_calloc(1, sizeof(struct zone_heap));
 
@@ -245,7 +245,7 @@ slap_zn_malloc(
 	int i, j, k;
 
 	Debug(LDAP_DEBUG_NONE,
-		"--> slap_zn_malloc: size=%d\n", size, 0, 0);
+		"--> slap_zn_malloc: size=%d\n", size );
 
 	if (!zh) return ber_memalloc_x(size, NULL);
 
@@ -284,7 +284,7 @@ retry:
 		LDAP_LIST_INSERT_HEAD(&zh->zh_zopool, zo_new, zo_link);
 		ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
 		Debug(LDAP_DEBUG_NONE, "slap_zn_malloc: returning 0x%x, 0x%x\n",
-				ptr, (int)ptr>>(zh->zh_zoneorder+1), 0);
+				ptr, (int)ptr>>(zh->zh_zoneorder+1) );
 		return((void*)ptr);
 	} else if (i <= zh->zh_zoneorder) {
 		for (j = i; j > order; j--) {
@@ -299,7 +299,7 @@ retry:
 			zo_right->zo_idx = zo_left->zo_idx;
 			Debug(LDAP_DEBUG_NONE,
 				"slap_zn_malloc: split (left=0x%x, right=0x%x)\n",
-				zo_left->zo_ptr, zo_right->zo_ptr, 0);
+				zo_left->zo_ptr, zo_right->zo_ptr );
 			if (j == order + 1) {
 				ptr = zo_left->zo_ptr;
 				diff = (unsigned long)((char*)ptr -
@@ -314,7 +314,7 @@ retry:
 				ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
 				Debug(LDAP_DEBUG_NONE,
 					"slap_zn_malloc: returning 0x%x, 0x%x\n",
-					ptr, (int)ptr>>(zh->zh_zoneorder+1), 0);
+					ptr, (int)ptr>>(zh->zh_zoneorder+1) );
 				return((void*)ptr);
 			} else {
 				LDAP_LIST_INSERT_HEAD(
@@ -330,10 +330,10 @@ retry:
 			ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
 			Debug( LDAP_DEBUG_TRACE,
 				"zn_malloc %lu: ch_malloc\n",
-				(long)size, 0, 0);
+				(long)size );
 			Debug(LDAP_DEBUG_NONE,
 				"slap_zn_malloc: returning 0x%x, 0x%x\n",
-				ptr, (int)ptr>>(zh->zh_zoneorder+1), 0);
+				ptr, (int)ptr>>(zh->zh_zoneorder+1) );
 			return (void*)ch_malloc(size);
 		}
 
@@ -406,7 +406,7 @@ slap_zn_realloc(void *ptr, ber_len_t size, void *ctx)
 	struct zone_heap *zone = NULL;
 
 	Debug(LDAP_DEBUG_NONE,
-		"--> slap_zn_realloc: ptr=0x%x, size=%d\n", ptr, size, 0);
+		"--> slap_zn_realloc: ptr=0x%x, size=%d\n", ptr, size );
 
 	if (ptr == NULL)
 		return slap_zn_malloc(size, zh);
@@ -428,7 +428,7 @@ slap_zn_realloc(void *ptr, ber_len_t size, void *ctx)
 			return new;
 		}
 		Debug(LDAP_DEBUG_ANY, "ch_realloc of %lu bytes failed\n",
-				(long) size, 0, 0);
+				(long) size );
 		assert(0);
 		exit( EXIT_FAILURE );
 	}
@@ -468,7 +468,7 @@ slap_zn_free(void *ptr, void *ctx)
 	zoi.zo_ptr = p;
 	zoi.zo_idx = -1;
 
-	Debug(LDAP_DEBUG_NONE, "--> slap_zn_free: ptr=0x%x\n", ptr, 0, 0);
+	Debug(LDAP_DEBUG_NONE, "--> slap_zn_free: ptr=0x%x\n", ptr );
 
 	if (zh) {
 		ldap_pvt_thread_mutex_lock( &zh->zh_mutex );
@@ -519,7 +519,7 @@ slap_zn_free(void *ptr, void *ctx)
 							zo->zo_ptr = tmpp;
 							Debug(LDAP_DEBUG_NONE,
 								"slap_zn_free: merging 0x%x\n",
-								zo->zo_ptr, 0, 0);
+								zo->zo_ptr );
 							LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start+1],
 									zo, zo_link);
 						}
@@ -534,14 +534,13 @@ slap_zn_free(void *ptr, void *ctx)
 						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
-							zo->zo_ptr, 0, 0);
+							zo->zo_ptr );
 						LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start],
 								zo, zo_link);
 						break;
 
 						Debug(LDAP_DEBUG_ANY, "slap_zn_free: "
-							"free object not found while bit is clear.\n",
-							0, 0, 0);
+							"free object not found while bit is clear.\n" );
 						assert(zo != NULL);
 
 					}
@@ -556,7 +555,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
-							zo->zo_ptr, 0, 0);
+							zo->zo_ptr );
 						LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start],
 								zo, zo_link);
 					}
@@ -581,7 +580,7 @@ slap_zn_free(void *ptr, void *ctx)
 							inserted = 1;
 							Debug(LDAP_DEBUG_NONE,
 								"slap_zn_free: merging 0x%x\n",
-								zo->zo_ptr, 0, 0);
+								zo->zo_ptr );
 							LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start+1],
 									zo, zo_link);
 							continue;
@@ -596,14 +595,13 @@ slap_zn_free(void *ptr, void *ctx)
 						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
-							zo->zo_ptr, 0, 0);
+							zo->zo_ptr );
 						LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start],
 								zo, zo_link);
 						break;
 
 						Debug(LDAP_DEBUG_ANY, "slap_zn_free: "
-							"free object not found while bit is clear.\n",
-							0, 0, 0 );
+							"free object not found while bit is clear.\n" );
 						assert(zo != NULL);
 
 					}
@@ -618,7 +616,7 @@ slap_zn_free(void *ptr, void *ctx)
 						zo->zo_idx = idx;
 						Debug(LDAP_DEBUG_NONE,
 							"slap_zn_free: merging 0x%x\n",
-							zo->zo_ptr, 0, 0);
+							zo->zo_ptr );
 						LDAP_LIST_INSERT_HEAD(&zh->zh_free[i-order_start],
 								zo, zo_link);
 					}
@@ -731,11 +729,11 @@ slap_zn_invalidate(
 		zh->zh_seqno[idx]++;
 	} else {
 		Debug(LDAP_DEBUG_NONE, "zone not found for (ctx=0x%x, ptr=0x%x) !\n",
-				ctx, ptr, 0);
+				ctx, ptr );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &zh->zh_mutex );
-	Debug(LDAP_DEBUG_NONE, "zone %d invalidate\n", idx, 0, 0);
+	Debug(LDAP_DEBUG_NONE, "zone %d invalidate\n", idx );
 	return rc;
 }
 

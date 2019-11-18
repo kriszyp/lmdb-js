@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2017 The OpenLDAP Foundation.
+ * Copyright 2001-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -81,8 +81,7 @@ monitor_subsys_ops_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
 			"unable to get entry \"%s\"\n",
-			ms->mss_ndn.bv_val, 
-			0, 0 );
+			ms->mss_ndn.bv_val );
 		return( -1 );
 	}
 
@@ -109,7 +108,7 @@ monitor_subsys_ops_init(
 				"monitor_subsys_ops_init: "
 				"unable to create entry \"%s,%s\"\n",
 				monitor_op[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
@@ -135,7 +134,7 @@ monitor_subsys_ops_init(
 				"monitor_subsys_ops_init: "
 				"unable to add entry \"%s,%s\"\n",
 				monitor_op[ i ].rdn.bv_val,
-				ms->mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val );
 			return( -1 );
 		}
 
@@ -190,16 +189,12 @@ monitor_subsys_ops_update(
 		ldap_pvt_mp_init( nCompleted );
 
 		ldap_pvt_thread_mutex_lock( &slap_counters.sc_mutex );
-		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed_[ i ] );
-		}
+		ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated );
+		ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed );
 		for ( sc = slap_counters.sc_next; sc; sc = sc->sc_next ) {
 			ldap_pvt_thread_mutex_lock( &sc->sc_mutex );
-			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-				ldap_pvt_mp_add( nInitiated, sc->sc_ops_initiated_[ i ] );
-				ldap_pvt_mp_add( nCompleted, sc->sc_ops_completed_[ i ] );
-			}
+			ldap_pvt_mp_add( nInitiated, sc->sc_ops_initiated );
+			ldap_pvt_mp_add( nCompleted, sc->sc_ops_completed );
 			ldap_pvt_thread_mutex_unlock( &sc->sc_mutex );
 		}
 		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_mutex );

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * Portions Copyright 2004-2005 Howard Chu, Symas Corporation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * All rights reserved.
@@ -224,24 +224,28 @@ static ConfigTable ppolicycfg[] = {
 	  ARG_DN|ARG_QUOTE|ARG_MAGIC|PPOLICY_DEFAULT, ppolicy_cf_default,
 	  "( OLcfgOvAt:12.1 NAME 'olcPPolicyDefault' "
 	  "DESC 'DN of a pwdPolicy object for uncustomized objects' "
+	  "EQUALITY distinguishedNameMatch "
 	  "SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_hash_cleartext", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_HASH_CLEARTEXT,
 	  (void *)offsetof(pp_info,hash_passwords),
 	  "( OLcfgOvAt:12.2 NAME 'olcPPolicyHashCleartext' "
 	  "DESC 'Hash passwords on add or modify' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_forward_updates", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET,
 	  (void *)offsetof(pp_info,forward_updates),
 	  "( OLcfgOvAt:12.4 NAME 'olcPPolicyForwardUpdates' "
 	  "DESC 'Allow policy state updates to be forwarded via updateref' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "ppolicy_use_lockout", "on|off", 1, 2, 0,
 	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_USE_LOCKOUT,
 	  (void *)offsetof(pp_info,use_lockout),
 	  "( OLcfgOvAt:12.3 NAME 'olcPPolicyUseLockout' "
 	  "DESC 'Warn clients with AccountLocked' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -265,11 +269,11 @@ ppolicy_cf_default( ConfigArgs *c )
 	int rc = ARG_BAD_CONF;
 
 	assert ( c->type == PPOLICY_DEFAULT );
-	Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default\n", 0, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default\n" );
 
 	switch ( c->op ) {
 	case SLAP_CONFIG_EMIT:
-		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default emit\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default emit\n" );
 		rc = 0;
 		if ( !BER_BVISEMPTY( &pi->def_policy )) {
 			rc = value_add_one( &c->rvalue_vals,
@@ -280,7 +284,7 @@ ppolicy_cf_default( ConfigArgs *c )
 		}
 		break;
 	case LDAP_MOD_DELETE:
-		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default delete\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default delete\n" );
 		if ( pi->def_policy.bv_val ) {
 			ber_memfree ( pi->def_policy.bv_val );
 			pi->def_policy.bv_val = NULL;
@@ -289,9 +293,9 @@ ppolicy_cf_default( ConfigArgs *c )
 		rc = 0;
 		break;
 	case SLAP_CONFIG_ADD:
-		/* fallthrough to LDAP_MOD_ADD */
+		/* fallthru to LDAP_MOD_ADD */
 	case LDAP_MOD_ADD:
-		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default add\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE, "==> ppolicy_cf_default add\n" );
 		if ( pi->def_policy.bv_val ) {
 			ber_memfree ( pi->def_policy.bv_val );
 		}
@@ -508,7 +512,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		vals = a->a_nvals;
 		if (vals[0].bv_val == NULL) {
 			Debug( LDAP_DEBUG_ANY,
-				"ppolicy_get: NULL value for policySubEntry\n", 0, 0, 0 );
+				"ppolicy_get: NULL value for policySubEntry\n" );
 			goto defaultpol;
 		}
 	}
@@ -592,7 +596,7 @@ defaultpol:
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-		"ppolicy_get: using default policy\n", 0, 0, 0 );
+		"ppolicy_get: using default policy\n" );
 
 	ppolicy_get_default( pp );
 
@@ -691,7 +695,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 
 			Debug(LDAP_DEBUG_ANY,
 			"check_password_quality: lt_dlopen failed: (%s) %s.\n",
-				pp->pwdCheckModule, err, 0 );
+				pp->pwdCheckModule, err );
 			ok = LDAP_OTHER; /* internal error */
 		} else {
 			/* FIXME: the error message ought to be passed thru a
@@ -706,7 +710,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 			    
 				Debug(LDAP_DEBUG_ANY,
 					"check_password_quality: lt_dlsym failed: (%s) %s.\n",
-					pp->pwdCheckModule, err, 0 );
+					pp->pwdCheckModule, err );
 				ok = LDAP_OTHER;
 			} else {
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
@@ -723,7 +727,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 		}
 #else
 	Debug(LDAP_DEBUG_ANY, "check_password_quality: external modules not "
-		"supported. pwdCheckModule ignored.\n", 0, 0, 0);
+		"supported. pwdCheckModule ignored.\n" );
 #endif /* SLAPD_MODULES */
 	}
 		
@@ -1169,7 +1173,7 @@ grace:
 		 */
 		Debug( LDAP_DEBUG_ANY,
 			"ppolicy_bind: Entry %s has an expired password: %d grace logins\n",
-			e->e_name.bv_val, ngut, 0);
+			e->e_name.bv_val, ngut );
 		
 		if (ngut < 1) {
 			ppb->pErr = PP_passwordExpired;
@@ -1224,7 +1228,7 @@ check_expiring_password:
 			
 			Debug( LDAP_DEBUG_ANY,
 				"ppolicy_bind: Setting warning for password expiry for %s = %d seconds\n",
-				op->o_req_dn.bv_val, warn, 0 );
+				op->o_req_dn.bv_val, warn );
 		}
 	}
 
@@ -1394,7 +1398,7 @@ ppolicy_restrict(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-			"connection restricted to password changing only\n", 0, 0, 0);
+			"connection restricted to password changing only\n" );
 		if ( send_ctrl ) {
 			LDAPControl *ctrl = NULL;
 			ctrl = create_passcontrol( op, -1, -1, PP_changeAfterReset );
@@ -1509,7 +1513,7 @@ ppolicy_add(
 		return rs->sr_err;
 
 	/* If this is a replica, assume the master checked everything */
-	if ( be_shadow_update( op ))
+	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) )
 		return SLAP_CB_CONTINUE;
 
 	/* Check for password in entry */
@@ -1626,7 +1630,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info			*pi = on->on_bi.bi_private;
 	int			i, rc, mod_pw_only, pwmod, pwmop = -1, deladd,
-				hsize = 0;
+				hsize = 0, hskip;
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail = NULL,
 				*ml, *delmod, *addmod;
@@ -1653,7 +1657,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	/* If this is a replica, we may need to tweak some of the
 	 * master's modifications. Otherwise, just pass it through.
 	 */
-	if ( be_shadow_update( op )) {
+	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
 		Modifications **prev;
 		Attribute *a_grace, *a_lock, *a_fail;
 
@@ -1669,26 +1673,27 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			/* If we're deleting an attr that didn't exist,
 			 * drop this delete op
 			 */
-			if ( ml->sml_op == LDAP_MOD_DELETE ) {
+			if ( ml->sml_op == LDAP_MOD_DELETE ||
+					ml->sml_op == SLAP_MOD_SOFTDEL ) {
 				int drop = 0;
 
 				if ( ml->sml_desc == ad_pwdGraceUseTime ) {
 					if ( !a_grace || got_del_grace ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_grace = 1;
 					}
 				} else
 				if ( ml->sml_desc == ad_pwdAccountLockedTime ) {
 					if ( !a_lock || got_del_lock ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_lock = 1;
 					}
 				} else
 				if ( ml->sml_desc == ad_pwdFailureTime ) {
 					if ( !a_fail || got_del_fail ) {
-						drop = 1;
+						drop = ml->sml_op == LDAP_MOD_DELETE;
 					} else {
 						got_del_fail = 1;
 					}
@@ -1863,7 +1868,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		if ( dn_match( &op->o_conn->c_ndn,
 				&pwcons[op->o_conn->c_conn_idx].dn )) {
 			Debug( LDAP_DEBUG_TRACE,
-				"connection restricted to password changing only\n", 0, 0, 0 );
+				"connection restricted to password changing only\n" );
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS; 
 			rs->sr_text = "Operations are restricted to bind/unbind/abandon/StartTLS/modify password";
 			pErr = PP_changeAfterReset;
@@ -1950,8 +1955,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 
 	if (pp.pwdSafeModify && deladd != 2) {
 		Debug( LDAP_DEBUG_TRACE,
-			"change password must use DELETE followed by ADD/REPLACE\n",
-			0, 0, 0 );
+			"change password must use DELETE followed by ADD/REPLACE\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "Must supply old password to be changed as well as new one";
 		pErr = PP_mustSupplyOldPassword;
@@ -1987,7 +1991,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		rc = slap_passwd_check( op, NULL, pa, bv, &txt );
 		if (rc != LDAP_SUCCESS) {
 			Debug( LDAP_DEBUG_TRACE,
-				"old password check failed: %s\n", txt, 0, 0 );
+				"old password check failed: %s\n", txt );
 			
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "Must supply correct old password to change to new one";
@@ -2044,7 +2048,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 			pErr = PP_passwordInHistory;
 			goto return_results;
 		}
-	
+
+		/* We need this when reduce pwdInHistory */
+		hskip = hsize - pp.pwdInHistory;
+
 		/*
 		 * Iterate through the password history, and fail on any
 		 * password matches.
@@ -2053,6 +2060,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		at.a_vals = cr;
 		cr[1].bv_val = NULL;
 		for(p=tl; p; p=p->next) {
+			if(hskip > 0){
+				hskip--;
+				continue;
+			}
 			cr[0] = p->pw;
 			/* FIXME: no access checking? */
 			rc = slap_passwd_check( op, NULL, &at, bv, &txt );
@@ -2161,7 +2172,19 @@ do_modify:
 			modtail = mods;
 		}
 
-		if (!got_history && pp.pwdInHistory > 0) {
+		/* Delete all pwdInHistory attribute */
+		if (!got_history && pp.pwdInHistory == 0 &&
+            attr_find(e->e_attrs, ad_pwdHistory )){
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_desc = ad_pwdHistory;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
+
+		if (!got_history && pp.pwdInHistory > 0){
 			if (hsize >= pp.pwdInHistory) {
 				/*
 				 * We use the >= operator, since we are going to add
@@ -2226,7 +2249,7 @@ do_modify:
 
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
-				"ppolicy_modify: password attr lookup failed\n", 0, 0, 0 );
+				"ppolicy_modify: password attr lookup failed\n" );
 			}
 		}
 
@@ -2368,7 +2391,7 @@ ppolicy_db_init(
 		if ( cr ){
 			snprintf( cr->msg, sizeof(cr->msg), 
 				"slapo-ppolicy cannot be global" );
-			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg );
 		}
 		return 1;
 	}
@@ -2385,7 +2408,7 @@ ppolicy_db_init(
 					snprintf( cr->msg, sizeof(cr->msg), 
 						"User Schema load failed for attribute \"%s\". Error code %d: %s",
 						pwd_UsSchema[i].def, code, err );
-					Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg );
 				}
 				return code;
 			}
@@ -2479,7 +2502,7 @@ int ppolicy_initialize()
 		code = register_at( pwd_OpSchema[i].def, pwd_OpSchema[i].ad, 0 );
 		if ( code ) {
 			Debug( LDAP_DEBUG_ANY,
-				"ppolicy_initialize: register_at failed\n", 0, 0, 0 );
+				"ppolicy_initialize: register_at failed\n" );
 			return code;
 		}
 		/* Allow Manager to set these as needed */
@@ -2493,7 +2516,7 @@ int ppolicy_initialize()
 		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, extops,
 		ppolicy_parseCtrl, &ppolicy_cid );
 	if ( code != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
 		return code;
 	}
 

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ schema_info( Entry **entry, const char **text )
 	if( e == NULL ) {
 		/* Out of memory, do something about it */
 		Debug( LDAP_DEBUG_ANY, 
-			"schema_info: entry_alloc failed - out of memory.\n", 0, 0, 0 );
+			"schema_info: entry_alloc failed - out of memory.\n" );
 		*text = "out of memory";
 		return LDAP_OTHER;
 	}

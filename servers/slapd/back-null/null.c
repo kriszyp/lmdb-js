@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,11 +38,13 @@ static ConfigTable nullcfg[] = {
 		(void *)offsetof(null_info, ni_bind_allowed),
 		"( OLcfgDbAt:8.1 NAME 'olcDbBindAllowed' "
 		"DESC 'Allow binds to this database' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ "dosearch", "true|FALSE", 1, 2, 0, ARG_ON_OFF|ARG_OFFSET,
 		(void *)offsetof(null_info, ni_dosearch),
 		"( OLcfgDbAt:8.2 NAME 'olcDbDoSearch' "
 		"DESC 'Return an entry on searches' "
+		"EQUALITY booleanMatch "
 		"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL }
@@ -51,7 +53,7 @@ static ConfigTable nullcfg[] = {
 static ConfigOCs nullocs[] = {
 	{ "( OLcfgDbOc:8.1 "
 		"NAME 'olcNullConfig' "
-		"DESC 'Null backend ocnfiguration' "
+		"DESC 'Null backend configuration' "
 		"SUP olcDatabaseConfig "
 		"MAY ( olcDbBindAllowed $ olcDbDoSearch ) )",
 		Cft_Database, nullcfg },
@@ -147,7 +149,7 @@ null_back_respond( Operation *op, SlapReply *rs, int rc )
 
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- null_back_respond: pre-read "
-					"failed!\n", 0, 0, 0 );
+					"failed!\n" );
 
 				if ( op->o_preread & SLAP_CONTROL_CRITICAL ) {
 					/* FIXME: is it correct to abort
@@ -188,7 +190,7 @@ null_back_respond( Operation *op, SlapReply *rs, int rc )
 
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- null_back_respond: post-read "
-					"failed!\n", 0, 0, 0 );
+					"failed!\n" );
 
 				if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
 					/* FIXME: is it correct to abort
@@ -409,7 +411,7 @@ null_back_initialize( BackendInfo *bi )
 	};
 
 	Debug( LDAP_DEBUG_TRACE,
-		"null_back_initialize: initialize null backend\n", 0, 0, 0 );
+		"null_back_initialize: initialize null backend\n" );
 
 	bi->bi_flags |=
 		SLAP_BFLAG_INCREMENT |

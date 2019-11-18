@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -68,7 +68,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	rs->sr_err = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_ARGS, "%s meta_back_bind: dn=\"%s\".\n",
-		op->o_log_prefix, op->o_req_dn.bv_val, 0 );
+		op->o_log_prefix, op->o_req_dn.bv_val );
 
 	/* the test on the bind method should be superfluous */
 	switch ( be_rootdn_bind( op, rs ) ) {
@@ -94,19 +94,11 @@ meta_back_bind( Operation *op, SlapReply *rs )
 	 * invalidCredentials */
 	mc = meta_back_getconn( op, rs, NULL, LDAP_BACK_BIND_DONTSEND );
 	if ( !mc ) {
-		if ( LogTest( LDAP_DEBUG_ANY ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"meta_back_bind: no target "
-				"for dn \"%s\" (%d%s%s).",
-				op->o_req_dn.bv_val, rs->sr_err,
-				rs->sr_text ? ". " : "",
-				rs->sr_text ? rs->sr_text : "" );
-			Debug( LDAP_DEBUG_ANY,
-				"%s %s\n",
-				op->o_log_prefix, buf, 0 );
-		}
+		Debug(LDAP_DEBUG_ANY,
+		      "%s meta_back_bind: no target " "for dn \"%s\" (%d%s%s).\n",
+		      op->o_log_prefix, op->o_req_dn.bv_val,
+		      rs->sr_err, rs->sr_text ? ". " : "",
+		      rs->sr_text ? rs->sr_text : "" );
 
 		/* FIXME: there might be cases where we don't want
 		 * to map the error onto invalidCredentials */
@@ -152,7 +144,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			Debug( LDAP_DEBUG_ANY,
 				"### %s meta_back_bind: more than one"
 				" candidate selected...\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 		}
 
 		if ( isroot ) {
@@ -225,7 +217,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 					assert( !LDAP_BACK_PCONN_ISPRIV( mc ) );
 					Debug( LDAP_DEBUG_TRACE,
 						"=>meta_back_bind: destroying conn %lu (refcnt=%u)\n",
-						mc->mc_conn->c_connid, mc->mc_refcnt, 0 );
+						mc->mc_conn->c_connid, mc->mc_refcnt );
 
 					if ( tmpmc->mc_refcnt != 0 ) {
 						/* taint it */
@@ -316,11 +308,10 @@ meta_back_bind_op_result(
 	struct timeval		tv;
 	int			rc;
 	int			nretries = mt->mt_nretries;
-	char			buf[ SLAP_TEXT_BUFLEN ];
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> %s meta_back_bind_op_result[%d]\n",
-		op->o_log_prefix, candidate, 0 );
+		op->o_log_prefix, candidate );
 
 	/* make sure this is clean */
 	assert( rs->sr_ctrls == NULL );
@@ -409,12 +400,10 @@ retry:;
 			ldap_get_option( msc->msc_ld, LDAP_OPT_ERROR_NUMBER,
 				&rs->sr_err );
 
-			snprintf( buf, sizeof( buf ),
-				"err=%d (%s) nretries=%d",
-				rs->sr_err, ldap_err2string( rs->sr_err ), nretries );
-			Debug( LDAP_DEBUG_ANY,
-				"### %s meta_back_bind_op_result[%d]: %s.\n",
-				op->o_log_prefix, candidate, buf );
+			Debug(LDAP_DEBUG_ANY,
+			      "### %s meta_back_bind_op_result[%d]: err=%d (%s) nretries=%d.\n",
+			      op->o_log_prefix, candidate, rs->sr_err,
+			      ldap_err2string(rs->sr_err), nretries );
 			break;
 
 		default:
@@ -763,14 +752,11 @@ retry_binding:;
 		 * in case of failure, it resets mc...
 		 */
 		if ( rc != LDAP_SUCCESS ) {
-			char		buf[ SLAP_TEXT_BUFLEN ];
-
 			if ( mc == NULL ) {
 				/* meta_back_single_dobind() already sent 
 				 * response and released connection */
 				goto send_err;
 			}
-
 
 			if ( rc == LDAP_UNAVAILABLE ) {
 				/* FIXME: meta_back_retry() already re-calls
@@ -793,13 +779,11 @@ retry_binding:;
 			LDAP_BACK_CONN_BINDING_CLEAR( msc );
 			ldap_pvt_thread_mutex_unlock( &mi->mi_conninfo.lai_mutex );
 
-			snprintf( buf, sizeof( buf ),
-				"meta_back_dobind[%d]: (%s) err=%d (%s).",
-				i, isroot ? op->o_bd->be_rootdn.bv_val : "anonymous",
-				rc, ldap_err2string( rc ) );
-			Debug( LDAP_DEBUG_ANY,
-				"%s %s\n",
-				op->o_log_prefix, buf, 0 );
+			Debug(LDAP_DEBUG_ANY,
+			      "%s meta_back_dobind[%d]: (%s) err=%d (%s).\n",
+			      op->o_log_prefix, i,
+			      isroot ? op->o_bd->be_rootdn.bv_val : "anonymous",
+			      rc, ldap_err2string(rc) );
 
 			/*
 			 * null cred bind should always succeed
@@ -1189,18 +1173,11 @@ retry:;
 
 				rs->sr_err = slap_map_api2result( rs );
 	
-				if ( LogTest( LDAP_DEBUG_ANY ) ) {
-					char	buf[ SLAP_TEXT_BUFLEN ];
-
-					snprintf( buf, sizeof( buf ),
-						"meta_back_op_result[%d] "
-						"err=%d text=\"%s\" matched=\"%s\"", 
-						i, rs->sr_err,
-						( xtext ? xtext : "" ),
-						( xmatched ? xmatched : "" ) );
-					Debug( LDAP_DEBUG_ANY, "%s %s.\n",
-						op->o_log_prefix, buf, 0 );
-				}
+				Debug(LDAP_DEBUG_ANY,
+				      "%s meta_back_op_result[%d] " "err=%d text=\"%s\" matched=\"%s\".\n",
+				      op->o_log_prefix, i, rs->sr_err,
+				      (xtext ? xtext : ""),
+				      (xmatched ? xmatched : "") );
 
 				/*
 				 * FIXME: need to rewrite "match" (need rwinfo)

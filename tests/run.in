@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,6 @@ EGREP_CMD="@EGREP@"
 export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 
 # backends known to ./run -b <backend> (used to deduce $BACKENDTYPE)
-AC_bdb=@BUILD_BDB@
-AC_hdb=@BUILD_HDB@
 AC_ldif=yes
 AC_mdb=@BUILD_MDB@
 AC_null=@BUILD_NULL@
@@ -33,12 +31,14 @@ AC_null=@BUILD_NULL@
 # other backends
 AC_ldap=ldap@BUILD_LDAP@
 AC_meta=meta@BUILD_META@
+AC_asyncmeta=asyncmeta@BUILD_ASYNCMETA@
 AC_monitor=@BUILD_MONITOR@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
 
 # overlays
 AC_accesslog=accesslog@BUILD_ACCESSLOG@
+AC_autoca=autoca@BUILD_AUTOCA@
 AC_constraint=constraint@BUILD_CONSTRAINT@
 AC_dds=dds@BUILD_DDS@
 AC_dynlist=dynlist@BUILD_DYNLIST@
@@ -56,6 +56,7 @@ AC_valsort=valsort@BUILD_VALSORT@
 # misc
 AC_WITH_SASL=@WITH_SASL@
 AC_WITH_TLS=@WITH_TLS@
+AC_TLS_TYPE=@WITH_TLS_TYPE@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
 AC_THREADS=threads@BUILD_THREAD@
@@ -68,13 +69,15 @@ fi
 if test "${AC_meta}" = "metamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="metano"
 fi
-
-export AC_bdb AC_hdb AC_ldap AC_mdb AC_meta AC_monitor AC_null AC_relay AC_sql \
-	AC_accesslog AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
+if test "${AC_asyncmeta}" = "asyncmetamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
+	AC_meta="asyncmetano"
+fi
+export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
+	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
-	AC_THREADS AC_LIBS_DYNAMIC
+	AC_THREADS AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
@@ -153,7 +156,7 @@ while test $# -gt 0 ; do
 done
 
 if test -z "$BACKEND" ; then
-	for b in bdb hdb mdb ; do
+	for b in mdb ; do
 		if eval "test \"\$AC_$b\" != no" ; then
 			BACKEND=$b
 			break
@@ -174,7 +177,7 @@ fi
 # maindb: main storage backend.  Currently index,limits,mode,paged results.
 INDEXDB=noindexdb MAINDB=nomaindb
 case $BACKEND in
-	bdb|hdb|mdb) INDEXDB=indexdb MAINDB=maindb ;;
+	mdb) INDEXDB=indexdb MAINDB=maindb ;;
 	ndb) INDEXDB=indexdb ;;
 esac
 

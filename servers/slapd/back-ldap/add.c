@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -52,7 +52,7 @@ ldap_back_add(
 	rs->sr_err = LDAP_SUCCESS;
 	
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_add(\"%s\")\n",
-			op->o_req_dn.bv_val, 0, 0 );
+			op->o_req_dn.bv_val );
 
 	if ( !ldap_back_dobind( &lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		lc = NULL;
@@ -132,7 +132,7 @@ cleanup:
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "<== ldap_back_add(\"%s\"): %d\n",
-			op->o_req_dn.bv_val, rs->sr_err, 0 );
+			op->o_req_dn.bv_val, rs->sr_err );
 
 	return rs->sr_err;
 }

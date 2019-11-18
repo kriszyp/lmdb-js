@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ do_modrdn(
 	ber_len_t	length;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_modrdn\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 	/*
 	 * Parse the modrdn request.  It looks like this:
 	 *
@@ -74,7 +74,7 @@ do_modrdn(
 	    == LBER_ERROR )
 	{
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
@@ -88,7 +88,7 @@ do_modrdn(
 			 */
 			Debug( LDAP_DEBUG_ANY,
 				"%s do_modrdn: newSuperior requires LDAPv3\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
@@ -100,7 +100,7 @@ do_modrdn(
 		     == LBER_ERROR ) {
 
 			Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf(\"m\") failed\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 
 			send_ldap_discon( op, rs,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -118,7 +118,7 @@ do_modrdn(
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
@@ -127,7 +127,7 @@ do_modrdn(
 
 	if( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		/* get_ctrls has sent results.	Now clean up. */
 		goto cleanup;
 	} 
@@ -135,7 +135,7 @@ do_modrdn(
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
+			op->o_log_prefix, dn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto cleanup;
 	}
@@ -145,14 +145,14 @@ do_modrdn(
 	rs->sr_err = dnPrettyNormal( NULL, &newrdn, &op->orr_newrdn, &op->orr_nnewrdn, op->o_tmpmemctx );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid newrdn (%s)\n",
-			op->o_log_prefix, newrdn.bv_val, 0 );
+			op->o_log_prefix, newrdn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid new RDN" );
 		goto cleanup;
 	}
 
 	if( rdn_validate( &op->orr_newrdn ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: invalid rdn (%s)\n",
-			op->o_log_prefix, op->orr_newrdn.bv_val, 0 );
+			op->o_log_prefix, op->orr_newrdn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid new RDN" );
 		goto cleanup;
 	}
@@ -163,14 +163,14 @@ do_modrdn(
 		if( rs->sr_err != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
 				"%s do_modrdn: invalid newSuperior (%s)\n",
-				op->o_log_prefix, newSuperior.bv_val, 0 );
+				op->o_log_prefix, newSuperior.bv_val );
 			send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid newSuperior" );
 			goto cleanup;
 		}
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
-	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s MODRDN dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val );
 
 	op->orr_deleteoldrdn = deloldrdn;
 	op->orr_modlist = NULL;
@@ -185,9 +185,14 @@ do_modrdn(
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_modrdn( op, rs );
 
+	if ( rs->sr_err == SLAPD_ASYNCOP ) {
+		/* skip cleanup */
+		return rs->sr_err;
+	}
 #ifdef LDAP_X_TXN
 	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
 		/* skip cleanup */
+		return rs->sr_err;
 	}
 #endif
 
@@ -220,7 +225,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_modrdn: root dse!\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"cannot rename the root DSE" );
 		goto cleanup;
@@ -401,7 +406,7 @@ slap_modrdn2mods(
 		Debug( LDAP_DEBUG_TRACE,
 			"%s slap_modrdn2mods: can't figure out "
 			"type(s)/value(s) of newrdn\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
 		rs->sr_text = "unknown type(s)/value(s) used in RDN";
 		goto done;
@@ -413,7 +418,7 @@ slap_modrdn2mods(
 			Debug( LDAP_DEBUG_TRACE,
 				"%s slap_modrdn2mods: can't figure out "
 				"type(s)/value(s) of oldrdn\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 			rs->sr_err = LDAP_OTHER;
 			rs->sr_text = "cannot parse RDN from old DN";
 			goto done;

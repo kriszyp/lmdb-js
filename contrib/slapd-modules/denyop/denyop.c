@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -141,7 +141,7 @@ denyop_config(
 			Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 				"operation list missing in "
 				"\"denyop <op-list>\" line.\n",
-				fname, lineno, 0 );
+				fname, lineno );
 			return( 1 );
 		}
 

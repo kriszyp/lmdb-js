@@ -1,6 +1,6 @@
 .TH SLAPO-AUTOCA 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 2009-2017 The OpenLDAP Foundation All Rights Reserved.
-.\" Copyright 2009-2017 Howard Chu All Rights Reserved.
+.\" Copyright 2009-2019 The OpenLDAP Foundation All Rights Reserved.
+.\" Copyright 2009-2018 Howard Chu All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
 .SH NAME
@@ -45,11 +45,11 @@ attribute. The private key values are encoded in PKCS#8 format.
 It is essential that access to these attributes be
 properly secured with ACLs. Both of these attributes inherit
 from the
-.B x509PrivateKey
+.B pKCS8PrivateKey
 attribute, so it is sufficient to use a single ACL rule like
 
 .nf
-        access to attrs=x509PrivateKey by self ssf=128 write
+        access to attrs=pKCS8PrivateKey by self ssf=128 write
 .fi
 
 at the beginning of the rules.

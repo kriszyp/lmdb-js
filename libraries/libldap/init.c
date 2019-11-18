@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -130,6 +130,7 @@ static const struct ol_attribute {
 	{0, ATTR_TLS,	"TLS_RANDFILE",		NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 	{0, ATTR_TLS,	"TLS_CIPHER_SUITE",	NULL,	LDAP_OPT_X_TLS_CIPHER_SUITE},
 	{0, ATTR_TLS,	"TLS_PROTOCOL_MIN",	NULL,	LDAP_OPT_X_TLS_PROTOCOL_MIN},
+	{0, ATTR_TLS,	"TLS_PEERKEY_HASH",	NULL,	LDAP_OPT_X_TLS_PEERKEY_HASH},
 
 #ifdef HAVE_OPENSSL_CRL
 	{0, ATTR_TLS,	"TLS_CRLCHECK",		NULL,	LDAP_OPT_X_TLS_CRLCHECK},
@@ -145,6 +146,141 @@ static const struct ol_attribute {
 
 #define MAX_LDAP_ATTR_LEN  sizeof("GSSAPI_ALLOW_REMOTE_PRINCIPAL")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
+
+static int
+ldap_int_conf_option(
+	struct ldapoptions *gopts,
+	char *cmd, char *opt, int userconf )
+{
+	int i;
+
+	for(i=0; attrs[i].type != ATTR_NONE; i++) {
+		void *p;
+
+		if( !userconf && attrs[i].useronly ) {
+			continue;
+		}
+
+		if(strcasecmp(cmd, attrs[i].name) != 0) {
+			continue;
+		}
+
+		switch(attrs[i].type) {
+		case ATTR_BOOL:
+			if((strcasecmp(opt, "on") == 0)
+				|| (strcasecmp(opt, "yes") == 0)
+				|| (strcasecmp(opt, "true") == 0))
+			{
+				LDAP_BOOL_SET(gopts, attrs[i].offset);
+
+			} else {
+				LDAP_BOOL_CLR(gopts, attrs[i].offset);
+			}
+
+			break;
+
+		case ATTR_INT: {
+			char *next;
+			long l;
+			p = &((char *) gopts)[attrs[i].offset];
+			l = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' ) {
+				* (int*) p = l;
+			}
+			} break;
+
+		case ATTR_KV: {
+				const struct ol_keyvalue *kv;
+
+				for(kv = attrs[i].data;
+					kv->key != NULL;
+					kv++) {
+
+					if(strcasecmp(opt, kv->key) == 0) {
+						p = &((char *) gopts)[attrs[i].offset];
+						* (int*) p = kv->value;
+						break;
+					}
+				}
+			} break;
+
+		case ATTR_STRING:
+			p = &((char *) gopts)[attrs[i].offset];
+			if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
+			* (char**) p = LDAP_STRDUP(opt);
+			break;
+		case ATTR_OPTION:
+			ldap_set_option( NULL, attrs[i].offset, opt );
+			break;
+		case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+			ldap_int_sasl_config( gopts, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_GSSAPI:
+#ifdef HAVE_GSSAPI
+			ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_TLS:
+#ifdef HAVE_TLS
+			ldap_pvt_tls_config( NULL, attrs[i].offset, opt );
+#endif
+			break;
+		case ATTR_OPT_TV: {
+			struct timeval tv;
+			char *next;
+			tv.tv_usec = 0;
+			tv.tv_sec = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
+			}
+			} break;
+		case ATTR_OPT_INT: {
+			long l;
+			char *next;
+			l = strtol( opt, &next, 10 );
+			if ( next != opt && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
+				int v = (int)l;
+				(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
+			}
+			} break;
+		}
+
+		break;
+	}
+
+	if ( attrs[i].type == ATTR_NONE ) {
+		Debug1( LDAP_DEBUG_TRACE, "ldap_pvt_tls_config: "
+				"unknown option '%s'",
+				cmd );
+		return 1;
+	}
+
+	return 0;
+}
+
+int
+ldap_pvt_conf_option(
+	char *cmd, char *opt, int userconf )
+{
+	struct ldapoptions *gopts;
+	int rc = LDAP_OPT_ERROR;
+
+	/* Get pointer to global option structure */
+	gopts = LDAP_INT_GLOBAL_OPT();
+	if (NULL == gopts) {
+		return LDAP_NO_MEMORY;
+	}
+
+	if ( gopts->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(gopts, NULL);
+		if ( gopts->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
+	}
+
+	return ldap_int_conf_option( gopts, cmd, opt, userconf );
+}
 
 static void openldap_ldap_init_w_conf(
 	const char *file, int userconf )
@@ -165,7 +301,7 @@ static void openldap_ldap_init_w_conf(
 		return;
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "ldap_init: trying %s\n", file, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_init: trying %s\n", file );
 
 	fp = fopen(file, "r");
 	if(fp == NULL) {
@@ -173,7 +309,7 @@ static void openldap_ldap_init_w_conf(
 		return;
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "ldap_init: using %s\n", file, 0, 0);
+	Debug1(LDAP_DEBUG_TRACE, "ldap_init: using %s\n", file );
 
 	while((start = fgets(linebuf, sizeof(linebuf), fp)) != NULL) {
 		/* skip lines starting with '#' */
@@ -211,101 +347,7 @@ static void openldap_ldap_init_w_conf(
 		while(isspace((unsigned char)*start)) start++;
 		opt = start;
 
-		for(i=0; attrs[i].type != ATTR_NONE; i++) {
-			void *p;
-
-			if( !userconf && attrs[i].useronly ) {
-				continue;
-			}
-
-			if(strcasecmp(cmd, attrs[i].name) != 0) {
-				continue;
-			}
-
-			switch(attrs[i].type) {
-			case ATTR_BOOL:
-				if((strcasecmp(opt, "on") == 0) 
-					|| (strcasecmp(opt, "yes") == 0)
-					|| (strcasecmp(opt, "true") == 0))
-				{
-					LDAP_BOOL_SET(gopts, attrs[i].offset);
-
-				} else {
-					LDAP_BOOL_CLR(gopts, attrs[i].offset);
-				}
-
-				break;
-
-			case ATTR_INT: {
-				char *next;
-				long l;
-				p = &((char *) gopts)[attrs[i].offset];
-				l = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' ) {
-					* (int*) p = l;
-				}
-				} break;
-
-			case ATTR_KV: {
-					const struct ol_keyvalue *kv;
-
-					for(kv = attrs[i].data;
-						kv->key != NULL;
-						kv++) {
-
-						if(strcasecmp(opt, kv->key) == 0) {
-							p = &((char *) gopts)[attrs[i].offset];
-							* (int*) p = kv->value;
-							break;
-						}
-					}
-				} break;
-
-			case ATTR_STRING:
-				p = &((char *) gopts)[attrs[i].offset];
-				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
-				* (char**) p = LDAP_STRDUP(opt);
-				break;
-			case ATTR_OPTION:
-				ldap_set_option( NULL, attrs[i].offset, opt );
-				break;
-			case ATTR_SASL:
-#ifdef HAVE_CYRUS_SASL
-			   	ldap_int_sasl_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-				ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_TLS:
-#ifdef HAVE_TLS
-			   	ldap_pvt_tls_config( NULL, attrs[i].offset, opt );
-#endif
-				break;
-			case ATTR_OPT_TV: {
-				struct timeval tv;
-				char *next;
-				tv.tv_usec = 0;
-				tv.tv_sec = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' && tv.tv_sec > 0 ) {
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&tv );
-				}
-				} break;
-			case ATTR_OPT_INT: {
-				long l;
-				char *next;
-				l = strtol( opt, &next, 10 );
-				if ( next != opt && next[ 0 ] == '\0' && l > 0 && (long)((int)l) == l ) {
-					int v = (int)l;
-					(void)ldap_set_option( NULL, attrs[i].offset, (const void *)&v );
-				}
-				} break;
-			}
-
-			break;
-		}
+		ldap_int_conf_option( gopts, cmd, opt, userconf );
 	}
 
 	fclose(fp);
@@ -329,12 +371,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 	home = getenv("HOME");
 
 	if (home != NULL) {
-		Debug(LDAP_DEBUG_TRACE, "ldap_init: HOME env is %s\n",
-		      home, 0, 0);
+		Debug1(LDAP_DEBUG_TRACE, "ldap_init: HOME env is %s\n",
+		      home );
 		path = LDAP_MALLOC(strlen(home) + strlen(file) + sizeof( LDAP_DIRSEP "."));
 	} else {
-		Debug(LDAP_DEBUG_TRACE, "ldap_init: HOME env is NULL\n",
-		      0, 0, 0);
+		Debug0(LDAP_DEBUG_TRACE, "ldap_init: HOME env is NULL\n" );
 	}
 
 	if(home != NULL && path != NULL) {
@@ -516,15 +557,6 @@ ldap_int_destroy_global_options(void)
  */
 void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl )
 {
-#ifdef LDAP_R_COMPILE
-	LDAP_PVT_MUTEX_FIRSTCREATE(gopts->ldo_mutex);
-#endif
-	LDAP_MUTEX_LOCK( &gopts->ldo_mutex );
-	if (gopts->ldo_valid == LDAP_INITIALIZED) {
-		/* someone else got here first */
-		LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
-		return;
-	}
 	if (dbglvl)
 	    gopts->ldo_debug = *dbglvl;
 	else
@@ -588,7 +620,6 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_keepalive_idle = 0;
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
-	LDAP_MUTEX_UNLOCK( &gopts->ldo_mutex );
    	return;
 }
 
@@ -602,8 +633,15 @@ int	ldap_int_stackguard;
 
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
+#ifdef LDAP_R_COMPILE
+	static ldap_pvt_thread_mutex_t init_mutex;
+	LDAP_PVT_MUTEX_FIRSTCREATE( init_mutex );
+
+	LDAP_MUTEX_LOCK( &init_mutex );
+#endif
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
-		return;
+		/* someone else got here first */
+		goto done;
 	}
 
 	ldap_int_error_init();
@@ -618,7 +656,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
 		/* Tell the user that we couldn't find a usable */
 		/* WinSock DLL.                                  */
-		return;
+		goto done;
 	}
  
 	/* Confirm that the WinSock DLL supports 2.0.*/
@@ -633,13 +671,13 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	    /* Tell the user that we couldn't find a usable */
 	    /* WinSock DLL.                                  */
 	    WSACleanup( );
-	    return; 
+	    goto done;
 	}
 }	/* The WinSock DLL is acceptable. Proceed. */
 #elif defined(HAVE_WINSOCK)
 {	WSADATA wsaData;
 	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return;
+	    goto done;
 	}
 }
 #endif
@@ -662,10 +700,16 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if ( ldap_int_tblsize == 0 ) ldap_int_ip_init();
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	if ( ldap_int_sasl_init() != 0 ) {
+		goto done;
+	}
+#endif
+
 	ldap_int_initialize_global_options(gopts, dbglvl);
 
 	if( getenv("LDAPNOINIT") != NULL ) {
-		return;
+		goto done;
 	}
 
 #ifdef LDAP_R_COMPILE
@@ -692,7 +736,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 
 #ifdef HAVE_GETEUID
 	if ( geteuid() != getuid() )
-		return;
+		goto done;
 #endif
 
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
@@ -701,27 +745,32 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 		char *altfile = getenv(LDAP_ENV_PREFIX "CONF");
 
 		if( altfile != NULL ) {
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
-			      LDAP_ENV_PREFIX "CONF", altfile, 0);
+			Debug2(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
+			      LDAP_ENV_PREFIX "CONF", altfile );
 			openldap_ldap_init_w_sysconf( altfile );
 		}
 		else
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
-			      LDAP_ENV_PREFIX "CONF", 0, 0);
+			Debug1(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
+			      LDAP_ENV_PREFIX "CONF" );
 	}
 
 	{
 		char *altfile = getenv(LDAP_ENV_PREFIX "RC");
 
 		if( altfile != NULL ) {
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
-			      LDAP_ENV_PREFIX "RC", altfile, 0);
+			Debug2(LDAP_DEBUG_TRACE, "ldap_init: %s env is %s\n",
+			      LDAP_ENV_PREFIX "RC", altfile );
 			openldap_ldap_init_w_userconf( altfile );
 		}
 		else
-			Debug(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
-			      LDAP_ENV_PREFIX "RC", 0, 0);
+			Debug1(LDAP_DEBUG_TRACE, "ldap_init: %s env is NULL\n",
+			      LDAP_ENV_PREFIX "RC" );
 	}
 
 	openldap_ldap_init_w_env(gopts, NULL);
+
+done:;
+#ifdef LDAP_R_COMPILE
+	LDAP_MUTEX_UNLOCK( &init_mutex );
+#endif
 }

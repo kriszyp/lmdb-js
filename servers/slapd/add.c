@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,10 @@ do_add( Operation *op, SlapReply *rs )
 	size_t		textlen = sizeof( textbuf );
 	int		rc = 0;
 	int		freevals = 1;
-	OpExtraDB oex;
+	OpExtraDB *oex;
 
 	Debug( LDAP_DEBUG_TRACE, "%s do_add\n",
-		op->o_log_prefix, 0, 0 );
+		op->o_log_prefix );
 
 	/*
 	 * Parse the add request.  It looks like this:
@@ -68,13 +68,13 @@ do_add( Operation *op, SlapReply *rs )
 	/* get the name */
 	if ( ber_scanf( ber, "{m", /*}*/ &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_add: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		return SLAPD_DISCONNECT;
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "%s do_add: dn (%s)\n",
-		op->o_log_prefix, dn.bv_val, 0 );
+		op->o_log_prefix, dn.bv_val );
 
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
@@ -89,7 +89,7 @@ do_add( Operation *op, SlapReply *rs )
 
 		if ( rtag == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "%s do_add: decoding error\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto done;
@@ -97,7 +97,7 @@ do_add( Operation *op, SlapReply *rs )
 
 		if ( tmp.sml_values == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "%s do_add: no values for type %s\n",
-				op->o_log_prefix, tmp.sml_type.bv_val, 0 );
+				op->o_log_prefix, tmp.sml_type.bv_val );
 			send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 				"no values for attribute type" );
 			goto done;
@@ -118,7 +118,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_add: ber_scanf failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding error" );
 		rs->sr_err = SLAPD_DISCONNECT;
 		goto done;
@@ -126,7 +126,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	if ( get_ctrls( op, rs, 1 ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_add: get_ctrls failed\n",
-			op->o_log_prefix, 0, 0 );
+			op->o_log_prefix );
 		goto done;
 	} 
 
@@ -135,7 +135,7 @@ do_add( Operation *op, SlapReply *rs )
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "%s do_add: invalid dn (%s)\n",
-			op->o_log_prefix, dn.bv_val, 0 );
+			op->o_log_prefix, dn.bv_val );
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid DN" );
 		goto done;
 	}
@@ -144,8 +144,8 @@ do_add( Operation *op, SlapReply *rs )
 	ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
 	ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
 
-	Statslog( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
-	    op->o_log_prefix, op->o_req_dn.bv_val, 0, 0, 0 );
+	Debug( LDAP_DEBUG_STATS, "%s ADD dn=\"%s\"\n",
+	    op->o_log_prefix, op->o_req_dn.bv_val );
 
 	if ( modlist == NULL ) {
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
@@ -185,15 +185,20 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	freevals = 0;
-
-	oex.oe.oe_key = (void *)do_add;
-	oex.oe_db = NULL;
-	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex.oe, oe_next);
+	oex = op->o_tmpalloc( sizeof(OpExtraDB), op->o_tmpmemctx );
+	oex->oe.oe_key = (void *)do_add;
+	oex->oe_db = NULL;
+	LDAP_SLIST_INSERT_HEAD(&op->o_extra, &oex->oe, oe_next);
 
 	op->o_bd = frontendDB;
 	rc = frontendDB->be_add( op, rs );
-	LDAP_SLIST_REMOVE(&op->o_extra, &oex.oe, OpExtra, oe_next);
 
+	if ( rc == SLAPD_ASYNCOP ) {
+		/* skip cleanup */
+		return rc;
+	}
+
+	LDAP_SLIST_REMOVE(&op->o_extra, &oex->oe, OpExtra, oe_next);
 #ifdef LDAP_X_TXN
 	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
 		/* skip cleanup */
@@ -201,10 +206,10 @@ do_add( Operation *op, SlapReply *rs )
 	} else
 #endif
 	if ( rc == 0 ) {
-		if ( op->ora_e != NULL && oex.oe_db != NULL ) {
+		if ( op->ora_e != NULL && oex->oe_db != NULL ) {
 			BackendDB	*bd = op->o_bd;
 
-			op->o_bd = oex.oe_db;
+			op->o_bd = oex->oe_db;
 
 			be_entry_release_w( op, op->ora_e );
 
@@ -212,6 +217,7 @@ do_add( Operation *op, SlapReply *rs )
 			op->o_bd = bd;
 		}
 	}
+	op->o_tmpfree( oex, op->o_tmpmemctx );
 
 done:;
 	if ( modlist != NULL ) {
@@ -370,7 +376,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 			}
 		}
 	} else {
-		Debug( LDAP_DEBUG_ARGS, "do_add: no backend support\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ARGS, "do_add: no backend support\n" );
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 			"operation not supported within namingContext" );
 	}

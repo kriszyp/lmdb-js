@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ int wt_dn2entry( BackendDB *be,
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_dn2entry)
 			   ": open_cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 
@@ -70,7 +70,7 @@ int wt_dn2entry( BackendDB *be,
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_dn2entry)
 			   ": search failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 	cursor->get_value(cursor, &id, &item);
@@ -87,8 +87,8 @@ int wt_dn2entry( BackendDB *be,
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_dn2entry)
-			   ": entry decode error: %s (%d)\n",
-			   rc, 0, 0 );
+			   ": entry decode error: %d\n",
+			   rc );
 		goto done;
 	}
 

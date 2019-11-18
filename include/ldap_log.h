@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -145,26 +145,30 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 #endif /* HAVE_EBCDIC */
 
 #endif /* LDAP_SYSLOG */
+#endif /* LDAP_DEBUG */
 
+/* we keep libldap working with preprocessors that can't do variadic macros */
+#ifndef LDAP_INT_DEBUG
 /* this doesn't below as part of ldap.h */
+#ifdef LDAP_DEBUG
 #ifdef LDAP_SYSLOG
 
 #define LogTest(level) ( ( ldap_debug | ldap_syslog ) & (level) )
-#define LogExpand(level, severity, args) \
+#define Log(level, severity, ...) \
 	do { \
 		if ( ldap_debug & (level) ) \
-			lutil_debug( ldap_debug, (level), args ); \
+			lutil_debug( ldap_debug, (level), __VA_ARGS__ ); \
 		if ( ldap_syslog & (level) ) \
-			syslog( LDAP_LEVEL_MASK((severity)), args ); \
+			syslog( LDAP_LEVEL_MASK((severity)), __VA_ARGS__ ); \
 	} while ( 0 )
 
 #else /* ! LDAP_SYSLOG */
 
 #define LogTest(level) ( ldap_debug & (level) )
-#define LogExpand(level, severity, args) \
+#define Log(level, severity, ...) \
 	do { \
 		if ( ldap_debug & (level) ) \
-			lutil_debug( ldap_debug, (level), args ); \
+			lutil_debug( ldap_debug, (level), __VA_ARGS__ ); \
 	} while ( 0 )
 
 #endif /* ! LDAP_SYSLOG */
@@ -173,34 +177,13 @@ extern void eb_syslog(int pri, const char *fmt, ...);
 /* TODO: in case LDAP_DEBUG is undefined, make sure logs with appropriate
  * severity gets thru anyway */
 #define LogTest(level) ( 0 )
-#define LogExpand(level, severity, args) ((void) 0)
+#define Log(level, severity, ...) ((void) 0)
 
 #endif /* ! LDAP_DEBUG */
 
-#define LogArg ,
-#define Log0(level, severity, fmt) \
-	LogExpand((level), (severity), (fmt))
-#define Log1(level, severity, fmt, a1) \
-	LogExpand((level), (severity), (fmt) LogArg(a1))
-#define Log2(level, severity, fmt, a1, a2) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2))
-#define Log3(level, severity, fmt, a1, a2, a3) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3))
-#define Log4(level, severity, fmt, a1, a2, a3, a4) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
-		LogArg(a4))
-#define Log5(level, severity, fmt, a1, a2, a3, a4, a5) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
-		LogArg(a4) LogArg(a5))
-#define Log6(level, severity, fmt, a1, a2, a3, a4, a5, a6) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
-		LogArg(a4) LogArg(a5) LogArg(a6))
-#define Log7(level, severity, fmt, a1, a2, a3, a4, a5, a6, a7) \
-	LogExpand((level), (severity), (fmt) LogArg(a1) LogArg(a2) LogArg(a3) \
-		LogArg(a4) LogArg(a5) LogArg(a6) LogArg(a7))
-#define Debug(level, fmt, a1, a2, a3) \
-	LogExpand((level), ldap_syslog_level, (fmt) \
-		LogArg(a1) LogArg(a2) LogArg(a3))
+#define Debug(level, ...) \
+	Log((level), ldap_syslog_level, __VA_ARGS__ )
+#endif /* ! LDAP_INT_DEBUG */
 
 /* Actually now in liblber/debug.c */
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));

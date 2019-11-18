@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 1998-2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -190,7 +190,7 @@ slapmodify( int argc, char **argv )
 				request = "delete";
 				break;
 			}
-			/* backend does not support delete, fallthrough */
+			/* backend does not support delete, fallthru */
 
 		case LDAP_REQ_MODRDN:
 			fprintf( stderr, "%s: request 0x%lx not supported (line=%lu)\n",

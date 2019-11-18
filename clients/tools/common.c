@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -139,6 +139,7 @@ typedef int (*print_ctrl_fn)( LDAP *ld, LDAPControl *ctrl );
 static int print_preread( LDAP *ld, LDAPControl *ctrl );
 static int print_postread( LDAP *ld, LDAPControl *ctrl );
 static int print_paged_results( LDAP *ld, LDAPControl *ctrl );
+static int print_psearch( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 static int print_authzid( LDAP *ld, LDAPControl *ctrl );
 #endif
@@ -153,6 +154,11 @@ static int print_deref( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_WHATFAILED
 static int print_whatfailed( LDAP *ld, LDAPControl *ctrl );
 #endif
+static int print_syncstate( LDAP *ld, LDAPControl *ctrl );
+static int print_syncdone( LDAP *ld, LDAPControl *ctrl );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int print_dirsync( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -162,6 +168,7 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_PRE_READ,			TOOL_ALL,	print_preread },
 	{ LDAP_CONTROL_POST_READ,			TOOL_ALL,	print_postread },
 	{ LDAP_CONTROL_PAGEDRESULTS,			TOOL_SEARCH,	print_paged_results },
+	{ LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE,			TOOL_SEARCH,	print_psearch },
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 	/* this is generally deprecated in favor of LDAP WhoAmI? operation, hence only supported as a VC inner control */
 	{ LDAP_CONTROL_AUTHZID_RESPONSE,		TOOL_VC,	print_authzid },
@@ -176,6 +183,11 @@ static struct tool_ctrls_t {
 #endif
 #ifdef LDAP_CONTROL_X_WHATFAILED
 	{ LDAP_CONTROL_X_WHATFAILED,			TOOL_ALL,	print_whatfailed },
+#endif
+	{ LDAP_CONTROL_SYNC_STATE,			TOOL_SEARCH,	print_syncstate },
+	{ LDAP_CONTROL_SYNC_DONE,			TOOL_SEARCH,	print_syncdone },
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	{ LDAP_CONTROL_X_DIRSYNC,			TOOL_SEARCH,	print_dirsync },
 #endif
 	{ NULL,						0,		NULL }
 };
@@ -374,9 +386,9 @@ N_("  -I         use SASL Interactive mode\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
 N_("  -N         do not use reverse DNS to canonicalize SASL host name\n"),
 N_("  -O props   SASL security properties\n"),
-N_("  -o <opt>[=<optparam>] general options\n"),
+N_("  -o <opt>[=<optparam>] any libldap ldap.conf options, plus\n"),
+N_("             ldif_wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
-N_("             ldif-wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("  -p port    port on LDAP server\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
@@ -838,6 +850,11 @@ tool_args( int argc, char **argv )
 			if ( (cvalue = strchr( control, '=' )) != NULL ) {
 				*cvalue++ = '\0';
 			}
+			for ( next=control; *next; next++ ) {
+				if ( *next == '-' ) {
+					*next = '_';
+				}
+			}
 
 			if ( strcasecmp( control, "nettimeout" ) == 0 ) {
 				if( nettimeout.tv_sec != -1 ) {
@@ -867,7 +884,7 @@ tool_args( int argc, char **argv )
 	 				exit( EXIT_FAILURE );
  				}
 
-			} else if ( strcasecmp( control, "ldif-wrap" ) == 0 ) {
+			} else if ( strcasecmp( control, "ldif_wrap" ) == 0 ) {
 				if ( cvalue == 0 ) {
 					ldif_wrap = LDIF_LINE_WIDTH;
 
@@ -878,13 +895,13 @@ tool_args( int argc, char **argv )
 					unsigned int u;
 					if ( lutil_atou( &u, cvalue ) ) {
 						fprintf( stderr,
-							_("Unable to parse ldif-wrap=\"%s\"\n"), cvalue );
+							_("Unable to parse ldif_wrap=\"%s\"\n"), cvalue );
 		 				exit( EXIT_FAILURE );
 					}
 					ldif_wrap = (ber_len_t)u;
 				}
 
-			} else {
+			} else if ( ldap_pvt_conf_option( control, cvalue, 1 ) ) {
 				fprintf( stderr, "Invalid general option name: %s\n",
 					control );
 				usage();
@@ -2147,6 +2164,60 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 }
 
 static int
+print_psearch( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc;
+	int chgtype;
+	int chgpres;
+	long chgnum;
+	struct berval prevdn;
+
+	rc = ldap_parse_entrychange_control( ld, ctrl, &chgtype, &prevdn,
+		&chgpres, &chgnum );
+	if ( rc == LDAP_SUCCESS ) {
+		char buf[ BUFSIZ ];
+		char *ptr = buf;
+		int blen = sizeof(buf), len;
+		
+		switch( chgtype ) {
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_ADD:
+			len = snprintf( ptr, blen, "add" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_DELETE:
+			len = snprintf( ptr, blen, "delete" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_MODIFY:
+			len = snprintf( ptr, blen, "modify" );
+			ptr += len;
+			blen -= len;
+			break;
+		case LDAP_CONTROL_PERSIST_ENTRY_CHANGE_RENAME:
+			len = snprintf( ptr, blen, "moddn" );
+			ptr += len;
+			blen -= len;
+			if ( prevdn.bv_val != NULL ) {
+				len = snprintf( ptr, blen, " prevdn %s", prevdn.bv_val );
+				ptr += len;
+				blen -= len;
+			}
+			break;
+		}
+		if ( chgpres ) {
+			len = snprintf( ptr, blen, " changeNumber %ld", chgnum) ;
+			ptr += len;
+			blen -= len;
+		}
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			ldif ? "persistentSearch: " : "persistentSearch", buf, len );
+	}
+}
+
+static int
 print_sss( LDAP *ld, LDAPControl *ctrl )
 {
 	int rc;
@@ -2330,6 +2401,168 @@ print_whatfailed( LDAP *ld, LDAPControl *ctrl )
 }
 #endif
 
+static int
+print_syncstate( LDAP *ld, LDAPControl *ctrl )
+{
+	struct berval syncUUID, syncCookie = BER_BVNULL;
+	char buf[LDAP_LUTIL_UUIDSTR_BUFSIZE], *uuidstr = "(UUID malformed)";
+	BerElement *ber;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t state;
+	int rc;
+
+	if ( ldif ) {
+		return 0;
+	}
+
+	/* Create a BerElement from the berval returned in the control. */
+	ber = ber_init( &ctrl->ldctl_value );
+
+	if ( ber == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	if ( ber_scanf( ber, "{em", &state, &syncUUID ) == LBER_ERROR ) {
+		ber_free( ber, 1 );
+		return 1;
+	}
+
+	tag = ber_get_stringbv( ber, &syncCookie, 0 );
+
+	rc = lutil_uuidstr_from_normalized(
+			syncUUID.bv_val, syncUUID.bv_len,
+			buf, LDAP_LUTIL_UUIDSTR_BUFSIZE );
+
+	if ( rc > 0 && rc < LDAP_LUTIL_UUIDSTR_BUFSIZE ) {
+		uuidstr = buf;
+	}
+
+	switch ( state ) {
+		case LDAP_SYNC_PRESENT:
+			printf(_("# SyncState control, UUID %s present\n"), uuidstr);
+			break;
+		case LDAP_SYNC_ADD:
+			printf(_("# SyncState control, UUID %s added\n"), uuidstr);
+			break;
+		case LDAP_SYNC_MODIFY:
+			printf(_("# SyncState control, UUID %s modified\n"), uuidstr);
+			break;
+		case LDAP_SYNC_DELETE:
+			printf(_("# SyncState control, UUID %s deleted\n"), uuidstr);
+			break;
+		default:
+			ber_free( ber, 1 );
+			return 1;
+	}
+
+	if ( tag != LBER_ERROR ) {
+		if ( ldif_is_not_printable( syncCookie.bv_val, syncCookie.bv_len ) ) {
+			struct berval bv;
+
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN( syncCookie.bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+					(unsigned char *) syncCookie.bv_val, syncCookie.bv_len,
+					bv.bv_val, bv.bv_len );
+
+			printf(_("# cookie:: %s\n"), bv.bv_val );
+			ber_memfree( bv.bv_val );
+		} else {
+			printf(_("# cookie: %s\n"), syncCookie.bv_val );
+		}
+	}
+
+	ber_free( ber, 1 );
+	return 0;
+}
+
+static int
+print_syncdone( LDAP *ld, LDAPControl *ctrl )
+{
+	BerElement *ber;
+	struct berval cookie = BER_BVNULL;
+	ber_tag_t tag;
+	ber_len_t len;
+	ber_int_t refreshDeletes = 0;
+
+	if ( ldif ) {
+		return 0;
+	}
+
+	/* Create a BerElement from the berval returned in the control. */
+	ber = ber_init( &ctrl->ldctl_value );
+
+	if ( ber == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+
+	ber_skip_tag( ber, &len );
+	if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE ) {
+		ber_scanf( ber, "m", &cookie );
+	}
+	if ( ber_peek_tag( ber, &len ) == LDAP_TAG_REFRESHDELETES ) {
+		ber_scanf( ber, "b", &refreshDeletes );
+	}
+
+	printf(_("# SyncDone control refreshDeletes=%d\n"), refreshDeletes ? 1 : 0 );
+
+	if ( !BER_BVISNULL( &cookie ) ) {
+		if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+			struct berval bv;
+
+			bv.bv_len = LUTIL_BASE64_ENCODE_LEN( cookie.bv_len ) + 1;
+			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+			bv.bv_len = lutil_b64_ntop(
+					(unsigned char *) cookie.bv_val, cookie.bv_len,
+					bv.bv_val, bv.bv_len );
+
+			printf(_("# cookie:: %s\n"), bv.bv_val );
+			ber_memfree( bv.bv_val );
+		} else {
+			printf(_("# cookie: %s\n"), cookie.bv_val );
+		}
+	}
+
+	ber_free( ber, 1 );
+	return 0;
+}
+
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int
+print_dirsync( LDAP *ld, LDAPControl *ctrl )
+{
+	int rc, continueFlag;
+	struct berval cookie;
+
+	rc = ldap_parse_dirsync_control( ld, ctrl,
+		&continueFlag, &cookie );
+	if ( rc == LDAP_SUCCESS ) {
+		printf(_("# DirSync control continueFlag=%d\n"), continueFlag );
+		if ( !BER_BVISNULL( &cookie )) {
+			if ( ldif_is_not_printable( cookie.bv_val, cookie.bv_len ) ) {
+				struct berval bv;
+
+				bv.bv_len = LUTIL_BASE64_ENCODE_LEN( cookie.bv_len ) + 1;
+				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+
+				bv.bv_len = lutil_b64_ntop(
+						(unsigned char *) cookie.bv_val, cookie.bv_len,
+						bv.bv_val, bv.bv_len );
+
+				printf(_("# cookie:: %s\n"), bv.bv_val );
+				ber_memfree( bv.bv_val );
+			} else {
+				printf(_("# cookie: %s\n"), cookie.bv_val );
+			}
+		}
+	}
+	return rc;
+}
+#endif
+
 #ifdef LDAP_CONTROL_AUTHZID_RESPONSE
 static int
 print_authzid( LDAP *ld, LDAPControl *ctrl )
@@ -2455,7 +2688,7 @@ void tool_print_ctrls(
 		/* known controls */
 		for ( j = 0; tool_ctrl_response[j].oid != NULL; j++ ) {
 			if ( strcmp( tool_ctrl_response[j].oid, ctrls[i]->ldctl_oid ) == 0 ) {
-				if ( !tool_ctrl_response[j].mask & tool_type ) {
+				if ( !(tool_ctrl_response[j].mask & tool_type )) {
 					/* this control should not appear
 					 * with this tool; warning? */
 				}

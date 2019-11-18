@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -159,7 +159,7 @@ static int indexer(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(indexer)
 			   ": open index cursor failed: %s\n",
-			   atname->bv_val, 0, 0 );
+			   atname->bv_val );
 		goto done;
 	}
 

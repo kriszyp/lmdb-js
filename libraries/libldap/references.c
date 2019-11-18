@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -118,7 +118,7 @@ ldap_parse_reference(
 free_and_return:
 
 	if( referralsp != NULL ) {
-		/* provide references regradless of return code */
+		/* provide references regardless of return code */
 		*referralsp = refs;
 
 	} else {

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,7 @@ ldap_unbind_ext_s(
 int
 ldap_unbind( LDAP *ld )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_unbind\n" );
 
 	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
@@ -131,7 +131,10 @@ ldap_ld_free(
 	}
 	LDAP_MUTEX_UNLOCK( &ld->ld_res_mutex );
 
-	ber_sockbuf_free( ld->ld_sb );
+	/* Should already be closed by ldap_free_connection which knows not to free
+	 * this one */
+	ber_int_sb_destroy( ld->ld_sb );
+	LBER_FREE( ld->ld_sb );
 
 	LDAP_MUTEX_LOCK( &ld->ld_ldopts_mutex );
 
@@ -263,7 +266,7 @@ ldap_send_unbind(
 	BerElement	*ber;
 	ber_int_t	id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_send_unbind\n" );
 
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld))

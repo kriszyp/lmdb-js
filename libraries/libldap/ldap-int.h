@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,30 +71,46 @@
 #	define LDAP_INT_GLOBAL_OPT() (&ldap_int_global_options)
 #endif
 
+/* if used from server code, ldap_debug already points elsewhere */
+#ifndef ldap_debug
 #define ldap_debug	((LDAP_INT_GLOBAL_OPT())->ldo_debug)
+#endif /* !ldap_debug */
 
+#define LDAP_INT_DEBUG
 #include "ldap_log.h"
-
-#undef Debug
 
 #ifdef LDAP_DEBUG
 
 #define DebugTest( level ) \
 	( ldap_debug & level )
 
-#define Debug( level, fmt, arg1, arg2, arg3 ) \
-	do { if ( ldap_debug & level ) \
-	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) ); \
+#define Debug0( level, fmt ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt ); \
 	} while ( 0 )
 
-#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 )\
-	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
+#define Debug1( level, fmt, arg1 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1 ); \
+	} while ( 0 )
+
+#define Debug2( level, fmt, arg1, arg2 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1, arg2 ); \
+	} while ( 0 )
+
+#define Debug3( level, fmt, arg1, arg2, arg3 ) \
+	do { if ( DebugTest( (level) ) ) \
+	ldap_log_printf( NULL, (level), fmt, arg1, arg2, arg3 ); \
+	} while ( 0 )
 
 #else
 
 #define DebugTest( level )                                    (0 == 1)
-#define Debug( level, fmt, arg1, arg2, arg3 )                 ((void)0)
-#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 ) ((void)0)
+#define Debug0( level, fmt )                                  ((void)0)
+#define Debug1( level, fmt, arg1 )                            ((void)0)
+#define Debug2( level, fmt, arg1, arg2 )                      ((void)0)
+#define Debug3( level, fmt, arg1, arg2, arg3 )                ((void)0)
 
 #endif /* LDAP_DEBUG */
 
@@ -130,6 +146,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_TLS			3
 #define	LDAP_BOOL_CONNECT_ASYNC		4
 #define	LDAP_BOOL_SASL_NOCANON		5
+#define	LDAP_BOOL_KEEPCONN		6
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	((LDAP_BOOLEANS)1 << (n))
@@ -268,7 +285,9 @@ struct ldapoptions {
    	int			ldo_tls_require_cert;
 	int			ldo_tls_impl;
    	int			ldo_tls_crlcheck;
-#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0
+	char		*ldo_tls_pin_hashalg;
+	struct berval	ldo_tls_pin;
+#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0,0,{0,0}
 #else
 #define LDAP_LDO_TLS_NULLARG
 #endif
@@ -547,6 +566,13 @@ LDAP_F (BerElement *) ldap_build_add_req LDAP_P((
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
 	ber_int_t *msgidp ));
+
+/*
+ * in lbase64.c
+ */
+
+LDAP_F (int) ldap_int_decode_b64_inplace LDAP_P((
+	struct berval *value ));
 
 /*
  * in compare.c

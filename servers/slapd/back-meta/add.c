@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -49,7 +49,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	LDAPControl	**ctrls = NULL;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
-			op->o_req_dn.bv_val, 0, 0 );
+			op->o_req_dn.bv_val );
 
 	/*
 	 * get the current connection

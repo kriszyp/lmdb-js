@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@ SRCS	= main.c globals.c bconfig.c config.c daemon.c \
 		backglue.c backover.c ctxcsn.c ldapsync.c frontend.c \
 		slapadd.c slapcat.c slapcommon.c slapdn.c slapindex.c \
 		slappasswd.c slaptest.c slapauth.c slapacl.c component.c \
-		aci.c alock.c txn.c slapschema.c slapmodify.c \
+		aci.c txn.c slapschema.c slapmodify.c \
 		$(@PLAT@_SRCS)
 
 OBJS	= main.o globals.o bconfig.o config.o daemon.o \
@@ -56,7 +56,7 @@ OBJS	= main.o globals.o bconfig.o config.o daemon.o \
 		backglue.o backover.o ctxcsn.o ldapsync.o frontend.o \
 		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
 		slappasswd.o slaptest.o slapauth.o slapacl.o component.o \
-		aci.o alock.o txn.o slapschema.o slapmodify.o \
+		aci.o txn.o slapschema.o slapmodify.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir) -I$(srcdir)/slapi -I.
@@ -210,7 +210,7 @@ slapd.def: libbackends.a liboverlays.a version.o
 	dlltool --exclude-symbols main,ServiceMain@8 --export-all-symbols \
 			--output-def $@.tmp $$objs;
 	echo EXPORTS > $@
-	$(SED) -e 1,2d -e 's/ @ [0-9][0-9]*//' $@.tmp | sort >> $@
+	$(SED) -e 1,2d -e 's/ @ [0-9][0-9]*//' -e '/\.refptr\./d' $@.tmp | sort >> $@
 	$(RM) $@.tmp
 
 symdummy.c: slapd.def
@@ -260,7 +260,7 @@ slapd.exp: libslapd.a
 		--base-file slapd.base --output-exp $@
 
 slapi/libslapi.la: FORCE
-	(cd slapi; $(MAKE) $(MFLAGS) all)
+	cd slapi && $(MAKE) $(MFLAGS) all
 
 slapd: $(SLAPD_DEPENDS) @LIBSLAPI@
 	$(LTLINK) -o $@ $(SLAPD_OBJECTS) $(LIBS) \
@@ -274,11 +274,11 @@ sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
 dummy $(SLAPD_DYNAMIC_BACKENDS): slapd
-	cd $@; $(MAKE) $(MFLAGS) all
+	cd $@ && $(MAKE) $(MFLAGS) all
 	@touch $@
 
 dynamic_overlays: slapd
-	cd overlays; $(MAKE) $(MFLAGS) dynamic
+	cd overlays && $(MAKE) $(MFLAGS) dynamic
 
 #
 # In Windows, dynamic backends have to be built after slapd. For this
@@ -289,8 +289,8 @@ dynamic_overlays: slapd
 	    echo "building static backends..."; \
 	    for i in XX $(SLAPD_STATIC_BACKENDS); do \
 	    	if test $$i != XX; then \
-		    echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
-		    ( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		    echo " "; echo "  cd $$i && $(MAKE) $(MFLAGS) all"; \
+		    ( cd $$i && $(MAKE) $(MFLAGS) all ); \
 		    if test $$? != 0; then exit 1; fi; \
 		fi; \
 	    done; \
@@ -322,7 +322,7 @@ libbackends.a: .backend
 	@ls -l libbackends.a; echo ""
 
 liboverlays.a: FORCE
-	cd overlays; $(MAKE) $(MFLAGS) static
+	cd overlays && $(MAKE) $(MFLAGS) static
 
 version.c: Makefile
 	@-$(RM) $@
@@ -335,8 +335,8 @@ backends.o: backends.c $(srcdir)/slap.h
 depend-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
-			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) depend"; \
+			( cd $$i && $(MAKE) $(MFLAGS) depend ); \
 			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
@@ -351,8 +351,8 @@ veryclean-local:
 clean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
-			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i && $(MAKE) $(MFLAGS) clean ); \
 			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
@@ -361,19 +361,13 @@ clean-local-srv: FORCE
 veryclean-local-srv: FORCE
 	@for i in $(SUBDIRS); do \
 		if test -d $$i && test -f $$i/Makefile ; then \
-			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
-			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
+			echo; echo "  cd $$i && $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i && $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
 	done
 
-install-dbc-maybe: install-dbc-@BUILD_BDB@ install-dbc-@BUILD_HDB@
-
-install-dbc-yes:	install-db-config
-install-dbc-mod:	install-db-config
-install-dbc-no:
-
 install-local-srv: install-slapd install-tools \
-	install-conf install-dbc-maybe install-schema install-tools
+	install-conf install-schema install-tools
 
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
@@ -382,8 +376,8 @@ install-slapd: FORCE
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
 	    if test -d $$i && test -f $$i/Makefile ; then \
-		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
-		( cd $$i; $(MAKE) $(MFLAGS) install ); \
+		echo; echo "  cd $$i && $(MAKE) $(MFLAGS) install"; \
+		( cd $$i && $(MAKE) $(MFLAGS) install ); \
 		if test $$? != 0 ; then exit 1; fi ; \
 	    fi; \
 	done

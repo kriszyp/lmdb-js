@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Using SASL
@@ -208,7 +208,7 @@ DN}} of the form
 So in our above example, if the user's name were "adamson", the
 authentication request DN would be:
 
->	uid=adamsom,cn=example.com,cn=kerberos_v4,cn=auth
+>	uid=adamson,cn=example.com,cn=kerberos_v4,cn=auth
 
 This authentication request DN can be used directly ACLs or,
 alternatively, mapped prior to use.  See the section {{SECT:Mapping

@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 2005-2017 The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 2005-2019 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 H1: Configuring slapd
@@ -69,7 +69,7 @@ used to configure the software.
 the schema that is hard-coded in slapd).
 .. Child entries of {{EX:cn=schema,cn=config}} contain user schema as
 loaded from config files or added at runtime.
-* Backend-specific configuration 
+* Backend-specific configuration
 * Database-specific configuration
 .. Overlays are defined in children of the Database entry.
 .. Databases and Overlays may also have other miscellaneous children.
@@ -207,7 +207,7 @@ Level	Keyword		Description
 !endblock
 
 The desired log level can be input as a single integer that
-combines the (ORed) desired levels, both in decimal or in hexadecimal 
+combines the (ORed) desired levels, both in decimal or in hexadecimal
 notation, as a list of integers (that are ORed internally), or as a list of the names that are shown between brackets, such that
 
 >		olcLogLevel 129
@@ -364,10 +364,8 @@ supported backend types listed in Table 5.2.
 !block table; align=Center; coltags="EX,N"; \
 	title="Table 5.2: Database Backends"
 Types	Description
-bdb	Berkeley DB transactional backend (deprecated)
 config	Slapd configuration backend
 dnssrv	DNS SRV backend
-hdb	Hierarchical variant of bdb backend (deprecated)
 ldap	Lightweight Directory Access Protocol (Proxy) backend
 ldif	Lightweight Data Interchange Format backend
 mdb	Memory-Mapped DB backend
@@ -381,7 +379,7 @@ sql	SQL Programmable backend
 
 \Example:
 
->	olcBackend: bdb
+>	olcBackend: mdb
 
 There are no other directives defined for this entry.  Specific backend
 types may define additional attributes for their particular use but so
@@ -391,9 +389,9 @@ not appear in any actual configurations.
 
 H4: Sample Entry
 
-> dn: olcBackend=bdb,cn=config
+> dn: olcBackend=mdb,cn=config
 > objectClass: olcBackendConfig
-> olcBackend: bdb
+> olcBackend: mdb
 
 
 H3: Database-specific Directives
@@ -421,9 +419,9 @@ databases.
 
 \Example:
 
->	olcDatabase: bdb
+>	olcDatabase: mdb
 
-This marks the beginning of a new {{TERM:BDB}} database instance.
+This marks the beginning of a new {{TERM:MDB}} database instance.
 
 
 H4: olcAccess: to <what> [ by <who> [<accesslevel>] [<control>] ]+
@@ -468,11 +466,11 @@ DN may refer to a SASL identity.
 
 Entry-based Example:
 
->	olcRootDN: "cn=Manager,dc=example,dc=com"
+>	olcRootDN: cn=Manager,dc=example,dc=com
 
 SASL-based Example:
 
->	olcRootDN: "uid=root,cn=example.com,cn=digest-md5,cn=auth"
+>	olcRootDN: uid=root,cn=example.com,cn=digest-md5,cn=auth
 
 See the {{SECT:SASL Authentication}} section for information on
 SASL authentication identities.
@@ -522,7 +520,7 @@ in the configuration.)
 
 \Example:
 
->	olcSuffix: "dc=example,dc=com"
+>	olcSuffix: dc=example,dc=com
 
 Queries with a DN ending in "dc=example,dc=com"
 will be passed to this backend.
@@ -642,7 +640,7 @@ schema conformance. The default is off.
 The {{EX:binddn}} parameter gives the DN to bind as for the
 syncrepl searches to the provider slapd. It should be a DN
 which has read access to the replication content in the
-master database. 
+master database.
 
 The {{EX:bindmethod}} is {{EX:simple}} or {{EX:sasl}},
 depending on whether simple password-based authentication or
@@ -683,8 +681,8 @@ conforms to the obsolete {{changelog}} format. If the {{EX:syncdata}}
 parameter is omitted or set to {{EX:"default"}} then the log
 parameters are ignored.
 
-The {{syncrepl}} replication mechanism is supported by the {{bdb}},
-{{hdb}}, and {{mdb}} backends.
+The {{syncrepl}} replication mechanism is supported by the {{mdb}}
+backend.
 
 See the {{SECT:LDAP Sync Replication}} chapter of this guide for
 more information on how to use this directive.
@@ -731,21 +729,20 @@ H4: Sample Entries
 >olcRootDN: cn=Manager,dc=example,dc=com
 
 
-H3: BDB and HDB Database Directives
+H3: MDB Database Directives
 
-Directives in this category apply to both the {{TERM:BDB}}
-and the {{TERM:HDB}} database.
+Directives in this category apply to the {{TERM:MDB}}
+database backend.
 They are used in an olcDatabase entry in addition to the generic
 database directives defined above.  For a complete reference
-of BDB/HDB configuration directives, see {{slapd-bdb}}(5). In
-addition to the {{EX:olcDatabaseConfig}} objectClass, BDB and HDB
-database entries must have the {{EX:olcBdbConfig}} and
-{{EX:olcHdbConfig}} objectClass, respectively.
+of MDB configuration directives, see {{slapd-mdb}}(5). In
+addition to the {{EX:olcDatabaseConfig}} objectClass, MDB
+database entries must have the {{EX:olcMdbConfig}} objectClass.
 
 
 H4: olcDbDirectory: <directory>
 
-This directive specifies the directory where the BDB files
+This directive specifies the directory where the MDB files
 containing the database and associated indices live.
 
 \Default:
@@ -753,98 +750,48 @@ containing the database and associated indices live.
 >	olcDbDirectory: /usr/local/var/openldap-data
 
 
-H4: olcDbCachesize: <integer>
-
-This directive specifies the size in entries of the in-memory
-cache maintained by the BDB backend database instance.
-
-\Default:
-
->	olcDbCachesize: 1000
-
-
 H4: olcDbCheckpoint: <kbyte> <min>
 
-This directive specifies how often to checkpoint the BDB transaction log.
-A checkpoint operation flushes the database buffers to disk and writes a
-checkpoint record in the log.
+This directive specifies the frequency for flushing the database disk
+buffers. This directive is only needed if the {{olcDbNoSync}} option is
+{{EX:TRUE}}.
 The checkpoint will occur if either <kbyte> data has been written or
 <min> minutes have passed since the last checkpoint. Both arguments default
 to zero, in which case they are ignored. When the <min> argument is
 non-zero, an internal task will run every <min> minutes to perform the
-checkpoint. See the Berkeley DB reference guide for more details.
+checkpoint. Note: currently the _kbyte_ setting is unimplemented.
 
 \Example:
 
 >	olcDbCheckpoint: 1024 10
 
 
-H4: olcDbConfig: <DB_CONFIG setting>
+H4: olcDbEnvFlags: {nosync,nometasync,writemap,mapasync,nordahead}
 
-This attribute specifies a configuration directive to be placed in the
-{{EX:DB_CONFIG}} file of the database directory. At server startup time, if
-no such file exists yet, the {{EX:DB_CONFIG}} file will be created and the
-settings in this attribute will be written to it. If the file exists,
-its contents will be read and displayed in this attribute. The attribute
-is multi-valued, to accommodate multiple configuration directives. No default
-is provided, but it is essential to use proper settings here to get the
-best server performance.
+This option specifies flags for finer-grained control of  the  LMDB  library's
+operation.
 
-Any changes made to this attribute will be written to the {{EX:DB_CONFIG}}
-file and will cause the database environment to be reset so the changes
-can take immediate effect. If the environment cache is large and has not
-been recently checkpointed, this reset operation may take a long time. It
-may be advisable to manually perform a single checkpoint using the Berkeley DB
-{{db_checkpoint}} utility before using LDAP Modify to change this
-attribute.
+* {{F:nosync}}: This is exactly the same as the dbnosync directive.
 
-\Example:
+* {{F:nometasync}}: Flush the data on a commit, but skip the sync of the meta
+page. This mode is slightly faster than doing a full sync, but can
+potentially lose the last committed transaction if the operating system
+crashes. If both nometasync and nosync are set, the nosync flag takes
+precedence.
 
->	olcDbConfig: set_cachesize 0 10485760 0
->	olcDbConfig: set_lg_bsize 2097512
->	olcDbConfig: set_lg_dir /var/tmp/bdb-log
->	olcDbConfig: set_flags DB_LOG_AUTOREMOVE
+* {{F:writemap}}: Use a writable memory map instead of just read-only. This
+speeds up write operations but makes the database vulnerable to corruption in
+case any bugs in slapd cause stray writes into the mmap region.
 
-In this example, the BDB cache is set to 10MB, the BDB transaction log
-buffer size is set to 2MB, and the transaction log files are to be stored
-in the /var/tmp/bdb-log directory. Also a flag is set to tell BDB to
-delete transaction log files as soon as their contents have been
-checkpointed and they are no longer needed. Without this setting the
-transaction log files will continue to accumulate until some other
-cleanup procedure removes them. See the Berkeley DB documentation for the
-{{EX:db_archive}} command for details. For a complete list of Berkeley DB 
-flags please see - {{URL:http://www.oracle.com/technology/documentation/berkeley-db/db/api_c/env_set_flags.html}}
+* {{F:mapasync}}: When using a writable memory map and performing flushes on
+each commit, use an asynchronous flush instead of a synchronous flush (the
+default). This option has no effect if writemap has not been set. It also has
+no effect if nosync is set.
 
-Ideally the BDB cache must be
-at least as large as the working set of the database, the log buffer size
-should be large enough to accommodate most transactions without overflowing,
-and the log directory must be on a separate physical disk from the main
-database files. And both the database directory and the log directory
-should be separate from disks used for regular system activities such as
-the root, boot, or swap filesystems. See the FAQ-o-Matic and the Berkeley DB
-documentation for more details.
-
-
-H4: olcDbNosync: { TRUE | FALSE }
-
-This option causes on-disk database contents to not be immediately
-synchronized with in memory changes upon change.  Setting this option
-to {{EX:TRUE}} may improve performance at the expense of data integrity. This
-directive has the same effect as using
->	olcDbConfig: set_flags DB_TXN_NOSYNC
-
-
-H4: olcDbIDLcacheSize: <integer>
-
-Specify the size of the in-memory index cache, in index slots. The
-default is zero. A larger value will speed up frequent searches of
-indexed entries. The optimal size will depend on the data and search
-characteristics of the database, but using a number three times
-the entry cache size is a good starting point.
-
-\Example:
-
->	olcDbIDLcacheSize: 3000
+* {{F:nordahead}}: Turn off file readahead. Usually the OS performs readahead
+on every read request. This usually boosts read performance but can be
+harmful to random access read performance if the system's memory is full and
+the DB is larger than RAM. This option is not implemented on Windows.
 
 
 H4: olcDbIndex: {<attrlist> | default} [pres,eq,approx,sub,none]
@@ -874,7 +821,7 @@ matches do not use an index. However, some attributes do support
 indexing for inequality matches, based on the equality index.
 
 A substring index can be more explicitly specified as {{EX:subinitial}},
-{{EX:subany}}, or {{EX:subfinal}}, corresponding to the three 
+{{EX:subany}}, or {{EX:subfinal}}, corresponding to the three
 possible components
 of a substring match filter. A subinitial index only indexes
 substrings that appear at the beginning of an attribute value.
@@ -890,7 +837,7 @@ attribute that inherits from {{EX:name}} to be indexed.
 By default, no indices are maintained.  It is generally advised
 that minimally an equality index upon objectClass be maintained.
 
->	olcDbindex: objectClass eq
+>	olcDbIndex: objectClass eq
 
 Additional indices should be configured corresponding to the
 most common searches that are used on the database.
@@ -907,18 +854,24 @@ stopped before the index task completes, indexing will have to be
 manually completed using the slapindex tool.
 
 
-H4: olcDbLinearIndex: { TRUE | FALSE }
+H4: olcDbMaxReaders: <integer>
 
-If this setting is {{EX:TRUE}} slapindex will index one attribute
-at a time. The default settings is {{EX:FALSE}} in which case all
-indexed attributes of an entry are processed at the same time. When
-enabled, each indexed attribute is processed individually, using
-multiple passes through the entire database. This option improves
-slapindex performance when the database size exceeds the BDB cache
-size. When the BDB cache is large enough, this option is not needed
-and will decrease performance. Also by default, slapadd performs
-full indexing and so a separate slapindex run is not needed. With
-this option, slapadd does no indexing and slapindex must be used.
+This directive specifies the maximum number of threads that may have
+concurrent read access to the database. Tools such as slapcat count as a
+single thread, in addition to threads in any active slapd processes. The
+default is 126.
+
+
+H4: olcDbMaxSize: <bytes>
+
+This directive specifies the maximum size of the database in bytes. A memory
+map of this size is allocated at startup time and the database will not be
+allowed to grow beyond this size. The default is 10485760 bytes (10MB). This
+setting may be changed upward if the configured limit needs to be increased.
+
+Note: It is important to set this to as large a value as possible, (relative
+to anticipated growth of the actual data over time) since growing the size
+later may not be practical when the system is under heavy load.
 
 
 H4: olcDbMode: { <octal> | <symbolic> }
@@ -930,6 +883,18 @@ created database index files should have. This can be in the form
 \Default:
 
 >	olcDbMode: 0600
+
+
+H4: olcDbRtxnsize: <entries>
+
+This directive specifies the maximum number of entries to process in a single
+read transaction when executing a large search. Long-lived read transactions
+prevent old database pages from being reused in write transactions, and so
+can cause significant growth of the database file when there is heavy write
+traffic. This setting causes the read transaction in large searches to be
+released and reacquired after the given number of entries has been read, to
+give writers the opportunity to reclaim old database pages. The default is
+10000.
 
 
 H4: olcDbSearchStack: <integer>
@@ -955,33 +920,21 @@ to take effect.
 >	olcDbSearchStack: 16
 
 
-H4: olcDbShmKey: <integer>
+H4: olcDbNosync: { TRUE | FALSE }
 
-Specify a key for a shared memory BDB environment. By default the BDB
-environment uses memory mapped files. If a non-zero value is specified,
-it will be used as the key to identify a shared memory region that will
-house the environment.
-
-\Example:
-
->	olcDbShmKey: 42
+This directive causes on-disk database contents to not be immediately
+synchronized with in memory changes upon change.  Setting this option
+to {{EX:TRUE}} may improve performance at the expense of data integrity.
 
 
 H4: Sample Entry
 
->dn: olcDatabase=hdb,cn=config
+>dn: olcDatabase=mdb,cn=config
 >objectClass: olcDatabaseConfig
->objectClass: olcHdbConfig
->olcDatabase: hdb
->olcSuffix: "dc=example,dc=com"
+>objectClass: olcMdbConfig
+>olcDatabase: mdb
+>olcSuffix: dc=example,dc=com
 >olcDbDirectory: /usr/local/var/openldap-data
->olcDbCacheSize: 1000
->olcDbCheckpoint: 1024 10
->olcDbConfig: set_cachesize 0 10485760 0
->olcDbConfig: set_lg_bsize 2097152
->olcDbConfig: set_lg_dir /var/tmp/bdb-log
->olcDbConfig: set_flags DB_LOG_AUTOREMOVE
->olcDbIDLcacheSize: 3000
 >olcDbIndex: objectClass eq
 
 
@@ -989,7 +942,7 @@ H2: Configuration Example
 
 The following is an example configuration, interspersed
 with explanatory text. It defines two databases to handle
-different parts of the {{TERM:X.500}} tree; both are {{TERM:BDB}}
+different parts of the {{TERM:X.500}} tree; both are {{TERM:MDB}}
 database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
@@ -999,7 +952,7 @@ E:  2.    dn: cn=config
 E:  3.    objectClass: olcGlobal
 E:  4.    cn: config
 E:  5.    olcReferral: ldap://root.openldap.org
-E:  6.    
+E:  6.
 
 Line 1 is a comment. Lines 2-4 identify this as the global
 configuration entry.
@@ -1013,7 +966,7 @@ E:  7.    # internal schema
 E:  8.    dn: cn=schema,cn=config
 E:  9.    objectClass: olcSchemaConfig
 E: 10.    cn: schema
-E: 11.    
+E: 11.
 
 Line 7 is a comment. Lines 8-10 identify this as the root of
 the schema subtree. The actual schema definitions in this entry
@@ -1022,7 +975,7 @@ Line 11 is a blank line, indicating the end of this entry.
 
 E: 12.    # include the core schema
 E: 13.    include: file:///usr/local/etc/openldap/schema/core.ldif
-E: 14.    
+E: 14.
 
 Line 12 is a comment. Line 13 is an LDIF include directive which
 accesses the {{core}} schema definitions in LDIF format. Line 14
@@ -1037,7 +990,7 @@ E: 16.    dn: olcDatabase=frontend,cn=config
 E: 17.    objectClass: olcDatabaseConfig
 E: 18.    olcDatabase: frontend
 E: 19.    olcAccess: to * by * read
-E: 20.    
+E: 20.
 
 Line 15 is a comment. Lines 16-18 identify this entry as the global
 database entry. Line 19 is a global access control. It applies to all
@@ -1066,16 +1019,16 @@ inaccessible.)
 
 Line 28 is a blank line.
 
-The next entry defines a BDB backend that will handle queries for things
+The next entry defines an MDB backend that will handle queries for things
 in the "dc=example,dc=com" portion of the tree. Indices are to be maintained
 for several attributes, and the {{EX:userPassword}} attribute is to be
 protected from unauthorized access.
 
-E: 29.    # BDB definition for example.com
-E: 30.    dn: olcDatabase=bdb,cn=config
+E: 29.    # MDB definition for example.com
+E: 30.    dn: olcDatabase=mdb,cn=config
 E: 31.    objectClass: olcDatabaseConfig
-E: 32.    objectClass: olcBdbConfig
-E: 33.    olcDatabase: bdb
+E: 32.    objectClass: olcMdbConfig
+E: 33.    olcDatabase: mdb
 E: 34.    olcSuffix: dc=example,dc=com
 E: 35.    olcDbDirectory: /usr/local/var/openldap-data
 E: 36.    olcRootDN: cn=Manager,dc=example,dc=com
@@ -1092,9 +1045,9 @@ E: 46.    olcAccess: to *
 E: 47.      by self write
 E: 48.      by dn.base="cn=Admin,dc=example,dc=com" write
 E: 49.      by * read
-E: 50.    
+E: 50.
 
-Line 29 is a comment. Lines 30-33 identify this entry as a BDB database
+Line 29 is a comment. Lines 30-33 identify this entry as a MDB database
 configuration entry.  Line 34 specifies the DN suffix
 for queries to pass to this database. Line 35 specifies the directory
 in which the database files will live.
@@ -1116,19 +1069,19 @@ entry, but may be read by all users (authenticated or not).
 Line 50 is a blank line, indicating the end of this entry.
 
 The next entry defines another
-BDB database. This one handles queries involving the
+MDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
 as the first database.  Note that without line 60, the read access
 would be allowed due to the global access rule at line 19.
 
-E: 51.    # BDB definition for example.net
-E: 52.    dn: olcDatabase=bdb,cn=config
+E: 51.    # MDB definition for example.net
+E: 52.    dn: olcDatabase=mdb,cn=config
 E: 53.    objectClass: olcDatabaseConfig
-E: 54.    objectClass: olcBdbConfig
-E: 55.    olcDatabase: bdb
-E: 56.    olcSuffix: "dc=example,dc=net"
+E: 54.    objectClass: olcMdbConfig
+E: 55.    olcDatabase: mdb
+E: 56.    olcSuffix: dc=example,dc=net
 E: 57.    olcDbDirectory: /usr/local/var/openldap-data-net
-E: 58.    olcRootDN: "cn=Manager,dc=example,dc=com"
+E: 58.    olcRootDN: cn=Manager,dc=example,dc=com
 E: 59.    olcDbIndex: objectClass eq
 E: 60.    olcAccess: to * by users read
 

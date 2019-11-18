@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ str2filter_x( Operation *op, const char *str )
 	BerElement *ber = (BerElement *)&berbuf;
 	const char *text = NULL;
 
-	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str );
 
 	if ( str == NULL || *str == '\0' ) {
 		return NULL;

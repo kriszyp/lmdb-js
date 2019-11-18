@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@ static int wt_id2entry_put(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry_put)
 			   ": open_cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 	cursor->set_key(cursor, e->e_id);
@@ -56,7 +56,7 @@ static int wt_id2entry_put(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry_put)
 			   ": insert failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 
@@ -97,7 +97,7 @@ int wt_id2entry_delete(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry_delete)
 			   ": open_cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 	cursor->set_key(cursor, e->e_id);
@@ -106,7 +106,7 @@ int wt_id2entry_delete(
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry_delete)
 			   ": remove failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 
@@ -134,7 +134,7 @@ int wt_id2entry( BackendDB *be,
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry)
 			   ": open_cursor failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		goto done;
 	}
 
@@ -157,8 +157,8 @@ int wt_id2entry( BackendDB *be,
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_id2entry)
-			   ": entry decode error: %s (%d)\n",
-			   rc, 0, 0 );
+			   ": entry decode error: %d\n",
+			   rc );
 		goto done;
 	}
 	e->e_id = id;

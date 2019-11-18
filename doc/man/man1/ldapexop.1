@@ -90,7 +90,7 @@ or using the additional parameters in the case of the specially named extended
 operations above.
 
 Please note that ldapexop behaves differently for the same extended operation
-when it was given as an OID or as a specialliy named operation:
+when it was given as an OID or as a specially named operation:
 
 Calling ldapexop with the OID of the \fBwhoami\fP (RFC 4532) extended operation
 .nf
@@ -189,13 +189,14 @@ Specify general extensions.  \'!\' indicates criticality.
 .TP
 .BI \-o \ opt \fR[= optparam \fR]
 
-Specify general options.
-
-General options:
+Specify any
+.BR ldap.conf (5)
+option or one of the following:
 .nf
   nettimeout=<timeout>  (in seconds, or "none" or "max")
-  ldif-wrap=<width>     (in columns, or "no" for no wrapping)
+  ldif_wrap=<width>     (in columns, or "no" for no wrapping)
 .fi
+
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.

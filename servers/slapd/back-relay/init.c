@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2017 The OpenLDAP Foundation.
+ * Copyright 2004-2019 The OpenLDAP Foundation.
  * Portions Copyright 2004 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -36,6 +36,7 @@ static ConfigTable relaycfg[] = {
 		relay_back_cf, "( OLcfgDbAt:5.1 "
 			"NAME 'olcRelay' "
 			"DESC 'Relay DN' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX OMsDN "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -85,7 +86,7 @@ relay_back_cf( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"\"relay\" directive "
 				"must appear after \"suffix\"" );
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: %s.\n", c->log, c->cr_msg );
 			rc = 1;
 			goto relay_done;
@@ -95,7 +96,7 @@ relay_back_cf( ConfigArgs *c )
 			snprintf( c->cr_msg, sizeof( c->cr_msg),
 				"relaying of multiple suffix "
 				"database not supported" );
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: %s.\n", c->log, c->cr_msg );
 			rc = 1;
 			goto relay_done;
@@ -108,7 +109,7 @@ relay_back_cf( ConfigArgs *c )
 				"of relay dn \"%s\" "
 				"in \"olcRelay <dn>\"\n",
 				c->value_dn.bv_val );
-			Log2( LDAP_DEBUG_CONFIG, LDAP_LEVEL_ERR,
+			Log( LDAP_DEBUG_CONFIG, LDAP_LEVEL_ERR,
 				"%s: %s.\n", c->log, c->cr_msg );
 
 		} else if ( bd->be_private == c->be->be_private ) {
@@ -116,7 +117,7 @@ relay_back_cf( ConfigArgs *c )
 				"relay dn \"%s\" would call self "
 				"in \"relay <dn>\" line\n",
 				c->value_dn.bv_val );
-			Log2( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"%s: %s.\n", c->log, c->cr_msg );
 			rc = 1;
 			goto relay_done;
@@ -208,7 +209,7 @@ relay_back_db_open( Backend *be, ConfigReply *cr )
 				"of relay dn \"%s\" "
 				"in \"olcRelay <dn>\"\n",
 				ri->ri_realsuffix.bv_val );
-			Log1( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
+			Log( LDAP_DEBUG_ANY, LDAP_LEVEL_ERR,
 				"relay_back_db_open: %s.\n", cr->msg );
 
 			return 1;

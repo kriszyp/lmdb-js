@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2005-2017 The OpenLDAP Foundation.
+ * Copyright 2005-2019 The OpenLDAP Foundation.
  * Portions copyright 2004-2005 Symas Corporation.
  * All rights reserved.
  *
@@ -43,6 +43,7 @@ static ConfigTable auditlogcfg[] = {
 	  (void *)offsetof(auditlog_data, ad_logfile),
 	  "( OLcfgOvAt:15.1 NAME 'olcAuditlogFile' "
 	  "DESC 'Filename for auditlogging' "
+	  "EQUALITY caseExactMatch "
 	  "SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };

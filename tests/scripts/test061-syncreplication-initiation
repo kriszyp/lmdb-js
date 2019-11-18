@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2017 The OpenLDAP Foundation.
+## Copyright 1998-2019 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,6 @@ KILLPIDS=
 $SLAPPASSWD -g -n >$CONFIGPWF
 
 case "$BACKEND" in
-	bdb|hdb)	olcDbCheckpoint="olcDbCheckpoint";;
 	*)		olcDbCheckpoint="# olcDbCheckpoint";;
 esac
 
@@ -634,7 +633,7 @@ EOF
 	fi
 	nCSN=`echo "$CSN1" | wc -l`
 	if test "$nCSN" -ne 1 ; then
-		echo "ERROR: Wrong contextCSN count on provder, should be 1"
+		echo "ERROR: Wrong contextCSN count on provider, should be 1"
 		echo "$CSN1"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit 1

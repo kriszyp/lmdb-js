@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * Portions Copyright 2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -125,11 +125,15 @@ rwm_op_rollback( Operation *op, SlapReply *rs, rwm_op_state *ros )
 		break;
 	case LDAP_REQ_SEARCH:
 		op->o_tmpfree( ros->mapped_attrs, op->o_tmpmemctx );
-		filter_free_x( op, op->ors_filter, 1 );
-		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 		op->ors_attrs = ros->ors_attrs;
-		op->ors_filter = ros->ors_filter;
-		op->ors_filterstr = ros->ors_filterstr;
+		if ( op->ors_filter != ros->ors_filter ) {
+			filter_free_x( op, op->ors_filter, 1 );
+			op->ors_filter = ros->ors_filter;
+		}
+		if ( op->ors_filterstr.bv_val != ros->ors_filterstr.bv_val ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			op->ors_filterstr = ros->ors_filterstr;
+		}
 		break;
 	case LDAP_REQ_EXTENDED:
 		if ( op->ore_reqdata != ros->ore_reqdata ) {
@@ -1667,7 +1671,7 @@ rwm_suffixmassage_config(
 				       " <massaged suffix>\" without "
 				       "<suffix> part requires database "
 				       "suffix be defined first.\n",
-				fname, lineno, 0 );
+				fname, lineno );
 			return 1;
 		}
 		bvnc = be->be_suffix[ 0 ];
@@ -1681,7 +1685,7 @@ rwm_suffixmassage_config(
  		Debug( LDAP_DEBUG_ANY, "%s: line %d: syntax is"
 			       " \"suffixMassage [<suffix>]"
 			       " <massaged suffix>\"\n",
-			fname, lineno, 0 );
+			fname, lineno );
 		return 1;
 	}
 
@@ -1812,7 +1816,7 @@ rwm_db_config(
 		if ( argc != 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"t-f-support {no|yes|discover}\" needs 1 argument.\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 		}
 
@@ -1827,7 +1831,7 @@ rwm_db_config(
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"discover\" not supported yet "
 		"in \"t-f-support {no|yes|discover}\".\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 #if 0
 			rwmap->rwm_flags |= RWM_F_SUPPORT_T_F_DISCOVER;
@@ -1844,7 +1848,7 @@ rwm_db_config(
 		if ( argc !=2 ) { 
 			Debug( LDAP_DEBUG_ANY,
 		"%s: line %d: \"normalize-mapped-attrs {no|yes}\" needs 1 argument.\n",
-					fname, lineno, 0 );
+					fname, lineno );
 			return( 1 );
 		}
 
@@ -1913,6 +1917,7 @@ static ConfigTable rwmcfg[] = {
 		2, 2, 0, ARG_MAGIC|RWM_CF_T_F_SUPPORT, rwm_cf_gen,
 		"( OLcfgOvAt:16.2 NAME 'olcRwmTFSupport' "
 			"DESC 'Absolute filters support' "
+			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -1930,6 +1935,7 @@ static ConfigTable rwmcfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|RWM_CF_NORMALIZE_MAPPED, rwm_cf_gen,
 		"( OLcfgOvAt:16.4 NAME 'olcRwmNormalizeMapped' "
 			"DESC 'Normalize mapped attributes/objectClasses' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },
@@ -1938,6 +1944,7 @@ static ConfigTable rwmcfg[] = {
 		2, 2, 0, ARG_MAGIC|ARG_ON_OFF|RWM_CF_DROP_UNREQUESTED, rwm_cf_gen,
 		"( OLcfgOvAt:16.5 NAME 'olcRwmDropUnrequested' "
 			"DESC 'Drop unrequested attributes' "
+			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean "
 			"SINGLE-VALUE )",
 		NULL, NULL },

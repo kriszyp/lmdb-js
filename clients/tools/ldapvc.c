@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * Portions Copyright 2010 Kurt D. Zeilenga.
  * All rights reserved.
  *
@@ -77,7 +77,7 @@ usage( void )
 	fprintf( stderr, _("    -E sasl=(a[utomatic]|i[nteractive]|q[uiet]>\tSASL mode (defaults to automatic if any other -E option provided, otherwise none))\n"));
 	fprintf( stderr, _("    -E mech=<mech>\tSASL mechanism (default "" e.g. Simple)\n"));
 	fprintf( stderr, _("    -E realm=<realm>\tSASL Realm (defaults to none)\n"));
-	fprintf( stderr, _("    -E authcid=<authcid>\tSASL Authenication Identity (defaults to USER)\n"));
+	fprintf( stderr, _("    -E authcid=<authcid>\tSASL Authentication Identity (defaults to USER)\n"));
 	fprintf( stderr, _("    -E authzid=<authzid>\tSASL Authorization Identity (defaults to none)\n"));
 	fprintf( stderr, _("    -E secprops=<secprops>\tSASL Security Properties (defaults to none)\n"));
 	tool_common_usage();

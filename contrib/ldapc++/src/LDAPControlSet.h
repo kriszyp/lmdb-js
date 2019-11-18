@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2000-2017 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2019 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -34,10 +34,10 @@ class LDAPControlSet {
          * For internal use only
          *
          * This constructor creates a new LDAPControlSet for a
-         * 0-terminiated array of LDAPControl-structures as used by the
+         * 0-terminated array of LDAPControl-structures as used by the
          * C-API
          * @param controls: pointer to a 0-terminated array of pointers to 
-         *                  LDAPControll-structures
+         *                  LDAPControl-structures
          * @note: untested til now. Due to lack of server that return 
          *          Controls
          */

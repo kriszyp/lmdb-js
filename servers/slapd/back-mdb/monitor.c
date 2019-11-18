@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,11 @@ mdb_monitor_idx_entry_add(
 static AttributeDescription	*ad_olmDbNotIndexed;
 #endif /* MDB_MONITOR_IDX */
 
+static AttributeDescription *ad_olmMDBPagesMax,
+	*ad_olmMDBPagesUsed, *ad_olmMDBPagesFree;
+
+static AttributeDescription *ad_olmMDBReadersMax,
+	*ad_olmMDBReadersUsed;
 /*
  * NOTE: there's some confusion in monitor OID arc;
  * by now, let's consider:
@@ -88,6 +93,45 @@ static struct {
 		&ad_olmDbNotIndexed },
 #endif /* MDB_MONITOR_IDX */
 
+	{ "( olmMDBAttributes:1 "
+		"NAME ( 'olmMDBPagesMax' ) "
+		"DESC 'Maximum number of pages' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBPagesMax },
+
+	{ "( olmMDBAttributes:2 "
+		"NAME ( 'olmMDBPagesUsed' ) "
+		"DESC 'Number of pages in use' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBPagesUsed },
+
+	{ "( olmMDBAttributes:3 "
+		"NAME ( 'olmMDBPagesFree' ) "
+		"DESC 'Number of free pages' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBPagesFree },
+
+	{ "( olmMDBAttributes:4 "
+		"NAME ( 'olmMDBReadersMax' ) "
+		"DESC 'Maximum number of readers' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBReadersMax },
+
+	{ "( olmMDBAttributes:5 "
+		"NAME ( 'olmMDBReadersUsed' ) "
+		"DESC 'Number of readers in use' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBReadersUsed },
 	{ NULL }
 };
 
@@ -105,6 +149,8 @@ static struct {
 #ifdef MDB_MONITOR_IDX
 			"$ olmDbNotIndexed "
 #endif /* MDB_MONITOR_IDX */
+			"$ olmMDBPagesMax $ olmMDBPagesUsed $ olmMDBPagesFree "
+			"$ olmMDBReadersMax $ olmMDBReadersUsed "
 			") )",
 		&oc_olmMDBDatabase },
 
@@ -119,11 +165,68 @@ mdb_monitor_update(
 	void		*priv )
 {
 	struct mdb_info		*mdb = (struct mdb_info *) priv;
+	Attribute *a;
+	char buf[ BUFSIZ ];
+	struct berval bv;
+	MDB_stat mst;
+	MDB_envinfo mei;
+	MDB_txn *txn;
+	int rc;
 
 #ifdef MDB_MONITOR_IDX
+
 	mdb_monitor_idx_entry_add( mdb, e );
 #endif /* MDB_MONITOR_IDX */
 
+	mdb_env_stat( mdb->mi_dbenv, &mst );
+	mdb_env_info( mdb->mi_dbenv, &mei );
+
+	a = attr_find( e->e_attrs, ad_olmMDBPagesMax );
+	assert( a != NULL );
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_mapsize / mst.ms_psize );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmMDBPagesUsed );
+	assert( a != NULL );
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mei.me_last_pgno+1 );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmMDBReadersMax );
+	assert( a != NULL );
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%u", mei.me_maxreaders );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	a = attr_find( e->e_attrs, ad_olmMDBReadersUsed );
+	assert( a != NULL );
+	bv.bv_val = buf;
+	bv.bv_len = snprintf( buf, sizeof( buf ), "%u", mei.me_numreaders );
+	ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
+	rc = mdb_txn_begin( mdb->mi_dbenv, NULL, MDB_RDONLY, &txn );
+	if ( !rc ) {
+		MDB_cursor *cursor;
+		MDB_val key, data;
+		size_t pages = 0, *iptr;
+
+		rc = mdb_cursor_open( txn, 0, &cursor );
+		if ( !rc ) {
+			while (( rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT )) == 0 ) {
+				iptr = data.mv_data;
+				pages += *iptr;
+			}
+			mdb_cursor_close( cursor );
+		}
+		mdb_txn_abort( txn );
+
+		a = attr_find( e->e_attrs, ad_olmMDBPagesFree );
+		assert( a != NULL );
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", pages );
+		ber_bvreplace( &a->a_vals[ 0 ], &bv );
+	}
 	return SLAP_CB_CONTINUE;
 }
 
@@ -219,7 +322,7 @@ mdb_monitor_initialize( void )
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(mdb_monitor_initialize)
 				": unable to add "
 				"objectIdentifier \"%s=%s\"\n",
-				s_oid[ i ].name, s_oid[ i ].oid, 0 );
+				s_oid[ i ].name, s_oid[ i ].oid );
 			return 2;
 		}
 	}
@@ -229,7 +332,7 @@ mdb_monitor_initialize( void )
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(mdb_monitor_initialize)
 				": register_at failed for attributeType (%s)\n",
-				s_at[ i ].desc, 0, 0 );
+				s_at[ i ].desc );
 			return 3;
 
 		} else {
@@ -242,7 +345,7 @@ mdb_monitor_initialize( void )
 		if ( code != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(mdb_monitor_initialize)
 				": register_oc failed for objectClass (%s)\n",
-				s_oc[ i ].desc, 0, 0 );
+				s_oc[ i ].desc );
 			return 4;
 
 		} else {
@@ -259,7 +362,9 @@ mdb_monitor_initialize( void )
 int
 mdb_monitor_db_init( BackendDB *be )
 {
+#ifdef MDB_MONITOR_IDX
 	struct mdb_info		*mdb = (struct mdb_info *) be->be_private;
+#endif /* MDB_MONITOR_IDX */
 
 	if ( mdb_monitor_initialize() == LDAP_SUCCESS ) {
 		/* monitoring in back-mdb is on by default */
@@ -305,15 +410,14 @@ mdb_monitor_db_open( BackendDB *be )
 		if ( warning++ == 0 ) {
 			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(mdb_monitor_db_open)
 				": monitoring disabled; "
-				"configure monitor database to enable\n",
-				0, 0, 0 );
+				"configure monitor database to enable\n" );
 		}
 
 		return 0;
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
-	a = attrs_alloc( 1 + 1 );
+	a = attrs_alloc( 1 + 6 );
 	if ( a == NULL ) {
 		rc = 1;
 		goto cleanup;
@@ -322,6 +426,30 @@ mdb_monitor_db_open( BackendDB *be )
 	a->a_desc = slap_schema.si_ad_objectClass;
 	attr_valadd( a, &oc_olmMDBDatabase->soc_cname, NULL, 1 );
 	next = a->a_next;
+
+	{
+		struct berval bv = BER_BVC( "0" );
+
+		next->a_desc = ad_olmMDBPagesMax;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_olmMDBPagesUsed;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_olmMDBPagesFree;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_olmMDBReadersMax;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_olmMDBReadersUsed;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+	}
 
 	{
 		struct berval	bv, nbv;
@@ -426,7 +554,7 @@ mdb_monitor_db_close( BackendDB *be )
 		BackendInfo		*mi = backend_info( "monitor" );
 		monitor_extra_t		*mbe;
 
-		if ( mi && &mi->bi_extra ) {
+		if ( mi && mi->bi_extra ) {
 			mbe = mi->bi_extra;
 			mbe->unregister_entry_callback( &mdb->mi_monitor.mdm_ndn,
 				(monitor_callback_t *)mdb->mi_monitor.mdm_cb,

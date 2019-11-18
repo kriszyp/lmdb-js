@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * Portions Copyright 2003 by IBM Corporation.
  * Portions Copyright 2003-2008 by Howard Chu, Symas Corporation.
  * All rights reserved.
@@ -36,6 +36,31 @@
 #define SUFFIXM_CTX	"<suffix massage>"
 #endif
 
+#ifdef LDAP_CONTROL_X_DIRSYNC
+#define MSAD_DIRSYNC	0x04
+#define MSAD_DIRSYNC_MODIFY	0x10
+
+static AttributeDescription *sy_ad_objectGUID;
+static AttributeDescription *sy_ad_instanceType;
+static AttributeDescription *sy_ad_isDeleted;
+static AttributeDescription *sy_ad_whenCreated;
+static AttributeDescription *sy_ad_dirSyncCookie;
+
+static struct berval msad_addval = BER_BVC("range=1-1");
+static struct berval msad_delval = BER_BVC("range=0-0");
+#endif
+
+#ifdef LDAP_DEVEL
+#define DO_DSEE
+#endif
+
+#ifdef DO_DSEE
+static AttributeDescription *sy_ad_nsUniqueId;
+static AttributeDescription *sy_ad_dseeLastChange;
+
+#define DSEE_SYNC_ADD	0x20
+#endif
+
 #define	UUIDLEN	16
 
 struct nonpresent_entry {
@@ -46,11 +71,13 @@ struct nonpresent_entry {
 
 typedef struct cookie_state {
 	ldap_pvt_thread_mutex_t	cs_mutex;
+	ldap_pvt_thread_cond_t cs_cond;
 	struct berval *cs_vals;
 	int *cs_sids;
 	int	cs_num;
 	int cs_age;
 	int cs_ref;
+	int cs_updating;
 
 	/* pending changes, not yet committed */
 	ldap_pvt_thread_mutex_t	cs_pmutex;
@@ -111,10 +138,6 @@ typedef struct syncinfo_s {
 	int			si_refreshDelete;
 	int			si_refreshPresent;
 	int			si_refreshDone;
-	int			si_refreshCount;
-	time_t		si_refreshBeg;
-	time_t		si_refreshEnd;
-	OpExtra		*si_refreshTxn;
 	int			si_syncdata;
 	int			si_logstate;
 	int			si_lazyCommit;
@@ -129,6 +152,13 @@ typedef struct syncinfo_s {
 #ifdef ENABLE_REWRITE
 	struct rewrite_info *si_rewrite;
 	struct berval	si_suffixm;
+#endif
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	struct berval		si_dirSyncCookie;
+#endif
+#ifdef DO_DSEE
+	unsigned long	si_prevchange;;
+	unsigned long	si_lastchange;
 #endif
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
@@ -150,11 +180,23 @@ static int syncrepl_entry(
 					struct berval *cookieCSN );
 static int syncrepl_updateCookie(
 					syncinfo_t *, Operation *,
-					struct sync_cookie * );
+					struct sync_cookie *, int save );
 static struct berval * slap_uuidstr_from_normalized(
 					struct berval *, struct berval *, void * );
 static int syncrepl_add_glue_ancestors(
 	Operation* op, Entry *e );
+
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int syncrepl_dirsync_message(
+					syncinfo_t *, Operation *, LDAPMessage *,
+					Modifications **, Entry **, int *, struct berval* );
+static int syncrepl_dirsync_cookie(
+					syncinfo_t *, Operation *, LDAPControl ** );
+#endif
+
+#ifdef DO_DSEE
+static int syncrepl_dsee_update( syncinfo_t *si, Operation *op ) ;
+#endif
 
 /* delta-mmr overlay handler */
 static int syncrepl_op_modify( Operation *op, SlapReply *rs );
@@ -162,9 +204,10 @@ static int syncrepl_op_modify( Operation *op, SlapReply *rs );
 /* callback functions */
 static int dn_callback( Operation *, SlapReply * );
 static int nonpresent_callback( Operation *, SlapReply * );
-static int null_callback( Operation *, SlapReply * );
 
 static AttributeDescription *sync_descs[4];
+
+static AttributeDescription *dsee_descs[7];
 
 /* delta-mmr */
 static AttributeDescription *ad_reqMod, *ad_reqDN;
@@ -176,6 +219,9 @@ typedef struct logschema {
 	struct berval ls_newRdn;
 	struct berval ls_delRdn;
 	struct berval ls_newSup;
+	struct berval ls_controls;
+	struct berval ls_uuid;
+	struct berval ls_changenum;
 } logschema;
 
 static logschema changelog_sc = {
@@ -184,7 +230,10 @@ static logschema changelog_sc = {
 	BER_BVC("changes"),
 	BER_BVC("newRDN"),
 	BER_BVC("deleteOldRDN"),
-	BER_BVC("newSuperior")
+	BER_BVC("newSuperior"),
+	BER_BVNULL,
+	BER_BVC("targetUniqueId"),
+	BER_BVC("changeNumber")
 };
 
 static logschema accesslog_sc = {
@@ -193,7 +242,8 @@ static logschema accesslog_sc = {
 	BER_BVC("reqMod"),
 	BER_BVC("reqNewRDN"),
 	BER_BVC("reqDeleteOldRDN"),
-	BER_BVC("reqNewSuperior")
+	BER_BVC("reqNewSuperior"),
+	BER_BVC("reqControls")
 };
 
 static const char *
@@ -211,6 +261,14 @@ syncrepl_state2str( int state )
 
 	case LDAP_SYNC_DELETE:
 		return "DELETE";
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	case MSAD_DIRSYNC_MODIFY:
+		return "DIRSYNC_MOD";
+#endif
+#ifdef DO_DSEE
+	case DSEE_SYNC_ADD:
+		return "DSEE_ADD";
+#endif
 	}
 
 	return "UNKNOWN";
@@ -250,6 +308,20 @@ init_syncrepl(syncinfo_t *si)
 		sync_descs[1] = slap_schema.si_ad_structuralObjectClass;
 		sync_descs[2] = slap_schema.si_ad_entryCSN;
 		sync_descs[3] = NULL;
+	}
+
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+		/* DSEE doesn't support allopattrs */
+		si->si_allopattrs = 0;
+		if ( !dsee_descs[0] ) {
+			dsee_descs[0] = slap_schema.si_ad_objectClass;
+			dsee_descs[1] = slap_schema.si_ad_creatorsName;
+			dsee_descs[2] = slap_schema.si_ad_createTimestamp;
+			dsee_descs[3] = slap_schema.si_ad_modifiersName;
+			dsee_descs[4] = slap_schema.si_ad_modifyTimestamp;
+			dsee_descs[5] = sy_ad_nsUniqueId;
+			dsee_descs[6] = NULL;
+		}
 	}
 
 	if ( si->si_allattrs && si->si_allopattrs )
@@ -320,8 +392,10 @@ init_syncrepl(syncinfo_t *si)
 		if ( si->si_allopattrs ) {
 			attrs[n++] = ch_strdup( sync_descs[0]->ad_cname.bv_val );
 		} else {
-			for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
-				attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
+			if ( si->si_syncdata != SYNCDATA_CHANGELOG ) {
+				for ( i = 0; sync_descs[ i ] != NULL; i++ ) {
+					attrs[ n++ ] = ch_strdup ( sync_descs[i]->ad_cname.bv_val );
+				}
 			}
 		}
 		attrs[ n ] = NULL;
@@ -346,6 +420,15 @@ init_syncrepl(syncinfo_t *si)
 			attrs[i++] = ch_strdup( sync_descs[0]->ad_cname.bv_val );
 		}
 		attrs[i] = NULL;
+	}
+
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+		for ( n = 0; attrs[ n ] != NULL; n++ ) /* empty */;
+		attrs = ( char ** ) ch_realloc( attrs, (n + 6)*sizeof( char * ) );
+		for ( i = 0; dsee_descs[ i ] != NULL; i++ ) {
+			attrs[ n++ ] = ch_strdup ( dsee_descs[i]->ad_cname.bv_val );
+		}
+		attrs[n] = NULL;
 	}
 	
 	si->si_attrs = attrs;
@@ -398,6 +481,8 @@ init_syncrepl(syncinfo_t *si)
 	si->si_exattrs = exattrs;	
 }
 
+static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
+
 static int
 ldap_sync_search(
 	syncinfo_t *si,
@@ -409,10 +494,11 @@ ldap_sync_search(
 	int rc;
 	int rhint;
 	char *base;
-	char **attrs, *lattrs[8];
+	char **attrs, *lattrs[9];
 	char *filter;
 	int attrsonly;
 	int scope;
+	char filterbuf[sizeof("(changeNumber>=18446744073709551615)")];
 
 	/* setup LDAP SYNC control */
 	ber_init2( ber, NULL, LBER_USE_DER );
@@ -421,8 +507,56 @@ ldap_sync_search(
 	/* If we're using a log but we have no state, then fallback to
 	 * normal mode for a full refresh.
 	 */
-	if ( si->si_syncdata && !si->si_syncCookie.numcsns ) {
-		si->si_logstate = SYNCLOG_FALLBACK;
+	if ( si->si_syncdata ) {
+#ifdef DO_DSEE
+		if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+			LDAPMessage *res, *msg;
+			unsigned long first = 0, last = 0;
+			int gotfirst = 0, gotlast = 0;
+			/* See if we're new enough for the remote server */
+			lattrs[0] = "firstchangenumber";
+			lattrs[1] = "lastchangenumber";
+			lattrs[2] = NULL;
+			rc = ldap_search_ext_s( si->si_ld, "", LDAP_SCOPE_BASE, generic_filterstr.bv_val, lattrs, 0,
+				NULL, NULL, NULL, si->si_slimit, &res );
+			if ( rc )
+				return rc;
+			msg = ldap_first_message( si->si_ld, res );
+			if ( msg && ldap_msgtype( msg ) == LDAP_RES_SEARCH_ENTRY ) {
+				BerElement *ber = NULL;
+				struct berval bv, *bvals, **bvp = &bvals;;
+				rc = ldap_get_dn_ber( si->si_ld, msg, &ber, &bv );
+				for ( rc = ldap_get_attribute_ber( si->si_ld, msg, ber, &bv, bvp );
+					rc == LDAP_SUCCESS;
+					rc = ldap_get_attribute_ber( si->si_ld, msg, ber, &bv, bvp ) ) {
+					if ( bv.bv_val == NULL )
+						break;
+					if ( !strcasecmp( bv.bv_val, "firstchangenumber" )) {
+						first = strtoul( bvals[0].bv_val, NULL, 0 );
+						gotfirst = 1;
+					} else if ( !strcasecmp( bv.bv_val, "lastchangenumber" )) {
+						last = strtoul( bvals[0].bv_val, NULL, 0 );
+						gotlast = 1;
+					}
+				}
+			}
+			ldap_msgfree( res );
+			if ( gotfirst && gotlast ) {
+				if ( si->si_lastchange < first || (!si->si_lastchange && !si->si_refreshDone ))
+					si->si_logstate = SYNCLOG_FALLBACK;
+				/* if we're in logging mode, it will update si_lastchange itself */
+				if ( si->si_logstate == SYNCLOG_FALLBACK )
+					si->si_lastchange = last;
+			} else {
+				/* should be an error; changelog plugin not enabled on provider */
+				si->si_logstate = SYNCLOG_FALLBACK;
+			}
+		} else
+#endif
+		if ( si->si_logstate == SYNCLOG_LOGGING && !si->si_syncCookie.numcsns &&
+				!si->si_refreshDone ) {
+			si->si_logstate = SYNCLOG_FALLBACK;
+		}
 	}
 
 	/* Use the log parameters if we're in log mode */
@@ -438,15 +572,25 @@ ldap_sync_search(
 		lattrs[3] = ls->ls_newRdn.bv_val;
 		lattrs[4] = ls->ls_delRdn.bv_val;
 		lattrs[5] = ls->ls_newSup.bv_val;
-		lattrs[6] = slap_schema.si_ad_entryCSN->ad_cname.bv_val;
-		lattrs[7] = NULL;
+		if ( si->si_syncdata == SYNCDATA_ACCESSLOG ) {
+			lattrs[6] = ls->ls_controls.bv_val;
+			lattrs[7] = slap_schema.si_ad_entryCSN->ad_cname.bv_val;
+			lattrs[8] = NULL;
+			filter = si->si_logfilterstr.bv_val;
+			scope = LDAP_SCOPE_SUBTREE;
+		} else {
+			lattrs[6] = ls->ls_uuid.bv_val;
+			lattrs[7] = ls->ls_changenum.bv_val;
+			lattrs[8] = NULL;
+			sprintf( filterbuf, "(changeNumber>=%lu)", si->si_lastchange+1 );
+			filter = filterbuf;
+			scope = LDAP_SCOPE_ONELEVEL;
+		}
 
 		rhint = 0;
 		base = si->si_logbase.bv_val;
-		filter = si->si_logfilterstr.bv_val;
 		attrs = lattrs;
 		attrsonly = 0;
-		scope = LDAP_SCOPE_SUBTREE;
 	} else {
 		rhint = 1;
 		base = si->si_base.bv_val;
@@ -461,37 +605,76 @@ ldap_sync_search(
 		si->si_type = si->si_ctype;
 	}
 
-	if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	if ( si->si_ctype == MSAD_DIRSYNC ) {
+		ber_printf( ber, "{iiO}", LDAP_CONTROL_X_DIRSYNC_INCREMENTAL_VALUES, 0, &si->si_dirSyncCookie );
+
+		if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 ) ) == -1 ) {
+			ber_free_buf( ber );
+			return rc;
+		}
+		c[0].ldctl_oid = LDAP_CONTROL_X_DIRSYNC;
+		c[0].ldctl_iscritical = 1;
+		ctrls[0] = &c[0];
+
+		if ( !BER_BVISEMPTY( &si->si_dirSyncCookie )) {
+			c[1].ldctl_oid = LDAP_CONTROL_X_SHOW_DELETED;
+			BER_BVZERO( &c[1].ldctl_value );
+			c[1].ldctl_iscritical = 1;
+			ctrls[1] = &c[1];
+			ctrls[2] = NULL;
+		} else {
+			ctrls[1] = NULL;
+		}
+	} else
+#endif
+#ifdef DO_DSEE
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+		if ( si->si_logstate == SYNCLOG_LOGGING && si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
+			c[0].ldctl_oid = LDAP_CONTROL_PERSIST_REQUEST;
+			c[0].ldctl_iscritical = 0;
+			rc = ldap_create_persistentsearch_control_value( si->si_ld, LDAP_CONTROL_PERSIST_ENTRY_CHANGE_ADD,
+				0, 1, &c[0].ldctl_value );
+			ctrls[0] = &c[0];
+			ctrls[1] = NULL;
+		} else {
+			ctrls[0] = NULL;
+		}
+	} else
+#endif
 	{
-		ber_printf( ber, "{eOb}",
-			abs(si->si_type), &si->si_syncCookie.octet_str, rhint );
-	} else {
-		ber_printf( ber, "{eb}",
-			abs(si->si_type), rhint );
-	}
+		if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
+		{
+			ber_printf( ber, "{eOb}",
+				abs(si->si_type), &si->si_syncCookie.octet_str, rhint );
+		} else {
+			ber_printf( ber, "{eb}",
+				abs(si->si_type), rhint );
+		}
 
-	if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 ) ) == -1 ) {
-		ber_free_buf( ber );
-		return rc;
-	}
+		if ( (rc = ber_flatten2( ber, &c[0].ldctl_value, 0 ) ) == -1 ) {
+			ber_free_buf( ber );
+			return rc;
+		}
 
-	c[0].ldctl_oid = LDAP_CONTROL_SYNC;
-	c[0].ldctl_iscritical = si->si_type < 0;
-	ctrls[0] = &c[0];
+		c[0].ldctl_oid = LDAP_CONTROL_SYNC;
+		c[0].ldctl_iscritical = si->si_type < 0;
+		ctrls[0] = &c[0];
 
-	c[1].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
-	BER_BVZERO( &c[1].ldctl_value );
-	c[1].ldctl_iscritical = 1;
-	ctrls[1] = &c[1];
+		c[1].ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		BER_BVZERO( &c[1].ldctl_value );
+		c[1].ldctl_iscritical = 1;
+		ctrls[1] = &c[1];
 
-	if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
-		c[2].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		c[2].ldctl_value = si->si_bindconf.sb_authzId;
-		c[2].ldctl_iscritical = 1;
-		ctrls[2] = &c[2];
-		ctrls[3] = NULL;
-	} else {
-		ctrls[2] = NULL;
+		if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
+			c[2].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
+			c[2].ldctl_value = si->si_bindconf.sb_authzId;
+			c[2].ldctl_iscritical = 1;
+			ctrls[2] = &c[2];
+			ctrls[3] = NULL;
+		} else {
+			ctrls[2] = NULL;
+		}
 	}
 
 	rc = ldap_search_ext( si->si_ld, base, scope, filter, attrs, attrsonly,
@@ -661,6 +844,44 @@ do_syncrep1(
 	si->si_syncCookie.sid = ( SLAP_MULTIMASTER( si->si_be ) || si->si_be != si->si_wbe ) ?
 		slap_serverID : -1;
 
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	if ( si->si_ctype == MSAD_DIRSYNC ) {
+		if ( BER_BVISEMPTY( &si->si_dirSyncCookie )) {
+			BerVarray cookies = NULL;
+			void *ctx = op->o_tmpmemctx;
+
+			op->o_req_ndn = si->si_contextdn;
+			op->o_req_dn = op->o_req_ndn;
+
+			/* try to read stored cookie */
+			op->o_tmpmemctx = NULL;
+			backend_attribute( op, NULL, &op->o_req_ndn,
+				sy_ad_dirSyncCookie, &cookies, ACL_READ );
+			op->o_tmpmemctx = ctx;
+			if ( cookies )
+				si->si_dirSyncCookie = cookies[0];
+		}
+	} else
+#endif
+#ifdef DO_DSEE
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+		if ( !si->si_lastchange ) {
+			BerVarray vals = NULL;
+
+			op->o_req_ndn = si->si_contextdn;
+			op->o_req_dn = op->o_req_ndn;
+			/* try to read last change number */
+			backend_attribute( op, NULL, &op->o_req_ndn,
+				sy_ad_dseeLastChange, &vals, ACL_READ );
+			if ( vals ) {
+				si->si_lastchange = strtoul( vals[0].bv_val, NULL, 0 );
+				si->si_prevchange = si->si_lastchange;
+			}
+		}
+	} else
+#endif
+	{
+
 	/* We've just started up, or the remote server hasn't sent us
 	 * any meaningful state.
 	 */
@@ -740,12 +961,11 @@ do_syncrep1(
 				si->si_syncCookie.sid );
 	}
 
+	}
+
 	si->si_refreshDone = 0;
-	si->si_refreshBeg = slap_get_time();
-	si->si_refreshCount = 0;
-	si->si_refreshTxn = NULL;
-	Debug( LDAP_DEBUG_ANY, "do_syncrep1: %s starting refresh\n",
-		si->si_ridtxt, 0, 0 );
+	Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s starting refresh\n",
+		si->si_ridtxt );
 
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
@@ -838,7 +1058,7 @@ do_syncrep2(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2 %s\n", si->si_ridtxt, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2 %s\n", si->si_ridtxt );
 
 	slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 
@@ -867,12 +1087,59 @@ do_syncrep2(
 		}
 		switch( ldap_msgtype( msg ) ) {
 		case LDAP_RES_SEARCH_ENTRY:
+#ifdef LDAP_CONTROL_X_DIRSYNC
+			if ( si->si_ctype == MSAD_DIRSYNC ) {
+				BER_BVZERO( &syncUUID[0] );
+				rc = syncrepl_dirsync_message( si, op, msg, &modlist, &entry, &syncstate, syncUUID );
+				if ( rc == 0 )
+					rc = syncrepl_entry( si, op, entry, &modlist, syncstate, syncUUID, NULL );
+				op->o_tmpfree( syncUUID[0].bv_val, op->o_tmpmemctx );
+				if ( modlist )
+					slap_mods_free( modlist, 1);
+				if ( rc )
+					goto done;
+				break;
+			}
+#endif
 			ldap_get_entry_controls( si->si_ld, msg, &rctrls );
 			ldap_get_dn_ber( si->si_ld, msg, NULL, &bdn );
 			if (!bdn.bv_len) {
 				bdn.bv_val = empty;
 				bdn.bv_len = sizeof(empty)-1;
 			}
+#ifdef DO_DSEE
+			if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+				if ( si->si_logstate == SYNCLOG_LOGGING ) {
+					rc = syncrepl_message_to_op( si, op, msg );
+					if ( rc )
+						goto logerr;
+					if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST && rctrls ) {
+						LDAPControl **next = NULL;
+						/* The notification control is only sent during persist phase */
+						rctrlp = ldap_control_find( LDAP_CONTROL_PERSIST_ENTRY_CHANGE_NOTICE, rctrls, &next );
+						if ( rctrlp ) {
+							if ( !si->si_refreshDone )
+								si->si_refreshDone = 1;
+							if ( si->si_refreshDone )
+								syncrepl_dsee_update( si, op );
+						}
+					}
+
+				} else {
+					syncstate = DSEE_SYNC_ADD;
+					rc = syncrepl_message_to_entry( si, op, msg,
+						&modlist, &entry, syncstate, syncUUID );
+					if ( rc == 0 )
+						rc = syncrepl_entry( si, op, entry, &modlist, syncstate, syncUUID, NULL );
+					op->o_tmpfree( syncUUID[0].bv_val, op->o_tmpmemctx );
+					if ( modlist )
+						slap_mods_free( modlist, 1);
+				}
+				if ( rc )
+					goto done;
+				break;
+			}
+#endif
 			/* we can't work without the control */
 			if ( rctrls ) {
 				LDAPControl **next = NULL;
@@ -889,7 +1156,7 @@ do_syncrep2(
 					bdn.bv_val[bdn.bv_len] = '\0';
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 						"got search entry with multiple "
-						"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val, 0 );
+						"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val );
 					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
@@ -899,7 +1166,7 @@ do_syncrep2(
 				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 					"got search entry without "
-					"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val, 0 );
+					"Sync State control (%s)\n", si->si_ridtxt, bdn.bv_val );
 				rc = -1;
 				goto done;
 			}
@@ -908,7 +1175,7 @@ do_syncrep2(
 					== LBER_ERROR ) {
 				bdn.bv_val[bdn.bv_len] = '\0';
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s malformed message (%s)\n",
-					si->si_ridtxt, bdn.bv_val, 0 );
+					si->si_ridtxt, bdn.bv_val );
 				ldap_controls_free( rctrls );
 				rc = -1;
 				goto done;
@@ -931,7 +1198,7 @@ do_syncrep2(
 
 				Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
 					si->si_ridtxt,
-					BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
+					BER_BVISNULL( &cookie ) ? "" : cookie.bv_val );
 
 				if ( !BER_BVISNULL( &cookie ) ) {
 					ch_free( syncCookie.octet_str.bv_val );
@@ -1009,7 +1276,7 @@ do_syncrep2(
 					} else if (si->si_too_old) {
 						bdn.bv_val[bdn.bv_len] = '\0';
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s CSN too old, ignoring (%s)\n",
-							si->si_ridtxt, bdn.bv_val, 0 );
+							si->si_ridtxt, bdn.bv_val );
 						ldap_controls_free( rctrls );
 						rc = 0;
 						goto done;
@@ -1024,8 +1291,10 @@ do_syncrep2(
 				if ( ( rc = syncrepl_message_to_op( si, op, msg ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, &syncCookie );
-				} else switch ( rc ) {
+					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
+				} else
+logerr:
+					switch ( rc ) {
 					case LDAP_ALREADY_EXISTS:
 					case LDAP_NO_SUCH_OBJECT:
 					case LDAP_NO_SUCH_ATTRIBUTE:
@@ -1036,7 +1305,7 @@ do_syncrep2(
 						ldap_abandon_ext( si->si_ld, si->si_msgid, NULL, NULL );
 						bdn.bv_val[bdn.bv_len] = '\0';
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync on (%s), switching to REFRESH\n",
-							si->si_ridtxt, bdn.bv_val, 0 );
+							si->si_ridtxt, bdn.bv_val );
 						if (si->si_strict_refresh) {
 							slap_suspend_listeners();
 							connections_drop();
@@ -1052,7 +1321,7 @@ do_syncrep2(
 					syncstate, syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
-					rc = syncrepl_updateCookie( si, op, &syncCookie );
+					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
 				}
 			}
 			if ( punlock >= 0 ) {
@@ -1084,13 +1353,13 @@ do_syncrep2(
 		case LDAP_RES_SEARCH_REFERENCE:
 			Debug( LDAP_DEBUG_ANY,
 				"do_syncrep2: %s reference received error\n",
-				si->si_ridtxt, 0, 0 );
+				si->si_ridtxt );
 			break;
 
 		case LDAP_RES_SEARCH_RESULT:
 			Debug( LDAP_DEBUG_SYNC,
 				"do_syncrep2: %s LDAP_RES_SEARCH_RESULT\n",
-				si->si_ridtxt, 0, 0 );
+				si->si_ridtxt );
 			err = LDAP_OTHER; /* FIXME check parse result properly */
 			ldap_parse_result( si->si_ld, msg, &err, NULL, NULL, NULL,
 				&rctrls, 0 );
@@ -1104,7 +1373,7 @@ do_syncrep2(
 				if ( si->si_logstate == SYNCLOG_LOGGING ) {
 					si->si_logstate = SYNCLOG_FALLBACK;
 					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s delta-sync lost sync, switching to REFRESH\n",
-						si->si_ridtxt, 0, 0 );
+						si->si_ridtxt );
 					if (si->si_strict_refresh) {
 						slap_suspend_listeners();
 						connections_drop();
@@ -1118,8 +1387,29 @@ do_syncrep2(
 					"do_syncrep2: %s LDAP_RES_SEARCH_RESULT (%d) %s\n",
 					si->si_ridtxt, err, ldap_err2string( err ) );
 			}
+			if ( si->si_syncdata == SYNCDATA_CHANGELOG && err == LDAP_SUCCESS ) {
+				rc = syncrepl_dsee_update( si, op );
+				if ( rc == LDAP_SUCCESS ) {
+					if ( si->si_logstate == SYNCLOG_FALLBACK ) {
+						si->si_logstate = SYNCLOG_LOGGING;
+						si->si_refreshDone = 1;
+						rc = LDAP_SYNC_REFRESH_REQUIRED;
+					} else {
+						rc = -2;
+					}
+				}
+				goto done;
+			}
 			if ( rctrls ) {
 				LDAPControl **next = NULL;
+#ifdef LDAP_CONTROL_X_DIRSYNC
+				if ( si->si_ctype == MSAD_DIRSYNC ) {
+					rc = syncrepl_dirsync_cookie( si, op, rctrls );
+					if ( rc == LDAP_SUCCESS )
+						rc = -2;	/* schedule a re-poll */
+					goto done;
+				}
+#endif
 				/* NOTE: make sure we use the right one;
 				 * a better approach would be to run thru
 				 * the whole list and take care of all */
@@ -1132,7 +1422,7 @@ do_syncrep2(
 				{
 					Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 						"got search result with multiple "
-						"Sync State control\n", si->si_ridtxt, 0, 0 );
+						"Sync State control\n", si->si_ridtxt );
 					ldap_controls_free( rctrls );
 					rc = -1;
 					goto done;
@@ -1147,7 +1437,7 @@ do_syncrep2(
 
 					Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
 						si->si_ridtxt, 
-						BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
+						BER_BVISNULL( &cookie ) ? "" : cookie.bv_val );
 
 					if ( !BER_BVISNULL( &cookie ) ) {
 						ch_free( syncCookie.octet_str.bv_val );
@@ -1198,18 +1488,12 @@ do_syncrep2(
 			}
 			if ( syncCookie.ctxcsn && match < 0 && err == LDAP_SUCCESS )
 			{
-				rc = syncrepl_updateCookie( si, op, &syncCookie );
+				rc = syncrepl_updateCookie( si, op, &syncCookie, 1 );
 			}
-			if ( si->si_refreshCount ) {
-				LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
-				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
-				si->si_refreshCount = 0;
-				si->si_refreshTxn = NULL;
-			}
-			si->si_refreshEnd = slap_get_time();
 			if ( err == LDAP_SUCCESS
 				&& si->si_logstate == SYNCLOG_FALLBACK ) {
 				si->si_logstate = SYNCLOG_LOGGING;
+				si->si_refreshDone = 1;
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
 				slap_resume_listeners();
 			} else {
@@ -1237,7 +1521,7 @@ do_syncrep2(
 					Debug( LDAP_DEBUG_SYNC,
 						"do_syncrep2: %s NEW_COOKIE: %s\n",
 						si->si_ridtxt,
-						cookie.bv_val, 0);
+						cookie.bv_val );
 					if ( !BER_BVISNULL( &cookie ) ) {
 						ch_free( syncCookie.octet_str.bv_val );
 						ber_dupbv( &syncCookie.octet_str, &cookie );
@@ -1267,7 +1551,7 @@ do_syncrep2(
 
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
 							si->si_ridtxt, 
-							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
+							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val );
 
 						if ( !BER_BVISNULL( &cookie ) ) {
 							ch_free( syncCookie.octet_str.bv_val );
@@ -1288,18 +1572,11 @@ do_syncrep2(
 					{
 						si->si_refreshDone = 1;
 					}
-					if ( si->si_refreshDone ) {
-						if ( si->si_refreshCount ) {
-							LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
-							op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
-							si->si_refreshCount = 0;
-							si->si_refreshTxn = NULL;
-						}
-						si->si_refreshEnd = slap_get_time();
-	Debug( LDAP_DEBUG_ANY, "do_syncrep1: %s finished refresh\n",
-		si->si_ridtxt, 0, 0 );
-					}
 					ber_scanf( ber, /*"{"*/ "}" );
+					if ( si->si_refreshDone ) {
+						Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s finished refresh\n",
+							si->si_ridtxt );
+					}
 					if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
 						si->si_refreshDone )
 						tout_p = &tout;
@@ -1318,7 +1595,7 @@ do_syncrep2(
 
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep2: %s cookie=%s\n",
 							si->si_ridtxt,
-							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val, 0 );
+							BER_BVISNULL( &cookie ) ? "" : cookie.bv_val );
 
 						if ( !BER_BVISNULL( &cookie ) ) {
 							ch_free( syncCookie.octet_str.bv_val );
@@ -1359,7 +1636,7 @@ do_syncrep2(
 				default:
 					Debug( LDAP_DEBUG_ANY,
 						"do_syncrep2: %s unknown syncinfo tag (%ld)\n",
-						si->si_ridtxt, (long) si_tag, 0 );
+						si->si_ridtxt, (long) si_tag );
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					continue;
@@ -1388,7 +1665,7 @@ do_syncrep2(
 
 					if ( syncCookie.ctxcsn )
 					{
-						rc = syncrepl_updateCookie( si, op, &syncCookie);
+						rc = syncrepl_updateCookie( si, op, &syncCookie, 1 );
 					}
 					if ( si->si_presentlist ) {
 						presentlist_free( si->si_presentlist );
@@ -1405,7 +1682,7 @@ do_syncrep2(
 			} else {
 				Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 					"unknown intermediate response (%d)\n",
-					si->si_ridtxt, rc, 0 );
+					si->si_ridtxt, rc );
 				ldap_memfree( retoid );
 				ber_bvfree( retdata );
 			}
@@ -1415,7 +1692,7 @@ do_syncrep2(
 			Debug( LDAP_DEBUG_ANY, "do_syncrep2: %s "
 				"unknown message (0x%02lx)\n",
 				si->si_ridtxt,
-				(unsigned long)ldap_msgtype( msg ), 0 );
+				(unsigned long)ldap_msgtype( msg ) );
 			break;
 
 		}
@@ -1429,12 +1706,6 @@ do_syncrep2(
 		if ( ldap_pvt_thread_pool_pausing( &connection_pool )) {
 			slap_sync_cookie_free( &syncCookie, 0 );
 			slap_sync_cookie_free( &syncCookie_req, 0 );
-			if ( si->si_refreshCount ) {
-				LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
-				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
-				si->si_refreshCount = 0;
-				si->si_refreshTxn = NULL;
-			}
 			return SYNC_PAUSED;
 		}
 	}
@@ -1490,7 +1761,7 @@ do_syncrepl(
 	if ( slapd_shutdown )
 		return NULL;
 
-	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=>do_syncrepl %s\n", si->si_ridtxt );
 
 	/* Don't get stuck here while a pause is initiated */
 	while ( ldap_pvt_thread_mutex_trylock( &si->si_mutex )) {
@@ -1509,6 +1780,9 @@ do_syncrepl(
 	switch( abs( si->si_type ) ) {
 	case LDAP_SYNC_REFRESH_ONLY:
 	case LDAP_SYNC_REFRESH_AND_PERSIST:
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	case MSAD_DIRSYNC:
+#endif
 		break;
 	default:
 		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
@@ -1662,7 +1936,11 @@ deleted:
 		rtask->interval.tv_sec = si->si_interval;
 		rc = 0;
 	} else if ( rc == LDAP_SUCCESS ) {
-		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY
+#ifdef LDAP_CONTROL_X_DIRSYNC
+			|| si->si_type == MSAD_DIRSYNC
+#endif
+		) {
 			defer = 0;
 		}
 		rtask->interval.tv_sec = si->si_interval;
@@ -1703,7 +1981,7 @@ deleted:
 		if ( fail == RETRYNUM_TAIL ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_syncrepl: %s rc %d quitting\n",
-				si->si_ridtxt, rc, 0 );
+				si->si_ridtxt, rc );
 		} else if ( fail > 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_syncrepl: %s rc %d retrying (%d retries left)\n",
@@ -1711,7 +1989,7 @@ deleted:
 		} else {
 			Debug( LDAP_DEBUG_ANY,
 				"do_syncrepl: %s rc %d retrying\n",
-				si->si_ridtxt, rc, 0 );
+				si->si_ridtxt, rc );
 		}
 	}
 
@@ -1861,13 +2139,109 @@ syncrepl_accesslog_mods(
 }
 
 static int
-syncrepl_changelog_mods(
-	syncinfo_t *si,
-	struct berval *vals,
-	struct Modifications **modres
+syncrepl_dsee_uuid(
+	struct berval *dseestr,
+	struct berval *syncUUID,
+	void *ctx
 )
 {
-	return -1;	/* FIXME */
+	slap_mr_normalize_func *normf;
+	/* DSEE UUID is of form 12345678-12345678-12345678-12345678 */
+	if ( dseestr->bv_len != 35 )
+		return -1;
+	dseestr->bv_len++;
+	dseestr->bv_val[35] = '-';
+	normf = slap_schema.si_ad_entryUUID->ad_type->sat_equality->smr_normalize;
+	if ( normf( SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX, NULL, NULL,
+		dseestr, &syncUUID[0], ctx ))
+		return -1;
+	(void)slap_uuidstr_from_normalized( &syncUUID[1], &syncUUID[0], ctx );
+	return LDAP_SUCCESS;
+}
+
+static int
+syncrepl_changelog_mods(
+	syncinfo_t *si,
+	ber_tag_t req,
+	struct berval *vals,
+	struct Modifications **modres,
+	struct berval *uuid,
+	void *ctx
+)
+{
+	LDIFRecord lr;
+	struct berval rbuf = vals[0];
+	int i, rc;
+	int lrflags = LDIF_NO_DN;
+	Modifications *mod = NULL, *modlist = NULL, **modtail = &modlist;
+
+	if ( req == LDAP_REQ_ADD )
+		lrflags |= LDIF_ENTRIES_ONLY|LDIF_DEFAULT_ADD;
+	else
+		lrflags |= LDIF_MODS_ONLY;
+
+	rc = ldap_parse_ldif_record_x( &rbuf, 0, &lr, "syncrepl", lrflags, ctx );
+	for (i = 0; lr.lrop_mods[i] != NULL; i++) {
+		AttributeDescription *ad = NULL;
+		const char *text;
+		int j;
+		if ( slap_str2ad( lr.lrop_mods[i]->mod_type, &ad, &text ) ) {
+			/* Invalid */
+			Debug( LDAP_DEBUG_ANY, "syncrepl_changelog_mods: %s "
+				"Invalid attribute %s, %s\n",
+				si->si_ridtxt, lr.lrop_mods[i]->mod_type, text );
+			slap_mods_free( modlist, 1 );
+			modlist = NULL;
+			rc = -1;
+			break;
+		}
+		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+		mod->sml_flags = 0;
+		mod->sml_op = lr.lrop_mods[i]->mod_op ^ LDAP_MOD_BVALUES;
+		mod->sml_next = NULL;
+		mod->sml_desc = ad;
+		mod->sml_type = ad->ad_cname;
+		mod->sml_values = NULL;
+		mod->sml_nvalues = NULL;
+		j = 0;
+		if ( lr.lrop_mods[i]->mod_bvalues != NULL ) {
+			for (; lr.lrop_mods[i]->mod_bvalues[j] != NULL; j++ ) {
+				struct berval bv, bv2;
+				bv = *(lr.lrop_mods[i]->mod_bvalues[j]);
+				REWRITE_VAL( si, ad, bv, bv2 );
+				ber_bvarray_add( &mod->sml_values, &bv2 );
+			}
+		}
+		mod->sml_numvals = j;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	}
+	ldap_ldif_record_done( &lr );
+
+	if ( req == LDAP_REQ_ADD && !BER_BVISNULL( uuid )) {
+		struct berval uuids[2];
+		if ( !syncrepl_dsee_uuid( uuid, uuids, ctx )) {
+			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mod->sml_flags = 0;
+			mod->sml_op = LDAP_MOD_ADD;
+			mod->sml_next = NULL;
+			mod->sml_desc = slap_schema.si_ad_entryUUID;
+			mod->sml_type = slap_schema.si_ad_entryUUID->ad_cname;
+			mod->sml_values = ch_malloc( 2 * sizeof(struct berval));
+			mod->sml_nvalues = NULL;
+			ber_dupbv( &mod->sml_values[0], &uuids[1] );
+			BER_BVZERO( &mod->sml_values[1] );
+			slap_sl_free( uuids[0].bv_val, ctx );
+			slap_sl_free( uuids[1].bv_val, ctx );
+			mod->sml_numvals = 1;
+			*modtail = mod;
+			modtail = &mod->sml_next;
+		}
+	}
+
+	*modres = modlist;
+	return rc;
 }
 
 typedef struct OpExtraSync {
@@ -2189,11 +2563,8 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( match < 0 ) {
 		Operation op2 = *op;
 		AttributeName an[2];
-		const char *text;
 		struct berval bv;
-		char *ptr;
-		Modifications *ml;
-		int size, rc;
+		int size;
 		SlapReply rs1 = {0};
 		resolve_ctxt rx;
 		slap_callback cb = { NULL, syncrepl_resolve_cb, NULL, NULL };
@@ -2281,6 +2652,34 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 }
 
 static int
+syncrepl_null_callback(
+	Operation *op,
+	SlapReply *rs )
+{
+	/* If we're not the last callback in the chain, move to the end */
+	if ( op->o_callback->sc_next ) {
+		slap_callback **sc, *s1;
+		s1 = op->o_callback;
+		op->o_callback = op->o_callback->sc_next;
+		for ( sc = &op->o_callback; *sc; sc = &(*sc)->sc_next ) ;
+		*sc = s1;
+		s1->sc_next = NULL;
+		return SLAP_CB_CONTINUE;
+	}
+	if ( rs->sr_err != LDAP_SUCCESS &&
+		rs->sr_err != LDAP_REFERRAL &&
+		rs->sr_err != LDAP_ALREADY_EXISTS &&
+		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
+		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
+	{
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_null_callback : error code 0x%x\n",
+			rs->sr_err );
+	}
+	return LDAP_SUCCESS;
+}
+
+static int
 syncrepl_message_to_op(
 	syncinfo_t	*si,
 	Operation	*op,
@@ -2291,7 +2690,7 @@ syncrepl_message_to_op(
 	Modifications	*modlist = NULL;
 	logschema *ls;
 	SlapReply rs = { REP_RESULT };
-	slap_callback cb = { NULL, null_callback, NULL, NULL };
+	slap_callback cb = { NULL, syncrepl_null_callback, NULL, NULL };
 
 	const char	*text;
 	char txtbuf[SLAP_TEXT_BUFLEN];
@@ -2302,13 +2701,15 @@ syncrepl_message_to_op(
 	struct berval	rdn = BER_BVNULL, sup = BER_BVNULL,
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
+	struct berval	dsee_uuid = BER_BVNULL, dsee_mods = BER_BVNULL;
 	int		rc, deleteOldRdn = 0, freeReqDn = 0;
 	int		do_graduate = 0;
+	unsigned long changenum = 0;
 
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: %s "
 			"Message type should be entry (%d)",
-			si->si_ridtxt, ldap_msgtype( msg ), 0 );
+			si->si_ridtxt, ldap_msgtype( msg ) );
 		return -1;
 	}
 
@@ -2322,7 +2723,7 @@ syncrepl_message_to_op(
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_op: %s dn get failed (%d)",
-			si->si_ridtxt, rc, 0 );
+			si->si_ridtxt, rc );
 		return rc;
 	}
 
@@ -2332,7 +2733,7 @@ syncrepl_message_to_op(
 	if ( BER_BVISEMPTY( &bdn )) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_op: %s got empty dn",
-			si->si_ridtxt, 0, 0 );
+			si->si_ridtxt );
 		return LDAP_OTHER;
 	}
 
@@ -2363,7 +2764,7 @@ syncrepl_message_to_op(
 			if ( i < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_message_to_op: %s unknown op %s",
-					si->si_ridtxt, bvals[0].bv_val, 0 );
+					si->si_ridtxt, bvals[0].bv_val );
 				ch_free( bvals );
 				rc = -1;
 				goto done;
@@ -2374,7 +2775,7 @@ syncrepl_message_to_op(
 			if ( si->si_syncdata == SYNCDATA_ACCESSLOG ) {
 				rc = syncrepl_accesslog_mods( si, bvals, &modlist );
 			} else {
-				rc = syncrepl_changelog_mods( si, bvals, &modlist );
+				dsee_mods = bvals[0];
 			}
 			if ( rc ) goto done;
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_newRdn ) ) {
@@ -2385,6 +2786,26 @@ syncrepl_message_to_op(
 			}
 		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_newSup ) ) {
 			sup = bvals[0];
+		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_controls ) ) {
+			int i;
+			struct berval rel_ctrl_bv;
+
+			(void)ber_str2bv( "{" LDAP_CONTROL_RELAX, 0, 0, &rel_ctrl_bv );
+			for ( i = 0; bvals[i].bv_val; i++ ) {
+				struct berval cbv, tmp;
+
+				ber_bvchr_post( &cbv, &bvals[i], '}' );
+				ber_bvchr_post( &tmp, &cbv, '{' );
+				ber_bvchr_pre( &cbv, &tmp, ' ' );
+				if ( cbv.bv_len == tmp.bv_len )		/* control w/o value */
+					ber_bvchr_pre( &cbv, &tmp, '}' );
+				if ( !ber_bvcmp( &cbv, &rel_ctrl_bv ) )
+					op->o_relax = SLAP_CONTROL_CRITICAL;
+			}
+		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_uuid ) ) {
+			dsee_uuid = bvals[0];
+		} else if ( !ber_bvstrcasecmp( &bv, &ls->ls_changenum ) ) {
+			changenum = strtoul( bvals->bv_val, NULL, 0 );
 		} else if ( !ber_bvstrcasecmp( &bv,
 			&slap_schema.si_ad_entryCSN->ad_cname ) )
 		{
@@ -2392,6 +2813,14 @@ syncrepl_message_to_op(
 			do_graduate = 1;
 		}
 		ch_free( bvals );
+	}
+
+	/* don't parse mods until we've gotten the uuid */
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG && !BER_BVISNULL( &dsee_mods )) {
+		rc = syncrepl_changelog_mods( si, op->o_tag,
+			&dsee_mods, &modlist, &dsee_uuid, op->o_tmpmemctx );
+		if ( rc )
+			goto done;
 	}
 
 	/* If we didn't get a mod type or a target DN, bail out */
@@ -2402,6 +2831,9 @@ syncrepl_message_to_op(
 
 	op->o_callback = &cb;
 	slap_op_time( &op->o_time, &op->o_tincr );
+
+	Debug( LDAP_DEBUG_SYNC, "syncrepl_message_to_op: %s tid %x\n",
+		si->si_ridtxt, op->o_tid );
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -2414,7 +2846,7 @@ syncrepl_message_to_op(
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: %s "
 				"mods check (%s)\n",
-				si->si_ridtxt, text, 0 );
+				si->si_ridtxt, text );
 			goto done;
 		}
 
@@ -2428,7 +2860,7 @@ syncrepl_message_to_op(
 			if( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_op: %s "
 				"mods2entry (%s)\n",
-					si->si_ridtxt, text, 0 );
+					si->si_ridtxt, text );
 			} else {
 				rc = op->o_bd->be_add( op, &rs );
 				Debug( LDAP_DEBUG_SYNC,
@@ -2512,6 +2944,9 @@ syncrepl_message_to_op(
 		do_graduate = 0;
 		break;
 	}
+	if ( si->si_syncdata == SYNCDATA_CHANGELOG && !rc )
+		si->si_lastchange = changenum;
+
 done:
 	if ( do_graduate )
 		slap_graduate_commit_csn( op );
@@ -2572,7 +3007,7 @@ syncrepl_message_to_entry(
 	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: %s "
 			"Message type should be entry (%d)",
-			si->si_ridtxt, ldap_msgtype( msg ), 0 );
+			si->si_ridtxt, ldap_msgtype( msg ) );
 		return -1;
 	}
 
@@ -2582,24 +3017,26 @@ syncrepl_message_to_entry(
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_entry: %s dn get failed (%d)",
-			si->si_ridtxt, rc, 0 );
+			si->si_ridtxt, rc );
 		return rc;
 	}
 
 	if ( BER_BVISEMPTY( &bdn ) && !BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_message_to_entry: %s got empty dn",
-			si->si_ridtxt, 0, 0 );
+			si->si_ridtxt );
 		return LDAP_OTHER;
 	}
 
-	/* syncUUID[0] is normalized UUID received over the wire
-	 * syncUUID[1] is denormalized UUID, generated here
-	 */
-	(void)slap_uuidstr_from_normalized( &syncUUID[1], &syncUUID[0], op->o_tmpmemctx );
-	Debug( LDAP_DEBUG_SYNC,
-		"syncrepl_message_to_entry: %s DN: %s, UUID: %s\n",
-		si->si_ridtxt, bdn.bv_val, syncUUID[1].bv_val );
+	if ( si->si_syncdata != SYNCDATA_CHANGELOG ) {
+		/* syncUUID[0] is normalized UUID received over the wire
+		 * syncUUID[1] is denormalized UUID, generated here
+		 */
+		(void)slap_uuidstr_from_normalized( &syncUUID[1], &syncUUID[0], op->o_tmpmemctx );
+		Debug( LDAP_DEBUG_SYNC,
+			"syncrepl_message_to_entry: %s DN: %s, UUID: %s\n",
+			si->si_ridtxt, bdn.bv_val, syncUUID[1].bv_val );
+	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
 		/* NOTE: this could be done even before decoding the DN,
@@ -2654,6 +3091,16 @@ syncrepl_message_to_entry(
 			continue;
 		}
 
+		/* map nsUniqueId to entryUUID, drop nsUniqueId */
+		if ( si->si_syncdata == SYNCDATA_CHANGELOG &&
+			!strcasecmp( tmp.sml_type.bv_val, sy_ad_nsUniqueId->ad_cname.bv_val )) {
+			rc = syncrepl_dsee_uuid( &tmp.sml_values[0], syncUUID, op->o_tmpmemctx );
+			ber_bvarray_free( tmp.sml_values );
+			if ( rc )
+				goto done;
+			continue;
+		}
+
 		mod  = (Modifications *) ch_malloc( sizeof( Modifications ) );
 
 		mod->sml_op = LDAP_MOD_REPLACE;
@@ -2691,7 +3138,7 @@ syncrepl_message_to_entry(
 
 	if ( *modlist == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: %s no attributes\n",
-			si->si_ridtxt, 0, 0 );
+			si->si_ridtxt );
 		rc = -1;
 		goto done;
 	}
@@ -2700,7 +3147,7 @@ syncrepl_message_to_entry(
 
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: %s mods check (%s)\n",
-			si->si_ridtxt, text, 0 );
+			si->si_ridtxt, text );
 		goto done;
 	}
 
@@ -2733,7 +3180,7 @@ syncrepl_message_to_entry(
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl_message_to_entry: %s mods2entry (%s)\n",
-			si->si_ridtxt, text, 0 );
+			si->si_ridtxt, text );
 	}
 
 done:
@@ -2750,7 +3197,371 @@ done:
 	return rc;
 }
 
-static struct berval generic_filterstr = BER_BVC("(objectclass=*)");
+#ifdef LDAP_CONTROL_X_DIRSYNC
+static int
+syncrepl_dirsync_message(
+	syncinfo_t	*si,
+	Operation	*op,
+	LDAPMessage	*msg,
+	Modifications	**modlist,
+	Entry			**entry,
+	int		*syncstate,
+	struct berval	*syncUUID
+)
+{
+	Entry		*e = NULL;
+	BerElement	*ber = NULL;
+	Modifications	tmp;
+	Modifications	*mod, *rangeMod = NULL;
+	Modifications	**modtail = modlist;
+
+	const char	*text;
+	char txtbuf[SLAP_TEXT_BUFLEN];
+	size_t textlen = sizeof txtbuf;
+
+	struct berval	bdn = BER_BVNULL, dn, ndn, bv2;
+	int		rc;
+
+	*modlist = NULL;
+	*syncstate = MSAD_DIRSYNC_MODIFY;
+
+	if ( ldap_msgtype( msg ) != LDAP_RES_SEARCH_ENTRY ) {
+		Debug( LDAP_DEBUG_ANY, "syncrepl_dirsync_message: %s "
+			"Message type should be entry (%d)\n",
+			si->si_ridtxt, ldap_msgtype( msg ) );
+		return -1;
+	}
+
+	rc = ldap_get_dn_ber( si->si_ld, msg, &ber, &bdn );
+	if ( rc != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_dirsync_message: %s dn get failed (%d)\n",
+			si->si_ridtxt, rc );
+		return rc;
+	}
+
+	if ( BER_BVISEMPTY( &bdn ) && !BER_BVISEMPTY( &op->o_bd->be_nsuffix[0] ) ) {
+		Debug( LDAP_DEBUG_ANY,
+			"syncrepl_dirsync_message: %s got empty dn\n",
+			si->si_ridtxt );
+		return LDAP_OTHER;
+	}
+
+	while ( ber_remaining( ber ) ) {
+		AttributeDescription *ad = NULL;
+
+		if ( (ber_scanf( ber, "{mW}", &tmp.sml_type, &tmp.sml_values ) ==
+			LBER_ERROR ) || BER_BVISNULL( &tmp.sml_type ) )
+		{
+			break;
+		}
+		if ( tmp.sml_values == NULL )
+			continue;
+
+		mod  = (Modifications *) ch_malloc( sizeof( Modifications ) );
+
+		mod->sml_op = LDAP_MOD_REPLACE;
+		mod->sml_flags = 0;
+		mod->sml_next = NULL;
+		mod->sml_desc = NULL;
+		mod->sml_type = tmp.sml_type;
+		mod->sml_values = tmp.sml_values;
+		mod->sml_nvalues = NULL;
+		mod->sml_numvals = 0;	/* slap_mods_check will set this */
+
+		rc = slap_bv2ad( &tmp.sml_type, &ad, &text );
+		if ( !ad ) {
+			Debug( LDAP_DEBUG_ANY,
+				"syncrepl_dirsync_message: %s unknown attributeType %s\n",
+				si->si_ridtxt, tmp.sml_type.bv_val );
+			return rc;
+		}
+		mod->sml_desc = ad;
+		mod->sml_type = ad->ad_cname;
+		if (( ad->ad_flags & SLAP_DESC_TAG_RANGE ) && rangeMod == NULL)
+			rangeMod = mod;
+#ifdef ENABLE_REWRITE
+		if (si->si_rewrite) {
+			if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+				int i;
+				for ( i = 0; tmp.sml_values[i].bv_val; i++ ) {
+					syncrepl_rewrite_dn( si, &tmp.sml_values[i], &bv2);
+					if ( !BER_BVISNULL( &bv2 )) {
+						ber_memfree( tmp.sml_values[i].bv_val );
+						tmp.sml_values[i] = bv2;
+					}
+				}
+			}
+		}
+#endif
+		if ( mod->sml_desc == sy_ad_objectGUID ) {
+			ber_dupbv_x( &syncUUID[0], &tmp.sml_values[0], op->o_tmpmemctx );
+			/* syncUUID[0] is normalized UUID received over the wire
+			 * syncUUID[1] is denormalized UUID, generated here
+			 */
+			(void)slap_uuidstr_from_normalized( &syncUUID[1], &syncUUID[0], op->o_tmpmemctx );
+			Debug( LDAP_DEBUG_SYNC,
+				"syncrepl_dirsync_message: %s DN: %s, UUID: %s\n",
+				si->si_ridtxt, bdn.bv_val, syncUUID[1].bv_val );
+		} else if ( mod->sml_desc == sy_ad_isDeleted ) {
+			*syncstate = LDAP_SYNC_DELETE;
+		} else if ( mod->sml_desc == sy_ad_whenCreated ) {
+			*syncstate = LDAP_SYNC_ADD;
+			*modtail = mod;
+			modtail = &mod->sml_next;
+			mod  = (Modifications *) ch_malloc( sizeof( Modifications ) );
+
+			mod->sml_op = LDAP_MOD_REPLACE;
+			mod->sml_flags = 0;
+			mod->sml_next = NULL;
+			mod->sml_desc = slap_schema.si_ad_createTimestamp;
+			mod->sml_type = mod->sml_desc->ad_cname;
+			ber_bvarray_dup_x( &mod->sml_values, tmp.sml_values, NULL );
+			mod->sml_nvalues = NULL;
+			mod->sml_numvals = 0;	/* slap_mods_check will set this */
+		}	/* else is a modify or modrdn */
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	}
+
+	if ( *modlist == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "syncrepl_dirsync_message: %s no attributes\n",
+			si->si_ridtxt );
+		rc = -1;
+		goto done;
+	}
+
+	if ( *syncstate == LDAP_SYNC_DELETE ) {
+		e = NULL;
+		slap_mods_free( *modlist, 1 );
+		*modlist = NULL;
+	} else {
+		/* check for incremental multival mods */
+		if ( *syncstate == MSAD_DIRSYNC_MODIFY && rangeMod != NULL ) {
+			for (; rangeMod; rangeMod = rangeMod->sml_next) {
+				if ( rangeMod->sml_desc->ad_flags & SLAP_DESC_TAG_RANGE ) {
+					if ( bvmatch( &rangeMod->sml_desc->ad_tags, &msad_addval ))
+						rangeMod->sml_op = SLAP_MOD_SOFTADD;
+					else if ( bvmatch( &rangeMod->sml_desc->ad_tags, &msad_delval ))
+						rangeMod->sml_op = SLAP_MOD_SOFTDEL;
+					/* turn the tagged attr into a normal one */
+					if ( rangeMod->sml_op != LDAP_MOD_REPLACE ) {
+						AttributeDescription *ad = NULL;
+						slap_bv2ad( &rangeMod->sml_desc->ad_type->sat_cname, &ad, &text );
+						rangeMod->sml_desc = ad;
+					}
+				}
+			}
+		}
+		rc = slap_mods_check( op, *modlist, &text, txtbuf, textlen, NULL );
+
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "syncrepl_dirsync_message: %s mods check (%s)\n",
+				si->si_ridtxt, text );
+			goto done;
+		}
+
+		REWRITE_DN( si, bdn, bv2, dn, ndn );
+		if ( rc != LDAP_SUCCESS ) {
+			/* One of the things that could happen is that the schema
+			 * is not lined-up; this could result in unknown attributes.
+			 * A value non conformant to the syntax should be unlikely,
+			 * except when replicating between different versions
+			 * of the software, or when syntax validation bugs are fixed
+			 */
+			Debug( LDAP_DEBUG_ANY,
+				"syncrepl_dirsync_message: "
+				"%s dn \"%s\" normalization failed (%d)",
+				si->si_ridtxt, bdn.bv_val, rc );
+			return rc;
+		}
+
+		ber_dupbv( &op->o_req_dn, &dn );
+		ber_dupbv( &op->o_req_ndn, &ndn );
+		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+		slap_sl_free( dn.bv_val, op->o_tmpmemctx );
+
+		e = entry_alloc();
+		e->e_name = op->o_req_dn;
+		e->e_nname = op->o_req_ndn;
+
+		/* Strip out redundant attrs */
+		if ( *syncstate == MSAD_DIRSYNC_MODIFY ) {
+			for ( modtail = modlist; *modtail ; ) {
+				mod = *modtail;
+				if ( mod->sml_desc == sy_ad_objectGUID ||
+					 mod->sml_desc == sy_ad_instanceType ) {
+					*modtail = mod->sml_next;
+					slap_mod_free( &mod->sml_mod, 0 );
+					ch_free( mod );
+				} else {
+					modtail = &mod->sml_next;
+				}
+			}
+		}
+
+		/* Strip out dynamically generated attrs */
+		for ( modtail = modlist; *modtail ; ) {
+			mod = *modtail;
+			if ( mod->sml_desc->ad_type->sat_flags & SLAP_AT_DYNAMIC ) {
+				*modtail = mod->sml_next;
+				slap_mod_free( &mod->sml_mod, 0 );
+				ch_free( mod );
+			} else {
+				modtail = &mod->sml_next;
+			}
+		}
+
+		/* Strip out attrs in exattrs list */
+		for ( modtail = modlist; *modtail ; ) {
+			mod = *modtail;
+			if ( ldap_charray_inlist( si->si_exattrs,
+				mod->sml_desc->ad_type->sat_cname.bv_val ) )
+			{
+				*modtail = mod->sml_next;
+				slap_mod_free( &mod->sml_mod, 0 );
+				ch_free( mod );
+			} else {
+				modtail = &mod->sml_next;
+			}
+		}
+
+		rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "syncrepl_dirsync_message: %s mods2entry (%s)\n",
+				si->si_ridtxt, text );
+		}
+	}
+
+done:
+	ber_free( ber, 0 );
+	if ( rc != LDAP_SUCCESS ) {
+		if ( e ) {
+			entry_free( e );
+			e = NULL;
+		}
+	}
+	if ( entry )
+		*entry = e;
+
+	return rc;
+}
+
+static int
+syncrepl_dirsync_cookie(
+	syncinfo_t	*si,
+	Operation	*op,
+	LDAPControl	**ctrls
+)
+{
+	LDAPControl *ctrl, **next;
+	Backend *be = op->o_bd;
+	Modifications mod;
+	struct berval vals[2];
+
+	int rc, continueFlag;
+
+	slap_callback cb = { NULL };
+	SlapReply	rs_modify = {REP_RESULT};
+
+	ctrl = ldap_control_find( LDAP_CONTROL_X_DIRSYNC, ctrls, &next );
+	if ( ctrl == NULL ) {
+		ldap_controls_free( ctrls );
+		return -1;
+	}
+	rc = ldap_parse_dirsync_control( si->si_ld, ctrl, &continueFlag, &vals[0] );
+	if ( !bvmatch( &vals[0], &si->si_dirSyncCookie )) {
+
+		BER_BVZERO( &vals[1] );
+		mod.sml_op = LDAP_MOD_REPLACE;
+		mod.sml_desc = sy_ad_dirSyncCookie;
+		mod.sml_type = mod.sml_desc->ad_cname;
+		mod.sml_flags = SLAP_MOD_INTERNAL;
+		mod.sml_nvalues = NULL;
+		mod.sml_next = NULL;
+
+		op->o_bd = si->si_wbe;
+		op->o_tag = LDAP_REQ_MODIFY;
+
+		cb.sc_response = syncrepl_null_callback;
+		cb.sc_private = si;
+
+		op->o_callback = &cb;
+		op->o_req_dn = si->si_contextdn;
+		op->o_req_ndn = si->si_contextdn;
+
+		op->o_dont_replicate = 0;
+
+		slap_op_time( &op->o_time, &op->o_tincr );
+
+		mod.sml_numvals = 1;
+		mod.sml_values = vals;
+
+		op->orm_modlist = &mod;
+		op->orm_no_opattrs = 1;
+		rc = op->o_bd->be_modify( op, &rs_modify );
+		op->orm_no_opattrs = 0;
+
+		op->o_bd = be;
+		if ( mod.sml_next ) slap_mods_free( mod.sml_next, 1 );
+
+		if ( rc == LDAP_SUCCESS ) {
+			ber_bvreplace( &si->si_dirSyncCookie, &vals[0] );
+			/* there are more changes still remaining */
+			if ( continueFlag )
+				rc = LDAP_SYNC_REFRESH_REQUIRED;
+		}
+	}
+
+	ch_free( vals[0].bv_val );
+	ldap_controls_free( ctrls );
+	return rc;
+}
+
+static int syncrepl_dirsync_schema()
+{
+	const char *text;
+	int rc;
+
+	rc = slap_str2ad( "objectGUID", &sy_ad_objectGUID, &text );
+	if ( rc )
+		return rc;
+	rc = slap_str2ad( "instanceType", &sy_ad_instanceType, &text );
+	if ( rc )
+		return rc;
+	rc = slap_str2ad( "isDeleted", &sy_ad_isDeleted, &text );
+	if ( rc )
+		return rc;
+	rc = slap_str2ad( "whenCreated", &sy_ad_whenCreated, &text );
+	if ( rc )
+		return rc;
+	return register_at( "( 1.3.6.1.4.1.4203.666.1.27 "		/* OpenLDAP-specific */
+		"NAME 'dirSyncCookie' "
+		"DESC 'DirSync Cookie for shadow copy' "
+		"EQUALITY octetStringMatch "
+		"ORDERING octetStringOrderingMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )", &sy_ad_dirSyncCookie, 0);
+}
+#endif /* LDAP_CONTROL_X_DIRSYNC */
+
+#ifdef DO_DSEE
+static int syncrepl_dsee_schema()
+{
+	const char *text;
+	int rc;
+
+	rc = slap_str2ad( "nsUniqueId", &sy_ad_nsUniqueId, &text );
+	if ( rc )
+		return rc;
+	return register_at( "( 1.3.6.1.4.1.4203.666.1.28 "		/* OpenLDAP-specific */
+		"NAME 'lastChangeNumber' "
+		"DESC 'RetroChangelog latest change record' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
+		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )", &sy_ad_dseeLastChange, 0);
+}
+#endif /* DO_DSEE */
 
 /* During a refresh, we may get an LDAP_SYNC_ADD for an already existing
  * entry if a previous refresh was interrupted before sending us a new
@@ -2776,6 +3587,7 @@ typedef struct dninfo {
 	struct berval dn;
 	struct berval ndn;
 	struct berval nnewSup;
+	int syncstate;
 	int renamed;	/* Was an existing entry renamed? */
 	int delOldRDN;	/* Was old RDN deleted? */
 	Modifications **modlist;	/* the modlist we received */
@@ -2910,8 +3722,8 @@ syncrepl_entry(
 	int	freecsn = 1;
 
 	Debug( LDAP_DEBUG_SYNC,
-		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s)\n",
-		si->si_ridtxt, syncrepl_state2str( syncstate ), 0 );
+		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) tid %x\n",
+		si->si_ridtxt, syncrepl_state2str( syncstate ), op->o_tid );
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent && !si->si_refreshDone ) {
@@ -2953,7 +3765,7 @@ syncrepl_entry(
 
 	if ( syncuuid_inserted ) {
 		Debug( LDAP_DEBUG_SYNC, "syncrepl_entry: %s inserted UUID %s\n",
-			si->si_ridtxt, syncUUID[1].bv_val, 0 );
+			si->si_ridtxt, syncUUID[1].bv_val );
 	}
 	op->ors_filter = &f;
 
@@ -2996,27 +3808,28 @@ syncrepl_entry(
 	cb.sc_private = &dni;
 	dni.new_entry = entry;
 	dni.modlist = modlist;
+	dni.syncstate = syncstate;
 
 	rc = be->be_search( op, &rs_search );
 	Debug( LDAP_DEBUG_SYNC,
 			"syncrepl_entry: %s be_search (%d)\n", 
-			si->si_ridtxt, rc, 0 );
+			si->si_ridtxt, rc );
 
 	if ( !BER_BVISNULL( &op->ors_filterstr ) ) {
 		slap_sl_free( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
 
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = si;
 
 	if ( entry && !BER_BVISNULL( &entry->e_name ) ) {
 		Debug( LDAP_DEBUG_SYNC,
 				"syncrepl_entry: %s %s\n",
-				si->si_ridtxt, entry->e_name.bv_val, 0 );
+				si->si_ridtxt, entry->e_name.bv_val );
 	} else {
 		Debug( LDAP_DEBUG_SYNC,
 				"syncrepl_entry: %s %s\n",
-				si->si_ridtxt, dni.dn.bv_val ? dni.dn.bv_val : "(null)", 0 );
+				si->si_ridtxt, dni.dn.bv_val ? dni.dn.bv_val : "(null)" );
 	}
 
 	assert( BER_BVISNULL( &op->o_csn ) );
@@ -3024,27 +3837,14 @@ syncrepl_entry(
 		slap_queue_csn( op, syncCSN );
 	}
 
-	if ( !si->si_refreshDone ) {
-		if ( si->si_lazyCommit )
-			op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
-		if ( si->si_refreshCount == 500 ) {
-			LDAP_SLIST_REMOVE( &op->o_extra, si->si_refreshTxn, OpExtra, oe_next );
-			op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_COMMIT, &si->si_refreshTxn );
-			si->si_refreshCount = 0;
-			si->si_refreshTxn = NULL;
-		}
-		if ( op->o_bd->bd_info->bi_op_txn ) {
-			if ( !si->si_refreshCount ) {
-				op->o_bd->bd_info->bi_op_txn( op, SLAP_TXN_BEGIN, &si->si_refreshTxn );
-			}
-			si->si_refreshCount++;
-		}
-	}
+	if ( !si->si_refreshDone && si->si_lazyCommit )
+		op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
+	case DSEE_SYNC_ADD:
 		if ( BER_BVISNULL( &op->o_csn ))
 		{
 
@@ -3159,11 +3959,14 @@ retry_add:;
 			goto done;
 		}
 		/* FALLTHRU */
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	case MSAD_DIRSYNC_MODIFY:
+#endif
 		op->o_req_dn = dni.dn;
 		op->o_req_ndn = dni.ndn;
 		if ( dni.renamed ) {
 			struct berval noldp, newp;
-			Modifications *mod, **modtail, **ml, *m2;
+			Modifications *mod, **modtail, **ml, *m2 = NULL;
 			int i, got_replace = 0, just_rename = 0;
 			SlapReply rs_modify = {REP_RESULT};
 
@@ -3181,8 +3984,13 @@ retry_add:;
 			}
 			op->orr_deleteoldrdn = dni.delOldRDN;
 			op->orr_modlist = NULL;
-			if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
-				goto done;
+#ifdef LDAP_CONTROL_X_DIRSYNC
+			if ( syncstate != MSAD_DIRSYNC_MODIFY )
+#endif
+			{
+				if ( ( rc = slap_modrdn2mods( op, &rs_modify ) ) ) {
+					goto done;
+				}
 			}
 
 			/* Drop the RDN-related mods from this op, because their
@@ -3390,14 +4198,14 @@ retry_modrdn:;
 			if ( rs_modify.sr_err != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY,
 					"syncrepl_entry: %s be_modify failed (%d)\n",
-					si->si_ridtxt, rs_modify.sr_err, 0 );
+					si->si_ridtxt, rs_modify.sr_err );
 			}
 			syncCSN = NULL;
 			op->o_bd = be;
 		} else if ( !dni.renamed ) {
 			Debug( LDAP_DEBUG_SYNC,
 					"syncrepl_entry: %s entry unchanged, ignored (%s)\n", 
-					si->si_ridtxt, op->o_req_dn.bv_val, 0 );
+					si->si_ridtxt, op->o_req_dn.bv_val );
 			if ( syncCSN ) {
 				slap_graduate_commit_csn( op );
 				syncCSN = NULL;
@@ -3411,7 +4219,7 @@ retry_modrdn:;
 			op->o_req_ndn = dni.ndn;
 			op->o_tag = LDAP_REQ_DELETE;
 			op->o_bd = si->si_wbe;
-			if ( !syncCSN ) {
+			if ( !syncCSN && si->si_syncCookie.ctxcsn ) {
 				slap_queue_csn( op, si->si_syncCookie.ctxcsn );
 			}
 			rc = op->o_bd->be_delete( op, &rs_delete );
@@ -3426,7 +4234,7 @@ retry_modrdn:;
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( be, &op->o_req_ndn ) ) {
 					slap_callback cb = { NULL };
-					cb.sc_response = slap_null_cb;
+					cb.sc_response = syncrepl_null_callback;
 					dnParent( &op->o_req_ndn, &pdn );
 					op->o_req_dn = pdn;
 					op->o_req_ndn = pdn;
@@ -3444,7 +4252,7 @@ retry_modrdn:;
 
 	default :
 		Debug( LDAP_DEBUG_ANY,
-			"syncrepl_entry: %s unknown syncstate\n", si->si_ridtxt, 0, 0 );
+			"syncrepl_entry: %s unknown syncstate\n", si->si_ridtxt );
 		goto done;
 	}
 
@@ -3624,7 +4432,7 @@ syncrepl_del_nonpresent(
 			np_list = LDAP_LIST_NEXT( np_list, npe_link );
 			op->o_tag = LDAP_REQ_DELETE;
 			op->o_callback = &cb;
-			cb.sc_response = null_callback;
+			cb.sc_response = syncrepl_null_callback;
 			cb.sc_private = si;
 			op->o_req_dn = *np_prev->npe_name;
 			op->o_req_ndn = *np_prev->npe_nname;
@@ -3666,7 +4474,7 @@ syncrepl_del_nonpresent(
 				op->o_delete_glue_parent = 0;
 				if ( !be_issuffix( be, &op->o_req_ndn ) ) {
 					slap_callback cb = { NULL };
-					cb.sc_response = slap_null_cb;
+					cb.sc_response = syncrepl_null_callback;
 					dnParent( &op->o_req_ndn, &pdn );
 					op->o_req_dn = pdn;
 					op->o_req_ndn = pdn;
@@ -3719,7 +4527,7 @@ syncrepl_add_glue_ancestors(
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = NULL;
 
 	dn = e->e_name;
@@ -3861,7 +4669,7 @@ syncrepl_add_glue(
 
 	op->o_tag = LDAP_REQ_ADD;
 	op->o_callback = &cb;
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = NULL;
 
 	op->o_req_dn = e->e_name;
@@ -3879,10 +4687,68 @@ syncrepl_add_glue(
 }
 
 static int
+syncrepl_dsee_update(
+	syncinfo_t *si,
+	Operation *op
+)
+{
+	Backend *be = op->o_bd;
+	Modifications mod;
+	struct berval first = BER_BVNULL;
+	slap_callback cb = { NULL };
+	SlapReply	rs_modify = {REP_RESULT};
+	char valbuf[sizeof("18446744073709551615")];
+	struct berval bvals[2];
+	int rc;
+
+	if ( si->si_lastchange == si->si_prevchange )
+		return 0;
+
+	mod.sml_op = LDAP_MOD_REPLACE;
+	mod.sml_desc = sy_ad_dseeLastChange;
+	mod.sml_type = mod.sml_desc->ad_cname;
+	mod.sml_flags = SLAP_MOD_INTERNAL;
+	mod.sml_nvalues = NULL;
+	mod.sml_values = bvals;
+	mod.sml_numvals = 1;
+	mod.sml_next = NULL;
+	bvals[0].bv_val = valbuf;
+	bvals[0].bv_len = sprintf( valbuf, "%lu", si->si_lastchange );
+	BER_BVZERO( &bvals[1] );
+
+	op->o_bd = si->si_wbe;
+
+	op->o_tag = LDAP_REQ_MODIFY;
+
+	cb.sc_response = syncrepl_null_callback;
+	cb.sc_private = si;
+
+	op->o_callback = &cb;
+	op->o_req_dn = si->si_contextdn;
+	op->o_req_ndn = si->si_contextdn;
+
+	/* update contextCSN */
+	op->o_dont_replicate = 1;
+
+	/* avoid timestamp collisions */
+	slap_op_time( &op->o_time, &op->o_tincr );
+
+	op->orm_modlist = &mod;
+	op->orm_no_opattrs = 1;
+	rc = op->o_bd->be_modify( op, &rs_modify );
+
+	op->o_bd = be;
+	si->si_prevchange = si->si_lastchange;
+
+	return rc;
+}
+
+static int
 syncrepl_updateCookie(
 	syncinfo_t *si,
 	Operation *op,
-	struct sync_cookie *syncCookie )
+	struct sync_cookie *syncCookie,
+	int save )
 {
 	Backend *be = op->o_bd;
 	Modifications mod;
@@ -3906,6 +4772,8 @@ syncrepl_updateCookie(
 	mod.sml_next = NULL;
 
 	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+	while ( si->si_cookieState->cs_updating )
+		ldap_pvt_thread_cond_wait( &si->si_cookieState->cs_cond, &si->si_cookieState->cs_mutex );
 
 #ifdef CHECK_CSN
 	for ( i=0; i<syncCookie->numcsns; i++ ) {
@@ -3968,12 +4836,16 @@ syncrepl_updateCookie(
 		ch_free( sc.sids );
 		return 0;
 	}
+
+	si->si_cookieState->cs_updating = 1;
+	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+
 	op->o_bd = si->si_wbe;
 	slap_queue_csn( op, &first );
 
 	op->o_tag = LDAP_REQ_MODIFY;
 
-	cb.sc_response = null_callback;
+	cb.sc_response = syncrepl_null_callback;
 	cb.sc_private = si;
 
 	op->o_callback = &cb;
@@ -3981,7 +4853,11 @@ syncrepl_updateCookie(
 	op->o_req_ndn = si->si_contextdn;
 
 	/* update contextCSN */
-	op->o_dont_replicate = 1;
+	op->o_dont_replicate = !save;
+
+	/* avoid timestamp collisions */
+	if ( save )
+		slap_op_time( &op->o_time, &op->o_tincr );
 
 	mod.sml_numvals = sc.numcsns;
 	mod.sml_values = sc.ctxcsn;
@@ -3998,6 +4874,8 @@ syncrepl_updateCookie(
 		Entry *e = slap_create_context_csn_entry( op->o_bd, NULL );
 		rs_reinit( &rs_modify, REP_RESULT );
 		rc = slap_mods2entry( &mod, &e, 0, 1, &text, txtbuf, textlen);
+		slap_queue_csn( op, &first );
+		op->o_tag = LDAP_REQ_ADD;
 		op->ora_e = e;
 		rc = op->o_bd->be_add( op, &rs_modify );
 		if ( e == op->ora_e )
@@ -4006,6 +4884,7 @@ syncrepl_updateCookie(
 
 	op->orm_no_opattrs = 0;
 	op->o_dont_replicate = 0;
+	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
 
 	if ( rs_modify.sr_err == LDAP_SUCCESS ) {
 		slap_sync_cookie_free( &si->si_syncCookie, 0 );
@@ -4027,7 +4906,7 @@ syncrepl_updateCookie(
 	} else {
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_updateCookie: %s be_modify failed (%d)\n",
-			si->si_ridtxt, rs_modify.sr_err, 0 );
+			si->si_ridtxt, rs_modify.sr_err );
 		ch_free( sc.sids );
 		ber_bvarray_free( sc.ctxcsn );
 	}
@@ -4038,6 +4917,8 @@ syncrepl_updateCookie(
 	}
 #endif
 
+	si->si_cookieState->cs_updating = 0;
+	ldap_pvt_thread_cond_broadcast( &si->si_cookieState->cs_cond );
 	ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 
 	op->o_bd = be;
@@ -4288,7 +5169,7 @@ dn_callback(
 		if ( !BER_BVISNULL( &dni->dn ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"dn_callback : consistency error - "
-				"entryUUID is not unique\n", 0, 0, 0 );
+				"entryUUID is not unique\n" );
 		} else {
 			ber_dupbv_x( &dni->dn, &rs->sr_entry->e_name, op->o_tmpmemctx );
 			ber_dupbv_x( &dni->ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
@@ -4302,42 +5183,47 @@ dn_callback(
 				struct berval old_p, new_p;
 				int is_ctx, new_sup = 0;
 
-				/* If old entry is not a glue entry, make sure new entry
-				 * is actually newer than old entry
-				 */
-				if ( !is_entry_glue( rs->sr_entry )) {
-					old = attr_find( rs->sr_entry->e_attrs,
-						slap_schema.si_ad_entryCSN );
-					new = attr_find( dni->new_entry->e_attrs,
-						slap_schema.si_ad_entryCSN );
-					if ( new && old ) {
-						int rc;
-						ber_len_t len = old->a_vals[0].bv_len;
-						if ( len > new->a_vals[0].bv_len )
-							len = new->a_vals[0].bv_len;
-						rc = memcmp( old->a_vals[0].bv_val,
-							new->a_vals[0].bv_val, len );
-						if ( rc > 0 ) {
-							Debug( LDAP_DEBUG_SYNC,
-								"dn_callback : new entry is older than ours "
-								"%s ours %s, new %s\n",
-								rs->sr_entry->e_name.bv_val,
-								old->a_vals[0].bv_val,
-								new->a_vals[0].bv_val );
-							return LDAP_SUCCESS;
-						} else if ( rc == 0 ) {
-							Debug( LDAP_DEBUG_SYNC,
-								"dn_callback : entries have identical CSN "
-								"%s %s\n",
-								rs->sr_entry->e_name.bv_val,
-								old->a_vals[0].bv_val, 0 );
-							return LDAP_SUCCESS;
+#ifdef LDAP_CONTROL_X_DIRSYNC
+				if ( dni->syncstate != MSAD_DIRSYNC_MODIFY )
+#endif
+				{
+					/* If old entry is not a glue entry, make sure new entry
+					 * is actually newer than old entry
+					 */
+					if ( !is_entry_glue( rs->sr_entry )) {
+						old = attr_find( rs->sr_entry->e_attrs,
+							slap_schema.si_ad_entryCSN );
+						new = attr_find( dni->new_entry->e_attrs,
+							slap_schema.si_ad_entryCSN );
+						if ( new && old ) {
+							int rc;
+							ber_len_t len = old->a_vals[0].bv_len;
+							if ( len > new->a_vals[0].bv_len )
+								len = new->a_vals[0].bv_len;
+							rc = memcmp( old->a_vals[0].bv_val,
+								new->a_vals[0].bv_val, len );
+							if ( rc > 0 ) {
+								Debug( LDAP_DEBUG_SYNC,
+									"dn_callback : new entry is older than ours "
+									"%s ours %s, new %s\n",
+									rs->sr_entry->e_name.bv_val,
+									old->a_vals[0].bv_val,
+									new->a_vals[0].bv_val );
+								return LDAP_SUCCESS;
+							} else if ( rc == 0 ) {
+								Debug( LDAP_DEBUG_SYNC,
+									"dn_callback : entries have identical CSN "
+									"%s %s\n",
+									rs->sr_entry->e_name.bv_val,
+									old->a_vals[0].bv_val );
+								return LDAP_SUCCESS;
+							}
 						}
 					}
-				}
 
-				is_ctx = dn_match( &rs->sr_entry->e_nname,
-					&op->o_bd->be_nsuffix[0] );
+					is_ctx = dn_match( &rs->sr_entry->e_nname,
+						&op->o_bd->be_nsuffix[0] );
+				}
 
 				/* Did the DN change?
 				 * case changes in the parent are ignored,
@@ -4374,16 +5260,18 @@ dn_callback(
 					/* a should not be NULL but apparently it happens.
 					 * ITS#7144
 					 */
-					dni->oldNcount = a ? a->a_numvals : 0;
-					for ( newpos=0, a=dni->new_entry->e_attrs;
-						a && a->a_desc != ad; newpos++, a=a->a_next );
-					if ( !a || oldpos != newpos || attr_valfind( a,
-						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-						SLAP_MR_VALUE_OF_SYNTAX,
-						&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
-					{
-						dni->delOldRDN = 1;
+					if ( a ) {
+						dni->oldNcount = a->a_numvals;
+						for ( newpos=0, a=dni->new_entry->e_attrs;
+							a && a->a_desc != ad; newpos++, a=a->a_next );
+						if ( !a || oldpos != newpos || attr_valfind( a,
+							SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH |
+							SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+							SLAP_MR_VALUE_OF_SYNTAX,
+							&oldVal, NULL, op->o_tmpmemctx ) != LDAP_SUCCESS )
+						{
+							dni->delOldRDN = 1;
+						}
 					}
 					/* Get the newRDN's desc */
 					dnRdn( &dni->new_entry->e_nname, &oldRDN );
@@ -4399,16 +5287,29 @@ dn_callback(
 					 */
 				}
 
-				syncrepl_diff_entry( op, rs->sr_entry->e_attrs,
-					dni->new_entry->e_attrs, &dni->mods, dni->modlist,
-					is_ctx );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+				if ( dni->syncstate == MSAD_DIRSYNC_MODIFY ) {
+					/* DirSync actually sends a diff already, mostly.
+					 * It has no way to indicate deletion of single-valued attrs.
+					 * FIXME: should do an auxiliary search to get the true
+					 * entry contents.
+					 */
+					dni->mods = *dni->modlist;
+					*dni->modlist = NULL;
+				} else
+#endif
+				{
+					syncrepl_diff_entry( op, rs->sr_entry->e_attrs,
+						dni->new_entry->e_attrs, &dni->mods, dni->modlist,
+						is_ctx );
+				}
 			}
 		}
 	} else if ( rs->sr_type == REP_RESULT ) {
 		if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
 			Debug( LDAP_DEBUG_ANY,
 				"dn_callback : consistency error - "
-				"entryUUID is not unique\n", 0, 0, 0 );
+				"entryUUID is not unique\n" );
 		}
 	}
 
@@ -4438,15 +5339,12 @@ nonpresent_callback(
 				present_uuid = presentlist_find( si->si_presentlist, &a->a_nvals[0] );
 			}
 
-			if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-				char buf[sizeof("rid=999 non")];
-
-				snprintf( buf, sizeof(buf), "%s %s", si->si_ridtxt,
-					present_uuid ? "" : "non" );
-
-				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %spresent UUID %s, dn %s\n",
-					buf, a ? a->a_vals[0].bv_val : "<missing>", rs->sr_entry->e_name.bv_val );
-			}
+			Debug(LDAP_DEBUG_SYNC,
+			      "nonpresent_callback: %s %spresent UUID %s, dn %s\n",
+			      si->si_ridtxt,
+			      present_uuid ? "" : "non",
+			      a ? a->a_vals[0].bv_val : "<missing>",
+			      rs->sr_entry->e_name.bv_val );
 
 			if ( a == NULL ) return 0;
 		}
@@ -4462,24 +5360,6 @@ nonpresent_callback(
 			presentlist_delete( &si->si_presentlist, &a->a_nvals[0] );
 			ch_free( present_uuid );
 		}
-	}
-	return LDAP_SUCCESS;
-}
-
-static int
-null_callback(
-	Operation*	op,
-	SlapReply*	rs )
-{
-	if ( rs->sr_err != LDAP_SUCCESS &&
-		rs->sr_err != LDAP_REFERRAL &&
-		rs->sr_err != LDAP_ALREADY_EXISTS &&
-		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
-		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
-	{
-		Debug( LDAP_DEBUG_ANY,
-			"null_callback : error code 0x%x\n",
-			rs->sr_err, 0, 0 );
 	}
 	return LDAP_SUCCESS;
 }
@@ -4603,7 +5483,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 	syncinfo_t *si_next;
 
 	Debug( LDAP_DEBUG_TRACE, "syncinfo_free: %s\n",
-		sie->si_ridtxt, 0, 0 );
+		sie->si_ridtxt );
 
 	do {
 		si_next = sie->si_next;
@@ -4694,6 +5574,11 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			ch_free( sie->si_retrynum_init );
 		}
 		slap_sync_cookie_free( &sie->si_syncCookie, 0 );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		if ( sie->si_dirSyncCookie.bv_val ) {
+			ch_free( sie->si_dirSyncCookie.bv_val );
+		}
+#endif
 		if ( sie->si_presentlist ) {
 		    presentlist_free( sie->si_presentlist );
 		}
@@ -4720,6 +5605,7 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 			if ( !sie->si_cookieState->cs_ref ) {
 				ch_free( sie->si_cookieState->cs_sids );
 				ber_bvarray_free( sie->si_cookieState->cs_vals );
+				ldap_pvt_thread_cond_destroy( &sie->si_cookieState->cs_cond );
 				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
 				ch_free( sie->si_cookieState->cs_psids );
 				ber_bvarray_free( sie->si_cookieState->cs_pvals );
@@ -4862,7 +5748,7 @@ parse_syncrepl_retry(
 	if ( k % 2 ) {
 		snprintf( c->cr_msg, sizeof( c->cr_msg ),
 			"Error: incomplete syncrepl retry list" );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 		for ( k = 0; retry_list && retry_list[k]; k++ ) {
 			ch_free( retry_list[k] );
 		}
@@ -4878,7 +5764,7 @@ parse_syncrepl_retry(
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: invalid retry interval \"%s\" (#%d)",
 				retry_list[j*2], j );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 			/* do some cleanup */
 			return 1;
 		}
@@ -4895,7 +5781,7 @@ parse_syncrepl_retry(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: invalid initial retry number \"%s\" (#%d)",
 					retry_list[j*2+1], j );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				/* do some cleanup */
 				return 1;
 			}
@@ -4905,7 +5791,7 @@ parse_syncrepl_retry(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: invalid retry number \"%s\" (#%d)",
 					retry_list[j*2+1], j );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				/* do some cleanup */
 				return 1;
 			}
@@ -4914,7 +5800,7 @@ parse_syncrepl_retry(
 	if ( j < 1 || si->si_retrynum_init[j-1] != RETRYNUM_FOREVER ) {
 		Debug( LDAP_DEBUG_CONFIG,
 			"%s: syncrepl will eventually stop retrying; the \"retry\" parameter should end with a '+'.\n",
-			c->log, 0, 0 );
+			c->log );
 	}
 
 	si->si_retrynum_init[j] = RETRYNUM_TAIL;
@@ -4951,14 +5837,14 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unable to parse syncrepl id \"%s\"", val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			if ( tmp > SLAP_SYNC_RID_MAX || tmp < 0 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"syncrepl id %d is out of range [0..%d]", tmp, SLAP_SYNC_RID_MAX );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_rid = tmp;
@@ -5018,7 +5904,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Invalid base DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_got |= GOT_SEARCHBASE;
@@ -5039,7 +5925,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Invalid massage DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			if ( !be_issubordinate( c->be, &si->si_suffixm )) {
@@ -5048,7 +5934,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Massage DN \"%s\" is not within the database naming context",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_got |= GOT_SUFFIXM;
@@ -5069,7 +5955,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Invalid logbase DN \"%s\": %d (%s)",
 					val, rc, ldap_err2string( rc ) );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_got |= GOT_LOGBASE;
@@ -5083,7 +5969,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unknown scope \"%s\"", val);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_scope = j;
@@ -5164,11 +6050,23 @@ parse_syncrepl_line(
 			{
 				si->si_type = si->si_ctype = LDAP_SYNC_REFRESH_AND_PERSIST;
 				si->si_interval = 60;
+#ifdef LDAP_CONTROL_X_DIRSYNC
+			} else if ( !strncasecmp( val, "dirSync",
+						STRLENOF("dirSync") ) )
+			{
+				if ( sy_ad_objectGUID == NULL && syncrepl_dirsync_schema()) {
+					sprintf( c->cr_msg, "Error: dirSync schema is missing" );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+					return -1;
+				}
+				/* MS DirSync is refreshOnly, no persist */
+				si->si_type = si->si_ctype = MSAD_DIRSYNC;
+#endif
 			} else {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"Error: parse_syncrepl_line: "
 					"unknown sync type \"%s\"", val);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_got |= GOT_TYPE;
@@ -5187,7 +6085,7 @@ parse_syncrepl_line(
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse days", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 					return -1;
 				}
 				ptr = next + 1;
@@ -5196,7 +6094,7 @@ parse_syncrepl_line(
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse hours", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 					return -1;
 				}
 				ptr = next + 1;
@@ -5205,7 +6103,7 @@ parse_syncrepl_line(
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse minutes", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 					return -1;
 				}
 				ptr = next + 1;
@@ -5214,7 +6112,7 @@ parse_syncrepl_line(
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\", unable to parse seconds", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 					return -1;
 				}
 				si->si_interval = (( dd * 24 + hh ) * 60 + mm ) * 60 + ss;
@@ -5225,7 +6123,7 @@ parse_syncrepl_line(
 					snprintf( c->cr_msg, sizeof( c->cr_msg ),
 						"Error: parse_syncrepl_line: "
 						"invalid interval \"%s\"", val );
-					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 					return -1;
 				}
 				si->si_interval = (time_t)t;
@@ -5235,7 +6133,7 @@ parse_syncrepl_line(
 					"Error: parse_syncrepl_line: "
 					"invalid interval \"%ld\"",
 					(long) si->si_interval);
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return -1;
 			}
 			si->si_got |= GOT_INTERVAL;
@@ -5255,7 +6153,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid manageDSAit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return 1;
 			}
 			si->si_got |= GOT_MANAGEDSAIT;
@@ -5270,7 +6168,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid size limit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return 1;
 			}
 			si->si_got |= GOT_SLIMIT;
@@ -5285,7 +6183,7 @@ parse_syncrepl_line(
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
 					"invalid time limit value \"%s\".\n",
 					val );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 				return 1;
 			}
 			si->si_got |= GOT_TLIMIT;
@@ -5295,6 +6193,24 @@ parse_syncrepl_line(
 			val = c->argv[ i ] + STRLENOF( SYNCDATASTR "=" );
 			si->si_syncdata = verb_to_mask( val, datamodes );
 			si->si_got |= GOT_SYNCDATA;
+			if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
+#ifdef DO_DSEE
+				if ( sy_ad_nsUniqueId == NULL ) {
+					int rc = syncrepl_dsee_schema();
+					if ( rc ) {
+						snprintf( c->cr_msg, sizeof( c->cr_msg ),
+							"changelog schema problem (%d)\n", rc );
+						Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+						return 1;
+					}
+				}
+#else
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"changelog not yet supported\n" );
+				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
+				return 1;
+#endif
+			}
 		} else if ( !strncasecmp( c->argv[ i ], STRICT_REFRESH,
 					STRLENOF( STRICT_REFRESH ) ) )
 		{
@@ -5309,7 +6225,7 @@ parse_syncrepl_line(
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error: parse_syncrepl_line: "
 				"unable to parse \"%s\"\n", c->argv[ i ] );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 			return -1;
 		}
 	}
@@ -5320,7 +6236,7 @@ parse_syncrepl_line(
 			si->si_got & GOT_RID ? "" : " "IDSTR,
 			si->si_got & GOT_PROVIDER ? "" : " "PROVIDERSTR,
 			si->si_got & GOT_SEARCHBASE ? "" : " "SEARCHBASESTR );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 		return -1;
 	}
 
@@ -5330,7 +6246,7 @@ parse_syncrepl_line(
 			si->si_base.bv_val );
 		ch_free( si->si_base.bv_val );
 		BER_BVZERO( &si->si_base );
-		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 		return -1;
 	}
 
@@ -5341,7 +6257,7 @@ parse_syncrepl_line(
 			BER_BVZERO( &si->si_suffixm );
 			snprintf( c->cr_msg, sizeof( c->cr_msg ),
 				"Error configuring rewrite engine" );
-			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg, 0 );
+			Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
 			return -1;
 		}
 	}
@@ -5349,7 +6265,7 @@ parse_syncrepl_line(
 
 	if ( !( si->si_got & GOT_RETRY ) ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined, using default\n", 
-			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)", 0 );
+			si->si_ridtxt, c->be->be_suffix ? c->be->be_suffix[ 0 ].bv_val : "(null)" );
 		if ( si->si_retryinterval == NULL ) {
 			if ( parse_syncrepl_retry( c, "retry=undefined", si ) ) {
 				return 1;
@@ -5386,18 +6302,18 @@ add_syncrepl(
 	if ( !( c->be->be_search && c->be->be_add && c->be->be_modify && c->be->be_delete ) ) {
 		snprintf( c->cr_msg, sizeof(c->cr_msg), "database %s does not support "
 			"operations required for syncrepl", c->be->be_type );
-		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
 		return 1;
 	}
 	if ( BER_BVISEMPTY( &c->be->be_rootdn ) ) {
 		strcpy( c->cr_msg, "rootDN must be defined before syncrepl may be used" );
-		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg, 0 );
+		Debug( LDAP_DEBUG_ANY, "%s: %s\n", c->log, c->cr_msg );
 		return 1;
 	}
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
 	if ( si == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n" );
 		return 1;
 	}
 
@@ -5445,7 +6361,7 @@ add_syncrepl(
 		default:
 			Debug( LDAP_DEBUG_ANY,
 				"version %d incompatible with syncrepl\n",
-				si->si_bindconf.sb_version, 0, 0 );
+				si->si_bindconf.sb_version );
 			syncinfo_free( si, 0 );	
 			return 1;
 		}
@@ -5505,7 +6421,7 @@ add_syncrepl(
 	bindconf_tls_defaults( &si->si_bindconf );
 #endif
 	if ( rc < 0 ) {
-		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n" );
 		syncinfo_free( si, 0 );	
 		return 1;
 	} else {
@@ -5513,7 +6429,7 @@ add_syncrepl(
 			"Config: ** successfully added syncrepl %s \"%s\"\n",
 			si->si_ridtxt,
 			BER_BVISNULL( &si->si_bindconf.sb_uri ) ?
-			"(null)" : si->si_bindconf.sb_uri.bv_val, 0 );
+			"(null)" : si->si_bindconf.sb_uri.bv_val );
 		if ( c->be->be_syncinfo ) {
 			syncinfo_t *sip;
 
@@ -5526,6 +6442,7 @@ add_syncrepl(
 			si->si_cookieState = ch_calloc( 1, sizeof( cookie_state ));
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_mutex );
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_pmutex );
+			ldap_pvt_thread_cond_init( &si->si_cookieState->cs_cond );
 
 			c->be->be_syncinfo = si;
 		}
@@ -5650,10 +6567,19 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 	
 	if ( WHATSLEFT <= STRLENOF( " " TYPESTR "=" ) + STRLENOF( "refreshAndPersist" ) ) return;
 	ptr = lutil_strcopy( ptr, " " TYPESTR "=" );
+#ifdef LDAP_CONTROL_X_DIRSYNC
+	if ( si->si_type == MSAD_DIRSYNC )
+		ptr = lutil_strcopy( ptr, "dirSync" );
+	else
+#endif
 	ptr = lutil_strcopy( ptr, si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ?
 		"refreshAndPersist" : "refreshOnly" );
 
-	if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+	if ( si->si_type == LDAP_SYNC_REFRESH_ONLY
+#ifdef LDAP_CONTROL_X_DIRSYNC
+		|| si->si_type == MSAD_DIRSYNC
+#endif
+	) {
 		int dd, hh, mm, ss;
 
 		dd = si->si_interval;
@@ -5801,7 +6727,7 @@ syncrepl_config( ConfigArgs *c )
 	if ( SLAP_SLURP_SHADOW( c->be ) ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"syncrepl: database already shadowed.\n",
-			c->log, 0, 0);
+			c->log );
 		return(1);
 	} else {
 		return add_syncrepl( c );

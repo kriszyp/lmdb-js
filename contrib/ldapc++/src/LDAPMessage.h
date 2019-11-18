@@ -1,6 +1,6 @@
 // $OpenLDAP$
 /*
- * Copyright 2000-2017 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2019 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -46,7 +46,7 @@ class LDAPMsg{
         static const int EXTENDED_REQUEST=LDAP_REQ_EXTENDED;
        
         /**
-         * The destructor has no implemenation, because this is an abstract
+         * The destructor has no implementation, because this is an abstract
          * class.
          */
         virtual ~LDAPMsg() {}
@@ -81,7 +81,7 @@ class LDAPMsg{
          *          DEL_RESPONSE       <BR>  
          *          MODDN_RESPONSE     <BR>    
          *          COMPARE_RESPONSE   <BR>
-         *          EXTENDED_REPONSE   <BR>      
+         *          EXTENDED_RESPONSE   <BR>
          */
         int getMessageType();
         

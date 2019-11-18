@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * Portions Copyright 1997,2002-2003 IBM Corporation.
  * All rights reserved.
  *
@@ -55,7 +55,7 @@ static ExtendedOp *pGExtendedOps = NULL;
  *
  * Output:             
  *
- * Return Values:      a pointer to a newly created Slapi_PBlock structrue or
+ * Return Values:      a pointer to a newly created Slapi_PBlock structure or
  *                     NULL - function failed 
  *
  * Messages:           None
@@ -450,7 +450,7 @@ error_return:
  *
  * Output:             pFuncAddr - the function address of the requested function name.
  *
- * Return Values:      a pointer to a newly created ExtendOp structrue or
+ * Return Values:      a pointer to a newly created ExtendOp structure or
  *                     NULL - function failed
  *
  * Messages:           None

@@ -1,7 +1,7 @@
 # $OpenLDAP$
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
-# Copyright 2008-2017 The OpenLDAP Foundation.
+# Copyright 2008-2019 The OpenLDAP Foundation.
 # Portions Copyright 2008 Howard Chu, Symas Corp. All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@ LDAP_LIB = $(LDAP_BUILD)/libraries/libldap_r/libldap_r.la \
 NLDAPD_INC=-Inss-pam-ldapd
 
 LIBTOOL = $(LDAP_BUILD)/libtool
+INSTALL = /usr/bin/install
 OPT = -g -O2 -Wall
 CC = gcc
 DEFS =
@@ -41,6 +42,8 @@ libexecdir=$(exec_prefix)/libexec
 moduledir = $(libexecdir)$(ldap_subdir)
 sysconfdir = $(prefix)/etc$(ldap_subdir)
 schemadir = $(sysconfdir)/schema
+mandir = $(exec_prefix)/share/man
+man5dir = $(mandir)/man5
 
 all:	nssov.la
 
@@ -48,6 +51,8 @@ XOBJS = tio.lo
 
 OBJS = alias.lo ether.lo group.lo host.lo netgroup.lo network.lo \
 	nssov.lo passwd.lo protocol.lo rpc.lo service.lo shadow.lo pam.lo
+
+MANPAGES = slapo-nssov.5
 
 .SUFFIXES: .c .o .lo
 
@@ -63,10 +68,18 @@ nssov.la:	$(OBJS) $(XOBJS)
 	$(LIBTOOL) --mode=link $(CC) $(OPT) -version-info 0:0:0 \
 	-rpath $(moduledir) -module -o $@ $(OBJS) $(XOBJS) $(LIBS)
 
-install: nssov.la
+install: install-lib install-man FORCE
+
+install-lib: nssov.la
 	mkdir -p $(DESTDIR)$(moduledir)
 	$(LIBTOOL) --mode=install cp nssov.la $(DESTDIR)$(moduledir)
 	cp ldapns.schema $(DESTDIR)$(schemadir)
+
+install-man: $(MANPAGES)
+	mkdir -p  $(DESTDIR)$(man5dir)
+	$(INSTALL) -m 644 $(MANPAGES) $(DESTDIR)$(man5dir)
+
+FORCE:
 
 clean:
 	rm -f *.*o *.la .libs/*

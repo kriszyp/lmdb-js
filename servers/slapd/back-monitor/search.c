@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2017 The OpenLDAP Foundation.
+ * Copyright 2001-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -170,7 +170,7 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	Entry		*e_nv = NULL, *e_ch = NULL;
 	slap_mask_t	mask;
 
-	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> monitor_back_search\n" );
 
 
 	/* get entry with reader lock */

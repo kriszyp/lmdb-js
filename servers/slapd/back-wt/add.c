@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2017 The OpenLDAP Foundation.
+ * Copyright 2002-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@ wt_add( Operation *op, SlapReply *rs )
 	int rc;
 
     Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(wt_add) ": %s\n",
-		   op->ora_e->e_name.bv_val, 0, 0);
+		   op->ora_e->e_name.bv_val );
 
 	ctrls[num_ctrls] = 0;
 
@@ -59,7 +59,7 @@ wt_add( Operation *op, SlapReply *rs )
         Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add)
 			   ": entry failed schema check: %s (%d)\n",
-			   rs->sr_text, rs->sr_err, 0 );
+			   rs->sr_text, rs->sr_err );
         goto return_results;
     }
 
@@ -70,7 +70,7 @@ wt_add( Operation *op, SlapReply *rs )
         Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add)
 			   ": entry failed op attrs add: %s (%d)\n",
-			   rs->sr_text, rs->sr_err, 0 );
+			   rs->sr_text, rs->sr_err );
         goto return_results;
     }
 
@@ -99,8 +99,7 @@ wt_add( Operation *op, SlapReply *rs )
 	if( !wc ){
         Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_add)
-			   ": wt_ctx_get failed\n",
-			   0, 0, 0 );
+			   ": wt_ctx_get failed\n" );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
         send_ldap_result( op, rs );
@@ -120,7 +119,7 @@ wt_add( Operation *op, SlapReply *rs )
         Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_add)
 			   ": error at wt_dn2entry() rc=%d\n",
-			   rc, 0, 0 );
+			   rc );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -136,7 +135,7 @@ wt_add( Operation *op, SlapReply *rs )
         Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_add)
 			   ": error at wt_dn2pentry() rc=%d\n",
-			   rc, 0, 0 );
+			   rc );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "internal error";
 		goto return_results;
@@ -159,7 +158,7 @@ wt_add( Operation *op, SlapReply *rs )
 		p = NULL;
         Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add) ": parent "
-			   "does not exist\n", 0, 0, 0 );
+			   "does not exist\n" );
         rs->sr_err = LDAP_REFERRAL;
         rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
         goto return_results;
@@ -175,8 +174,7 @@ wt_add( Operation *op, SlapReply *rs )
 		p = NULL;
 
 		Debug( LDAP_DEBUG_TRACE,
-			   LDAP_XSTRING(wt_add) ": no write access to parent\n",
-			   0, 0, 0 );
+			   LDAP_XSTRING(wt_add) ": no write access to parent\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to parent";
 		goto return_results;;
@@ -188,8 +186,7 @@ wt_add( Operation *op, SlapReply *rs )
 			p = NULL;
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
-				   LDAP_XSTRING(wt_add) ": parent is subentry\n",
-				   0, 0, 0 );
+				   LDAP_XSTRING(wt_add) ": parent is subentry\n" );
 			rs->sr_err = LDAP_OBJECT_CLASS_VIOLATION;
 			rs->sr_text = "parent is a subentry";
 			goto return_results;;
@@ -200,8 +197,7 @@ wt_add( Operation *op, SlapReply *rs )
 			p = NULL;
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE,
-				   LDAP_XSTRING(wt_add) ": parent is alias\n",
-				   0, 0, 0 );
+				   LDAP_XSTRING(wt_add) ": parent is alias\n" );
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "parent is an alias";
 			goto return_results;;
@@ -218,8 +214,7 @@ wt_add( Operation *op, SlapReply *rs )
 			wt_entry_return( p );
 			p = NULL;
 			Debug( LDAP_DEBUG_TRACE,
-				   LDAP_XSTRING(wt_add) ": parent is referral\n",
-				   0, 0, 0 );
+				   LDAP_XSTRING(wt_add) ": parent is referral\n" );
 
 			rs->sr_err = LDAP_REFERRAL;
 			rs->sr_flags = REP_MATCHED_MUSTBEFREED | REP_REF_MUSTBEFREED;
@@ -267,8 +262,7 @@ wt_add( Operation *op, SlapReply *rs )
 
 	if ( ! rs->sr_err ) {
 		Debug( LDAP_DEBUG_TRACE,
-			   LDAP_XSTRING(wt_add) ": no write access to entry\n",
-			   0, 0, 0 );
+			   LDAP_XSTRING(wt_add) ": no write access to entry\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to entry";
 		goto return_results;
@@ -279,8 +273,7 @@ wt_add( Operation *op, SlapReply *rs )
 	 */
 	if (!acl_check_modlist(op, op->ora_e, op->ora_modlist)) {
 		Debug( LDAP_DEBUG_TRACE,
-			   LDAP_XSTRING(wt_add) ": no write access to attribute\n",
-			   0, 0, 0 );
+			   LDAP_XSTRING(wt_add) ": no write access to attribute\n" );
 		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
 		rs->sr_text = "no write access to attribute";
 		goto return_results;
@@ -290,13 +283,13 @@ wt_add( Operation *op, SlapReply *rs )
 	if( rc ) {
 		Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add) ": begin_transaction failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "begin_transaction failed";
 		goto return_results;
 	}
 	Debug( LDAP_DEBUG_TRACE, LDAP_XSTRING(wt_add) ": session id: %p\n",
-		   wc->session, 0, 0 );
+		   wc->session );
 
 	wt_next_id( op->o_bd, &eid );
 	op->ora_e->e_id = eid;
@@ -306,7 +299,7 @@ wt_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add)
 			   ": dn2id_add failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		switch( rc ) {
 		case WT_DUPLICATE_KEY:
 			rs->sr_err = LDAP_ALREADY_EXISTS;
@@ -323,7 +316,7 @@ wt_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			   LDAP_XSTRING(wt_add)
 			   ": id2entry_add failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		if ( rc == LDAP_ADMINLIMIT_EXCEEDED ) {
 			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 			rs->sr_text = "entry is too big";
@@ -341,7 +334,7 @@ wt_add( Operation *op, SlapReply *rs )
 		Debug(LDAP_DEBUG_TRACE,
 			  "<== " LDAP_XSTRING(wt_add)
 			  ": index add failed: %s (%d)\n",
-			  wiredtiger_strerror(rc), rc, 0 );
+			  wiredtiger_strerror(rc), rc );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "index add failed";
 		wc->session->rollback_transaction(wc->session, NULL);
@@ -353,7 +346,7 @@ wt_add( Operation *op, SlapReply *rs )
 		Debug( LDAP_DEBUG_TRACE,
 			   "<== " LDAP_XSTRING(wt_add)
 			   ": commit_transaction failed: %s (%d)\n",
-			   wiredtiger_strerror(rc), rc, 0 );
+			   wiredtiger_strerror(rc), rc );
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "commit_transaction failed";
 		goto return_results;
@@ -372,7 +365,7 @@ wt_add( Operation *op, SlapReply *rs )
 		{
 			Debug( LDAP_DEBUG_TRACE,
 				   "<=- " LDAP_XSTRING(wt_add) ": post-read "
-				   "failed!\n", 0, 0, 0 );
+				   "failed!\n" );
 			if ( op->o_postread & SLAP_CONTROL_CRITICAL ) {
 				/* FIXME: is it correct to abort
                  * operation if control fails? */

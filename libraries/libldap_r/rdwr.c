@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -397,7 +397,7 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rwlock )
  * Currently they don't check if the calling thread is the one 
  * that has the lock, just that there is a reader or writer.
  *
- * Basically sufficent for testing that places that should have
+ * Basically sufficient for testing that places that should have
  * a lock are caught.
  */
 

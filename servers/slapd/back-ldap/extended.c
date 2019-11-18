@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2003-2017 The OpenLDAP Foundation.
+ * Copyright 2003-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ ldap_back_extended_one( Operation *op, SlapReply *rs, ldap_back_exop_f exop )
 		return -1;
 	}
 
-	ctrls = op->o_ctrls;
+	ctrls = oldctrls = op->o_ctrls;
 	if ( ldap_back_controls_add( op, rs, lc, &ctrls ) )
 	{
 		op->o_ctrls = oldctrls;
@@ -183,7 +183,7 @@ ldap_back_exop_passwd(
 	isproxy = ber_bvcmp( &ndn, &op->o_ndn );
 
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_exop_passwd(\"%s\")%s\n",
-		dn.bv_val, isproxy ? " (proxy)" : "", 0 );
+		dn.bv_val, isproxy ? " (proxy)" : "" );
 
 retry:
 	rc = ldap_passwd( lc->lc_ld,  &dn,
@@ -313,7 +313,7 @@ ldap_back_exop_generic(
 	char		*text = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_exop_generic(%s, \"%s\")\n",
-		op->ore_reqoid.bv_val, op->o_req_dn.bv_val, 0 );
+		op->ore_reqoid.bv_val, op->o_req_dn.bv_val );
 	assert( lc != NULL );
 	assert( rs->sr_ctrls == NULL );
 

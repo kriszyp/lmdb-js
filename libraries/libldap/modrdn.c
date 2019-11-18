@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -136,7 +136,7 @@ ldap_rename(
 	int rc;
 	ber_int_t id;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_rename\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_rename\n" );
 
 	/* check client controls */
 	rc = ldap_int_client_controls( ld, cctrls );
@@ -181,7 +181,7 @@ ldap_rename2(
 	int msgid;
 	int rc;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
+	Debug0( LDAP_DEBUG_TRACE, "ldap_rename2\n" );
 
 	rc = ldap_rename( ld, dn, newrdn, newSuperior,
 		deleteoldrdn, NULL, NULL, &msgid );

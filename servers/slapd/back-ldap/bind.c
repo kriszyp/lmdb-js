@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2000-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -37,7 +37,9 @@
 
 #define LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ	"2.16.840.1.113730.3.4.12"
 
+#ifdef LDAP_DEVEL
 #define SLAP_AUTH_DN 1
+#endif
 
 #if LDAP_BACK_PRINT_CONNTREE > 0
 
@@ -346,7 +348,7 @@ retry_lock:;
 				assert( !LDAP_BACK_PCONN_ISPRIV( lc ) );
 				Debug( LDAP_DEBUG_TRACE,
 					"=>ldap_back_bind: destroying conn %lu (refcnt=%u)\n",
-					lc->lc_conn->c_connid, lc->lc_refcnt, 0 );
+					lc->lc_conn->c_connid, lc->lc_refcnt );
 
 				if ( tmplc->lc_refcnt != 0 ) {
 					/* taint it */
@@ -530,7 +532,7 @@ ldap_back_start_tls(
 	int		*is_tls,
 	const char	*url,
 	unsigned	flags,
-	int		retries,
+	int		timeout,
 	const char	**text )
 {
 	int		rc = LDAP_SUCCESS;
@@ -565,22 +567,14 @@ ldap_back_start_tls(
 			LDAPMessage	*res = NULL;
 			struct timeval	tv;
 
-			LDAP_BACK_TV_SET( &tv );
-
-retry:;
+			if ( timeout ) {
+				tv.tv_sec = timeout;
+				tv.tv_usec = 0;
+			} else {
+				LDAP_BACK_TV_SET( &tv );
+			}
 			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
-			if ( rc < 0 ) {
-				rc = LDAP_UNAVAILABLE;
-
-			} else if ( rc == 0 ) {
-				if ( retries != LDAP_BACK_RETRY_NEVER ) {
-					ldap_pvt_thread_yield();
-					if ( retries > 0 ) {
-						retries--;
-					}
-					LDAP_BACK_TV_SET( &tv );
-					goto retry;
-				}
+			if ( rc <= 0 ) {
 				rc = LDAP_UNAVAILABLE;
 
 			} else if ( rc == LDAP_RES_EXTENDED ) {
@@ -735,11 +729,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 		sb = &li->li_tls;
 	}
 
-	if ( sb->sb_tls_do_init ) {
-		bindconf_tls_set( sb, ld );
-	} else if ( sb->sb_tls_ctx ) {
-		ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, sb->sb_tls_ctx );
-	}
+	bindconf_tls_set( sb, ld );
 
 	/* if required by the bindconf configuration, force TLS */
 	if ( ( sb == &li->li_acl || sb == &li->li_idassert.si_bc ) &&
@@ -752,7 +742,7 @@ ldap_back_prepare_conn( ldapconn_t *lc, Operation *op, SlapReply *rs, ldap_back_
 	assert( li->li_uri_mutex_do_not_lock == 0 );
 	li->li_uri_mutex_do_not_lock = 1;
 	rs->sr_err = ldap_back_start_tls( ld, op->o_protocol, &is_tls,
-			li->li_uri, flags, li->li_nretries, &rs->sr_text );
+			li->li_uri, flags, li->li_timeout[ SLAP_OP_BIND ], &rs->sr_text );
 	li->li_uri_mutex_do_not_lock = 0;
 	ldap_pvt_thread_mutex_unlock( &li->li_uri_mutex );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -978,6 +968,7 @@ retry_lock:
 		lc = (ldapconn_t *)ch_calloc( 1, sizeof( ldapconn_t ) );
 		lc->lc_flags = li->li_flags;
 		lc->lc_lcflags = lc_curr.lc_lcflags;
+		lc->lc_ldapinfo = li;
 		if ( ldap_back_prepare_conn( lc, op, rs, sendok ) != LDAP_SUCCESS ) {
 			ch_free( lc );
 			return NULL;
@@ -1100,17 +1091,10 @@ retry_lock:
 	
 		ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"lc=%p inserted refcnt=%u rc=%d",
-				(void *)lc, refcnt, rs->sr_err );
-				
-			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: %s: %s\n",
-				op->o_log_prefix, buf, 0 );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "=>ldap_back_getconn: %s: lc=%p inserted refcnt=%u rc=%d\n",
+		      op->o_log_prefix, (void *)lc, refcnt,
+		      rs->sr_err );
 	
 		if ( !LDAP_BACK_PCONN_ISPRIV( lc ) ) {
 			/* Err could be -1 in case a duplicate ldapconn is inserted */
@@ -1169,16 +1153,9 @@ retry_lock:
 			ldap_pvt_thread_mutex_unlock( &li->li_conninfo.lai_mutex );
 		}
 
-		if ( LogTest( LDAP_DEBUG_TRACE ) ) {
-			char	buf[ SLAP_TEXT_BUFLEN ];
-
-			snprintf( buf, sizeof( buf ),
-				"conn %p fetched refcnt=%u%s",
-				(void *)lc, refcnt,
-				expiring ? " expiring" : "" );
-			Debug( LDAP_DEBUG_TRACE,
-				"=>ldap_back_getconn: %s.\n", buf, 0, 0 );
-		}
+		Debug(LDAP_DEBUG_TRACE,
+		      "=>ldap_back_getconn: conn %p fetched refcnt=%u%s.\n",
+		      (void *)lc, refcnt, expiring ? " expiring" : "" );
 	}
 
 #ifdef HAVE_TLS
@@ -1234,7 +1211,7 @@ ldap_back_quarantine(
 
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_back_quarantine enter.\n",
-				op->o_log_prefix, 0, 0 );
+				op->o_log_prefix );
 
 			ri->ri_idx = 0;
 			ri->ri_count = 0;
@@ -1411,7 +1388,7 @@ retry_lock:;
 				LDAP_BACK_DONTSEND, &binddn, &bindcred );
 			if ( rc != 1 ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_back_is_proxy_authz "
-					"returned %d, misconfigured URI?\n", rc, 0, 0 );
+					"returned %d, misconfigured URI?\n", rc );
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "misconfigured URI?";
 				LDAP_BACK_CONN_ISBOUND_CLEAR( lc );
@@ -1443,7 +1420,7 @@ retry_lock:;
 			if ( rc != LDAP_OPT_SUCCESS ) {
 				Debug( LDAP_DEBUG_ANY, "Error: ldap_set_option "
 					"(SECPROPS,\"%s\") failed!\n",
-					sb->sb_secprops, 0, 0 );
+					sb->sb_secprops );
 				goto done;
 			}
 		}
@@ -1511,7 +1488,7 @@ retry:;
 		tmp_dn = "";
 		if ( !BER_BVISNULL( &lc->lc_bound_ndn ) && !BER_BVISEMPTY( &lc->lc_bound_ndn ) ) {
 			Debug( LDAP_DEBUG_ANY, "%s ldap_back_dobind_int: DN=\"%s\" without creds, binding anonymously",
-				op->o_log_prefix, lc->lc_bound_ndn.bv_val, 0 );
+				op->o_log_prefix, lc->lc_bound_ndn.bv_val );
 		}
 
 	} else {
@@ -1647,7 +1624,7 @@ ldap_back_default_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 		const char	*text = NULL;
 
 		rc = ldap_back_start_tls( ld, 0, &is_tls, url, lc->lc_flags,
-			LDAP_BACK_RETRY_DEFAULT, &text );
+			lc->lc_ldapinfo->li_timeout[ SLAP_OP_BIND ], &text );
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}
@@ -1877,7 +1854,7 @@ retry:;
 						"%s ldap_back_op_result: "
 						"got referrals with err=%d\n",
 						op->o_log_prefix,
-						rs->sr_err, 0 );
+						rs->sr_err );
 
 				} else {
 					int	i;
@@ -1898,7 +1875,7 @@ retry:;
 					"got err=%d with null "
 					"or empty referrals\n",
 					op->o_log_prefix,
-					rs->sr_err, 0 );
+					rs->sr_err );
 
 				rs->sr_err = LDAP_NO_SUCH_OBJECT;
 			}
@@ -2063,7 +2040,7 @@ ldap_back_retry( ldapconn_t **lcp, Operation *op, SlapReply *rs, ldap_back_send_
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"ldap_back_retry: conn %p refcnt=%u unable to retry.\n",
-			(void *)(*lcp), (*lcp)->lc_refcnt, 0 );
+			(void *)(*lcp), (*lcp)->lc_refcnt );
 
 		LDAP_BACK_CONN_TAINTED_SET( *lcp );
 		ldap_back_release_conn_lock( li, lcp, 0 );
@@ -2378,7 +2355,7 @@ ldap_back_proxy_authz_bind(
 						ctrlsp, NULL );
 					if ( ctrl ) {
 						Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (authzid)\n",
-							op->o_log_prefix, ctrl->ldctl_value.bv_val, 0 );
+							op->o_log_prefix, ctrl->ldctl_value.bv_val );
 						if ( ctrl->ldctl_value.bv_len > STRLENOF("dn:") &&
 							strncasecmp( ctrl->ldctl_value.bv_val, "dn:", STRLENOF("dn:") ) == 0 )
 						{
@@ -2397,7 +2374,7 @@ ldap_back_proxy_authz_bind(
 				rc = ldap_whoami_s( lc->lc_ld, &val, NULL, NULL );
 				if ( rc == LDAP_SUCCESS && val != NULL ) {
 					Debug( LDAP_DEBUG_TRACE, "%s: ldap_back_proxy_authz_bind: authzID=\"%s\" (whoami)\n",
-						op->o_log_prefix, val->bv_val, 0 );
+						op->o_log_prefix, val->bv_val );
 					if ( val->bv_len > STRLENOF("dn:") &&
 						strncasecmp( val->bv_val, "dn:", STRLENOF("dn:") ) == 0 )
 					{

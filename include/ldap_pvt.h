@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  * 
- * Copyright 1998-2017 The OpenLDAP Foundation.
+ * Copyright 1998-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,15 +20,11 @@
 #ifndef _LDAP_PVT_H
 #define _LDAP_PVT_H 1
 
+#include <openldap.h>				/* get public interfaces */
 #include <lber.h>				/* get ber_slen_t */
 #include <lber_pvt.h>				/* get Sockbuf_Buf */
 
 LDAP_BEGIN_DECL
-
-#define LDAP_PROTO_TCP 1 /* ldap://  */
-#define LDAP_PROTO_UDP 2 /* reserved */
-#define LDAP_PROTO_IPC 3 /* ldapi:// */
-#define LDAP_PROTO_EXT 4 /* user-defined socket/sockbuf */
 
 LDAP_F ( int )
 ldap_pvt_url_scheme2proto LDAP_P((
@@ -326,6 +322,11 @@ struct ldifrecord;
 LDAP_F ( int ) ldap_pvt_discard LDAP_P((
 	struct ldap *ld, ber_int_t msgid ));
 
+/* init.c */
+LDAP_F( int )
+ldap_pvt_conf_option LDAP_P((
+	char *cmd, char *opt, int userconf ));
+
 /* ldifutil.c */
 LDAP_F( int )
 ldap_parse_ldif_record_x LDAP_P((
@@ -344,8 +345,6 @@ ldap_get_message_ber LDAP_P((
 /* open */
 LDAP_F (int) ldap_open_internal_connection LDAP_P((
 	struct ldap **ldp, ber_socket_t *fdp ));
-LDAP_F (int) ldap_init_fd LDAP_P((
-	ber_socket_t fd, int proto, LDAP_CONST char *url, struct ldap **ldp ));
 
 /* sasl.c */
 LDAP_F (int) ldap_pvt_sasl_generic_install LDAP_P(( Sockbuf *sb,
@@ -423,6 +422,7 @@ LDAP_F (void) ldap_pvt_tls_destroy LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_init LDAP_P(( void ));
 LDAP_F (int) ldap_pvt_tls_init_def_ctx LDAP_P(( int is_server ));
 LDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
+LDAP_F (int) ldap_pvt_tls_connect LDAP_P(( struct ldap *ld, Sockbuf *sb, const char *host ));
 LDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
 LDAP_F (void *) ldap_pvt_tls_sb_ctx LDAP_P(( Sockbuf *sb ));
 LDAP_F (void) ldap_pvt_tls_ctx_free LDAP_P(( void * ));

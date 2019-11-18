@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2001-2017 The OpenLDAP Foundation.
+ * Copyright 2001-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * All rights reserved.
  *
@@ -239,7 +239,7 @@ retry:;
 				Debug( LDAP_DEBUG_ANY,
 					"monitor_cache_remove(\"%s\"): "
 					"not in parent's list\n",
-					ndn->bv_val, 0, 0 );
+					ndn->bv_val );
 			}
 
 			/* either succeeded, and the entry is no longer

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2017 The OpenLDAP Foundation.
+ * Copyright 2000-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -21,13 +21,11 @@
  *   limiting factors: sizeof(ID), thread stack size
  */
 #define	MDB_IDL_LOGN	16	/* DB_SIZE is 2^16, UM_SIZE is 2^17 */
-#define MDB_IDL_DB_SIZE		(1<<MDB_IDL_LOGN)
-#define MDB_IDL_UM_SIZE		(1<<(MDB_IDL_LOGN+1))
-#define MDB_IDL_UM_SIZEOF	(MDB_IDL_UM_SIZE * sizeof(ID))
-
-#define MDB_IDL_DB_MAX		(MDB_IDL_DB_SIZE-1)
-
-#define MDB_IDL_UM_MAX		(MDB_IDL_UM_SIZE-1)
+extern unsigned int MDB_idl_logn;
+extern unsigned int MDB_idl_db_size;
+extern unsigned int MDB_idl_um_size;
+extern unsigned int MDB_idl_db_max;
+extern unsigned int MDB_idl_um_max;
 
 #define MDB_IDL_IS_RANGE(ids)	((ids)[0] == NOID)
 #define MDB_IDL_RANGE_SIZE		(3)
@@ -97,6 +95,10 @@ typedef struct IdScopes {
 } IdScopes;
 
 LDAP_BEGIN_DECL
+	/** Reset IDL params after changing logn */
+void mdb_idl_reset();
+
+
 	/** Search for an ID in an ID2L.
 	 * @param[in] ids	The ID2L to search.
 	 * @param[in] id	The ID to search for.

@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2010-2017 The OpenLDAP Foundation.
+ * Copyright 2010-2019 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -425,7 +425,7 @@ vc_initialize( void )
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,
 			"vc_initialize: unable to register VerifyCredentials exop: %d.\n",
-			rc, 0, 0 );
+			rc );
 	}
 
 	ldap_pvt_thread_mutex_init( &vc_mutex );

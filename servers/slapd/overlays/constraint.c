@@ -15,7 +15,7 @@
  */
 /*
  * Authors: Neil Dunbar <neil.dunbar@hp.com>
- *			Emmannuel Dreyfus <manu@netbsd.org>
+ *			Emmanuel Dreyfus <manu@netbsd.org>
  */
 #include "portable.h"
 
@@ -48,7 +48,7 @@
 /*
  * Linked list of attribute constraints which we should enforce.
  * This is probably a sub optimal structure - some form of sorted
- * array would be better if the number of attributes contrained is
+ * array would be better if the number of attributes constrained is
  * likely to be much bigger than 4 or 5. We stick with a list for
  * the moment.
  */
@@ -382,7 +382,7 @@ constraint_cf_gen( ConfigArgs *c )
 							"%s %s: URI %s DN normalization failed",
 							c->argv[0], c->argv[1], c->argv[3] );
 						Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-							   "%s: %s\n", c->log, c->cr_msg, 0 );
+							   "%s: %s\n", c->log, c->cr_msg );
 						rc = ARG_BAD_CONF;
 						goto done;
 					}
@@ -446,7 +446,7 @@ constraint_cf_gen( ConfigArgs *c )
 						}
 
 						if ( ap.restrict_lud->lud_attrs != NULL ) {
-							if ( ap.restrict_lud->lud_attrs[0] != '\0' ) {
+							if ( ap.restrict_lud->lud_attrs[0] != NULL ) {
 								snprintf( c->cr_msg, sizeof( c->cr_msg ),
 									"%s %s: attrs not allowed in restrict URI %s\n",
 									c->argv[0], c->argv[1], arg);
@@ -552,7 +552,7 @@ done:;
 
 			} else {
 				Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE,
-					   "%s: %s\n", c->log, c->cr_msg, 0 );
+					   "%s: %s\n", c->log, c->cr_msg );
 				constraint_free( &ap, 0 );
 			}
 
@@ -579,7 +579,7 @@ constraint_uri_cb( Operation *op, SlapReply *rs )
 		*foundp = 1;
 
 		Debug(LDAP_DEBUG_TRACE, "==> constraint_uri_cb <%s>\n",
-			rs->sr_entry ? rs->sr_entry->e_name.bv_val : "UNKNOWN_DN", 0, 0);
+			rs->sr_entry ? rs->sr_entry->e_name.bv_val : "UNKNOWN_DN" );
 	}
 	return 0;
 }
@@ -679,7 +679,7 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 			if ( nop.ors_filter == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
 					"%s constraint_violation uri filter=\"%s\" invalid\n",
-					op->o_log_prefix, filterstr.bv_val, 0 );
+					op->o_log_prefix, filterstr.bv_val );
 				rc = LDAP_OTHER;
 
 			} else {
@@ -687,13 +687,13 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 
 				Debug(LDAP_DEBUG_TRACE,
 					"==> constraint_violation uri filter = %s\n",
-					filterstr.bv_val, 0, 0);
+					filterstr.bv_val );
 
 				rc = nop.o_bd->be_search( &nop, &nrs );
 
 				Debug(LDAP_DEBUG_TRACE,
 					"==> constraint_violation uri rc = %d, found = %d\n",
-					rc, found, 0);
+					rc, found );
 			}
 			op->o_tmpfree(filterstr.bv_val, op->o_tmpmemctx);
 
@@ -829,7 +829,7 @@ constraint_add( Operation *op, SlapReply *rs )
 			Debug(LDAP_DEBUG_TRACE, 
 				"==> constraint_add, "
 				"a->a_numvals = %u, cp->count = %lu\n",
-				a->a_numvals, (unsigned long) cp->count, 0);
+				a->a_numvals, (unsigned long) cp->count );
 
 			switch (cp->type) {
 				case CONSTRAINT_COUNT:
@@ -959,7 +959,7 @@ constraint_update( Operation *op, SlapReply *rs )
 		return LDAP_OTHER;
 	}
 	
-	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_update()\n", 0,0,0);
+	Debug( LDAP_DEBUG_CONFIG|LDAP_DEBUG_NONE, "constraint_update()\n" );
 	if ((m = modlist) == NULL) {
 		op->o_bd->bd_info = (BackendInfo *)(on->on_info);
 		send_ldap_error(op, rs, LDAP_INVALID_SYNTAX,
@@ -985,7 +985,7 @@ constraint_update( Operation *op, SlapReply *rs )
 			is_v = constraint_check_count_violation(m, target_entry, cp);
 
 			Debug(LDAP_DEBUG_TRACE,
-				"==> constraint_update is_v: %d\n", is_v, 0, 0);
+				"==> constraint_update is_v: %d\n", is_v );
 
 			if (is_v) {
 				rc = LDAP_CONSTRAINT_VIOLATION;

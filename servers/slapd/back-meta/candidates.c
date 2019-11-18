@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2017 The OpenLDAP Foundation.
+ * Copyright 1999-2019 The OpenLDAP Foundation.
  * Portions Copyright 2001-2003 Pierangelo Masarati.
  * Portions Copyright 1999-2003 Howard Chu.
  * All rights reserved.
@@ -254,12 +254,10 @@ meta_clear_one_candidate(
 	if ( msc->msc_ld != NULL ) {
 
 #ifdef DEBUG_205
-		char	buf[ BUFSIZ ];
-
-		snprintf( buf, sizeof( buf ), "meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p",
-			candidate, (void *)mc, (void *)msc->msc_ld );
-		Debug( LDAP_DEBUG_ANY, "### %s %s\n",
-			op ? op->o_log_prefix : "", buf, 0 );
+		Debug(LDAP_DEBUG_ANY,
+		      "### %s meta_clear_one_candidate ldap_unbind_ext[%d] mc=%p ld=%p\n",
+		      op ? op->o_log_prefix : "", candidate, (void *)mc,
+		      (void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
 		ldap_unbind_ext( msc->msc_ld, NULL, NULL );
