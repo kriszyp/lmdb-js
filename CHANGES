@@ -9,6 +9,7 @@ OpenLDAP 2.4.49 Engineering
 		Fix mkdep to honor TMPDIR if set (ITS#9062)
 	Documentation
 		slapd-config(5)/slapd.conf(5) - Fix missing bold tag for keyword (ITS#9063)
+		slapd-ldap(5) - Document "tls none" option (ITS#9071)
 		slapo-ppolicy(5) - Correctly document pwdGraceAuthnLimit (ITS#9065)
 
 OpenLDAP 2.4.48 (2019/07/24)
