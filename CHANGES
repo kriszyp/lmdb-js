@@ -8,6 +8,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapd-ldap to set oldctrls correctly (ITS#9076)
 	Fixed slapd-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Fixed slapd-mdb missing final commit with slapindex (ITS#9095)
+	Fixed slapd-monitor global operation counter reportign (ITS#9119)
 	Fixed slapo-unique loop termination (ITS#9077)
 	Build Environment
 		Fix mkdep to honor TMPDIR if set (ITS#9062)
