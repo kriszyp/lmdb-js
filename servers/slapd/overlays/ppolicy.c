@@ -2424,7 +2424,7 @@ ppolicy_db_init(
 
 	on->on_bi.bi_private = ch_calloc( sizeof(pp_info), 1 );
 
-	if ( dtblsize && !pwcons ) {
+	if ( !pwcons ) {
 		/* accommodate for c_conn_idx == -1 */
 		pwcons = ch_calloc( sizeof(pw_conn), dtblsize + 1 );
 		pwcons++;
