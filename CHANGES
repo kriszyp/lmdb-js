@@ -6,6 +6,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapd syntax evaluation of preferredDeliveryMethod (ITS#9067)
 	Fixed slapd to relax domainScope control check (ITS#9100)
 	Fixed slapd to have cleaner error handling during connection setup (ITS#9112)
+	Fixed slapd data check when processing cancel exop (ITS#9124)
 	Fixed slapd-ldap to set oldctrls correctly (ITS#9076)
 	Fixed slapd-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Fixed slapd-mdb missing final commit with slapindex (ITS#9095)
