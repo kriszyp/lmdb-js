@@ -989,10 +989,12 @@ slap_idassert_parse( ConfigArgs *c, slap_idassert_t *si )
 	}
 
 	bindconf_tls_defaults( &si->si_bc );
+#ifdef HAVE_TLS
 	if ( si->si_bc.sb_tls_ctx ) {
 		ldap_pvt_tls_ctx_free( si->si_bc.sb_tls_ctx );
 		si->si_bc.sb_tls_ctx = NULL;
 	}
+#endif
 
 	return 0;
 }
@@ -1812,10 +1814,12 @@ done_url:;
 			}
 			bindconf_tls_defaults( &li->li_tls );
 		}
+#ifdef HAVE_TLS
 		if ( li->li_tls.sb_tls_ctx ) {
 			ldap_pvt_tls_ctx_free( li->li_tls.sb_tls_ctx );
 			li->li_tls.sb_tls_ctx = NULL;
 		}
+#endif
 		break;
 
 	case LDAP_BACK_CFG_ACL_AUTHCDN:
@@ -1875,10 +1879,12 @@ done_url:;
 			}
 		}
 		bindconf_tls_defaults( &li->li_acl );
+#ifdef HAVE_TLS
 		if ( li->li_acl.sb_tls_ctx ) {
 			ldap_pvt_tls_ctx_free( li->li_acl.sb_tls_ctx );
 			li->li_acl.sb_tls_ctx = NULL;
 		}
+#endif
 		break;
 
 	case LDAP_BACK_CFG_IDASSERT_MODE:

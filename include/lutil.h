@@ -169,8 +169,9 @@ typedef struct lutil_tm {
 } lutil_tm;
 
 typedef struct lutil_timet {
-	unsigned int tt_sec;	/* seconds since 1900 */
-	int tt_gsec;		/* seconds since 1900, high 7 bits */
+	unsigned int tt_sec;	/* seconds since 0000 */
+	int tt_gsec;		/* seconds since 0000, high 7 bits, sign-flipped */
+						/* sign flipped to sort properly as unsigned ints */
 	unsigned int tt_usec;	/* microseconds */
 } lutil_timet;
 
