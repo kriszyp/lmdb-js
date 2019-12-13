@@ -132,6 +132,8 @@ struct action_t {
     argtokey_callback_t freeKey;
 };
 
+int deleteValue; // pointer to this as the value represents a delete
+
 class BatchWorker : public Nan::AsyncProgressWorker {
   public:
     BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, Nan::Callback *callback, Nan::Callback *progress)
@@ -172,7 +174,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 MDB_val value;
                 rc = mdb_get(txn, condition->dbi, &condition->key, &value);
                 bool different;
-                if (condition->data.mv_data == nullptr) {
+                if (condition->data.mv_data == &deleteValue) {
                     different = rc != MDB_NOTFOUND;
                 } else {
                     if (rc == MDB_NOTFOUND) {
@@ -195,7 +197,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             if (condition) {
                 rc = 0; // make sure this gets set back to zero, failed conditions shouldn't trigger error
             } else {
-                if (action->data.mv_data == nullptr) {
+                if (action->data.mv_data == &deleteValue) {
                     rc = mdb_del(txn, action->dbi, &action->key, nullptr);
                     if (rc == MDB_NOTFOUND) {
                         rc = 0; // ignore not_found errors
@@ -575,7 +577,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
             condition_t *condition = action->condition = new condition_t();
 
             if (ifValue->IsNull()) {
-                condition->data.mv_data = nullptr;
+                condition->data.mv_data = &deleteValue;
             } else {
                 condition->data.mv_size = node::Buffer::Length(ifValue);
                 condition->data.mv_data = node::Buffer::Data(ifValue);
@@ -616,7 +618,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         }
 
         if (value->IsNullOrUndefined()) {
-            action->data.mv_data = nullptr;
+            action->data.mv_data = &deleteValue;
         } else if (value->IsArrayBufferView()) {
             action->data.mv_size = node::Buffer::Length(value);
             action->data.mv_data = node::Buffer::Data(value);
