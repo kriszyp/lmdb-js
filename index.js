@@ -149,6 +149,9 @@ function open(path, options) {
 			}
 		}
 		put(id, value, ifValue) {
+			if (id.length > 511) {
+				throw new Error('Key is larger than maximum key size (511)')
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
@@ -161,6 +164,9 @@ function open(path, options) {
 				commit.results.then((writeResults) => writeResults[index] === 0)
 		}
 		putSync(id, value) {
+			if (id.length > 511) {
+				throw new Error('Key is larger than maximum key size (511)')
+			}
 			let txn
 			try {
 				if (typeof value !== 'object') {
@@ -186,6 +192,9 @@ function open(path, options) {
 			}
 		}
 		removeSync(id) {
+			if (id.length > 511) {
+				throw new Error('Key is larger than maximum key size (511)')
+			}
 			let txn
 			try {
 				txn = writeTxn || env.beginTxn()
@@ -207,6 +216,9 @@ function open(path, options) {
 			}
 		}
 		remove(id, ifValue) {
+			if (id.length > 511) {
+				throw new Error('Key is larger than maximum key size (511)')
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
