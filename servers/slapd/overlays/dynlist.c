@@ -808,36 +808,6 @@ release:;
 	return ret;
 }
 
-static int
-ad_infilter( Filter *f, AttributeDescription *ad )
-{
-	if ( !f )
-		return 0;
-
-	switch( f->f_choice & SLAPD_FILTER_MASK ) {
-	case SLAPD_FILTER_COMPUTED:
-		return 0;
-	case LDAP_FILTER_PRESENT:
-		return f->f_desc == ad;
-	case LDAP_FILTER_EQUALITY:
-	case LDAP_FILTER_GE:
-	case LDAP_FILTER_LE:
-	case LDAP_FILTER_APPROX:
-	case LDAP_FILTER_SUBSTRINGS:
-	case LDAP_FILTER_EXT:
-		return f->f_av_desc == ad;
-	case LDAP_FILTER_AND:
-	case LDAP_FILTER_OR:
-	case LDAP_FILTER_NOT: {
-		int ret = 0;
-		for ( f = f->f_list; f; f = f->f_next )
-			ret |= ad_infilter( f, ad );
-		return ret;
-		}
-	}
-	return 0;
-}
-
 typedef struct dynlist_name_t {
 	struct berval dy_name;
 	dynlist_info_t *dy_dli;
@@ -901,6 +871,7 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 	int rc;
 
 	if ( rs->sr_type == REP_SEARCH && rs->sr_entry != NULL ) {
+		/* See if this is one of our dynamic entries */
 		dyn = tavl_find( ds->ds_names, &rs->sr_entry->e_nname, dynlist_avl_cmp );
 		if ( dyn ) {
 			dyn->dy_seen = 1;
@@ -909,6 +880,7 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 		} else {
 			TAvlnode *ptr;
 			Entry *e = rs->sr_entry;
+			/* See if there are any memberOf values to attach to this entry */
 			for ( ptr = tavl_end( ds->ds_names, TAVL_DIR_LEFT ); ptr;
 				ptr = tavl_next( ptr, TAVL_DIR_RIGHT )) {
 				dynlist_map_t *dlm;
@@ -936,6 +908,9 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 	} else if ( rs->sr_type == REP_RESULT ) {
 		TAvlnode *ptr;
 		SlapReply r = *rs;
+		/* Check for any unexpanded dynamic group entries that weren't picked up
+		 * by the original search filter.
+		 */
 		for ( ptr = tavl_end( ds->ds_names, TAVL_DIR_LEFT ); ptr;
 			ptr = tavl_next( ptr, TAVL_DIR_RIGHT )) {
 			dyn = ptr->avl_data;
@@ -1022,46 +997,6 @@ dynlist_search( Operation *op, SlapReply *rs )
 	}
 	return SLAP_CB_CONTINUE;
 }
-
-#if 0
-static int
-dynlist_response( Operation *op, SlapReply *rs )
-{
-	switch ( op->o_tag ) {
-	case LDAP_REQ_SEARCH:
-		if ( rs->sr_type == REP_SEARCH && !get_manageDSAit( op ) )
-		{
-			int	rc = SLAP_CB_CONTINUE;
-			dynlist_info_t	*dli = NULL;
-
-			while ( (dli = dynlist_is_dynlist_next( op, rs, dli )) != NULL ) {
-				rc = dynlist_prepare_entry( op, rs, dli );
-			}
-
-			return rc;
-		}
-		break;
-
-	case LDAP_REQ_COMPARE:
-		switch ( rs->sr_err ) {
-		/* NOTE: we waste a few cycles running the dynamic list
-		 * also when the result is FALSE, which occurs if the
-		 * dynamic entry itself contains the AVA attribute  */
-		/* FIXME: this approach is less than optimal; a dedicated
-		 * compare op should be implemented, that fetches the
-		 * entry, checks if it has the appropriate objectClass
-		 * and, in case, runs a compare thru all the URIs,
-		 * stopping at the first positive occurrence; see ITS#3756 */
-		case LDAP_COMPARE_FALSE:
-		case LDAP_NO_SUCH_ATTRIBUTE:
-			return dynlist_compare( op, rs );
-		}
-		break;
-	}
-
-	return SLAP_CB_CONTINUE;
-}
-#endif
 
 static int
 dynlist_build_def_filter( dynlist_info_t *dli )
