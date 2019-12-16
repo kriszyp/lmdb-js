@@ -41,6 +41,7 @@ static AttributeDescription *ad_dgIdentity, *ad_dgAuthz;
 typedef struct dynlist_map_t {
 	AttributeDescription	*dlm_member_ad;
 	AttributeDescription	*dlm_mapped_ad;
+	AttributeDescription	*dlm_memberOf_ad;
 	struct dynlist_map_t	*dlm_next;
 } dynlist_map_t;
 
@@ -57,7 +58,7 @@ typedef struct dynlist_info_t {
 } dynlist_info_t;
 
 #define DYNLIST_USAGE \
-	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad> ...]\": "
+	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad>] ...]\": "
 
 static dynlist_info_t *
 dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
@@ -113,10 +114,9 @@ dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
 }
 
 static int
-dynlist_make_filter( Operation *op, Entry *e, const char *url, struct berval *oldf, struct berval *newf )
+dynlist_make_filter( Operation *op, Entry *e, dynlist_info_t *dli, const char *url, struct berval *oldf, struct berval *newf )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
 
 	char		*ptr;
 	int		needBrackets = 0;
@@ -549,7 +549,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		} else {
 			struct berval	flt;
 			ber_str2bv( lud->lud_filter, 0, 0, &flt );
-			if ( dynlist_make_filter( op, rs->sr_entry, url->bv_val, &flt, &o.ors_filterstr ) ) {
+			if ( dynlist_make_filter( op, rs->sr_entry, dli, url->bv_val, &flt, &o.ors_filterstr ) ) {
 				/* error */
 				goto cleanup;
 			}
@@ -563,6 +563,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 		if ( o.o_bd && o.o_bd->be_search ) {
 			SlapReply	r = { REP_SEARCH };
 			r.sr_attr_flags = slap_attr_flags( o.ors_attrs );
+			o.o_managedsait = SLAP_CONTROL_CRITICAL;
 			(void)o.o_bd->be_search( &o, &r );
 		}
 
@@ -636,11 +637,20 @@ dynlist_compare( Operation *op, SlapReply *rs )
 	Entry *e = NULL;
 	dynlist_map_t *dlm;
 	BackendDB *be;
+	int ret = SLAP_CB_CONTINUE;
+
+	if ( get_manageDSAit( op ) )
+		return SLAP_CB_CONTINUE;
 
 	for ( ; dli != NULL; dli = dli->dli_next ) {
-		for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next )
-			if ( op->oq_compare.rs_ava->aa_desc == dlm->dlm_member_ad )
+		for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+			AttributeDescription *ad = dlm->dlm_mapped_ad ? dlm->dlm_mapped_ad : dlm->dlm_member_ad;
+			/* builtin dyngroup evaluator only works for DNs */
+			if ( ad->ad_type->sat_syntax != slap_schema.si_syn_distinguishedName )
+				continue;
+			if ( op->oq_compare.rs_ava->aa_desc == ad )
 				break;
+		}
 
 		if ( dlm ) {
 			/* This compare is for one of the attributes we're
@@ -696,7 +706,8 @@ dynlist_compare( Operation *op, SlapReply *rs )
 done:;
 			if ( id ) ber_bvarray_free_x( id, o.o_tmpmemctx );
 
-			return SLAP_CB_CONTINUE;
+			send_ldap_result( op, rs );
+			return rs->sr_err;
 		}
 	}
 
@@ -746,12 +757,8 @@ done:;
 	/* generate dynamic list with dynlist_response() and compare */
 	{
 		SlapReply	r = { REP_SEARCH };
-		dynlist_cc_t	dc = { { 0, dynlist_sc_compare_entry, 0, 0 }, 0 };
-		AttributeName	an[2];
-
-		dc.dc_ava = op->orc_ava;
-		dc.dc_res = &rs->sr_err;
-		o.o_callback = (slap_callback *) &dc;
+		Attribute *a;
+		AttributeName an[2];
 
 		o.o_tag = LDAP_REQ_SEARCH;
 		o.ors_limit = NULL;
@@ -768,15 +775,29 @@ done:;
 		BER_BVZERO( &an[1].an_name );
 		o.ors_attrs = an;
 		o.ors_attrsonly = 0;
+		r.sr_entry = e;
+		r.sr_attrs = an;
 
 		o.o_acl_priv = ACL_COMPARE;
+		dynlist_prepare_entry( &o, &r, dli );
+		a = attrs_find( r.sr_entry->e_attrs, op->orc_ava->aa_desc );
 
-		o.o_bd = be;
-		(void)be->be_search( &o, &r );
-
-		if ( o.o_dn.bv_val != op->o_dn.bv_val ) {
-			slap_op_groups_free( &o );
+		ret = LDAP_NO_SUCH_ATTRIBUTE;
+		for ( ; a ; a = attrs_find( a->a_next, op->orc_ava->aa_desc )) {
+			ret = LDAP_COMPARE_FALSE;
+			if ( attr_valfind( a,
+					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+						SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+					&op->orc_ava->aa_value, NULL, op->o_tmpmemctx ) == LDAP_SUCCESS ) {
+				ret = LDAP_COMPARE_TRUE;
+				break;
+			}
 		}
+		rs->sr_err = ret;
+
+		if ( r.sr_entry != e )
+			entry_free( r.sr_entry );
+		send_ldap_result( op, rs );
 	}
 
 release:;
@@ -784,9 +805,225 @@ release:;
 		overlay_entry_release_ov( &o, e, 0, on );
 	}
 
+	return ret;
+}
+
+static int
+ad_infilter( Filter *f, AttributeDescription *ad )
+{
+	if ( !f )
+		return 0;
+
+	switch( f->f_choice & SLAPD_FILTER_MASK ) {
+	case SLAPD_FILTER_COMPUTED:
+		return 0;
+	case LDAP_FILTER_PRESENT:
+		return f->f_desc == ad;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+	case LDAP_FILTER_SUBSTRINGS:
+	case LDAP_FILTER_EXT:
+		return f->f_av_desc == ad;
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT: {
+		int ret = 0;
+		for ( f = f->f_list; f; f = f->f_next )
+			ret |= ad_infilter( f, ad );
+		return ret;
+		}
+	}
+	return 0;
+}
+
+typedef struct dynlist_name_t {
+	struct berval dy_name;
+	dynlist_info_t *dy_dli;
+	int dy_seen;
+} dynlist_name_t;
+
+typedef struct dynlist_search_t {
+	TAvlnode *ds_names;
+	dynlist_info_t *ds_dli;
+} dynlist_search_t;
+
+static int
+dynlist_avl_cmp( const void *c1, const void *c2 )
+{
+	const dynlist_name_t *n1, *n2;
+	int rc;
+	n1 = c1; n2 = c2;
+
+	rc = n1->dy_name.bv_len - n2->dy_name.bv_len;
+	if ( rc ) return rc;
+	return ber_bvcmp( &n1->dy_name, &n2->dy_name );
+}
+
+/* build a list of dynamic entries */
+static int
+dynlist_search1resp( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_type == REP_SEARCH && rs->sr_entry != NULL ) {
+		dynlist_search_t *ds = op->o_callback->sc_private;
+		dynlist_name_t *dyn = ch_calloc(1, sizeof(dynlist_name_t)+rs->sr_entry->e_nname.bv_len + 1);
+		dyn->dy_name.bv_val = (void *)(dyn+1);
+		dyn->dy_dli = ds->ds_dli;
+		dyn->dy_name.bv_len = rs->sr_entry->e_nname.bv_len;
+		memcpy(dyn->dy_name.bv_val, rs->sr_entry->e_nname.bv_val, rs->sr_entry->e_nname.bv_len );
+		if ( tavl_insert( &ds->ds_names, dyn, dynlist_avl_cmp, avl_dup_error ))
+			ch_free( dyn );
+	}
+	return 0;
+}
+
+static int
+dynlist_search_cleanup( Operation *op, SlapReply *rs )
+{
+	if ( rs->sr_type == REP_RESULT || op->o_abandon ||
+		rs->sr_err == SLAPD_ABANDON ) {
+		slap_callback *sc = op->o_callback;
+		dynlist_search_t *ds = op->o_callback->sc_private;
+		tavl_free( ds->ds_names, ch_free );
+		op->o_callback = sc->sc_next;
+		op->o_tmpfree( sc, op->o_tmpmemctx );
+	}
+	return 0;
+}
+
+/* process the search responses */
+static int
+dynlist_search2resp( Operation *op, SlapReply *rs )
+{
+	dynlist_search_t *ds = op->o_callback->sc_private;
+	dynlist_name_t *dyn;
+	int rc;
+
+	if ( rs->sr_type == REP_SEARCH && rs->sr_entry != NULL ) {
+		dyn = tavl_find( ds->ds_names, &rs->sr_entry->e_nname, dynlist_avl_cmp );
+		if ( dyn ) {
+			dyn->dy_seen = 1;
+			rc = dynlist_prepare_entry( op, rs, dyn->dy_dli );
+			return rc;
+		} else {
+			TAvlnode *ptr;
+			Entry *e = rs->sr_entry;
+			for ( ptr = tavl_end( ds->ds_names, TAVL_DIR_LEFT ); ptr;
+				ptr = tavl_next( ptr, TAVL_DIR_RIGHT )) {
+				dynlist_map_t *dlm;
+				dyn = ptr->avl_data;
+				for ( dlm = dyn->dy_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+					if ( dlm->dlm_memberOf_ad ) {
+						rc = backend_group( op, NULL, &dyn->dy_name,
+							&e->e_nname, dyn->dy_dli->dli_oc, dyn->dy_dli->dli_ad );
+						if ( rc == LDAP_SUCCESS ) {
+							/* ensure e is modifiable, but do not replace
+							 * sr_entry yet since we have pointers into it */
+							if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+								e = entry_dup( rs->sr_entry );
+							}
+							attr_merge_one( e, dlm->dlm_memberOf_ad, &dyn->dy_name, &dyn->dy_name );
+						}
+					}
+				}
+			}
+			if ( e != rs->sr_entry ) {
+				rs_replace_entry( op, rs, (slap_overinst *)op->o_bd->bd_info, e );
+				rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
+			}
+		}
+	} else if ( rs->sr_type == REP_RESULT ) {
+		TAvlnode *ptr;
+		SlapReply r = *rs;
+		for ( ptr = tavl_end( ds->ds_names, TAVL_DIR_LEFT ); ptr;
+			ptr = tavl_next( ptr, TAVL_DIR_RIGHT )) {
+			dyn = ptr->avl_data;
+			if ( dyn->dy_seen )
+				continue;
+			if ( !dnIsSuffixScope( &dyn->dy_name, &op->o_req_ndn, op->ors_scope ))
+				continue;
+			if ( overlay_entry_get_ov( op, &dyn->dy_name, NULL, NULL, 0, &r.sr_entry, (slap_overinst *)op->o_bd->bd_info ) != LDAP_SUCCESS ||
+				r.sr_entry == NULL )
+				continue;
+			r.sr_flags = REP_ENTRY_MUSTRELEASE;
+			dynlist_prepare_entry( op, &r, dyn->dy_dli );
+			send_search_entry( op, &r );
+		}
+		rs->sr_nentries = r.sr_nentries;
+	}
 	return SLAP_CB_CONTINUE;
 }
 
+static int
+dynlist_search( Operation *op, SlapReply *rs )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	Operation o = *op;
+	dynlist_map_t *dlm;
+	Filter f;
+	AttributeAssertion ava;
+	AttributeName an[2] = {0};
+
+	slap_callback *sc;
+	dynlist_search_t *ds;
+
+	if ( get_manageDSAit( op ) )
+		return SLAP_CB_CONTINUE;
+
+	sc = op->o_tmpcalloc( 1, sizeof(slap_callback)+sizeof(dynlist_search_t), op->o_tmpmemctx );
+	sc->sc_private = (void *)(sc+1);
+	ds = sc->sc_private;
+
+	f.f_choice = LDAP_FILTER_EQUALITY;
+	f.f_ava = &ava;
+	f.f_av_desc = slap_schema.si_ad_objectClass;
+	f.f_next = NULL;
+	o.o_managedsait = SLAP_CONTROL_CRITICAL;
+
+	/* Find all dyngroups in tree. For group expansion
+	 * we only need the groups within the search scope, but
+	 * for memberOf populating, we need all dyngroups.
+	 */
+	for ( ; dli != NULL; dli = dli->dli_next ) {
+		if ( o.o_callback != sc ) {
+			o.o_callback = sc;
+			o.ors_filter = &f;
+			o.o_req_dn = op->o_bd->be_suffix[0];
+			o.o_req_ndn = op->o_bd->be_nsuffix[0];
+			o.ors_scope = LDAP_SCOPE_SUBTREE;
+			o.ors_attrsonly = 0;
+			o.ors_attrs = an;
+			o.o_bd = select_backend( op->o_bd->be_nsuffix, 1 );
+			BER_BVZERO( &o.ors_filterstr );
+			sc->sc_response = dynlist_search1resp;
+		}
+		ds->ds_dli = dli;
+		f.f_av_value = dli->dli_oc->soc_cname;
+		if ( o.ors_filterstr.bv_val )
+			o.o_tmpfree( o.ors_filterstr.bv_val, o.o_tmpmemctx );
+		filter2bv_x( &o, &f, &o.ors_filterstr );
+		an[0].an_desc = dli->dli_ad;
+		an[0].an_name = dli->dli_ad->ad_cname;
+		{
+			SlapReply	r = { REP_SEARCH };
+			(void)o.o_bd->be_search( &o, &r );
+		}
+	}
+
+	if ( ds->ds_names != NULL ) {
+		sc->sc_response = dynlist_search2resp;
+		sc->sc_cleanup = dynlist_search_cleanup;
+		sc->sc_next = op->o_callback;
+		op->o_callback = sc;
+	} else {
+		op->o_tmpfree( sc, op->o_tmpmemctx );
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+#if 0
 static int
 dynlist_response( Operation *op, SlapReply *rs )
 {
@@ -824,6 +1061,7 @@ dynlist_response( Operation *op, SlapReply *rs )
 
 	return SLAP_CB_CONTINUE;
 }
+#endif
 
 static int
 dynlist_build_def_filter( dynlist_info_t *dli )
@@ -933,6 +1171,11 @@ dl_cfgen( ConfigArgs *c )
 					}
 						
 					ptr = lutil_strcopy( ptr, dlm->dlm_member_ad->ad_cname.bv_val );
+
+					if ( dlm->dlm_memberOf_ad ) {
+						*ptr++ = '@';
+						ptr = lutil_strcopy( ptr, dlm->dlm_memberOf_ad->ad_cname.bv_val );
+					}
 				}
 
 				bv.bv_val = c->cr_msg;
@@ -1199,6 +1442,7 @@ done_uri:;
 			char *cp;
 			AttributeDescription *member_ad = NULL;
 			AttributeDescription *mapped_ad = NULL;
+			AttributeDescription *memberOf_ad = NULL;
 			dynlist_map_t *dlmp;
 
 
@@ -1223,6 +1467,22 @@ done_uri:;
 				}
 				arg = cp + 1;
 			}
+			if ( ( cp = strchr( arg, '@' ) ) != NULL ) {
+				struct berval bv;
+				ber_str2bv( cp+1, 0, 0, &bv );
+				rc = slap_bv2ad( &bv, &memberOf_ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					snprintf( c->cr_msg, sizeof( c->cr_msg ),
+						DYNLIST_USAGE
+						"unable to find memberOf AttributeDescription #%d \"%s\"\n",
+						i - 3, c->argv[ i ] );
+					Debug( LDAP_DEBUG_ANY, "%s: %s.\n",
+						c->log, c->cr_msg );
+					rc = 1;
+					goto done_uri;
+				}
+				*cp = '\0';
+			}
 
 			rc = slap_str2ad( arg, &member_ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
@@ -1242,6 +1502,7 @@ done_uri:;
 			}
 			dlmp->dlm_member_ad = member_ad;
 			dlmp->dlm_mapped_ad = mapped_ad;
+			dlmp->dlm_memberOf_ad = memberOf_ad;
 			dlmp->dlm_next = NULL;
 		
 			if ( dlml != NULL ) 
@@ -1550,7 +1811,8 @@ dynlist_initialize(void)
 	dynlist.on_bi.bi_db_open = dynlist_db_open;
 	dynlist.on_bi.bi_db_destroy = dynlist_db_destroy;
 
-	dynlist.on_response = dynlist_response;
+	dynlist.on_bi.bi_op_search = dynlist_search;
+	dynlist.on_bi.bi_op_compare = dynlist_compare;
 
 	dynlist.on_bi.bi_cf_ocs = dlocs;
 

@@ -526,8 +526,8 @@ case $RC in
 esac
 echo "" >> $SEARCHOUT
 
-echo "Testing list compare with manageDSAit..."
-echo "# Testing list compare with manageDSAit..." >> $SEARCHOUT
+echo "Testing list compare with manageDSAit (should return UNDEFINED)..."
+echo "# Testing list compare with manageDSAit (should return UNDEFINED)..." >> $SEARCHOUT
 $LDAPCOMPARE -h $LOCALHOST -p $PORT1 -MM \
 	"cn=Dynamic List,$LISTDN" "member:$CMPDN" \
 	>> $SEARCHOUT 2>&1
@@ -535,11 +535,16 @@ RC=$?
 case $RC in
 5)
 	echo "ldapcompare returned FALSE ($RC)"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
 	;;
 6)
 	echo "ldapcompare returned TRUE ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
+	;;
+16|32)
+	echo "ldapcompare returned UNDEFINED ($RC)"
 	;;
 0)
 	echo "ldapcompare returned success ($RC)!"
