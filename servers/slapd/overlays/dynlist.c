@@ -60,57 +60,33 @@ typedef struct dynlist_info_t {
 #define DYNLIST_USAGE \
 	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad>] ...]\": "
 
-static dynlist_info_t *
-dynlist_is_dynlist_next( Operation *op, SlapReply *rs, dynlist_info_t *old_dli )
+static int
+ad_infilter( AttributeDescription *ad, Filter *f )
 {
-	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli;
+	if ( !f )
+		return 0;
 
-	Attribute	*a;
-
-	if ( old_dli == NULL ) {
-		dli = (dynlist_info_t *)on->on_bi.bi_private;
-
-	} else {
-		dli = old_dli->dli_next;
-	}
-
-	a = attrs_find( rs->sr_entry->e_attrs, slap_schema.si_ad_objectClass );
-	if ( a == NULL ) {
-		/* FIXME: objectClass must be present; for non-storage
-		 * backends, like back-ldap, it needs to be added
-		 * to the requested attributes */
-		return NULL;
-	}
-
-	for ( ; dli; dli = dli->dli_next ) {
-		if ( dli->dli_lud != NULL ) {
-			/* check base and scope */
-			if ( !BER_BVISNULL( &dli->dli_uri_nbase )
-				&& !dnIsSuffixScope( &rs->sr_entry->e_nname,
-					&dli->dli_uri_nbase,
-					dli->dli_lud->lud_scope ) )
-			{
-				continue;
-			}
-
-			/* check filter */
-			if ( dli->dli_uri_filter && test_filter( op, rs->sr_entry, dli->dli_uri_filter ) != LDAP_COMPARE_TRUE ) {
-				continue;
-			}
-		}
-
-		if ( attr_valfind( a,
-				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
-				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-				&dli->dli_oc->soc_cname, NULL,
-				op->o_tmpmemctx ) == 0 )
-		{
-			return dli;
+	switch( f->f_choice & SLAPD_FILTER_MASK ) {
+	case SLAPD_FILTER_COMPUTED:
+		return 0;
+	case LDAP_FILTER_PRESENT:
+		return f->f_desc == ad;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+	case LDAP_FILTER_SUBSTRINGS:
+	case LDAP_FILTER_EXT:
+		return f->f_av_desc == ad;
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT: {
+		for ( f = f->f_list; f; f = f->f_next )
+			if ( ad_infilter( ad, f ))
+				return 1;
 		}
 	}
-
-	return NULL;
+	return 0;
 }
 
 static int
@@ -367,7 +343,8 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 	/* Don't generate member list if it wasn't requested */
 	for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 		AttributeDescription *ad = dlm->dlm_mapped_ad ? dlm->dlm_mapped_ad : dlm->dlm_member_ad;
-		if ( userattrs || ad_inlist( ad, rs->sr_attrs ) ) 
+		if ( userattrs || ad_inlist( ad, rs->sr_attrs )
+			|| ad_infilter( ad, op->ors_filter ))
 			break;
 	}
 	if ( dli->dli_dlm && !dlm )
@@ -481,7 +458,9 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli )
 				(void)slap_bv2ad( &o.ors_attrs[j].an_name, &o.ors_attrs[j].an_desc, &text );
 				/* FIXME: ignore errors... */
 
-				if ( rs->sr_attrs == NULL ) {
+				if ( ad_infilter( o.ors_attrs[j].an_desc, op->ors_filter )) {
+					/* if referenced in filter, must retrieve */
+				} else if ( rs->sr_attrs == NULL ) {
 					if ( o.ors_attrs[j].an_desc != NULL &&
 							is_at_operational( o.ors_attrs[j].an_desc->ad_type ) )
 					{
@@ -817,6 +796,9 @@ typedef struct dynlist_name_t {
 typedef struct dynlist_search_t {
 	TAvlnode *ds_names;
 	dynlist_info_t *ds_dli;
+	Filter *ds_origfilter;
+	struct berval ds_origfilterbv;
+	int ds_numgroups;
 } dynlist_search_t;
 
 static int
@@ -842,10 +824,107 @@ dynlist_search1resp( Operation *op, SlapReply *rs )
 		dyn->dy_dli = ds->ds_dli;
 		dyn->dy_name.bv_len = rs->sr_entry->e_nname.bv_len;
 		memcpy(dyn->dy_name.bv_val, rs->sr_entry->e_nname.bv_val, rs->sr_entry->e_nname.bv_len );
+		ds->ds_numgroups++;
 		if ( tavl_insert( &ds->ds_names, dyn, dynlist_avl_cmp, avl_dup_error ))
 			ch_free( dyn );
 	}
 	return 0;
+}
+
+/* Dup the filter, no-oping any references to given ad */
+static Filter *
+dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad )
+{
+	Filter *n = NULL;
+
+	if ( !f )
+		return NULL;
+
+	n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+	n->f_next = NULL;
+	switch( f->f_choice & SLAPD_FILTER_MASK ) {
+	case SLAPD_FILTER_COMPUTED:
+		n->f_choice = f->f_choice;
+		n->f_result = f->f_result;
+		break;
+
+	case LDAP_FILTER_PRESENT:
+		if ( f->f_desc == ad ) {
+noop:
+			n->f_choice = SLAPD_FILTER_COMPUTED;
+			n->f_result = LDAP_COMPARE_TRUE;
+		} else {
+			n->f_choice = f->f_choice;
+			n->f_desc = f->f_desc;
+		}
+		break;
+
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+		if ( f->f_av_desc == ad )
+			goto noop;
+		n->f_choice = f->f_choice;
+		n->f_ava = f->f_ava;
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		if ( f->f_sub_desc == ad )
+			goto noop;
+		n->f_choice = f->f_choice;
+		n->f_sub_initial = f->f_sub_initial;
+		n->f_sub_final = f->f_sub_final;
+		n->f_sub = f->f_sub;
+		break;
+
+	case LDAP_FILTER_EXT:
+		if ( f->f_mr_desc == ad )
+			goto noop;
+		n->f_choice = f->f_choice;
+		n->f_mra = f->f_mra;
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT: {
+		Filter **p;
+
+		n->f_choice = f->f_choice;
+
+		for ( p = &n->f_list, f = f->f_list; f; f = f->f_next ) {
+			*p = dynlist_filter_dup( op, f, ad );
+			if ( !*p )
+				continue;
+			p = &(*p)->f_next;
+		}
+		}
+		break;
+	}
+	return n;
+}
+
+static void
+dynlist_filter_free( Operation *op, Filter *f )
+{
+	Filter *p, *next;
+
+	if ( f == NULL )
+		return;
+
+	f->f_choice &= SLAPD_FILTER_MASK;
+	switch( f->f_choice ) {
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT:
+		for ( p = f->f_list; p; p = next ) {
+			next = p->f_next;
+			op->o_tmpfree( p, op->o_tmpmemctx );
+		}
+		break;
+	default:
+		op->o_tmpfree( f, op->o_tmpmemctx );
+	}
 }
 
 static int
@@ -856,8 +935,15 @@ dynlist_search_cleanup( Operation *op, SlapReply *rs )
 		slap_callback *sc = op->o_callback;
 		dynlist_search_t *ds = op->o_callback->sc_private;
 		tavl_free( ds->ds_names, ch_free );
+		if ( ds->ds_origfilter ) {
+			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			dynlist_filter_free( op, op->ors_filter );
+			op->ors_filter = ds->ds_origfilter;
+			op->ors_filterstr = ds->ds_origfilterbv;
+		}
 		op->o_callback = sc->sc_next;
 		op->o_tmpfree( sc, op->o_tmpmemctx );
+
 	}
 	return 0;
 }
@@ -904,8 +990,12 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				rs_replace_entry( op, rs, (slap_overinst *)op->o_bd->bd_info, e );
 				rs->sr_flags |= REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED;
 			}
+			if ( ds->ds_origfilter && test_filter( op, rs->sr_entry, ds->ds_origfilter ) != LDAP_COMPARE_TRUE ) {
+				rs_flush_entry( op, rs, NULL );
+				return LDAP_SUCCESS;
+			}
 		}
-	} else if ( rs->sr_type == REP_RESULT ) {
+	} else if ( rs->sr_type == REP_RESULT && rs->sr_err == LDAP_SUCCESS ) {
 		TAvlnode *ptr;
 		SlapReply r = *rs;
 		/* Check for any unexpanded dynamic group entries that weren't picked up
@@ -923,11 +1013,32 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				continue;
 			r.sr_flags = REP_ENTRY_MUSTRELEASE;
 			dynlist_prepare_entry( op, &r, dyn->dy_dli );
-			send_search_entry( op, &r );
+			if ( test_filter( op, r.sr_entry, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
+				r.sr_attrs = op->ors_attrs;
+				rs->sr_err = send_search_entry( op, &r );
+				if ( rs->sr_err != LDAP_SUCCESS )
+					break;
+			}
 		}
 		rs->sr_nentries = r.sr_nentries;
 	}
 	return SLAP_CB_CONTINUE;
+}
+
+static void
+dynlist_fix_filter( Operation *op, AttributeDescription *ad, dynlist_search_t *ds )
+{
+	Filter *f;
+	f = dynlist_filter_dup( op, op->ors_filter, ad );
+	if ( ds->ds_origfilter ) {
+		dynlist_filter_free( op, op->ors_filter );
+		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+	} else {
+		ds->ds_origfilter = op->ors_filter;
+		ds->ds_origfilterbv = op->ors_filterstr;
+	}
+	op->ors_filter = f;
+	filter2bv_x( op, f, &op->ors_filterstr );
 }
 
 static int
@@ -962,6 +1073,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 	 * for memberOf populating, we need all dyngroups.
 	 */
 	for ( ; dli != NULL; dli = dli->dli_next ) {
+		int prevnum;
 		if ( o.o_callback != sc ) {
 			o.o_callback = sc;
 			o.ors_filter = &f;
@@ -983,7 +1095,15 @@ dynlist_search( Operation *op, SlapReply *rs )
 		an[0].an_name = dli->dli_ad->ad_cname;
 		{
 			SlapReply	r = { REP_SEARCH };
+			prevnum = ds->ds_numgroups;
 			(void)o.o_bd->be_search( &o, &r );
+		}
+		/* found a dynamic group */
+		if ( ds->ds_numgroups > prevnum ) {
+			for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+				if ( dlm->dlm_memberOf_ad && ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter ))
+					dynlist_fix_filter( op, dlm->dlm_memberOf_ad, ds );
+			}
 		}
 	}
 
