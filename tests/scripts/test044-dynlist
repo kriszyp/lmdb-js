@@ -38,15 +38,14 @@ else
 fi
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $MCONF > $ADDCONF
-$SLAPADD -f $ADDCONF -l $LDIFORDERED
+. $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
 
-. $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
@@ -133,6 +132,54 @@ echo "Testing list search with (critical) manageDSAit..."
 echo "# Testing list search with (critical) manageDSAit..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 -MM \
 	'(cn=Dynamic List)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing filtered search with all attrs..."
+echo "# Testing filtered search with all attrs..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(mail=jdoe@woof.net)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing filtered search of a listed attr..."
+echo "# Testing filtered search of a listed attr..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(mail=jdoe@woof.net)' mail \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing filtered search of a non-listed attr..."
+echo "# Testing filtered search of a non-listed attr..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(mail=jdoe@woof.net)' objectClass \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing filtered search of a non-present attr..."
+echo "# Testing filtered search of a non-present attr..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+	'(mail=nobody@nowhere)' objectClass \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -645,6 +692,47 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Reconfiguring slapd..."
+$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+	$TESTOUT 2>&1 << EOMODS
+version: 1
+dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
+changetype: modify
+delete: olcDLattrSet
+olcDLattrSet: {0}
+-
+add: olcDLattrSet
+olcDLattrSet: groupOfURLs memberURL member@dgMemberOf
+-
+EOMODS
+
+echo "==========================================================" >> $LOG1
+
+echo "Testing memberOf functionality..."
+echo "# Testing memberOf functionality..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	'(cn=Mark Elliot)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Testing filtered memberOf functionality..."
+echo "# Testing filtered memberOf functionality..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	'(&(dgMemberOf=cn=Dynamic List of Members,ou=Dynamic Lists,dc=example,dc=com)(cn=Mark Elliot))' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$DYNLISTOUT
