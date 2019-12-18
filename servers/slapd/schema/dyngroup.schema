@@ -74,6 +74,13 @@ attributeType ( DynGroupAttr:2
 	SYNTAX 1.3.6.1.4.1.4203.666.2.7
 	X-ORDERED 'VALUES' )
 
+# Just for testing. The actual memberOf is an operational attribute
+attributeType ( DynGroupAttr:3
+	NAME 'dgMemberOf'
+	DESC 'Group that the entry belongs to'
+	SYNTAX '1.3.6.1.4.1.1466.115.121.1.12'
+	EQUALITY distinguishedNameMatch )
+
 objectClass ( NetscapeLDAPobjectClass:33
 	NAME 'groupOfURLs'
 	SUP top STRUCTURAL
