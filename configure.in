@@ -596,7 +596,6 @@ MODULES_LIBS=
 SLAPI_LIBS=
 LIBSLAPI=
 AUTH_LIBS=
-ICU_LIBS=
 
 SLAPD_SLP_LIBS=
 SLAPD_GMP_LIBS=
@@ -2089,14 +2088,6 @@ if test $ol_enable_ndb != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl International Components for Unicode
-OL_ICU
-if test "$ol_icu" = no ; then
-	AC_MSG_WARN([ICU not available])
-else
-	ICU_LIBS="$ol_icu"
-fi
-dnl ----------------------------------------------------------------
 dnl
 dnl Check for Cyrus SASL
 dnl
@@ -3166,7 +3157,6 @@ AC_SUBST(MODULES_LIBS)
 AC_SUBST(SLAPI_LIBS)
 AC_SUBST(LIBSLAPI)
 AC_SUBST(AUTH_LIBS)
-AC_SUBST(ICU_LIBS)
 
 AC_SUBST(SLAPD_SLP_LIBS)
 AC_SUBST(SLAPD_GMP_LIBS)
