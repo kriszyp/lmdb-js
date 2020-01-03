@@ -57,8 +57,6 @@ int cancel_extop( Operation *op, SlapReply *rs )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	(void) ber_free( ber, 1 );
-
 	Debug( LDAP_DEBUG_STATS, "%s CANCEL msg=%d\n",
 		op->o_log_prefix, opid );
 
