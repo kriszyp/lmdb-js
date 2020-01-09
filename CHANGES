@@ -19,6 +19,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapo-unique loop termination (ITS#9077)
 	Build Environment
 		Fix mkdep to honor TMPDIR if set (ITS#9062)
+		Remove ICU library detection (ITS#9144)
 	Documentation
 		slapd-config(5)/slapd.conf(5) - Fix missing bold tag for keyword (ITS#9063)
 		slapd-ldap(5) - Document "tls none" option (ITS#9071)
