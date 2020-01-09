@@ -12,6 +12,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapd-mdb missing final commit with slapindex (ITS#9095)
 	Fixed slapd-mdb drop attr mappings added in an aborted txn (ITS#9091)
 	Fixed slapd-monitor global operation counter reporting (ITS#9119)
+	Fixed slapo-ppolicy when used with slapauth (ITS#8629)
 	Fixed slapo-unique loop termination (ITS#9077)
 	Build Environment
 		Fix mkdep to honor TMPDIR if set (ITS#9062)
