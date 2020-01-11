@@ -14,6 +14,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapd-mdb to honor unchecked limit with alias deref (ITS#7657)
 	Fixed slapd-mdb missing final commit with slapindex (ITS#9095)
 	Fixed slapd-mdb drop attr mappings added in an aborted txn (ITS#9091)
+	Fixed slapd-mdb nosync FLAG configuration handling (ITS#9150)
 	Fixed slapd-monitor global operation counter reporting (ITS#9119)
 	Fixed slapo-ppolicy when used with slapauth (ITS#8629)
 	Fixed slapo-syncprov fix sessionlog init (ITS#9146)
