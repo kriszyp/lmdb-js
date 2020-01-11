@@ -594,7 +594,7 @@ mdb_cf_gen( ConfigArgs *c )
 		if ( c->value_int )
 			mdb->mi_dbenv_flags |= MDB_NOSYNC;
 		else
-			mdb->mi_dbenv_flags ^= MDB_NOSYNC;
+			mdb->mi_dbenv_flags &= ~MDB_NOSYNC;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb_env_set_flags( mdb->mi_dbenv, MDB_NOSYNC,
 				c->value_int );
