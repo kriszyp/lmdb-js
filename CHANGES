@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.49 Engineering
 	Fixed client tools to not add controls on cancel/abandon (ITS#9145)
 	Fixed libldap to correctly free sb (ITS#9081, ITS#8755)
+	Fixed libldap descriptor leak if ldaps fails (ITS#9147)
 	Fixed libldap remove unnecessary global mutex for GnuTLS (ITS#9069)
 	Fixed slapd syntax evaluation of preferredDeliveryMethod (ITS#9067)
 	Fixed slapd to relax domainScope control check (ITS#9100)
