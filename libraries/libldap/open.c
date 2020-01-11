@@ -476,6 +476,7 @@ ldap_int_open_connection(
 				}
 				LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
 			}
+			ber_int_sb_close( conn->lconn_sb );
 			return -1;
 		}
 	}
