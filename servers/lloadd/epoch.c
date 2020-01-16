@@ -210,6 +210,25 @@ epoch_leave( epoch_t epoch )
      */
     ldap_pvt_thread_rdwr_runlock( &epoch_mutex );
 
+    /*
+     * Trigger a memory-independent read fence to make sure we're reading the
+     * state after all threads actually finished - which might have happened
+     * after we acquired epoch_mutex so ldap_pvt_thread_rdwr_rlock would not
+     * catch everything.
+     *
+     * TODO is to confirm the below:
+     * It might be that the tests and exchanges above only enforce a fence for
+     * the locations affected, so we could still read stale memory for
+     * unrelated locations? At least that's the only explanation I've been able
+     * to establish for repeated crashes that seem to have gone away with this
+     * in place.
+     *
+     * But then that's contrary to the second example in Acquire/Release
+     * section here:
+     * https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync
+     */
+    __atomic_thread_fence( __ATOMIC_ACQUIRE );
+
     for ( p = old_refs; p; p = next ) {
         next = p->next;
 
