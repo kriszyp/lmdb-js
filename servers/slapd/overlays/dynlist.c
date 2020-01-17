@@ -973,7 +973,10 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				dyn = ptr->avl_data;
 				for ( dlm = dyn->dy_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 					if ( dlm->dlm_memberOf_ad ) {
-						rc = backend_group( op, NULL, &dyn->dy_name,
+						Operation o = *op;
+						o.o_do_not_cache = 1;
+						o.o_groups = NULL;
+						rc = backend_group( &o, NULL, &dyn->dy_name,
 							&e->e_nname, dyn->dy_dli->dli_oc, dyn->dy_dli->dli_ad );
 						if ( rc == LDAP_SUCCESS ) {
 							/* ensure e is modifiable, but do not replace
