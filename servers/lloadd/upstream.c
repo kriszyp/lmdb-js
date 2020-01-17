@@ -842,7 +842,9 @@ upstream_starttls( LloadConnection *c )
         c->c_io_state &= ~LLOAD_C_READ_HANDOVER;
         checked_unlock( &c->c_io_mutex );
 
-        return rc;
+        /* Do not keep handle_pdus running, we have adjusted c_read_event as we
+         * need it. */
+        return -1;
     }
 
     base = event_get_base( c->c_read_event );
