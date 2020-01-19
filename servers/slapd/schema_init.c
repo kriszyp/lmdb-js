@@ -5843,7 +5843,7 @@ int generalizedTimeIndexer(
 		assert(values[i].bv_val != NULL && values[i].bv_len >= 10);
 		/* Use 40 bits of time for key */
 		if ( lutil_parsetime( values[i].bv_val, &tm ) == 0 ) {
-			lutil_tm2time( &tm, &tt );
+			lutil_tm2gtime( &tm, &tt );
 			tmp[0] = tt.tt_gsec & 0xff;
 			tmp[4] = tt.tt_sec & 0xff;
 			tt.tt_sec >>= 8;
@@ -5890,7 +5890,7 @@ int generalizedTimeFilter(
 	if ( value->bv_val && value->bv_len >= 10 &&
 		lutil_parsetime( value->bv_val, &tm ) == 0 ) {
 
-		lutil_tm2time( &tm, &tt );
+		lutil_tm2gtime( &tm, &tt );
 		tmp[0] = tt.tt_gsec & 0xff;
 		tmp[4] = tt.tt_sec & 0xff;
 		tt.tt_sec >>= 8;

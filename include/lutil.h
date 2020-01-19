@@ -169,8 +169,8 @@ typedef struct lutil_tm {
 } lutil_tm;
 
 typedef struct lutil_timet {
-	unsigned int tt_sec;	/* seconds since 0000 */
-	int tt_gsec;		/* seconds since 0000, high 7 bits, sign-flipped */
+	unsigned int tt_sec;	/* seconds since epoch, 0000 or 1970 */
+	int tt_gsec;		/* seconds since epoch, high 7 bits, maybe sign-flipped */
 						/* sign flipped to sort properly as unsigned ints */
 	unsigned int tt_usec;	/* microseconds */
 } lutil_timet;
@@ -180,9 +180,14 @@ LDAP_LUTIL_F( int )
 lutil_parsetime LDAP_P((
 	char *atm, struct lutil_tm * ));
 
-/* Convert structured time to time in seconds since 1900 */
+/* Convert structured time to time in seconds since 1970 (Unix epoch) */
 LDAP_LUTIL_F( int )
 lutil_tm2time LDAP_P((
+	struct lutil_tm *, struct lutil_timet * ));
+
+/* Convert structured time to time in seconds since 0000 (Proleptic Gregorian) */
+LDAP_LUTIL_F( int )
+lutil_tm2gtime LDAP_P((
 	struct lutil_tm *, struct lutil_timet * ));
 
 #ifdef _WIN32
