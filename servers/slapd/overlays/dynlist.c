@@ -833,7 +833,7 @@ dynlist_search1resp( Operation *op, SlapReply *rs )
 
 /* Dup the filter, no-oping any references to given ad */
 static Filter *
-dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad )
+dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, int isnot )
 {
 	Filter *n = NULL;
 
@@ -852,7 +852,7 @@ dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad )
 		if ( f->f_desc == ad ) {
 noop:
 			n->f_choice = SLAPD_FILTER_COMPUTED;
-			n->f_result = LDAP_COMPARE_TRUE;
+			n->f_result = isnot ? LDAP_COMPARE_FALSE : LDAP_COMPARE_TRUE;
 		} else {
 			n->f_choice = f->f_choice;
 			n->f_desc = f->f_desc;
@@ -885,15 +885,17 @@ noop:
 		n->f_mra = f->f_mra;
 		break;
 
+	case LDAP_FILTER_NOT:
+		isnot ^= 1;
+		/* FALLTHRU */
 	case LDAP_FILTER_AND:
-	case LDAP_FILTER_OR:
-	case LDAP_FILTER_NOT: {
+	case LDAP_FILTER_OR: {
 		Filter **p;
 
 		n->f_choice = f->f_choice;
 
 		for ( p = &n->f_list, f = f->f_list; f; f = f->f_next ) {
-			*p = dynlist_filter_dup( op, f, ad );
+			*p = dynlist_filter_dup( op, f, ad, isnot );
 			if ( !*p )
 				continue;
 			p = &(*p)->f_next;
@@ -1032,7 +1034,7 @@ static void
 dynlist_fix_filter( Operation *op, AttributeDescription *ad, dynlist_search_t *ds )
 {
 	Filter *f;
-	f = dynlist_filter_dup( op, op->ors_filter, ad );
+	f = dynlist_filter_dup( op, op->ors_filter, ad, 0 );
 	if ( ds->ds_origfilter ) {
 		dynlist_filter_free( op, op->ors_filter );
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
