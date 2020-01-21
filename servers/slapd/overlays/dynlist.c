@@ -978,12 +978,12 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 						Operation o = *op;
 						o.o_do_not_cache = 1;
 						o.o_groups = NULL;
-						rc = backend_group( &o, NULL, &dyn->dy_name,
+						rc = backend_group( &o, e, &dyn->dy_name,
 							&e->e_nname, dyn->dy_dli->dli_oc, dyn->dy_dli->dli_ad );
 						if ( rc == LDAP_SUCCESS ) {
 							/* ensure e is modifiable, but do not replace
 							 * sr_entry yet since we have pointers into it */
-							if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+							if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) && e == rs->sr_entry ) {
 								e = entry_dup( rs->sr_entry );
 							}
 							attr_merge_one( e, dlm->dlm_memberOf_ad, &dyn->dy_name, &dyn->dy_name );
