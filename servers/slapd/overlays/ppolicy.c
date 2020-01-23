@@ -2114,10 +2114,11 @@ do_modify:
 				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 				mods->sml_op = LDAP_MOD_REPLACE;
 				mods->sml_numvals = 1;
-				mods->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+				mods->sml_values = (BerVarray) ch_calloc( sizeof( struct berval ), 2 );
+				mods->sml_nvalues = (BerVarray) ch_calloc( sizeof( struct berval ), 2 );
+
 				ber_dupbv( &mods->sml_values[0], &timestamp );
-				BER_BVZERO( &mods->sml_values[1] );
-				assert( !BER_BVISNULL( &mods->sml_values[0] ) );
+				ber_dupbv( &mods->sml_nvalues[0], &timestamp );
 			} else if (attr_find(e->e_attrs, ad_pwdChangedTime )) {
 				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
 				mods->sml_op = LDAP_MOD_DELETE;
