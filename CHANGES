@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.49 Engineering
+	Added slapd-monitor database entry count for slapd-mdb (ITS#9154)
 	Fixed client tools to not add controls on cancel/abandon (ITS#9145)
 	Fixed libldap to correctly free sb (ITS#9081, ITS#8755)
 	Fixed libldap descriptor leak if ldaps fails (ITS#9147)
