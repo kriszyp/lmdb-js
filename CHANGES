@@ -18,6 +18,7 @@ OpenLDAP 2.4.49 Engineering
 	Fixed slapd-mdb nosync FLAG configuration handling (ITS#9150)
 	Fixed slapd-monitor global operation counter reporting (ITS#9119)
 	Fixed slapo-ppolicy when used with slapauth (ITS#8629)
+	Fixed slapo-ppolicy to add a missed normalised copy of pwdChangedTime (ITS#9126)
 	Fixed slapo-syncprov fix sessionlog init (ITS#9146)
 	Fixed slapo-unique loop termination (ITS#9077)
 	Build Environment
