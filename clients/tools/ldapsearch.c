@@ -1511,7 +1511,7 @@ static int dosearch(
 				nresponses_psearch = 0;
 
 				if ( strcmp( retoid, LDAP_SYNC_INFO ) == 0 ) {
-					printf(_("SyncInfo Received\n"));
+					printf(_("# SyncInfo Received\n"));
 					ldap_memfree( retoid );
 					ber_bvfree( retdata );
 					break;
