@@ -1413,7 +1413,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 			struct berval lockout_stamp;
 
 			if ( waittime > ppb->pp.pwdMaxDelay ) {
-				waittime = ppb.pp.pwdMaxDelay;
+				waittime = ppb->pp.pwdMaxDelay;
 			}
 			wait_end = now + waittime;
 
