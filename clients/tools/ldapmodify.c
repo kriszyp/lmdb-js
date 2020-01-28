@@ -262,7 +262,7 @@ main( int argc, char **argv )
 	if( txn ) {
 		/* start transaction */
 		rc = ldap_txn_start_s( ld, NULL, NULL, &txn_id );
-		if( rc != LDAP_SUCCESS ) {
+		if( rc != LDAP_SUCCESS || !txn_id ) {
 			tool_perror( "ldap_txn_start_s", rc, NULL, NULL, NULL, NULL );
 			if( txn > 1 ) {
 				retval = EXIT_FAILURE;
