@@ -438,16 +438,10 @@ typedef struct ldapcontrol {
 #define LDAP_URLEXT_X_FAILEDNAME	"x-failedName"
 
 #define LDAP_TXN						"1.3.6.1.1.21" /* RFC 5805 */
-#define LDAP_EXOP_TXN_START				LDAP_X_TXN ".1"
-#define LDAP_CONTROL_TXN_SPEC			LDAP_X_TXN ".2"
-#define LDAP_EXOP_TXN_END				LDAP_X_TXN ".3"
-#define LDAP_EXOP_TXN_ABORTED_NOTICE	LDAP_X_TXN ".4"
-
-#define	LDAP_X_TXN	LDAP_TXN
-#define LDAP_EXOP_X_TXN_START			LDAP_EXOP_TXN_START
-#define LDAP_CONTROL_X_TXN_SPEC			LDAP_CONTROL_TXN_SPEC
-#define LDAP_EXOP_X_TXN_END				LDAP_EXOP_TXN_END
-#define LDAP_EXOP_X_TXN_ABORTED_NOTICE	LDAP_EXOP_TXN_ABORTED_NOTICE
+#define LDAP_EXOP_TXN_START				LDAP_TXN ".1"
+#define LDAP_CONTROL_TXN_SPEC			LDAP_TXN ".2"
+#define LDAP_EXOP_TXN_END				LDAP_TXN ".3"
+#define LDAP_EXOP_TXN_ABORTED_NOTICE	LDAP_TXN ".4"
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */
@@ -712,10 +706,8 @@ typedef struct ldapcontrol {
 #define LDAP_X_INVALIDREFERENCE			0x4112
 #endif
 
-#ifdef LDAP_X_TXN
-#define LDAP_X_TXN_SPECIFY_OKAY		0x4120
-#define LDAP_X_TXN_ID_INVALID		0x4121
-#endif
+#define LDAP_TXN_SPECIFY_OKAY		0x4120
+#define LDAP_TXN_ID_INVALID			0x4121
 
 /* API Error Codes
  *
@@ -2452,7 +2444,6 @@ ldap_refresh_s LDAP_P((
 /*
  * LDAP Transactions
  */
-#ifdef LDAP_X_TXN
 LDAP_F( int )
 ldap_txn_start LDAP_P(( LDAP *ld,
 	LDAPControl		**sctrls,
@@ -2480,7 +2471,6 @@ ldap_txn_end_s LDAP_P(( LDAP *ld,
 	LDAPControl **sctrl,
 	LDAPControl **cctrl,
 	int *retidp ));
-#endif
 
 /*
  * in ldap_sync.c

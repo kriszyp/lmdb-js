@@ -1069,10 +1069,8 @@ LDAP_SLAPD_V( const struct berval ) slap_EXOP_CANCEL;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_WHOAMI;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_MODIFY_PASSWD;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_START_TLS;
-#ifdef LDAP_X_TXN
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_TXN_START;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_TXN_END;
-#endif
 
 typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P(( Operation *op, SlapReply *rs ));
 
@@ -1100,12 +1098,10 @@ LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 /*
  * txn.c
  */
-#ifdef LDAP_X_TXN
 LDAP_SLAPD_F ( SLAP_CTRL_PARSE_FN ) txn_spec_ctrl;
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) txn_start_extop;
 LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) txn_end_extop;
 LDAP_SLAPD_F ( int ) txn_preop LDAP_P(( Operation *op, SlapReply *rs ));
-#endif
 
 /*
  * cancel.c

@@ -199,13 +199,10 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	LDAP_SLIST_REMOVE(&op->o_extra, &oex->oe, OpExtra, oe_next);
-#ifdef LDAP_X_TXN
-	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
+	if ( rc == LDAP_TXN_SPECIFY_OKAY ) {
 		/* skip cleanup */
 		return rc;
-	} else
-#endif
-	if ( rc == 0 ) {
+	} else if ( rc == 0 ) {
 		if ( op->ora_e != NULL && oex->oe_db != NULL ) {
 			BackendDB	*bd = op->o_bd;
 

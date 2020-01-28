@@ -198,13 +198,11 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_GLOBAL|SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		parseRelax, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_X_TXN
-	{ LDAP_CONTROL_X_TXN_SPEC,
+	{ LDAP_CONTROL_TXN_SPEC,
  		(int)offsetof(struct slap_control_ids, sc_txnSpec),
 		SLAP_CTRL_UPDATE|SLAP_CTRL_HIDE,
 		NULL, NULL,
 		txn_spec_ctrl, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
  		(int)offsetof(struct slap_control_ids, sc_manageDSAit),
 		SLAP_CTRL_ACCESS,
@@ -1498,12 +1496,10 @@ parseReadAttrs(
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-#ifdef LDAP_X_TXN
 	if ( op->o_txnSpec ) { /* temporary limitation */
 		rs->sr_text = READMSG( post, "cannot perform in transaction" );
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
-#endif
 
 	ber = ber_init( &ctrl->ldctl_value );
 	if ( ber == NULL ) {

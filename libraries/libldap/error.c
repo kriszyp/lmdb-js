@@ -126,11 +126,8 @@ ldap_err2string( int err )
 	C(LDAP_CUP_UNSUPPORTED_SCHEME,	N_("LCUP Unsupported Scheme"));
 	C(LDAP_CUP_RELOAD_REQUIRED,		N_("LCUP Reload Required"));
 
-#ifdef LDAP_X_TXN
-	/* Codes related to LDAP Transactions (draft-zeilenga-ldap-txn) */
-	C(LDAP_X_TXN_SPECIFY_OKAY,		N_("TXN specify okay"));
-	C(LDAP_X_TXN_ID_INVALID,		N_("TXN ID is invalid"));
-#endif
+	C(LDAP_TXN_SPECIFY_OKAY,		N_("TXN specify okay"));
+	C(LDAP_TXN_ID_INVALID,			N_("TXN ID is invalid"));
 
 	/* API codes - renumbered since draft-ietf-ldapext-ldap-c-api */
 	C(LDAP_SERVER_DOWN,				N_("Can't contact LDAP server"));

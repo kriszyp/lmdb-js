@@ -27,9 +27,8 @@
 #include <lber_pvt.h>
 #include <lutil.h>
 
-#ifdef LDAP_X_TXN
-const struct berval slap_EXOP_TXN_START = BER_BVC(LDAP_EXOP_X_TXN_START);
-const struct berval slap_EXOP_TXN_END = BER_BVC(LDAP_EXOP_X_TXN_END);
+const struct berval slap_EXOP_TXN_START = BER_BVC(LDAP_EXOP_TXN_START);
+const struct berval slap_EXOP_TXN_END = BER_BVC(LDAP_EXOP_TXN_END);
 
 int txn_start_extop(
 	Operation *op, SlapReply *rs )
@@ -95,7 +94,7 @@ int txn_spec_ctrl(
 	}
 	if ( ctrl->ldctl_value.bv_len != 0 ) {
 		rs->sr_text = "invalid transaction identifier";
-		return LDAP_X_TXN_ID_INVALID;
+		return LDAP_TXN_ID_INVALID;
 	}
 
 	if ( op->o_preread ) { /* temporary limitation */
@@ -208,7 +207,7 @@ int txn_end_extop(
 
 	if( txnid.bv_len ) {
 		rs->sr_text = "invalid transaction identifier";
-		return LDAP_X_TXN_ID_INVALID;
+		return LDAP_TXN_ID_INVALID;
 	}
 
 	/* acquire connection lock */
@@ -216,7 +215,7 @@ int txn_end_extop(
 
 	if( c->c_txn != CONN_TXN_SPECIFY ) {
 		rs->sr_text = "invalid transaction identifier";
-		rc = LDAP_X_TXN_ID_INVALID;
+		rc = LDAP_TXN_ID_INVALID;
 		goto done;
 	}
 	c->c_txn = CONN_TXN_SETTLE;
@@ -331,7 +330,7 @@ int txn_preop( Operation *op, SlapReply *rs )
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 	if( op->o_conn->c_txn == CONN_TXN_INACTIVE ) {
 		rs->sr_text = "invalid transaction identifier";
-		rs->sr_err = LDAP_X_TXN_ID_INVALID;
+		rs->sr_err = LDAP_TXN_ID_INVALID;
 		goto txnReturn;
 	} else if( op->o_conn->c_txn == CONN_TXN_SETTLE ) {
 		settle=1;
@@ -358,10 +357,8 @@ txnReturn:
 	if( !settle ) {
 		send_ldap_result( op, rs );
 		if ( !rs->sr_err )
-			rs->sr_err = LDAP_X_TXN_SPECIFY_OKAY;
+			rs->sr_err = LDAP_TXN_SPECIFY_OKAY;
 		return rs->sr_err;
 	}
 	return LDAP_SUCCESS;	/* proceed with operation */
 }
-
-#endif /* LDAP_X_TXN */

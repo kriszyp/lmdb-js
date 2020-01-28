@@ -98,12 +98,10 @@ do_delete(
 		return rs->sr_err;
 	}
 
-#ifdef LDAP_X_TXN
-	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
+	if( rs->sr_err == LDAP_TXN_SPECIFY_OKAY ) {
 		/* skip cleanup */
 		return rs->sr_err;
 	}
-#endif
 
 cleanup:;
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );

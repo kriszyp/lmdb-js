@@ -94,11 +94,9 @@ static int process_response(
 	int res,
 	const struct berval *dn );
 
-#ifdef LDAP_X_TXN
 static int txn = 0;
 static int txnabort = 0;
 struct berval *txn_id = NULL;
-#endif
 
 void
 usage( void )
@@ -117,10 +115,8 @@ usage( void )
 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -M         enable Manage DSA IT control (-MM to make critical)\n"));
 	fprintf( stderr, _("  -P version protocol version (default: 3)\n"));
-#ifdef LDAP_X_TXN
  	fprintf( stderr,
 		_("             [!]txn=<commit|abort>         (transaction)\n"));
-#endif
 	fprintf( stderr, _("  -S file    write skipped modifications to `file'\n"));
 
 	tool_common_usage();
@@ -161,7 +157,6 @@ handle_private_option( int i )
 			*cvalue++ = '\0';
 		}
 
-#ifdef LDAP_X_TXN
 		if( strcasecmp( control, "txn" ) == 0 ) {
 			/* Transaction */
 			if( txn ) {
@@ -181,7 +176,6 @@ handle_private_option( int i )
 
 			txn = 1 + crit;
 		} else
-#endif
 		{
 			fprintf( stderr, _("Invalid modify extension name: %s\n"),
 				control );
@@ -265,7 +259,6 @@ main( int argc, char **argv )
 		tool_bind( ld );
 	}
 
-#ifdef LDAP_X_TXN
 	if( txn ) {
 		/* start transaction */
 		rc = ldap_txn_start_s( ld, NULL, NULL, &txn_id );
@@ -278,22 +271,12 @@ main( int argc, char **argv )
 			txn = 0;
 		}
 	}
-#endif
 
-	if ( 0
-#ifdef LDAP_X_TXN
-		|| txn
-#endif
-		)
-	{
-#ifdef LDAP_X_TXN
-		if( txn ) {
-			c[i].ldctl_oid = LDAP_CONTROL_X_TXN_SPEC;
-			c[i].ldctl_value = *txn_id;
-			c[i].ldctl_iscritical = 1;
-			i++;
-		}
-#endif
+	if( txn ) {
+		c[i].ldctl_oid = LDAP_CONTROL_TXN_SPEC;
+		c[i].ldctl_value = *txn_id;
+		c[i].ldctl_iscritical = 1;
+		i++;
 	}
 
 	tool_server_controls( ld, c, i );
@@ -348,7 +331,6 @@ main( int argc, char **argv )
 	if ( ldifrc < 0 )
 		retval = LDAP_OTHER;
 
-#ifdef LDAP_X_TXN
 	if( retval == 0 && txn ) {
 		rc = ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
 		if ( rc != LDAP_OPT_SUCCESS ) {
@@ -362,7 +344,6 @@ main( int argc, char **argv )
 			retval = rc;
 		}
 	}
-#endif
 
 fail:;
 	if ( rejfp != NULL ) {
@@ -694,12 +675,9 @@ static int process_response(
 	rc = ldap_parse_result( ld, res, &err, &matched, &text, &refs, &ctrls, 1 );
 	if ( rc == LDAP_SUCCESS ) rc = err;
 
-#ifdef LDAP_X_TXN
-	if ( rc == LDAP_X_TXN_SPECIFY_OKAY ) {
+	if ( rc == LDAP_TXN_SPECIFY_OKAY ) {
 		rc = LDAP_SUCCESS;
-	} else
-#endif
-	if ( rc != LDAP_SUCCESS ) {
+	} else if ( rc != LDAP_SUCCESS ) {
 		tool_perror( res2str( op ), rc, NULL, matched, text, refs );
 	} else if ( msgtype != op ) {
 		fprintf( stderr, "%s: msgtype: expected %d got %d\n",
