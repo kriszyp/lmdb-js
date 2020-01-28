@@ -2005,7 +2005,7 @@ int
 tool_check_abandon( LDAP *ld, int msgid )
 {
 	int	rc;
-	LDAPControl sctrls[1] = { NULL };
+	LDAPControl *sctrls[1] = { NULL };
 
 	switch ( gotintr ) {
 	case Intr_Cancel:
