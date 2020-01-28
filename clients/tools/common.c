@@ -2216,6 +2216,8 @@ print_psearch( LDAP *ld, LDAPControl *ctrl )
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			ldif ? "persistentSearch: " : "persistentSearch", buf, len );
 	}
+
+	return rc;
 }
 
 static int
