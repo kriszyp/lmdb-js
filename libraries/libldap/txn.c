@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2006-2019 The OpenLDAP Foundation.
+ * Copyright 2006-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,6 @@
 #include "ldap-int.h"
 #include "ldap_log.h"
 
-#ifdef LDAP_X_TXN
 int
 ldap_txn_start(
 	LDAP *ld,
@@ -41,7 +40,7 @@ ldap_txn_start(
 	LDAPControl **cctrls,
 	int *msgidp )
 {
-	return ldap_extended_operation( ld, LDAP_EXOP_X_TXN_START,
+	return ldap_extended_operation( ld, LDAP_EXOP_TXN_START,
 		NULL, sctrls, cctrls, msgidp );
 }
 
@@ -54,7 +53,7 @@ ldap_txn_start_s(
 {
 	assert( txnid != NULL );
 
-	return ldap_extended_operation_s( ld, LDAP_EXOP_X_TXN_START,
+	return ldap_extended_operation_s( ld, LDAP_EXOP_TXN_START,
 		NULL, sctrls, cctrls, NULL, txnid );
 }
 
@@ -83,7 +82,7 @@ ldap_txn_end(
 
 	ber_flatten( txnber, &txnval );
 
-	rc = ldap_extended_operation( ld, LDAP_EXOP_X_TXN_END,
+	rc = ldap_extended_operation( ld, LDAP_EXOP_TXN_END,
 		txnval, sctrls, cctrls, msgidp );
 
 	ber_free( txnber, 1 );
@@ -116,7 +115,7 @@ ldap_txn_end_s(
 
 	ber_flatten( txnber, &txnval );
 
-	rc = ldap_extended_operation_s( ld, LDAP_EXOP_X_TXN_END,
+	rc = ldap_extended_operation_s( ld, LDAP_EXOP_TXN_END,
 		txnval, sctrls, cctrls, NULL, &retdata );
 
 	ber_free( txnber, 1 );
@@ -152,4 +151,3 @@ done:
 
 	return rc;
 }
-#endif

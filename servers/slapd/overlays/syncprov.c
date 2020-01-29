@@ -2,7 +2,7 @@
 /* syncprov.c - syncrepl provider */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2019 The OpenLDAP Foundation.
+ * Copyright 2004-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -3099,12 +3099,7 @@ sp_cf_gen(ConfigArgs *c)
 		}
 		sl = si->si_logs;
 		if ( !sl ) {
-			sl = ch_malloc( sizeof( sessionlog ));
-			sl->sl_mincsn = NULL;
-			sl->sl_sids = NULL;
-			sl->sl_num = 0;
-			sl->sl_numcsns = 0;
-			sl->sl_head = sl->sl_tail = NULL;
+			sl = ch_calloc( 1, sizeof( sessionlog ));
 			ldap_pvt_thread_mutex_init( &sl->sl_mutex );
 			si->si_logs = sl;
 		}

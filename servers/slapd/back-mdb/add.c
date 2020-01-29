@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2019 The OpenLDAP Foundation.
+ * Copyright 2000-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,8 @@ mdb_add(Operation *op, SlapReply *rs )
 	Debug(LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(mdb_add) ": %s\n",
 		op->ora_e->e_name.bv_val );
 
-#ifdef LDAP_X_TXN
 	if( op->o_txnSpec && txn_preop( op, rs ))
 		return rs->sr_err;
-#endif
 
 	ctrls[num_ctrls] = 0;
 

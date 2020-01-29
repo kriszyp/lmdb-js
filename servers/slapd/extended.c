@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999-2019 The OpenLDAP Foundation.
+ * Copyright 1999-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,10 +58,8 @@ static struct {
 	slap_mask_t flags;
 	SLAP_EXTOP_MAIN_FN *ext_main;
 } builtin_extops[] = {
-#ifdef LDAP_X_TXN
 	{ &slap_EXOP_TXN_START, 0, txn_start_extop },
 	{ &slap_EXOP_TXN_END, 0, txn_end_extop },
-#endif
 	{ &slap_EXOP_CANCEL, 0, cancel_extop },
 	{ &slap_EXOP_WHOAMI, 0, whoami_extop },
 	{ &slap_EXOP_MODIFY_PASSWD, SLAP_EXOP_WRITES, passwd_extop },

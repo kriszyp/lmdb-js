@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2019 The OpenLDAP Foundation.
+ * Copyright 1998-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -382,11 +382,9 @@ Connection * connection_init(
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
 
-#ifdef LDAP_X_TXN
 		c->c_txn = CONN_TXN_INACTIVE;
 		c->c_txn_backend = NULL;
 		LDAP_STAILQ_INIT(&c->c_txn_ops);
-#endif
 
 		BER_BVZERO( &c->c_sasl_bind_mech );
 		c->c_sasl_done = 0;
@@ -420,11 +418,9 @@ Connection * connection_init(
 	assert( BER_BVISNULL( &c->c_peer_name ) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
-#ifdef LDAP_X_TXN
 	assert( c->c_txn == CONN_TXN_INACTIVE );
 	assert( c->c_txn_backend == NULL );
 	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
-#endif
 	assert( BER_BVISNULL( &c->c_sasl_bind_mech ) );
 	assert( c->c_sasl_done == 0 );
 	assert( c->c_sasl_authctx == NULL );
@@ -627,11 +623,9 @@ connection_destroy( Connection *c )
 	assert( c->c_conn_state != SLAP_C_INVALID );
 	assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
 	assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
-#ifdef LDAP_X_TXN
 	assert( c->c_txn == CONN_TXN_INACTIVE );
 	assert( c->c_txn_backend == NULL );
 	assert( LDAP_STAILQ_EMPTY(&c->c_txn_ops) );
-#endif
 	assert( c->c_writewaiter == 0);
 	assert( c->c_writers == 0);
 
@@ -748,7 +742,6 @@ static void connection_abandon( Connection *c )
 		frontendDB->be_abandon( &op, &rs );
 	}
 
-#ifdef LDAP_X_TXN
 	/* remove operations in pending transaction */
 	while ( (o = LDAP_STAILQ_FIRST( &c->c_txn_ops )) != NULL) {
 		LDAP_STAILQ_REMOVE_HEAD( &c->c_txn_ops, o_next );
@@ -759,7 +752,6 @@ static void connection_abandon( Connection *c )
 	/* clear transaction */
 	c->c_txn_backend = NULL;
 	c->c_txn = CONN_TXN_INACTIVE;
-#endif
 
 	/* remove pending operations */
 	while ( (o = LDAP_STAILQ_FIRST( &c->c_pending_ops )) != NULL) {
@@ -1144,7 +1136,6 @@ connection_operation( void *ctx, void *arg_v )
 		goto operations_error;
 	}
 
-#ifdef LDAP_X_TXN
 	if (( conn->c_txn == CONN_TXN_SPECIFY ) && (
 		( tag == LDAP_REQ_ADD ) ||
 		( tag == LDAP_REQ_DELETE ) ||
@@ -1155,9 +1146,7 @@ connection_operation( void *ctx, void *arg_v )
 			issued inside of a transaction */
 		op->o_tmpmemctx = NULL;
 		op->o_tmpmfuncs = &ch_mfuncs;
-	} else
-#endif
-	{
+	} else {
 	/* We can use Thread-Local storage for most mallocs. We can
 	 * also use TL for ber parsing, but not on Add or Modify.
 	 */
@@ -1234,10 +1223,7 @@ operations_error:
 
 	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
 
-#ifdef LDAP_X_TXN
-	if ( rc != LDAP_X_TXN_SPECIFY_OKAY )
-#endif
-	{
+	if ( rc != LDAP_TXN_SPECIFY_OKAY ) {
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, Operation, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
 	}
@@ -1255,10 +1241,7 @@ operations_error:
 
 	connection_resched( conn );
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-#ifdef LDAP_X_TXN
-	if ( rc != LDAP_X_TXN_SPECIFY_OKAY )
-#endif
-	{
+	if ( rc != LDAP_TXN_SPECIFY_OKAY ) {
 		slap_op_free( op, ctx );
 	}
 	return NULL;

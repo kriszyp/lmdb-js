@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2019 The OpenLDAP Foundation.
+ * Copyright 2000-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -394,9 +394,7 @@ mdb_back_initialize(
 		LDAP_CONTROL_POST_READ,
 		LDAP_CONTROL_SUBENTRIES,
 		LDAP_CONTROL_X_PERMISSIVE_MODIFY,
-#ifdef LDAP_X_TXN
-		LDAP_CONTROL_X_TXN_SPEC,
-#endif
+		LDAP_CONTROL_TXN_SPEC,
 		NULL
 	};
 

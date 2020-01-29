@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2019 The OpenLDAP Foundation.
+ * Copyright 1998-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -189,12 +189,10 @@ do_modrdn(
 		/* skip cleanup */
 		return rs->sr_err;
 	}
-#ifdef LDAP_X_TXN
-	if( rs->sr_err == LDAP_X_TXN_SPECIFY_OKAY ) {
+	if( rs->sr_err == LDAP_TXN_SPECIFY_OKAY ) {
 		/* skip cleanup */
 		return rs->sr_err;
 	}
-#endif
 
 cleanup:
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );

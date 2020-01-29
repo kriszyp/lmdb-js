@@ -1,5 +1,5 @@
 .TH SLAPO-DYNLIST 5 "RELEASEDATE" "OpenLDAP LDVERSION"
-.\" Copyright 1998-2019 The OpenLDAP Foundation, All Rights Reserved.
+.\" Copyright 1998-2020 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" $OpenLDAP$
 .SH NAME
@@ -19,17 +19,11 @@ of the attributes listed in the URI are added to the original
 entry.
 No recursion is allowed, to avoid potential infinite loops.
 
-Since the resulting entry is dynamically constructed,
-it does not exist until it is constructed while being returned.
-As a consequence, dynamically added attributes do not participate
-in the filter matching phase of the search request handling.
-In other words, \fIfiltering for dynamically added attributes always fails\fP.
-
 The resulting entry must comply with the LDAP data model, so constraints
 are enforced.
 For example, if a \fISINGLE\-VALUE\fP attribute is listed,
 only the first value found during the list expansion appears in the final entry.
-The above described behavior is disabled when the \fImanageDSAit\fP
+All dynamic behavior is disabled when the \fImanageDSAit\fP
 control (RFC 3296) is used.
 In that case, the contents of the dynamic group entry is returned;
 namely, the URLs are returned instead of being expanded.
@@ -57,7 +51,7 @@ occurrences, and it must appear after the
 .B overlay
 directive.
 .TP
-.B dynlist\-attrset <group-oc> [<URI>] <URL-ad> [[<mapped-ad>:]<member-ad> ...]
+.B dynlist\-attrset <group-oc> [<URI>] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad] ...]
 The value 
 .B group\-oc
 is the name of the objectClass that triggers the dynamic expansion of the
@@ -96,6 +90,10 @@ of the URI were present in the
 entry as values of the
 .B member-ad
 attribute.
+If the optional
+.B memberOf-ad
+attribute is also specified, then it will be populated with the DNs of the
+dynamic groups that an entry is a member of.
 
 Alternatively, 
 .B mapped-ad
@@ -103,7 +101,9 @@ can be used to remap attributes obtained through expansion.
 .B member-ad
 attributes are not filled by expanded DN, but are remapped as
 .B mapped-ad 
-attributes.  Multiple mapping statements can be used.
+attributes.  Multiple mapping statements can be used. The
+.B memberOf-ad
+option is not used in this case.
 
 .LP
 The dynlist overlay may be used with any backend, but it is mainly 

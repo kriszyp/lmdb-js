@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2000-2019 The OpenLDAP Foundation.
+ * Copyright 2000-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,9 @@ static AttributeDescription *ad_olmMDBPagesMax,
 
 static AttributeDescription *ad_olmMDBReadersMax,
 	*ad_olmMDBReadersUsed;
+
+static AttributeDescription *ad_olmMDBEntries;
+
 /*
  * NOTE: there's some confusion in monitor OID arc;
  * by now, let's consider:
@@ -132,6 +135,14 @@ static struct {
 		"NO-USER-MODIFICATION "
 		"USAGE dSAOperation )",
 		&ad_olmMDBReadersUsed },
+
+	{ "( olmMDBAttributes:6 "
+		"NAME ( 'olmMDBEntries' ) "
+		"DESC 'Number of entries in DB' "
+		"SUP monitorCounter "
+		"NO-USER-MODIFICATION "
+		"USAGE dSAOperation )",
+		&ad_olmMDBEntries },
 	{ NULL }
 };
 
@@ -150,7 +161,7 @@ static struct {
 			"$ olmDbNotIndexed "
 #endif /* MDB_MONITOR_IDX */
 			"$ olmMDBPagesMax $ olmMDBPagesUsed $ olmMDBPagesFree "
-			"$ olmMDBReadersMax $ olmMDBReadersUsed "
+			"$ olmMDBReadersMax $ olmMDBReadersUsed $ olmMDBEntries "
 			") )",
 		&oc_olmMDBDatabase },
 
@@ -219,6 +230,14 @@ mdb_monitor_update(
 			}
 			mdb_cursor_close( cursor );
 		}
+
+		mdb_stat( txn, mdb->mi_id2entry, &mst );
+		a = attr_find( e->e_attrs, ad_olmMDBEntries );
+		assert( a != NULL );
+		bv.bv_val = buf;
+		bv.bv_len = snprintf( buf, sizeof( buf ), "%lu", mst.ms_entries );
+		ber_bvreplace( &a->a_vals[ 0 ], &bv );
+
 		mdb_txn_abort( txn );
 
 		a = attr_find( e->e_attrs, ad_olmMDBPagesFree );
@@ -417,7 +436,7 @@ mdb_monitor_db_open( BackendDB *be )
 	}
 
 	/* alloc as many as required (plus 1 for objectClass) */
-	a = attrs_alloc( 1 + 6 );
+	a = attrs_alloc( 1 + 7 );
 	if ( a == NULL ) {
 		rc = 1;
 		goto cleanup;
@@ -447,6 +466,10 @@ mdb_monitor_db_open( BackendDB *be )
 		next = next->a_next;
 
 		next->a_desc = ad_olmMDBReadersUsed;
+		attr_valadd( next, &bv, NULL, 1 );
+		next = next->a_next;
+
+		next->a_desc = ad_olmMDBEntries;
 		attr_valadd( next, &bv, NULL, 1 );
 		next = next->a_next;
 	}

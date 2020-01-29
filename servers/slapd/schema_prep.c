@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2019 The OpenLDAP Foundation.
+ * Copyright 1998-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1018,6 +1018,19 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_pKCS8PrivateKey) },
+
+	{ "pwdLastSuccess", "( 1.3.6.1.4.1.42.2.27.8.1.29 NAME 'pwdLastSuccess' "
+			"DESC 'The timestamp of the last successful authentication' "
+			"EQUALITY generalizedTimeMatch "
+			"ORDERING generalizedTimeOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 "
+			"SINGLE-VALUE "
+			"NO-USER-MODIFICATION "
+			"USAGE directoryOperation )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_pwdLastSuccess) },
 
 	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0 }
 };

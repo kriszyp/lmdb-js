@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2019 The OpenLDAP Foundation.
+ * Copyright 1998-2020 The OpenLDAP Foundation.
  * Portions Copyright 2003 Kurt D. Zeilenga.
  * Portions Copyright 2003 IBM Corporation.
  * All rights reserved.
@@ -2005,16 +2005,17 @@ int
 tool_check_abandon( LDAP *ld, int msgid )
 {
 	int	rc;
+	LDAPControl *sctrls[1] = { NULL };
 
 	switch ( gotintr ) {
 	case Intr_Cancel:
-		rc = ldap_cancel_s( ld, msgid, NULL, NULL );
+		rc = ldap_cancel_s( ld, msgid, sctrls, NULL );
 		fprintf( stderr, "got interrupt, cancel got %d: %s\n",
 				rc, ldap_err2string( rc ) );
 		return -1;
 
 	case Intr_Abandon:
-		rc = ldap_abandon_ext( ld, msgid, NULL, NULL );
+		rc = ldap_abandon_ext( ld, msgid, sctrls, NULL );
 		fprintf( stderr, "got interrupt, abandon got %d: %s\n",
 				rc, ldap_err2string( rc ) );
 		return -1;
@@ -2215,6 +2216,8 @@ print_psearch( LDAP *ld, LDAPControl *ctrl )
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			ldif ? "persistentSearch: " : "persistentSearch", buf, len );
 	}
+
+	return rc;
 }
 
 static int

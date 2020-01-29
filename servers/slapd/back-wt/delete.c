@@ -2,7 +2,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2002-2019 The OpenLDAP Foundation.
+ * Copyright 2002-2020 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,10 +52,8 @@ wt_delete( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_ARGS, "==> " LDAP_XSTRING(wt_delete) ": %s\n",
 		   op->o_req_dn.bv_val );
 
-#ifdef LDAP_X_TXN
 	if( op->o_txnSpec && txn_preop( op, rs ))
 		return rs->sr_err;
-#endif
 
 	ctrls[num_ctrls] = 0;
 	rs->sr_text = NULL;

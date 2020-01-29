@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 2004-2019 The OpenLDAP Foundation.
+ * Copyright 2004-2020 The OpenLDAP Foundation.
  * Portions Copyright 2004 Hewlett-Packard Company.
  * Portions Copyright 2004 Howard Chu, Symas Corp.
  * All rights reserved.
@@ -206,6 +206,7 @@ ldap_passwordpolicy_err2txt( LDAPPasswordPolicyError err )
 	case PP_passwordTooShort: return "Password is too short for policy";
 	case PP_passwordTooYoung: return "Password has been changed too recently";
 	case PP_passwordInHistory: return "New password is in list of old passwords";
+	case PP_passwordTooLong: return "Password is too long for policy";
 	case PP_noError: return "No error";
 	default: return "Unknown error code";
 	}
