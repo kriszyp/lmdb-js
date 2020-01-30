@@ -1301,7 +1301,7 @@ really_bad:;
 					for ( cnt = 0; references[ cnt ]; cnt++ )
 						;
 	
-					rs->sr_ref = ber_memalloc_x( sizeof( struct berval ) * ( cnt + 1 ),
+					rs->sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( cnt + 1 ),
 						op->o_tmpmemctx );
 	
 					for ( cnt = 0; references[ cnt ]; cnt++ ) {
@@ -1456,7 +1456,7 @@ really_bad:;
 							for ( cnt = 0; references[ cnt ]; cnt++ )
 								;
 	
-							sr_ref = ber_memalloc_x( sizeof( struct berval ) * ( cnt + 1 ),
+							sr_ref = op->o_tmpalloc( sizeof( struct berval ) * ( cnt + 1 ),
 								op->o_tmpmemctx );
 	
 							for ( cnt = 0; references[ cnt ]; cnt++ ) {
