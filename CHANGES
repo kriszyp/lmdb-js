@@ -26,6 +26,7 @@ OpenLDAP 2.4.49 Engineering
 		Fix mkdep to honor TMPDIR if set (ITS#9062)
 		Remove ICU library detection (ITS#9144)
 		Update config.guess and config.sub to support newer architectures (ITS#7855)
+		Disable ITS8521 regression test as it is no longer valid (ITS#9015)
 	Documentation
 		admin24 - Fix inconsistent whitespace in replication section (ITS#9153)
 		slapd-config(5)/slapd.conf(5) - Fix missing bold tag for keyword (ITS#9063)
