@@ -125,6 +125,10 @@ do_modrdn( struct tester_conn_args *config,
 
 	DNs[0] = entry;
 	DNs[1] = strdup( entry );
+	if ( DNs[1] == NULL ) {
+		tester_error( "strdup failed" );
+		exit( EXIT_FAILURE );
+	}
 
 	/* reverse the RDN, make new DN */
 	p1 = strchr( entry, '=' ) + 1;
@@ -132,6 +136,10 @@ do_modrdn( struct tester_conn_args *config,
 
 	*p2 = '\0';
 	rdns[1] = strdup( entry );
+	if ( rdns[1] == NULL ) {
+		tester_error( "strdup failed" );
+		exit( EXIT_FAILURE );
+	}
 	*p2-- = ',';
 
 	for (i = p1 - entry;p2 >= p1;)
@@ -139,6 +147,10 @@ do_modrdn( struct tester_conn_args *config,
 	
 	DNs[1][i] = '\0';
 	rdns[0] = strdup( DNs[1] );
+	if ( rdns[0] == NULL ) {
+		tester_error( "strdup failed" );
+		exit( EXIT_FAILURE );
+	}
 	DNs[1][i] = ',';
 
 	i = 0;

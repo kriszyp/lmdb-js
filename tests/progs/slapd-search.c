@@ -226,6 +226,10 @@ do_random( struct tester_conn_args *config,
 				int j;
 
 				values = realloc( values, ( nvalues + n + 1 )*sizeof( char * ) );
+				if ( !values ) {
+					tester_error( "realloc failed" );
+					exit( EXIT_FAILURE );
+				}
 				for ( j = 0; j < n; j++ ) {
 					values[ nvalues + j ] = strdup( v[ j ]->bv_val );
 				}
@@ -298,6 +302,10 @@ do_search( struct tester_conn_args *config,
 	/* make room for msgid */
 	if ( swamp > 1 ) {
 		msgids = (int *)calloc( sizeof(int), innerloop );
+		if ( !msgids ) {
+			tester_error( "calloc failed" );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 retry:;
