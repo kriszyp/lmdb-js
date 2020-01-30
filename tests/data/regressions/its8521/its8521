@@ -13,6 +13,10 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+echo "This test is no longer valid after the fixes in ITS#9015"
+echo "http://www.openldap.org/its/index.cgi/?findid=9015"
+exit 0
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
