@@ -232,6 +232,10 @@ int main(int argc, char *argv[])
 			if (memchr(key.mv_data, '\0', key.mv_size))
 				continue;
 			str = malloc(key.mv_size+1);
+			if (!str) {
+				fprintf(stderr, "malloc failed\n");
+				goto txn_abort;
+			}
 			memcpy(str, key.mv_data, key.mv_size);
 			str[key.mv_size] = '\0';
 			rc = mdb_open(txn, str, 0, &db2);
