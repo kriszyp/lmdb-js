@@ -105,7 +105,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 		filter_escape_value_x( &vtmp, &ntmp, memctx );
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
 			+ ( sizeof("(=)") - 1 );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			f->f_av_desc->ad_cname.bv_val, ntmp.bv_len ? ntmp.bv_val : "" );
@@ -117,7 +117,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
 			+ ( sizeof("(>=)") - 1 );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			f->f_av_desc->ad_cname.bv_val, ntmp.bv_len ? ntmp.bv_val : "" );
@@ -129,7 +129,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
 			+ ( sizeof("(<=)") - 1 );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			f->f_av_desc->ad_cname.bv_val,  ntmp.bv_len ? ntmp.bv_val : "" );
@@ -141,7 +141,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 		filter_escape_value_x( &f->f_av_value, &ntmp, memctx );
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len + ntmp.bv_len
 			+ ( sizeof("(~=)") - 1 );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			f->f_av_desc->ad_cname.bv_val,  ntmp.bv_len ? ntmp.bv_val : "" );
@@ -151,7 +151,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len + ( STRLENOF( "(=*)" ) );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 128, memctx ); /* FIXME: why 128 ? */
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 128, memctx ); /* FIXME: why 128 ? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_sub_desc->ad_cname.bv_val );
@@ -162,7 +162,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 			filter_escape_value_x( &f->f_sub_initial, &ntmp, memctx );
 
 			fstr->bv_len += ntmp.bv_len;
-			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+			fstr->bv_val = dc->op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, memctx );
 
 			snprintf( &fstr->bv_val[len - 2], ntmp.bv_len + 3,
 				/* "(attr=" */ "%s*)",
@@ -177,7 +177,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 				filter_escape_value_x( &f->f_sub_any[i], &ntmp, memctx );
 
 				fstr->bv_len += ntmp.bv_len + 1;
-				fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+				fstr->bv_val = dc->op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, memctx );
 
 				snprintf( &fstr->bv_val[len - 1], ntmp.bv_len + 3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
@@ -192,7 +192,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 			filter_escape_value_x( &f->f_sub_final, &ntmp, memctx );
 
 			fstr->bv_len += ntmp.bv_len;
-			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+			fstr->bv_val = dc->op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, memctx );
 
 			snprintf( &fstr->bv_val[len - 1], ntmp.bv_len + 3,
 				/* "(attr=[init*][any*]" */ "%s)",
@@ -205,7 +205,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = f->f_desc->ad_cname.bv_len + ( STRLENOF( "(=*)" ) );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_desc->ad_cname.bv_val );
@@ -215,7 +215,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = STRLENOF( "(%)" );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 128, memctx );	/* FIXME: why 128? */
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 128, memctx );	/* FIXME: why 128? */
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -232,7 +232,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 			}
 
 			fstr->bv_len += vtmp.bv_len;
-			fstr->bv_val = ber_memrealloc_x( fstr->bv_val, fstr->bv_len + 1, memctx );
+			fstr->bv_val = dc->op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, memctx );
 
 			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2,
 				/*"("*/ "%s)", vtmp.bv_len ? vtmp.bv_val : "" );
@@ -256,7 +256,7 @@ asyncmeta_int_filter2bv( a_dncookie		*dc,
 			( f->f_mr_dnattrs ? STRLENOF( ":dn" ) : 0 ) +
 			( !BER_BVISEMPTY( &f->f_mr_rule_text ) ? f->f_mr_rule_text.bv_len + 1 : 0 ) +
 			ntmp.bv_len + ( STRLENOF( "(:=)" ) );
-		fstr->bv_val = ber_memalloc_x( fstr->bv_len + 1, memctx );
+		fstr->bv_val = dc->op->o_tmpalloc( fstr->bv_len + 1, memctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			atmp.bv_val,
