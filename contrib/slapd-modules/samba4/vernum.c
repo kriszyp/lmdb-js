@@ -121,8 +121,8 @@ vernum_op_modify( Operation *op, SlapReply *rs )
 	/* ITS#6561 */
 #ifdef SLAP_MOD_ADD_IF_NOT_PRESENT
 	/* the initial value is only added if the vernum attr is not present */
-	ml = SLAP_CALLOC( sizeof( Modifications ), 1 );
-	ml->sml_values = SLAP_CALLOC( sizeof( struct berval ) , 2 );
+	ml = ch_calloc( sizeof( Modifications ), 1 );
+	ml->sml_values = ch_calloc( sizeof( struct berval ) , 2 );
 	value_add_one( &ml->sml_values, &val_init );
 	ml->sml_nvalues = NULL;
 	ml->sml_numvals = 1;
@@ -136,8 +136,8 @@ vernum_op_modify( Operation *op, SlapReply *rs )
 #endif /* SLAP_MOD_ADD_IF_NOT_PRESENT */
 
 	/* this increments by 1 the vernum attr */
-	ml = SLAP_CALLOC( sizeof( Modifications ), 1 );
-	ml->sml_values = SLAP_CALLOC( sizeof( struct berval ) , 2 );
+	ml = ch_calloc( sizeof( Modifications ), 1 );
+	ml->sml_values = ch_calloc( sizeof( struct berval ) , 2 );
 	value_add_one( &ml->sml_values, &val );
 	ml->sml_nvalues = NULL;
 	ml->sml_numvals = 1;

@@ -277,10 +277,10 @@ aa_operational( Operation *op, SlapReply *rs )
 			/* just count */ ;
 	
 		if ( got & GOT_A ) {
-			bv_allowed = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
+			bv_allowed = ch_calloc( i + 1,  sizeof( struct berval ) );
 		}
 		if ( got & GOT_AE ) {
-			bv_effective = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
+			bv_effective = ch_calloc( i + 1, sizeof( struct berval ) );
 		}
 
 		for ( i = 0, ja = 0, je = 0; atp[ i ] != NULL; i++ ) {
@@ -310,7 +310,6 @@ aa_operational( Operation *op, SlapReply *rs )
 		ch_free( atp );
 
 		if ( ( got & GOT_A ) && ja > 0 ) {
-			BER_BVZERO( &bv_allowed[ ja ] );
 			*ap = attr_alloc( ad_allowedAttributes );
 			(*ap)->a_vals = bv_allowed;
 			(*ap)->a_nvals = bv_allowed;
@@ -319,7 +318,6 @@ aa_operational( Operation *op, SlapReply *rs )
 		}
 
 		if ( ( got & GOT_AE ) && je > 0 ) {
-			BER_BVZERO( &bv_effective[ je ] );
 			*ap = attr_alloc( ad_allowedAttributesEffective );
 			(*ap)->a_vals = bv_effective;
 			(*ap)->a_nvals = bv_effective;
@@ -348,10 +346,10 @@ do_oc:;
 		}
 
 		if ( got & GOT_C ) {
-			bv_allowed = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
+			bv_allowed = ch_calloc( i + 1,  sizeof( struct berval ) );
 		}
 		if ( got & GOT_CE ) {
-			bv_effective = ber_memalloc( sizeof( struct berval ) * ( i + 1 ) );
+			bv_effective = ch_calloc( i + 1, sizeof( struct berval ) );
 		}
 
 		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
@@ -398,7 +396,6 @@ done_ce:;
 		}
 
 		if ( ( got & GOT_C ) && ja > 0 ) {
-			BER_BVZERO( &bv_allowed[ ja ] );
 			*ap = attr_alloc( ad_allowedChildClasses );
 			(*ap)->a_vals = bv_allowed;
 			(*ap)->a_nvals = bv_allowed;
@@ -407,7 +404,6 @@ done_ce:;
 		}
 
 		if ( ( got & GOT_CE ) && je > 0 ) {
-			BER_BVZERO( &bv_effective[ je ] );
 			*ap = attr_alloc( ad_allowedChildClassesEffective );
 			(*ap)->a_vals = bv_effective;
 			(*ap)->a_nvals = bv_effective;

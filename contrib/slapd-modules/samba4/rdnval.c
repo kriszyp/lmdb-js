@@ -223,8 +223,8 @@ rdnval_rdn2vals(
 
 	/* NOTE: we assume rdn and nrdn contain the same AVAs! */
 
-	*valsp = SLAP_CALLOC( sizeof( struct berval ), nAVA + 1 );
-	*nvalsp = SLAP_CALLOC( sizeof( struct berval ), nAVA + 1 );
+	*valsp = ch_calloc( sizeof( struct berval ), nAVA + 1 );
+	*nvalsp = ch_calloc( sizeof( struct berval ), nAVA + 1 );
 
 	/* Add new attribute values to the entry */
 	for ( i = 0; rdn[ i ]; i++ ) {
@@ -354,7 +354,7 @@ rdnval_op_rename( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 	}
 
-	ml = SLAP_CALLOC( sizeof( Modifications ), 1 );
+	ml = ch_calloc( sizeof( Modifications ), 1 );
 	ml->sml_values = vals;
 	ml->sml_nvalues = nvals;
 
