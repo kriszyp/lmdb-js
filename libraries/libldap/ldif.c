@@ -357,6 +357,9 @@ ldif_must_b64_encode_register( LDAP_CONST char *name, LDAP_CONST char *oid )
 
 	if ( must_b64_encode == default_must_b64_encode ) {
 		must_b64_encode = ber_memalloc( sizeof( must_b64_encode_s ) * ( i + 2 ) );
+		if ( must_b64_encode == NULL ) {
+		    return 1;
+		}
 
 		for ( i = 0; !BER_BVISNULL( &default_must_b64_encode[i].name ); i++ ) {
 			ber_dupbv( &must_b64_encode[i].name, &default_must_b64_encode[i].name );
@@ -728,6 +731,9 @@ ldif_open(
 
 	if ( fp ) {
 		lfp = ber_memalloc( sizeof( LDIFFP ));
+		if ( lfp == NULL ) {
+		    return NULL;
+		}
 		lfp->fp = fp;
 		lfp->prev = NULL;
 	}

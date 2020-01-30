@@ -258,6 +258,9 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 			l = vl + ava->la_attr.bv_len + 1;
 
 			str = LDAP_MALLOC( l + 1 );
+			if ( str == NULL ) {
+				goto error_return;
+			}
 			AC_MEMCPY( str, ava->la_attr.bv_val, 
 					ava->la_attr.bv_len );
 			str[ al++ ] = '=';
@@ -265,6 +268,9 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 		} else {
 			l = vl;
 			str = LDAP_MALLOC( l + 1 );
+			if ( str == NULL ) {
+				goto error_return;
+			}
 		}
 		
 		if ( ava->la_flags & LDAP_AVA_BINARY ) {
@@ -1526,6 +1532,10 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 	if ( escapes == 0 ) {
 		if ( *retFlags & LDAP_AVA_NONPRINTABLE ) {
 			val->bv_val = LDAP_MALLOCX( len + 1, ctx );
+			if ( val->bv_val == NULL ) {
+				return( 1 );
+			}
+
 			AC_MEMCPY( val->bv_val, startPos, len );
 			val->bv_val[ len ] = '\0';
 		} else {
@@ -1536,6 +1546,10 @@ str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char *
 		ber_len_t	s, d;
 
 		val->bv_val = LDAP_MALLOCX( len + 1, ctx );
+		if ( val->bv_val == NULL ) {
+			return( 1 );
+		}
+
 		for ( s = 0, d = 0; d < len; ) {
 			if ( LDAP_DN_ESCAPE( startPos[ s ] ) ) {
 				s++;
@@ -1633,6 +1647,10 @@ DCE2strval( const char *str, struct berval *val, const char **next, unsigned fla
 		ber_len_t	s, d;
 
 		val->bv_val = LDAP_MALLOCX( len + 1, ctx );
+		if ( val->bv_val == NULL ) {
+			return( 1 );
+		}
+
 		for ( s = 0, d = 0; d < len; ) {
 			/*
 			 * This point is reached only if escapes 
@@ -1714,6 +1732,10 @@ IA52strval( const char *str, struct berval *val, const char **next, unsigned fla
 		ber_len_t	s, d;
 		
 		val->bv_val = LDAP_MALLOCX( len + 1, ctx );
+		if ( val->bv_val == NULL ) {
+			return( 1 );
+		}
+
 		for ( s = 0, d = 0; d < len; ) {
 			if ( LDAP_DN_ESCAPE( startPos[ s ] ) ) {
 				s++;
@@ -1804,6 +1826,10 @@ quotedIA52strval( const char *str, struct berval *val, const char **next, unsign
 		ber_len_t	s, d;
 		
 		val->bv_val = LDAP_MALLOCX( len + 1, ctx );
+		if ( val->bv_val == NULL ) {
+			return( 1 );
+		}
+
 		val->bv_len = len;
 
 		for ( s = d = 0; d < len; ) {
@@ -2897,6 +2923,9 @@ ldap_rdn2bv_x( LDAPRDN rdn, struct berval *bv, unsigned flags, void *ctx )
 	}
 
 	bv->bv_val = LDAP_MALLOCX( l + 1, ctx );
+	if ( bv->bv_val == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
 
 	switch ( LDAP_DN_FORMAT( flags ) ) {
 	case LDAP_DN_FORMAT_LDAPV3:
