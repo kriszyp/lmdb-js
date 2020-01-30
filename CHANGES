@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.49 (2020/01/30)
+OpenLDAP 2.4.50 Engineering
+
+OpenLDAP 2.4.49 Release (2020/01/30)
 	Added slapd-monitor database entry count for slapd-mdb (ITS#9154)
 	Fixed client tools to not add controls on cancel/abandon (ITS#9145)
 	Fixed client tools SyncInfo message to be LDIF compliant (ITS#8116)
@@ -33,7 +35,7 @@ OpenLDAP 2.4.49 (2020/01/30)
 		slapd-ldap(5) - Document "tls none" option (ITS#9071)
 		slapo-ppolicy(5) - Correctly document pwdGraceAuthnLimit (ITS#9065)
 
-OpenLDAP 2.4.48 (2019/07/24)
+OpenLDAP 2.4.48 Release (2019/07/24)
 	Added libldap OpenSSL Elliptic Curve support (ITS#7595)
 	Added libldap Expose OpenLDAP specific interfaces via openldap.h (ITS#8671)
 	Added slapd-monitor support for slapd-mdb (ITS#7770)
