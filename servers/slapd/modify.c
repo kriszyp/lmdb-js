@@ -619,7 +619,7 @@ int slap_mods_check(
 			if( nvals && ad->ad_type->sat_equality &&
 				ad->ad_type->sat_equality->smr_normalize )
 			{
-				ml->sml_nvalues = ber_memalloc_x(
+				ml->sml_nvalues = slap_sl_malloc(
 					(nvals+1)*sizeof(struct berval), ctx );
 
 				for ( nvals = 0; !BER_BVISNULL( &ml->sml_values[nvals] ); nvals++ ) {

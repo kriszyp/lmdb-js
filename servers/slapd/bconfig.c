@@ -3032,7 +3032,7 @@ tcp_buffer_unparse( int size, int rw, Listener *l, struct berval *val )
 		}
 	}
 
-	val->bv_val = SLAP_MALLOC( val->bv_len + 1 );
+	val->bv_val = ch_malloc( val->bv_len + 1 );
 
 	ptr = val->bv_val;
 
@@ -3110,7 +3110,7 @@ tcp_buffer_add_one( int argc, char **argv )
 		if ( rw & SLAP_TCP_WMEM ) slapd_tcp_wmem = size;
 	}
 
-	tcp_buffer = SLAP_REALLOC( tcp_buffer, sizeof( struct berval ) * ( tcp_buffer_num + 2 ) );
+	tcp_buffer = ch_realloc( tcp_buffer, sizeof( struct berval ) * ( tcp_buffer_num + 2 ) );
 	/* append */
 	tcp_buffer[ tcp_buffer_num ] = val;
 

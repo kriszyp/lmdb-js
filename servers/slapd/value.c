@@ -514,7 +514,7 @@ ordered_value_pretty(
 		bv = *out;
 
 		out->bv_len = idx.bv_len + bv.bv_len;
-		out->bv_val = ber_memalloc_x( out->bv_len + 1, ctx );
+		out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 		
 		AC_MEMCPY( out->bv_val, idx.bv_val, idx.bv_len );
 		AC_MEMCPY( &out->bv_val[ idx.bv_len ], bv.bv_val, bv.bv_len + 1 );
@@ -591,7 +591,7 @@ ordered_value_normalize(
 		bv = *normalized;
 
 		normalized->bv_len = idx.bv_len + bv.bv_len;
-		normalized->bv_val = ber_memalloc_x( normalized->bv_len + 1, ctx );
+		normalized->bv_val = slap_sl_malloc( normalized->bv_len + 1, ctx );
 		
 		AC_MEMCPY( normalized->bv_val, idx.bv_val, idx.bv_len );
 		AC_MEMCPY( &normalized->bv_val[ idx.bv_len ], bv.bv_val, bv.bv_len + 1 );
