@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.49 Engineering
+OpenLDAP 2.4.49 (2020/01/30)
 	Added slapd-monitor database entry count for slapd-mdb (ITS#9154)
 	Fixed client tools to not add controls on cancel/abandon (ITS#9145)
 	Fixed client tools SyncInfo message to be LDIF compliant (ITS#8116)
