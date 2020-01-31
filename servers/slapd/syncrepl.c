@@ -50,16 +50,10 @@ static struct berval msad_addval = BER_BVC("range=1-1");
 static struct berval msad_delval = BER_BVC("range=0-0");
 #endif
 
-#ifdef LDAP_DEVEL
-#define DO_DSEE
-#endif
-
-#ifdef DO_DSEE
 static AttributeDescription *sy_ad_nsUniqueId;
 static AttributeDescription *sy_ad_dseeLastChange;
 
 #define DSEE_SYNC_ADD	0x20
-#endif
 
 #define	UUIDLEN	16
 
@@ -156,10 +150,8 @@ typedef struct syncinfo_s {
 #ifdef LDAP_CONTROL_X_DIRSYNC
 	struct berval		si_dirSyncCookie;
 #endif
-#ifdef DO_DSEE
 	unsigned long	si_prevchange;;
 	unsigned long	si_lastchange;
-#endif
 	ldap_pvt_thread_mutex_t	si_mutex;
 } syncinfo_t;
 
@@ -194,9 +186,7 @@ static int syncrepl_dirsync_cookie(
 					syncinfo_t *, Operation *, LDAPControl ** );
 #endif
 
-#ifdef DO_DSEE
 static int syncrepl_dsee_update( syncinfo_t *si, Operation *op ) ;
-#endif
 
 /* delta-mmr overlay handler */
 static int syncrepl_op_modify( Operation *op, SlapReply *rs );
@@ -265,10 +255,8 @@ syncrepl_state2str( int state )
 	case MSAD_DIRSYNC_MODIFY:
 		return "DIRSYNC_MOD";
 #endif
-#ifdef DO_DSEE
 	case DSEE_SYNC_ADD:
 		return "DSEE_ADD";
-#endif
 	}
 
 	return "UNKNOWN";
@@ -508,7 +496,6 @@ ldap_sync_search(
 	 * normal mode for a full refresh.
 	 */
 	if ( si->si_syncdata ) {
-#ifdef DO_DSEE
 		if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
 			LDAPMessage *res, *msg;
 			unsigned long first = 0, last = 0;
@@ -552,7 +539,6 @@ ldap_sync_search(
 				si->si_logstate = SYNCLOG_FALLBACK;
 			}
 		} else
-#endif
 		if ( si->si_logstate == SYNCLOG_LOGGING && !si->si_syncCookie.numcsns &&
 				!si->si_refreshDone ) {
 			si->si_logstate = SYNCLOG_FALLBACK;
@@ -628,7 +614,6 @@ ldap_sync_search(
 		}
 	} else
 #endif
-#ifdef DO_DSEE
 	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
 		if ( si->si_logstate == SYNCLOG_LOGGING && si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 			c[0].ldctl_oid = LDAP_CONTROL_PERSIST_REQUEST;
@@ -641,7 +626,6 @@ ldap_sync_search(
 			ctrls[0] = NULL;
 		}
 	} else
-#endif
 	{
 		if ( !BER_BVISNULL( &si->si_syncCookie.octet_str ) )
 		{
@@ -863,7 +847,6 @@ do_syncrep1(
 		}
 	} else
 #endif
-#ifdef DO_DSEE
 	if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
 		if ( !si->si_lastchange ) {
 			BerVarray vals = NULL;
@@ -879,7 +862,6 @@ do_syncrep1(
 			}
 		}
 	} else
-#endif
 	{
 
 	/* We've just started up, or the remote server hasn't sent us
@@ -1107,7 +1089,6 @@ do_syncrep2(
 				bdn.bv_val = empty;
 				bdn.bv_len = sizeof(empty)-1;
 			}
-#ifdef DO_DSEE
 			if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
 				if ( si->si_logstate == SYNCLOG_LOGGING ) {
 					rc = syncrepl_message_to_op( si, op, msg );
@@ -1139,7 +1120,6 @@ do_syncrep2(
 					goto done;
 				break;
 			}
-#endif
 			/* we can't work without the control */
 			if ( rctrls ) {
 				LDAPControl **next = NULL;
@@ -3546,7 +3526,6 @@ static int syncrepl_dirsync_schema()
 }
 #endif /* LDAP_CONTROL_X_DIRSYNC */
 
-#ifdef DO_DSEE
 static int syncrepl_dsee_schema()
 {
 	const char *text;
@@ -3561,7 +3540,6 @@ static int syncrepl_dsee_schema()
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 "
 		"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )", &sy_ad_dseeLastChange, 0);
 }
-#endif /* DO_DSEE */
 
 /* During a refresh, we may get an LDAP_SYNC_ADD for an already existing
  * entry if a previous refresh was interrupted before sending us a new
@@ -6194,7 +6172,6 @@ parse_syncrepl_line(
 			si->si_syncdata = verb_to_mask( val, datamodes );
 			si->si_got |= GOT_SYNCDATA;
 			if ( si->si_syncdata == SYNCDATA_CHANGELOG ) {
-#ifdef DO_DSEE
 				if ( sy_ad_nsUniqueId == NULL ) {
 					int rc = syncrepl_dsee_schema();
 					if ( rc ) {
@@ -6204,12 +6181,6 @@ parse_syncrepl_line(
 						return 1;
 					}
 				}
-#else
-				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"changelog not yet supported\n" );
-				Debug( LDAP_DEBUG_ANY, "%s: %s.\n", c->log, c->cr_msg );
-				return 1;
-#endif
 			}
 		} else if ( !strncasecmp( c->argv[ i ], STRICT_REFRESH,
 					STRLENOF( STRICT_REFRESH ) ) )
