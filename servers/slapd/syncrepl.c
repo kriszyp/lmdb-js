@@ -3815,8 +3815,10 @@ syncrepl_entry(
 		slap_queue_csn( op, syncCSN );
 	}
 
+#ifdef SLAP_CONTROL_X_LAZY_COMMIT
 	if ( !si->si_refreshDone && si->si_lazyCommit )
 		op->o_lazyCommit = SLAP_CONTROL_NONCRITICAL;
+#endif
 
 	slap_op_time( &op->o_time, &op->o_tincr );
 	switch ( syncstate ) {
