@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.50 Engineering
+	Contrib
+		Update ldapc++ config.guess and config.sub to support newer architectures (ITS#7855)
 
 OpenLDAP 2.4.49 Release (2020/01/30)
 	Added slapd-monitor database entry count for slapd-mdb (ITS#9154)
