@@ -21,10 +21,8 @@ gmtime_mutex
 LDAP_TCP_BUFFER
 Simplify write waiter handling
 
-back-bdb: BDB_MONITOR_IDX
-back-ldap: SLAP_AUTH_DN, FEATURE_CANCHAINOPS
-back-mdb: MDB_MONITOR_IDX
-back-meta: SLAP_AUTH_DN, SLAPD_META_CLIENT_PR
+back-ldap: FEATURE_CANCHAINOPS
+back-meta: SLAPD_META_CLIENT_PR
 overlays/syncprov: CHECK_CSN
 overlays/pcache: PCACHE_CONTROL_PRIVDB, PCACHE_EXOP_QUERY_DELETE, PCACHE_MONITOR
 
