@@ -964,6 +964,10 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 		if ( dyn ) {
 			dyn->dy_seen = 1;
 			rc = dynlist_prepare_entry( op, rs, dyn->dy_dli );
+			if ( ds->ds_origfilter && test_filter( op, rs->sr_entry, ds->ds_origfilter ) != LDAP_COMPARE_TRUE ) {
+				rs_flush_entry( op, rs, NULL );
+				rc = LDAP_SUCCESS;
+			}
 			return rc;
 		} else {
 			TAvlnode *ptr;
