@@ -528,7 +528,7 @@ The {{EX:realm}} parameter specifies a realm which a certain
 mechanisms authenticate the identity within. The {{EX:secprops}}
 parameter specifies Cyrus SASL security properties.
 
-The {{EX:keepalive} parameter sets the values of idle, probes, and interval
+The {{EX:keepalive}} parameter sets the values of idle, probes, and interval
 used to check whether a socket is alive;  idle is the number of seconds a
 connection needs to remain idle before TCP starts sending keepalive probes;
 probes is the maximum number of keepalive probes TCP should send before
