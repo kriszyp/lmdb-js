@@ -962,10 +962,12 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 		/* See if this is one of our dynamic entries */
 		dyn = tavl_find( ds->ds_names, &rs->sr_entry->e_nname, dynlist_avl_cmp );
 		if ( dyn ) {
+			Entry *e = rs->sr_entry;
 			dyn->dy_seen = 1;
 			rc = dynlist_prepare_entry( op, rs, dyn->dy_dli );
 			if ( ds->ds_origfilter && test_filter( op, rs->sr_entry, ds->ds_origfilter ) != LDAP_COMPARE_TRUE ) {
-				rs_flush_entry( op, rs, NULL );
+				if ( e != rs->sr_entry )
+					rs_flush_entry( op, rs, NULL );
 				rc = LDAP_SUCCESS;
 			}
 			return rc;
