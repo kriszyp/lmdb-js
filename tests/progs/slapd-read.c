@@ -202,6 +202,10 @@ do_random( struct tester_conn_args *config, char *sbase, char *filter,
 		}
 
 		values = malloc( ( nvalues + 1 ) * sizeof( char * ) );
+		if ( !values ) {
+			tester_error( "malloc failed" );
+			exit( EXIT_FAILURE );
+		}
 		for ( i = 0, e = ldap_first_entry( ld, res ); e != NULL; i++, e = ldap_next_entry( ld, e ) )
 		{
 			values[ i ] = ldap_get_dn( ld, e );
@@ -251,6 +255,10 @@ do_read( struct tester_conn_args *config, char *entry, LDAP **ldp,
 	/* make room for msgid */
 	if ( swamp > 1 ) {
 		msgids = (int *)calloc( sizeof(int), maxloop );
+		if ( !msgids ) {
+			tester_error( "calloc failed" );
+			exit( EXIT_FAILURE );
+		}
 	}
 
 retry:;

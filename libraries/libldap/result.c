@@ -1027,6 +1027,11 @@ nextresp2:
 				 * to parse.
 				 */
 				ber = ldap_alloc_ber_with_options( ld );
+				if ( ber == NULL ) {
+					ld->ld_errno = LDAP_NO_MEMORY;
+					return -1;
+				}
+
 				if ( ber_sockbuf_ctrl( lc->lconn_sb, LBER_SB_OPT_DATA_READY, NULL ) ) ok = 1;
 			}
 			/* set up response chain */

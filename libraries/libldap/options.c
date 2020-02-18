@@ -151,10 +151,21 @@ ldap_get_option(
 				int i;
 				info->ldapai_extensions = LDAP_MALLOC(sizeof(char *) *
 					sizeof(features)/sizeof(LDAPAPIFeatureInfo));
+				if ( info->ldapai_extensions == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					break;
+				}
 
 				for(i=0; features[i].ldapaif_name != NULL; i++) {
 					info->ldapai_extensions[i] =
 						LDAP_STRDUP(features[i].ldapaif_name);
+					if ( info->ldapai_extensions[i] == NULL ) {
+						rc = LDAP_NO_MEMORY;
+						break;
+					}
+				}
+				if ( features[i].ldapaif_name != NULL ) {
+					break; /* LDAP_NO_MEMORY */
 				}
 
 				info->ldapai_extensions[i] = NULL;
@@ -895,6 +906,11 @@ ldap_set_option(
 			/* setting pushes the callback */
 			ldaplist *ll;
 			ll = LDAP_MALLOC( sizeof( *ll ));
+			if ( ll == NULL ) {
+				rc = LDAP_NO_MEMORY;
+				break;
+			}
+
 			ll->ll_data = (void *)invalue;
 			ll->ll_next = lo->ldo_conn_cbs;
 			lo->ldo_conn_cbs = ll;

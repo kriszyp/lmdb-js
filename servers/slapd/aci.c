@@ -1258,7 +1258,7 @@ OpenLDAPaciNormalizeRight(
 				
 					len = nattrs.bv_len + ( !BER_BVISEMPTY( &nattrs ) ? STRLENOF( "," ) : 0 )
 				      		+ ad->ad_cname.bv_len;
-					nattrs.bv_val = ber_memrealloc_x( nattrs.bv_val, len + 1, ctx );
+					nattrs.bv_val = slap_sl_realloc( nattrs.bv_val, len + 1, ctx );
 	                        	ptr = &nattrs.bv_val[ nattrs.bv_len ];
 					if ( !BER_BVISEMPTY( &nattrs ) ) {
 						*ptr++ = ',';
@@ -1270,7 +1270,7 @@ OpenLDAPaciNormalizeRight(
 
 			}
 
-			naction->bv_val = ber_memrealloc_x( naction->bv_val,
+			naction->bv_val = slap_sl_realloc( naction->bv_val,
 				naction->bv_len + STRLENOF( ";" )
 				+ perms.bv_len + STRLENOF( ";" )
 				+ nattrs.bv_len + 1,
@@ -1345,7 +1345,7 @@ OpenLDAPaciNormalizeRights(
 			*nactions = nbv;
 
 		} else {
-			nactions->bv_val = ber_memrealloc_x( nactions->bv_val,
+			nactions->bv_val = slap_sl_realloc( nactions->bv_val,
 				nactions->bv_len + STRLENOF( "$" )
 				+ nbv.bv_len + 1,
 				ctx );
@@ -1703,7 +1703,7 @@ OpenLDAPaciPrettyNormal(
 				}
 
 				bv.bv_len += STRLENOF( "/" ) + oc->soc_cname.bv_len;
-				bv.bv_val = ber_memalloc_x( bv.bv_len + 1, ctx );
+				bv.bv_val = slap_sl_malloc( bv.bv_len + 1, ctx );
 
 				ptr = bv.bv_val;
 				ptr = lutil_strncopy( ptr, ntype.bv_val, ntype.bv_len );
@@ -1762,7 +1762,7 @@ OpenLDAPaciPrettyNormal(
 		+ ntype.bv_len + STRLENOF( "#" )
 		+ nsubject.bv_len;
 
-	out->bv_val = ber_memalloc_x( out->bv_len + 1, ctx );
+	out->bv_val = slap_sl_malloc( out->bv_len + 1, ctx );
 	ptr = lutil_strncopy( out->bv_val, oid.bv_val, oid.bv_len );
 	ptr[ 0 ] = '#';
 	ptr++;

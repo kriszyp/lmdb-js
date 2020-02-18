@@ -412,11 +412,19 @@ do_base( struct tester_conn_args *config, char *dn, char *base, char *filter, ch
 			case LDAP_RES_SEARCH_ENTRY:
 				rc = ldap_get_dn_ber( ld, msg, &ber, &bv );
 				dns = realloc( dns, (ndns + 1)*sizeof(char *) );
+				if ( !dns ) {
+					tester_error( "realloc failed" );
+					exit( EXIT_FAILURE );
+				}
 				dns[ndns] = ber_strdup( bv.bv_val );
 				if ( pwattr != NULL ) {
 					struct berval	**values = ldap_get_values_len( ld, msg, pwattr );
 
 					creds = realloc( creds, (ndns + 1)*sizeof(struct berval) );
+					if ( !creds ) {
+						tester_error( "realloc failed" );
+						exit( EXIT_FAILURE );
+					}
 					if ( values == NULL ) {
 novals:;
 						creds[ndns].bv_len = 0;

@@ -1481,7 +1481,7 @@ meta_back_cf_gen( ConfigArgs *c )
 				char *ptr;
 				int len = snprintf( buf, sizeof( buf ), SLAP_X_ORDERED_FMT, i );
 				bv.bv_len = ((*bvp)[ i ]).bv_len + len;
-				bv.bv_val = ber_memrealloc( bv.bv_val, bv.bv_len + 1 );
+				bv.bv_val = ch_realloc( bv.bv_val, bv.bv_len + 1 );
 				ptr = bv.bv_val;
 				ptr = lutil_strcopy( ptr, buf );
 				ptr = lutil_strncopy( ptr, ((*bvp)[ i ]).bv_val, ((*bvp)[ i ]).bv_len );
@@ -2635,7 +2635,7 @@ idassert-authzFrom	"dn:<rootdn>"
 				assert( !BER_BVISNULL( &mt->mt_idassert_authcDN ) );
 
 				bv.bv_len = STRLENOF( "dn:" ) + c->be->be_rootndn.bv_len;
-				bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+				bv.bv_val = ch_malloc( bv.bv_len + 1 );
 				AC_MEMCPY( bv.bv_val, "dn:", STRLENOF( "dn:" ) );
 				AC_MEMCPY( &bv.bv_val[ STRLENOF( "dn:" ) ], c->be->be_rootndn.bv_val, c->be->be_rootndn.bv_len + 1 );
 

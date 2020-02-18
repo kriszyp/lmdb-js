@@ -396,6 +396,11 @@ short_input:
 		lr->lr_lm = ber_memalloc_x( nmods * sizeof(LDAPMod) +
 			(nmods+1) * sizeof(LDAPMod*) +
 			(lr->lr_lines + nmods - idn) * sizeof(struct berval *), ctx );
+		if ( lr->lr_lm == NULL ) {
+			rc = LDAP_NO_MEMORY;
+			goto leave;
+		}
+
 		pmods = (LDAPMod **)(lr->lr_lm+nmods);
 		bvl = (struct berval **)(pmods+nmods+1);
 
@@ -426,6 +431,11 @@ short_input:
 	}
 
 	lr->lr_mops = ber_memalloc_x( lr->lr_lines+1, ctx );
+	if ( lr->lr_mops == NULL ) {
+		rc = LDAP_NO_MEMORY;
+		goto leave;
+	}
+
 	lr->lr_mops[lr->lr_lines] = M_SEP;
 	if ( i > 0 )
 		lr->lr_mops[i-1] = M_SEP;
@@ -511,6 +521,11 @@ short_input:
 	lr->lr_lm = ber_memalloc_x( nmods * sizeof(LDAPMod) +
 		(nmods+1) * sizeof(LDAPMod*) +
 		(lr->lr_lines + nmods - idn) * sizeof(struct berval *), ctx );
+	if ( lr->lr_lm == NULL ) {
+		rc = LDAP_NO_MEMORY;
+		goto leave;
+	}
+
 	pmods = (LDAPMod **)(lr->lr_lm+nmods);
 	bvl = (struct berval **)(pmods+nmods+1);
 

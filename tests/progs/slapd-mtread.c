@@ -531,6 +531,10 @@ do_random( LDAP *ld,
 		}
 
 		values = malloc( ( nvalues + 1 ) * sizeof( char * ) );
+		if (values == NULL) {
+			thread_error( idx, "(failed to malloc)");
+			exit( EXIT_FAILURE );
+		}
 		for ( i = 0, e = ldap_first_entry( ld, res ); e != NULL; i++, e = ldap_next_entry( ld, e ) )
 		{
 			values[ i ] = ldap_get_dn( ld, e );

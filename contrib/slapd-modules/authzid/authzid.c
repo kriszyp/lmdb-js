@@ -117,7 +117,7 @@ authzid_conn_insert( Connection *c, char flag )
 		return -1;
 	}
 
-	ac = SLAP_MALLOC( sizeof( authzid_conn_t ) );
+	ac = ch_malloc( sizeof( authzid_conn_t ) );
 	ac->conn = c;
 	ac->refcnt = 0;
 	ac->authzid_flag = flag;
@@ -143,7 +143,7 @@ authzid_conn_remove( Connection *c )
 	ldap_pvt_thread_mutex_unlock( &authzid_mutex );
 
 	assert( tmp == ac );
-	SLAP_FREE( ac );
+	ch_free( ac );
 
 	return 0;
 }

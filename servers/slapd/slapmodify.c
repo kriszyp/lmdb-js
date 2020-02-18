@@ -342,9 +342,9 @@ slapmodify( int argc, char **argv )
 
 				if ( i != 0 )
 				{
-					mods.sm_values = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
+					mods.sm_values = ch_calloc( sizeof( struct berval ), i + 1 );
 					if ( normalize ) {
-						mods.sm_nvalues = SLAP_CALLOC( sizeof( struct berval ), i + 1 );
+						mods.sm_nvalues = ch_calloc( sizeof( struct berval ), i + 1 );
 					} else {
 						mods.sm_nvalues = NULL;
 					}
