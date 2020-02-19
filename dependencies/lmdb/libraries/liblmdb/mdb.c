@@ -1465,9 +1465,8 @@ struct MDB_env {
 #ifdef _WIN32
 #ifdef MDB_VL32
 	HANDLE		me_fmh;		/**< File Mapping handle */
-#else
-	HANDLE		me_ovfd;	/**< Overlapped/async with write-through file handle */
 #endif /* MDB_VL32 */
+	HANDLE		me_ovfd;	/**< Overlapped/async with write-through file handle */
 #endif /* _WIN32 */
 	/** Failed to update the meta page. Probably an I/O error. */
 #define	MDB_FATAL_ERROR	0x80000000U
@@ -4308,6 +4307,10 @@ mdb_env_write_meta(MDB_txn *txn)
 			unsigned meta_size = env->me_psize;
 			rc = (env->me_flags & MDB_MAPASYNC) ? MS_ASYNC : MS_SYNC;
 			ptr = (char *)mp - PAGEHDRSZ;
+			/* POSIX msync() requires ptr = start of OS page */
+			r2 = (ptr - env->me_map) & (env->me_os_psize - 1);
+			ptr -= r2;
+			meta_size += r2;
 			if (MDB_MSYNC(ptr, meta_size, rc)) {
 				rc = ErrCode();
 				goto fail;
@@ -4465,11 +4468,11 @@ mdb_env_map(MDB_env *env, void *addr)
 		msize = env->me_mapsize;
 		alloctype = MEM_RESERVE;
 	}
+
 #ifdef MDB_FIXEDSIZE
 	LARGE_INTEGER fsize;
 	fsize.LowPart = msize & 0xffffffff;
 	fsize.HighPart = msize >> 16 >> 16;
-fprintf(stderr, "NtCreateSection %d\n", fsize.LowPart);
 	rc = NtCreateSection(&mh, access, NULL, &fsize, secprot, SEC_RESERVE, env->me_fd);
 #else
 	rc = NtCreateSection(&mh, access, NULL, NULL, secprot, SEC_RESERVE, env->me_fd);
