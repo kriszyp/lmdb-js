@@ -1323,9 +1323,8 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		/* Setup a callback so we can munge the result */
 
 		cb->sc_response = ppolicy_bind_response;
-		cb->sc_next = op->o_callback->sc_next;
 		cb->sc_private = ppb;
-		op->o_callback->sc_next = cb;
+		overlay_callback_after_backover( op, cb, 1 );
 
 		/* Did we receive a password policy request control? */
 		if ( op->o_ctrlflag[ppolicy_cid] ) {
@@ -1469,9 +1468,8 @@ ppolicy_compare(
 		/* Setup a callback so we can munge the result */
 
 		cb->sc_response = ppolicy_compare_response;
-		cb->sc_next = op->o_callback->sc_next;
 		cb->sc_private = ppb;
-		op->o_callback->sc_next = cb;
+		overlay_callback_after_backover( op, cb, 1 );
 
 		op->o_bd->bd_info = (BackendInfo *)on;
 		ppolicy_get( op, e, &ppb->pp );
