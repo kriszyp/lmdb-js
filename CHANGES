@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.50 Engineering
 	Fixed client benign typos (ITS#8890)
+	Fixed libldap type cast (ITS#9175)
 	Fixed slapd benign typos (ITS#8890)
 	Fixed slapo-ppolicy callback (ITS#9171)
 	Contrib
