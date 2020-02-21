@@ -46,7 +46,7 @@
 #define SASL_VERSION_FULL	((SASL_VERSION_MAJOR << 16) |\
 	(SASL_VERSION_MINOR << 8) | SASL_VERSION_STEP)
 
-#if SASL_VERSION_MINOR >= 0x020119 /* 2.1.25 */
+#if SASL_VERSION_FULL >= 0x020119 /* 2.1.25 */
 typedef sasl_callback_ft slap_sasl_cb_ft;
 #else
 typedef int (*slap_sasl_cb_ft)();
