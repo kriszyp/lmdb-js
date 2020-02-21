@@ -147,7 +147,7 @@ ldap_get_attribute_ber( LDAP *ld, LDAPMessage *entry, BerElement *ber,
 
 		/* skip sequence, snarf attribute type */
 		tag = ber_scanf( ber, vals ? "{mM}" : "{mx}", attr, vals,
-			&siz, 0 ); 
+			&siz, (ber_len_t)0 );
 		if( tag == LBER_ERROR ) {
 			rc = ld->ld_errno = LDAP_DECODING_ERROR;
 		}
