@@ -1029,6 +1029,8 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				rs->sr_err = send_search_entry( op, &r );
 				if ( rs->sr_err != LDAP_SUCCESS )
 					break;
+			} else {
+				rs_flush_entry( op, &r, NULL );
 			}
 		}
 		rs->sr_nentries = r.sr_nentries;
