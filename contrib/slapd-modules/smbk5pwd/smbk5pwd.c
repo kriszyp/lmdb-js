@@ -66,18 +66,14 @@ static ObjectClass *oc_krb5KDCEntry;
 
 #ifdef DO_SAMBA
 #ifdef HAVE_GNUTLS
-#include <nettle/des.h>
 #include <nettle/md4.h>
-typedef unsigned char DES_cblock[8];
 #elif HAVE_OPENSSL
-#include <openssl/des.h>
 #include <openssl/md4.h>
 #else
 #error Unsupported crypto backend.
 #endif
 #include "ldap_utf8.h"
 
-static AttributeDescription *ad_sambaLMPassword;
 static AttributeDescription *ad_sambaNTPassword;
 static AttributeDescription *ad_sambaPwdLastSet;
 static AttributeDescription *ad_sambaPwdMustChange;
@@ -135,29 +131,6 @@ static int smbk5pwd_modules_init( smbk5pwd_t *pi );
 #ifdef DO_SAMBA
 static const char hex[] = "0123456789abcdef";
 
-/* From liblutil/passwd.c... */
-static void lmPasswd_to_key(
-	const char *lmPasswd,
-	DES_cblock *key)
-{
-	const unsigned char *lpw = (const unsigned char *)lmPasswd;
-	unsigned char *k = (unsigned char *)key;
-
-	/* make room for parity bits */
-	k[0] = lpw[0];
-	k[1] = ((lpw[0]&0x01)<<7) | (lpw[1]>>1);
-	k[2] = ((lpw[1]&0x03)<<6) | (lpw[2]>>2);
-	k[3] = ((lpw[2]&0x07)<<5) | (lpw[3]>>3);
-	k[4] = ((lpw[3]&0x0F)<<4) | (lpw[4]>>4);
-	k[5] = ((lpw[4]&0x1F)<<3) | (lpw[5]>>5);
-	k[6] = ((lpw[5]&0x3F)<<2) | (lpw[6]>>6);
-	k[7] = ((lpw[6]&0x7F)<<1);
-
-#ifdef HAVE_OPENSSL
-	DES_set_odd_parity( key );
-#endif
-}
-
 #define MAX_PWLEN 256
 #define	HASHLEN	16
 
@@ -180,45 +153,6 @@ static void hexify(
 		*a++ = hex[*b++ & 0x0f];
 	}
 	*a++ = '\0';
-}
-
-static void lmhash(
-	struct berval *passwd,
-	struct berval *hash
-)
-{
-	char UcasePassword[15];
-	DES_cblock key;
-	DES_cblock StdText = "KGS!@#$%";
-	DES_cblock hbuf[2];
-#ifdef HAVE_OPENSSL
-	DES_key_schedule schedule;
-#elif defined(HAVE_GNUTLS)
-	struct des_ctx ctx;
-#endif
-
-	strncpy( UcasePassword, passwd->bv_val, 14 );
-	UcasePassword[14] = '\0';
-	ldap_pvt_str2upper( UcasePassword );
-
-	lmPasswd_to_key( UcasePassword, &key );
-#ifdef HAVE_GNUTLS
-	des_set_key( &ctx, key );
-	des_encrypt( &ctx, sizeof(key), hbuf[0], StdText );
-
-	lmPasswd_to_key( &UcasePassword[7], &key );
-	des_set_key( &ctx, key );
-	des_encrypt( &ctx, sizeof(key), hbuf[1], StdText );
-#elif defined(HAVE_OPENSSL)
-	DES_set_key_unchecked( &key, &schedule );
-	DES_ecb_encrypt( &StdText, &hbuf[0], &schedule , DES_ENCRYPT );
-
-	lmPasswd_to_key( &UcasePassword[7], &key );
-	DES_set_key_unchecked( &key, &schedule );
-	DES_ecb_encrypt( &StdText, &hbuf[1], &schedule , DES_ENCRYPT );
-#endif
-
-	hexify( (char *)hbuf, hash );
 }
 
 static void nthash(
@@ -530,7 +464,7 @@ static int smbk5pwd_exop_passwd(
 		struct berval *keys;
 		ber_len_t j,l;
 		wchar_t *wcs, wc;
-		char *c, *d;
+		char *c;
 		struct berval pwd;
 		
 		/* Expand incoming UTF8 string to UCS4 */
@@ -560,33 +494,6 @@ static int smbk5pwd_exop_passwd(
 		nthash( &pwd, keys );
 		
 		ml->sml_desc = ad_sambaNTPassword;
-		ml->sml_op = LDAP_MOD_REPLACE;
-#ifdef SLAP_MOD_INTERNAL
-		ml->sml_flags = SLAP_MOD_INTERNAL;
-#endif
-		ml->sml_numvals = 1;
-		ml->sml_values = keys;
-		ml->sml_nvalues = NULL;
-
-		/* Truncate UCS2 to 8-bit ASCII */
-		c = pwd.bv_val+1;
-		d = pwd.bv_val+2;
-		for (j=1; j<l; j++) {
-			*c++ = *d++;
-			d++;
-		}
-		pwd.bv_len /= 2;
-		pwd.bv_val[pwd.bv_len] = '\0';
-
-		ml = ch_malloc(sizeof(Modifications));
-		ml->sml_next = qpw->rs_mods;
-		qpw->rs_mods = ml;
-
-		keys = ch_malloc( 2 * sizeof(struct berval) );
-		BER_BVZERO( &keys[1] );
-		lmhash( &pwd, keys );
-		
-		ml->sml_desc = ad_sambaLMPassword;
 		ml->sml_op = LDAP_MOD_REPLACE;
 #ifdef SLAP_MOD_INTERNAL
 		ml->sml_flags = SLAP_MOD_INTERNAL;
@@ -949,7 +856,6 @@ smbk5pwd_modules_init( smbk5pwd_t *pi )
 #endif /* DO_KRB5 */
 #ifdef DO_SAMBA
 	samba_ad[] = {
-		{ "sambaLMPassword",		&ad_sambaLMPassword },
 		{ "sambaNTPassword",		&ad_sambaNTPassword },
 		{ "sambaPwdLastSet",		&ad_sambaPwdLastSet },
 		{ "sambaPwdMustChange",		&ad_sambaPwdMustChange },
