@@ -930,9 +930,6 @@
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
 
-/* define to support LAN Manager passwords */
-#undef SLAPD_LMHASH
-
 /* define to support MDB backend */
 #undef SLAPD_MDB
 
