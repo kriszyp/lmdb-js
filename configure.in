@@ -2940,7 +2940,7 @@ if test "$ol_enable_retcode" != no ; then
 		MFLAG=SLAPD_MOD_STATIC
 		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS retcode.o"
 	fi
-	AC_DEFINE_UNQUOTED(SLAPD_OVER_RETCODE,$MFLAG,[define for Referential Integrity overlay])
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_RETCODE,$MFLAG,[define for Return Code overlay])
 fi
 
 if test "$ol_enable_rwm" != no ; then
