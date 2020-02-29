@@ -94,10 +94,12 @@ class ArrayLikeIterable {
 					}
 					result = iterator.next()
 				}
+				array.iterable = iterable
 				resolve(iterable._asArray = array)
 			}
 			next(iterator.next())
 		})
+		promise.iterable = this
 		return this._asArray || (this._asArray = promise)
 	}
 	resolveData() {

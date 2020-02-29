@@ -4,14 +4,14 @@ LMDB is probably the fastest and most efficient database on the planet, if used 
 * Transaction management
 * Iterable queries/cursors
 
-`lmdb-store` is build on the excellent `node-lmdb` package.
+`lmdb-store` is build on the excellent [node-lmdb](https://github.com/Venemo/node-lmdb) package.
 
 ## Design
 When an `lmdb-store` is created, an LMDB environment/database is created, and starts with a default DB size of 1MB. LMDB itself uses a fixed size, but `lmdb-store` detects whenever the database goes beyond the current size, and automatically increases the size of DB, and re-executes the write operations after resizing. With this, you do not have to make any estimates of database size, the databases automatically grow as needed (as you would expect from a database!)
 
-`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, read operations do not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to for code get instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, write operations do involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of batch operation are performed in a separate thread. Consequently, `lmdb-store` is designed for writes to go through this batching process and return a simple promise that resolves once the write is completed and flushed to disk.
+`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, read operations do not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, write operations do involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of batch operation are performed in a separate thread. Consequently, `lmdb-store` is designed for writes to go through this asynchronous batching process and return a simple promise that resolves once the write is completed and flushed to disk.
 
-LMDB supports multiple modes of transactions, including disabling of file sync'ing (noSync), which makes transaction commits much faster. We _highly_ discourage turning off sync'ing as it leaves the database prone to data corruption. With the default sync'ing enabled, LMDB has a crash-proof design; a machine can be turned off at any point, and data can only be corrupted if the written data is actually corrupted/changed. This does make transactions slower. However, by batching writes, when a database is under load, slower transactions just enable more writes per transaction, and lmdb-store is able to drive LMDB to achieve the same levels of throughput with safe sync'ed transactions as without, while still preserving the durability/safety of sync'ed transactions.
+LMDB supports multiple modes of transactions, including disabling of file sync'ing (noSync), which makes transaction commits much faster. We _highly_ discourage turning off sync'ing as it leaves the database prone to data corruption. With the default sync'ing enabled, LMDB has a crash-proof design; a machine can be turned off at any point, and data can only be corrupted if the written data is actually corrupted/changed. This does make transactions slower (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions just enable more writes per transaction, and lmdb-store is able to drive LMDB to achieve the same levels of throughput with safe sync'ed transactions as without, while still preserving the durability/safety of sync'ed transactions.
 
 `lmdb-store` supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern.
 
@@ -92,12 +92,12 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * commitDelay - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 20ms. A shorter delay means more immediate commits, but a longer delay can be more efficient at collected more writes into a single transaction and reducing I/O load.
 * syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 20000000 (bytes).
 The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>:
-* useWritemap - Use writemaps (this is the only flag we recommend using)
+* useWritemap - Use writemaps (this is the main flag we recommend using), as it improves performance by reducing malloc calls.
 * noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension, has '.' in it)
 * noSync - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
 * noMetaSync - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
-* readOnly
-* mapAsync
+* readOnly - Self-descriptive.
+* mapAsync - Not recommended, lmdb-store provides the means to ensure commits are performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
 ## Events
 
@@ -113,5 +113,7 @@ The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/do
 
 ## Related Projects
 
-`node-lmdb` 
+lmdb-store is built on top of [node-lmdb](https://github.com/Venemo/node-lmdb)
+cobase is built on top of lmdb-store: [cobase](https://github.com/DoctorEvidence/cobase)
+
 <a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203"/></a>

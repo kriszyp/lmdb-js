@@ -61,16 +61,16 @@ console.log('opened')
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
 		let start = Date.now()
-		for (let i = 0; i < 1000; i++) {
+		for (let i = 0; i < 100; i++) {
 			let start = Date.now()
 			let actionTime
 			let cpuStart = process.cpuUsage()
 
 			lmdb.transaction(() => {
-				for (let j = 0; j < 10; j++) {
+				for (let j = 0; j < 1000; j++) {
 					let buffer = Buffer.allocUnsafe(4)
-					buffer.writeInt32BE(Math.round(Math.random() * (i * 100 + j)))
-					last= lmdb.putSync(buffer, sampleBuffer.slice(0, Math.round(Math.random() * (i * 100 + j))))
+					buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
+					last= lmdb.putSync(buffer, sampleBuffer/*.slice(0, Math.round(Math.random() * (i * 100 + j)))*/)
 				}
 				actionTime = Date.now() - start
 			})
