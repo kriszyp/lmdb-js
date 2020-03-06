@@ -103,7 +103,7 @@ dynlist_make_filter( Operation *op, Entry *e, dynlist_info_t *dli, const char *u
 	assert( !BER_BVISEMPTY( oldf ) );
 
 	if ( oldf->bv_val[0] != '(' ) {
-		Debug( LDAP_DEBUG_ANY, "%s: dynlist, DN=\"%s\": missing brackets in URI=\"%s\" filter\n",
+		Debug( LDAP_DEBUG_ANY, "%s: dynlist, DN=\"%s\": missing parentheses in URI=\"%s\" filter\n",
 			op->o_log_prefix, e->e_name.bv_val, url );
 		needBrackets = 2;
 	}
