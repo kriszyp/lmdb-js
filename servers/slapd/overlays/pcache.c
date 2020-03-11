@@ -4507,6 +4507,7 @@ pcache_db_init(
 	SLAP_DBFLAGS(&cm->db) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 	cm->db.be_private = NULL;
 	cm->db.bd_self = &cm->db;
+	cm->db.be_pending_csn_list = NULL;
 	cm->qm = qm;
 	cm->numattrsets = 0;
 	cm->num_entries_limit = 5;
