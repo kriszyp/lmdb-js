@@ -162,6 +162,17 @@ ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 }
 
 int
+ldap_pvt_thread_mutex_init_first( ldap_pvt_thread_mutex_t *mutex )
+{
+	if ( *mutex == NULL ) {
+		HANDLE p = CreateMutex( NULL, 0, NULL );
+		if ( InterlockedCompareExchangePointer((PVOID*)mutex, (PVOID)p, NULL) != NULL)
+			CloseHandle( p );
+	}
+	return ( 0 );
+}
+
+int
 ldap_pvt_thread_mutex_recursive_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	/* All NT mutexes are recursive */
