@@ -14,8 +14,8 @@ looked up from the Entry directly.
 
 The Samba support is written using the Samba 3.0 LDAP schema. If a
 PasswordModify is performed on an entry that has the sambaSamAccount
-objectclass, then the sambaLMPassword, sambaNTPassword, and sambaPwdLastSet
-attributes will be updated accordingly.
+objectclass, then the sambaNTPassword and sambaPwdLastSet attributes
+will be updated accordingly.
 
 To use the overlay, add:
 

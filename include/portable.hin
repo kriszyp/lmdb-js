@@ -48,6 +48,9 @@
 /* end of portable.h.pre */
 
 
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
 /* define to use both <string.h> and <strings.h> */
 #undef BOTH_STRINGS_H
 
@@ -111,20 +114,17 @@
 /* define if crypt(3) is available */
 #undef HAVE_CRYPT
 
-/* define if crypt_r(3) is available */
-#undef HAVE_CRYPT_R
-
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
+
+/* define if crypt_r() is also available */
+#undef HAVE_CRYPT_R
 
 /* Define to 1 if you have the `ctime_r' function. */
 #undef HAVE_CTIME_R
 
 /* define if you have Cyrus SASL */
 #undef HAVE_CYRUS_SASL
-
-/* Define to 1 if you have the <db.h> header file. */
-#undef HAVE_DB_H
 
 /* define if your system supports /dev/poll */
 #undef HAVE_DEVPOLL
@@ -598,22 +598,22 @@
 /* Define to 1 if you have the `strtouq' function. */
 #undef HAVE_STRTOUQ
 
-/* Define to 1 if `msg_accrightslen' is member of `struct msghdr'. */
+/* Define to 1 if `msg_accrightslen' is a member of `struct msghdr'. */
 #undef HAVE_STRUCT_MSGHDR_MSG_ACCRIGHTSLEN
 
-/* Define to 1 if `msg_control' is member of `struct msghdr'. */
+/* Define to 1 if `msg_control' is a member of `struct msghdr'. */
 #undef HAVE_STRUCT_MSGHDR_MSG_CONTROL
 
-/* Define to 1 if `pw_gecos' is member of `struct passwd'. */
+/* Define to 1 if `pw_gecos' is a member of `struct passwd'. */
 #undef HAVE_STRUCT_PASSWD_PW_GECOS
 
-/* Define to 1 if `pw_passwd' is member of `struct passwd'. */
+/* Define to 1 if `pw_passwd' is a member of `struct passwd'. */
 #undef HAVE_STRUCT_PASSWD_PW_PASSWD
 
-/* Define to 1 if `st_blksize' is member of `struct stat'. */
+/* Define to 1 if `st_blksize' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_BLKSIZE
 
-/* Define to 1 if `st_fstype' is member of `struct stat'. */
+/* Define to 1 if `st_fstype' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_FSTYPE
 
 /* define to 1 if st_fstype is char * */
@@ -622,7 +622,7 @@
 /* define to 1 if st_fstype is int */
 #undef HAVE_STRUCT_STAT_ST_FSTYPE_INT
 
-/* Define to 1 if `st_vfstype' is member of `struct stat'. */
+/* Define to 1 if `st_vfstype' is a member of `struct stat'. */
 #undef HAVE_STRUCT_STAT_ST_VFSTYPE
 
 /* Define to 1 if you have the <synch.h> header file. */
@@ -876,6 +876,9 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -926,9 +929,6 @@
 
 /* define to support LDAP backend */
 #undef SLAPD_LDAP
-
-/* define to support LAN Manager passwords */
-#undef SLAPD_LMHASH
 
 /* define to support MDB backend */
 #undef SLAPD_MDB
@@ -993,7 +993,7 @@
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
 
-/* define for Return Code Integrity overlay */
+/* define for Return Code overlay */
 #undef SLAPD_OVER_RETCODE
 
 /* define for Rewrite/Remap overlay */
@@ -1071,9 +1071,17 @@
 /* define to use 'long long' for MP */
 #undef USE_MP_LONG_LONG
 
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-#undef WORDS_BIGENDIAN
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
 
 /* Define to the type of arg 3 for `accept'. */
 #undef ber_socklen_t
