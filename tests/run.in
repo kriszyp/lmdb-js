@@ -59,6 +59,7 @@ AC_WITH_TLS=@WITH_TLS@
 AC_TLS_TYPE=@WITH_TLS_TYPE@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
+AC_REWRITE=@BUILD_REWRITE@
 AC_THREADS=threads@BUILD_THREAD@
 AC_LIBS_DYNAMIC=lib@BUILD_LIBS_DYNAMIC@
 
@@ -77,7 +78,7 @@ export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
-	AC_THREADS AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
+	AC_REWRITE AC_THREADS AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
