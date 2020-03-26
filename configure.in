@@ -287,7 +287,6 @@ Backends="dnssrv \
 	meta \
 	asyncmeta \
 	monitor \
-	ndb \
 	null \
 	passwd \
 	perl \
@@ -315,7 +314,7 @@ OL_ARG_ENABLE(asyncmeta,[    --enable-asyncmeta	  enable asynchronous metadirect
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ndb,[    --enable-ndb	  enable MySQL NDB Cluster backend],
-	no, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod])dnl
 OL_ARG_ENABLE(null,[    --enable-null	  enable null backend],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend],
