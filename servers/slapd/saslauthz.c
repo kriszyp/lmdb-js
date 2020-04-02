@@ -28,6 +28,7 @@
 #include "slap.h"
 
 #include "lutil.h"
+#include "config.h"
 
 #define SASLREGEX_REPLACE 10
 
@@ -68,9 +69,11 @@
 
 typedef struct sasl_regexp {
   char *sr_match;						/* regexp match pattern */
-  char *sr_replace; 					/* regexp replace pattern */
+  char *sr_replace;					/* regexp replace pattern */
+#ifndef SLAP_AUTH_REWRITE
   regex_t sr_workspace;					/* workspace for regexp engine */
   int sr_offset[SASLREGEX_REPLACE+2];	/* offsets of $1,$2... in *replace */
+#endif
 } SaslRegexp_t;
 
 static int nSaslRegexp = 0;
@@ -80,6 +83,7 @@ static SaslRegexp_t *SaslRegexp = NULL;
 #include "rewrite.h"
 struct rewrite_info	*sasl_rwinfo = NULL;
 #define AUTHID_CONTEXT	"authid"
+static BerVarray	authz_rewrites = NULL;
 #endif /* SLAP_AUTH_REWRITE */
 
 /* What SASL proxy authorization policies are allowed? */
@@ -1279,7 +1283,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 #endif /* ! SLAP_AUTH_REWRITE */
 
 #ifdef SLAP_AUTH_REWRITE
-int slap_sasl_rewrite_config( 
+static int slap_sasl_rewrite_config_argv(
 		const char	*fname,
 		int		lineno,
 		int		argc,
@@ -1287,20 +1291,78 @@ int slap_sasl_rewrite_config(
 )
 {
 	int	rc;
-	char	*savearg0;
+	char	*argv0 = NULL;
+
+	if ( strncasecmp( argv[0], "authid-", STRLENOF( "authid-" ) ) == 0 ) {
+		/* strip "authid-" prefix for parsing */
+		argv0 = argv[0];
+		argv[0] = &argv0[ STRLENOF( "authid-" ) ];
+	}
 
 	/* init at first call */
 	if ( sasl_rwinfo == NULL ) {
- 		sasl_rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+		sasl_rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 	}
 
-	/* strip "authid-" prefix for parsing */
-	savearg0 = argv[0];
-	argv[0] += STRLENOF( "authid-" );
- 	rc = rewrite_parse( sasl_rwinfo, fname, lineno, argc, argv );
-	argv[0] = savearg0;
+	rc = rewrite_parse( sasl_rwinfo, fname, lineno, argc, argv );
+
+	if ( argv0 )
+		argv[0] = argv0;
 
 	return rc;
+}
+
+static int slap_sasl_rewrite_config_bv(
+		const char	*fname,
+		int		lineno,
+		struct berval	bv
+)
+{
+	int rc;
+	ConfigArgs ca = { 0 };
+
+	ca.line = bv.bv_val;
+	ca.argc = 0;
+	config_fp_parse_line( &ca );
+
+	rc = slap_sasl_rewrite_config_argv( fname, lineno, ca.argc, ca.argv );
+
+	ch_free( ca.tline );
+	ch_free( ca.argv );
+
+	return rc;
+}
+
+static void
+slap_sasl_rewrite_bva_add(
+		BerVarray	*bva,
+		int		idx,
+		int		argc,
+		char		**argv
+)
+{
+	char		*line, *s;
+	struct berval	bv;
+
+	if ( argc > 1 ) {
+		/* quote all args but the first */
+		line = ldap_charray2str( argv, "\" \"" );
+		ber_str2bv( line, 0, 0, &bv );
+		s = ber_bvchr( &bv, '"' );
+		assert( s != NULL );
+
+		/* move the trailing quote of argv[0] to the end */
+		AC_MEMCPY( s, s + 1, bv.bv_len - ( s - bv.bv_val ) );
+		bv.bv_val[ bv.bv_len - 1 ] = '"';
+	} else {
+		ber_str2bv( argv[ 0 ], 0, 1, &bv );
+	}
+
+	if ( idx == -1 ) {
+		ber_bvarray_add( bva, &bv );
+	} else {
+		(*bva)[ idx ] = bv;
+	}
 }
 
 static int
@@ -1314,87 +1376,236 @@ slap_sasl_rewrite_destroy( void )
 	return 0;
 }
 
-int slap_sasl_regexp_rewrite_config(
+int slap_sasl_rewrite_config(
 		const char	*fname,
 		int		lineno,
-		const char	*match,
-		const char	*replace,
-		const char	*context )
+		int		argc,
+		char		**argv,
+		int		valx
+)
+{
+	int	rc, i, last;
+	char	*line;
+	struct berval bv;
+	struct rewrite_info *rw = sasl_rwinfo;
+
+	for ( last = 0; authz_rewrites && !BER_BVISNULL( &authz_rewrites[ last ] ); last++ )
+		/* count'em */ ;
+
+	if ( valx == -1 || valx >= last ) {
+		valx = -1;
+		rc = slap_sasl_rewrite_config_argv( fname, lineno, argc, argv );
+		if ( rc == 0 ) {
+			slap_sasl_rewrite_bva_add( &authz_rewrites, valx, argc, argv );
+		}
+		return rc;
+	}
+
+	sasl_rwinfo = NULL;
+
+	for ( i = 0; i < valx; i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( fname, lineno, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	rc = slap_sasl_rewrite_config_argv( fname, lineno, argc, argv );
+	if ( rc != 0 ) {
+		slap_sasl_rewrite_destroy();
+		sasl_rwinfo = rw;
+		return 1;
+	}
+
+	for ( i = valx; authz_rewrites && !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( fname, lineno, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	authz_rewrites = ch_realloc( authz_rewrites,
+			( last + 2 )*sizeof( struct berval ) );
+	BER_BVZERO( &authz_rewrites[ last + 1 ] );
+
+	for ( i = last - 1; i >= valx; i-- )
+	{
+		authz_rewrites[ i + 1 ] = authz_rewrites[ i ];
+	}
+
+	slap_sasl_rewrite_bva_add( &authz_rewrites, valx, argc, argv );
+
+	if ( rw )
+		rewrite_info_delete( &rw );
+
+	return rc;
+}
+
+int slap_sasl_rewrite_delete( int valx ) {
+	int rc, i;
+
+	if ( valx == -1 ) {
+		slap_sasl_rewrite_destroy();
+		if ( authz_rewrites ) {
+			ber_bvarray_free( authz_rewrites );
+			authz_rewrites = NULL;
+		}
+		return 0;
+	}
+
+	for ( i = 0; !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+		/* count'em */ ;
+
+	if ( valx >= i ) {
+		return 1;
+	}
+
+	ber_memfree( authz_rewrites[ i ].bv_val );
+	for ( i = valx; !BER_BVISNULL( &authz_rewrites[ i + 1 ] ); i++ )
+	{
+		authz_rewrites[ i ] = authz_rewrites[ i + 1 ];
+	}
+	BER_BVZERO( &authz_rewrites[ i ] );
+
+	slap_sasl_rewrite_destroy();
+
+	for ( i = 0; !BER_BVISNULL( &authz_rewrites[ i ] ); i++ )
+	{
+		rc = slap_sasl_rewrite_config_bv( "slapd", 0, authz_rewrites[ i ] );
+		assert( rc == 0 );
+	}
+
+	return rc;
+}
+
+int slap_sasl_rewrite_unparse( BerVarray *bva ) {
+	if ( authz_rewrites ) {
+		return slap_bv_x_ordered_unparse( authz_rewrites, bva );
+	}
+	return 0;
+}
+
+static int
+slap_sasl_regexp_rewrite_config(
+		struct rewrite_info	**rwinfo,
+		const char		*fname,
+		int			lineno,
+		const char		*match,
+		const char		*replace,
+		const char		*context )
 {
 	int	rc;
 	char	*argvRule[] = { "rewriteRule", NULL, NULL, ":@", NULL };
+	struct rewrite_info *rw = *rwinfo;
 
 	/* init at first call */
-	if ( sasl_rwinfo == NULL ) {
+	if ( rw == NULL ) {
 		char *argvEngine[] = { "rewriteEngine", "on", NULL };
 		char *argvContext[] = { "rewriteContext", NULL, NULL };
 
 		/* initialize rewrite engine */
- 		sasl_rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+		rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 
 		/* switch on rewrite engine */
- 		rc = rewrite_parse( sasl_rwinfo, fname, lineno, 2, argvEngine );
- 		if (rc != LDAP_SUCCESS) {
-			return rc;
+		rc = rewrite_parse( rw, fname, lineno, 2, argvEngine );
+		if (rc != LDAP_SUCCESS) {
+			goto out;
 		}
 
 		/* create generic authid context */
 		argvContext[1] = AUTHID_CONTEXT;
- 		rc = rewrite_parse( sasl_rwinfo, fname, lineno, 2, argvContext );
- 		if (rc != LDAP_SUCCESS) {
-			return rc;
+		rc = rewrite_parse( rw, fname, lineno, 2, argvContext );
+		if (rc != LDAP_SUCCESS) {
+			goto out;
 		}
 	}
 
 	argvRule[1] = (char *)match;
 	argvRule[2] = (char *)replace;
- 	rc = rewrite_parse( sasl_rwinfo, fname, lineno, 4, argvRule );
+	rc = rewrite_parse( rw, fname, lineno, 4, argvRule );
+out:
+	if (rc == LDAP_SUCCESS) {
+		*rwinfo = rw;
+	} else {
+		rewrite_info_delete( &rw );
+	}
 
 	return rc;
 }
 #endif /* SLAP_AUTH_REWRITE */
 
-int slap_sasl_regexp_config( const char *match, const char *replace )
+int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 {
-	int rc;
-	SaslRegexp_t *reg;
+	int i, rc;
+	SaslRegexp_t sr;
+	struct rewrite_info *rw = NULL;
 
-	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
-	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
-
-	reg = &SaslRegexp[nSaslRegexp];
+	if ( valx < 0 || valx > nSaslRegexp )
+		valx = nSaslRegexp;
 
 #ifdef SLAP_AUTH_REWRITE
-	rc = slap_sasl_regexp_rewrite_config( "sasl-regexp", 0,
+	for ( i = 0; i < valx; i++) {
+		rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
+				SaslRegexp[i].sr_match,
+				SaslRegexp[i].sr_replace,
+				AUTHID_CONTEXT);
+		assert( rc == 0 );
+	}
+
+	rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
 			match, replace, AUTHID_CONTEXT );
 #else /* ! SLAP_AUTH_REWRITE */
-
 	/* Precompile matching pattern */
-	rc = regcomp( &reg->sr_workspace, match, REG_EXTENDED|REG_ICASE );
+	rc = regcomp( &sr.sr_workspace, match, REG_EXTENDED|REG_ICASE );
 	if ( rc ) {
 		Debug( LDAP_DEBUG_ANY,
 			"SASL match pattern %s could not be compiled by regexp engine\n",
 			match );
-
-#ifdef ENABLE_REWRITE
-		/* Dummy block to force symbol references in librewrite */
-		if ( slapMode == ( SLAP_SERVER_MODE|SLAP_TOOL_MODE )) {
-			rewrite_info_init( 0 );
-		}
-#endif
 		return( LDAP_OTHER );
 	}
 
-	rc = slap_sasl_rx_off( replace, reg->sr_offset );
+	rc = slap_sasl_rx_off( replace, sr.sr_offset );
 #endif /* ! SLAP_AUTH_REWRITE */
+
 	if ( rc == LDAP_SUCCESS ) {
-		reg->sr_match = ch_strdup( match );
-		reg->sr_replace = ch_strdup( replace );
+		SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
+				(nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
+
+		for ( i = nSaslRegexp; i > valx; i-- ) {
+			SaslRegexp[i] = SaslRegexp[i - 1];
+		}
+
+		SaslRegexp[i] = sr;
+		SaslRegexp[i].sr_match = ch_strdup( match );
+		SaslRegexp[i].sr_replace = ch_strdup( replace );
 
 		nSaslRegexp++;
+
+#ifdef SLAP_AUTH_REWRITE
+		for ( i = valx + 1; i < nSaslRegexp; i++ ) {
+			rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
+					SaslRegexp[i].sr_match,
+					SaslRegexp[i].sr_replace,
+					AUTHID_CONTEXT);
+			assert( rc == 0 );
+		}
+
+		slap_sasl_rewrite_destroy();
+		sasl_rwinfo = rw;
+	} else {
+		rewrite_info_delete( &rw );
+#endif
 	}
 
 	return rc;
+}
+
+static void
+slap_sasl_regexp_destroy_one( int n )
+{
+	ch_free( SaslRegexp[ n ].sr_match );
+	ch_free( SaslRegexp[ n ].sr_replace );
+#ifndef SLAP_AUTH_REWRITE
+	regfree( &SaslRegexp[ n ].sr_workspace );
+#endif /* ! SLAP_AUTH_REWRITE */
 }
 
 void
@@ -1404,19 +1615,50 @@ slap_sasl_regexp_destroy( void )
 		int	n;
 
 		for ( n = 0; n < nSaslRegexp; n++ ) {
-			ch_free( SaslRegexp[ n ].sr_match );
-			ch_free( SaslRegexp[ n ].sr_replace );
-#ifndef SLAP_AUTH_REWRITE
-			regfree( &SaslRegexp[ n ].sr_workspace );
-#endif /* SLAP_AUTH_REWRITE */
+			slap_sasl_regexp_destroy_one( n );
 		}
 
 		ch_free( SaslRegexp );
+		SaslRegexp = NULL;
+		nSaslRegexp = 0;
 	}
 
 #ifdef SLAP_AUTH_REWRITE
 	slap_sasl_rewrite_destroy();
 #endif /* SLAP_AUTH_REWRITE */
+}
+
+int slap_sasl_regexp_delete( int valx )
+{
+	int rc = 0;
+
+	if ( valx >= nSaslRegexp ) {
+		rc = 1;
+	} else if ( valx < 0 || nSaslRegexp == 1 ) {
+		slap_sasl_regexp_destroy();
+	} else {
+		int i;
+
+		slap_sasl_regexp_destroy_one( valx );
+		nSaslRegexp--;
+
+		for ( i = valx; i < nSaslRegexp; i++ ) {
+			SaslRegexp[ i ] = SaslRegexp[ i + 1 ];
+		}
+
+#ifdef SLAP_AUTH_REWRITE
+		slap_sasl_rewrite_destroy();
+		for ( i = 0; i < nSaslRegexp; i++ ) {
+			rc = slap_sasl_regexp_rewrite_config( &sasl_rwinfo, "sasl-regexp", 0,
+					SaslRegexp[ i ].sr_match,
+					SaslRegexp[ i ].sr_replace,
+					AUTHID_CONTEXT );
+			assert( rc == 0 );
+		}
+#endif /* SLAP_AUTH_REWRITE */
+	}
+
+	return rc;
 }
 
 void slap_sasl_regexp_unparse( BerVarray *out )
@@ -1534,8 +1776,8 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 			"[rw] %s: \"%s\" -> \"%s\"\n",
 			context, in->bv_val, out->bv_val );		
 		return 1;
- 		
- 	case REWRITE_REGEXEC_UNWILLING:
+
+	case REWRITE_REGEXEC_UNWILLING:
 	case REWRITE_REGEXEC_ERR:
 	default:
 		return 0;
@@ -1544,7 +1786,7 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 #else /* ! SLAP_AUTH_REWRITE */
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
-  	regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
+	regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
 	int i;
 
 	memset( out, 0, sizeof( *out ) );

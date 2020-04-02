@@ -14,6 +14,8 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+#define _XOPEN_SOURCE 500	 /* For pthread_setconcurrency() on glibc */
+
 #include "portable.h"
 
 #if defined( HAVE_PTHREADS )

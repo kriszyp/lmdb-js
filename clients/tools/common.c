@@ -1451,7 +1451,7 @@ dnssrv_free:;
 				ldap_get_option( ld, LDAP_OPT_DIAGNOSTIC_MESSAGE, (void*)&msg);
 				tool_perror( "ldap_start_tls", rc, NULL, NULL, msg, NULL );
 				ldap_memfree(msg);
-				if ( use_tls > 1 ) {
+				if ( use_tls > 1 || rc < 0 ) {
 					tool_exit( ld, EXIT_FAILURE );
 				}
 			}

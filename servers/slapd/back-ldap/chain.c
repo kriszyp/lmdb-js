@@ -1282,7 +1282,7 @@ static ConfigOCs chainocs[] = {
 		"NAME 'olcChainDatabase' "
 		"DESC 'Chain remote server configuration' "
 		"AUXILIARY )",
-		Cft_Misc, olcDatabaseDummy, chain_ldadd
+		Cft_Misc, NULL, chain_ldadd
 #ifdef SLAP_CONFIG_DELETE
 		, NULL, chain_lddel
 #endif
@@ -2317,6 +2317,12 @@ chain_initialize( void )
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( CH_LAST );
+
+	/* olcDatabaseDummy is defined in slapd, and Windows
+	   will not let us initialize a struct element with a data pointer
+	   from another library, so we have to initialize this element
+	   "by hand".  */
+	chainocs[1].co_table = olcDatabaseDummy;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	rc = register_supported_control( LDAP_CONTROL_X_CHAINING_BEHAVIOR,
