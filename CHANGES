@@ -11,6 +11,7 @@ OpenLDAP 2.4.50 Engineering
 	Contrib
 		Update ldapc++ config.guess and config.sub to support newer architectures (ITS#7855)
 	Documentation
+		slapd-ldap(5) - Clarify idassert-authzfrom behavior (ITS#9003)
 		slapd-meta(5) - Remove client-pr option (ITS#8683)
 
 OpenLDAP 2.4.49 Release (2020/01/30)
