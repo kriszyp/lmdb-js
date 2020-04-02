@@ -60,12 +60,15 @@ EOF
 	BCMD=`basename $CMD`
 	if [ -x "$CMD" ]; then
 		echo ">>>>> Starting ${TB}$BCMD${TN} for $BACKEND..."
+		START=`date +%s`
 		$CMD
 		RC=$?
+		END=`date +%s`
+
 		if test $RC -eq 0 ; then
-			echo ">>>>> $BCMD completed ${TB}OK${TN} for $BACKEND."
+			echo ">>>>> $BCMD completed ${TB}OK${TN} for $BACKEND after $(( $END - $START )) seconds."
 		else
-			echo ">>>>> $BCMD ${TB}failed${TN} for $BACKEND"
+			echo ">>>>> $BCMD ${TB}failed${TN} for $BACKEND after $(( $END - $START )) seconds"
 			FAILCOUNT=`expr $FAILCOUNT + 1`
 
 			if [ -n "$NOEXIT" ]; then
