@@ -6,6 +6,7 @@ OpenLDAP 2.4.50 Engineering
 	Fixed libldap_r race on Windows mutex initialization (ITS#9181)
 	Fixed liblunicode memory leak (ITS#9198)
 	Fixed slapd benign typos (ITS#8890)
+	Fixed slapo-pcache database initialization (ITS#9182)
 	Fixed slapo-ppolicy callback (ITS#9171)
 	Build
 		Fix olcDatabaseDummy initialization for windows (ITS#7074)
