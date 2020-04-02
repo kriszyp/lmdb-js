@@ -57,6 +57,12 @@ typedef struct dynlist_info_t {
 	struct dynlist_info_t	*dli_next;
 } dynlist_info_t;
 
+typedef struct dynlist_gen_t {
+	dynlist_info_t	*dlg_dli;
+	int				*dlg_memberOf;
+} dynlist_gen_t;
+#define DYNLIST_HAS_MEMBEROF	1
+
 #define DYNLIST_USAGE \
 	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad>] ...]\": "
 
@@ -611,7 +617,8 @@ static int
 dynlist_compare( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli = dlg->dlg_dli;
 	Operation o = *op;
 	Entry *e = NULL;
 	dynlist_map_t *dlm;
@@ -702,7 +709,7 @@ done:;
 	}
 
 	/* check for dynlist objectClass; done if not found */
-	dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dli = (dynlist_info_t *)dlg->dlg_dli;
 	while ( dli != NULL && !is_entry_objectclass_or_sub( e, dli->dli_oc ) ) {
 		dli = dli->dli_next;
 	}
@@ -1058,7 +1065,8 @@ static int
 dynlist_search( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli = dlg->dlg_dli;
 	Operation o = *op;
 	dynlist_map_t *dlm;
 	Filter f;
@@ -1197,7 +1205,8 @@ static int
 dl_cfgen( ConfigArgs *c )
 {
 	slap_overinst	*on = (slap_overinst *)c->bi;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli = dlg->dlg_dli;
 
 	int		rc = 0, i;
 
@@ -1302,14 +1311,15 @@ dl_cfgen( ConfigArgs *c )
 					ch_free( dli );
 				}
 
-				on->on_bi.bi_private = NULL;
+				dlg->dlg_dli = NULL;
+				dlg->dlg_memberOf = 0;
 
 			} else {
 				dynlist_info_t	**dlip;
 				dynlist_map_t *dlm;
 				dynlist_map_t *dlm_next;
 
-				for ( i = 0, dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+				for ( i = 0, dlip = (dynlist_info_t **)&dlg->dlg_dli;
 					i < c->valx; i++ )
 				{
 					if ( *dlip == NULL ) {
@@ -1342,12 +1352,14 @@ dl_cfgen( ConfigArgs *c )
 				dlm = dli->dli_dlm;
 				while ( dlm != NULL ) {
 					dlm_next = dlm->dlm_next;
+					if ( dlm->dlm_memberOf_ad )
+						dlg->dlg_memberOf--;
 					ch_free( dlm );
 					dlm = dlm_next;
 				}
 				ch_free( dli );
 
-				dli = (dynlist_info_t *)on->on_bi.bi_private;
+				dli = (dynlist_info_t *)dlg->dlg_dli;
 			}
 			break;
 
@@ -1549,6 +1561,7 @@ done_uri:;
 					rc = 1;
 					goto done_uri;
 				}
+				dlg->dlg_memberOf++;
 				*cp = '\0';
 			}
 
@@ -1581,7 +1594,7 @@ done_uri:;
 		if ( c->valx > 0 ) {
 			int	i;
 
-			for ( i = 0, dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+			for ( i = 0, dlip = (dynlist_info_t **)&dlg->dlg_dli;
 				i < c->valx; i++ )
 			{
 				if ( *dlip == NULL ) {
@@ -1599,7 +1612,7 @@ done_uri:;
 			dli_next = *dlip;
 
 		} else {
-			for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+			for ( dlip = (dynlist_info_t **)&dlg->dlg_dli;
 				*dlip; dlip = &(*dlip)->dli_next )
 				/* goto last */;
 		}
@@ -1677,7 +1690,7 @@ done_uri:;
 			return 1;
 		}
 
-		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+		for ( dlip = (dynlist_info_t **)&dlg->dlg_dli;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
 			/* 
@@ -1725,12 +1738,29 @@ done_uri:;
 }
 
 static int
+dynlist_db_init(
+	BackendDB *be,
+	ConfigReply *cr)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	dynlist_gen_t *dlg;
+
+	dlg = (dynlist_gen_t *)ch_malloc( sizeof( *dlg ));
+	on->on_bi.bi_private = dlg;
+	dlg->dlg_dli = NULL;
+	dlg->dlg_memberOf = 0;
+
+	return 0;
+}
+
+static int
 dynlist_db_open(
 	BackendDB	*be,
 	ConfigReply	*cr )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
-	dynlist_info_t		*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t		*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t		*dli = dlg->dlg_dli;
 	ObjectClass		*oc = NULL;
 	AttributeDescription	*ad = NULL;
 	const char	*text;
@@ -1738,7 +1768,7 @@ dynlist_db_open(
 
 	if ( dli == NULL ) {
 		dli = ch_calloc( 1, sizeof( dynlist_info_t ) );
-		on->on_bi.bi_private = (void *)dli;
+		dlg->dlg_dli = dli;
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
@@ -1812,7 +1842,8 @@ dynlist_db_destroy(
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 
 	if ( on->on_bi.bi_private ) {
-		dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private,
+		dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+		dynlist_info_t	*dli = dlg->dlg_dli,
 				*dli_next;
 
 		for ( dli_next = dli; dli_next; dli = dli_next ) {
@@ -1847,6 +1878,7 @@ dynlist_db_destroy(
 			}
 			ch_free( dli );
 		}
+		ch_free( dlg );
 	}
 
 	return 0;
@@ -1875,6 +1907,7 @@ dynlist_initialize(void)
 	dynlist.on_bi.bi_obsolete_names = obsolete_names;
 #endif
 
+	dynlist.on_bi.bi_db_init = dynlist_db_init;
 	dynlist.on_bi.bi_db_config = config_generic_wrapper;
 	dynlist.on_bi.bi_db_open = dynlist_db_open;
 	dynlist.on_bi.bi_db_destroy = dynlist_db_destroy;
