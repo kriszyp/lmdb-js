@@ -6,6 +6,8 @@ OpenLDAP 2.4.50 Engineering
 	Fixed liblunicode memory leak (ITS#9198)
 	Fixed slapd benign typos (ITS#8890)
 	Fixed slapo-ppolicy callback (ITS#9171)
+	Build
+		Fix olcDatabaseDummy initialization for windows (ITS#7074)
 	Contrib
 		Update ldapc++ config.guess and config.sub to support newer architectures (ITS#7855)
 	Documentation
