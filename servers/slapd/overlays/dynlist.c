@@ -929,6 +929,8 @@ dynlist_filter_group( Operation *op, Filter *f, Filter *n, AttributeDescription 
 				op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
 				goto skip;
 			}
+		} else {
+			urif = NULL;
 		}
 		if ( !andf ) {
 			andf = n;
