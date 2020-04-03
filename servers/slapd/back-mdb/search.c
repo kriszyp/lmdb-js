@@ -331,7 +331,7 @@ typedef struct ww_ctx {
 	ID key;
 	MDB_val data;
 	int flag;
-	int nentries;
+	unsigned nentries;
 } ww_ctx;
 
 /* ITS#7904 if we get blocked while writing results to client,
