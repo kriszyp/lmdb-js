@@ -296,12 +296,8 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-if test $RC != 0 ; then
-	echo ">>>>> Test failed"
-else
-	echo ">>>>> Test succeeded"
-	RC=0
-fi
+echo ">>>>> Test succeeded"
+RC=0
 
 test $KILLSERVERS != no && wait
 

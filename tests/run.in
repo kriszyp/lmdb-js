@@ -254,8 +254,10 @@ while [ $COUNTER -le $LOOP ]; do
 	if [ $LOOP -gt 1 ]; then
 		echo "Running $COUNTER of $LOOP iterations"
 	fi
+	START=`date +%s`
 	$SCRIPT $*
 	RC=$?
+	END=`date +%s`
 
 	if test $CLEAN = yes ; then
 		echo "Cleaning up test run directory from this run."

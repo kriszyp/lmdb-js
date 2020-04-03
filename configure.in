@@ -2205,6 +2205,9 @@ AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_TYPE([socklen_t],,, [$ac_includes_default
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+#ifdef HAVE_WINSOCK2
+#include <ws2tcpip.h>
 #endif])
 
 dnl socklen_t-like type in accept(), default socklen_t or int:
