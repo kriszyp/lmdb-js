@@ -976,7 +976,7 @@ dynlist_filter_group( Operation *op, Filter *f, Filter *n, AttributeDescription 
 		ldap_free_urldesc( ludp );
 	}
 	overlay_entry_release_ov( op, e, 0, on );
-	if ( !andf1 )
+	if ( !andf )
 		return -1;
 	return 0;
 }
