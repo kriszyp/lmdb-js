@@ -945,9 +945,9 @@ dynlist_filter_group( Operation *op, Filter *f, Filter *n, AttributeDescription 
 			andf = andf->f_next;
 		}
 		dnf = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
-		andf1->f_choice = LDAP_FILTER_AND;
-		andf1->f_next = NULL;
-		andf1->f_list = dnf;
+		andf->f_choice = LDAP_FILTER_AND;
+		andf->f_next = NULL;
+		andf->f_list = dnf;
 		dnf->f_next = urif;
 		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
 			dnf->f_choice = LDAP_FILTER_EQUALITY;
