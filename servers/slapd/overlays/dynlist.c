@@ -804,11 +804,10 @@ typedef struct dynlist_name_t {
 
 typedef struct dynlist_search_t {
 	TAvlnode *ds_names;
-	dynlist_gen_t *ds_dlg;
 	dynlist_info_t *ds_dli;
 	Filter *ds_origfilter;
 	struct berval ds_origfilterbv;
-	int ds_numgroups;
+	int ds_memberOf;
 } dynlist_search_t;
 
 static int
@@ -870,7 +869,6 @@ skipit:
 			dyn->dy_numuris = j;
 			memcpy(dyn->dy_name.bv_val, rs->sr_entry->e_nname.bv_val, rs->sr_entry->e_nname.bv_len );
 
-			ds->ds_numgroups++;
 			if ( tavl_insert( &ds->ds_names, dyn, dynlist_avl_cmp, avl_dup_error )) {
 				for (i=dyn->dy_numuris-1; i>=0; i--) {
 					ludp = dyn->dy_uris[i];
@@ -1172,7 +1170,7 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				rc = LDAP_SUCCESS;
 			}
 			return rc;
-		} else if ( ds->ds_dlg->dlg_memberOf ) {
+		} else if ( ds->ds_memberOf ) {
 			TAvlnode *ptr;
 			Entry *e = rs->sr_entry;
 			/* See if there are any memberOf values to attach to this entry */
@@ -1256,7 +1254,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
 	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
-	dynlist_info_t	*dli = dlg->dlg_dli;
+	dynlist_info_t	*dli;
 	Operation o = *op;
 	dynlist_map_t *dlm;
 	Filter f;
@@ -1272,6 +1270,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 	sc = op->o_tmpcalloc( 1, sizeof(slap_callback)+sizeof(dynlist_search_t), op->o_tmpmemctx );
 	sc->sc_private = (void *)(sc+1);
 	ds = sc->sc_private;
+	ds->ds_memberOf = 0;
 
 	f.f_choice = LDAP_FILTER_EQUALITY;
 	f.f_ava = &ava;
@@ -1279,25 +1278,68 @@ dynlist_search( Operation *op, SlapReply *rs )
 	f.f_next = NULL;
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 
-	/* Find all dyngroups in tree. For group expansion
+	/* Are we using memberOf, and does it affect this request? */
+	if ( dlg->dlg_memberOf ) {
+		int attrflags = slap_attr_flags( op->ors_attrs );
+		int opattrs = SLAP_OPATTRS( attrflags );
+		int userattrs = SLAP_USERATTRS( attrflags );
+
+		for ( dli = dlg->dlg_dli; dli; dli = dli->dli_next ) {
+			for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+				if ( dlm->dlm_memberOf_ad ) {
+					/* if attribute is in filter, fix it */
+					if ( ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter )) {
+						ds->ds_dli = dli;
+						dynlist_fix_filter( op, dlm->dlm_memberOf_ad, ds );
+					}
+
+					/* if attribute is not requested, skip it */
+					if ( op->ors_attrs == NULL ) {
+						if ( is_at_operational( dlm->dlm_memberOf_ad->ad_type ) ) {
+							continue;
+						}
+					} else {
+						if ( is_at_operational( dlm->dlm_memberOf_ad->ad_type ) ) {
+							if ( !opattrs && !ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs ) )
+							{
+								continue;
+							}
+						} else {
+							if ( !userattrs && !ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs ) )
+							{
+								continue;
+							}
+						}
+					}
+					ds->ds_memberOf = 1;
+				}
+			}
+		}
+	}
+
+	/* Find all dyngroups in scope. For group expansion
 	 * we only need the groups within the search scope, but
 	 * for memberOf populating, we need all dyngroups.
 	 */
-	for ( ; dli != NULL; dli = dli->dli_next ) {
-		int prevnum;
+	for ( dli = dlg->dlg_dli; dli != NULL; dli = dli->dli_next ) {
 		if ( o.o_callback != sc ) {
 			o.o_callback = sc;
 			o.ors_filter = &f;
-			o.o_req_dn = op->o_bd->be_suffix[0];
-			o.o_req_ndn = op->o_bd->be_nsuffix[0];
-			o.ors_scope = LDAP_SCOPE_SUBTREE;
+			if ( ds->ds_memberOf ) {
+				o.o_req_dn = op->o_bd->be_suffix[0];
+				o.o_req_ndn = op->o_bd->be_nsuffix[0];
+				o.ors_scope = LDAP_SCOPE_SUBTREE;
+			} else {
+				o.o_req_dn = op->o_req_dn;
+				o.o_req_ndn = op->o_req_ndn;
+				o.ors_scope = op->ors_scope;
+			}
 			o.ors_attrsonly = 0;
 			o.ors_attrs = an;
 			o.o_bd = select_backend( op->o_bd->be_nsuffix, 1 );
 			BER_BVZERO( &o.ors_filterstr );
 			sc->sc_response = dynlist_search1resp;
 		}
-		ds->ds_dlg = dlg;
 		ds->ds_dli = dli;
 		f.f_av_value = dli->dli_oc->soc_cname;
 		if ( o.ors_filterstr.bv_val )
@@ -1307,15 +1349,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 		an[0].an_name = dli->dli_ad->ad_cname;
 		{
 			SlapReply	r = { REP_SEARCH };
-			prevnum = ds->ds_numgroups;
 			(void)o.o_bd->be_search( &o, &r );
-		}
-		/* found a dynamic group */
-		if ( ds->ds_numgroups > prevnum && dlg->dlg_memberOf ) {
-			for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
-				if ( dlm->dlm_memberOf_ad && ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter ))
-					dynlist_fix_filter( op, dlm->dlm_memberOf_ad, ds );
-			}
 		}
 	}
 
