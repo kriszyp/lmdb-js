@@ -175,6 +175,12 @@ int init_module( int argc, char *argv[] )
 {
 	int i;
 
+#ifndef SLAPD_ARGON2_USE_ARGON2
+	if ( sodium_init() == -1 ) {
+		return -1;
+	}
+#endif
+
 	for ( i=0; i < argc; i++ ) {
 		char *p;
 		unsigned long value;
