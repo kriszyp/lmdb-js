@@ -128,8 +128,9 @@ slapd_argon2_hash(
 	AC_MEMCPY( hash->bv_val, scheme->bv_val, scheme->bv_len );
 	p += scheme->bv_len;
 
-	if ( crypto_pwhash_str( p, passwd->bv_val, passwd->bv_len,
-				iterations, memory ) == 0 ) {
+	if ( crypto_pwhash_str_alg( p, passwd->bv_val, passwd->bv_len,
+				iterations, memory * 1024,
+				crypto_pwhash_ALG_ARGON2ID13 ) == 0 ) {
 		hash->bv_len = strlen( hash->bv_val );
 		rc = LUTIL_PASSWD_OK;
 	}
