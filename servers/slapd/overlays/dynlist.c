@@ -956,10 +956,9 @@ dynlist_filter_group( Operation *op, Filter *f, Filter *n, AttributeDescription 
 			dnf->f_av_value = nbase;
 		} else {
 			dnf->f_choice = LDAP_FILTER_EXT;
-			dnf->f_mra = op->o_tmpalloc( sizeof(MatchingRuleAssertion), op->o_tmpmemctx );
+			dnf->f_mra = op->o_tmpcalloc( 1, sizeof(MatchingRuleAssertion), op->o_tmpmemctx );
 			dnf->f_mr_desc = slap_schema.si_ad_entryDN;
 			dnf->f_mr_value = nbase;
-			dnf->f_mr_dnattrs = 0;
 			switch ( ludp->lud_scope ) {
 			case LDAP_SCOPE_ONELEVEL:
 				dnf->f_mr_rule = slap_schema.si_mr_dnOneLevelMatch;
