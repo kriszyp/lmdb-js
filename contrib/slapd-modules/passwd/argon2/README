@@ -1,7 +1,7 @@
 Argon2 OpenLDAP support
 ----------------------
 
-slapd-argon2.c provides support for ARGON2 hashed passwords in OpenLDAP. For
+pw-argon2.c provides support for ARGON2 hashed passwords in OpenLDAP. For
 instance, one could have the LDAP attribute:
 
 userPassword: {ARGON2}$argon2i$v=19$m=4096,t=3,p=1$c2FsdHNhbHQ$DKlexoEJUoZTmkAAC3SaMWk30El9/RvVhlqGo6afIng
@@ -22,13 +22,13 @@ For initial testing you might also want to edit DEFS to define
 SLAPD_ARGON2_DEBUG, which enables logging to stderr (don't leave this on
 in production, as it prints passwords in cleartext).
 
-2) Run 'make' to produce slapd-argon2.so
+2) Run 'make' to produce pw-argon2.so
 
-3) Copy slapd-argon2.so somewhere permanent.
+3) Copy pw-argon2.so somewhere permanent.
 
 4) Edit your slapd.conf (eg. /etc/ldap/slapd.conf), and add:
 
-moduleload ...path/to/slapd-argon2.so
+moduleload ...path/to/pw-argon2.so
 
 5) Restart slapd.
 
