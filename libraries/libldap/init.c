@@ -115,12 +115,6 @@ static const struct ol_attribute {
 	{0, ATTR_BOOL,		"SASL_NOCANON",	NULL,	LDAP_BOOL_SASL_NOCANON},
 #endif
 
-#ifdef HAVE_GSSAPI
-	{0, ATTR_GSSAPI,"GSSAPI_SIGN",			NULL,	LDAP_OPT_SIGN},
-	{0, ATTR_GSSAPI,"GSSAPI_ENCRYPT",		NULL,	LDAP_OPT_ENCRYPT},
-	{0, ATTR_GSSAPI,"GSSAPI_ALLOW_REMOTE_PRINCIPAL",NULL,	LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL},
-#endif
-
 #ifdef HAVE_TLS
 	{1, ATTR_TLS,	"TLS_CERT",			NULL,	LDAP_OPT_X_TLS_CERTFILE},
 	{1, ATTR_TLS,	"TLS_KEY",			NULL,	LDAP_OPT_X_TLS_KEYFILE},
@@ -215,11 +209,6 @@ ldap_int_conf_option(
 		case ATTR_SASL:
 #ifdef HAVE_CYRUS_SASL
 			ldap_int_sasl_config( gopts, attrs[i].offset, opt );
-#endif
-			break;
-		case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-			ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
 #endif
 			break;
 		case ATTR_TLS:
@@ -474,11 +463,6 @@ static void openldap_ldap_init_w_env(
 		   	ldap_int_sasl_config( gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
-		case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-			ldap_int_gssapi_config( gopts, attrs[i].offset, value );
-#endif
-			break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
 		   	ldap_pvt_tls_config( NULL, attrs[i].offset, value );

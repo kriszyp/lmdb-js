@@ -423,12 +423,6 @@ ldap_get_option(
 			break;
 		}
 #endif
-#ifdef HAVE_GSSAPI
-		if ( ldap_int_gssapi_get_option( ld, option, outvalue ) == 0 ) {
-			rc = LDAP_OPT_SUCCESS;
-			break;
-		}
-#endif
 		/* bad param */
 		break;
 	}
@@ -819,12 +813,6 @@ ldap_set_option(
 #endif
 #ifdef HAVE_CYRUS_SASL
 		if ( ldap_int_sasl_set_option( ld, option, (void *)invalue ) == 0 ) {
-			LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
-			return ( LDAP_OPT_SUCCESS );
-		}
-#endif
-#ifdef HAVE_GSSAPI
-		if ( ldap_int_gssapi_set_option( ld, option, (void *)invalue ) == 0 ) {
 			LDAP_MUTEX_UNLOCK( &lo->ldo_mutex );
 			return ( LDAP_OPT_SUCCESS );
 		}
