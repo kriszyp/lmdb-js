@@ -849,6 +849,9 @@
 /* Patch */
 #undef LDAP_VENDOR_VERSION_PATCH
 
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
+#undef LT_OBJDIR
+
 /* define if memcmp is not 8-bit clean or is otherwise broken */
 #undef NEED_MEMCMP_REPLACEMENT
 

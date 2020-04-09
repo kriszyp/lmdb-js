@@ -26,8 +26,7 @@ dnl Configure.in for OpenLDAP
 AC_COPYRIGHT([[Copyright 1998-2020 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
 AC_REVISION([$Id$])
-AC_INIT([OpenLDAP],,[http://www.openldap.org/its/])
-m4_define([AC_PACKAGE_BUGREPORT],[<http://www.openldap.org/its/>])
+AC_INIT([OpenLDAP],,[https://bugs.openldap.org],,[https://www.openldap.org])
 AC_CONFIG_SRCDIR(build/version.sh)dnl
 dnl ----------------------------------------------------------------
 dnl OpenLDAP Autoconf Macros
@@ -35,6 +34,7 @@ builtin(include, build/openldap.m4)dnl
 dnl ================================================================
 
 AC_CONFIG_AUX_DIR(build)dnl
+AC_CONFIG_MACRO_DIRS([build])
 
 eval `$ac_aux_dir/version.sh`
 if test -z "$OL_STRING"; then
@@ -69,9 +69,8 @@ dnl Determine host platform
 dnl		we try not to use this for much
 AC_CANONICAL_TARGET([])
 
-AM_INIT_AUTOMAKE([$OL_PACKAGE],[$OL_VERSION], [no defines])dnl
-AC_SUBST(PACKAGE)dnl
-AC_SUBST(VERSION)dnl
+AC_SUBST(PACKAGE,$OL_PACKAGE)dnl
+AC_SUBST(VERSION,$OL_VERSION)dnl
 AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
 AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 
@@ -89,10 +88,7 @@ AC_SUBST(OPENLDAP_LIBVERSION)dnl
 OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
 AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
 
-dnl We use autoconf features new to 2.59.  Later versions like won't work.
-dnl aclocal.m4 should be built using aclocal from automake 1.5
-dnl libtool 1.5 should be installed.
-AC_PREREQ(2.59)dnl Required Autoconf version
+AC_PREREQ(2.69)dnl Required Autoconf version
 
 AH_TOP([
 /* begin of portable.h.pre */
@@ -674,6 +670,7 @@ fi
 
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
+AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 
 dnl ----------------------------------------------------------------
