@@ -35,21 +35,17 @@ but it can be configured by giving the following parameters:
 Set memory usage to
 .I <memory>
 kiB.
-If not given, it defaults to
-.BR 4096 .
 .TP
 .BI p= <parallelism>
 Set parallelism to
 .I <parallelism>
 threads.
-If not given, it defaults to
-.BR 1 .
 .TP
 .BI t= <iterations>
 Set the number of iterations to
 .IR <iterations> .
-If not given, it defaults to
-.BR 3 .
+.LP
+These replace defaults when preparing hashes for new passwords where possible.
 .LP
 After loading the module, the password scheme
 .B {ARGON2}
