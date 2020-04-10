@@ -7,7 +7,7 @@ build:
     - apt update
     - apt install -y build-essential pkg-config automake libsasl2-dev heimdal-multidev libssl-dev libltdl-dev groff-base unixodbc-dev libwiredtiger-dev libperl-dev
     - autoreconf
-    - ./configure --enable-backends=mod --enable-overlays=mod --enable-modules --enable-dynamic --disable-ndb
+    - ./configure --enable-backends=mod --enable-overlays=mod --enable-modules --enable-dynamic --disable-ndb --disable-asyncmeta
     - make depend
     - make
     - ulimit -n 4096 # back-monitor takes a while scanning a long connections array
