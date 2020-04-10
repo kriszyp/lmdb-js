@@ -6,6 +6,7 @@ build:
   script:
     - apt update
     - apt install -y build-essential pkg-config automake libsasl2-dev heimdal-multidev libssl-dev libltdl-dev groff-base unixodbc-dev libwiredtiger-dev libperl-dev
+    - autoreconf
     - ./configure --enable-backends=mod --enable-overlays=mod --enable-modules --enable-dynamic --disable-ndb
     - make depend
     - make
