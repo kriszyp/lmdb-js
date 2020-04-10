@@ -7,6 +7,8 @@ slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
 .B LIBEXECDIR/slapd 
 [\c
+.BR \-V [ V [ V ]]
+[\c
 .BR \-4 | \-6 ]
 [\c
 .BR \-T \ { acl \||\| a [ dd ]\||\| auth \||\| c [ at ]\||\|
@@ -67,6 +69,11 @@ will not fork and disassociate from the invoking tty.
 See the "OpenLDAP Administrator's Guide" for more details on
 .BR slapd .
 .SH OPTIONS
+.TP
+.BR \-V [ V [ V ]]
+Print version info and proceed with startup.
+If \fB\-VV\fP is given, exit after providing version info. If \fB\-VVV\fP is
+given, additionally provide information on static overlays and backends.
 .TP
 .B \-4
 Listen on IPv4 addresses only.

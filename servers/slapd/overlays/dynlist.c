@@ -57,6 +57,12 @@ typedef struct dynlist_info_t {
 	struct dynlist_info_t	*dli_next;
 } dynlist_info_t;
 
+typedef struct dynlist_gen_t {
+	dynlist_info_t	*dlg_dli;
+	int				*dlg_memberOf;
+} dynlist_gen_t;
+#define DYNLIST_HAS_MEMBEROF	1
+
 #define DYNLIST_USAGE \
 	"\"dynlist-attrset <oc> [uri] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad>] ...]\": "
 
@@ -611,7 +617,8 @@ static int
 dynlist_compare( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli = dlg->dlg_dli;
 	Operation o = *op;
 	Entry *e = NULL;
 	dynlist_map_t *dlm;
@@ -702,7 +709,7 @@ done:;
 	}
 
 	/* check for dynlist objectClass; done if not found */
-	dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dli = (dynlist_info_t *)dlg->dlg_dli;
 	while ( dli != NULL && !is_entry_objectclass_or_sub( e, dli->dli_oc ) ) {
 		dli = dli->dli_next;
 	}
@@ -791,6 +798,8 @@ typedef struct dynlist_name_t {
 	struct berval dy_name;
 	dynlist_info_t *dy_dli;
 	int dy_seen;
+	int dy_numuris;
+	LDAPURLDesc *dy_uris[];
 } dynlist_name_t;
 
 typedef struct dynlist_search_t {
@@ -798,7 +807,7 @@ typedef struct dynlist_search_t {
 	dynlist_info_t *ds_dli;
 	Filter *ds_origfilter;
 	struct berval ds_origfilterbv;
-	int ds_numgroups;
+	int ds_memberOf;
 } dynlist_search_t;
 
 static int
@@ -819,21 +828,161 @@ dynlist_search1resp( Operation *op, SlapReply *rs )
 {
 	if ( rs->sr_type == REP_SEARCH && rs->sr_entry != NULL ) {
 		dynlist_search_t *ds = op->o_callback->sc_private;
-		dynlist_name_t *dyn = ch_calloc(1, sizeof(dynlist_name_t)+rs->sr_entry->e_nname.bv_len + 1);
-		dyn->dy_name.bv_val = (void *)(dyn+1);
-		dyn->dy_dli = ds->ds_dli;
-		dyn->dy_name.bv_len = rs->sr_entry->e_nname.bv_len;
-		memcpy(dyn->dy_name.bv_val, rs->sr_entry->e_nname.bv_val, rs->sr_entry->e_nname.bv_len );
-		ds->ds_numgroups++;
-		if ( tavl_insert( &ds->ds_names, dyn, dynlist_avl_cmp, avl_dup_error ))
-			ch_free( dyn );
+		Attribute *a = attr_find( rs->sr_entry->e_attrs, ds->ds_dli->dli_ad );
+		if ( a ) {
+			dynlist_name_t *dyn = ch_calloc(1, sizeof(dynlist_name_t)+rs->sr_entry->e_nname.bv_len + 1+
+				(a->a_numvals * sizeof(LDAPURLDesc *)));
+			struct berval bv, nbase;
+			LDAPURLDesc *ludp;
+			int i, j;
+			dyn->dy_name.bv_val = ((char *)(dyn+1)) + (a->a_numvals * sizeof(LDAPURLDesc *));
+			dyn->dy_dli = ds->ds_dli;
+			dyn->dy_name.bv_len = rs->sr_entry->e_nname.bv_len;
+			/* parse and validate the URIs */
+			for (i=0, j=0; i<a->a_numvals; i++) {
+				if (ldap_url_parse( a->a_vals[i].bv_val, &ludp ) != LDAP_URL_SUCCESS )
+					continue;
+				if (( ludp->lud_host && *ludp->lud_host)
+					|| ludp->lud_exts ) {
+skipit:
+					ldap_free_urldesc( ludp );
+					continue;
+				}
+				ber_str2bv( ludp->lud_dn, 0, 0, &bv );
+				if ( dnNormalize( 0, NULL, NULL, &bv, &nbase, op->o_tmpmemctx ) != LDAP_SUCCESS )
+					goto skipit;
+				ldap_memfree( ludp->lud_dn );
+				ludp->lud_dn = ldap_strdup( nbase.bv_val );
+				op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
+				/* cheat here, reuse fields */
+				ludp->lud_port = nbase.bv_len;
+				if ( ludp->lud_filter && *ludp->lud_filter ) {
+					Filter *f = str2filter( ludp->lud_filter );
+					if ( f == NULL )
+						goto skipit;
+					ldap_memfree( ludp->lud_filter );
+					ludp->lud_filter = (char *)f;
+				}
+				dyn->dy_uris[j] = ludp;
+				j++;
+			}
+			dyn->dy_numuris = j;
+			memcpy(dyn->dy_name.bv_val, rs->sr_entry->e_nname.bv_val, rs->sr_entry->e_nname.bv_len );
+
+			if ( tavl_insert( &ds->ds_names, dyn, dynlist_avl_cmp, avl_dup_error )) {
+				for (i=dyn->dy_numuris-1; i>=0; i--) {
+					ludp = dyn->dy_uris[i];
+					if ( ludp->lud_filter ) {
+						filter_free( (Filter *)ludp->lud_filter );
+						ludp->lud_filter = NULL;
+					}
+					ldap_free_urldesc( ludp );
+				}
+				ch_free( dyn );
+			}
+		}
 	}
 	return 0;
 }
 
-/* Dup the filter, no-oping any references to given ad */
+/* replace a filter clause (memberOf=<groupDN>) with an expansion of
+ * (&(entryDN=<groupURIbase>)<groupURIfilter>)
+ */
+static int
+dynlist_filter_group( Operation *op, Filter *f, Filter *n, AttributeDescription *uri )
+{
+	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
+	Entry *e;
+	Attribute *a;
+	Filter *andf = NULL, *dnf, *urif, *orf = NULL;
+	LDAPURLDesc *ludp;
+	struct berval bv, nbase;
+	int i;
+
+	if ( overlay_entry_get_ov( op, &f->f_av_value, NULL, NULL, 0, &e, on ) !=
+		LDAP_SUCCESS || e == NULL ) {
+		return -1;
+	}
+	a = attr_find( e->e_attrs, uri );
+	if ( !a ) {
+		overlay_entry_release_ov( op, e, 0, on );
+		return -1;
+	}
+	for (i=0; i<a->a_numvals; i++) {
+		if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) != LDAP_URL_SUCCESS )
+			continue;
+		if (( ludp->lud_host && *ludp->lud_host )
+			|| ludp->lud_attrs
+			|| ludp->lud_exts ) {
+	skip:
+			ldap_free_urldesc( ludp );
+			continue;
+		}
+		ber_str2bv( ludp->lud_dn, 0, 0, &bv );
+		if ( dnNormalize( 0, NULL, NULL, &bv, &nbase, op->o_tmpmemctx ) != LDAP_SUCCESS )
+			goto skip;
+		if ( ludp->lud_filter && *ludp->lud_filter ) {
+			urif = str2filter_x( op, ludp->lud_filter );
+			if ( urif == NULL ) {
+				op->o_tmpfree( nbase.bv_val, op->o_tmpmemctx );
+				goto skip;
+			}
+		} else {
+			urif = NULL;
+		}
+		if ( !andf ) {
+			andf = n;
+		} else {
+			if ( !orf ) {
+				andf = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+				andf->f_choice = n->f_choice;
+				andf->f_list = n->f_list;
+				orf = n;
+				orf->f_choice = LDAP_FILTER_OR;
+				orf->f_list = andf;
+			}
+			andf->f_next = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+			andf = andf->f_next;
+		}
+		dnf = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
+		andf->f_choice = LDAP_FILTER_AND;
+		andf->f_next = NULL;
+		andf->f_list = dnf;
+		dnf->f_next = urif;
+		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
+			dnf->f_choice = LDAP_FILTER_EQUALITY;
+			dnf->f_ava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
+			dnf->f_av_desc = slap_schema.si_ad_entryDN;
+			dnf->f_av_value = nbase;
+		} else {
+			dnf->f_choice = LDAP_FILTER_EXT;
+			dnf->f_mra = op->o_tmpcalloc( 1, sizeof(MatchingRuleAssertion), op->o_tmpmemctx );
+			dnf->f_mr_desc = slap_schema.si_ad_entryDN;
+			dnf->f_mr_value = nbase;
+			switch ( ludp->lud_scope ) {
+			case LDAP_SCOPE_ONELEVEL:
+				dnf->f_mr_rule = slap_schema.si_mr_dnOneLevelMatch;
+				break;
+			case LDAP_SCOPE_SUBTREE:
+				dnf->f_mr_rule = slap_schema.si_mr_dnSubtreeMatch;
+				break;
+			case LDAP_SCOPE_SUBORDINATE:
+				dnf->f_mr_rule = slap_schema.si_mr_dnSubordinateMatch;
+				break;
+			}
+			ber_str2bv( dnf->f_mr_rule->smr_names[0], 0, 0, &dnf->f_mr_rule_text );
+		}
+		ldap_free_urldesc( ludp );
+	}
+	overlay_entry_release_ov( op, e, 0, on );
+	if ( !andf )
+		return -1;
+	return 0;
+}
+
+/* Dup the filter, replacing any references to given ad with dyngroup evaluation */
 static Filter *
-dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, int isnot )
+dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, AttributeDescription *uri )
 {
 	Filter *n = NULL;
 
@@ -849,29 +998,22 @@ dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, int isno
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		if ( f->f_desc == ad ) {
-noop:
-			n->f_choice = SLAPD_FILTER_COMPUTED;
-			n->f_result = isnot ? LDAP_COMPARE_FALSE : LDAP_COMPARE_TRUE;
-		} else {
-			n->f_choice = f->f_choice;
-			n->f_desc = f->f_desc;
-		}
+		n->f_choice = f->f_choice;
+		n->f_desc = f->f_desc;
 		break;
 
 	case LDAP_FILTER_EQUALITY:
+		if ( f->f_av_desc == ad && !dynlist_filter_group( op, f, n, uri ))
+			break;
+		/* FALLTHRU */
 	case LDAP_FILTER_GE:
 	case LDAP_FILTER_LE:
 	case LDAP_FILTER_APPROX:
-		if ( f->f_av_desc == ad )
-			goto noop;
 		n->f_choice = f->f_choice;
 		n->f_ava = f->f_ava;
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		if ( f->f_sub_desc == ad )
-			goto noop;
 		n->f_choice = f->f_choice;
 		n->f_sub_initial = f->f_sub_initial;
 		n->f_sub_final = f->f_sub_final;
@@ -879,15 +1021,11 @@ noop:
 		break;
 
 	case LDAP_FILTER_EXT:
-		if ( f->f_mr_desc == ad )
-			goto noop;
 		n->f_choice = f->f_choice;
 		n->f_mra = f->f_mra;
 		break;
 
 	case LDAP_FILTER_NOT:
-		isnot ^= 1;
-		/* FALLTHRU */
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR: {
 		Filter **p;
@@ -895,7 +1033,7 @@ noop:
 		n->f_choice = f->f_choice;
 
 		for ( p = &n->f_list, f = f->f_list; f; f = f->f_next ) {
-			*p = dynlist_filter_dup( op, f, ad, isnot );
+			*p = dynlist_filter_dup( op, f, ad, uri );
 			if ( !*p )
 				continue;
 			p = &(*p)->f_next;
@@ -929,6 +1067,24 @@ dynlist_filter_free( Operation *op, Filter *f )
 	}
 }
 
+static void
+dynlist_search_free( void *ptr )
+{
+	dynlist_name_t *dyn = (dynlist_name_t *)ptr;
+	LDAPURLDesc *ludp;
+	int i;
+
+	for (i=dyn->dy_numuris-1; i>=0; i--) {
+		ludp = dyn->dy_uris[i];
+		if ( ludp->lud_filter ) {
+			filter_free( (Filter *)ludp->lud_filter );
+			ludp->lud_filter = NULL;
+		}
+		ldap_free_urldesc( ludp );
+	}
+	ch_free( ptr );
+}
+
 static int
 dynlist_search_cleanup( Operation *op, SlapReply *rs )
 {
@@ -936,7 +1092,7 @@ dynlist_search_cleanup( Operation *op, SlapReply *rs )
 		rs->sr_err == SLAPD_ABANDON ) {
 		slap_callback *sc = op->o_callback;
 		dynlist_search_t *ds = op->o_callback->sc_private;
-		tavl_free( ds->ds_names, ch_free );
+		tavl_free( ds->ds_names, dynlist_search_free );
 		if ( ds->ds_origfilter ) {
 			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 			dynlist_filter_free( op, op->ors_filter );
@@ -948,6 +1104,48 @@ dynlist_search_cleanup( Operation *op, SlapReply *rs )
 
 	}
 	return 0;
+}
+
+static int
+dynlist_testurl(Operation *op, dynlist_name_t *dyn, Entry *e)
+{
+	LDAPURLDesc *ludp;
+	struct berval nbase, bv;
+	int i, rc = LDAP_COMPARE_FALSE;
+	for (i=0; i<dyn->dy_numuris; i++) {
+		ludp = dyn->dy_uris[i];
+		nbase.bv_val = ludp->lud_dn;
+		nbase.bv_len = ludp->lud_port;
+		if ( ludp->lud_attrs )
+			continue;
+		switch( ludp->lud_scope ) {
+		case LDAP_SCOPE_BASE:
+			if ( !dn_match( &nbase, &e->e_nname ))
+				continue;
+			break;
+		case LDAP_SCOPE_ONELEVEL:
+			dnParent( &e->e_nname, &bv );
+			if ( !dn_match( &nbase, &bv ))
+				continue;
+			break;
+		case LDAP_SCOPE_SUBTREE:
+			if ( !dnIsSuffix( &e->e_nname, &nbase ))
+				continue;
+			break;
+		case LDAP_SCOPE_SUBORDINATE:
+			if ( dn_match( &nbase, &e->e_nname ) ||
+				!dnIsSuffix( &e->e_nname, &nbase ))
+				continue;
+			break;
+		}
+		if ( !ludp->lud_filter )	/* there really should always be a filter */
+			rc = LDAP_COMPARE_TRUE;
+		else
+			rc = test_filter( op, e, (Filter *)ludp->lud_filter );
+		if ( rc == LDAP_COMPARE_TRUE )
+			break;
+	}
+	return rc;
 }
 
 /* process the search responses */
@@ -971,7 +1169,7 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				rc = LDAP_SUCCESS;
 			}
 			return rc;
-		} else {
+		} else if ( ds->ds_memberOf ) {
 			TAvlnode *ptr;
 			Entry *e = rs->sr_entry;
 			/* See if there are any memberOf values to attach to this entry */
@@ -981,18 +1179,14 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 				dyn = ptr->avl_data;
 				for ( dlm = dyn->dy_dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
 					if ( dlm->dlm_memberOf_ad ) {
-						Operation o = *op;
-						o.o_do_not_cache = 1;
-						o.o_groups = NULL;
-						rc = backend_group( &o, e, &dyn->dy_name,
-							&e->e_nname, dyn->dy_dli->dli_oc, dyn->dy_dli->dli_ad );
-						if ( rc == LDAP_SUCCESS ) {
+						if ( dynlist_testurl( op, dyn, e ) == LDAP_COMPARE_TRUE ) {
 							/* ensure e is modifiable, but do not replace
 							 * sr_entry yet since we have pointers into it */
 							if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) && e == rs->sr_entry ) {
 								e = entry_dup( rs->sr_entry );
 							}
 							attr_merge_one( e, dlm->dlm_memberOf_ad, &dyn->dy_name, &dyn->dy_name );
+							break;
 						}
 					}
 				}
@@ -1042,7 +1236,7 @@ static void
 dynlist_fix_filter( Operation *op, AttributeDescription *ad, dynlist_search_t *ds )
 {
 	Filter *f;
-	f = dynlist_filter_dup( op, op->ors_filter, ad, 0 );
+	f = dynlist_filter_dup( op, op->ors_filter, ad, ds->ds_dli->dli_ad );
 	if ( ds->ds_origfilter ) {
 		dynlist_filter_free( op, op->ors_filter );
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
@@ -1058,7 +1252,8 @@ static int
 dynlist_search( Operation *op, SlapReply *rs )
 {
 	slap_overinst	*on = (slap_overinst *)op->o_bd->bd_info;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli;
 	Operation o = *op;
 	dynlist_map_t *dlm;
 	Filter f;
@@ -1074,6 +1269,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 	sc = op->o_tmpcalloc( 1, sizeof(slap_callback)+sizeof(dynlist_search_t), op->o_tmpmemctx );
 	sc->sc_private = (void *)(sc+1);
 	ds = sc->sc_private;
+	ds->ds_memberOf = 0;
 
 	f.f_choice = LDAP_FILTER_EQUALITY;
 	f.f_ava = &ava;
@@ -1081,18 +1277,62 @@ dynlist_search( Operation *op, SlapReply *rs )
 	f.f_next = NULL;
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 
-	/* Find all dyngroups in tree. For group expansion
+	/* Are we using memberOf, and does it affect this request? */
+	if ( dlg->dlg_memberOf ) {
+		int attrflags = slap_attr_flags( op->ors_attrs );
+		int opattrs = SLAP_OPATTRS( attrflags );
+		int userattrs = SLAP_USERATTRS( attrflags );
+
+		for ( dli = dlg->dlg_dli; dli; dli = dli->dli_next ) {
+			for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
+				if ( dlm->dlm_memberOf_ad ) {
+					/* if attribute is in filter, fix it */
+					if ( ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter )) {
+						ds->ds_dli = dli;
+						dynlist_fix_filter( op, dlm->dlm_memberOf_ad, ds );
+					}
+
+					/* if attribute is not requested, skip it */
+					if ( op->ors_attrs == NULL ) {
+						if ( is_at_operational( dlm->dlm_memberOf_ad->ad_type ) ) {
+							continue;
+						}
+					} else {
+						if ( is_at_operational( dlm->dlm_memberOf_ad->ad_type ) ) {
+							if ( !opattrs && !ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs ) )
+							{
+								continue;
+							}
+						} else {
+							if ( !userattrs && !ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs ) )
+							{
+								continue;
+							}
+						}
+					}
+					ds->ds_memberOf = 1;
+				}
+			}
+		}
+	}
+
+	/* Find all dyngroups in scope. For group expansion
 	 * we only need the groups within the search scope, but
 	 * for memberOf populating, we need all dyngroups.
 	 */
-	for ( ; dli != NULL; dli = dli->dli_next ) {
-		int prevnum;
+	for ( dli = dlg->dlg_dli; dli != NULL; dli = dli->dli_next ) {
 		if ( o.o_callback != sc ) {
 			o.o_callback = sc;
 			o.ors_filter = &f;
-			o.o_req_dn = op->o_bd->be_suffix[0];
-			o.o_req_ndn = op->o_bd->be_nsuffix[0];
-			o.ors_scope = LDAP_SCOPE_SUBTREE;
+			if ( ds->ds_memberOf ) {
+				o.o_req_dn = op->o_bd->be_suffix[0];
+				o.o_req_ndn = op->o_bd->be_nsuffix[0];
+				o.ors_scope = LDAP_SCOPE_SUBTREE;
+			} else {
+				o.o_req_dn = op->o_req_dn;
+				o.o_req_ndn = op->o_req_ndn;
+				o.ors_scope = op->ors_scope;
+			}
 			o.ors_attrsonly = 0;
 			o.ors_attrs = an;
 			o.o_bd = select_backend( op->o_bd->be_nsuffix, 1 );
@@ -1108,15 +1348,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 		an[0].an_name = dli->dli_ad->ad_cname;
 		{
 			SlapReply	r = { REP_SEARCH };
-			prevnum = ds->ds_numgroups;
 			(void)o.o_bd->be_search( &o, &r );
-		}
-		/* found a dynamic group */
-		if ( ds->ds_numgroups > prevnum ) {
-			for ( dlm = dli->dli_dlm; dlm; dlm = dlm->dlm_next ) {
-				if ( dlm->dlm_memberOf_ad && ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter ))
-					dynlist_fix_filter( op, dlm->dlm_memberOf_ad, ds );
-			}
 		}
 	}
 
@@ -1197,7 +1429,8 @@ static int
 dl_cfgen( ConfigArgs *c )
 {
 	slap_overinst	*on = (slap_overinst *)c->bi;
-	dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t	*dli = dlg->dlg_dli;
 
 	int		rc = 0, i;
 
@@ -1302,14 +1535,15 @@ dl_cfgen( ConfigArgs *c )
 					ch_free( dli );
 				}
 
-				on->on_bi.bi_private = NULL;
+				dlg->dlg_dli = NULL;
+				dlg->dlg_memberOf = 0;
 
 			} else {
 				dynlist_info_t	**dlip;
 				dynlist_map_t *dlm;
 				dynlist_map_t *dlm_next;
 
-				for ( i = 0, dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+				for ( i = 0, dlip = (dynlist_info_t **)&dlg->dlg_dli;
 					i < c->valx; i++ )
 				{
 					if ( *dlip == NULL ) {
@@ -1342,12 +1576,14 @@ dl_cfgen( ConfigArgs *c )
 				dlm = dli->dli_dlm;
 				while ( dlm != NULL ) {
 					dlm_next = dlm->dlm_next;
+					if ( dlm->dlm_memberOf_ad )
+						dlg->dlg_memberOf--;
 					ch_free( dlm );
 					dlm = dlm_next;
 				}
 				ch_free( dli );
 
-				dli = (dynlist_info_t *)on->on_bi.bi_private;
+				dli = (dynlist_info_t *)dlg->dlg_dli;
 			}
 			break;
 
@@ -1549,6 +1785,7 @@ done_uri:;
 					rc = 1;
 					goto done_uri;
 				}
+				dlg->dlg_memberOf++;
 				*cp = '\0';
 			}
 
@@ -1581,7 +1818,7 @@ done_uri:;
 		if ( c->valx > 0 ) {
 			int	i;
 
-			for ( i = 0, dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+			for ( i = 0, dlip = (dynlist_info_t **)&dlg->dlg_dli;
 				i < c->valx; i++ )
 			{
 				if ( *dlip == NULL ) {
@@ -1599,7 +1836,7 @@ done_uri:;
 			dli_next = *dlip;
 
 		} else {
-			for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+			for ( dlip = (dynlist_info_t **)&dlg->dlg_dli;
 				*dlip; dlip = &(*dlip)->dli_next )
 				/* goto last */;
 		}
@@ -1677,7 +1914,7 @@ done_uri:;
 			return 1;
 		}
 
-		for ( dlip = (dynlist_info_t **)&on->on_bi.bi_private;
+		for ( dlip = (dynlist_info_t **)&dlg->dlg_dli;
 			*dlip; dlip = &(*dlip)->dli_next )
 		{
 			/* 
@@ -1725,12 +1962,29 @@ done_uri:;
 }
 
 static int
+dynlist_db_init(
+	BackendDB *be,
+	ConfigReply *cr)
+{
+	slap_overinst *on = (slap_overinst *)be->bd_info;
+	dynlist_gen_t *dlg;
+
+	dlg = (dynlist_gen_t *)ch_malloc( sizeof( *dlg ));
+	on->on_bi.bi_private = dlg;
+	dlg->dlg_dli = NULL;
+	dlg->dlg_memberOf = 0;
+
+	return 0;
+}
+
+static int
 dynlist_db_open(
 	BackendDB	*be,
 	ConfigReply	*cr )
 {
 	slap_overinst		*on = (slap_overinst *) be->bd_info;
-	dynlist_info_t		*dli = (dynlist_info_t *)on->on_bi.bi_private;
+	dynlist_gen_t		*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+	dynlist_info_t		*dli = dlg->dlg_dli;
 	ObjectClass		*oc = NULL;
 	AttributeDescription	*ad = NULL;
 	const char	*text;
@@ -1738,7 +1992,7 @@ dynlist_db_open(
 
 	if ( dli == NULL ) {
 		dli = ch_calloc( 1, sizeof( dynlist_info_t ) );
-		on->on_bi.bi_private = (void *)dli;
+		dlg->dlg_dli = dli;
 	}
 
 	for ( ; dli; dli = dli->dli_next ) {
@@ -1812,7 +2066,8 @@ dynlist_db_destroy(
 	slap_overinst	*on = (slap_overinst *) be->bd_info;
 
 	if ( on->on_bi.bi_private ) {
-		dynlist_info_t	*dli = (dynlist_info_t *)on->on_bi.bi_private,
+		dynlist_gen_t	*dlg = (dynlist_gen_t *)on->on_bi.bi_private;
+		dynlist_info_t	*dli = dlg->dlg_dli,
 				*dli_next;
 
 		for ( dli_next = dli; dli_next; dli = dli_next ) {
@@ -1847,6 +2102,7 @@ dynlist_db_destroy(
 			}
 			ch_free( dli );
 		}
+		ch_free( dlg );
 	}
 
 	return 0;
@@ -1875,6 +2131,7 @@ dynlist_initialize(void)
 	dynlist.on_bi.bi_obsolete_names = obsolete_names;
 #endif
 
+	dynlist.on_bi.bi_db_init = dynlist_db_init;
 	dynlist.on_bi.bi_db_config = config_generic_wrapper;
 	dynlist.on_bi.bi_db_open = dynlist_db_open;
 	dynlist.on_bi.bi_db_destroy = dynlist_db_destroy;
