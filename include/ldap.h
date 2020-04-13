@@ -202,10 +202,6 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_USERNAME		0x610c /* read-only */
 #define LDAP_OPT_X_SASL_GSS_CREDS		0x610d
 
-/* OpenLDAP GSSAPI options */
-#define LDAP_OPT_X_GSSAPI_DO_NOT_FREE_CONTEXT      0x6200
-#define LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL   0x6201
-
 /*
  * OpenLDAP per connection tcp-keepalive settings
  * (Linux only, ignored where unsupported)

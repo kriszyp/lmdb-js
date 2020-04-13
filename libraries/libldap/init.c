@@ -41,7 +41,6 @@ struct ldapoptions ldap_int_global_options =
 		LDAP_LDO_CONNECTIONLESS_NULLARG
 		LDAP_LDO_TLS_NULLARG
 		LDAP_LDO_SASL_NULLARG
-		LDAP_LDO_GSSAPI_NULLARG
 		LDAP_LDO_MUTEX_NULLARG };
 
 #define ATTR_NONE	0
@@ -56,8 +55,6 @@ struct ldapoptions ldap_int_global_options =
 
 #define ATTR_OPT_TV	8
 #define ATTR_OPT_INT	9
-
-#define ATTR_GSSAPI	10
 
 struct ol_keyvalue {
 	const char *		key;
@@ -138,7 +135,7 @@ static const struct ol_attribute {
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
-#define MAX_LDAP_ATTR_LEN  sizeof("GSSAPI_ALLOW_REMOTE_PRINCIPAL")
+#define MAX_LDAP_ATTR_LEN  sizeof("TLS_CIPHER_SUITE")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
 static int

@@ -93,7 +93,6 @@ libraries/libldap_r/getattr.c
 libraries/libldap_r/getdn.c
 libraries/libldap_r/getentry.c
 libraries/libldap_r/getvalues.c
-libraries/libldap_r/gssapi.c
 libraries/libldap_r/init.c
 libraries/libldap_r/lbase64.c
 libraries/libldap_r/ldap_sync.c

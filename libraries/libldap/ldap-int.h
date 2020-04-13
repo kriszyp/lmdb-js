@@ -305,8 +305,6 @@ struct ldapoptions {
 #define LDAP_LDO_SASL_NULLARG
 #endif
 
-#define LDAP_LDO_GSSAPI_NULLARG
-
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t	ldo_mutex;
 #define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
