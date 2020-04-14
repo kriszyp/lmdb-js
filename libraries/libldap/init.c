@@ -110,6 +110,7 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_def_sasl_authzid)},
 	{0, ATTR_SASL,		"SASL_SECPROPS",	NULL,	LDAP_OPT_X_SASL_SECPROPS},
 	{0, ATTR_BOOL,		"SASL_NOCANON",	NULL,	LDAP_BOOL_SASL_NOCANON},
+	{0, ATTR_SASL,		"SASL_CBINDING",	NULL,	LDAP_OPT_X_SASL_CBINDING},
 #endif
 
 #ifdef HAVE_TLS

@@ -720,6 +720,10 @@ Used to specify the fully qualified domain name used for SASL processing.
 .B olcSaslRealm: <realm>
 Specify SASL realm.  Default is empty.
 .TP
+.B olcSaslCbinding: none | tls-unique | tls-endpoint
+Specify the channel-binding type, see also LDAP_OPT_X_SASL_CBINDING.
+Default is none.
+.TP
 .B olcSaslSecProps: <properties>
 Used to specify Cyrus SASL security properties.
 The

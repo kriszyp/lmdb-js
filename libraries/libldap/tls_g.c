@@ -729,6 +729,64 @@ tlsg_session_unique( tls_session *sess, struct berval *buf, int is_server)
 	return 0;
 }
 
+static int
+tlsg_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
+{
+	tlsg_session *s = (tlsg_session *)sess;
+	const gnutls_datum_t *cert_data;
+	gnutls_x509_crt_t server_cert;
+	gnutls_digest_algorithm_t md;
+	int sign_algo, md_len, rc;
+
+	if ( is_server )
+		cert_data = gnutls_certificate_get_ours( s->session );
+	else
+		cert_data = gnutls_certificate_get_peers( s->session, NULL );
+
+	if ( cert_data == NULL )
+		return 0;
+
+	rc = gnutls_x509_crt_init( &server_cert );
+	if ( rc != GNUTLS_E_SUCCESS )
+		return 0;
+
+	rc = gnutls_x509_crt_import( server_cert, cert_data, GNUTLS_X509_FMT_DER );
+	if ( rc != GNUTLS_E_SUCCESS ) {
+		gnutls_x509_crt_deinit( server_cert );
+		return 0;
+	}
+
+	sign_algo = gnutls_x509_crt_get_signature_algorithm( server_cert );
+	gnutls_x509_crt_deinit( server_cert );
+	if ( sign_algo <= GNUTLS_SIGN_UNKNOWN )
+		return 0;
+
+	md = gnutls_sign_get_hash_algorithm( sign_algo );
+	if ( md == GNUTLS_DIG_UNKNOWN )
+		return 0;
+
+	/* See RFC 5929 */
+	switch (md) {
+	case GNUTLS_DIG_NULL:
+	case GNUTLS_DIG_MD2:
+	case GNUTLS_DIG_MD5:
+	case GNUTLS_DIG_SHA1:
+		md = GNUTLS_DIG_SHA256;
+	}
+
+	md_len = gnutls_hash_get_len( md );
+	if ( md_len == 0 || md_len > buf->bv_len )
+		return 0;
+
+	rc = gnutls_hash_fast( md, cert_data->data, cert_data->size, buf->bv_val );
+	if ( rc != GNUTLS_E_SUCCESS )
+		return 0;
+
+	buf->bv_len = md_len;
+
+	return md_len;
+}
+
 static const char *
 tlsg_session_version( tls_session *sess )
 {
@@ -1117,6 +1175,7 @@ tls_impl ldap_int_tls_impl = {
 	tlsg_session_chkhost,
 	tlsg_session_strength,
 	tlsg_session_unique,
+	tlsg_session_endpoint,
 	tlsg_session_version,
 	tlsg_session_cipher,
 	tlsg_session_peercert,

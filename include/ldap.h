@@ -186,6 +186,10 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_PROTOCOL_TLS1_1		((3 << 8) + 2)
 #define LDAP_OPT_X_TLS_PROTOCOL_TLS1_2		((3 << 8) + 3)
 
+#define LDAP_OPT_X_SASL_CBINDING_NONE		0
+#define LDAP_OPT_X_SASL_CBINDING_TLS_UNIQUE	1
+#define LDAP_OPT_X_SASL_CBINDING_TLS_ENDPOINT	2
+
 /* OpenLDAP SASL options */
 #define LDAP_OPT_X_SASL_MECH			0x6100
 #define LDAP_OPT_X_SASL_REALM			0x6101
@@ -201,6 +205,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_SASL_NOCANON			0x610b
 #define LDAP_OPT_X_SASL_USERNAME		0x610c /* read-only */
 #define LDAP_OPT_X_SASL_GSS_CREDS		0x610d
+#define LDAP_OPT_X_SASL_CBINDING		0x610e
 
 /*
  * OpenLDAP per connection tcp-keepalive settings

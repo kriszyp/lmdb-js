@@ -630,6 +630,15 @@ static ConfigTable config_back_cf_table[] = {
 		"( OLcfgGlAt:92 NAME 'olcSaslAuxpropsDontUseCopyIgnore' "
 			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "sasl-cbinding", NULL, 2, 2, 0,
+#ifdef HAVE_CYRUS_SASL
+		ARG_STRING, &sasl_cbinding,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:100 NAME 'olcSaslCBinding' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-host", "host", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
 		ARG_STRING|ARG_UNIQUE, &sasl_host,
@@ -948,7 +957,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
 		 "olcSaslAuxprops $ olcSaslAuxpropsDontUseCopy $ olcSaslAuxpropsDontUseCopyIgnore $ "
-		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcSaslCBinding $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcTCPBuffer $ "

@@ -1681,8 +1681,7 @@ LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
 	slap_ssf_t ssf,	/* relative strength of external security */
 	struct berval *authid );	/* asserted authentication id */
 
-LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c,
-	struct berval *cbv );
+LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c, void *ssl );
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
@@ -2072,6 +2071,7 @@ LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (struct berval)	global_host_bv;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	sasl_host;
+LDAP_SLAPD_V (char *)	sasl_cbinding;
 LDAP_SLAPD_V (char *)	slap_sasl_auxprops;
 #ifdef SLAP_AUXPROP_DONTUSECOPY
 LDAP_SLAPD_V (int)		slap_dontUseCopy_ignore;

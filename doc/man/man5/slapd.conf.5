@@ -914,6 +914,9 @@ The
 property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
+.B sasl\-cbinding none | tls-unique | tls-endpoint
+Specify the channel-binding type, see also LDAP_OPT_X_SASL_CBINDING.
+.TP
 .B schemadn <dn>
 Specify the distinguished name for the subschema subentry that
 controls the entries on this server.  The default is "cn=Subschema".

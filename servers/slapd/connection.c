@@ -1440,12 +1440,9 @@ connection_read( ber_socket_t s, conn_readinfo *cri )
 				msgbuf, ldap_pvt_tls_get_version( ssl ), ldap_pvt_tls_get_cipher( ssl ));
 			slap_sasl_external( c, c->c_tls_ssf, &authid );
 			if ( authid.bv_val ) free( authid.bv_val );
-			{
-				char cbinding[64];
-				struct berval cbv = { sizeof(cbinding), cbinding };
-				if ( ldap_pvt_tls_get_unique( ssl, &cbv, 1 ))
-					slap_sasl_cbinding( c, &cbv );
-			}
+
+			slap_sasl_cbinding( c, ssl );
+
 		} else if ( rc == 1 && ber_sockbuf_ctrl( c->c_sb,
 			LBER_SB_OPT_NEEDS_WRITE, NULL )) {	/* need to retry */
 			slapd_set_write( s, 1 );

@@ -1200,6 +1200,13 @@ ldap_pvt_tls_get_unique( void *s, struct berval *buf, int is_server )
 	return tls_imp->ti_session_unique( session, buf, is_server );
 }
 
+int
+ldap_pvt_tls_get_endpoint( void *s, struct berval *buf, int is_server )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_endpoint( session, buf, is_server );
+}
+
 const char *
 ldap_pvt_tls_get_version( void *s )
 {

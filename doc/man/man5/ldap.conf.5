@@ -286,6 +286,9 @@ size allowed.  0 disables security layers.  The default is 65536.
 .TP
 .B SASL_NOCANON <on/true/yes/off/false/no>
 Do not perform reverse DNS lookups to canonicalize SASL host names. The default is off.
+.TP
+.B SASL_CBINDING <none/tls-unique/tls-endpoint>
+The channel-binding type to use, see also LDAP_OPT_X_SASL_CBINDING. The default is none.
 .SH GSSAPI OPTIONS
 If OpenLDAP is built with Generic Security Services Application Programming Interface support,
 there are more options you can specify.

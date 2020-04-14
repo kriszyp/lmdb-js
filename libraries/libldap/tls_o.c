@@ -858,6 +858,50 @@ tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
 	return buf->bv_len;
 }
 
+static int
+tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
+{
+	tlso_session *s = (tlso_session *)sess;
+	const EVP_MD *md;
+	unsigned int md_len;
+	X509 *cert;
+
+	if ( buf->bv_len < EVP_MAX_MD_SIZE )
+		return 0;
+
+	if ( is_server )
+		cert = SSL_get_certificate( s );
+	else
+		cert = SSL_get_peer_certificate( s );
+
+	if ( cert == NULL )
+		return 0;
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+	md = EVP_get_digestbynid( X509_get_signature_nid( cert ));
+#else
+	md = EVP_get_digestbynid(OBJ_obj2nid( cert->sig_alg->algorithm ));
+#endif
+
+	/* See RFC 5929 */
+	if ( md == NULL ||
+	     md == EVP_md_null() ||
+#ifndef OPENSSL_NO_MD2
+	     md == EVP_md2() ||
+#endif
+	     md == EVP_md4() ||
+	     md == EVP_md5() ||
+	     md == EVP_sha1() )
+		md = EVP_sha256();
+
+	if ( !X509_digest( cert, md, buf->bv_val, &md_len ))
+		return 0;
+
+	buf->bv_len = md_len;
+
+	return md_len;
+}
+
 static const char *
 tlso_session_version( tls_session *sess )
 {
@@ -1474,6 +1518,7 @@ tls_impl ldap_int_tls_impl = {
 	tlso_session_chkhost,
 	tlso_session_strength,
 	tlso_session_unique,
+	tlso_session_endpoint,
 	tlso_session_version,
 	tlso_session_cipher,
 	tlso_session_peercert,
