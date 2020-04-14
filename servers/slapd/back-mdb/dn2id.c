@@ -485,10 +485,8 @@ mdb_dn2sups(
 		data.mv_data = d;
 		rc = mdb_cursor_get( cursor, &key, &data, MDB_GET_BOTH );
 		op->o_tmpfree( d, op->o_tmpmemctx );
-		if ( rc ) {
-			mdb_cursor_close( cursor );
+		if ( rc )
 			break;
-		}
 		ptr = (char *) data.mv_data + data.mv_size - 2*sizeof(ID);
 		memcpy( &nid, ptr, sizeof(ID));
 
@@ -507,7 +505,7 @@ mdb_dn2sups(
 			break;
 		}
 	}
-
+	mdb_cursor_close( cursor );
 done:
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "<= mdb_dn2sups: get failed: %s (%d)\n",
