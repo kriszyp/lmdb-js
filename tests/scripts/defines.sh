@@ -114,6 +114,7 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 TLSCONF=$DATADIR/slapd-tls.conf
 TLSSASLCONF=$DATADIR/slapd-tls-sasl.conf
+SASLGSSAPICONF=$DATADIR/slapd-sasl-gssapi.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 RETCODECONF=$DATADIR/slapd-retcode.conf
@@ -223,6 +224,7 @@ PORT3=`expr $BASEPORT + 3`
 PORT4=`expr $BASEPORT + 4`
 PORT5=`expr $BASEPORT + 5`
 PORT6=`expr $BASEPORT + 6`
+KDCPORT=`expr $BASEPORT + 7`
 URI1="ldap://${LOCALHOST}:$PORT1/"
 URIP1="ldap://${LOCALIP}:$PORT1/"
 URI2="ldap://${LOCALHOST}:$PORT2/"
@@ -247,6 +249,9 @@ SURI5="ldaps://${LOCALHOST}:$PORT5/"
 SURIP5="ldaps://${LOCALIP}:$PORT5/"
 SURI6="ldaps://${LOCALHOST}:$PORT6/"
 SURIP6="ldaps://${LOCALIP}:$PORT6/"
+
+KRB5REALM="K5.REALM"
+KDCHOST=$LOCALHOST
 
 # LDIF
 LDIF=$DATADIR/test.ldif

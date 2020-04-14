@@ -99,4 +99,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@TESTWD@;${TESTWD};"			\
 	-e "s;@DATADIR@;${DATADIR};"			\
 	-e "s;@SCHEMADIR@;${SCHEMADIR};"		\
+	-e "s;@KRB5REALM@;${KRB5REALM};"		\
+	-e "s;@KDCHOST@;${KDCHOST};"			\
+	-e "s;@KDCPORT@;${KDCPORT};"			\
 	-e "/^#/d"
