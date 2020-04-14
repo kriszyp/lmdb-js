@@ -226,7 +226,7 @@ dnl ----------------------------------------------------------------
 dnl General "enable" options
 dnl set default to traditional to enable the original debug style
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes, [no yes traditional])dnl
-OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
+OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], auto)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
@@ -755,6 +755,12 @@ dnl Check for module support
 ol_link_modules=no
 WITH_MODULES_ENABLED=no
 if test $ol_enable_modules != no ; then
+	if test $ol_enable_dynamic = no; then
+		AC_MSG_ERROR([--enable-modules requires --enable-dynamic])
+	elif test $ol_enable_dynamic = auto; then
+		ol_enable_dynamic=yes
+	fi
+
 	AC_CHECK_HEADERS(ltdl.h)
 
 	if test $ac_cv_header_ltdl_h = no ; then
