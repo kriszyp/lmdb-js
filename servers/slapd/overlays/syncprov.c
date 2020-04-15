@@ -1317,15 +1317,17 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 
 		/* Don't send ops back to the originator */
 		if ( opc->osid > 0 && opc->osid == ss->s_sid ) {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping original sid %03x\n",
-				opc->osid );
+			Debug( LDAP_DEBUG_SYNC, "%s syncprov_matchops: "
+				"skipping original sid %03x\n",
+				ss->s_op->o_log_prefix, opc->osid );
 			continue;
 		}
 
 		/* Don't send ops back to the messenger */
 		if ( opc->rsid > 0 && opc->rsid == ss->s_sid ) {
-			Debug( LDAP_DEBUG_SYNC, "syncprov_matchops: skipping relayed sid %03x\n",
-				opc->rsid );
+			Debug( LDAP_DEBUG_SYNC, "%s syncprov_matchops: "
+				"skipping relayed sid %03x\n",
+				ss->s_op->o_log_prefix, opc->rsid );
 			continue;
 		}
 
@@ -1389,8 +1391,9 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 			ldap_pvt_thread_mutex_unlock( &ss->s_mutex );
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "syncprov_matchops: sid %03x fscope %d rc %d\n",
-			ss->s_sid, fc.fscope, rc );
+		Debug( LDAP_DEBUG_TRACE, "%s syncprov_matchops: "
+			"sid %03x fscope %d rc %d\n",
+			ss->s_op->o_log_prefix, ss->s_sid, fc.fscope, rc );
 
 		/* check if current o_req_dn is in scope and matches filter */
 		if ( fc.fscope && rc == LDAP_COMPARE_TRUE ) {
@@ -1745,8 +1748,9 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	 * and everything else at the end. Do this first so we can
 	 * unlock the list mutex.
 	 */
-	Debug( LDAP_DEBUG_SYNC, "srs csn %s\n",
-		srs->sr_state.ctxcsn[0].bv_val );
+	Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
+		"sync control csn %s\n",
+		op->o_log_prefix, srs->sr_state.ctxcsn[0].bv_val );
 	for ( se=sl->sl_head; se; se=se->se_next ) {
 		int k;
 
@@ -1767,7 +1771,8 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		}
 		if ( ndel <= 0 ) {
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_playlog: "
-				"cmp %d, too old\n", op->o_log_prefix, ndel );
+				"cmp %d, csn %s too old, skipping\n",
+				op->o_log_prefix, ndel, se->se_csn.bv_val );
 			continue;
 		}
 		ndel = 0;
@@ -1779,7 +1784,8 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		}
 		if ( ndel > 0 ) {
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_playlog: "
-				"cmp %d, too new\n", op->o_log_prefix, ndel );
+				"cmp %d, csn %s too new, we're finished\n",
+				op->o_log_prefix, ndel, se->se_csn.bv_val );
 			break;
 		}
 		if ( se->se_tag == LDAP_REQ_DELETE ) {
