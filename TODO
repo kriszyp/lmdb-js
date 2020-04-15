@@ -1,22 +1,3 @@
-Things for 2.5:
-[09:27] <hyc> we also need to audit all of these schema defs
-[09:27] <hyc> we're supposed to have official, non-experimental OIDs for released schema
-[09:28] <hyc> accesslog is still using 666, experimental arc
-[09:29] <hyc> I think this means we should polish up the logschema draft, Informational status, and publish it again as final
-
-[13:57] <hyc> there's a nagging problem though, pcache's entry_release function needs to distinguish between its backend actually freeing the entry, or being a no-op
-[13:57] <hyc> so it can decide whether to return success or continue
-[13:58] <hyc> the patch to translucent sidesteps the question, by avoiding other overlays
-[13:58] <hyc> but we need to revisit this in 2.5
-
-  ITS#7920 fix for slapacl This needs to be streamlined in 2.5, current tool API is a mess.
-
-ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
-[18:20] <hyc> reiniting the listeners array is probably too much of a pain. it will screw with all currently open connections
-
-[10:22] <hyc> and rewriting Bind and Exop result handling
-[10:22] <hyc> so that it's no longer a special case for overlays
-
 [23:34] <hyc> ok, so far heap profile shows that memory use during refresh is normal
 [23:35] <hyc> not wonderful, but normal. mem usage grows because we're recording the present list while receiving entries in the refresh
 [23:36] <hyc> I'm seeing for 1.2GB of data about 235MB of presentlist
@@ -29,7 +10,9 @@ ITS#7926 - [18:19] <hyc> this is going to be a WONTFIX for 2.4, I think
 [01:13] <hyc> and instead it's 3-400MB
 
 <hyc> we need to merge the rest of Ondrej's slapmodify/slapdelete patches
+
 <hyc> get lmdb incremental backup working
+
 <hyc> I need to publish a spec for PREPARE/2-phase commit in LDAP TXNs and integrate that into lmdb and back-mdb
 
 Leftover bits from ITS#8294 -- Drop custom SHA2 code, use default crypto library SHA2 functions instead
@@ -45,15 +28,3 @@ New syslog engine
 [12:46] <hyc> yes but the idea is still based on numbered substitution parameters
 [12:47] <hyc> it's a pretty obvious approach, and with regex, time-tested.
 [12:48] <hyc> I may try to sneak it into OpenLDAP 2.5
-
-
-Overhaul overlays and backends, see ITS 6166, ITS6531
-
-(In relation to a discussion about slapo-chain)
-<hyc> anyway, the nicer ting to fix would be in 2.5, push all of the repl consumer code into its own overlay
-<hyc> in that case, updateref would be processed wherever the overlay was configured
-<hyc> so no longer tied to the frontend
-<hyc> it would also make it more feasible to have multiple different consumer configs in a single DB, each with their own provider URL (and thus their own updateref)
-<hyc> I would think we can get rid of the update ref directive entirely, just point all writes to that consumer's provider.
-
-Update dynlist so it works with search filters, so that autogroup can be deleted
