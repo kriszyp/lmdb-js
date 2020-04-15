@@ -251,7 +251,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'd':		/* data directory */
-			dirname = strdup( optarg );
+			dirname = optarg;
 			break;
 
 		case 'F':
@@ -259,11 +259,11 @@ main( int argc, char **argv )
 			break;
 
 		case 'H':		/* slapd uri */
-			uri = strdup( optarg );
+			uri = optarg;
 			break;
 
 		case 'h':		/* slapd host */
-			host = strdup( optarg );
+			host = optarg;
 			break;
 
 		case 'I':
@@ -325,7 +325,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'L':		/* the number of outerloops per client */
-			outerloops = strdup( optarg );
+			outerloops = optarg;
 			break;
 
 		case 'N':
@@ -333,15 +333,15 @@ main( int argc, char **argv )
 			break;
 
 		case 'P':		/* prog directory */
-			progdir = strdup( optarg );
+			progdir = optarg;
 			break;
 
 		case 'p':		/* the servers port number */
-			port = strdup( optarg );
+			port = optarg;
 			break;
 
 		case 'r':		/* the number of retries in case of error */
-			retries = strdup( optarg );
+			retries = optarg;
 			break;
 
 		case 'S':
@@ -349,7 +349,7 @@ main( int argc, char **argv )
 			break;
 
 		case 't':		/* the delay in seconds between each retry */
-			delay = strdup( optarg );
+			delay = optarg;
 			break;
 
 		case 'w':		/* the managers passwd */

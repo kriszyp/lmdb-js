@@ -152,7 +152,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = ber_strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -181,7 +181,6 @@ handle_private_option( int i )
 				control );
 			usage();
 		}
-		ber_memfree( control );
 		break;
 
 	case 'a':	/* add */
@@ -196,7 +195,7 @@ handle_private_option( int i )
 			fprintf( stderr, _("%s: -S previously specified\n"), prog );
 			exit( EXIT_FAILURE );
 		}
-		rejfile = ber_strdup( optarg );
+		rejfile = optarg;
 		break;
 
 	default:

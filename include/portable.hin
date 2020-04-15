@@ -493,9 +493,6 @@
 /* Define to 1 if you have the `setgid' function. */
 #undef HAVE_SETGID
 
-/* define if setproctitle(3) is available */
-#undef HAVE_SETPROCTITLE
-
 /* Define to 1 if you have the `setpwfile' function. */
 #undef HAVE_SETPWFILE
 

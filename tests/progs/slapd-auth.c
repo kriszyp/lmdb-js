@@ -81,15 +81,15 @@ main( int argc, char **argv )
 	while ( (i = getopt( argc, argv, "b:D:H:w:f:n:i:t:r:R:" )) != EOF ) {
 		switch( i ) {
 			case 'b':		/* base DN of a tree of user DNs */
-				base = strdup( optarg );
+				base = optarg;
 				break;
 
 			case 'D':
-				binder = strdup( optarg );
+				binder = optarg;
 				break;
 
 			case 'H':		/* the server uri */
-				uri = strdup( optarg );
+				uri = optarg;
 				break;
 
 			case 'w':

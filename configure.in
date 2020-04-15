@@ -228,7 +228,6 @@ dnl set default to traditional to enable the original debug style
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes, [no yes traditional])dnl
 OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], auto)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
-OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
@@ -2160,23 +2159,6 @@ if test $ol_enable_crypt != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl FreeBSD (and others) have setproctitle(3) in -lutil
-if test $ol_enable_proctitle != no ; then
-	AC_CHECK_FUNC(setproctitle,	[have_setproctitle=yes], [
-		AC_CHECK_LIB(util, setproctitle,
-			[have_setproctitle=yes
-			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
-			[have_setproctitle=no
-			AC_LIBOBJ(setproctitle)
-			LIBSRCS="$LIBSRCS setproctitle.c"])])
-
-	if test $have_setproctitle = yes ; then
-		AC_DEFINE(HAVE_SETPROCTITLE,1,
-			[define if setproctitle(3) is available])
-	fi
-fi
-
-dnl ----------------------------------------------------------------
 if test $ol_enable_slp != no ; then
 	AC_CHECK_HEADERS( slp.h )
 
@@ -2504,10 +2486,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
-fi
-if test "$ol_enable_proctitle" != no ; then
-	AC_DEFINE(LDAP_PROCTITLE,1,
-		[define this for LDAP process title support])
 fi
 if test "$ol_enable_referrals" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION,

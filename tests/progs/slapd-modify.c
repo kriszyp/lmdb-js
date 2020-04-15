@@ -78,11 +78,11 @@ main( int argc, char **argv )
 			break;
 
 		case 'e':		/* entry to modify */
-			entry = strdup( optarg );
+			entry = optarg;
 			break;
 
 		case 'a':
-			ava = strdup( optarg );
+			ava = optarg;
 			break;
 
 		default:

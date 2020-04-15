@@ -108,7 +108,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -133,7 +133,7 @@ handle_private_option( int i )
 		break;
 
 	case 's':	/* new password (secret) */
-		newpw.bv_val = strdup (optarg);
+		newpw.bv_val = strdup( optarg );
 		{
 			char* p;
 			for( p = optarg; *p != '\0'; p++ ) {

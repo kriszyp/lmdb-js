@@ -383,7 +383,7 @@ handle_private_option( int i )
 		++attrsonly;
 		break;
 	case 'b': /* search base */
-		base = ber_strdup( optarg );
+		base = optarg;
 		break;
 	case 'E': /* search extensions */
 		if( protocol == LDAP_VERSION2 ) {
@@ -403,7 +403,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = ber_strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -873,7 +873,7 @@ handle_private_option( int i )
 		break;
 	case 'F':	/* uri prefix */
 		if( urlpre ) free( urlpre );
-		urlpre = strdup( optarg );
+		urlpre = optarg;
 		break;
 	case 'l':	/* time limit */
 		if ( strcasecmp( optarg, "none" ) == 0 ) {
@@ -917,14 +917,14 @@ handle_private_option( int i )
 		}
 		break;
 	case 'S':	/* sort attribute */
-		sortattr = strdup( optarg );
+		sortattr = optarg;
 		break;
 	case 't':	/* write attribute values to TMPDIR files */
 		++vals2tmp;
 		break;
 	case 'T':	/* tmpdir */
 		if( tmpdir ) free( tmpdir );
-		tmpdir = strdup( optarg );
+		tmpdir = optarg;
 		break;
 	case 'u':	/* include UFN */
 		++includeufn;
@@ -1609,12 +1609,6 @@ getNextPage:
 		goto getNextPage;
 	}
 
-	if ( base != NULL ) {
-		ber_memfree( base );
-	}
-	if ( control != NULL ) {
-		ber_memfree( control );
-	}
 	if ( sss_keys != NULL ) {
 		ldap_free_sort_keylist( sss_keys );
 	}
