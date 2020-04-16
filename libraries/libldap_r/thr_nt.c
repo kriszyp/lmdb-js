@@ -54,6 +54,17 @@ ldap_int_thread_destroy( void )
 	return 0;
 }
 
+int
+ldap_int_mutex_firstcreate( ldap_int_thread_mutex_t *mutex )
+{
+	if ( *mutex == NULL ) {
+		HANDLE p = CreateMutex( NULL, 0, NULL );
+		if ( InterlockedCompareExchangePointer((PVOID*)mutex, (PVOID)p, NULL) != NULL)
+			CloseHandle( p );
+	}
+	return 0;
+}
+
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,
@@ -158,17 +169,6 @@ int
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	*mutex = CreateMutex( NULL, 0, NULL );
-	return ( 0 );
-}
-
-int
-ldap_pvt_thread_mutex_init_first( ldap_pvt_thread_mutex_t *mutex )
-{
-	if ( *mutex == NULL ) {
-		HANDLE p = CreateMutex( NULL, 0, NULL );
-		if ( InterlockedCompareExchangePointer((PVOID*)mutex, (PVOID)p, NULL) != NULL)
-			CloseHandle( p );
-	}
 	return ( 0 );
 }
 
