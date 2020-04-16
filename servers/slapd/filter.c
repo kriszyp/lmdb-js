@@ -37,11 +37,16 @@
 const Filter *slap_filter_objectClass_pres;
 const struct berval *slap_filterstr_objectClass_pres;
 
+#ifndef SLAPD_MAX_FILTER_DEPTH
+#define SLAPD_MAX_FILTER_DEPTH	5000
+#endif
+
 static int	get_filter_list(
 	Operation *op,
 	BerElement *ber,
 	Filter **f,
-	const char **text );
+	const char **text,
+	int depth );
 
 static int	get_ssa(
 	Operation *op,
@@ -80,12 +85,13 @@ filter_destroy( void )
 	return;
 }
 
-int
-get_filter(
+static int
+get_filter0(
 	Operation *op,
 	BerElement *ber,
 	Filter **filt,
-	const char **text )
+	const char **text,
+	int depth )
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -125,6 +131,11 @@ get_filter(
 	 *	}
 	 *
 	 */
+
+	if( depth > SLAPD_MAX_FILTER_DEPTH ) {
+		*text = "filter nested too deeply";
+		return SLAPD_DISCONNECT;
+	}
 
 	tag = ber_peek_tag( ber, &len );
 
@@ -221,7 +232,7 @@ get_filter(
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
-		err = get_filter_list( op, ber, &f.f_and, text );
+		err = get_filter_list( op, ber, &f.f_and, text, depth+1 );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -234,7 +245,7 @@ get_filter(
 
 	case LDAP_FILTER_OR:
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
-		err = get_filter_list( op, ber, &f.f_or, text );
+		err = get_filter_list( op, ber, &f.f_or, text, depth+1 );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -248,7 +259,7 @@ get_filter(
 	case LDAP_FILTER_NOT:
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
 		(void) ber_skip_tag( ber, &len );
-		err = get_filter( op, ber, &f.f_not, text );
+		err = get_filter0( op, ber, &f.f_not, text, depth+1 );
 		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
@@ -311,10 +322,22 @@ get_filter(
 	return( err );
 }
 
+int
+get_filter(
+	Operation *op,
+	BerElement *ber,
+	Filter **filt,
+	const char **text )
+{
+	return get_filter0( op, ber, filt, text, 0 );
+}
+
+
 static int
 get_filter_list( Operation *op, BerElement *ber,
 	Filter **f,
-	const char **text )
+	const char **text,
+	int depth )
 {
 	Filter		**new;
 	int		err;
@@ -328,7 +351,7 @@ get_filter_list( Operation *op, BerElement *ber,
 		tag != LBER_DEFAULT;
 		tag = ber_next_element( ber, &len, last ) )
 	{
-		err = get_filter( op, ber, new, text );
+		err = get_filter0( op, ber, new, text, depth );
 		if ( err != LDAP_SUCCESS )
 			return( err );
 		new = &(*new)->f_next;
