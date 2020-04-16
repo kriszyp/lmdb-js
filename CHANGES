@@ -13,6 +13,7 @@ OpenLDAP 2.4.50 Engineering
 	Build
 		Fix olcDatabaseDummy initialization for windows (ITS#7074)
 		Fix detection for ws2tcpip.h for windows (ITS#8383)
+		Fix back-mdb types for windows (ITS#7878)
 	Contrib
 		Update ldapc++ config.guess and config.sub to support newer architectures (ITS#7855)
 	Documentation
