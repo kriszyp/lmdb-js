@@ -825,9 +825,6 @@
 /* define to support PF_LOCAL */
 #undef LDAP_PF_LOCAL
 
-/* define this for LDAP process title support */
-#undef LDAP_PROCTITLE
-
 /* define this to add SLAPI code */
 #undef LDAP_SLAPI
 
