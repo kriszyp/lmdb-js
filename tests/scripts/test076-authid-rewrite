@@ -22,6 +22,7 @@ if test $WITH_SASL = no; then
 fi
 
 CONFDIR=$TESTDIR/slapd.d
+MECH=DIGEST-MD5
 
 mkdir -p $TESTDIR $CONFDIR $DBDIR1
 
@@ -155,7 +156,7 @@ fi
 
 ID=Manager
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -181,7 +182,7 @@ fi
 
 ID=Manager
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -191,7 +192,7 @@ fi
 
 ID=bjensen
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -217,7 +218,7 @@ fi
 
 ID=Manager
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -227,7 +228,7 @@ fi
 
 ID=babs
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -237,7 +238,7 @@ fi
 
 ID=bjensen
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -263,7 +264,7 @@ fi
 
 ID=Manager
 echo "Testing ldapwhoami as $ID (should fail)..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 RC=$?
 if test $RC != 49; then
 	echo "ldapwhoami unexpected result ($RC)!"
@@ -273,7 +274,7 @@ fi
 
 ID=babs
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -283,7 +284,7 @@ fi
 
 ID=bjensen
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -312,7 +313,7 @@ fi
 
 ID=babs
 echo "Testing ldapwhoami as $ID (should fail)..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 RC=$?
 if test $RC != 49; then
 	echo "ldapwhoami failed ($RC)!"
@@ -322,7 +323,7 @@ fi
 
 ID=biff
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjorn
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjorn
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -332,7 +333,7 @@ fi
 
 ID=bjensen
 echo "Testing ldapwhoami as $ID..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 RC=$?
 if test $RC != 0; then
 	echo "ldapwhoami failed ($RC)!"
@@ -357,7 +358,7 @@ fi
 
 ID=bjensen
 echo "Testing ldapwhoami as $ID (should fail)..."
-$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 RC=$?
 if test $RC != 49; then
 	echo "ldapwhoami failed ($RC)!"
@@ -401,7 +402,7 @@ EOF
 
 	ID=Manager
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -427,7 +428,7 @@ EOF
 
 	ID=Manager
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -437,7 +438,7 @@ EOF
 
 	ID=bjensen
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -463,7 +464,7 @@ EOF
 
 	ID=Manager
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -473,7 +474,7 @@ EOF
 
 	ID=babs
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -483,7 +484,7 @@ EOF
 
 	ID=bjensen
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -509,7 +510,7 @@ EOF
 
 	ID=Manager
 	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $PASSWD
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
 	RC=$?
 	if test $RC != 49; then
 		echo "ldapwhoami unexpected result ($RC)!"
@@ -519,7 +520,7 @@ EOF
 
 	ID=babs
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -529,7 +530,7 @@ EOF
 
 	ID=bjensen
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -558,7 +559,7 @@ EOF
 
 	ID=babs
 	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjensen
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
 	RC=$?
 	if test $RC != 49; then
 		echo "ldapwhoami failed ($RC)!"
@@ -568,7 +569,7 @@ EOF
 
 	ID=biff
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w bjorn
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjorn
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -578,7 +579,7 @@ EOF
 
 	ID=bjensen
 	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 	RC=$?
 	if test $RC != 0; then
 		echo "ldapwhoami failed ($RC)!"
@@ -603,7 +604,7 @@ EOF
 
 	ID=bjensen
 	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -U $ID -w $ID
+	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
 	RC=$?
 	if test $RC != 49; then
 		echo "ldapwhoami failed ($RC)!"
