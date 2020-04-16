@@ -1,7 +1,3 @@
-<hyc> get lmdb incremental backup working
-
-<hyc> I need to publish a spec for PREPARE/2-phase commit in LDAP TXNs and integrate that into lmdb and back-mdb
-
 Leftover bits from ITS#8294 -- Drop custom SHA2 code, use default crypto library SHA2 functions instead
   May need to document minimum crypto library version requirements
   Can also include sha2.c in slapd-sha2.c and make everything static
