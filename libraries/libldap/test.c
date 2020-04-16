@@ -320,12 +320,12 @@ main( int argc, char **argv )
 			break;
 
 		case 't':	/* copy ber's to given file */
-			copyfname = strdup( optarg );
+			copyfname = optarg;
 /*			copyoptions = LBER_TO_FILE; */
 			break;
 
 		case 'T':	/* only output ber's to given file */
-			copyfname = strdup( optarg );
+			copyfname = optarg;
 /*			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY); */
 			break;
 

@@ -494,7 +494,7 @@ int main( int argc, char **argv )
 
 		case 'h':	/* listen URLs */
 			if ( urls != NULL ) free( urls );
-			urls = ch_strdup( optarg );
+			urls = optarg;
 			break;
 
 		case 'c':	/* provide sync cookie, override if exist in replica */
@@ -546,11 +546,11 @@ int main( int argc, char **argv )
 			} break;
 
 		case 'f':	/* read config file */
-			configfile = ch_strdup( optarg );
+			configfile = optarg;
 			break;
 
 		case 'F':	/* use config dir */
-			configdir = ch_strdup( optarg );
+			configdir = optarg;
 			break;
 
 		case 'o': {
@@ -615,25 +615,22 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_CHROOT
 		case 'r':
-			if( sandbox ) free(sandbox);
-			sandbox = ch_strdup( optarg );
+			sandbox = optarg;
 			break;
 #endif
 
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		case 'u':	/* user name */
-			if( username ) free(username);
-			username = ch_strdup( optarg );
+			username = optarg;
 			break;
 
 		case 'g':	/* group name */
-			if( groupname ) free(groupname);
-			groupname = ch_strdup( optarg );
+			groupname = optarg;
 			break;
 #endif /* SETUID && GETUID */
 
 		case 'n':  /* NT service name */
-			serverName = ch_strdup( optarg );
+			serverName = optarg;
 			break;
 
 		case 't':
@@ -1100,12 +1097,6 @@ stop:
 
 	config_destroy();
 
-	if ( configfile )
-		ch_free( configfile );
-	if ( configdir )
-		ch_free( configdir );
-	if ( urls )
-		ch_free( urls );
 	if ( global_host )
 		ch_free( global_host );
 

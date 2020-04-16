@@ -644,22 +644,22 @@ mdb_cf_gen( ConfigArgs *c )
 		}
 		break;
 	case MDB_CHKPT: {
-		long	l;
-		mdb->mi_txn_cp = 1;
-		if ( lutil_atolx( &l, c->argv[1], 0 ) != 0 ) {
+		unsigned cp_kbyte, cp_min;
+		if ( lutil_atoux( &cp_kbyte, c->argv[1], 0 ) != 0 ) {
 			fprintf( stderr, "%s: "
 				"invalid kbyte \"%s\" in \"checkpoint\".\n",
 				c->log, c->argv[1] );
 			return 1;
 		}
-		mdb->mi_txn_cp_kbyte = l;
-		if ( lutil_atolx( &l, c->argv[2], 0 ) != 0 ) {
+		if ( lutil_atoux( &cp_min, c->argv[2], 0 ) != 0 ) {
 			fprintf( stderr, "%s: "
 				"invalid minutes \"%s\" in \"checkpoint\".\n",
 				c->log, c->argv[2] );
 			return 1;
 		}
-		mdb->mi_txn_cp_min = l;
+		mdb->mi_txn_cp = 1;
+		mdb->mi_txn_cp_kbyte = cp_kbyte;
+		mdb->mi_txn_cp_min = cp_min;
 		/* If we're in server mode and time-based checkpointing is enabled,
 		 * submit a task to perform periodic checkpoints.
 		 */

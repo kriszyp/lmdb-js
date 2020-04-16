@@ -110,15 +110,15 @@ main( int argc, char **argv )
 			break;
 
 		case 'a':
-			attr = strdup( optarg );
+			attr = optarg;
 			break;
 
 		case 'b':		/* file with search base */
-			sbase = strdup( optarg );
+			sbase = optarg;
 			break;
 
 		case 'f':		/* the search request */
-			filter = strdup( optarg );
+			filter = optarg;
 			break;
 
 		case 'F':

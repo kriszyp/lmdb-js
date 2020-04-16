@@ -41,7 +41,6 @@ struct ldapoptions ldap_int_global_options =
 		LDAP_LDO_CONNECTIONLESS_NULLARG
 		LDAP_LDO_TLS_NULLARG
 		LDAP_LDO_SASL_NULLARG
-		LDAP_LDO_GSSAPI_NULLARG
 		LDAP_LDO_MUTEX_NULLARG };
 
 #define ATTR_NONE	0
@@ -56,8 +55,6 @@ struct ldapoptions ldap_int_global_options =
 
 #define ATTR_OPT_TV	8
 #define ATTR_OPT_INT	9
-
-#define ATTR_GSSAPI	10
 
 struct ol_keyvalue {
 	const char *		key;
@@ -115,12 +112,6 @@ static const struct ol_attribute {
 	{0, ATTR_BOOL,		"SASL_NOCANON",	NULL,	LDAP_BOOL_SASL_NOCANON},
 #endif
 
-#ifdef HAVE_GSSAPI
-	{0, ATTR_GSSAPI,"GSSAPI_SIGN",			NULL,	LDAP_OPT_SIGN},
-	{0, ATTR_GSSAPI,"GSSAPI_ENCRYPT",		NULL,	LDAP_OPT_ENCRYPT},
-	{0, ATTR_GSSAPI,"GSSAPI_ALLOW_REMOTE_PRINCIPAL",NULL,	LDAP_OPT_X_GSSAPI_ALLOW_REMOTE_PRINCIPAL},
-#endif
-
 #ifdef HAVE_TLS
 	{1, ATTR_TLS,	"TLS_CERT",			NULL,	LDAP_OPT_X_TLS_CERTFILE},
 	{1, ATTR_TLS,	"TLS_KEY",			NULL,	LDAP_OPT_X_TLS_KEYFILE},
@@ -144,7 +135,7 @@ static const struct ol_attribute {
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
-#define MAX_LDAP_ATTR_LEN  sizeof("GSSAPI_ALLOW_REMOTE_PRINCIPAL")
+#define MAX_LDAP_ATTR_LEN  sizeof("TLS_CIPHER_SUITE")
 #define MAX_LDAP_ENV_PREFIX_LEN 8
 
 static int
@@ -215,11 +206,6 @@ ldap_int_conf_option(
 		case ATTR_SASL:
 #ifdef HAVE_CYRUS_SASL
 			ldap_int_sasl_config( gopts, attrs[i].offset, opt );
-#endif
-			break;
-		case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-			ldap_int_gssapi_config( gopts, attrs[i].offset, opt );
 #endif
 			break;
 		case ATTR_TLS:
@@ -474,11 +460,6 @@ static void openldap_ldap_init_w_env(
 		   	ldap_int_sasl_config( gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
-		case ATTR_GSSAPI:
-#ifdef HAVE_GSSAPI
-			ldap_int_gssapi_config( gopts, attrs[i].offset, value );
-#endif
-			break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
 		   	ldap_pvt_tls_config( NULL, attrs[i].offset, value );

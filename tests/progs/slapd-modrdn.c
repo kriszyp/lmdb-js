@@ -79,7 +79,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'e':		/* entry to rename */
-			entry = strdup( optarg );
+			entry = optarg;
 			break;
 
 		default:

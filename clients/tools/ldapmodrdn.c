@@ -122,7 +122,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -140,7 +140,7 @@ handle_private_option( int i )
 				prog, protocol );
 			exit( EXIT_FAILURE );
 		}
-		newSuperior = strdup( optarg );
+		newSuperior = optarg;
 		protocol = LDAP_VERSION3;
 		break;
 

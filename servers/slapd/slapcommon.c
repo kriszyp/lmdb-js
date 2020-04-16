@@ -362,7 +362,7 @@ slap_tool_init(
 	while ( (i = getopt( argc, argv, options )) != EOF ) {
 		switch ( i ) {
 		case 'a':
-			filterstr = ch_strdup( optarg );
+			filterstr = optarg;
 			break;
 
 		case 'b':
@@ -399,11 +399,11 @@ slap_tool_init(
 			break;
 
 		case 'f':	/* specify a conf file */
-			conffile = ch_strdup( optarg );
+			conffile = optarg;
 			break;
 
 		case 'F':	/* specify a conf dir */
-			confdir = ch_strdup( optarg );
+			confdir = optarg;
 			break;
 
 		case 'g':	/* disable subordinate glue */
@@ -464,7 +464,7 @@ slap_tool_init(
 			break;
 
 		case 'l':	/* LDIF file */
-			ldiffile = ch_strdup( optarg );
+			ldiffile = optarg;
 			break;
 
 		case 'M':
@@ -530,7 +530,7 @@ slap_tool_init(
 			case SLAPSCHEMA:
 				/* dump subtree */
 				ch_free( subtree );
-				subtree = ch_strdup( optarg );
+				subtree = optarg;
 				break;
 			}
 			break;
@@ -753,9 +753,6 @@ slap_tool_init(
 			fprintf( stderr, "Invalid filter '%s'\n", filterstr );
 			exit( EXIT_FAILURE );
 		}
-
-		ch_free( filterstr );
-		filterstr = NULL;
 	}
 
 	if( subtree ) {
@@ -894,20 +891,6 @@ startup:;
 	mal_leaktrace(1);
 #endif
 
-	if ( conffile != NULL ) {
-		ch_free( conffile );
-		conffile = NULL;
-	}
-
-	if ( confdir != NULL ) {
-		ch_free( confdir );
-		confdir = NULL;
-	}
-
-	if ( ldiffile != NULL ) {
-		ch_free( ldiffile );
-		ldiffile = NULL;
-	}
 
 	/* slapdn doesn't specify a backend to startup */
 	if ( !dryrun && tool != SLAPDN ) {

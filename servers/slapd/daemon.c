@@ -1102,7 +1102,7 @@ int close( int s )
 {
 	if (newconns) {
 		Debug( LDAP_DEBUG_CONNS,
-			"daemon: close(%ld)\n", s, 0, 0 );
+			"daemon: close(%d)\n", s );
 		if (s >= 0 && s < dtblsize && newconns[s])
 			assert(newconns[s] == 2);
 	}
@@ -2122,7 +2122,7 @@ slap_listener(
 		SET_CLOSE(s);
 	}
 	Debug( LDAP_DEBUG_CONNS,
-		"daemon: accept() = %ld\n", s, 0, 0 );
+		"daemon: accept() = %d\n", s );
 
 	/* Resume the listener FD to allow concurrent-processing of
 	 * additional incoming connections.

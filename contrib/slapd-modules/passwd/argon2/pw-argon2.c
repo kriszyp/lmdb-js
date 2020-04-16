@@ -39,12 +39,12 @@
 #include <sodium.h>
 
 /*
- * Or libsodium moderate settings
+ * Or libsodium interactive settings
  */
-#define SLAPD_ARGON2_ITERATIONS crypto_pwhash_OPSLIMIT_INTERACTIVE
-#define SLAPD_ARGON2_MEMORY crypto_pwhash_MEMLIMIT_INTERACTIVE
+#define SLAPD_ARGON2_ITERATIONS crypto_pwhash_argon2id_OPSLIMIT_INTERACTIVE
+#define SLAPD_ARGON2_MEMORY (crypto_pwhash_argon2id_MEMLIMIT_INTERACTIVE / 1024)
 #define SLAPD_ARGON2_PARALLELISM 1
-#define SLAPD_ARGON2_SALT_LENGTH crypto_pwhash_SALTBYTES
+#define SLAPD_ARGON2_SALT_LENGTH crypto_pwhash_argon2id_SALTBYTES
 #define SLAPD_ARGON2_HASH_LENGTH 32
 
 #endif
@@ -128,8 +128,9 @@ slapd_argon2_hash(
 	AC_MEMCPY( hash->bv_val, scheme->bv_val, scheme->bv_len );
 	p += scheme->bv_len;
 
-	if ( crypto_pwhash_str( p, passwd->bv_val, passwd->bv_len,
-				iterations, memory ) == 0 ) {
+	if ( crypto_pwhash_str_alg( p, passwd->bv_val, passwd->bv_len,
+				iterations, memory * 1024,
+				crypto_pwhash_ALG_ARGON2ID13 ) == 0 ) {
 		hash->bv_len = strlen( hash->bv_val );
 		rc = LUTIL_PASSWD_OK;
 	}
@@ -173,6 +174,12 @@ slapd_argon2_verify(
 int init_module( int argc, char *argv[] )
 {
 	int i;
+
+#ifndef SLAPD_ARGON2_USE_ARGON2
+	if ( sodium_init() == -1 ) {
+		return -1;
+	}
+#endif
 
 	for ( i=0; i < argc; i++ ) {
 		char *p;

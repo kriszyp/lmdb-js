@@ -285,51 +285,9 @@ tool_destroy( void )
 		BER_BVZERO( &pr_cookie );
 	}
 
-	if ( binddn != NULL ) {
-		ber_memfree( binddn );
-		binddn = NULL;
-	}
-
 	if ( passwd.bv_val != NULL ) {
 		ber_memfree( passwd.bv_val );
 		BER_BVZERO( &passwd );
-	}
-
-#ifdef HAVE_CYRUS_SASL
-	if ( sasl_mech != NULL ) {
-		ber_memfree( sasl_mech );
-		sasl_mech = NULL;
-	}
-#endif /* HAVE_CYRUS_SASL */
-
-	if ( infile != NULL ) {
-		ber_memfree( infile );
-		infile = NULL;
-	}
-
-	if ( assertion ) {
-		ber_memfree( assertion );
-		assertion = NULL;
-	}
-
-	if ( authzid ) {
-		ber_memfree( authzid );
-		authzid = NULL;
-	}
-
-	if ( proxydn ) {
-		ber_memfree( proxydn );
-		proxydn = NULL;
-	}
-
-	if ( preread_attrs ) {
-		ber_memfree( preread_attrs );
-		preread_attrs = NULL;
-	}
-
-	if ( postread_attrs ) {
-		ber_memfree( postread_attrs );
-		postread_attrs = NULL;
 	}
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
@@ -338,10 +296,6 @@ tool_destroy( void )
 		BER_BVZERO( &stValue );
 	}
 
-	if ( sessionTrackingName ) {
-		ber_memfree( sessionTrackingName );
-		sessionTrackingName = NULL;
-	}
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 }
 
@@ -473,7 +427,7 @@ tool_args( int argc, char **argv )
 				fprintf( stderr, "%s: -D previously specified\n", prog );
 				exit( EXIT_FAILURE );
 			}
-			binddn = ber_strdup( optarg );
+			binddn = optarg;
 			break;
 		case 'e':	/* general extensions (controls and such) */
 			/* should be extended to support comma separated list of
@@ -487,7 +441,7 @@ tool_args( int argc, char **argv )
 				optarg++;
 			}
 
-			control = ber_strdup( optarg );
+			control = optarg;
 			if ( (cvalue = strchr( control, '=' )) != NULL ) {
 				*cvalue++ = '\0';
 			}
@@ -505,7 +459,7 @@ tool_args( int argc, char **argv )
 				assertctl = 1 + crit;
 
 				assert( assertion == NULL );
-				assertion = ber_strdup( cvalue );
+				assertion = cvalue;
 
 			} else if ( strcasecmp( control, "authzid" ) == 0 ) {
 				if( authzid != NULL ) {
@@ -532,7 +486,7 @@ tool_args( int argc, char **argv )
 				}
 
 				assert( authzid == NULL );
-				authzid = ber_strdup( cvalue );
+				authzid = cvalue;
 
 #ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
 			} else if ( strcasecmp( control, "proxydn" ) == 0 ) {
@@ -558,7 +512,7 @@ tool_args( int argc, char **argv )
 				}
 
 				assert( proxydn == NULL );
-				proxydn = ber_strdup( cvalue );
+				proxydn = cvalue;
 #endif /* LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ */
 
 			} else if ( strcasecmp( control, "bauthzid" ) == 0 ) {
@@ -639,7 +593,7 @@ tool_args( int argc, char **argv )
 				}
 
 				preread = 1 + crit;
-				preread_attrs = ber_strdup( cvalue );
+				preread_attrs = cvalue;
 
 			} else if ( strcasecmp( control, "postread" ) == 0 ) {
 				if( postread ) {
@@ -648,7 +602,7 @@ tool_args( int argc, char **argv )
 				}
 
 				postread = 1 + crit;
-				postread_attrs = ber_strdup( cvalue );
+				postread_attrs = cvalue;
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 			} else if ( strcasecmp( control, "chaining" ) == 0 ) {
@@ -713,7 +667,7 @@ tool_args( int argc, char **argv )
 					usage();
 				}
 				if ( cvalue ) {
-					sessionTrackingName = ber_strdup( cvalue );
+					sessionTrackingName = cvalue;
 				}
 #endif /* LDAP_CONTROL_X_SESSION_TRACKING */
 
@@ -793,24 +747,20 @@ tool_args( int argc, char **argv )
 					control );
 				usage();
 			}
-			if ( control ) {
-				ber_memfree( control );	 
-				control = NULL;
-			}
 			break;
 		case 'f':	/* read from file */
 			if( infile != NULL ) {
 				fprintf( stderr, "%s: -f previously specified\n", prog );
 				exit( EXIT_FAILURE );
 			}
-			infile = ber_strdup( optarg );
+			infile = optarg;
 			break;
 		case 'h':	/* ldap host */
 			if( ldaphost != NULL ) {
 				fprintf( stderr, "%s: -h previously specified\n", prog );
 				exit( EXIT_FAILURE );
 			}
-			ldaphost = ber_strdup( optarg );
+			ldaphost = optarg;
 			break;
 		case 'H':	/* ldap URI */
 			if( ldapuri != NULL ) {
@@ -846,7 +796,7 @@ tool_args( int argc, char **argv )
 			nocanon++;
 			break;
 		case 'o':
-			control = ber_strdup( optarg );
+			control = optarg;
 			if ( (cvalue = strchr( control, '=' )) != NULL ) {
 				*cvalue++ = '\0';
 			}
@@ -906,7 +856,6 @@ tool_args( int argc, char **argv )
 					control );
 				usage();
 			}
-			ber_memfree(control);
 			break;
 		case 'O':
 #ifdef HAVE_CYRUS_SASL
@@ -920,7 +869,7 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			authmethod = LDAP_AUTH_SASL;
-			sasl_secprops = ber_strdup( optarg );
+			sasl_secprops = optarg;
 #else
 			fprintf( stderr, "%s: not compiled with SASL support\n", prog );
 			exit( EXIT_FAILURE );
@@ -996,7 +945,7 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			authmethod = LDAP_AUTH_SASL;
-			sasl_realm = ber_strdup( optarg );
+			sasl_realm = optarg;
 #else
 			fprintf( stderr, "%s: not compiled with SASL support\n",
 				prog );
@@ -1016,7 +965,7 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			authmethod = LDAP_AUTH_SASL;
-			sasl_authc_id = ber_strdup( optarg );
+			sasl_authc_id = optarg;
 #else
 			fprintf( stderr, "%s: not compiled with SASL support\n",
 				prog );
@@ -1058,7 +1007,7 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			authmethod = LDAP_AUTH_SASL;
-			sasl_mech = ber_strdup( optarg );
+			sasl_mech = optarg;
 #else
 			fprintf( stderr, "%s: not compiled with SASL support\n", prog );
 			exit( EXIT_FAILURE );
@@ -1084,7 +1033,7 @@ tool_args( int argc, char **argv )
 				exit( EXIT_FAILURE );
 			}
 			authmethod = LDAP_AUTH_SASL;
-			sasl_authz_id = ber_strdup( optarg );
+			sasl_authz_id = optarg;
 #else
 			fprintf( stderr, "%s: not compiled with SASL support\n", prog );
 			exit( EXIT_FAILURE );

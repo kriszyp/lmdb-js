@@ -77,14 +77,10 @@ parse_slappasswdopt( void )
 	}
 
 	if ( strncasecmp( optarg, "module-path", len ) == 0 ) {
-		if ( modulepath )
-			ch_free( modulepath );
-		modulepath = ch_strdup( p );
+		modulepath = p;
 
 	} else if ( strncasecmp( optarg, "module-load", len ) == 0 ) {
-		if ( moduleload )
-			ch_free( moduleload );
-		moduleload = ch_strdup( p );
+		moduleload = p;
 
 	} else {
 		return -1;
@@ -151,7 +147,7 @@ slappasswd( int argc, char *argv[] )
 				return EXIT_FAILURE;
 
 			} else {
-				scheme = ch_strdup( optarg );
+				scheme = optarg;
 			}
 			break;
 

@@ -710,9 +710,6 @@ void ldap_int_utils_init( void )
 
 	ldap_pvt_thread_mutex_init( &ldap_int_gettime_mutex );
 
-#ifdef HAVE_GSSAPI
-	ldap_pvt_thread_mutex_init( &ldap_int_gssapi_mutex );
-#endif
 #endif
 
 	/* call other module init functions here... */

@@ -305,16 +305,6 @@ struct ldapoptions {
 #define LDAP_LDO_SASL_NULLARG
 #endif
 
-#ifdef HAVE_GSSAPI
-	unsigned ldo_gssapi_flags;
-#define LDAP_GSSAPI_OPT_DO_NOT_FREE_GSS_CONTEXT	0x0001
-#define LDAP_GSSAPI_OPT_ALLOW_REMOTE_PRINCIPAL	0x0002
-	unsigned ldo_gssapi_options;
-#define LDAP_LDO_GSSAPI_NULLARG ,0,0
-#else
-#define LDAP_LDO_GSSAPI_NULLARG
-#endif
-
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_t	ldo_mutex;
 #define LDAP_LDO_MUTEX_NULLARG	, LDAP_PVT_MUTEX_NULL
@@ -333,9 +323,6 @@ typedef struct ldap_conn {
 	void		*lconn_sasl_authctx;	/* context for bind */
 	void		*lconn_sasl_sockctx;	/* for security layer */
 	void		*lconn_sasl_cbind;		/* for channel binding */
-#endif
-#ifdef HAVE_GSSAPI
-	void		*lconn_gss_ctx;		/* gss_ctx_id_t */
 #endif
 	int			lconn_refcnt;
 	time_t		lconn_created;	/* time */
@@ -522,9 +509,6 @@ LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_resolv_mutex;
 LDAP_V ( ldap_pvt_thread_mutex_t ) ldap_int_hostname_mutex;
 LDAP_V ( int ) ldap_int_stackguard;
 
-#ifdef HAVE_GSSAPI
-LDAP_V( ldap_pvt_thread_mutex_t ) ldap_int_gssapi_mutex;
-#endif
 #endif
 
 #ifdef LDAP_R_COMPILE
@@ -895,16 +879,6 @@ LDAP_F (void) ldap_int_tls_destroy LDAP_P(( struct ldapoptions *lo ));
  */
 LDAP_F (char **) ldap_value_dup LDAP_P((
 	char *const *vals ));
-
-/*
- *	in gssapi.c
- */
-#ifdef HAVE_GSSAPI
-LDAP_F(int) ldap_int_gssapi_get_option LDAP_P(( LDAP *ld, int option, void *arg ));
-LDAP_F(int) ldap_int_gssapi_set_option LDAP_P(( LDAP *ld, int option, void *arg ));
-LDAP_F(int) ldap_int_gssapi_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
-LDAP_F(void) ldap_int_gssapi_close LDAP_P(( LDAP *ld, LDAPConn *lc ));
-#endif 
 
 LDAP_END_DECL
 

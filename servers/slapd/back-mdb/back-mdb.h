@@ -68,7 +68,7 @@ struct mdb_info {
 
 	/* DB_ENV parameters */
 	char		*mi_dbenv_home;
-	uint32_t	mi_dbenv_flags;
+	unsigned	mi_dbenv_flags;
 	int			mi_dbenv_mode;
 
 	size_t		mi_mapsize;
@@ -82,10 +82,10 @@ struct mdb_info {
 	int			mi_search_stack_depth;
 	int			mi_readers;
 
-	uint32_t	mi_rtxn_size;
+	unsigned	mi_rtxn_size;
 	int			mi_txn_cp;
-	uint32_t	mi_txn_cp_min;
-	uint32_t	mi_txn_cp_kbyte;
+	unsigned	mi_txn_cp_min;
+	unsigned	mi_txn_cp_kbyte;
 
 	struct re_s		*mi_txn_cp_task;
 	struct re_s		*mi_index_task;

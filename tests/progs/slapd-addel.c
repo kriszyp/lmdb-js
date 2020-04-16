@@ -84,7 +84,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'f':		/* file with entry search request */
-			filename = strdup( optarg );
+			filename = optarg;
 			break;
 
 		default:

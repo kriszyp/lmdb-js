@@ -190,11 +190,11 @@ main( int argc, char **argv )
 			break;
 
 		case 'e':		/* DN to search for */
-			entry = strdup( optarg );
+			entry = optarg;
 			break;
 
 		case 'f':		/* the search request */
-			filter = strdup( optarg );
+			filter = optarg;
 			break;
 
 		case 'F':

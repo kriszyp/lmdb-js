@@ -112,7 +112,7 @@ handle_private_option( int i )
 			optarg++;
 		}
 
-		control = strdup( optarg );
+		control = optarg;
 		if ( (cvalue = strchr( control, '=' )) != NULL ) {
 			*cvalue++ = '\0';
 		}
@@ -255,7 +255,6 @@ handle_private_option( int i )
 		    fprintf( stderr, _("Invalid Verify Credentials extension name: %s\n"), control );
 		    usage();
 		}
-		free( control );
 		break;
 
 	case 'a':  /* request authzid */

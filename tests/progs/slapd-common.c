@@ -306,7 +306,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 			break;
 
 		case 'D':
-			config->binddn = strdup( optarg );
+			config->binddn = optarg;
 			break;
 
 		case 'd':
@@ -333,11 +333,11 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 			}
 
 		case 'H':
-			config->uri = strdup( optarg );
+			config->uri = optarg;
 			break;
 
 		case 'h':
-			config->host = strdup( optarg );
+			config->host = optarg;
 			break;
 
 		case 'i':
@@ -365,7 +365,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 				return -1;
 			}
 			config->authmethod = LDAP_AUTH_SASL;
-			config->secprops = ber_strdup( optarg );
+			config->secprops = optarg;
 			break;
 
 		case 'R':
@@ -376,7 +376,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 				return -1;
 			}
 			config->authmethod = LDAP_AUTH_SASL;
-			config->realm = ber_strdup( optarg );
+			config->realm = optarg;
 			break;
 
 		case 'U':
@@ -387,7 +387,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 				return -1;
 			}
 			config->authmethod = LDAP_AUTH_SASL;
-			config->authc_id = ber_strdup( optarg );
+			config->authc_id = optarg;
 			break;
 
 		case 'X':
@@ -398,7 +398,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 				return -1;
 			}
 			config->authmethod = LDAP_AUTH_SASL;
-			config->authz_id = ber_strdup( optarg );
+			config->authz_id = optarg;
 			break;
 
 		case 'Y':
@@ -409,7 +409,7 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 				return -1;
 			}
 			config->authmethod = LDAP_AUTH_SASL;
-			config->mech = ber_strdup( optarg );
+			config->mech = optarg;
 			break;
 #endif
 
