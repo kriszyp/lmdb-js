@@ -708,6 +708,8 @@ case $host_os in
   *interix* ) ac_cv_interix=yes ;;
 esac
 
+AC_CHECK_TOOL(RC, windres, )
+
 dnl ----------------------------------------------------------------
 dnl Checks for file extensions
 AC_EXEEXT
