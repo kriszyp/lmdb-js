@@ -1351,9 +1351,6 @@ MChAODQ
 lookups
 GnuTLS
 gnutls
-MozNSS
-MOZNSS
-moznss
 LTONLY
 SNMP
 timelimit

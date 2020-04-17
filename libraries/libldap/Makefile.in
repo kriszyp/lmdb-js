@@ -26,7 +26,7 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	request.c os-ip.c url.c pagectrl.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
 	charray.c os-local.c dnssrv.c utf-8.c utf-8-conv.c \
-	tls2.c tls_o.c tls_g.c tls_m.c \
+	tls2.c tls_o.c tls_g.c \
 	turn.c ppolicy.c dds.c txn.c ldap_sync.c stctrl.c \
 	assertion.c deref.c ldifutil.c ldif.c fetch.c lbase64.c \
 	msctrl.c psearchctrl.c
@@ -40,7 +40,7 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	request.lo os-ip.lo url.lo pagectrl.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	charray.lo os-local.lo dnssrv.lo utf-8.lo utf-8-conv.lo \
-	tls2.lo tls_o.lo tls_g.lo tls_m.lo \
+	tls2.lo tls_o.lo tls_g.lo \
 	turn.lo ppolicy.lo dds.lo txn.lo ldap_sync.lo stctrl.lo \
 	assertion.lo deref.lo ldifutil.lo ldif.lo fetch.lo lbase64.lo \
 	msctrl.lo psearchctrl.lo
