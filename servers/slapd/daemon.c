@@ -103,6 +103,7 @@ static ldap_pvt_thread_t *listener_tid;
 #define	DAEMON_ID(fd)	(fd & slapd_daemon_mask)
 
 static ber_socket_t wake_sds[SLAPD_MAX_DAEMON_THREADS][2];
+static ldap_pvt_thread_mutex_t emfile_mutex;
 static int emfile;
 
 static volatile int waking;
@@ -1201,6 +1202,7 @@ slapd_remove(
 	 * the select() loop. Now that we're removing a session from our
 	 * control, we can try to resume a dropped listener to use.
 	 */
+	ldap_pvt_thread_mutex_lock( &emfile_mutex );
 	if ( emfile && listening ) {
 		int i;
 		for ( i = 0; slap_listeners[i] != NULL; i++ ) {
@@ -1221,6 +1223,7 @@ slapd_remove(
 		 */
 		if ( slap_listeners[i] == NULL ) emfile = 0;
 	}
+	ldap_pvt_thread_mutex_unlock( &emfile_mutex );
 	ldap_pvt_thread_mutex_unlock( &slap_daemon[id].sd_mutex );
 	WAKE_LISTENER(id, wake || slapd_gentle_shutdown == 2);
 }
@@ -1895,6 +1898,7 @@ slapd_daemon_init( const char *urls )
 #ifdef HAVE_TCPD
 	ldap_pvt_thread_mutex_init( &sd_tcpd_mutex );
 #endif /* TCP Wrappers */
+	ldap_pvt_thread_mutex_init( &emfile_mutex );
 
 	daemon_inited = 1;
 
@@ -1998,6 +2002,7 @@ slapd_daemon_destroy( void )
 			SLAP_SOCK_DESTROY(i);
 		}
 		daemon_inited = 0;
+		ldap_pvt_thread_mutex_destroy( &emfile_mutex );
 #ifdef HAVE_TCPD
 		ldap_pvt_thread_mutex_destroy( &sd_tcpd_mutex );
 #endif /* TCP Wrappers */
@@ -2142,11 +2147,11 @@ slap_listener(
 #endif /* ENFILE */
 		    0 )
 		{
-			ldap_pvt_thread_mutex_lock( &slap_daemon[0].sd_mutex );
+			ldap_pvt_thread_mutex_lock( &emfile_mutex );
 			emfile++;
 			/* Stop listening until an existing session closes */
 			sl->sl_mute = 1;
-			ldap_pvt_thread_mutex_unlock( &slap_daemon[0].sd_mutex );
+			ldap_pvt_thread_mutex_unlock( &emfile_mutex );
 		}
 
 		Debug( LDAP_DEBUG_ANY,
