@@ -280,9 +280,7 @@ map_attr_value(
 	{
 		dncookie fdc = *dc;
 
-#ifdef ENABLE_REWRITE
 		fdc.ctx = "searchFilterAttrDN";
-#endif
 
 		switch ( ldap_back_dn_massage( &fdc, value, &vtmp ) ) {
 		case LDAP_SUCCESS:
@@ -684,7 +682,6 @@ ldap_back_filter_map_rewrite(
 
 	rc = ldap_back_int_filter_map_rewrite( dc, f, fstr, remap, memctx );
 
-#ifdef ENABLE_REWRITE
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -741,7 +738,6 @@ ldap_back_filter_map_rewrite(
 		ch_free( fstr->bv_val );
 		*fstr = ftmp;
 	}
-#endif /* ENABLE_REWRITE */
 
 	return rc;
 }

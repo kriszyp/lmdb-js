@@ -28,9 +28,7 @@
 
 #include "slap.h"
 
-#ifdef ENABLE_REWRITE
 #include <rewrite.h>
-#endif
 
 #ifdef HAVE_CYRUS_SASL
 # ifdef HAVE_SASL_SASL_H
@@ -1012,8 +1010,6 @@ static int chk_sasl(
 
 #endif /* HAVE_CYRUS_SASL */
 
-#ifdef ENABLE_REWRITE
-
 typedef struct slapd_map_data {
 	struct berval base;
 	struct berval filter;
@@ -1234,7 +1230,6 @@ static const rewrite_mapper slapd_mapper = {
 	slapd_rw_apply,
 	slapd_rw_destroy
 };
-#endif
 
 int slap_sasl_init( void )
 {
@@ -1247,9 +1242,7 @@ int slap_sasl_init( void )
 	};
 #endif
 
-#ifdef ENABLE_REWRITE
 	rewrite_mapper_register( &slapd_mapper );
-#endif
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_VERSION

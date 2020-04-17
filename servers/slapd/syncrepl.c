@@ -31,10 +31,8 @@
 
 #include "ldap_rq.h"
 
-#ifdef ENABLE_REWRITE
 #include "rewrite.h"
 #define SUFFIXM_CTX	"<suffix massage>"
-#endif
 
 #ifdef LDAP_CONTROL_X_DIRSYNC
 #define MSAD_DIRSYNC	0x04
@@ -143,10 +141,8 @@ typedef struct syncinfo_s {
 	LDAP			*si_ld;
 	Connection		*si_conn;
 	LDAP_LIST_HEAD(np, nonpresent_entry)	si_nonpresentlist;
-#ifdef ENABLE_REWRITE
 	struct rewrite_info *si_rewrite;
 	struct berval	si_suffixm;
-#endif
 #ifdef LDAP_CONTROL_X_DIRSYNC
 	struct berval		si_dirSyncCookie;
 #endif
@@ -1980,7 +1976,6 @@ deleted:
 	return NULL;
 }
 
-#ifdef ENABLE_REWRITE
 static int
 syncrepl_rewrite_dn(
 	syncinfo_t *si,
@@ -2013,12 +2008,6 @@ syncrepl_rewrite_dn(
 		syncrepl_rewrite_dn(si, &bv, &bv2); \
 	rc = dnPrettyNormal( NULL, bv2.bv_val ? &bv2 : &bv, &dn, &ndn, op->o_tmpmemctx ); \
 	ch_free(bv2.bv_val)
-#else
-#define REWRITE_VAL(si, ad, bv, bv2)	ber_dupbv(&bv2, &bv)
-#define REWRITE_DN(si, bv, bv2, dn, ndn) \
-	rc = dnPrettyNormal( NULL, &bv, &dn, &ndn, op->o_tmpmemctx )
-#endif
-
 
 static slap_verbmasks modops[] = {
 	{ BER_BVC("add"), LDAP_REQ_ADD },
@@ -3092,7 +3081,6 @@ syncrepl_message_to_entry(
 		mod->sml_nvalues = NULL;
 		mod->sml_numvals = 0;	/* slap_mods_check will set this */
 
-#ifdef ENABLE_REWRITE
 		if (si->si_rewrite) {
 			AttributeDescription *ad = NULL;
 			slap_bv2ad( &tmp.sml_type, &ad, &text );
@@ -3111,7 +3099,6 @@ syncrepl_message_to_entry(
 				}
 			}
 		}
-#endif
 		*modtail = mod;
 		modtail = &mod->sml_next;
 	}
@@ -3260,7 +3247,6 @@ syncrepl_dirsync_message(
 		mod->sml_type = ad->ad_cname;
 		if (( ad->ad_flags & SLAP_DESC_TAG_RANGE ) && rangeMod == NULL)
 			rangeMod = mod;
-#ifdef ENABLE_REWRITE
 		if (si->si_rewrite) {
 			if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
 				int i;
@@ -3273,7 +3259,6 @@ syncrepl_dirsync_message(
 				}
 			}
 		}
-#endif
 		if ( mod->sml_desc == sy_ad_objectGUID ) {
 			ber_dupbv_x( &syncUUID[0], &tmp.sml_values[0], op->o_tmpmemctx );
 			/* syncUUID[0] is normalized UUID received over the wire
@@ -3761,12 +3746,10 @@ syncrepl_entry(
 	op->ors_deref = LDAP_DEREF_NEVER;
 
 	/* get the entry for this UUID */
-#ifdef ENABLE_REWRITE
 	if ( si->si_rewrite ) {
 		op->o_req_dn = si->si_suffixm;
 		op->o_req_ndn = si->si_suffixm;
 	} else
-#endif
 	{
 		op->o_req_dn = si->si_base;
 		op->o_req_ndn = si->si_base;
@@ -4283,12 +4266,10 @@ syncrepl_del_nonpresent(
 	struct berval pdn = BER_BVNULL;
 	struct berval csn;
 
-#ifdef ENABLE_REWRITE
 	if ( si->si_rewrite ) {
 		op->o_req_dn = si->si_suffixm;
 		op->o_req_ndn = si->si_suffixm;
 	} else
-#endif
 	{
 		op->o_req_dn = si->si_base;
 		op->o_req_ndn = si->si_base;
@@ -5601,18 +5582,15 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 				ch_free( sie->si_cookieState );
 			}
 		}
-#ifdef ENABLE_REWRITE
 		if ( sie->si_rewrite )
 			rewrite_info_delete( &sie->si_rewrite );
 		if ( sie->si_suffixm.bv_val )
 			ch_free( sie->si_suffixm.bv_val );
-#endif
 		ch_free( sie );
 		sie = si_next;
 	} while ( free_all && si_next );
 }
 
-#ifdef ENABLE_REWRITE
 static int
 config_suffixm( ConfigArgs *c, syncinfo_t *si )
 {
@@ -5649,7 +5627,6 @@ config_suffixm( ConfigArgs *c, syncinfo_t *si )
 	ch_free( rnc );
 	return rc;
 }
-#endif
 
 /* NOTE: used & documented in slapd.conf(5) */
 #define IDSTR			"rid"
@@ -5896,7 +5873,6 @@ parse_syncrepl_line(
 				return -1;
 			}
 			si->si_got |= GOT_SEARCHBASE;
-#ifdef ENABLE_REWRITE
 		} else if ( !strncasecmp( c->argv[ i ], SUFFIXMSTR "=",
 					STRLENOF( SUFFIXMSTR "=" ) ) )
 		{
@@ -5926,7 +5902,6 @@ parse_syncrepl_line(
 				return -1;
 			}
 			si->si_got |= GOT_SUFFIXM;
-#endif
 		} else if ( !strncasecmp( c->argv[ i ], LOGBASESTR "=",
 					STRLENOF( LOGBASESTR "=" ) ) )
 		{
@@ -6231,7 +6206,6 @@ parse_syncrepl_line(
 		return -1;
 	}
 
-#ifdef ENABLE_REWRITE
 	if ( si->si_got & GOT_SUFFIXM ) {
 		if (config_suffixm( c, si )) {
 			ch_free( si->si_suffixm.bv_val );
@@ -6242,7 +6216,6 @@ parse_syncrepl_line(
 			return -1;
 		}
 	}
-#endif
 
 	if ( !( si->si_got & GOT_RETRY ) ) {
 		Debug( LDAP_DEBUG_ANY, "syncrepl %s " SEARCHBASESTR "=\"%s\": no retry defined, using default\n", 
@@ -6480,14 +6453,12 @@ syncrepl_unparse( syncinfo_t *si, struct berval *bv )
 		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
 		*ptr++ = '"';
 	}
-#ifdef ENABLE_REWRITE
 	if ( !BER_BVISNULL( &si->si_suffixm ) ) {
 		if ( WHATSLEFT <= STRLENOF( " " SUFFIXMSTR "=\"" "\"" ) + si->si_suffixm.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " SUFFIXMSTR "=\"" );
 		ptr = lutil_strcopy( ptr, si->si_suffixm.bv_val );
 		*ptr++ = '"';
 	}
-#endif
 	if ( !BER_BVISEMPTY( &si->si_logfilterstr ) ) {
 		if ( WHATSLEFT <= STRLENOF( " " LOGFILTERSTR "=\"" "\"" ) + si->si_logfilterstr.bv_len ) return;
 		ptr = lutil_strcopy( ptr, " " LOGFILTERSTR "=\"" );

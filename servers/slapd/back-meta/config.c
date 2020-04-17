@@ -3200,7 +3200,6 @@ error_return:;
 }
 
 
-#ifdef ENABLE_REWRITE
 static char *
 suffix_massage_regexize( const char *s )
 {
@@ -3368,5 +3367,3 @@ suffix_massage_config(
 
 	return 0;
 }
-#endif /* ENABLE_REWRITE */
-

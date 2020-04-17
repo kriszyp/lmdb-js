@@ -80,10 +80,6 @@ LDAP_BEGIN_DECL
 #define SLAP_STATS_ETIME	1 /* microsecond op timing */
 #endif
 
-#ifdef ENABLE_REWRITE
-#define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
-#endif
-
 /*
  * SLAPD Memory allocation macros
  *

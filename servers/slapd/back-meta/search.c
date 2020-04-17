@@ -1289,12 +1289,7 @@ really_bad:;
 						continue;
 					}
 
-#ifdef ENABLE_REWRITE
 					dc.ctx = "referralDN";
-#else /* ! ENABLE_REWRITE */
-					dc.tofrom = 0;
-					dc.normalized = 0;
-#endif /* ! ENABLE_REWRITE */
 
 					/* FIXME: merge all and return at the end */
 	

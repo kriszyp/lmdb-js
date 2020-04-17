@@ -268,7 +268,6 @@ OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], y
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
-OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and rwm overlay], auto)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
 OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimental)], no)dnl
 OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
@@ -439,9 +438,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aci != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
 	fi
-	if test $ol_enable_rewrite = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
-	fi
 	dnl overlays
 	case "$ol_enable_overlays" in yes | mod)
 		AC_MSG_WARN([slapd disabled, ignoring --enable-overlays argument])
@@ -464,8 +460,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_dynacl=no
 	ol_enable_aci=no
 	ol_enable_wrappers=no
-
-	ol_enable_rewrite=no
 
 elif test $ol_enable_modules != yes &&
 	test $ol_enable_dnssrv = no &&
@@ -524,7 +518,6 @@ SLAPD_LIBS=
 
 BUILD_SLAPD=no
 
-BUILD_REWRITE=no
 BUILD_THREAD=no
 
 BUILD_SLAPI=no
@@ -2571,7 +2564,6 @@ fi
 if test "$ol_enable_meta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_META=$ol_enable_meta
-	BUILD_REWRITE=yes
 	if test "$ol_enable_meta" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
 		MFLAG=SLAPD_MOD_DYNAMIC
@@ -2585,7 +2577,6 @@ fi
 if test "$ol_enable_asyncmeta" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_ASYNCMETA=$ol_enable_asyncmeta
-	BUILD_REWRITE=yes
 	if test "$ol_enable_asyncmeta" = mod ; then
 		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-asyncmeta"
 		MFLAG=SLAPD_MOD_DYNAMIC
@@ -2889,7 +2880,6 @@ if test "$ol_enable_retcode" != no ; then
 fi
 
 if test "$ol_enable_rwm" != no ; then
-	BUILD_REWRITE=yes
 	BUILD_RWM=$ol_enable_rwm
 	if test "$ol_enable_rwm" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
@@ -2973,11 +2963,6 @@ if test "$ol_enable_valsort" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_VALSORT,$MFLAG,[define for Value Sorting overlay])
 fi
 
-if test "$ol_enable_rewrite" != no ; then
-	AC_DEFINE(ENABLE_REWRITE,1,[define to enable rewriting in back-ldap and back-meta])
-	BUILD_REWRITE=yes
-fi
-
 if test "$ol_enable_slapi" != no ; then
 	AC_DEFINE(ENABLE_SLAPI,1,[define to enable slapi library])
 	BUILD_SLAPI=yes
@@ -3004,7 +2989,6 @@ AC_SUBST(WITH_SASL)
 AC_SUBST(WITH_TLS)
 AC_SUBST(WITH_MODULES_ENABLED)
 AC_SUBST(WITH_ACI_ENABLED)
-AC_SUBST(BUILD_REWRITE)
 AC_SUBST(BUILD_THREAD)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
