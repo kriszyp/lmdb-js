@@ -16,7 +16,7 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test -z `which dsadm`; then
+if test ! `which dsadm`; then
 	echo "DSEE dsadm not in path, test skipped"
 	exit 0
 fi 
