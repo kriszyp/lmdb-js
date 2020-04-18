@@ -420,8 +420,9 @@ AC_ENABLE_STATIC
 AC_ENABLE_SHARED
 
 dnl ----------------------------------------------------------------
+dnl Validate options
+dnl ----------------------------------------------------------------
 
-# validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specifically disabled
 	dnl Disable all of its options
@@ -445,7 +446,7 @@ else
 	dnl If slapd enabled and loadable module support disabled
 	dnl then require at least one built-in backend
 
-	if test $ol_enable_modules != yes; then
+	if test $ol_enable_modules = no; then
 		ol_any_backend=no
 		for i in $Backends; do
 			eval "ol_tmp=\$ol_enable_$i"
@@ -460,19 +461,34 @@ else
 	fi
 fi
 
+if test $ol_enable_aci = yes ; then
+	if test $ol_enable_dynacl = no ; then
+		AC_MSG_ERROR([--enable-aci requires --enable-dynacl])
+	fi
+elif test $ol_enable_aci = mod ; then
+	AC_MSG_ERROR([ACI build as dynamic module not supported (yet)])
+fi
+
+if test $ol_enable_modules = yes ; then
+	if test $ol_enable_dynamic = no ; then
+		AC_MSG_ERROR([--enable-modules requires --enable-dynamic])
+	fi
+	ol_enable_dynamic=yes
+fi
+
+if test $ol_enable_spasswd = yes ; then
+	if test $ol_with_cyrus_sasl = no ; then
+		AC_MSG_ERROR([--enable-spasswd requires --with-cyrus-sasl])
+	fi
+	ol_with_cyrus_sasl=yes
+fi
+
 if test $ol_enable_meta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-meta requires --enable-ldap])
 fi
 
 if test $ol_enable_asyncmeta/$ol_enable_ldap = yes/no ; then
 	AC_MSG_ERROR([--enable-asyncmeta requires --enable-ldap])
-fi
-
-if test $ol_enable_spasswd = yes ; then
-	if test $ol_with_cyrus_sasl = no ; then
-		AC_MSG_ERROR([options require --with-cyrus-sasl])
-	fi
-	ol_with_cyrus_sasl=yes
 fi
 
 AC_MSG_RESULT(done)
@@ -722,12 +738,6 @@ dnl Check for module support
 ol_link_modules=no
 WITH_MODULES_ENABLED=no
 if test $ol_enable_modules != no ; then
-	if test $ol_enable_dynamic = no; then
-		AC_MSG_ERROR([--enable-modules requires --enable-dynamic])
-	elif test $ol_enable_dynamic = auto; then
-		ol_enable_dynamic=yes
-	fi
-
 	AC_CHECK_HEADERS(ltdl.h)
 
 	if test $ac_cv_header_ltdl_h = no ; then
@@ -2425,7 +2435,7 @@ if test "$ol_enable_debug" != no ; then
 	AC_DEFINE(LDAP_DEBUG,1,
 		[define this to add debugging code])
 fi
-if test "$ol_enable_syslog" = yes ; then
+if test "$ol_enable_syslog" != no ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
 fi
@@ -2452,10 +2462,6 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
 fi
 if test "$ol_enable_aci" != no ; then
-	if test $ol_enable_dynacl = no ; then
-		ol_enable_dynacl=yes
-		AC_MSG_WARN([ACIs need dynacl])
-	fi
 	if test "$ol_enable_aci" = mod ; then
 		MFLAG=SLAPD_MOD_DYNAMIC
 		dnl remove this after moving servers/slapd/aci.c in contrib/slapd-modules/acl
