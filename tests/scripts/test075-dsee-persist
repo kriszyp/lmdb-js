@@ -18,7 +18,7 @@ echo "running defines.sh"
 
 OPATTRS="creatorsName createTimestamp modifiersName modifyTimestamp"
 
-if test ! `which dsadm`; then
+if test ! "`which dsadm`"; then
 	echo "DSEE dsadm not in path, test skipped"
 	exit 0
 fi
