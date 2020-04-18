@@ -225,32 +225,34 @@ AC_SUBST(ldap_subdir)dnl
 dnl ----------------------------------------------------------------
 dnl General "enable" options
 dnl set default to traditional to enable the original debug style
-OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes, [no yes traditional])dnl
-OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], auto)dnl
-OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
-dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
+OL_ARG_ENABLE(debug, [AS_HELP_STRING([--enable-debug], [enable debugging])], yes, [no yes traditional])dnl
+OL_ARG_ENABLE(dynamic, [AS_HELP_STRING([--enable-dynamic], [enable linking built binaries with dynamic libs])], auto)dnl
+OL_ARG_ENABLE(syslog, [AS_HELP_STRING([--enable-syslog], [enable syslog support])], auto)dnl
+dnl OL_ARG_ENABLE(referrals,[AS_HELP_STRING([--enable-referrals], [enable LDAPv2+ Referrals (experimental)])], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
-OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
-OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
+OL_ARG_ENABLE(ipv6, [AS_HELP_STRING([--enable-ipv6], [enable IPv6 support])], auto)dnl
+OL_ARG_ENABLE(local, [AS_HELP_STRING([--enable-local], [enable AF_LOCAL (AF_UNIX) socket support])], auto)dnl
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
-OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
+OL_ARG_WITH(cyrus_sasl, [AS_HELP_STRING([--with-cyrus-sasl], [with Cyrus SASL support])],
 	auto, [auto yes no] )
-OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
+OL_ARG_WITH(fetch, [AS_HELP_STRING([--with-fetch], [with fetch(3) URL support])],
 	auto, [auto yes no] )
-OL_ARG_WITH(threads,[  --with-threads	  with threads],
+OL_ARG_WITH(threads,
+	[AS_HELP_STRING([--with-threads], [with threads library auto|nt|posix|pth|lwp|manual])],
 	auto, [auto nt posix pth lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls],
+OL_ARG_WITH(tls,
+	[AS_HELP_STRING([--with-tls], [with TLS/SSL support auto|openssl|gnutls])],
 	auto, [auto openssl gnutls yes no] )
 OL_ARG_WITH(yielding_select,
-	[  --with-yielding-select  with implicitly yielding select],
+	[AS_HELP_STRING([--with-yielding-select], [with implicitly yielding select])],
 	auto, [auto yes no manual] )
 OL_ARG_WITH(mp,
-	[  --with-mp               with multiple precision statistics auto|longlong|long|bignum|gmp],
+	[AS_HELP_STRING([--with-mp], [with multiple precision statistics auto|longlong|long|bignum|gmp])],
 	auto, [auto longlong long bignum gmp yes no])
 OL_ARG_WITH(odbc,
-	[  --with-odbc             with specific ODBC support iodbc|unixodbc|odbc32|auto],
+	[AS_HELP_STRING([--with-odbc], [with specific ODBC support iodbc|unixodbc|odbc32|auto])],
 	auto, [auto iodbc unixodbc odbc32] )
 
 dnl ----------------------------------------------------------------
@@ -261,17 +263,17 @@ dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
 AC_ARG_ENABLE(xxslapdoptions,[
 SLAPD (Standalone LDAP Daemon) Options:])
-OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
-OL_ARG_ENABLE(dynacl,[    --enable-dynacl	  enable run-time loadable ACL support (experimental)], no)dnl
-OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no, [no yes mod])dnl
-OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
-OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
-OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
-OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
-OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
-OL_ARG_ENABLE(slapi,[    --enable-slapi        enable SLAPI support (experimental)], no)dnl
-OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
-OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(slapd, [AS_HELP_STRING([--enable-slapd], [enable building slapd])], yes)dnl
+OL_ARG_ENABLE(dynacl, [AS_HELP_STRING([--enable-dynacl], [enable run-time loadable ACL support (experimental)])], no)dnl
+OL_ARG_ENABLE(aci, [AS_HELP_STRING([--enable-aci], [enable per-object ACIs (experimental)])], no, [no yes mod])dnl
+OL_ARG_ENABLE(cleartext, [AS_HELP_STRING([--enable-cleartext], [enable cleartext passwords])], yes)dnl
+OL_ARG_ENABLE(crypt, [AS_HELP_STRING([--enable-crypt], [enable crypt(3) passwords])], no)dnl
+OL_ARG_ENABLE(spasswd, [AS_HELP_STRING([--enable-spasswd], [enable (Cyrus) SASL password verification])], no)dnl
+OL_ARG_ENABLE(modules, [AS_HELP_STRING([--enable-modules], [enable dynamic module support])], no)dnl
+OL_ARG_ENABLE(rlookups, [AS_HELP_STRING([--enable-rlookups], [enable reverse lookups of client hostnames])], no)dnl
+OL_ARG_ENABLE(slapi, [AS_HELP_STRING([--enable-slapi], [enable SLAPI support (experimental)])], no)dnl
+OL_ARG_ENABLE(slp, [AS_HELP_STRING([--enable-slp], [enable SLPv2 support])], no)dnl
+OL_ARG_ENABLE(wrappers, [AS_HELP_STRING([--enable-wrappers], [enable tcp wrapper support])], no)dnl
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Backend Options
@@ -294,37 +296,37 @@ Backends="dnssrv \
 AC_ARG_ENABLE(xxslapbackends,[
 SLAPD Backend Options:])
 
-OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends],
+OL_ARG_ENABLE(backends, [AS_HELP_STRING([--enable-backends], [enable all available backends])],
 	--, [no yes mod])dnl
-OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend],
+OL_ARG_ENABLE(dnssrv, [AS_HELP_STRING([--enable-dnssrv], [enable dnssrv backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend],
+OL_ARG_ENABLE(ldap, [AS_HELP_STRING([--enable-ldap], [enable ldap backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(mdb,[    --enable-mdb	  enable mdb database backend],
+OL_ARG_ENABLE(mdb, [AS_HELP_STRING([--enable-mdb], [enable mdb database backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend],
+OL_ARG_ENABLE(meta, [AS_HELP_STRING([--enable-meta], [enable metadirectory backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(asyncmeta,[    --enable-asyncmeta	  enable asynchronous metadirectory backend],
+OL_ARG_ENABLE(asyncmeta, [AS_HELP_STRING([--enable-asyncmeta], [enable asynchronous metadirectory backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend],
+OL_ARG_ENABLE(monitor, [AS_HELP_STRING([--enable-monitor], [enable monitor backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(ndb,[    --enable-ndb	  enable MySQL NDB Cluster backend],
+OL_ARG_ENABLE(ndb, [AS_HELP_STRING([--enable-ndb], [enable MySQL NDB Cluster backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(null,[    --enable-null	  enable null backend],
+OL_ARG_ENABLE(null, [AS_HELP_STRING([--enable-null], [enable null backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend],
+OL_ARG_ENABLE(passwd, [AS_HELP_STRING([--enable-passwd], [enable passwd backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend],
+OL_ARG_ENABLE(perl, [AS_HELP_STRING([--enable-perl], [enable perl backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend],
+OL_ARG_ENABLE(relay, [AS_HELP_STRING([--enable-relay], [enable relay backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend],
+OL_ARG_ENABLE(shell, [AS_HELP_STRING([--enable-shell], [enable shell backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(sock,[    --enable-sock	  enable sock backend],
+OL_ARG_ENABLE(sock, [AS_HELP_STRING([--enable-sock], [enable sock backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend],
+OL_ARG_ENABLE(sql, [AS_HELP_STRING([--enable-sql], [enable sql backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(wt,[    --enable-wt	  enable WiredTiger backend],
+OL_ARG_ENABLE(wt, [AS_HELP_STRING([--enable-wt], [enable WiredTiger backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 
 dnl ----------------------------------------------------------------
@@ -354,49 +356,49 @@ Overlays="accesslog \
 AC_ARG_ENABLE(xxslapoverlays,[
 SLAPD Overlay Options:])
 
-OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays],
+OL_ARG_ENABLE(overlays, [AS_HELP_STRING([--enable-overlays], [enable all available overlays])],
 	--, [no yes mod])dnl
-OL_ARG_ENABLE(accesslog,[    --enable-accesslog	  In-Directory Access Logging overlay],
+OL_ARG_ENABLE(accesslog, [AS_HELP_STRING([--enable-accesslog], [In-Directory Access Logging overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(auditlog,[    --enable-auditlog	  Audit Logging overlay],
+OL_ARG_ENABLE(auditlog, [AS_HELP_STRING([--enable-auditlog], [Audit Logging overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(autoca,[    --enable-autoca	  Automatic Certificate Authority overlay],
+OL_ARG_ENABLE(autoca, [AS_HELP_STRING([--enable-autoca], [Automatic Certificate Authority overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(collect,[    --enable-collect	  Collect overlay],
+OL_ARG_ENABLE(collect, [AS_HELP_STRING([--enable-collect], [Collect overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(constraint,[    --enable-constraint	  Attribute Constraint overlay],
+OL_ARG_ENABLE(constraint, [AS_HELP_STRING([--enable-constraint], [Attribute Constraint overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(dds,[    --enable-dds  	  Dynamic Directory Services overlay],
+OL_ARG_ENABLE(dds, [AS_HELP_STRING([--enable-dds], [Dynamic Directory Services overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(deref,[    --enable-deref	  Dereference overlay],
+OL_ARG_ENABLE(deref, [AS_HELP_STRING([--enable-deref], [Dereference overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay],
+OL_ARG_ENABLE(dyngroup, [AS_HELP_STRING([--enable-dyngroup], [Dynamic Group overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(dynlist,[    --enable-dynlist	  Dynamic List overlay],
+OL_ARG_ENABLE(dynlist, [AS_HELP_STRING([--enable-dynlist], [Dynamic List overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(memberof,[    --enable-memberof	  Reverse Group Membership overlay],
+OL_ARG_ENABLE(memberof, [AS_HELP_STRING([--enable-memberof], [Reverse Group Membership overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay],
+OL_ARG_ENABLE(ppolicy, [AS_HELP_STRING([--enable-ppolicy], [Password Policy overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay],
+OL_ARG_ENABLE(proxycache, [AS_HELP_STRING([--enable-proxycache], [Proxy Cache overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay],
+OL_ARG_ENABLE(refint, [AS_HELP_STRING([--enable-refint], [Referential Integrity overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(retcode,[    --enable-retcode	  Return Code testing overlay],
+OL_ARG_ENABLE(retcode, [AS_HELP_STRING([--enable-retcode], [Return Code testing overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay],
+OL_ARG_ENABLE(rwm, [AS_HELP_STRING([--enable-rwm], [Rewrite/Remap overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(seqmod,[    --enable-seqmod	  Sequential Modify overlay],
+OL_ARG_ENABLE(seqmod, [AS_HELP_STRING([--enable-seqmod], [Sequential Modify overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(sssvlv,[    --enable-sssvlv	  ServerSideSort/VLV overlay],
+OL_ARG_ENABLE(sssvlv, [AS_HELP_STRING([--enable-sssvlv], [ServerSideSort/VLV overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(syncprov,[    --enable-syncprov	  Syncrepl Provider overlay],
+OL_ARG_ENABLE(syncprov, [AS_HELP_STRING([--enable-syncprov], [Syncrepl Provider overlay])],
 	yes, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(translucent,[    --enable-translucent  Translucent Proxy overlay],
+OL_ARG_ENABLE(translucent, [AS_HELP_STRING([--enable-translucent], [Translucent Proxy overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay],
+OL_ARG_ENABLE(unique, [AS_HELP_STRING([--enable-unique], [Attribute Uniqueness overlay])],
 	no, [no yes mod], ol_enable_overlays)
-OL_ARG_ENABLE(valsort,[    --enable-valsort      Value Sorting overlay],
+OL_ARG_ENABLE(valsort, [AS_HELP_STRING([--enable-valsort], [Value Sorting overlay])],
 	no, [no yes mod], ol_enable_overlays)
 
 dnl ----------------------------------------------------------------
