@@ -240,7 +240,7 @@ OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
 OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
-	auto, [auto nt posix mach pth lwp yes no manual] )
+	auto, [auto nt posix pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support auto|openssl|gnutls],
 	auto, [auto openssl gnutls yes no] )
 OL_ARG_WITH(yielding_select,
