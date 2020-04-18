@@ -142,3 +142,11 @@ if test $RC != 0 ; then
 		exit 0
 	fi
 fi
+
+HAVE_SASL_GSS_CBIND=no
+
+grep CHANNEL_BINDING $TESTDIR/plugin_out > /dev/null 2>&1
+RC=$?
+if test $RC = 0 ; then
+	HAVE_SASL_GSS_CBIND=yes
+fi

@@ -88,6 +88,28 @@ else
 	echo "success"
 fi
 
+# Exercise channel-bindings code in builds without SASL support
+for cb in "none" "tls-unique" "tls-endpoint" ; do
+
+	echo -n "Using ldapwhoami with SASL/EXTERNAL and SASL_CBINDING (${cb})...."
+
+	$LDAPSASLWHOAMI -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt     \
+	-o tls_cert=$TESTDIR/tls/certs/bjensen@mailgw.example.com.crt           \
+	-o tls_key=$TESTDIR/tls/private/bjensen@mailgw.example.com.key          \
+	-o tls_reqcert=hard -o SASL_CBINDING=$cb -ZZ -Y EXTERNAL -H $URIP1      \
+	> $TESTOUT 2>&1
+
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapwhoami failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $PID
+		exit $RC
+	else
+		echo "success"
+	fi
+done
+
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 if test $RC != 0 ; then
