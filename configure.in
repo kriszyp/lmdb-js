@@ -261,8 +261,20 @@ dnl ----------------------------------------------------------------
 
 dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
+SlapdOptions="dynacl \
+	aci \
+	cleartext \
+	crypt \
+	spasswd \
+	modules \
+	rlookups \
+	slapi \
+	slp \
+	wrappers"
+
 AC_ARG_ENABLE(xxslapdoptions,[
 SLAPD (Standalone LDAP Daemon) Options:])
+
 OL_ARG_ENABLE(slapd, [AS_HELP_STRING([--enable-slapd], [enable building slapd])], yes)dnl
 OL_ARG_ENABLE(dynacl, [AS_HELP_STRING([--enable-dynacl], [enable run-time loadable ACL support (experimental)])], no)dnl
 OL_ARG_ENABLE(aci, [AS_HELP_STRING([--enable-aci], [enable per-object ACIs (experimental)])], no, [no yes mod])dnl
@@ -412,56 +424,23 @@ dnl ----------------------------------------------------------------
 # validate options
 if test $ol_enable_slapd = no ; then
 	dnl SLAPD was specifically disabled
-	if test $ol_enable_slapi = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-slapi argument])
-	fi
-	case "$ol_enable_backends" in yes | mod)
-		AC_MSG_WARN([slapd disabled, ignoring --enable-backends argument])
-	esac
-	for i in $Backends; do
+	dnl Disable all of its options
+
+	for i in $SlapdOptions; do
+		eval "ol_tmp=\$ol_enable_$i"
+		if test $ol_tmp = yes ; then
+			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
+			eval "ol_enable_$i=no"
+		fi
+	done
+
+	for i in $Backends $Overlays; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
 			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
 			eval "ol_enable_$i=no"
 		fi
 	done
-	if test $ol_enable_modules = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
-	fi
-	if test $ol_enable_wrappers = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
-	fi
-	if test $ol_enable_rlookups = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
-	fi
-	if test $ol_enable_dynacl = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-dynacl argument])
-	fi
-	if test $ol_enable_aci != no ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
-	fi
-	dnl overlays
-	case "$ol_enable_overlays" in yes | mod)
-		AC_MSG_WARN([slapd disabled, ignoring --enable-overlays argument])
-	esac
-	for i in $Overlays; do
-		eval "ol_tmp=\$ol_enable_$i"
-		if test $ol_tmp != no ; then
-			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
-			eval "ol_enable_$i=no"
-		fi
-	done
-
-	# force settings to no
-	ol_enable_slapi=no
-
-	ol_enable_backends=
-	ol_enable_overlays=
-	ol_enable_modules=no
-	ol_enable_rlookups=no
-	ol_enable_dynacl=no
-	ol_enable_aci=no
-	ol_enable_wrappers=no
 
 elif test $ol_enable_modules != yes &&
 	test $ol_enable_dnssrv = no &&
