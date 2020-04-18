@@ -441,30 +441,22 @@ if test $ol_enable_slapd = no ; then
 			eval "ol_enable_$i=no"
 		fi
 	done
+else
+	dnl If slapd enabled and loadable module support disabled
+	dnl then require at least one built-in backend
 
-elif test $ol_enable_modules != yes &&
-	test $ol_enable_dnssrv = no &&
-	test $ol_enable_ldap = no &&
-	test $ol_enable_mdb = no &&
-	test $ol_enable_meta = no &&
-	test $ol_enable_asyncmeta = no &&
-	test $ol_enable_monitor = no &&
-	test $ol_enable_ndb = no &&
-	test $ol_enable_null = no &&
-	test $ol_enable_passwd = no &&
-	test $ol_enable_perl = no &&
-	test $ol_enable_relay = no &&
-	test $ol_enable_shell = no &&
-	test $ol_enable_sock = no &&
-	test $ol_enable_sql = no &&
-	test $ol_enable_wt = no ; then
-	dnl no slapd backend
+	if test $ol_enable_modules != yes; then
+		ol_any_backend=no
+		for i in $Backends; do
+			eval "ol_tmp=\$ol_enable_$i"
+			if test $ol_tmp = yes; then
+				ol_any_backend=yes
+			fi
+		done
 
-	if test $ol_enable_slapd = yes ; then
-		AC_MSG_ERROR([slapd requires a backend])
-	else
-		AC_MSG_WARN([skipping slapd, no backend specified])
-		ol_enable_slapd=no
+		if test $ol_any_backend = no; then
+			AC_MSG_ERROR([slapd requires a backend])
+		fi
 	fi
 fi
 
