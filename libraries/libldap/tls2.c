@@ -43,8 +43,6 @@ static tls_impl *tls_imp = &ldap_int_tls_impl;
 
 #endif /* HAVE_TLS */
 
-#define LDAP_USE_NON_BLOCKING_TLS
-
 /* RFC2459 minimum required set of supported attribute types
  * in a certificate DN
  */
@@ -1049,10 +1047,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	char *host;
 	void *ssl;
 	int ret, async;
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	struct timeval start_time_tv, tv, tv0;
 	ber_socket_t	sd = AC_SOCKET_ERROR;
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 
 	if ( !conn )
 		return LDAP_PARAM_ERROR;
@@ -1071,7 +1067,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 
 	(void) tls_init( tls_imp );
 
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	/*
 	 * Use non-blocking io during SSL Handshake when a timeout is configured
 	 */
@@ -1092,8 +1087,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 #endif /* ! HAVE_GETTIMEOFDAY */
 	}
 
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
-
 	ld->ld_errno = LDAP_SUCCESS;
 	ret = ldap_int_tls_connect( ld, conn, host );
 
@@ -1102,7 +1095,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	  * big for a single network message.
 	  */
 	while ( ret > 0 ) {
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 		if ( async ) {
 			struct timeval curr_time_tv, delta_tv;
 			int wr=0;
@@ -1159,7 +1151,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 				break;
 			}
 		}
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 		ret = ldap_int_tls_connect( ld, conn, host );
 	}
 
