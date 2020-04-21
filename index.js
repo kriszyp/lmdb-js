@@ -129,7 +129,18 @@ function open(path, options) {
 					txn = writeTxn
 				} else {
 					txn = readTxn
-					txn.renew()
+					try {
+						txn.renew()
+					} catch(error) {
+						console.error(error)
+						try {
+							txn.reset()
+							console.warn('Did reset on read txn')
+							txn.renew()
+						} catch(resetError) {
+							console.error(resetError)
+						}
+					}
 				}
 				let result = copy ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
 				if (result === null) // missing entry, really should be undefined
@@ -272,7 +283,7 @@ function open(path, options) {
 							} catch(error) {
 								console.log('error uncompressing value for key', currentKey)
 							}
-							if (count++ >= options.limit) {
+							if (++count >= options.limit) {
 								finished = true
 								break
 							}

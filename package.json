@@ -14,7 +14,7 @@
   "main": "./index.js",
   "typings": "./index.d.ts",
   "dependencies": {
-    "fs-extra": "^8.0.1",
+    "fs-extra": "^9.0.0",
     "node-lmdb": "kriszyp/node-lmdb#v1-test2"
   },
   "devDependencies": {
