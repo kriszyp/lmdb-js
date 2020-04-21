@@ -16,6 +16,7 @@ OpenLDAP 2.4.50 Engineering
 		Fix back-mdb types for windows (ITS#7878)
 	Contrib
 		Update ldapc++ config.guess and config.sub to support newer architectures (ITS#7855)
+		Added pw-argon2 module (ITS#9233, ITS#8575, ITS#9203, ITS#9206)
 	Documentation
 		slapd-ldap(5) - Clarify idassert-authzfrom behavior (ITS#9003)
 		slapd-meta(5) - Remove client-pr option (ITS#8683)
