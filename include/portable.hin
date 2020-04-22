@@ -66,9 +66,6 @@
 /* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
-/* define to enable rewriting in back-ldap and back-meta */
-#undef ENABLE_REWRITE
-
 /* define to enable slapi library */
 #undef ENABLE_SLAPI
 
