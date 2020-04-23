@@ -301,7 +301,7 @@ struct ldapoptions {
 	/* SASL Security Properties */
 	struct sasl_security_properties	ldo_sasl_secprops;
 	int ldo_sasl_cbinding;
-#define LDAP_LDO_SASL_NULLARG ,0,0,0,0,{0}
+#define LDAP_LDO_SASL_NULLARG ,0,0,0,0,{0},0
 #else
 #define LDAP_LDO_SASL_NULLARG
 #endif
