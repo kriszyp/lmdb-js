@@ -861,6 +861,7 @@ tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
 static int
 tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 {
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	tlso_session *s = (tlso_session *)sess;
 	const EVP_MD *md;
 	unsigned int md_len;
@@ -900,6 +901,9 @@ tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 	buf->bv_len = md_len;
 
 	return md_len;
+#else
+	return 0;
+#endif
 }
 
 static const char *
