@@ -21,22 +21,15 @@ if test $WITH_SASL = no ; then
         exit 0
 fi
 
-SLAPTEST="$TESTWD/../servers/slapd/slaptest"
-CONFDIR=$TESTDIR/slapd.d
-
 mkdir -p $TESTDIR $DBDIR1 $CONFDIR
 cp -r $DATADIR/tls $TESTDIR
-
-cd $TESTWD
-
 
 echo "Starting KDC for SASL/GSSAPI tests..."
 . $SRCDIR/scripts/setup_kdc.sh
 
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $SASLGSSAPICONF > $CONF1
-$SLAPTEST -f $CONF1 -F $CONFDIR
-$SLAPADD -F $CONFDIR -l $LDIFORDERED
+$SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -45,7 +38,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting ldap:/// slapd on TCP/IP port $PORT1 and ldaps:/// slapd on $PORT2..."
-$SLAPD -F $CONFDIR -h "$URI1 $SURI2" -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h "$URI1 $SURI2" -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
