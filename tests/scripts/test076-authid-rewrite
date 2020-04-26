@@ -61,6 +61,24 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Checking whether $MECH is supported..."
+$LDAPSEARCH -s base -b "" -H $URI1 \
+	'objectClass=*' supportedSASLMechanisms > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+grep "supportedSASLMechanisms: $MECH" $SEARCHOUT > $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "SASL mechanism $MECH is not available, test skipped"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 0
+fi
+
 echo "Adding schema and database..."
 $LDAPADD -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 include: file://$ABS_SCHEMADIR/core.ldif
