@@ -171,6 +171,7 @@ perl_cf(
 			break;
 		}
 	} else {
+		PERL_SET_CONTEXT( PERL_INTERPRETER );
 		switch( c->type ) {
 		case PERL_MODULE:
 			snprintf( eval_str, EVAL_BUF_SIZE, "use %s;", c->argv[1] );
