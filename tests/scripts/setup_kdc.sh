@@ -13,12 +13,14 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-export KRB5_TRACE=$TESTDIR/k5_trace
-export KRB5_CONFIG=$TESTDIR/krb5.conf
-export KRB5_KDC_PROFILE=$KRB5_CONFIG
-export KRB5_KTNAME=$TESTDIR/server.kt
-export KRB5_CLIENT_KTNAME=$TESTDIR/client.kt
-export KRB5CCNAME=$TESTDIR/client.ccache
+KRB5_TRACE=$TESTDIR/k5_trace
+KRB5_CONFIG=$TESTDIR/krb5.conf
+KRB5_KDC_PROFILE=$KRB5_CONFIG
+KRB5_KTNAME=$TESTDIR/server.kt
+KRB5_CLIENT_KTNAME=$TESTDIR/client.kt
+KRB5CCNAME=$TESTDIR/client.ccache
+
+export KRB5_TRACE KRB5_CONFIG KRB5_KDC_PROFILE KRB5_KTNAME KRB5_CLIENT_KTNAME KRB5CCNAME
 
 KDCLOG=$TESTDIR/setup_kdc.log
 KSERVICE=ldap/$LOCALHOST
