@@ -32,10 +32,8 @@ PATH=${PATH}:/usr/lib/heimdal-servers:/usr/sbin:/usr/local/sbin
 
 echo "Trying Heimdal KDC..."
 
-kdc --version 2>&1 | grep Heimdal > $KDCLOG 2>&1
-RC=$?
-if test $RC = 0 ; then
-
+command -v kdc >/dev/null 2>&1
+if test $? = 0 ; then
 	kstash --random-key > $KDCLOG 2>&1
 	RC=$?
 	if test $RC != 0 ; then
@@ -82,6 +80,12 @@ if test $RC = 0 ; then
 	kdc --addresses=$LOCALIP --ports="$KDCPORT/udp" > $KDCLOG 2>&1 &
 else
 	echo "Trying MIT KDC..."
+
+	command -v krb5kdc >/dev/null 2>&1
+	if test $? != 0; then
+		echo "No KDC available, skipping GSSAPI tests"
+		exit 0
+	fi
 
 	kdb5_util create -r $KRB5REALM -s -P password > $KDCLOG 2>&1
 	RC=$?
