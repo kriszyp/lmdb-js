@@ -420,7 +420,7 @@ tlsg_session_accept( tls_session *session )
 }
 
 static int
-tlsg_session_connect( LDAP *ld, tls_session *session )
+tlsg_session_connect( LDAP *ld, tls_session *session, const char *name_in )
 {
 	return tlsg_session_accept( session);
 }

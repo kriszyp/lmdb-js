@@ -34,7 +34,7 @@ typedef void (TI_ctx_free)(tls_ctx *ctx);
 typedef int (TI_ctx_init)(struct ldapoptions *lo, struct ldaptls *lt, int is_server);
 
 typedef tls_session *(TI_session_new)(tls_ctx *ctx, int is_server);
-typedef int (TI_session_connect)(LDAP *ld, tls_session *s);
+typedef int (TI_session_connect)(LDAP *ld, tls_session *s, const char *name_in);
 typedef int (TI_session_accept)(tls_session *s);
 typedef int (TI_session_upflags)(Sockbuf *sb, tls_session *s, int rc);
 typedef char *(TI_session_errmsg)(tls_session *s, int rc, char *buf, size_t len );

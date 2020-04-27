@@ -376,7 +376,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
-	err = tls_imp->ti_session_connect( ld, ssl );
+	err = tls_imp->ti_session_connect( ld, ssl, host );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
