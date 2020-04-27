@@ -145,7 +145,7 @@ similar to:
 >	description: This object contains information about this server.
 >	description: Most of the information is held in operational attributes, which 
 >	 must be explicitly requested.
->	monitoredInfo: OpenLDAP: slapd 2.4 (Dec  7 2006 17:30:29)
+>	monitoredInfo: OpenLDAP: slapd 2.5 (Dec  7 2006 17:30:29)
 >	entryDN: cn=Monitor
 >	subschemaSubentry: cn=Subschema
 >	hasSubordinates: TRUE

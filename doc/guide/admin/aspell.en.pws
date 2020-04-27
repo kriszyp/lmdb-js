@@ -1017,7 +1017,6 @@ slapdconfigfile
 modv
 ObjectClassDescription
 truelies
-slurpd
 basename
 groupOfUniqueNames
 DHAVE

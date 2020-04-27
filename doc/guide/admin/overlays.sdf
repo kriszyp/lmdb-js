@@ -623,7 +623,7 @@ specific database. For example, with the following minimal slapd.conf:
 >        suffix          "dc=example,dc=com"
 >        rootdn          "cn=Manager,dc=example,dc=com"
 >        rootpw          secret
->        directory       /var/lib/ldap2.4
+>        directory       /var/lib/ldap2.5
 >        checkpoint 256 5
 >        index   objectClass   eq
 >        index   uid           eq,sub

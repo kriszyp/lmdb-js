@@ -443,43 +443,6 @@ and the syncrepl engine runs on the proxy.
 
 For configuration, please see the {{SECT:Syncrepl Proxy}} section.
 
-H4: Replacing Slurpd
-
-The old {{slurpd}} mechanism only operated in provider-initiated
-push mode.  Slurpd replication was deprecated in favor of Syncrepl
-replication and has been completely removed from OpenLDAP 2.4.
-
-The slurpd daemon was the original replication mechanism inherited from 
-UMich's LDAP and operated in push mode: the master pushed changes to the 
-slaves. It was replaced for many reasons, in brief:
-
- * It was not reliable
- ** It was extremely sensitive to the ordering of records in the replog
- ** It could easily go out of sync, at which point manual intervention was 
-   required to resync the slave database with the master directory
- ** It wasn't very tolerant of unavailable servers. If a slave went down 
-   for a long time, the replog could grow to a size that was too large for 
-   slurpd to process
- * It only worked in push mode
- * It required stopping and restarting the master to add new slaves
- * It only supported single master replication
-
-Syncrepl has none of those weaknesses:
-
- * Syncrepl is self-synchronizing; you can start with a consumer database
-   in any state from totally empty to fully synced and it will automatically
-   do the right thing to achieve and maintain synchronization
- ** It is completely insensitive to the order in which changes occur
- ** It guarantees convergence between the consumer and the provider
-    content without manual intervention
- ** It can resynchronize regardless of how long a consumer stays out
-    of contact with the provider
- * Syncrepl can operate in either direction
- * Consumers can be added at any time without touching anything on the
-   provider
- * Multi-master replication is supported
-
-
 H2: Configuring the different replication types
 
 H3: Syncrepl
