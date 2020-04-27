@@ -531,7 +531,9 @@ tlso_session_connect( LDAP *ld, tls_session *sess, const char *name_in )
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	if ( name_in ) {
-		SSL_set_tlsext_host_name( s, name_in );
+		rc = SSL_set_tlsext_host_name( s, name_in );
+		if ( !rc )		/* can fail to strdup the name */
+			return -1;
 	}
 #endif
 	/* Caller expects 0 = success, OpenSSL returns 1 = success */
