@@ -422,6 +422,16 @@ tlsg_session_accept( tls_session *session )
 static int
 tlsg_session_connect( LDAP *ld, tls_session *session, const char *name_in )
 {
+	tlsg_session *s = (tlsg_session *)session;
+	int rc;
+
+	if ( name_in ) {
+		rc = gnutls_server_name_set( s->session, GNUTLS_NAME_DNS, name_in, strlen(name_in) );
+		if ( rc != GNUTLS_E_SUCCESS ) {
+			return rc;
+		}
+	}
+
 	return tlsg_session_accept( session);
 }
 
