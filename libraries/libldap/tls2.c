@@ -342,6 +342,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	Sockbuf *sb = conn->lconn_sb;
 	int	err;
 	tls_session	*ssl = NULL;
+	char *sni = host;
 
 	if ( HAS_TLS( sb )) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
@@ -376,7 +377,26 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
-	err = tls_imp->ti_session_connect( ld, ssl, host );
+	/* pass hostname for SNI, but only if it's an actual name
+	 * and not a numeric address
+	 */
+	{
+		int numeric = 1;
+		char *c;
+		for ( c = sni; *c; c++ ) {
+			if ( *c == ':' )	/* IPv6 address */
+				break;
+			if ( *c == '.' )
+				continue;
+			if ( !isdigit( *c )) {
+				numeric = 0;
+				break;
+			}
+		}
+		if ( numeric )
+			sni = NULL;
+	}
+	err = tls_imp->ti_session_connect( ld, ssl, sni );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
