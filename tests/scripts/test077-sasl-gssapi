@@ -17,8 +17,8 @@ echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
 if test $WITH_SASL = no ; then
-        echo "SASL support not available, test skipped"
-        exit 0
+	echo "SASL support not available, test skipped"
+	exit 0
 fi
 
 CONFDIR=$TESTDIR/slapd.d
@@ -66,22 +66,23 @@ echo "Starting ldap:/// slapd on TCP/IP port $PORT1 and ldaps:/// slapd on $PORT
 $SLAPD -F $CONFDIR -h "$URI1 $SURI2" -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
-    echo PID $PID
-    read foo
+	echo PID $PID
+	read foo
 fi
 KILLPIDS="$PID"
 
 sleep 1
 
+echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
-        RC=$?
-        if test $RC = 0 ; then
-                break
-        fi
-        echo "Waiting 5 seconds for slapd to start..."
-        sleep 5
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
 done
 
 if test $RC != 0 ; then
@@ -135,7 +136,7 @@ else
 fi
 
 if test $WITH_TLS = no ; then
-        echo "SASL/GSSAPI: TLS support not available, skipping TLS part."
+	echo "SASL/GSSAPI: TLS support not available, skipping TLS part."
 else
 	echo -n "Using ldapwhoami with SASL/GSSAPI with start-tls: "
 	$LDAPSASLWHOAMI -N -Y GSSAPI -H $URI1 -ZZ -o tls_reqcert=allow	\
@@ -167,9 +168,9 @@ else
 fi
 
 if test $WITH_TLS = no ; then
-        echo "TLS support not available, skipping channel-binding test"
+	echo "TLS support not available, skipping channel-binding test"
 elif test $HAVE_SASL_GSS_CBIND = no ; then
-        echo "SASL has no channel-binding support in GSSAPI, test skipped"
+	echo "SASL has no channel-binding support in GSSAPI, test skipped"
 else
 	echo "Testing SASL/GSSAPI with SASL_CBINDING..."
 
@@ -194,7 +195,7 @@ EOF
 
 			# The gnutls implementation of "tls-unique" seems broken
 			if test $icb = "tls-unique" -o $acb = "tls-unique" ; then
-				if test $WITH_TLS_TYPE == gnutls  ; then
+				if test $WITH_TLS_TYPE = gnutls ; then
 					continue
 				fi
 			fi
@@ -211,7 +212,7 @@ EOF
 			fi
 
 			echo -n "Using ldapwhoami with SASL/GSSAPI and SASL_CBINDING "
-			echo -ne "(client: ${icb},\tserver: ${acb}): "
+			echo -n "(client: ${icb}, server: ${acb}): "
 
 			$LDAPSASLWHOAMI -N -Y GSSAPI -H $URI1 -ZZ -o tls_reqcert=allow	\
 			-o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt	\
