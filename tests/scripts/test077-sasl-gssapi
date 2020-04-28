@@ -21,15 +21,40 @@ if test $WITH_SASL = no ; then
         exit 0
 fi
 
+CONFDIR=$TESTDIR/slapd.d
+CONFLDIF=$TESTDIR/slapd.ldif
+
 mkdir -p $TESTDIR $DBDIR1 $CONFDIR
 cp -r $DATADIR/tls $TESTDIR
+$SLAPPASSWD -g -n >$CONFIGPWF
 
 echo "Starting KDC for SASL/GSSAPI tests..."
 . $SRCDIR/scripts/setup_kdc.sh
 
-echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $SASLGSSAPICONF > $CONF1
-$SLAPADD -f $CONF1 -l $LDIFORDERED
+echo "Configuring slapd..."
+cat > $CONFLDIF <<EOF
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcSaslHost: localhost
+olcSaslRealm: $KRB5REALM
+olcTLSCACertificateFile: $TESTDIR/tls/ca/certs/testsuiteCA.crt
+olcTLSCertificateFile: $TESTDIR/tls/certs/localhost.crt
+olcTLSCertificateKeyFile: $TESTDIR/tls/private/localhost.key
+
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+include: file://$ABS_SCHEMADIR/core.ldif
+
+dn: olcDatabase={0}config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: {0}config
+olcRootPW:< file://$TESTDIR/configpw
+
+EOF
+$SLAPADD -F $CONFDIR -n 0 -l $CONFLDIF
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -38,7 +63,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting ldap:/// slapd on TCP/IP port $PORT1 and ldaps:/// slapd on $PORT2..."
-$SLAPD -f $CONF1 -h "$URI1 $SURI2" -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F $CONFDIR -h "$URI1 $SURI2" -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -151,7 +176,7 @@ else
 	for acb in "none" "tls-unique" "tls-endpoint" ; do
 
 		echo "Modifying slapd's olcSaslCBinding to ${acb} ..."
-		$LDAPMODIFY -D cn=config -H $URI1 -w secret <<EOF > $TESTOUT 2>&1
+		$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF <<EOF > $TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 replace: olcSaslCBinding

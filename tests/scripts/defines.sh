@@ -114,7 +114,6 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 TLSCONF=$DATADIR/slapd-tls.conf
 TLSSASLCONF=$DATADIR/slapd-tls-sasl.conf
-SASLGSSAPICONF=$DATADIR/slapd-sasl-gssapi.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 RETCODECONF=$DATADIR/slapd-retcode.conf
