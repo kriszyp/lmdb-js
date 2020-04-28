@@ -167,7 +167,7 @@ else
 fi
 
 if test $WITH_TLS = no ; then
-        echo "TLS support not available, skipping channe-binding test"
+        echo "TLS support not available, skipping channel-binding test"
 elif test $HAVE_SASL_GSS_CBIND = no ; then
         echo "SASL has no channel-binding support in GSSAPI, test skipped"
 else
@@ -192,7 +192,7 @@ EOF
 
 		for icb in "none" "tls-unique" "tls-endpoint" ; do
 
-			# The gnutls implemantation of "tls-unique" seems broken
+			# The gnutls implementation of "tls-unique" seems broken
 			if test $icb = "tls-unique" -o $acb = "tls-unique" ; then
 				if test $WITH_TLS_TYPE == gnutls  ; then
 					continue
