@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.51 Engineering
+	Fixed libldap retry loop in ldap_int_tls_connect (ITS#8650)
 
 OpenLDAP 2.4.50 Release (2020/04/28)
 	Fixed client benign typos (ITS#8890)
