@@ -907,8 +907,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			} else if ( sb->sb_trans_needs_write ) {
 				wr=1;
 			}
-			Debug1( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
-					wr ? "write": "read" );
+			Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ldap_int_tls_connect needs %s\n",
+					wr ? "write": "read", 0, 0 );
 
 			/* This is mostly copied from result.c:wait4msg(), should
 			 * probably be moved into a separate function */
@@ -946,7 +946,7 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 			start_time_tv.tv_sec = curr_time_tv.tv_sec;
 			start_time_tv.tv_usec = curr_time_tv.tv_usec;
 			tv = tv0;
-			Debug3( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
+			Debug( LDAP_DEBUG_TRACE, "ldap_int_tls_start: ld %p %ld s %ld us to go\n",
 				(void *)ld, (long) tv.tv_sec, (long) tv.tv_usec );
 			ret = ldap_int_poll( ld, sd, &tv, wr);
 			if ( ret < 0 ) {
