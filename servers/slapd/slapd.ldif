@@ -30,6 +30,7 @@ olcPidFile: %LOCALSTATEDIR%/run/slapd.pid
 #objectClass: olcModuleList
 #cn: module
 #olcModulepath:	%MODULEDIR%
+#olcModuleload:	back_mdb.la
 #olcModuleload:	back_bdb.la
 #olcModuleload:	back_hdb.la
 #olcModuleload:	back_ldap.la
