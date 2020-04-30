@@ -73,6 +73,7 @@ char	*global_host = NULL;
 struct berval global_host_bv = BER_BVNULL;
 char	*global_realm = NULL;
 char	*sasl_host = NULL;
+char	*sasl_cbinding = NULL;
 char		**default_passwd_hash = NULL;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;

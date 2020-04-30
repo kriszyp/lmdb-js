@@ -147,6 +147,7 @@ libraries/liblunicode/ure.c
 libraries/liblunicode/ure.h
 libraries/liblunicode/urestubs.c
 libraries/liblunicode/version.c
+libraries/liblutil/slapdmsg.res
 libraries/liblutil/version.c
 libraries/librewrite/rewrite
 libraries/librewrite/version.c

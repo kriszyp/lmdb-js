@@ -28,9 +28,7 @@
 
 #include "slap.h"
 
-#ifdef ENABLE_REWRITE
 #include <rewrite.h>
-#endif
 
 #ifdef HAVE_CYRUS_SASL
 # ifdef HAVE_SASL_SASL_H
@@ -1012,8 +1010,6 @@ static int chk_sasl(
 
 #endif /* HAVE_CYRUS_SASL */
 
-#ifdef ENABLE_REWRITE
-
 typedef struct slapd_map_data {
 	struct berval base;
 	struct berval filter;
@@ -1234,7 +1230,6 @@ static const rewrite_mapper slapd_mapper = {
 	slapd_rw_apply,
 	slapd_rw_destroy
 };
-#endif
 
 int slap_sasl_init( void )
 {
@@ -1247,9 +1242,7 @@ int slap_sasl_init( void )
 	};
 #endif
 
-#ifdef ENABLE_REWRITE
 	rewrite_mapper_register( &slapd_mapper );
-#endif
 
 #ifdef HAVE_CYRUS_SASL
 #ifdef HAVE_SASL_VERSION
@@ -1327,6 +1320,8 @@ int slap_sasl_destroy( void )
 #endif
 	free( sasl_host );
 	sasl_host = NULL;
+	free( sasl_cbinding );
+	sasl_cbinding = NULL;
 
 	return 0;
 }
@@ -1513,17 +1508,24 @@ int slap_sasl_external(
 	return LDAP_SUCCESS;
 }
 
-int slap_sasl_cbinding( Connection *conn, struct berval *cbv )
+int slap_sasl_cbinding( Connection *conn, void *ssl )
 {
 #ifdef SASL_CHANNEL_BINDING
-	sasl_channel_binding_t *cb = ch_malloc( sizeof(*cb) + cbv->bv_len );;
-	cb->name = "ldap";
-	cb->critical = 0;
-	cb->data = (char *)(cb+1);
-	cb->len = cbv->bv_len;
-	memcpy( (void *)cb->data, cbv->bv_val, cbv->bv_len );
-	sasl_setprop( conn->c_sasl_authctx, SASL_CHANNEL_BINDING, cb );
-	conn->c_sasl_cbind = cb;
+	void *cb;
+	int i;
+
+	if ( sasl_cbinding == NULL )
+		return LDAP_SUCCESS;
+
+	i = ldap_pvt_sasl_cbinding_parse( sasl_cbinding );
+	if ( i < 0 )
+		return LDAP_SUCCESS;
+
+	cb = ldap_pvt_sasl_cbinding( ssl, i, 1 );
+	if ( cb != NULL ) {
+		sasl_setprop( conn->c_sasl_authctx, SASL_CHANNEL_BINDING, cb );
+		conn->c_sasl_cbind = cb;
+	}
 #endif
 	return LDAP_SUCCESS;
 }

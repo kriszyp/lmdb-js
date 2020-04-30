@@ -1681,8 +1681,7 @@ LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
 	slap_ssf_t ssf,	/* relative strength of external security */
 	struct berval *authid );	/* asserted authentication id */
 
-LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c,
-	struct berval *cbv );
+LDAP_SLAPD_F (int) slap_sasl_cbinding( Connection *c, void *ssl );
 
 LDAP_SLAPD_F (int) slap_sasl_reset( Connection *c );
 LDAP_SLAPD_F (int) slap_sasl_close( Connection *c );
@@ -1719,7 +1718,6 @@ LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 LDAP_SLAPD_F (void) slap_sasl_regexp_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
 LDAP_SLAPD_F (const char *) slap_sasl_getpolicy LDAP_P(( void ));
-#ifdef SLAP_AUTH_REWRITE
 LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P(( 
 	const char *fname,
 	int lineno,
@@ -1728,7 +1726,6 @@ LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P((
 	int valx ));
 LDAP_SLAPD_F (int) slap_sasl_rewrite_delete LDAP_P(( int valx ));
 LDAP_SLAPD_F (int) slap_sasl_rewrite_unparse LDAP_P(( BerVarray *bva ));
-#endif /* SLAP_AUTH_REWRITE */
 LDAP_SLAPD_F (void) slap_sasl_regexp_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_delete LDAP_P(( int valx ));
 LDAP_SLAPD_F (int) authzValidate LDAP_P((
@@ -2074,6 +2071,7 @@ LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (struct berval)	global_host_bv;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	sasl_host;
+LDAP_SLAPD_V (char *)	sasl_cbinding;
 LDAP_SLAPD_V (char *)	slap_sasl_auxprops;
 #ifdef SLAP_AUXPROP_DONTUSECOPY
 LDAP_SLAPD_V (int)		slap_dontUseCopy_ignore;

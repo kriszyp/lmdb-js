@@ -61,6 +61,24 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Checking whether $MECH is supported..."
+$LDAPSEARCH -s base -b "" -H $URI1 \
+	'objectClass=*' supportedSASLMechanisms > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+grep "supportedSASLMechanisms: $MECH" $SEARCHOUT > $TESTOUT
+RC=$?
+if test $RC != 0 ; then
+	echo "SASL mechanism $MECH is not available, test skipped"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 0
+fi
+
 echo "Adding schema and database..."
 $LDAPADD -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 include: file://$ABS_SCHEMADIR/core.ldif
@@ -368,180 +386,179 @@ fi
 
 echo
 
-if test $REWRITE = yes; then
-	echo "Initializing olcAuthIDRewrite engine..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Initializing olcAuthIDRewrite engine..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 add: olcAuthIDRewrite
 olcAuthIDRewrite: rewriteEngine ON
 olcAuthIDRewrite: rewriteContext authid
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Adding olcAuthIDRewrite rule for static mapping..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Adding olcAuthIDRewrite rule for static mapping..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 add: olcAuthIDRewrite
 olcAuthIDRewrite: rewriteRule uid=manager,cn=[^,]+,cn=auth $MANAGERDN :
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=Manager
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=Manager
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Adding olcAuthIDRewrite rule to search by uid..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Adding olcAuthIDRewrite rule to search by uid..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 add: olcAuthIDRewrite
 olcAuthIDRewrite: rewriteRule uid=([^,]+),cn=[^,]+,cn=auth ldap:///$BASEDN??sub?(uid=\$1) :
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=Manager
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=Manager
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=bjensen
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=bjensen
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Inserting olcAuthIDRewrite rule before the last..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Inserting olcAuthIDRewrite rule before the last..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 add: olcAuthIDRewrite
 olcAuthIDRewrite: {3}rewriteRule uid=babs,cn=[^,]+,cn=auth ldap:///$BASEDN??sub?(uid=bjensen) :
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=Manager
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=Manager
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=babs
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=babs
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=bjensen
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=bjensen
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Deleting the first olcAuthIDRewrite rule..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Deleting the first olcAuthIDRewrite rule..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 delete: olcAuthIDRewrite
 olcAuthIDRewrite: {2}
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=Manager
-	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
-	RC=$?
-	if test $RC != 49; then
-		echo "ldapwhoami unexpected result ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=Manager
+echo "Testing ldapwhoami as $ID (should fail)..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $PASSWD
+RC=$?
+if test $RC != 49; then
+	echo "ldapwhoami unexpected result ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=babs
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=babs
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=bjensen
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=bjensen
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Updating an olcAuthIDRewrite rule in place..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Updating an olcAuthIDRewrite rule in place..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 delete: olcAuthIDRewrite
@@ -550,73 +567,69 @@ olcAuthIDRewrite: {2}
 add: olcAuthIDRewrite
 olcAuthIDRewrite: {2}rewriteRule uid=biff,cn=[^,]+,cn=auth ldap:///$BASEDN??sub?(uid=bjorn) :
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=babs
-	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
-	RC=$?
-	if test $RC != 49; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=babs
+echo "Testing ldapwhoami as $ID (should fail)..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjensen
+RC=$?
+if test $RC != 49; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=biff
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjorn
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=biff
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w bjorn
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	ID=bjensen
-	echo "Testing ldapwhoami as $ID..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
+ID=bjensen
+echo "Testing ldapwhoami as $ID..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
+RC=$?
+if test $RC != 0; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
-	echo
+echo
 
-	echo "Deleting all olcAuthIDRewrite rules..."
-	$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
+echo "Deleting all olcAuthIDRewrite rules..."
+$LDAPMODIFY -H $URI1 -D cn=config -y $CONFIGPWF <<EOF >>$TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 delete: olcAuthIDRewrite
 EOF
-	RC=$?
-	if test $RC != 0; then
-		echo "ldapmodify failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
-
-	ID=bjensen
-	echo "Testing ldapwhoami as $ID (should fail)..."
-	$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
-	RC=$?
-	if test $RC != 49; then
-		echo "ldapwhoami failed ($RC)!"
-		test $KILLSERVERS != no && kill -HUP $KILLPIDS
-		exit $RC
-	fi
-
-	echo
-
-else
-	echo "librewrite not enabled, skipping olcAuthIDRewrite tests"
+RC=$?
+if test $RC != 0; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
 fi
+
+ID=bjensen
+echo "Testing ldapwhoami as $ID (should fail)..."
+$LDAPSASLWHOAMI -H $URI1 -Y $MECH -U $ID -w $ID
+RC=$?
+if test $RC != 49; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

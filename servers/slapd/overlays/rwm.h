@@ -24,10 +24,6 @@
 #ifndef RWM_H
 #define RWM_H
 
-#ifndef ENABLE_REWRITE
-#error "librewrite must be enabled!"
-#endif /* ENABLE_REWRITE */
-
 /* String rewrite library */
 #include "rewrite.h"
 

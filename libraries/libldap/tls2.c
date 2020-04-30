@@ -43,10 +43,6 @@ static tls_impl *tls_imp = &ldap_int_tls_impl;
 
 #endif /* HAVE_TLS */
 
-#ifndef HAVE_MOZNSS
-#define LDAP_USE_NON_BLOCKING_TLS
-#endif
-
 /* RFC2459 minimum required set of supported attribute types
  * in a certificate DN
  */
@@ -346,6 +342,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	Sockbuf *sb = conn->lconn_sb;
 	int	err;
 	tls_session	*ssl = NULL;
+	char *sni = host;
 
 	if ( HAS_TLS( sb )) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
@@ -380,7 +377,26 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 			lo->ldo_tls_connect_cb( ld, ssl, ctx, lo->ldo_tls_connect_arg );
 	}
 
-	err = tls_imp->ti_session_connect( ld, ssl );
+	/* pass hostname for SNI, but only if it's an actual name
+	 * and not a numeric address
+	 */
+	{
+		int numeric = 1;
+		char *c;
+		for ( c = sni; *c; c++ ) {
+			if ( *c == ':' )	/* IPv6 address */
+				break;
+			if ( *c == '.' )
+				continue;
+			if ( !isdigit( *c )) {
+				numeric = 0;
+				break;
+			}
+		}
+		if ( numeric )
+			sni = NULL;
+	}
+	err = tls_imp->ti_session_connect( ld, ssl, sni );
 
 #ifdef HAVE_WINSOCK
 	errno = WSAGetLastError();
@@ -1051,10 +1067,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	char *host;
 	void *ssl;
 	int ret, async;
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	struct timeval start_time_tv, tv, tv0;
 	ber_socket_t	sd = AC_SOCKET_ERROR;
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 
 	if ( !conn )
 		return LDAP_PARAM_ERROR;
@@ -1073,7 +1087,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 
 	(void) tls_init( tls_imp );
 
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 	/*
 	 * Use non-blocking io during SSL Handshake when a timeout is configured
 	 */
@@ -1094,8 +1107,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 #endif /* ! HAVE_GETTIMEOFDAY */
 	}
 
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
-
 	ld->ld_errno = LDAP_SUCCESS;
 	ret = ldap_int_tls_connect( ld, conn, host );
 
@@ -1104,7 +1115,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	  * big for a single network message.
 	  */
 	while ( ret > 0 ) {
-#ifdef LDAP_USE_NON_BLOCKING_TLS
 		if ( async ) {
 			struct timeval curr_time_tv, delta_tv;
 			int wr=0;
@@ -1161,7 +1171,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 				break;
 			}
 		}
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
 		ret = ldap_int_tls_connect( ld, conn, host );
 	}
 
@@ -1209,6 +1218,13 @@ ldap_pvt_tls_get_unique( void *s, struct berval *buf, int is_server )
 {
 	tls_session *session = s;
 	return tls_imp->ti_session_unique( session, buf, is_server );
+}
+
+int
+ldap_pvt_tls_get_endpoint( void *s, struct berval *buf, int is_server )
+{
+	tls_session *session = s;
+	return tls_imp->ti_session_endpoint( session, buf, is_server );
 }
 
 const char *

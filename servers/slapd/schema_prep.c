@@ -557,7 +557,7 @@ static struct slap_schema_ad_map {
 			"ORDERING CSNOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, SLAP_AT_HIDE,
+		NULL, 0,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
@@ -604,7 +604,7 @@ static struct slap_schema_ad_map {
 			"ORDERING CSNOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.4203.666.11.2.1{64} "
 			"NO-USER-MODIFICATION USAGE dSAOperation )",
-		NULL, SLAP_AT_HIDE,
+		NULL, 0,
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_contextCSN) },

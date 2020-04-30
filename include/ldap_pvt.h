@@ -262,6 +262,10 @@ LDAP_F (void *) ldap_pvt_sasl_mutex_new LDAP_P((void));
 LDAP_F (int) ldap_pvt_sasl_mutex_lock LDAP_P((void *mutex));
 LDAP_F (int) ldap_pvt_sasl_mutex_unlock LDAP_P((void *mutex));
 LDAP_F (void) ldap_pvt_sasl_mutex_dispose LDAP_P((void *mutex));
+
+LDAP_F (int) ldap_pvt_sasl_cbinding_parse LDAP_P(( const char *arg ));
+LDAP_F (void *) ldap_pvt_sasl_cbinding LDAP_P(( void *ssl, int type,
+					        int is_server ));
 #endif /* HAVE_CYRUS_SASL */
 
 struct sockbuf; /* avoid pulling in <lber.h> */
@@ -438,6 +442,7 @@ LDAP_F (int) ldap_pvt_tls_get_peer_dn LDAP_P(( void *ctx, struct berval *dn,
 	LDAPDN_rewrite_dummy *func, unsigned flags ));
 LDAP_F (int) ldap_pvt_tls_get_strength LDAP_P(( void *ctx ));
 LDAP_F (int) ldap_pvt_tls_get_unique LDAP_P(( void *ctx, struct berval *buf, int is_server ));
+LDAP_F (int) ldap_pvt_tls_get_endpoint LDAP_P(( void *ctx, struct berval *buf, int is_server ));
 LDAP_F (const char *) ldap_pvt_tls_get_version LDAP_P(( void *ctx ));
 LDAP_F (const char *) ldap_pvt_tls_get_cipher LDAP_P(( void *ctx ));
 

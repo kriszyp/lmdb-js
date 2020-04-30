@@ -33,6 +33,7 @@ AC_ldap=ldap@BUILD_LDAP@
 AC_meta=meta@BUILD_META@
 AC_asyncmeta=asyncmeta@BUILD_ASYNCMETA@
 AC_monitor=@BUILD_MONITOR@
+AC_perl=perl@BUILD_PERL@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@
 
@@ -59,7 +60,6 @@ AC_WITH_TLS=@WITH_TLS@
 AC_TLS_TYPE=@WITH_TLS_TYPE@
 AC_WITH_MODULES_ENABLED=@WITH_MODULES_ENABLED@
 AC_ACI_ENABLED=aci@WITH_ACI_ENABLED@
-AC_REWRITE=@BUILD_REWRITE@
 AC_THREADS=threads@BUILD_THREAD@
 AC_LIBS_DYNAMIC=lib@BUILD_LIBS_DYNAMIC@
 
@@ -73,12 +73,12 @@ fi
 if test "${AC_asyncmeta}" = "asyncmetamod" && test "${AC_LIBS_DYNAMIC}" = "static" ; then
 	AC_meta="asyncmetano"
 fi
-export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_relay AC_sql \
+export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_perl AC_relay AC_sql \
 	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
-	AC_REWRITE AC_THREADS AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
+	AC_THREADS AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"

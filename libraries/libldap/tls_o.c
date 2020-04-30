@@ -524,24 +524,20 @@ tlso_session_new( tls_ctx *ctx, int is_server )
 }
 
 static int
-tlso_session_connect( LDAP *ld, tls_session *sess )
+tlso_session_connect( LDAP *ld, tls_session *sess, const char *name_in )
 {
 	tlso_session *s = (tlso_session *)sess;
+	int rc;
 
-	/* Caller expects 0 = success, OpenSSL returns 1 = success */
-	int rc = SSL_connect( s ) - 1;
-#ifdef LDAP_USE_NON_BLOCKING_TLS
-	if ( rc < 0 ) {
-		int sockerr = sock_errno();
-		int sslerr = SSL_get_error( s, rc+1 );
-		if ( sslerr == SSL_ERROR_WANT_READ || sslerr == SSL_ERROR_WANT_WRITE ) {
-			rc = 0;
-		} else if ( sslerr == SSL_ERROR_SYSCALL &&
-			( sockerr == EAGAIN || sockerr == ENOTCONN )) {
-			rc = 0;
-		}
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+	if ( name_in ) {
+		rc = SSL_set_tlsext_host_name( s, name_in );
+		if ( !rc )		/* can fail to strdup the name */
+			return -1;
 	}
-#endif /* LDAP_USE_NON_BLOCKING_TLS */
+#endif
+	/* Caller expects 0 = success, OpenSSL returns 1 = success */
+	rc = SSL_connect( s ) - 1;
 	return rc;
 }
 
@@ -868,6 +864,54 @@ tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
 	else
 		buf->bv_len = SSL_get_peer_finished(s, buf->bv_val, buf->bv_len);
 	return buf->bv_len;
+}
+
+static int
+tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
+{
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+	tlso_session *s = (tlso_session *)sess;
+	const EVP_MD *md;
+	unsigned int md_len;
+	X509 *cert;
+
+	if ( buf->bv_len < EVP_MAX_MD_SIZE )
+		return 0;
+
+	if ( is_server )
+		cert = SSL_get_certificate( s );
+	else
+		cert = SSL_get_peer_certificate( s );
+
+	if ( cert == NULL )
+		return 0;
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100000
+	md = EVP_get_digestbynid( X509_get_signature_nid( cert ));
+#else
+	md = EVP_get_digestbynid(OBJ_obj2nid( cert->sig_alg->algorithm ));
+#endif
+
+	/* See RFC 5929 */
+	if ( md == NULL ||
+	     md == EVP_md_null() ||
+#ifndef OPENSSL_NO_MD2
+	     md == EVP_md2() ||
+#endif
+	     md == EVP_md4() ||
+	     md == EVP_md5() ||
+	     md == EVP_sha1() )
+		md = EVP_sha256();
+
+	if ( !X509_digest( cert, md, buf->bv_val, &md_len ))
+		return 0;
+
+	buf->bv_len = md_len;
+
+	return md_len;
+#else
+	return 0;
+#endif
 }
 
 static const char *
@@ -1486,6 +1530,7 @@ tls_impl ldap_int_tls_impl = {
 	tlso_session_chkhost,
 	tlso_session_strength,
 	tlso_session_unique,
+	tlso_session_endpoint,
 	tlso_session_version,
 	tlso_session_cipher,
 	tlso_session_peercert,

@@ -70,21 +70,15 @@
 typedef struct sasl_regexp {
   char *sr_match;						/* regexp match pattern */
   char *sr_replace;					/* regexp replace pattern */
-#ifndef SLAP_AUTH_REWRITE
-  regex_t sr_workspace;					/* workspace for regexp engine */
-  int sr_offset[SASLREGEX_REPLACE+2];	/* offsets of $1,$2... in *replace */
-#endif
 } SaslRegexp_t;
 
 static int nSaslRegexp = 0;
 static SaslRegexp_t *SaslRegexp = NULL;
 
-#ifdef SLAP_AUTH_REWRITE
 #include "rewrite.h"
 struct rewrite_info	*sasl_rwinfo = NULL;
 #define AUTHID_CONTEXT	"authid"
 static BerVarray	authz_rewrites = NULL;
-#endif /* SLAP_AUTH_REWRITE */
 
 /* What SASL proxy authorization policies are allowed? */
 #define	SASL_AUTHZ_NONE	0x00
@@ -1246,43 +1240,6 @@ done:
 	return( rc );
 }
 
-#ifndef SLAP_AUTH_REWRITE
-static int slap_sasl_rx_off(char *rep, int *off)
-{
-	const char *c;
-	int n;
-
-	/* Precompile replace pattern. Find the $<n> placeholders */
-	off[0] = -2;
-	n = 1;
-	for ( c = rep;	 *c;  c++ ) {
-		if ( *c == '\\' && c[1] ) {
-			c++;
-			continue;
-		}
-		if ( *c == '$' ) {
-			if ( n == SASLREGEX_REPLACE ) {
-				Debug( LDAP_DEBUG_ANY,
-					"SASL replace pattern %s has too many $n "
-						"placeholders (max %d)\n",
-					rep, SASLREGEX_REPLACE );
-
-				return( LDAP_OTHER );
-			}
-			off[n] = c - rep;
-			n++;
-		}
-	}
-
-	/* Final placeholder, after the last $n */
-	off[n] = c - rep;
-	n++;
-	off[n] = -1;
-	return( LDAP_SUCCESS );
-}
-#endif /* ! SLAP_AUTH_REWRITE */
-
-#ifdef SLAP_AUTH_REWRITE
 static int slap_sasl_rewrite_config_argv(
 		const char	*fname,
 		int		lineno,
@@ -1530,7 +1487,6 @@ out:
 
 	return rc;
 }
-#endif /* SLAP_AUTH_REWRITE */
 
 int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 {
@@ -1541,7 +1497,6 @@ int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 	if ( valx < 0 || valx > nSaslRegexp )
 		valx = nSaslRegexp;
 
-#ifdef SLAP_AUTH_REWRITE
 	for ( i = 0; i < valx; i++) {
 		rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
 				SaslRegexp[i].sr_match,
@@ -1552,18 +1507,6 @@ int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 
 	rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
 			match, replace, AUTHID_CONTEXT );
-#else /* ! SLAP_AUTH_REWRITE */
-	/* Precompile matching pattern */
-	rc = regcomp( &sr.sr_workspace, match, REG_EXTENDED|REG_ICASE );
-	if ( rc ) {
-		Debug( LDAP_DEBUG_ANY,
-			"SASL match pattern %s could not be compiled by regexp engine\n",
-			match );
-		return( LDAP_OTHER );
-	}
-
-	rc = slap_sasl_rx_off( replace, sr.sr_offset );
-#endif /* ! SLAP_AUTH_REWRITE */
 
 	if ( rc == LDAP_SUCCESS ) {
 		SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
@@ -1579,7 +1522,6 @@ int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 
 		nSaslRegexp++;
 
-#ifdef SLAP_AUTH_REWRITE
 		for ( i = valx + 1; i < nSaslRegexp; i++ ) {
 			rc = slap_sasl_regexp_rewrite_config( &rw, "sasl-regexp", 0,
 					SaslRegexp[i].sr_match,
@@ -1592,7 +1534,6 @@ int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 		sasl_rwinfo = rw;
 	} else {
 		rewrite_info_delete( &rw );
-#endif
 	}
 
 	return rc;
@@ -1603,9 +1544,6 @@ slap_sasl_regexp_destroy_one( int n )
 {
 	ch_free( SaslRegexp[ n ].sr_match );
 	ch_free( SaslRegexp[ n ].sr_replace );
-#ifndef SLAP_AUTH_REWRITE
-	regfree( &SaslRegexp[ n ].sr_workspace );
-#endif /* ! SLAP_AUTH_REWRITE */
 }
 
 void
@@ -1623,9 +1561,7 @@ slap_sasl_regexp_destroy( void )
 		nSaslRegexp = 0;
 	}
 
-#ifdef SLAP_AUTH_REWRITE
 	slap_sasl_rewrite_destroy();
-#endif /* SLAP_AUTH_REWRITE */
 }
 
 int slap_sasl_regexp_delete( int valx )
@@ -1646,7 +1582,6 @@ int slap_sasl_regexp_delete( int valx )
 			SaslRegexp[ i ] = SaslRegexp[ i + 1 ];
 		}
 
-#ifdef SLAP_AUTH_REWRITE
 		slap_sasl_rewrite_destroy();
 		for ( i = 0; i < nSaslRegexp; i++ ) {
 			rc = slap_sasl_regexp_rewrite_config( &sasl_rwinfo, "sasl-regexp", 0,
@@ -1655,7 +1590,6 @@ int slap_sasl_regexp_delete( int valx )
 					AUTHID_CONTEXT );
 			assert( rc == 0 );
 		}
-#endif /* SLAP_AUTH_REWRITE */
 	}
 
 	return rc;
@@ -1689,60 +1623,6 @@ void slap_sasl_regexp_unparse( BerVarray *out )
 	*out = bva;
 }
 
-#ifndef SLAP_AUTH_REWRITE
-/* Perform replacement on regexp matches */
-static void slap_sasl_rx_exp(
-	const char *rep,
-	const int *off,
-	regmatch_t *str,
-	const char *saslname,
-	struct berval *out,
-	void *ctx )
-{
-	int i, n, len, insert;
-
-	/* Get the total length of the final URI */
-
-	n=1;
-	len = 0;
-	while( off[n] >= 0 ) {
-		/* Len of next section from replacement string (x,y,z above) */
-		len += off[n] - off[n-1] - 2;
-		if( off[n+1] < 0)
-			break;
-
-		/* Len of string from saslname that matched next $i  (b,d above) */
-		i = rep[ off[n] + 1 ]	- '0';
-		len += str[i].rm_eo - str[i].rm_so;
-		n++;
-	}
-	out->bv_val = slap_sl_malloc( len + 1, ctx );
-	out->bv_len = len;
-
-	/* Fill in URI with replace string, replacing $i as we go */
-	n=1;
-	insert = 0;
-	while( off[n] >= 0) {
-		/* Paste in next section from replacement string (x,y,z above) */
-		len = off[n] - off[n-1] - 2;
-		strncpy( out->bv_val+insert, rep + off[n-1] + 2, len);
-		insert += len;
-		if( off[n+1] < 0)
-			break;
-
-		/* Paste in string from saslname that matched next $i  (b,d above) */
-		i = rep[ off[n] + 1 ]	- '0';
-		len = str[i].rm_eo - str[i].rm_so;
-		strncpy( out->bv_val+insert, saslname + str[i].rm_so, len );
-		insert += len;
-
-		n++;
-	}
-
-	out->bv_val[insert] = '\0';
-}
-#endif /* ! SLAP_AUTH_REWRITE */
-
 /* Take the passed in SASL name and attempt to convert it into an
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
@@ -1750,7 +1630,6 @@ static void slap_sasl_rx_exp(
 static int slap_authz_regexp( struct berval *in, struct berval *out,
 		int flags, void *ctx )
 {
-#ifdef SLAP_AUTH_REWRITE
 	const char	*context = AUTHID_CONTEXT;
 
 	if ( sasl_rwinfo == NULL || BER_BVISNULL( in ) ) {
@@ -1783,44 +1662,6 @@ static int slap_authz_regexp( struct berval *in, struct berval *out,
 		return 0;
 	}
 
-#else /* ! SLAP_AUTH_REWRITE */
-	char *saslname = in->bv_val;
-	SaslRegexp_t *reg;
-	regmatch_t sr_strings[SASLREGEX_REPLACE];	/* strings matching $1,$2 ... */
-	int i;
-
-	memset( out, 0, sizeof( *out ) );
-
-	Debug( LDAP_DEBUG_TRACE, "slap_authz_regexp: converting SASL name %s\n",
-	   saslname );
-
-	if (( saslname == NULL ) || ( nSaslRegexp == 0 )) {
-		return( 0 );
-	}
-
-	/* Match the normalized SASL name to the saslregexp patterns */
-	for( reg = SaslRegexp,i=0;  i<nSaslRegexp;  i++,reg++ ) {
-		if ( regexec( &reg->sr_workspace, saslname, SASLREGEX_REPLACE,
-		  sr_strings, 0)  == 0 )
-			break;
-	}
-
-	if( i >= nSaslRegexp ) return( 0 );
-
-	/*
-	 * The match pattern may have been of the form "a(b.*)c(d.*)e" and the
-	 * replace pattern of the form "x$1y$2z". The returned string needs
-	 * to replace the $1,$2 with the strings that matched (b.*) and (d.*)
-	 */
-	slap_sasl_rx_exp( reg->sr_replace, reg->sr_offset,
-		sr_strings, saslname, out, ctx );
-
-	Debug( LDAP_DEBUG_TRACE,
-		"slap_authz_regexp: converted SASL name to %s\n",
-		BER_BVISEMPTY( out ) ? "" : out->bv_val );
-
-	return( 1 );
-#endif /* ! SLAP_AUTH_REWRITE */
 }
 
 /* This callback actually does some work...*/

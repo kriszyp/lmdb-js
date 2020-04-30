@@ -563,6 +563,22 @@ must be a
 .BR "char **" .
 Its content needs to be freed by the caller using
 .BR ldap_memfree (3).
+.B LDAP_OPT_X_SASL_CBINDING
+Sets/gets the channel-binding type to use in SASL,
+one of
+.BR LDAP_OPT_X_SASL_CBINDING_NONE
+(the default),
+.BR LDAP_OPT_X_SASL_CBINDING_TLS_UNIQUE
+the "tls-unique" type from RCF 5929.
+.BR LDAP_OPT_X_SASL_CBINDING_TLS_ENDPOINT
+the "tls-server-end-point" from RCF 5929, compatible with Windows.
+.BR invalue
+must be
+.BR "const int *" ;
+.BR outvalue
+must be
+.BR "int *" .
+.TP
 .SH TCP OPTIONS
 The TCP options are OpenLDAP specific.
 Mainly intended for use with Linux, they may not be portable.
@@ -722,7 +738,6 @@ must be
 .BR "char **" ,
 and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
-Ignored by Mozilla NSS.
 .TP
 .B LDAP_OPT_X_TLS_ECNAME
 Gets/sets the name of the curve used for 
@@ -735,7 +750,7 @@ must be
 .BR "char **" ,
 and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
-Ignored by GnuTLS and Mozilla NSS. In GnuTLS a curve may be selected
+Ignored by GnuTLS. In GnuTLS a curve may be selected
 in the cipher suite specification.
 .TP
 .B LDAP_OPT_X_TLS_KEYFILE
@@ -789,7 +804,7 @@ must be
 .BR "char **" ,
 and its contents need to be freed by the caller using
 .BR ldap_memfree (3).
-Ignored by GnuTLS older than version 2.2.  Ignored by Mozilla NSS.
+Ignored by GnuTLS older than version 2.2.
 .TP
 .B LDAP_OPT_X_TLS_REQUIRE_CERT
 Sets/gets the peer certificate checking strategy,

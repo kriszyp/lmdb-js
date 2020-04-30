@@ -331,11 +331,7 @@ static ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )",
 				NULL, NULL },
 	{ "authid-rewrite", "rewrite", 2, 0, STRLENOF( "authid-rewrite" ),
-#ifdef SLAP_AUTH_REWRITE
 		ARG_MAGIC|CFG_REWRITE, &config_generic,
-#else
-		ARG_IGNORED, NULL,
-#endif
 		 "( OLcfgGlAt:6 NAME 'olcAuthIDRewrite' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
@@ -634,6 +630,15 @@ static ConfigTable config_back_cf_table[] = {
 		"( OLcfgGlAt:92 NAME 'olcSaslAuxpropsDontUseCopyIgnore' "
 			"EQUALITY booleanMatch "
 			"SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "sasl-cbinding", NULL, 2, 2, 0,
+#ifdef HAVE_CYRUS_SASL
+		ARG_STRING, &sasl_cbinding,
+#else
+		ARG_IGNORED, NULL,
+#endif
+		"( OLcfgGlAt:100 NAME 'olcSaslCBinding' "
+			"EQUALITY caseIgnoreMatch "
+			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-host", "host", 2, 2, 0,
 #ifdef HAVE_CYRUS_SASL
 		ARG_STRING|ARG_UNIQUE, &sasl_host,
@@ -952,7 +957,7 @@ static ConfigOCs cf_ocs[] = {
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcReverseLookup $ "
 		 "olcRootDSE $ "
 		 "olcSaslAuxprops $ olcSaslAuxpropsDontUseCopy $ olcSaslAuxpropsDontUseCopyIgnore $ "
-		 "olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
+		 "olcSaslCBinding $ olcSaslHost $ olcSaslRealm $ olcSaslSecProps $ "
 		 "olcSecurity $ olcServerID $ olcSizeLimit $ "
 		 "olcSockbufMaxIncoming $ olcSockbufMaxIncomingAuth $ "
 		 "olcTCPBuffer $ "
@@ -1396,11 +1401,9 @@ config_generic(ConfigArgs *c) {
 			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #endif
-#ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE:
 			rc = slap_sasl_rewrite_unparse( &c->rvalue_vals );
 			break;
-#endif
 		default:
 			rc = 1;
 		}
@@ -1473,11 +1476,9 @@ config_generic(ConfigArgs *c) {
 			rc = slap_sasl_regexp_delete( c->valx );
 			break;
 
-#ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE:
 			rc = slap_sasl_rewrite_delete( c->valx );
 			break;
-#endif /* SLAP_AUTH_REWRITE */
 
 		case CFG_SALT:
 			ch_free( passwd_salt );
@@ -2426,7 +2427,6 @@ sortval_reject:
 			break;
 #endif
 
-#ifdef SLAP_AUTH_REWRITE
 		case CFG_REWRITE: {
 			int rc;
 
@@ -2441,7 +2441,6 @@ sortval_reject:
 			}
 			return rc;
 			}
-#endif
 
 
 		default:

@@ -1017,7 +1017,6 @@ slapdconfigfile
 modv
 ObjectClassDescription
 truelies
-slurpd
 basename
 groupOfUniqueNames
 DHAVE
@@ -1351,9 +1350,6 @@ MChAODQ
 lookups
 GnuTLS
 gnutls
-MozNSS
-MOZNSS
-moznss
 LTONLY
 SNMP
 timelimit
