@@ -2882,7 +2882,18 @@ no_change:	if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 				ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 			}
 		}
-		/* Is the CSN still present in the database? */
+		/*
+		 * If sessionlog wasn't useful, see if we can find at least one entry
+		 * that hasn't changed based on the cookie.
+		 *
+		 * TODO: Using mincsn only (rather than the whole cookie) will
+		 * under-approximate the set of entries that haven't changed, but we
+		 * can't look up CSNs by serverid with the current indexing support.
+		 *
+		 * As a result, dormant serverids in the cluster become mincsns and
+		 * more likely to make syncprov_findcsn(,FIND_CSN,) fail -> triggering
+		 * an expensive refresh...
+		 */
 		if ( !do_present ) {
 			gotstate = 1;
 		} else if ( syncprov_findcsn( op, FIND_CSN, &mincsn ) != LDAP_SUCCESS ) {
