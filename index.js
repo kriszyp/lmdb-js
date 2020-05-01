@@ -144,7 +144,7 @@ function open(path, options) {
 					result = undefined
 				try {
 					if (copy) {
-						let buffer = shared ? Buffer.from(result) : result
+						let buffer = shared ? result : result
 						result = copy(buffer)
 						//env.detachBuffer(buffer)
 					}
