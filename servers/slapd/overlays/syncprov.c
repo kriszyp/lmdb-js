@@ -2883,7 +2883,9 @@ no_change:	if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 			}
 		}
 		/* Is the CSN still present in the database? */
-		if ( syncprov_findcsn( op, FIND_CSN, &mincsn ) != LDAP_SUCCESS ) {
+		if ( !do_present ) {
+			gotstate = 1;
+		} else if ( syncprov_findcsn( op, FIND_CSN, &mincsn ) != LDAP_SUCCESS ) {
 			/* No, so a reload is required */
 			/* the 2.2 consumer doesn't send this hint */
 			if ( si->si_usehint && srs->sr_rhint == 0 ) {
@@ -2910,8 +2912,7 @@ no_change:	if ( !(op->o_sync_mode & SLAP_SYNC_PERSIST) ) {
 		} else {
 			gotstate = 1;
 			/* If changed and doing Present lookup, send Present UUIDs */
-			if ( do_present && syncprov_findcsn( op, FIND_PRESENT, 0 ) !=
-				LDAP_SUCCESS ) {
+			if ( syncprov_findcsn( op, FIND_PRESENT, 0 ) != LDAP_SUCCESS ) {
 				if ( ctxcsn )
 					ber_bvarray_free_x( ctxcsn, op->o_tmpmemctx );
 				if ( sids )
