@@ -39,6 +39,7 @@ function open(path, options) {
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
+		maxDbs: 4,
 		//useWritemap: true, // this provides better performance
 	}, options)
 
@@ -79,7 +80,14 @@ function open(path, options) {
 			stores.push(this)
 		}
 		openDB(dbName) {
-			return new LMDBStore(dbName)
+			try {
+				return new LMDBStore(dbName)
+			} catch(error) {
+				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
+					error.message += ' (increase your maxDbs option)'
+				}
+				throw error
+			}
 		}
 		transaction(execute, noSync, abort) {
 			let result
@@ -96,7 +104,7 @@ function open(path, options) {
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
-			    let startCpu = process.cpuUsage()
+				let startCpu = process.cpuUsage()
 				let start = Date.now()
 				result = execute()
 				//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
@@ -122,32 +130,24 @@ function open(path, options) {
 				writeTxn = null
 			}
 		}
-		get(id, copy) {
+		get(id, copy, shared) {
 			let txn
 			try {
 				if (writeTxn) {
 					txn = writeTxn
 				} else {
 					txn = readTxn
-					try {
-						txn.renew()
-					} catch(error) {
-						console.error(error)
-						try {
-							txn.reset()
-							console.warn('Did reset on read txn')
-							txn.renew()
-						} catch(resetError) {
-							console.error(resetError)
-						}
-					}
+					txn.renew()
 				}
-				let result = copy ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
+				let result = shared ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
 				if (result === null) // missing entry, really should be undefined
 					result = undefined
 				try {
-					if (copy)
-						result = copy(result)
+					if (copy) {
+						let buffer = shared ? Buffer.from(result) : result
+						result = copy(buffer)
+						//env.detachBuffer(buffer)
+					}
 				} finally {
 					if (!writeTxn) {
 						txn.reset()
@@ -156,7 +156,7 @@ function open(path, options) {
 				this.reads++
 				return result
 			} catch(error) {
-				return handleError(error, this, txn, () => this.get(id, copy))
+				return handleError(error, this, txn, () => this.get(id, copy, shared))
 			}
 		}
 		put(id, value, ifValue) {
@@ -185,7 +185,7 @@ function open(path, options) {
 					value = Buffer.from(value)
 				}
 				this.writes++
-			    let startCpu = process.cpuUsage()
+				let startCpu = process.cpuUsage()
 				let start = Date.now()
 
 				txn = writeTxn || env.beginTxn()
@@ -454,6 +454,9 @@ function open(path, options) {
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
 			return this.scheduleCommit().unconditionalResults
+		}
+		backup(path, compact) {
+			env.copy(path, compact)
 		}
 		close() {
 			this.db.close()
