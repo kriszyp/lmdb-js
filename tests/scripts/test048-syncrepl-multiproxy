@@ -31,11 +31,6 @@ if test $MONITORDB = no; then
 	exit 0
 fi 
 
-if test $THREADS = threadsno ; then
-	echo "Need threads support, test skipped"
-	exit 0
-fi
-
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 
 #

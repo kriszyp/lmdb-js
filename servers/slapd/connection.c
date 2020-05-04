@@ -1772,13 +1772,6 @@ connection_input( Connection *conn , conn_readinfo *cri )
 		}
 	}
 
-#ifdef NO_THREADS
-	if ( conn->c_struct_state != SLAP_C_USED ) {
-		/* connection must have got closed underneath us */
-		return 1;
-	}
-#endif
-
 	assert( conn->c_struct_state == SLAP_C_USED );
 	return rc;
 }

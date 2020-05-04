@@ -1680,13 +1680,9 @@ dnl When in thread environment, use
 dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) || defined( HAVE_FUNC_R )
 dnl			func_r(...);
 dnl		#else
-dnl		#	if defined( HAVE_THREADS ) 
-dnl				/* lock */
-dnl		#	endif
-dnl				func(...);
-dnl		#	if defined( HAVE_THREADS ) 
-dnl				/* unlock */
-dnl		#	endif
+dnl			/* lock */
+dnl			func(...);
+dnl			/* unlock */
 dnl		#endif
 dnl
 dnl HAVE_REENTRANT_FUNCTIONS is derived from:
@@ -1696,8 +1692,6 @@ dnl		_POSIX_THREADSAFE_FUNCTIONS
 dnl
 dnl		and is currently defined in <ldap_pvt_thread.h>
 dnl
-dnl HAVE_THREADS is defined by <ldap_pvt_thread.h> iff -UNO_THREADS
-dnl 
 dnl libldap/*.c should only include <ldap_pvt_thread.h> iff
 dnl LDAP_R_COMPILE is defined.  ie:
 dnl		#ifdef LDAP_R_COMPILE
@@ -1728,6 +1722,10 @@ dnl	LIBS="$save_LIBS"
 fi  
 
 if test $ol_link_threads = no ; then
+	if test $ol_enable_slapd != no; then
+		AC_MSG_ERROR([slapd requires thread support])
+	fi
+
 	if test $ol_with_threads = yes ; then
 		AC_MSG_ERROR([no suitable thread support])
 	fi
