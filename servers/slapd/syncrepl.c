@@ -391,6 +391,7 @@ init_syncrepl(syncinfo_t *si)
 			attrs = (char**) ch_malloc( 3 * sizeof(char*) );
 			attrs[i++] = ch_strdup( "*" );
 			attrs[i++] = ch_strdup( "+" );
+			si->si_allattrs = si->si_allopattrs = 1;
 		} else if ( si->si_allattrs && !si->si_allopattrs ) {
 			for ( n = 0; sync_descs[ n ] != NULL; n++ ) ;
 			attrs = (char**) ch_malloc( (n+1)* sizeof(char*) );
@@ -5138,9 +5139,11 @@ attrs_exdup( Operation *op, dninfo *dni, Attribute *attrs )
 
 	anew = op->o_tmpalloc( i * sizeof(Attribute), op->o_tmpmemctx );
 	for ( tmp = anew; attrs; attrs=attrs->a_next ) {
-		if ( dni->si->si_anlist && !ad_inlist( attrs->a_desc, dni->si->si_anlist ))
+		int flag = is_at_operational( attrs->a_desc->ad_type ) ? dni->si->si_allopattrs :
+			dni->si->si_allattrs;
+		if ( !flag && !ad_inlist( attrs->a_desc, dni->si->si_anlist ))
 			continue;
-		if ( dni->si->si_exanlist && ad_inlist( attrs->a_desc, dni->si->si_exanlist ))
+		if ( dni->si->si_exattrs && ad_inlist( attrs->a_desc, dni->si->si_exanlist ))
 			continue;
 		*tmp = *attrs;
 		tmp->a_next = tmp+1;
