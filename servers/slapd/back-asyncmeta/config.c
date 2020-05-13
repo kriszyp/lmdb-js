@@ -86,8 +86,6 @@ enum {
 /* Target attrs */
 enum {
 	LDAP_BACK_CFG_URI = LDAP_BACK_CFG_LAST_BOTH,
-	LDAP_BACK_CFG_ACL_AUTHCDN,
-	LDAP_BACK_CFG_ACL_PASSWD,
 	LDAP_BACK_CFG_IDASSERT_AUTHZFROM,
 	LDAP_BACK_CFG_IDASSERT_BIND,
 	LDAP_BACK_CFG_SUFFIXM,
@@ -115,32 +113,6 @@ static ConfigTable a_metacfg[] = {
 			"SYNTAX OMsDirectoryString "
 			"SINGLE-VALUE )",
 		NULL, NULL },
-	{ "acl-authcDN", "DN", 2, 2, 0,
-		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_ACL_AUTHCDN,
-		asyncmeta_back_cf_gen, "( OLcfgDbAt:3.2 "
-			"NAME 'olcDbACLAuthcDn' "
-			"DESC 'Remote ACL administrative identity' "
-			"OBSOLETE "
-			"SYNTAX OMsDN "
-			"SINGLE-VALUE )",
-		NULL, NULL },
-	/* deprecated, will be removed; aliases "acl-authcDN" */
-	{ "binddn", "DN", 2, 2, 0,
-		ARG_DN|ARG_MAGIC|LDAP_BACK_CFG_ACL_AUTHCDN,
-		asyncmeta_back_cf_gen, NULL, NULL, NULL },
-	{ "acl-passwd", "cred", 2, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
-		asyncmeta_back_cf_gen, "( OLcfgDbAt:3.3 "
-			"NAME 'olcDbACLPasswd' "
-			"DESC 'Remote ACL administrative identity credentials' "
-			"OBSOLETE "
-			"SYNTAX OMsDirectoryString "
-			"SINGLE-VALUE )",
-		NULL, NULL },
-	/* deprecated, will be removed; aliases "acl-passwd" */
-	{ "bindpw", "cred", 2, 2, 0,
-		ARG_MAGIC|LDAP_BACK_CFG_ACL_PASSWD,
-		asyncmeta_back_cf_gen, NULL, NULL, NULL },
 	{ "idassert-bind", "args", 2, 0, 0,
 		ARG_MAGIC|LDAP_BACK_CFG_IDASSERT_BIND,
 		asyncmeta_back_cf_gen, "( OLcfgDbAt:3.7 "
@@ -454,9 +426,7 @@ static ConfigOCs a_metaocs[] = {
 		"DESC 'Asyncmeta target configuration' "
 		"SUP olcConfig STRUCTURAL "
 		"MUST ( olcAsyncMetaSub $ olcDbURI ) "
-		"MAY ( olcDbACLAuthcDn "
-			"$ olcDbACLPasswd "
-			"$ olcDbIDAssertAuthzFrom "
+		"MAY ( olcDbIDAssertAuthzFrom "
 			"$ olcDbIDAssertBind "
 			"$ olcDbSuffixMassage "
 			"$ olcDbSubtreeExclude "
@@ -1295,15 +1265,6 @@ asyncmeta_back_cf_gen( ConfigArgs *c )
 			}
 			ber_bvarray_add( &c->rvalue_vals, &bv );
 			} break;
-
-		case LDAP_BACK_CFG_ACL_AUTHCDN:
-		case LDAP_BACK_CFG_ACL_PASSWD:
-			/* FIXME no point here, there is no code implementing
-			 * their features. Was this supposed to implement
-			 * acl-bind like back-ldap?
-			 */
-			rc = 1;
-			break;
 
 		case LDAP_BACK_CFG_IDASSERT_AUTHZFROM: {
 			BerVarray	*bvp;
@@ -2153,33 +2114,6 @@ asyncmeta_back_cf_gen( ConfigArgs *c )
 		mc->mc_bind_timeout.tv_usec = c->value_ulong%1000000;
 		break;
 
-	case LDAP_BACK_CFG_ACL_AUTHCDN:
-	/* name to use for meta_back_group */
-		if ( strcasecmp( c->argv[ 0 ], "binddn" ) == 0 ) {
-			Debug( LDAP_DEBUG_ANY, "%s: "
-				"\"binddn\" statement is deprecated; "
-				"use \"acl-authcDN\" instead\n", c->log );
-			/* FIXME: some day we'll need to throw an error */
-		}
-
-		ber_memfree_x( c->value_dn.bv_val, NULL );
-		mt->mt_binddn = c->value_ndn;
-		BER_BVZERO( &c->value_dn );
-		BER_BVZERO( &c->value_ndn );
-		break;
-
-	case LDAP_BACK_CFG_ACL_PASSWD:
-	/* password to use for meta_back_group */
-		if ( strcasecmp( c->argv[ 0 ], "bindpw" ) == 0 ) {
-			Debug( LDAP_DEBUG_ANY, "%s "
-				"\"bindpw\" statement is deprecated; "
-				"use \"acl-passwd\" instead\n", c->log );
-			/* FIXME: some day we'll need to throw an error */
-		}
-
-		ber_str2bv( c->argv[ 1 ], 0L, 1, &mt->mt_bindpw );
-		break;
-
 	case LDAP_BACK_CFG_REBIND:
 	/* save bind creds for referral rebinds? */
 		if ( c->argc == 1 || c->value_int ) {
@@ -2469,8 +2403,6 @@ int
 asyncmeta_back_init_cf( BackendInfo *bi )
 {
 	int			rc;
-	AttributeDescription	*ad = NULL;
-	const char		*text;
 
 	/* Make sure we don't exceed the bits reserved for userland */
 	config_check_userland( LDAP_BACK_CFG_LAST );
@@ -2480,30 +2412,6 @@ asyncmeta_back_init_cf( BackendInfo *bi )
 	rc = config_register_schema( a_metacfg, a_metaocs );
 	if ( rc ) {
 		return rc;
-	}
-
-	/* setup olcDbAclPasswd and olcDbIDAssertPasswd
-	 * to be base64-encoded when written in LDIF form;
-	 * basically, we don't care if it fails */
-	rc = slap_str2ad( "olcDbACLPasswd", &ad, &text );
-	if ( rc ) {
-		Debug( LDAP_DEBUG_ANY, "config_back_initialize: "
-			"warning, unable to get \"olcDbACLPasswd\" "
-			"attribute description: %d: %s\n", rc, text );
-	} else {
-		(void)ldif_must_b64_encode_register( ad->ad_cname.bv_val,
-			ad->ad_type->sat_oid );
-	}
-
-	ad = NULL;
-	rc = slap_str2ad( "olcDbIDAssertPasswd", &ad, &text );
-	if ( rc ) {
-		Debug( LDAP_DEBUG_ANY, "config_back_initialize: "
-			"warning, unable to get \"olcDbIDAssertPasswd\" "
-			"attribute description: %d: %s\n", rc, text );
-	} else {
-		(void)ldif_must_b64_encode_register( ad->ad_cname.bv_val,
-			ad->ad_type->sat_oid );
 	}
 
 	return 0;
