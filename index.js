@@ -31,7 +31,7 @@ function open(path, options) {
 	let committingWrites
 	let scheduledWrites
 	let scheduledOperations
-	let readTxn, writeTxn
+	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch
 	let extension = pathModule.extname(path)
 	let name = pathModule.basename(path, extension)
 	if (!fs.existsSync(pathModule.dirname(path)))
@@ -58,10 +58,11 @@ function open(path, options) {
 			const openDB = () => {
 				try {
 					this.db = env.openDbi({
-						name: dbName || 'data',
+						name: dbName || null,
 						create: true,
 						keyIsBuffer: true,
 					})
+					this.db.name = dbName || null
 				} catch(error) {
 					handleError(error, null, null, openDB)
 				}
@@ -144,9 +145,9 @@ function open(path, options) {
 					result = undefined
 				try {
 					if (copy) {
-						let buffer = shared ? result : result
+						let buffer = shared && result ? Buffer.from(result) : result
 						result = copy(buffer)
-						//env.detachBuffer(buffer)
+						// env.detachBuffer(buffer) // we might end up with something like this for node 14
 					}
 				} finally {
 					if (!writeTxn) {
@@ -338,18 +339,18 @@ function open(path, options) {
 			return iterable
 		}
 		scheduleCommit() {
-			if (!this.pendingBatch) {
+			if (!pendingBatch) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
-					when(this.currentCommit, () => {
-						let timeout = setTimeout(this.runNextBatch = (batchWriter) => {
-							this.runNextBatch = null
+					when(currentCommit, () => {
+						let timeout = setTimeout(runNextBatch = (batchWriter) => {
+							runNextBatch = null
 							for (const store of stores) {
 								store.emit('beforecommit', { scheduledOperations })
 							}
 							clearTimeout(timeout)
-							this.currentCommit = whenCommitted
-							this.pendingBatch = null
+							currentCommit = whenCommitted
+							pendingBatch = null
 							this.pendingSync = null
 							if (scheduledOperations) {
 								// operations to perform, collect them as an array and start doing them
@@ -366,11 +367,11 @@ function open(path, options) {
 												// see if we can recover from recoverable error (like full map with a resize)
 												handleError(error, this, null, writeBatch)
 											} catch(error) {
-												this.currentCommit = null
+												currentCommit = null
 												reject(error)
 											}
 										} else {
-											this.currentCommit = null
+											currentCommit = null
 											resolve(results)
 										}
 									}
@@ -379,24 +380,26 @@ function open(path, options) {
 									else
 										env.batchWrite(operations, callback)
 								}
-								writeBatch()
-							} else if (error) {
-								reject(error)
+								try {
+									writeBatch()
+								} catch(error) {
+									reject(error)
+								}
 							} else {
 								resolve(results && results.length ? results : [])
 							}
 						}, this.commitDelay)
 					})
 				})
-				this.pendingBatch = {
+				pendingBatch = {
 					results: whenCommitted,
 					unconditionalResults: whenCommitted.then(() => true) // for returning from non-conditional operations
 				}
 			}
-			if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold && this.runNextBatch) {
+			if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold && runNextBatch) {
 				// past a certain threshold, run it immediately and synchronously
-				let batch = this.pendingBatch
-				this.runNextBatch((operations, callback) => {
+				let batch = pendingBatch
+				runNextBatch((operations, callback) => {
 					try {
 						callback(null, this.commitBatchNow(operations))
 					} catch (error) {
@@ -405,7 +408,7 @@ function open(path, options) {
 				})
 				return batch
 			}
-			return this.pendingBatch
+			return pendingBatch
 		}
 		commitBatchNow(operations) {
 			let value
@@ -486,7 +489,7 @@ function open(path, options) {
 			})
 		}
 	}
-	return new LMDBStore()
+	return new LMDBStore(options.dbName)
 	function handleError(error, store, txn, retry) {
 		try {
 			if (readTxn) {
