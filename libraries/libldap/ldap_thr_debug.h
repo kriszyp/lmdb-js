@@ -17,7 +17,7 @@
 #ifdef LDAP_THREAD_DEBUG
 
 /*
- * libldap_r .c files should include this file after ldap_pvt_thread.h,
+ * libldap .c files should include this file after ldap_pvt_thread.h,
  * with the appropriate LDAP_THREAD*_IMPLEMENTATION macro(s) defined.
  */
 
@@ -50,7 +50,7 @@
  * include/ldap_<int,pvt>_thread.h also do some thr_debug magic.
  *
  * So,
- * libldap_r/<not thr_debug.c> thus define ldap_int_thread_*() instead
+ * libldap/<not thr_debug.c> thus define ldap_int_thread_*() instead
  * of ldap_pvt_thread_*().
  * thr_debug.c defines the ldap_pvt_*() and ldap_debug_*() functions.
  * In thread.c, ldap_pvt_thread_<initialize/destroy>() will call

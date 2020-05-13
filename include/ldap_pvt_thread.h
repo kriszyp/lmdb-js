@@ -15,7 +15,7 @@
  */
 
 #ifndef _LDAP_PVT_THREAD_H
-#define _LDAP_PVT_THREAD_H /* libldap_r/ldap_thr_debug.h #undefines this */
+#define _LDAP_PVT_THREAD_H /* libldap/ldap_thr_debug.h #undefines this */
 
 #include "ldap_cdefs.h"
 #include "ldap_int_thread.h"

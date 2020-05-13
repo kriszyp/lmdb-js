@@ -673,7 +673,7 @@ ldap_debug_thread_initialize( void )
 			for( i = rc2 = 0; i < Idx_max; i++ )
 				rc2 |= ldap_int_thread_mutex_init( &resource_mutexes[i] );
 			assert( rc2 == 0 );
-			/* FIXME: Only for static libldap_r as in init.c? If so, why? */
+			/* FIXME: Only for static libldap as in init.c? If so, why? */
 			atexit( count_resource_leaks );
 		}
 	}
