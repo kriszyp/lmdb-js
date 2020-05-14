@@ -16,7 +16,7 @@ H2: Dependency Versions
 Feature|Software|Version
 {{TERM[expand]TLS}}:
 |{{PRD:OpenSSL}}|0.9.7+
-|{{PRD:GnuTLS}}|2.12.0
+|{{PRD:GnuTLS}}|3.3.6+
 {{TERM[expand]SASL}}|{{PRD:Cyrus SASL}}|2.1.21+
 {{TERM[expand]Kerberos}}:
 |{{PRD:Heimdal}}|Version

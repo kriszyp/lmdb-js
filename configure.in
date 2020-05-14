@@ -1205,10 +1205,10 @@ if test $ol_link_tls = no ; then
 		if test $ac_cv_header_gnutls_gnutls_h = yes ; then
 			AC_PREPROC_IFELSE([AC_LANG_SOURCE(
 				[[#include <gnutls/gnutls.h>]
-[#if GNUTLS_VERSION_NUMBER < 0x030202]
-[#error "GnuTLS 3.2.2 or newer required"]
+[#if GNUTLS_VERSION_NUMBER < 0x030306]
+[#error "GnuTLS is too old"]
 [#endif]])],
-					, [AC_MSG_FAILURE([GnuTLS is too old])])
+					, [AC_MSG_FAILURE([GnuTLS 3.3.6 or newer required])])
 
 			AC_CHECK_LIB(gnutls, gnutls_init,
 				[have_gnutls=yes], [have_gnutls=no])
@@ -1679,13 +1679,9 @@ dnl When in thread environment, use
 dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) || defined( HAVE_FUNC_R )
 dnl			func_r(...);
 dnl		#else
-dnl		#	if defined( HAVE_THREADS ) 
-dnl				/* lock */
-dnl		#	endif
-dnl				func(...);
-dnl		#	if defined( HAVE_THREADS ) 
-dnl				/* unlock */
-dnl		#	endif
+dnl			/* lock */
+dnl			func(...);
+dnl			/* unlock */
 dnl		#endif
 dnl
 dnl HAVE_REENTRANT_FUNCTIONS is derived from:
@@ -1695,8 +1691,6 @@ dnl		_POSIX_THREADSAFE_FUNCTIONS
 dnl
 dnl		and is currently defined in <ldap_pvt_thread.h>
 dnl
-dnl HAVE_THREADS is defined by <ldap_pvt_thread.h> iff -UNO_THREADS
-dnl 
 dnl libldap/*.c should only include <ldap_pvt_thread.h> iff
 dnl LDAP_R_COMPILE is defined.  ie:
 dnl		#ifdef LDAP_R_COMPILE
@@ -1727,6 +1721,10 @@ dnl	LIBS="$save_LIBS"
 fi  
 
 if test $ol_link_threads = no ; then
+	if test $ol_enable_slapd != no; then
+		AC_MSG_ERROR([slapd requires thread support])
+	fi
+
 	if test $ol_with_threads = yes ; then
 		AC_MSG_ERROR([no suitable thread support])
 	fi

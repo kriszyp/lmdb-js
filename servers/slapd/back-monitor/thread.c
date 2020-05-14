@@ -29,7 +29,6 @@
 
 #include <ldap_rq.h>
 
-#ifndef NO_THREADS
 typedef enum {
 	MT_UNKNOWN,
 	MT_RUNQUEUE,
@@ -96,7 +95,6 @@ monitor_subsys_thread_update(
 	Operation		*op,
 	SlapReply		*rs,
 	Entry 			*e );
-#endif /* ! NO_THREADS */
 
 /*
  * initializes log subentry
@@ -106,7 +104,6 @@ monitor_subsys_thread_init(
 	BackendDB       	*be,
 	monitor_subsys_t	*ms )
 {
-#ifndef NO_THREADS
 	monitor_info_t	*mi;
 	monitor_entry_t	*mp;
 	Entry		*e, **ep, *e_thread;
@@ -210,11 +207,9 @@ monitor_subsys_thread_init(
 
 	monitor_cache_release( mi, e_thread );
 
-#endif /* ! NO_THREADS */
 	return( 0 );
 }
 
-#ifndef NO_THREADS
 static int 
 monitor_subsys_thread_update( 
 	Operation		*op,
@@ -354,4 +349,3 @@ monitor_subsys_thread_update(
 
 	return SLAP_CB_CONTINUE;
 }
-#endif /* ! NO_THREADS */

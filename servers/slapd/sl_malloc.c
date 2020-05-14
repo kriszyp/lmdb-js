@@ -110,12 +110,7 @@ static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
 static void print_slheap(int level, void *ctx);
 #endif
 
-/* Keep memory context in a thread-local var, or in a global when no threads */
-#ifdef NO_THREADS
-static struct slab_heap *slheap;
-# define SET_MEMCTX(thrctx, memctx, sfree)	((void) (slheap = (memctx)))
-# define GET_MEMCTX(thrctx, memctxp)		(*(memctxp) = slheap)
-#else
+/* Keep memory context in a thread-local var */
 # define memctx_key ((void *) slap_sl_mem_init)
 # define SET_MEMCTX(thrctx, memctx, kfree) \
 	ldap_pvt_thread_pool_setkey(thrctx,memctx_key, memctx,kfree, NULL,NULL)
@@ -123,8 +118,6 @@ static struct slab_heap *slheap;
 	((void) (*(memctxp) = NULL), \
 	 (void) ldap_pvt_thread_pool_getkey(thrctx,memctx_key, memctxp,NULL), \
 	 *(memctxp))
-#endif /* NO_THREADS */
-
 
 /* Destroy the context, or if key==NULL clean it up for reuse. */
 void

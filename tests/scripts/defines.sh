@@ -52,7 +52,6 @@ WITH_TLS=${AC_WITH_TLS-no}
 WITH_TLS_TYPE=${AC_TLS_TYPE-no}
 
 ACI=${AC_ACI_ENABLED-acino}
-THREADS=${AC_THREADS-threadsno}
 SLEEP0=${SLEEP0-1}
 SLEEP1=${SLEEP1-7}
 SLEEP2=${SLEEP2-15}
@@ -114,7 +113,6 @@ REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 TLSCONF=$DATADIR/slapd-tls.conf
 TLSSASLCONF=$DATADIR/slapd-tls-sasl.conf
-SASLGSSAPICONF=$DATADIR/slapd-sasl-gssapi.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
 RETCODECONF=$DATADIR/slapd-retcode.conf

@@ -107,19 +107,11 @@ static ldap_pvt_thread_mutex_t emfile_mutex;
 static int emfile;
 
 static volatile int waking;
-#ifdef NO_THREADS
-#define WAKE_LISTENER(l,w)	do { \
-	if ((w) && ++waking < 5) { \
-		tcp_write( SLAP_FD2SOCK(wake_sds[l][1]), "0", 1 ); \
-	} \
-} while (0)
-#else /* ! NO_THREADS */
 #define WAKE_LISTENER(l,w)	do { \
 	if (w) { \
 		tcp_write( SLAP_FD2SOCK(wake_sds[l][1]), "0", 1 ); \
 	} \
 } while (0)
-#endif /* ! NO_THREADS */
 
 volatile sig_atomic_t slapd_shutdown = 0;
 volatile sig_atomic_t slapd_gentle_shutdown = 0;
@@ -2738,9 +2730,9 @@ loop:
 		ldap_pvt_thread_mutex_unlock( &slap_daemon[tid].sd_mutex );
 
 		if ( at 
-#if defined(HAVE_YIELDING_SELECT) || defined(NO_THREADS)
+#if defined(HAVE_YIELDING_SELECT)
 			&&  ( tv.tv_sec || tv.tv_usec )
-#endif /* HAVE_YIELDING_SELECT || NO_THREADS */
+#endif /* HAVE_YIELDING_SELECT */
 			)
 		{
 			tvp = &tv;

@@ -391,6 +391,7 @@ init_syncrepl(syncinfo_t *si)
 			attrs = (char**) ch_malloc( 3 * sizeof(char*) );
 			attrs[i++] = ch_strdup( "*" );
 			attrs[i++] = ch_strdup( "+" );
+			si->si_allattrs = si->si_allopattrs = 1;
 		} else if ( si->si_allattrs && !si->si_allopattrs ) {
 			for ( n = 0; sync_descs[ n ] != NULL; n++ ) ;
 			attrs = (char**) ch_malloc( (n+1)* sizeof(char*) );
@@ -3546,6 +3547,7 @@ static int syncrepl_dsee_schema()
  * operational attributes from the entry, and do a regular ModDN.
  */
 typedef struct dninfo {
+	syncinfo_t *si;
 	Entry *new_entry;
 	struct berval dn;
 	struct berval ndn;
@@ -3767,6 +3769,7 @@ syncrepl_entry(
 	op->o_callback = &cb;
 	cb.sc_response = dn_callback;
 	cb.sc_private = &dni;
+	dni.si = si;
 	dni.new_entry = entry;
 	dni.modlist = modlist;
 	dni.syncstate = syncstate;
@@ -5122,6 +5125,39 @@ void syncrepl_diff_entry( Operation *op, Attribute *old, Attribute *new,
 	*ml = NULL;
 }
 
+/* shallow copy attrs, excluding non-replicated attrs */
+static Attribute *
+attrs_exdup( Operation *op, dninfo *dni, Attribute *attrs )
+{
+	int i;
+	Attribute *tmp, *anew;
+
+	if ( attrs == NULL ) return NULL;
+
+	/* count attrs */
+	for ( tmp = attrs,i=0; tmp; tmp=tmp->a_next ) i++;
+
+	anew = op->o_tmpalloc( i * sizeof(Attribute), op->o_tmpmemctx );
+	for ( tmp = anew; attrs; attrs=attrs->a_next ) {
+		int flag = is_at_operational( attrs->a_desc->ad_type ) ? dni->si->si_allopattrs :
+			dni->si->si_allattrs;
+		if ( !flag && !ad_inlist( attrs->a_desc, dni->si->si_anlist ))
+			continue;
+		if ( dni->si->si_exattrs && ad_inlist( attrs->a_desc, dni->si->si_exanlist ))
+			continue;
+		*tmp = *attrs;
+		tmp->a_next = tmp+1;
+		tmp++;
+	}
+	if ( tmp == anew ) {
+		/* excluded everything */
+		op->o_tmpfree( anew, op->o_tmpmemctx );
+		return NULL;
+	}
+	tmp[-1].a_next = NULL;
+	return anew;
+}
+
 static int
 dn_callback(
 	Operation*	op,
@@ -5263,9 +5299,11 @@ dn_callback(
 				} else
 #endif
 				{
-					syncrepl_diff_entry( op, rs->sr_entry->e_attrs,
+					Attribute *old = attrs_exdup( op, dni, rs->sr_entry->e_attrs );
+					syncrepl_diff_entry( op, old,
 						dni->new_entry->e_attrs, &dni->mods, dni->modlist,
 						is_ctx );
+					op->o_tmpfree( old, op->o_tmpmemctx );
 				}
 			}
 		}

@@ -453,11 +453,7 @@ static ConfigTable config_back_cf_table[] = {
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "listener-threads", "count", 2, 0, 0,
-#ifdef NO_THREADS
-		ARG_IGNORED, NULL,
-#else
 		ARG_UINT|ARG_MAGIC|CFG_LTHREADS, &config_generic,
-#endif
 		"( OLcfgGlAt:93 NAME 'olcListenerThreads' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -727,20 +723,12 @@ static ConfigTable config_back_cf_table[] = {
 			"DESC 'Custom TCP buffer size' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "threads", "count", 2, 2, 0,
-#ifdef NO_THREADS
-		ARG_IGNORED, NULL,
-#else
 		ARG_INT|ARG_MAGIC|CFG_THREADS, &config_generic,
-#endif
 		"( OLcfgGlAt:66 NAME 'olcThreads' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
 	{ "threadqueues", "count", 2, 2, 0,
-#ifdef NO_THREADS
-		ARG_IGNORED, NULL,
-#else
 		ARG_INT|ARG_MAGIC|CFG_THREADQS, &config_generic,
-#endif
 		"( OLcfgGlAt:95 NAME 'olcThreadQueues' "
 			"EQUALITY integerMatch "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },

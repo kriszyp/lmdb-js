@@ -38,7 +38,6 @@
 
 /*
  * Set real and effective user id and group id, and group access list
- * The user and group arguments are freed.
  */
 
 void
@@ -65,7 +64,6 @@ slap_init_user( char *user, char *group )
 	    pwd = getpwuid( uid );
 	    goto did_getpw;
 #else
-	    free( user );
 	    user = NULL;
 #endif
 	} else {
@@ -78,8 +76,7 @@ slap_init_user( char *user, char *group )
 		exit( EXIT_FAILURE );
 	    }
 	    if ( got_uid ) {
-		free( user );
-		user = (pwd != NULL ? ch_strdup( pwd->pw_name ) : NULL);
+		user = (pwd != NULL ? pwd->pw_name : NULL);
 	    } else {
 		got_uid = 1;
 		uid = pwd->pw_uid;
@@ -120,7 +117,6 @@ slap_init_user( char *user, char *group )
 		exit( EXIT_FAILURE );
 	    }
 	}
-	free( group );
 	got_gid = 1;
     }
 
@@ -131,7 +127,6 @@ slap_init_user( char *user, char *group )
 
 	    exit( EXIT_FAILURE );
 	}
-	free( user );
     }
 
 #ifdef HAVE_ENDGRENT
