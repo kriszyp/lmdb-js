@@ -145,7 +145,7 @@ function open(path, options) {
 					result = undefined
 				try {
 					if (copy) {
-						let buffer = shared && result ? Buffer.from(result) : result
+						let buffer = shared && result ? result : result
 						result = copy(buffer)
 						// env.detachBuffer(buffer) // we might end up with something like this for node 14
 					}
@@ -459,7 +459,13 @@ function open(path, options) {
 			return this.scheduleCommit().unconditionalResults
 		}
 		backup(path, compact) {
-			env.copy(path, compact)
+			return new Promise((resolve, reject) => env.copy(path, compact, (error) => {
+				if (error) {
+					reject(error)
+				} else {
+					resolve()
+				}
+			}))
 		}
 		close() {
 			this.db.close()
