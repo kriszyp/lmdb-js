@@ -333,7 +333,7 @@ OL_ARG_ENABLE(perl, [AS_HELP_STRING([--enable-perl], [enable perl backend])],
 OL_ARG_ENABLE(relay, [AS_HELP_STRING([--enable-relay], [enable relay backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(shell, [AS_HELP_STRING([--enable-shell], [enable shell backend])],
-	no, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod])dnl
 OL_ARG_ENABLE(sock, [AS_HELP_STRING([--enable-sock], [enable sock backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(sql, [AS_HELP_STRING([--enable-sql], [enable sql backend])],
