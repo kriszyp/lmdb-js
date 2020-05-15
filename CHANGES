@@ -26,7 +26,7 @@ OpenLDAP 2.4.50 Release (2020/04/28)
 	Documentation
 		slapd-ldap(5) - Clarify idassert-authzfrom behavior (ITS#9003)
 		slapd-meta(5) - Remove client-pr option (ITS#8683)
-		slapdindex(8) - Fix truncate option information for back-mdb (ITS#9230)
+		slapindex(8) - Fix truncate option information for back-mdb (ITS#9230)
 
 OpenLDAP 2.4.49 Release (2020/01/30)
 	Added slapd-monitor database entry count for slapd-mdb (ITS#9154)
