@@ -185,7 +185,9 @@ rewrite_session_return(
 {
 	assert( session != NULL );
 	session->ls_count--;
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_mutex_unlock( &session->ls_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 }
 
 /*
@@ -329,7 +331,9 @@ rewrite_session_free( void *v_session )
 {
 	struct rewrite_session	*session = (struct rewrite_session *)v_session;
 
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_mutex_lock( &session->ls_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	rewrite_session_clean( v_session );
 	free( v_session );
 }
