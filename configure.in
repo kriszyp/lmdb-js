@@ -1699,9 +1699,9 @@ dnl		#ifdef LDAP_R_COMPILE
 dnl		#	include <ldap_pvt_thread.h>
 dnl		#endif
 dnl
-dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
+dnl LDAP_R_COMPILE is defined by libldap/ldap-int.h
 dnl specifically for compiling the threadsafe version of
-dnl	the ldap library (-lldap_r).
+dnl the ldap library.
 dnl		
 dnl	dnl check for reentrant/threadsafe functions
 dnl	dnl

@@ -20,7 +20,8 @@
 #ifndef	_LDAP_INT_H
 #define	_LDAP_INT_H 1
 
-#ifdef LDAP_R_COMPILE
+#ifndef NO_THREADS
+#define LDAP_R_COMPILE 1
 #define LDAP_THREAD_SAFE 1
 #endif
 

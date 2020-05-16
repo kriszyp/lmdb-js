@@ -107,7 +107,7 @@
 #define	ldap_pvt_thread_rdwr_active		ldap_int_thread_rdwr_active
 #endif /* LDAP_THREAD_RDWR_IMPLEMENTATION */
 
-#ifdef LDAP_THREAD_POOL_IMPLEMENTATION	/* tpool.c, thr_stub.c, thr_debug.c */
+#ifdef LDAP_THREAD_POOL_IMPLEMENTATION	/* tpool.c, thr_debug.c */
 #ifdef LDAP_THREAD_DEBUG_WRAP			/* see ldap_pvt_thread.h */
 #define	ldap_pvt_thread_pool_t			ldap_int_thread_pool_t
 #endif
