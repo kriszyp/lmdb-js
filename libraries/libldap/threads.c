@@ -22,6 +22,10 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#include "ldap-int.h"
+
+#ifdef LDAP_R_COMPILE
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #include "ldap_thr_debug.h"  /* May redirect thread initialize/destroy calls */
 
@@ -103,3 +107,5 @@ ldap_pvt_thread_sleep(
 	return 0;
 }
 #endif
+
+#endif /* LDAP_R_COMPILE */

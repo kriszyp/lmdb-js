@@ -29,6 +29,9 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+#ifdef LDAP_R_COMPILE
+
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 #include "ldap_rq.h"
@@ -219,3 +222,4 @@ ldap_pvt_runqueue_persistent_backload(
 	return count;
 }
 
+#endif /* LDAP_R_COMPILE */

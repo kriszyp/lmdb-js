@@ -25,6 +25,9 @@
 #include <ac/errno.h>
 
 #include "ldap-int.h"
+
+#ifdef LDAP_R_COMPILE
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #include "ldap_queue.h"
 #define LDAP_THREAD_POOL_IMPLEMENTATION
@@ -1439,3 +1442,5 @@ ldap_pvt_thread_t ldap_pvt_thread_pool_tid( void *vctx )
 	return ctx->ltu_id;
 }
 #endif /* LDAP_THREAD_HAVE_TPOOL */
+
+#endif /* LDAP_R_COMPILE */
