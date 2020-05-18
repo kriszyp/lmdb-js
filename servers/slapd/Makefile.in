@@ -18,7 +18,7 @@ PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
 
-SUBDIRS=back-* shell-backends slapi overlays
+SUBDIRS=back-* slapi overlays
 
 NT_SRCS = nt_svc.c
 NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res

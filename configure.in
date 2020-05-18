@@ -299,7 +299,6 @@ Backends="dnssrv \
 	passwd \
 	perl \
 	relay \
-	shell \
 	sock \
 	sql \
 	wt"
@@ -331,8 +330,6 @@ OL_ARG_ENABLE(perl, [AS_HELP_STRING([--enable-perl], [enable perl backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(relay, [AS_HELP_STRING([--enable-relay], [enable relay backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(shell, [AS_HELP_STRING([--enable-shell], [enable shell backend])],
-	no, [no yes mod])dnl
 OL_ARG_ENABLE(sock, [AS_HELP_STRING([--enable-sock], [enable sock backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(sql, [AS_HELP_STRING([--enable-sql], [enable sql backend])],
@@ -2628,22 +2625,6 @@ if test "$ol_enable_relay" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_RELAY,$MFLAG,[define to support relay backend])
 fi
 
-if test "$ol_enable_shell" != no ; then
-	if test "$ol_link_threads" != no ; then
-		AC_MSG_WARN([Use of --without-threads is recommended with back-shell])
-	fi
-	BUILD_SLAPD=yes
-	BUILD_SHELL=$ol_enable_shell
-	if test "$ol_enable_shell" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_SHELL,$MFLAG,[define to support SHELL backend])
-fi
-
 if test "$ol_enable_sock" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_SOCK=$ol_enable_sock
@@ -3095,11 +3076,9 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk]
 [servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk]
 [servers/slapd/back-relay/Makefile:build/top.mk:servers/slapd/back-relay/Makefile.in:build/mod.mk]
-[servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk]
 [servers/slapd/back-sock/Makefile:build/top.mk:servers/slapd/back-sock/Makefile.in:build/mod.mk]
 [servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk]
 [servers/slapd/back-wt/Makefile:build/top.mk:servers/slapd/back-wt/Makefile.in:build/mod.mk]
-[servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk]
 [servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [servers/slapd/overlays/Makefile:build/top.mk:servers/slapd/overlays/Makefile.in:build/lib.mk]
 [tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk]
