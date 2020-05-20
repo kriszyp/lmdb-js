@@ -2072,12 +2072,13 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 		return 1;
 
 	} else {
-		/* FIXME: check buffer overflow */
 		char	buf[ BUFSIZ ], *ptr = buf;
+		int plen;
 
 		if ( estimate > 0 ) {
-			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"estimate=%d", estimate );
+			plen = sprintf( buf, "estimate=%d cookie=", estimate );
+		} else {
+			plen = sprintf( buf, "cookie=" );
 		}
 
 		if ( pr_cookie.bv_len > 0 ) {
@@ -2085,29 +2086,26 @@ print_paged_results( LDAP *ld, LDAPControl *ctrl )
 
 			bv.bv_len = LUTIL_BASE64_ENCODE_LEN(
 				pr_cookie.bv_len ) + 1;
-			bv.bv_val = ber_memalloc( bv.bv_len + 1 );
+			ptr = ber_memalloc( bv.bv_len + 1 + plen );
+			bv.bv_val = ptr + plen;
+
+			strcpy( ptr, buf );
 
 			bv.bv_len = lutil_b64_ntop(
 				(unsigned char *) pr_cookie.bv_val,
 				pr_cookie.bv_len,
 				bv.bv_val, bv.bv_len );
 
-			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"%scookie=%s", ptr == buf ? "" : " ",
-				bv.bv_val );
-
-			ber_memfree( bv.bv_val );
-
 			pr_morePagedResults = 1;
-
-		} else {
-			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
-				"%scookie=", ptr == buf ? "" : " " );
+			plen += bv.bv_len;
 		}
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			ldif ? "pagedresults: " : "pagedresults",
-			buf, ptr - buf );
+			ptr, plen );
+
+		if ( ptr != buf )
+			ber_memfree( ptr );
 	}
 
 	return 0;
