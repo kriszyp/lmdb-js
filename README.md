@@ -417,13 +417,13 @@ node-gyp build
 
 ```bash
 # Adding upstream LMDB as remote
-git remote add lmdb https://github.com/LMDB/lmdb.git
+git remote add lmdb https://git.openldap.org/openldap/openldap.git
 # Fetch new remote
 git fetch lmdb
 # Adding the subtree (when it's not there yet)
-git subtree add  --prefix=dependencies/lmdb lmdb mdb.RE/0.9 --squash
+git subtree add  --prefix=dependencies/lmdb lmdb mdb.master --squash
 # Updating the subtree (when already added)
-git subtree pull --prefix=dependencies/lmdb lmdb mdb.RE/0.9 --squash
+git subtree pull --prefix=dependencies/lmdb lmdb mdb.master --squash
 ```
 
 ### Developer FAQ
