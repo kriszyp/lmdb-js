@@ -160,6 +160,18 @@ public:
     static NAN_METHOD(resize);
 
     /*
+        Copies the database environment to a file.
+        (Wrapper for `mdb_env_copy2`)
+
+        Parameters:
+
+        * path - Path to the target file
+        * compact (optional) - Copy using compact setting
+        * callback - Callback when finished (this is performed asynchronously)
+    */
+    static NAN_METHOD(copy);    
+
+    /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */
