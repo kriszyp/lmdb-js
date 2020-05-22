@@ -58,12 +58,14 @@ typedef struct unique_domain_s {
 	struct unique_domain_uri_s *uri;
 	char ignore;                          /* polarity of attributes */
 	char strict;                          /* null considered unique too */
+	char serial;						/* serialize execution */
 } unique_domain;
 
 typedef struct unique_data_s {
 	struct unique_domain_s *domains;
 	struct unique_domain_s *legacy;
 	char legacy_strict_set;
+	ldap_pvt_thread_mutex_t	serial_mutex;
 } unique_data;
 
 typedef struct unique_counter_s {
@@ -76,7 +78,7 @@ enum {
 	UNIQUE_IGNORE,
 	UNIQUE_ATTR,
 	UNIQUE_STRICT,
-	UNIQUE_URI
+	UNIQUE_URI,
 };
 
 static ConfigDriver unique_cf_base;
@@ -315,7 +317,7 @@ unique_new_domain_uri_basic ( unique_domain_uri **urip,
  *
  * domain_specs look like
  *
- * [strict ][ignore ]uri[[ uri]...]
+ * [strict ][ignore ][serialize ]uri[[ uri]...]
  * e.g. "ldap:///ou=foo,o=bar?uid?sub ldap:///ou=baz,o=bar?uid?sub"
  *      "strict ldap:///ou=accounts,o=bar?uid,uidNumber?one"
  *      etc
@@ -345,6 +347,11 @@ unique_new_domain ( unique_domain **domainp,
 			   STRLENOF( "ignore " ) ) == 0 ) {
 		domain->ignore = 1;
 		uri_start += STRLENOF( "ignore " );
+	}
+	if ( strncasecmp ( uri_start, "serialize ",
+			   STRLENOF( "serialize " ) ) == 0 ) {
+		domain->serial = 1;
+		uri_start += STRLENOF( "serialize " );
 	}
 	if ( strncasecmp ( uri_start, "strict ",
 			   STRLENOF( "strict " ) ) == 0 ) {
@@ -644,11 +651,7 @@ unique_cf_strict( ConfigArgs *c )
 		 * and missing is necessary to add olcUniqueURIs...
 		 */
 		if ( private->legacy_strict_set ) {
-			struct berval bv;
-			bv.bv_val = legacy->strict ? "TRUE" : "FALSE";
-			bv.bv_len = legacy->strict ?
-				STRLENOF("TRUE") :
-				STRLENOF("FALSE");
+			struct berval bv = legacy->strict ? slap_true_bv : slap_false_bv;
 			value_add_one ( &c->rvalue_vals, &bv );
 		}
 		rc = 0;
@@ -789,11 +792,13 @@ unique_db_init(
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
-	unique_data **privatep = (unique_data **) &on->on_bi.bi_private;
+	unique_data *private;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_db_init\n" );
 
-	*privatep = ch_calloc ( 1, sizeof ( unique_data ) );
+	private = ch_calloc ( 1, sizeof ( unique_data ) );
+	ldap_pvt_thread_mutex_init( &private->serial_mutex );
+	on->on_bi.bi_private = private;
 
 	return 0;
 }
@@ -805,8 +810,7 @@ unique_db_destroy(
 )
 {
 	slap_overinst *on = (slap_overinst *)be->bd_info;
-	unique_data **privatep = (unique_data **) &on->on_bi.bi_private;
-	unique_data *private = *privatep;
+	unique_data *private = on->on_bi.bi_private;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_db_destroy\n" );
 
@@ -816,8 +820,9 @@ unique_db_destroy(
 
 		unique_free_domain ( domains );
 		unique_free_domain ( legacy );
+		ldap_pvt_thread_mutex_destroy( &private->serial_mutex );
 		ch_free ( private );
-		*privatep = NULL;
+		on->on_bi.bi_private = NULL;
 	}
 
 	return 0;
@@ -1026,6 +1031,21 @@ unique_search(
 }
 
 static int
+unique_unlock(
+	Operation *op,
+	SlapReply *rs
+)
+{
+	slap_callback *sc = op->o_callback;
+	unique_data *private = sc->sc_private;
+
+	ldap_pvt_thread_mutex_unlock( &private->serial_mutex );
+	op->o_callback = sc->sc_next;
+	op->o_tmpfree( sc, op->o_tmpmemctx );
+	return 0;
+}
+
+static int
 unique_add(
 	Operation *op,
 	SlapReply *rs
@@ -1041,6 +1061,7 @@ unique_add(
 	char *key, *kp;
 	struct berval bvkey;
 	int rc = SLAP_CB_CONTINUE;
+	int locked = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_add <%s>\n",
 	      op->o_req_dn.bv_val );
@@ -1100,6 +1121,9 @@ unique_add(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
+			if ( domain->serial && !locked )
+				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
+
 			/* terminating NUL */
 			ks += sizeof("(|)");
 
@@ -1150,6 +1174,17 @@ unique_add(
 		if ( rc != SLAP_CB_CONTINUE ) break;
 	}
 
+	if ( locked ) {
+		if ( rc != SLAP_CB_CONTINUE ) {
+			ldap_pvt_thread_mutex_unlock( &private->serial_mutex );
+		} else {
+			slap_callback *cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+			cb->sc_cleanup = unique_unlock;
+			cb->sc_private = private;
+			cb->sc_next = op->o_callback;
+			op->o_callback = cb;
+		}
+	}
 	return rc;
 }
 
@@ -1171,6 +1206,7 @@ unique_modify(
 	char *key, *kp;
 	struct berval bvkey;
 	int rc = SLAP_CB_CONTINUE;
+	int locked = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modify <%s>\n",
 	      op->o_req_dn.bv_val );
@@ -1222,6 +1258,9 @@ unique_modify(
 
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
+
+			if ( domain->serial && !locked )
+				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
 
 			/* terminating NUL */
 			ks += sizeof("(|)");
@@ -1275,6 +1314,17 @@ unique_modify(
 		if ( rc != SLAP_CB_CONTINUE ) break;
 	}
 
+	if ( locked ) {
+		if ( rc != SLAP_CB_CONTINUE ) {
+			ldap_pvt_thread_mutex_unlock( &private->serial_mutex );
+		} else {
+			slap_callback *cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+			cb->sc_cleanup = unique_unlock;
+			cb->sc_private = private;
+			cb->sc_next = op->o_callback;
+			op->o_callback = cb;
+		}
+	}
 	return rc;
 }
 
@@ -1297,6 +1347,7 @@ unique_modrdn(
 	LDAPRDN	newrdn;
 	struct berval bv[2];
 	int rc = SLAP_CB_CONTINUE;
+	int locked = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "==> unique_modrdn <%s> <%s>\n",
 		op->o_req_dn.bv_val, op->orr_newrdn.bv_val );
@@ -1374,6 +1425,9 @@ unique_modrdn(
 			/* skip this domain if it isn't involved */
 			if ( !ks ) continue;
 
+			if ( domain->serial && !locked )
+				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
+
 			/* terminating NUL */
 			ks += sizeof("(|)");
 
@@ -1426,6 +1480,17 @@ unique_modrdn(
 		if ( rc != SLAP_CB_CONTINUE ) break;
 	}
 
+	if ( locked ) {
+		if ( rc != SLAP_CB_CONTINUE ) {
+			ldap_pvt_thread_mutex_unlock( &private->serial_mutex );
+		} else {
+			slap_callback *cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+			cb->sc_cleanup = unique_unlock;
+			cb->sc_private = private;
+			cb->sc_next = op->o_callback;
+			op->o_callback = cb;
+		}
+	}
 	return rc;
 }
 
