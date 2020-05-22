@@ -445,8 +445,12 @@ int ldap_pvt_gethostbyname_a(
 		*result=gethostbyname_r( name, resbuf, *buf, buflen, herrno_ptr );
 		r = (*result == NULL) ?  -1 : 0;
 #else
-		r = gethostbyname_r( name, resbuf, *buf,
-			buflen, result, herrno_ptr );
+		while((r = gethostbyname_r( name, resbuf, *buf, buflen, result, herrno_ptr )) == ERANGE) {
+			/* Increase the buffer */
+			buflen*=2;
+			if (safe_realloc(buf, buflen) == NULL)
+				return -1;
+		}
 #endif
 
 		Debug2( LDAP_DEBUG_TRACE, "ldap_pvt_gethostbyname_a: host=%s, r=%d\n",
