@@ -12,6 +12,7 @@ const MAX_DB_SIZE = 256 * 1024 * 1024;
 
 describe('Node.js LMDB Bindings', function() {
   var testDirPath = path.resolve(__dirname, './testdata');
+  var testBackupDirPath = path.resolve(__dirname, './testdata/backup');
 
   // just to make a reasonable sized chunk of data...
   function expand(str) {
@@ -31,7 +32,7 @@ describe('Node.js LMDB Bindings', function() {
         return done(err);
       }
       // setup clean directory
-      mkdirp(testDirPath, function(err) {
+      mkdirp(testBackupDirPath, function(err) {
         if (err) {
           return done(err);
         }
@@ -287,6 +288,20 @@ describe('Node.js LMDB Bindings', function() {
 
       txn.abort();
       dbi.close();
+    });
+    it.only('will create a database and back it up', function (done) {
+      var txn = env.beginTxn();
+      var dbi = env.openDbi({
+        name: 'backup',
+        create: true,
+        txn: txn
+      });
+      txn.putString(dbi, 'hello', 'world');
+      txn.commit();
+      env.copy(testBackupDirPath, (error) => {
+        done(error)
+      });
+//      console.log('sent copy')
     });
   });
   describe('Data types', function() {

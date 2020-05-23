@@ -116,6 +116,37 @@ class SyncWorker : public Nan::AsyncWorker {
     MDB_env* env;
 };
 
+class CopyWorker : public Nan::AsyncWorker {
+  public:
+    CopyWorker(MDB_env* env, char* inPath, int flags, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), env(env), flags(flags), path(strdup(inPath)) {
+      }
+
+    void Execute() {
+        fprintf(stderr, "Doing copy: %u\n", flags);
+        int rc = mdb_env_copy2(env, path, flags);
+        if (rc != 0) {
+            fprintf(stderr, "Error on copy code: %u\n", rc);
+            SetErrorMessage("Error on copy");
+        }
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+        v8::Local<v8::Value> argv[] = {
+            Nan::Null()
+        };
+
+        callback->Call(1, argv, async_resource);
+    }
+
+  private:
+    MDB_env* env;
+    char* path;
+    int flags;
+};
+
+
 struct condition_t {
     MDB_val key;
     MDB_val data;
@@ -491,6 +522,49 @@ NAN_METHOD(EnvWrap::readerCheck) {
     info.GetReturnValue().Set(Nan::New<Number>(dead));
 }
 
+NAN_METHOD(EnvWrap::detachBuffer) {
+    Nan::HandleScope scope;
+    Local<v8::ArrayBuffer>::Cast(info[0])->Detach();
+}
+
+NAN_METHOD(EnvWrap::copy) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    // Check that the correct number/type of arguments was given.
+    if (!info[0]->IsString()) {
+        return Nan::ThrowError("Call env.copy(path, compact?, callback) with a file path.");
+    }
+    if (!info[info.Length() - 1]->IsFunction()) {
+        return Nan::ThrowError("Call env.copy(path, compact?, callback) with a file path.");
+    }
+    char* path = *Nan::Utf8String(info[0].As<String>());
+
+    int flags = 0;
+fprintf(stderr, "info.Length(): %u\n", info.Length());
+    if (info.Length() > 1 && info[1]->IsTrue()) {
+fprintf(stderr, "compact");
+        flags = MDB_CP_COMPACT;
+    }
+fprintf(stderr, "flags: %u\n", flags);
+    Nan::Callback* callback = new Nan::Callback(
+      v8::Local<v8::Function>::Cast(info[info.Length()  > 2 ? 2 : 1])
+    );
+
+    CopyWorker* worker = new CopyWorker(
+      ew->env, path, flags, callback
+    );
+    //pathCopy = nullptr;
+
+    Nan::AsyncQueueWorker(worker);
+}
+
 NAN_METHOD(EnvWrap::beginTxn) {
     Nan::HandleScope scope;
 
@@ -708,6 +782,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
     envTpl->PrototypeTemplate()->Set(isolate, "readerCheck", Nan::New<FunctionTemplate>(EnvWrap::readerCheck));
     envTpl->PrototypeTemplate()->Set(isolate, "resize", Nan::New<FunctionTemplate>(EnvWrap::resize));
+    envTpl->PrototypeTemplate()->Set(isolate, "detachBuffer", Nan::New<FunctionTemplate>(EnvWrap::detachBuffer));
+    envTpl->PrototypeTemplate()->Set(isolate, "copy", Nan::New<FunctionTemplate>(EnvWrap::copy));
     // TODO: wrap mdb_env_copy too
 
     // TxnWrap: Prepare constructor template

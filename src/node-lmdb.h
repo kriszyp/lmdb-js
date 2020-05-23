@@ -142,6 +142,11 @@ public:
     */
     static NAN_METHOD(readerCheck);
 
+    static NAN_METHOD(detachBuffer);
+
+
+    static NAN_METHOD(copy);
+
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
         (Wrapper for `mdb_env_open`)
