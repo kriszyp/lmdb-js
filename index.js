@@ -131,7 +131,7 @@ function open(path, options) {
 				writeTxn = null
 			}
 		}
-		get(id, copy, shared) {
+		get(id, copy) {
 			let txn
 			try {
 				if (writeTxn) {
@@ -140,14 +140,14 @@ function open(path, options) {
 					txn = readTxn
 					txn.renew()
 				}
-				let result = shared ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
+				let result = copy ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
 				if (result === null) // missing entry, really should be undefined
 					result = undefined
 				try {
-					if (copy) {
-						let buffer = shared && result ? result : result
+					if (copy && result) {
+						let buffer = result
 						result = copy(buffer)
-						// env.detachBuffer(buffer) // we might end up with something like this for node 14
+						env.detachBuffer(buffer.buffer) // we might end up with something like this for node 14
 					}
 				} finally {
 					if (!writeTxn) {
@@ -247,6 +247,7 @@ function open(path, options) {
 		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
+			let copy = options.copy
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? Buffer.from([255, 255]) : Buffer.from([0]))
 				let endKey = options.end || (options.reverse ? Buffer.from([0]) : Buffer.from([255, 255]))
@@ -279,11 +280,16 @@ function open(path, options) {
 						while (!(finished = currentKey === null ||
 								(reverse ? currentKey.compare(endKey) <= 0 : currentKey.compare(endKey) >= 0)) &&
 							i++ < RANGE_BATCH_SIZE) {
-							try {
-								array.push(currentKey, options.values === false ? null : cursor.getCurrentBinary())
-							} catch(error) {
-								console.log('error uncompressing value for key', currentKey)
+							let value
+							if (options.values !== false) {
+								if (copy) {
+									let buffer = cursor.getCurrentBinaryUnsafe()
+									value = copy(buffer)
+									env.detachBuffer(buffer.buffer)
+								} else
+									value = cursor.getCurrentBinary()
 							}
+							array.push(currentKey, value)
 							if (++count >= options.limit) {
 								finished = true
 								break
@@ -471,12 +477,34 @@ function open(path, options) {
 			this.db.close()
 			env.close()
 		}
+		getStats() {
+			try {
+				readTxn.renew()
+				let stats = this.db.stat(readTxn)
+				readTxn.reset()
+				return stats
+			}
+			catch(error) {
+				return handleError(error, this, readTxn, () => this.getStats())
+			}
+		}
 		sync(callback) {
 			return env.sync(callback || function(error) {
 				if (error) {
 					console.error(error)
 				}
 			})
+		}
+		deleteDB() {
+			//console.log('clearing db', name)
+			try {
+				this.db.drop({
+					justFreePages: false,
+					txn: writeTxn,
+				})
+			} catch(error) {
+				handleError(error, this, null, () => this.clear())
+			}
 		}
 		clear() {
 			//console.log('clearing db', name)
@@ -488,11 +516,6 @@ function open(path, options) {
 			} catch(error) {
 				handleError(error, this, null, () => this.clear())
 			}
-		}
-		testResize() {
-			handleError(new Error('MDB_MAP_FULL'), this, null, () => {
-				console.log('done resizing')
-			})
 		}
 	}
 	return new LMDBStore(options.dbName)

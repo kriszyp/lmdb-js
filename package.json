@@ -15,7 +15,7 @@
   "typings": "./index.d.ts",
   "dependencies": {
     "fs-extra": "^9.0.0",
-    "node-lmdb": "kriszyp/node-lmdb#v1-test2"
+    "node-lmdb": "kriszyp/node-lmdb#v1-test3"
   },
   "devDependencies": {
     "@types/node": "latest",
