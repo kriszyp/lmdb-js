@@ -1,3 +1,4 @@
+*.DS_STORE
 
 # Build and test data
 build

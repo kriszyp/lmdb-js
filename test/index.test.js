@@ -289,7 +289,7 @@ describe('Node.js LMDB Bindings', function() {
       txn.abort();
       dbi.close();
     });
-    it.only('will create a database and back it up', function (done) {
+    it('will create a database and back it up', function (done) {
       var txn = env.beginTxn();
       var dbi = env.openDbi({
         name: 'backup',
