@@ -61,6 +61,7 @@ function open(path, options) {
 					this.db = env.openDbi({
 						name: dbName || null,
 						create: true,
+						txn: writeTxn,
 						keyIsBuffer: true,
 					})
 					this.db.name = dbName || null
@@ -237,12 +238,10 @@ function open(path, options) {
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
 		}
-		iterable(options) {
-			console.warn('iterable is deprecated')
-			return this.getRange(options)
-		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
+			if (!options)
+				options = {}
 			let copy = options.copy
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? Buffer.from([255, 255]) : Buffer.from([0]))
@@ -253,9 +252,15 @@ function open(path, options) {
 				const getNextBlock = () => {
 					array = []
 					let cursor
+					let txn
 					try {
-						readTxn.renew()
-						cursor = new Cursor(readTxn, this.db)
+						if (writeTxn) {
+							txn = writeTxn
+						} else {
+							txn = readTxn
+							txn.renew()
+						}
+						cursor = new Cursor(txn, this.db)
 						if (reverse) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
@@ -293,14 +298,17 @@ function open(path, options) {
 							currentKey = cursor[goToDirection]()
 						}
 						cursor.close()
-						readTxn.reset()
+						if (!writeTxn)
+							txn.reset()
 					} catch(error) {
 						if (cursor) {
 							try {
+								if (!writeTxn)
+									txn.reset()
 								cursor.close()
 							} catch(error) { }
 						}
-						return handleError(error, this, readTxn, getNextBlock)
+						return handleError(error, this, txn, getNextBlock)
 					}
 				}
 				let array
