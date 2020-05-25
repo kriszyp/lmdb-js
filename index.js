@@ -347,8 +347,10 @@ function open(path, options) {
 					when(currentCommit, () => {
 						let timeout = setTimeout(runNextBatch = (batchWriter) => {
 							runNextBatch = null
-							for (const store of stores) {
-								store.emit('beforecommit', { scheduledOperations })
+							if (pendingBatch) {
+								for (const store of stores) {
+									store.emit('beforecommit', { scheduledOperations })
+								}
 							}
 							clearTimeout(timeout)
 							currentCommit = whenCommitted
@@ -388,7 +390,7 @@ function open(path, options) {
 									reject(error)
 								}
 							} else {
-								resolve(results && results.length ? results : [])
+								resolve([])
 							}
 						}, this.commitDelay)
 						runNextBatch.timeout = timeout
@@ -403,6 +405,7 @@ function open(path, options) {
 				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
 					// past a certain threshold, run it immediately and synchronously
 					let batch = pendingBatch
+					clearImmediate(runNextBatch.immediate)
 					runNextBatch((operations, callback) => {
 						try {
 							callback(null, this.commitBatchNow(operations))
@@ -412,9 +415,7 @@ function open(path, options) {
 					})
 					return batch
 				} else if (!runNextBatch.immediate) {
-					clearTimeout(runNextBatch.timeout)
-					runNextBatch.timeout = setImmediate(runNextBatch)
-					runNextBatch.immediate = true
+					runNextBatch.immediate = setImmediate(runNextBatch)
 				}
 			}
 			return pendingBatch
@@ -435,7 +436,6 @@ function open(path, options) {
 							} else {
 								matches = false
 							}
-							env.detachBuffer(previousValue)
 						} else {
 							matches = !ifValue
 						}
