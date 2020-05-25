@@ -1121,8 +1121,10 @@ unique_add(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( domain->serial && !locked )
+			if ( domain->serial && !locked ) {
 				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
+				locked = 1;
+			}
 
 			/* terminating NUL */
 			ks += sizeof("(|)");
@@ -1259,8 +1261,10 @@ unique_modify(
 			/* skip this domain-uri if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( domain->serial && !locked )
+			if ( domain->serial && !locked ) {
 				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
+				locked = 1;
+			}
 
 			/* terminating NUL */
 			ks += sizeof("(|)");
@@ -1425,8 +1429,10 @@ unique_modrdn(
 			/* skip this domain if it isn't involved */
 			if ( !ks ) continue;
 
-			if ( domain->serial && !locked )
+			if ( domain->serial && !locked ) {
 				ldap_pvt_thread_mutex_lock( &private->serial_mutex );
+				locked = 1;
+			}
 
 			/* terminating NUL */
 			ks += sizeof("(|)");
