@@ -8,6 +8,7 @@ const EventEmitter = require('events')
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 20000000
+const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000
 const DEFAULT_COMMIT_DELAY = 20
 const AS_BINARY = {
 	keyIsBuffer: true
@@ -75,6 +76,7 @@ function open(path, options) {
 			this.transactions = 0
 			this.averageTransactionTime = 5
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
+			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options)
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
@@ -186,16 +188,10 @@ function open(path, options) {
 					value = Buffer.from(value)
 				}
 				this.writes++
-				let startCpu = process.cpuUsage()
-				let start = Date.now()
-
 				txn = writeTxn || env.beginTxn()
 				txn.putBinary(this.db, id, value)
-				/*if (Date.now() - start > 20)
-					console.log('after put', Date.now() - start, process.cpuUsage(startCpu))*/
 				if (!writeTxn) {
 					txn.commit()
-					//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 				}
 			} catch(error) {
 				if (writeTxn)
@@ -395,6 +391,7 @@ function open(path, options) {
 								resolve(results && results.length ? results : [])
 							}
 						}, this.commitDelay)
+						runNextBatch.timeout = timeout
 					})
 				})
 				pendingBatch = {
@@ -402,35 +399,43 @@ function open(path, options) {
 					unconditionalResults: whenCommitted.then(() => true) // for returning from non-conditional operations
 				}
 			}
-			if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold && runNextBatch) {
-				// past a certain threshold, run it immediately and synchronously
-				let batch = pendingBatch
-				runNextBatch((operations, callback) => {
-					try {
-						callback(null, this.commitBatchNow(operations))
-					} catch (error) {
-						callback(error)
-					}
-				})
-				return batch
+			if (scheduledOperations && scheduledOperations.bytes >= this.immediateBatchThreshold && runNextBatch) {
+				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
+					// past a certain threshold, run it immediately and synchronously
+					let batch = pendingBatch
+					runNextBatch((operations, callback) => {
+						try {
+							callback(null, this.commitBatchNow(operations))
+						} catch (error) {
+							callback(error)
+						}
+					})
+					return batch
+				} else if (!runNextBatch.immediate) {
+					clearTimeout(runNextBatch.timeout)
+					runNextBatch.timeout = setImmediate(runNextBatch)
+					runNextBatch.immediate = true
+				}
 			}
 			return pendingBatch
 		}
 		commitBatchNow(operations) {
+			console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
 			let value
 			let results = new Array(operations.length)
 			this.transaction(() => {
 				for (let i = 0, l = operations.length; i < l; i++) {
 					let [db, id, value, ifValue] = operations[i]
 					if (ifValue !== undefined) {
-						value = this.get(id)
+						let previousValue = this.get.call({ db }, id)
 						let matches
-						if (value) {
+						if (previousValue) {
 							if (ifValue) {
 								matches = value.length >= ifValue.length && value.slice(0, ifValue.length).equals(ifValue)
 							} else {
 								matches = false
 							}
+							env.detachBuffer(previousValue)
 						} else {
 							matches = !ifValue
 						}
@@ -440,9 +445,9 @@ function open(path, options) {
 						}
 					}
 					if (value === undefined) {
-						results[i] = this.removeSync(id) ? 0 : 2
+						results[i] = this.removeSync.call({ db }, id) ? 0 : 2
 					} else {
-						this.putSync(id, value)
+						this.putSync.call({ db }, id, value)
 						results[i] = 0
 					}
 				}
