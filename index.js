@@ -159,7 +159,7 @@ function open(path, options) {
 				this.reads++
 				return result
 			} catch(error) {
-				return handleError(error, this, txn, () => this.get(id, copy, shared))
+				return handleError(error, this, txn, () => this.get(id, copy))
 			}
 		}
 		put(id, value, ifValue) {
@@ -561,8 +561,8 @@ function open(path, options) {
 				store.emit('remap')
 			}
 
+			console.log('Resizing database', name, 'to', newSize)
 			env.resize(newSize)
-			console.log('Resized database', name, 'to', newSize)
 			readTxn = env.beginTxn(READING_TNX)
 			readTxn.reset()
 			let result = retry()
