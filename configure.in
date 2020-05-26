@@ -328,13 +328,13 @@ OL_ARG_ENABLE(null, [AS_HELP_STRING([--enable-null], [enable null backend])],
 OL_ARG_ENABLE(passwd, [AS_HELP_STRING([--enable-passwd], [enable passwd backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(perl, [AS_HELP_STRING([--enable-perl], [enable perl backend])],
-	no, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod])dnl
 OL_ARG_ENABLE(relay, [AS_HELP_STRING([--enable-relay], [enable relay backend])],
 	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(sock, [AS_HELP_STRING([--enable-sock], [enable sock backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(sql, [AS_HELP_STRING([--enable-sql], [enable sql backend])],
-	no, [no yes mod], ol_enable_backends)dnl
+	no, [no yes mod])dnl
 OL_ARG_ENABLE(wt, [AS_HELP_STRING([--enable-wt], [enable WiredTiger backend])],
 	no, [no yes mod], ol_enable_backends)dnl
 
