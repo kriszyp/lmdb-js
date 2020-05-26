@@ -295,6 +295,7 @@ Backends="dnssrv \
 	meta \
 	asyncmeta \
 	monitor \
+	ndb \
 	null \
 	passwd \
 	perl \
