@@ -31,9 +31,7 @@ PROGRAMS = pw-argon2.la
 MANPAGES = slapd-pw-argon2.5
 LTVER = 0:0:0
 
-#prefix=/usr/local
-prefix=`grep -e "^prefix =" $(LDAP_BUILD)/Makefile | cut -d= -f2`
-
+prefix=/usr/local
 exec_prefix=$(prefix)
 ldap_subdir=/openldap
 

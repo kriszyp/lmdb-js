@@ -17,9 +17,7 @@ LIBS = $(LDAP_LIB) -lcrypto
 PROGRAMS = pw-pbkdf2.la
 LTVER = 0:0:0
 
-#prefix=/usr/local
-prefix=`grep -e "^prefix =" $(LDAP_BUILD)/Makefile | cut -d= -f2`
-
+prefix=/usr/local
 exec_prefix=$(prefix)
 ldap_subdir=/openldap
 
