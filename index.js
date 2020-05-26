@@ -7,8 +7,8 @@ const when  = require('./util/when')
 const EventEmitter = require('events')
 
 const RANGE_BATCH_SIZE = 100
-const DEFAULT_SYNC_BATCH_THRESHOLD = 20000000
-const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000
+const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
+const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
 const DEFAULT_COMMIT_DELAY = 20
 const AS_BINARY = {
 	keyIsBuffer: true

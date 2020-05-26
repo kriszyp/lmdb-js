@@ -31,7 +31,7 @@ Once you have a store the following methods are available:
 ### `store.get(key: Buffer, copy?: Function): Buffer`
 Get the value at the specified key. The `key` must be a buffer, and the return value will either be a buffer if the entry exists, or `undefined` if the entry does not exist.
 
-For typical usage, no `copy` function is needed, and returned buffer will be a safe copy of the data from the database. However, some optimizations can be performed (such as decompression) by using using the `copy` argument, in which case a `buffer` as a reference directly to the shared, memory-mapped data in the database will provided to the `copy` function and it will be responsible for copying the data (or decompressing directly from the db). The shared memory reference provided to the `copy` function is valid until a future writes or until a `remap` event, after which accessing the data will either be non-deterministic (after writes), or will seg-fault after a remap.
+For typical usage, no `copy` function is needed, and returned buffer will be a safe copy of the data from the database. However, some optimizations can be performed (such as decompression or immediate parsing to an object) by using using the `copy` argument, in which case a `buffer` as a reference directly to the shared, memory-mapped data in the database will provided to the `copy` function and it will be responsible for copying the data (or decompressing directly from the db). The shared memory reference should not be used outside the `copy` function, as it will be detached and unusable.
 
 ### `store.put(key: Buffer, value: Buffer, ifValue?: Buffer): Promise<boolean>`
 This will set the provided value at the specified key. If the `ifValue` parameter is set, the put will only occur if the existing value at the provided key matches the value provided by `ifValue` at the instace the commit occurs (LMDB commits are atomic by default). If the `ifValue` parameter is not set, the put will occur regardless of the previous value.
@@ -90,7 +90,8 @@ The open method has the following signature:
 `open(path, options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument should be an object, and supports the following properties, all of which are optional:
 * commitDelay - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 20ms. A shorter delay means more immediate commits, but a longer delay can be more efficient at collected more writes into a single transaction and reducing I/O load.
-* syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 20000000 (bytes).
+* immediateBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
+* syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
 The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>:
 * useWritemap - Use writemaps (this is the main flag we recommend using), as it improves performance by reducing malloc calls.
 * noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension, has '.' in it)
@@ -101,9 +102,7 @@ The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc
 
 ## Events
 
-The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There are two events:
-
-`remap` - This event is fired before a database is resized, and the memory-map is remapped. If any data has been read using `get` with a `copy` function prior to this event, that data/buffer provided to `copy` _must_ not be accessed after this event, or it will cause a segmentation fault and your program will exit (this is non-recoverable).
+The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
 `beforecommit` - This event is fired before a batched operation begins to start transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
 
