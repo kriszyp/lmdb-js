@@ -513,7 +513,7 @@ oc_check_required(
 
 	Debug( LDAP_DEBUG_TRACE,
 		"oc_check_required entry (%s), objectClass \"%s\"\n",
-		e->e_dn, ocname->bv_val );
+		e->e_dn?e->e_dn:"(null)", ocname->bv_val );
 
 
 	/* check for empty oc_required */
