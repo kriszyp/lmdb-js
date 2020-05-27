@@ -645,7 +645,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
             if (ifValue->IsNull()) {
                 condition->data.mv_data = &deleteValue;
-            } else {
+            } else if (ifValue->IsArrayBufferView()) {
                 condition->data.mv_size = node::Buffer::Length(ifValue);
                 condition->data.mv_data = node::Buffer::Data(ifValue);
                 if (!isArray) {
@@ -654,6 +654,8 @@ NAN_METHOD(EnvWrap::batchWrite) {
                         condition->matchSize = true;
                     }
                 }
+            } else {
+                return Nan::ThrowError("The ifValue must be a buffer or null/undefined.");
             }
             if (isArray) {
                 condition->dbi = action->dbi;
@@ -662,11 +664,12 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
                 if (ifDB->IsNullOrUndefined()) {
                     condition->dbi = action->dbi;
-                } else {
+                } else if (ifDB->IsObject()) {
                     dw = Nan::ObjectWrap::Unwrap<DbiWrap>(v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(Nan::GetCurrentContext(), Nan::New<String>("ifDB").ToLocalChecked())).ToLocalChecked()));
                     condition->dbi = dw->dbi;
+                } else {
+                    return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
                 }
-
                 v8::Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
                 if (ifKey->IsNullOrUndefined()) {
                     condition->key = action->key;
