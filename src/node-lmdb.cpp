@@ -39,6 +39,6 @@ extern "C" {
         setupExportMisc(exports);
     }
 
-    // The standard node macro
-    NODE_MODULE(node_lmdb, initializeModule)
+    // Context-aware, ie. thread safe
+    NODE_MODULE_CONTEXT_AWARE(node_lmdb, initializeModule)
 }

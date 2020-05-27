@@ -163,17 +163,18 @@ struct action_t {
     argtokey_callback_t freeKey;
 };
 
-int deleteValue; // pointer to this as the value represents a delete
+thread_local static int deleteValue; // pointer to this as the value represents a delete
 
 class BatchWorker : public Nan::AsyncProgressWorker {
   public:
-    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, Nan::Callback *callback, Nan::Callback *progress)
+    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, Nan::Callback *callback, Nan::Callback *progress, int * deleteRef)
       : Nan::AsyncProgressWorker(callback, "node-lmdb:Batch"),
       actions(actions),
       actionCount(actionCount),
       putFlags(putFlags),
       env(env),
-      progress(progress) {
+      progress(progress),
+      deleteRef(deleteRef) {
         results = new int[actionCount];
     }
 
@@ -205,7 +206,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 MDB_val value;
                 rc = mdb_get(txn, condition->dbi, &condition->key, &value);
                 bool different;
-                if (condition->data.mv_data == &deleteValue) {
+                if (condition->data.mv_data == deleteRef) {
                     different = rc != MDB_NOTFOUND;
                 } else {
                     if (rc == MDB_NOTFOUND) {
@@ -228,7 +229,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             if (condition) {
                 rc = 0; // make sure this gets set back to zero, failed conditions shouldn't trigger error
             } else {
-                if (action->data.mv_data == &deleteValue) {
+                if (action->data.mv_data == deleteRef) {
                     rc = mdb_del(txn, action->dbi, &action->key, nullptr);
                     if (rc == MDB_NOTFOUND) {
                         rc = 0; // ignore not_found errors
@@ -302,6 +303,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
     action_t* actions;
     int putFlags;
     Nan::Callback* progress;
+    int * deleteRef;
 };
 
 
@@ -664,7 +666,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     }
 
     BatchWorker* worker = new BatchWorker(
-        ew->env, actions, length, putFlags, callback, progress
+        ew->env, actions, length, putFlags, callback, progress, &deleteValue
     );
     int persistedIndex = 0;
     bool keyIsValid = false;
