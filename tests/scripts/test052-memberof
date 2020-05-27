@@ -121,7 +121,7 @@ ${mainInclude}olcDbMode: 384"
 
 dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcOverlay: {0}memberof
 olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupOfNames
@@ -130,7 +130,7 @@ olcMemberOfMemberOfAD: memberOf
 
 dn: olcOverlay={1}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcOverlay: {1}memberof
 olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupA
@@ -139,7 +139,7 @@ olcMemberOfMemberOfAD: memberOfA
 
 dn: olcOverlay={2}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcOverlay: {2}memberof
 olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupB

@@ -134,7 +134,7 @@ changetype: add
 objectClass: olcOverlayConfig
 objectClass: olcConfig
 objectClass: top
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcMemberOfGroupOC: groupOfNames
 olcMemberOfMemberAD: member
 olcMemberOfMemberOfAD: memberOf

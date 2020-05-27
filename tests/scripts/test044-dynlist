@@ -309,11 +309,11 @@ $LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
 changetype: modify
-delete: olcDLattrSet
-olcDLattrSet: {0}
+delete: olcDynListAttrSet
+olcDynListAttrSet: {0}
 -
-add: olcDLattrSet
-olcDLattrSet: groupOfURLs memberURL sn:cn mail
+add: olcDynListAttrSet
+olcDynListAttrSet: groupOfURLs memberURL sn:cn mail
 -
 EOMODS
 
@@ -419,11 +419,11 @@ $LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
 changetype: modify
-delete: olcDLattrSet
-olcDLattrSet: {0}
+delete: olcDynListAttrSet
+olcDynListAttrSet: {0}
 -
-add: olcDLattrSet
-olcDLattrSet: groupOfURLs memberURL member
+add: olcDynListAttrSet
+olcDynListAttrSet: groupOfURLs memberURL member
 -
 EOMODS
 
@@ -698,11 +698,11 @@ $LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
 changetype: modify
-delete: olcDLattrSet
-olcDLattrSet: {0}
+delete: olcDynListAttrSet
+olcDynListAttrSet: {0}
 -
-add: olcDLattrSet
-olcDLattrSet: groupOfURLs memberURL member@dgMemberOf
+add: olcDynListAttrSet
+olcDynListAttrSet: groupOfURLs memberURL member@dgMemberOf
 -
 EOMODS
 

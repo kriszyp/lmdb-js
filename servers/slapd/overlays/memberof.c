@@ -1759,7 +1759,7 @@ static ConfigTable mo_cfg[] = {
 
 static ConfigOCs mo_ocs[] = {
 	{ "( OLcfgOvOc:18.1 "
-		"NAME 'olcMemberOf' "
+		"NAME ( 'olcMemberOfConfig' 'olcMemberOf' ) "
 		"DESC 'Member-of configuration' "
 		"SUP olcOverlayConfig "
 		"MAY ( "
