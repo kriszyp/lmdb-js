@@ -1017,9 +1017,6 @@
 /* define to support reverse lookups */
 #undef SLAPD_RLOOKUPS
 
-/* define to support SHELL backend */
-#undef SLAPD_SHELL
-
 /* define to support SOCK backend */
 #undef SLAPD_SOCK
 
