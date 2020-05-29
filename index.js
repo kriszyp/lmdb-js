@@ -40,7 +40,7 @@ function open(path, options) {
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
-		maxDbs: 4,
+		maxDbs: 12,
 		//useWritemap: true, // this provides better performance
 	}, options)
 
