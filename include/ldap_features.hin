@@ -32,11 +32,8 @@
 ** OpenLDAP reentrancy/thread-safeness should be dynamically
 ** checked using ldap_get_option().
 **
-** The -lldap implementation is not thread-safe.
-**
-** The -lldap_r implementation is:
+** If built with thread support, the -lldap implementation is:
 **		LDAP_API_FEATURE_THREAD_SAFE (basic thread safety)
-** but also be:
 **		LDAP_API_FEATURE_SESSION_THREAD_SAFE
 **		LDAP_API_FEATURE_OPERATION_THREAD_SAFE
 **
@@ -46,7 +43,7 @@
 **
 */
 
-/* is -lldap_r available or not */
+/* is -lldap thread safe or not */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 
 /* LDAP v2 Referrals */

@@ -1750,7 +1750,7 @@ if test $ol_link_threads != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl Tests for reentrant functions necessary to build -lldap_r
+dnl Tests for reentrant functions necessary for reentrant build
 AC_CHECK_FUNCS(		\
 	ctime_r			\
 	gmtime_r localtime_r \
