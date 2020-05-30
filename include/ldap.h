@@ -55,18 +55,10 @@ LDAP_BEGIN_DECL
 #define LDAP_API_FEATURE_X_OPENLDAP LDAP_VENDOR_VERSION
 
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_REENTRANT ) || \
-	( defined( LDAP_THREAD_SAFE ) && \
-		defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE ) )
-	/* -lldap may or may not be thread safe */
-	/* -lldap_r, if available, is always thread safe */
+	defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE )
 #	define	LDAP_API_FEATURE_THREAD_SAFE 		1
 #	define  LDAP_API_FEATURE_SESSION_THREAD_SAFE	1
 #	define  LDAP_API_FEATURE_OPERATION_THREAD_SAFE	1
-#endif
-#if defined( LDAP_THREAD_SAFE ) && \
-	defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE )
-/* #define LDAP_API_FEATURE_SESSION_SAFE	1	*/
-/* #define LDAP_API_OPERATION_SESSION_SAFE	1	*/
 #endif
 
 

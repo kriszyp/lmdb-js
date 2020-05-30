@@ -22,7 +22,6 @@
 
 #ifndef NO_THREADS
 #define LDAP_R_COMPILE 1
-#define LDAP_THREAD_SAFE 1
 #endif
 
 #include "../liblber/lber-int.h"
