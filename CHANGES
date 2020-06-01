@@ -4,6 +4,8 @@ OpenLDAP 2.4.51 Engineering
 	Fixed libldap retry loop in ldap_int_tls_connect (ITS#8650)
 	Fixed slapd syncrepl to not delete non-replicated attrs (ITS#9227)
 	Fixed slapd-perl dynamic config with threaded slapd (ITS#7573)
+	Contrib
+		Fix default prefix value for pw-argon2, pw-pbkdf2 modules (ITS#9248)
 	Documentation
 		ldap_parse_result(3) - Document ldap_parse_intermediate (ITS#9271)
 
