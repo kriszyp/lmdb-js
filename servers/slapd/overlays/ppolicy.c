@@ -1292,6 +1292,11 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		return SLAP_CB_CONTINUE;
 	}
 
+	/* ITS#7089 Skip lockout checks/modifications if password attribute missing */
+	if ( attr_find( e->e_attrs, ppb->pp.ad ) == NULL ) {
+		goto done;
+	}
+
 	ldap_pvt_gettime(&now_tm); /* stored for later consideration */
 	lutil_tm2time(&now_tm, &now_usec);
 	now = now_usec.tt_sec;
