@@ -1725,9 +1725,10 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		}
 
 		op->o_bd->bd_info = (BackendInfo *)on;
-		ppolicy_get( op, e, &ppb->pp );
 
-		rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+		if ( ppolicy_get( op, e, &ppb->pp ) == LDAP_SUCCESS ) {
+			rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+		}
 
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		be_entry_release_r( op, e );
@@ -1865,9 +1866,10 @@ ppolicy_compare(
 		overlay_callback_after_backover( op, cb, 1 );
 
 		op->o_bd->bd_info = (BackendInfo *)on;
-		ppolicy_get( op, e, &ppb->pp );
 
-		rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+		if ( ppolicy_get( op, e, &ppb->pp ) == LDAP_SUCCESS ) {
+			rc = account_locked( op, e, &ppb->pp, &ppb->mod );
+		}
 
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		be_entry_release_r( op, e );
@@ -1911,12 +1913,16 @@ ppolicy_add(
 			return rs->sr_err;
 		}
 
+		if ( ppolicy_get( op, op->ora_e, &pp ) != LDAP_SUCCESS ) {
+			return SLAP_CB_CONTINUE;
+		}
+
 		/*
 		 * new entry contains a password - if we're not the root user
 		 * then we need to check that the password fits in with the
 		 * security policy for the new entry.
 		 */
-		ppolicy_get( op, op->ora_e, &pp );
+
 		if (pp.pwdCheckQuality > 0 && !be_isroot( op )) {
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, send_ctrl = 0;
@@ -2183,7 +2189,9 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	ppolicy_get( op, e, &pp );
+	if ( ppolicy_get( op, e, &pp ) != LDAP_SUCCESS ) {
+		goto do_modify;
+	}
 
 	for ( ml = op->orm_modlist,
 			pwmod = 0, mod_pw_only = 1,
