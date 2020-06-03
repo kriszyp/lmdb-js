@@ -865,14 +865,14 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	}
 
 	if ((a = attr_find( pe->e_attrs, ad_pwdLockout )))
-    		pp->pwdLockout = bvmatch( &a->a_nvals[0], &slap_true_bv );
+		pp->pwdLockout = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdMustChange )))
-    		pp->pwdMustChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
+		pp->pwdMustChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdAllowUserChange )))
-	    	pp->pwdAllowUserChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
+		pp->pwdAllowUserChange = bvmatch( &a->a_nvals[0], &slap_true_bv );
 	if ((a = attr_find( pe->e_attrs, ad_pwdSafeModify )))
-	    	pp->pwdSafeModify = bvmatch( &a->a_nvals[0], &slap_true_bv );
-    
+		pp->pwdSafeModify = bvmatch( &a->a_nvals[0], &slap_true_bv );
+
 	if ( pp->pwdMaxRecordedFailure < pp->pwdMaxFailure )
 		pp->pwdMaxRecordedFailure = pp->pwdMaxFailure;
 	if ( !pp->pwdMaxRecordedFailure )
