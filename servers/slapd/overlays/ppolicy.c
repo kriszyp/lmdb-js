@@ -759,8 +759,6 @@ ppolicy_get_default( PassPolicy *pp )
 
 	/* Users can change their own password by default */
 	pp->pwdAllowUserChange = 1;
-	if ( !pp->pwdMaxRecordedFailure )
-		pp->pwdMaxRecordedFailure = PPOLICY_DEFAULT_MAXRECORDED_FAILURE;
 }
 
 
@@ -907,7 +905,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 
 	if ( pp->pwdMaxRecordedFailure < pp->pwdMaxFailure )
 		pp->pwdMaxRecordedFailure = pp->pwdMaxFailure;
-	if ( !pp->pwdMaxRecordedFailure )
+	if ( !pp->pwdMaxRecordedFailure && pp->pwdMinDelay )
 		pp->pwdMaxRecordedFailure = PPOLICY_DEFAULT_MAXRECORDED_FAILURE;
 
 	if ( pp->pwdMinDelay && !pp->pwdMaxDelay ) {
@@ -1349,7 +1347,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	snprintf( timestamp_usec.bv_val + timestamp_usec.bv_len-1, sizeof(".123456Z"), ".%06dZ", now_usec.tt_usec );
 	timestamp_usec.bv_len += STRLENOF(".123456");
 
-	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS ) {
+	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS && ppb->pp.pwdMaxRecordedFailure ) {
 		int i = 0;
 
 		m = ch_calloc( sizeof(Modifications), 1 );
