@@ -2031,7 +2031,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	LDAPPasswordPolicyError pErr = PP_noError;
 	LDAPControl		*ctrl = NULL;
 	LDAPControl 		**oldctrls = NULL;
-	int			is_pwdexop = 0;
+	int			is_pwdexop = 0, is_pwdadmin = 0;
 	int got_del_grace = 0, got_del_lock = 0, got_pw = 0, got_del_fail = 0,
 		got_del_success = 0;
 	int got_changed = 0, got_history = 0;
@@ -2191,6 +2191,10 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		goto do_modify;
 	}
 
+	if ( access_allowed( op, e, pp.ad, NULL, ACL_MANAGE, NULL ) ) {
+		is_pwdadmin = 1;
+	}
+
 	for ( ml = op->orm_modlist,
 			pwmod = 0, mod_pw_only = 1,
 			deladd = 0, delmod = NULL,
@@ -2327,7 +2331,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		for(p=tl; p; p=p->next, hsize++); /* count history size */
 	}
 
-	if (be_isroot( op )) goto do_modify;
+	if (is_pwdadmin) goto do_modify;
 
 	/* NOTE: according to draft-behera-ldap-password-policy
 	 * pwdAllowUserChange == FALSE must only prevent pwd changes
@@ -2575,15 +2579,36 @@ do_modify:
 			modtail = mods;
 		}
 
-		/* Delete the pwdReset attribute, since it's being reset */
-		if ((zapReset) && (attr_find(e->e_attrs, ad_pwdReset ))) {
-			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
-			mods->sml_op = LDAP_MOD_DELETE;
-			mods->sml_desc = ad_pwdReset;
-			mods->sml_flags = SLAP_MOD_INTERNAL;
-			mods->sml_next = NULL;
-			modtail->sml_next = mods;
-			modtail = mods;
+		if ( zapReset ) {
+			/*
+			 * ITS#7084 Is this a modification by the password
+			 * administrator? Then force a reset if configured.
+			 * Otherwise clear it.
+			 */
+			if ( pp.pwdMustChange && is_pwdadmin ) {
+				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+				mods->sml_op = LDAP_MOD_REPLACE;
+				mods->sml_desc = ad_pwdReset;
+				mods->sml_flags = SLAP_MOD_INTERNAL;
+				mods->sml_numvals = 1;
+				mods->sml_values = (BerVarray) ch_calloc( sizeof( struct berval ), 2 );
+				mods->sml_nvalues = (BerVarray) ch_calloc( sizeof( struct berval ), 2 );
+
+				ber_dupbv( &mods->sml_values[0], (struct berval *)&slap_true_bv );
+				ber_dupbv( &mods->sml_nvalues[0], (struct berval *)&slap_true_bv );
+
+				mods->sml_next = NULL;
+				modtail->sml_next = mods;
+				modtail = mods;
+			} else if ( attr_find( e->e_attrs, ad_pwdReset ) ) {
+				mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+				mods->sml_op = LDAP_MOD_DELETE;
+				mods->sml_desc = ad_pwdReset;
+				mods->sml_flags = SLAP_MOD_INTERNAL;
+				mods->sml_next = NULL;
+				modtail->sml_next = mods;
+				modtail = mods;
+			}
 		}
 
 		/* TODO: do we remove pwdLastSuccess or set it to 'now'? */

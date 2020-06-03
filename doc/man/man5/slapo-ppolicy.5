@@ -31,6 +31,11 @@ identity; all the operations, when performed with any other identity,
 may be subjected to constraints, like access control.  This overlay
 requires a rootdn to be configured on the database.
 .P
+During password update, an identity with
+.B manage
+access to the userPassword attribute is considered a password
+administrator where relevant to the IETF Password Policy proposal.
+.P
 Note that the IETF Password Policy proposal for LDAP makes sense
 when considering a single-valued password attribute, while 
 the userPassword attribute allows multiple values.  This implementation
