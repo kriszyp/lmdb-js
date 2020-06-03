@@ -104,34 +104,29 @@ function open(path, options) {
 					return this.onDemandSync
 			}
 			let txn
-			let committed
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
 				let startCpu = process.cpuUsage()
 				let start = Date.now()
-				result = execute()
-				//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
-				if (abort) {
-					txn.abort()
-				} else {
-					txn.commit()
-				}
-				//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
-				committed = true
-				if (noSync)
-					return result
-				else
-					return this.onDemandSync
+				return when(execute(), () => {
+					//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
+					if (abort) {
+						txn.abort()
+					} else {
+						txn.commit()
+					}
+					writeTxn = null
+					//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
+					if (noSync)
+						return result
+					else
+						return this.onDemandSync
+				}, (error) => {
+					return handleError(error, this, txn, () => this.transaction(execute))
+				})
 			} catch(error) {
 				return handleError(error, this, txn, () => this.transaction(execute))
-			} finally {
-				if (!committed) {
-					try {
-						txn.abort()
-					} catch(error) {}
-				}
-				writeTxn = null
 			}
 		}
 		get(id, copy) {
