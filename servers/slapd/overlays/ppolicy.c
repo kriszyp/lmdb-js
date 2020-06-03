@@ -2740,6 +2740,17 @@ do_modify:
 			ber_memfree(bv.bv_val);
 			addmod->sml_values[0] = hpw;
 		}
+	} else {
+		/* ITS#8762 Make sure we drop pwdFailureTime if unlocking */
+		if (got_del_lock && !got_del_fail && attr_find(e->e_attrs, ad_pwdFailureTime )) {
+			mods = (Modifications *) ch_calloc( sizeof( Modifications ), 1 );
+			mods->sml_op = LDAP_MOD_DELETE;
+			mods->sml_desc = ad_pwdFailureTime;
+			mods->sml_flags = SLAP_MOD_INTERNAL;
+			mods->sml_next = NULL;
+			modtail->sml_next = mods;
+			modtail = mods;
+		}
 	}
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	be_entry_release_r( op, e );
