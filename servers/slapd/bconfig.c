@@ -535,7 +535,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:38 NAME 'olcPlugin' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "pluginlog", "filename", 2, 2, 0,
 #ifdef LDAP_SLAPI
 		ARG_STRING, &slapi_log_file,
