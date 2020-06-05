@@ -40,6 +40,16 @@ else {
     txn.del(dbi, "key2");
 }
 
+// Example for getting binary directly data using the shared/memory-mapped buffer (not copied into private/writable buffer)
+// ----------
+var binaryData = txn.getBinaryUnsafe(dbi, "key2");
+// Print the string representation of the binary
+console.log("shared/memory-mapped binary data: ", binaryData ? binaryData.toString() : null);
+// MUST detach buffer after using, this buffer becomes unsafe after future transactions and
+// can cause node to crash if you access same entry again without detaching
+if (binaryData)
+    env.detachBuffer(binaryData.buffer);
+
 // Example for getting/putting/deleting number data
 // ----------
 var numberData = txn.getNumber(dbi, "key3");
