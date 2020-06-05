@@ -43,6 +43,9 @@
 **
 */
 
+/* is -lldap reentrant or not */
+#undef LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
+
 /* is -lldap thread safe or not */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 

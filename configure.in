@@ -1747,6 +1747,11 @@ fi
 if test $ol_link_threads != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1,
 		[define to 1 if library is thread safe])
+
+	dnl This could be enabled without threads if all of the
+	dnl reentrant functions are available. Needs testing.
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1,
+		[define to 1 if library is reentrant])
 fi
 
 dnl ----------------------------------------------------------------
