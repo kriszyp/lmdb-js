@@ -128,6 +128,11 @@ public:
     static NAN_METHOD(stat);
     
     /*
+        Detaches a buffer from the backing store
+    */
+    static NAN_METHOD(detachBuffer);
+
+    /*
         Gets information about the database environment.
     */
     static NAN_METHOD(info);

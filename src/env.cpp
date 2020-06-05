@@ -505,6 +505,13 @@ NAN_METHOD(EnvWrap::copy) {
     Nan::AsyncQueueWorker(worker);
 }
 
+NAN_METHOD(EnvWrap::detachBuffer) {
+    Nan::HandleScope scope;
+    #if NODE_VERSION_AT_LEAST(12,0,0)
+    Local<v8::ArrayBuffer>::Cast(info[0])->Detach();
+    #endif
+}
+
 NAN_METHOD(EnvWrap::beginTxn) {
     Nan::HandleScope scope;
 
@@ -724,7 +731,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
     envTpl->PrototypeTemplate()->Set(isolate, "resize", Nan::New<FunctionTemplate>(EnvWrap::resize));
     envTpl->PrototypeTemplate()->Set(isolate, "copy", Nan::New<FunctionTemplate>(EnvWrap::copy));
-    
+    envTpl->PrototypeTemplate()->Set(isolate, "detachBuffer", Nan::New<FunctionTemplate>(EnvWrap::detachBuffer));
+
     // TxnWrap: Prepare constructor template
     Local<FunctionTemplate> txnTpl = Nan::New<FunctionTemplate>(TxnWrap::ctor);
     txnTpl->SetClassName(Nan::New<String>("Txn").ToLocalChecked());

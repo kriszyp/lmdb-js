@@ -355,7 +355,12 @@ describe('Node.js LMDB Bindings', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
       txn.putBinary(dbi, 'key2', buffer);
       var data = txn.getBinaryUnsafe(dbi, 'key2');
+      var byte = data[0]; // make sure we can access it
+      env.detachBuffer(data.buffer);
+      var data = txn.getBinaryUnsafe(dbi, 'key2');
+      var byte = data[0]; // make sure we can access it
       data.should.deep.equal(buffer);
+      env.detachBuffer(data.buffer);
       txn.del(dbi, 'key2');
       var data2 = txn.getBinaryUnsafe(dbi, 'key2');
       should.equal(data2, null);

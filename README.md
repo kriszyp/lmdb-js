@@ -266,7 +266,7 @@ Advanced examples:
 
 #### Unsafe Get Methods
 Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()`, `txn.getBinaryUnsafe()`, `cursor.getCurrentStringUnsafe()`
-and `cursor.getCurrentBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**.
+and `cursor.getCurrentBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**. Also, with Node 14+, you must detach the buffer after using it, by calling `env.detachBuffer(buffer)`. This must be done before accessing the same entry again (or V8 will crash).
 If you need to use the data *later*, you can use the `txn.getBinary()`, `txn.getString()`, `cursor.getCurrentBinary()` and
 `cursor.getCurrentString()` methods. For most usage, the optimisation (no copy) gain from using the unsafe methods is so small
 as to be negligible - the `Unsafe` methods should be avoided.
