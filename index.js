@@ -281,7 +281,7 @@ function open(path, options) {
 								if (copy) {
 									let buffer = cursor.getCurrentBinaryUnsafe()
 									value = copy(buffer)
-									env.detachBuffer(buffer.buffer)
+									//env.detachBuffer(buffer.buffer)
 								} else
 									value = cursor.getCurrentBinary()
 							}
