@@ -15,7 +15,7 @@
   "typings": "./index.d.ts",
   "dependencies": {
     "fs-extra": "^9.0.0",
-    "node-lmdb": "Venemo/node-lmdb#d75407dc83d4140b3d820d95da4288790b077bd5"
+    "node-lmdb": "kriszyp/node-lmdb#upgrades-0.3.7"
   },
   "devDependencies": {
     "@types/node": "latest",
