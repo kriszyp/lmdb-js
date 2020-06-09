@@ -145,7 +145,7 @@ function open(path, options) {
 					if (copy && result) {
 						let buffer = result
 						result = copy(buffer)
-						env.detachBuffer(buffer.buffer) // we might end up with something like this for node 14
+						//env.detachBuffer(buffer.buffer) // we might end up with something like this for node 14
 					}
 				} finally {
 					if (!writeTxn) {
