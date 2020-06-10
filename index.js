@@ -2,7 +2,6 @@ const fs = require('fs-extra')
 const pathModule = require('path')
 const { Env, openDbi, Cursor } = require('node-lmdb')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
-//import { Database } from './Database'
 const when  = require('./util/when')
 const EventEmitter = require('events')
 
@@ -10,12 +9,6 @@ const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
 const DEFAULT_COMMIT_DELAY = 20
-const AS_BINARY = {
-	keyIsBuffer: true
-}
-const AS_STRING = {
-	asBuffer: false
-}
 const READING_TNX = {
 	readOnly: true
 }
@@ -41,7 +34,6 @@ function open(path, options) {
 		path,
 		noSubdir: Boolean(extension),
 		maxDbs: 12,
-		//useWritemap: true, // this provides better performance
 	}, options)
 
 	if (options && options.clearOnStart) {
