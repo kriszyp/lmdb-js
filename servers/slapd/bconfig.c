@@ -5676,6 +5676,8 @@ done:
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		} else if ( coptr->co_type == Cft_Schema ) {
 			schema_destroy_one( ca, colst, nocs, last );
+		} else if ( ca->cleanup ) {
+			ca->cleanup( ca );
 		}
 	}
 done_noop:
