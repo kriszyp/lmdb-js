@@ -1418,8 +1418,13 @@ config_generic(ConfigArgs *c) {
 		case CFG_SYNC_SUBENTRY:
 			break;
 
-		/* no-ops, requires slapd restart */
+#ifdef LDAP_SLAPI
 		case CFG_PLUGIN:
+			slapi_int_unregister_plugins(c->be, c->valx);
+			break;
+#endif
+
+		/* no-op, requires slapd restart */
 		case CFG_MODLOAD:
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
 			break;
@@ -2409,7 +2414,7 @@ sortval_reject:
 
 #ifdef LDAP_SLAPI
 		case CFG_PLUGIN:
-			if(slapi_int_read_config(c->be, c->fname, c->lineno, c->argc, c->argv) != LDAP_SUCCESS)
+			if(slapi_int_read_config(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx) != LDAP_SUCCESS)
 				return(1);
 			slapi_plugins_used++;
 			break;
