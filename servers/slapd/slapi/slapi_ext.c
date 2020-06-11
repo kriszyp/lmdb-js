@@ -295,7 +295,7 @@ int slapi_int_free_object_extensions(int objecttype, void *object)
 
 	eblock = (struct slapi_extension_block *)*peblock;
 
-	if ( eblock->extensions != NULL ) {
+	if ( eblock != NULL && eblock->extensions != NULL ) {
 		for ( i = registered_extensions.extensions[objecttype].count - 1; i >= 0; --i ) {
 			free_extension( eblock, objecttype, object, parent, i );
 		}
