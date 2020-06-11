@@ -702,7 +702,7 @@ delete: olcDynListAttrSet
 olcDynListAttrSet: {0}
 -
 add: olcDynListAttrSet
-olcDynListAttrSet: groupOfURLs memberURL member@dgMemberOf
+olcDynListAttrSet: groupOfURLs memberURL member+dgMemberOf
 -
 EOMODS
 
@@ -733,6 +733,36 @@ if test $RC != 0 ; then
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
+
+echo "Reconfiguring slapd..."
+$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+	$TESTOUT 2>&1 << EOMODS
+version: 1
+dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
+changetype: modify
+delete: olcDynListAttrSet
+olcDynListAttrSet: {0}
+-
+add: olcDynListAttrSet
+olcDynListAttrSet: groupOfURLs memberURL member+dgMemberOf@groupOfNames
+-
+EOMODS
+
+echo "==========================================================" >> $LOG1
+
+echo "Testing static group memberOf functionality..."
+echo "# Testing static group memberOf functionality..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+	-D "$BABSDN" -w bjensen \
+	'(cn=Mark Elliot)' '*' \
+	>> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$DYNLISTOUT
