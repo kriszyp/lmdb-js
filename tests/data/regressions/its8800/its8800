@@ -38,7 +38,7 @@ fi
 echo "This test tracks a case where changes are not refreshed when an old db is reloaded"
 echo "See http://www.openldap.org/its/index.cgi/?findid=8800 for more information."
 
-MMR=4
+MPR=4
 XDIR=$TESTDIR/srv
 
 mkdir -p $TESTDIR
@@ -50,8 +50,8 @@ ITSDIR=$DATADIR/regressions/its$ITS
 
 
 n=1
-while [ $n -le $MMR ]; do
-	echo "Initializing server configuration for MMR$n..."
+while [ $n -le $MPR ]; do
+	echo "Initializing server configuration for MPR$n..."
 	DBDIR=${XDIR}$n/db
 	CFDIR=${XDIR}$n/slapd.d
 
@@ -64,7 +64,7 @@ done
 
 KILLPIDS=
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 	MYURI=`eval echo '$URI'$n`
 	MYLOG=`eval echo '$LOG'$n`
 	CFDIR=${XDIR}$n/slapd.d
@@ -128,14 +128,14 @@ echo -n "Sleeping 1 minute to ensure consumers catch up..."
 sleep 60
 echo "done"
 
-echo -n "Stopping MMR1 slapd..."
+echo -n "Stopping MPR1 slapd..."
 kill -HUP $MPID
 wait $MPID
 KILLPIDS=`echo "$KILLPIDS " | sed -e "s/ $MPID / /"`;
 sleep $SLEEP2
 echo "done"
 
-echo -n "Wiping primary and accesslog databases for MMR1..."
+echo -n "Wiping primary and accesslog databases for MPR1..."
 DBDIR="$TESTDIR/srv1/db"
 CFDIR="$TESTDIR/srv1/slapd.d"
 mv $DBDIR.1 $DBDIR.1.orig

@@ -9,7 +9,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.4
 
         * Slapd(8) enhancements
             - Syncrepl enhancements, including push-mode and
-              Multi-Master support
+              Multi-Provider support
             - Dynamic configuration enhancements, including
               online schema editing and full access control
             - Dynamic monitoring enhancements, including

@@ -41,7 +41,7 @@ fi
 echo "This test tracks a case where changes are incorrectly skipped"
 echo "See http://www.openldap.org/its/index.cgi/?findid=8444 for more information."
 
-MMR=4
+MPR=4
 XDIR=$TESTDIR/srv
 
 mkdir -p $TESTDIR
@@ -54,7 +54,7 @@ ITSDIR=$DATADIR/regressions/its$ITS
 echo "Initializing server configurations..."
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 	DBDIR=${XDIR}$n/db
 	CFDIR=${XDIR}$n/slapd.d
 
@@ -66,7 +66,7 @@ done
 
 KILLPIDS=
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 	MYURI=`eval echo '$URI'$n`
 	MYLOG=`eval echo '$LOG'$n`
 	CFDIR=${XDIR}$n/slapd.d
@@ -204,7 +204,7 @@ EOF
 	TOON4="cn=Bugs_Bunny,ou=People,$BASEDN"
 	for member in $TOON1 $TOON2 $TOON3 $TOON4; do
 		n=1
-		while [ $n -le $MMR ]; do
+		while [ $n -le $MPR ]; do
 			>$SEARCHOUT
 			echo "# Searching member $member after removal from Cartoonia group, provider $n" >> $SEARCHOUT
 			MYURI=`eval echo '$URI'$n`
@@ -247,7 +247,7 @@ EOF
 	echo "Searching entire database on each provider after deleting Cartoonia group"
 
 	n=1
-	while [ $n -le $MMR ]; do
+	while [ $n -le $MPR ]; do
 		echo "# Searching the entire database after deleting Cartoonia, provider $n" >> $SEARCHOUT
 		MYURI=`eval echo '$URI'$n`
 		$LDAPSEARCH -S "" -b "$BASEDN" -H $MYURI -D "cn=manager,$BASEDN" -w $PASSWD \
@@ -287,7 +287,7 @@ EOF
 	echo "Searching entire database on each provider after re-adding Cartoonia group"
 
 	n=1
-	while [ $n -le $MMR ]; do
+	while [ $n -le $MPR ]; do
 		>$SEARCHOUT
 		echo "# Searching the entire database after re-adding Cartoonia, provider $n" >> $SEARCHOUT
 		MYURI=`eval echo '$URI'$n`

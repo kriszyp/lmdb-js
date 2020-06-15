@@ -177,7 +177,7 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-LDIF=$SEARCHOUTMASTER
+LDIF=$SEARCHOUTPROVIDER
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
 echo "Filtering expected LDIF for comparison..."

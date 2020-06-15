@@ -21,10 +21,10 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-MMR=${MMR-4}
+MPR=${MPR-4}
 
-if [ $MMR -gt 9 ]; then
-MMR=9
+if [ $MPR -gt 9 ]; then
+MPR=9
 fi
 
 XDIR=$TESTDIR/srv
@@ -61,7 +61,7 @@ esac
 
 echo "Initializing server configurations..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 
 DBDIR=${XDIR}$n/db
 CFDIR=${XDIR}$n/slapd.d
@@ -139,7 +139,7 @@ echo "dn: cn=config" >> $TMP
 echo "changetype: modify" >> $TMP
 echo "replace: olcServerID" >> $TMP
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 echo "olcServerID: $n $URI" >> $TMP
@@ -160,7 +160,7 @@ add: olcSyncRepl
 EOF
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 echo "olcSyncRepl: rid=00$n provider=$URI binddn=\"cn=config\" bindmethod=simple" >> $TMP
@@ -180,19 +180,19 @@ if test $RC != 0 ; then
 fi
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 LOG=$TESTDIR/slapd.$n.log
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}$n
 $SLAPD -F ./slapd.d -h $URI -d $LVL $TIMING > $LOG 2>&1 &
-SLAVEPID=$!
+CONSUMERPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
+    echo CONSUMERPID $CONSUMERPID
     read foo
 fi
-KILLPIDS="$KILLPIDS $SLAVEPID"
+KILLPIDS="$KILLPIDS $CONSUMERPID"
 cd $TESTWD
 
 sleep 1
@@ -222,7 +222,7 @@ changetype: modify
 add: olcSyncRepl
 EOF
 j=1
-while [ $j -le $MMR ]; do
+while [ $j -le $MPR ]; do
 P2=`expr $BASEPORT + $j`
 U2="ldap://${LOCALHOST}:$P2/"
 echo "olcSyncRepl: rid=00$j provider=$U2 binddn=\"cn=config\" bindmethod=simple" >> $TMP
@@ -285,7 +285,7 @@ olcRootPW: $PASSWD
 EOF
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -341,7 +341,7 @@ echo "Waiting $SLEEP2 seconds for syncrepl to receive changes..."
 sleep $SLEEP2
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -362,9 +362,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved configs from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n configs differ"
@@ -375,7 +375,7 @@ n=`expr $n + 1`
 done
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -394,9 +394,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -420,7 +420,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -439,9 +439,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -470,7 +470,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -489,9 +489,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -533,7 +533,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -552,9 +552,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -597,7 +597,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -616,9 +616,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -672,7 +672,7 @@ if test $RC != 0 ; then
 fi
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 LOG=$TESTDIR/slapd.$n.log
@@ -691,7 +691,7 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 echo "Using ldapsearch to check that server $n is running..."
@@ -749,7 +749,7 @@ echo "Waiting $SLEEP1 seconds for servers to resync..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -768,9 +768,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

@@ -1969,7 +1969,7 @@ slap_client_connect( LDAP **ldp, slap_bindconf *sb )
 	int		rc;
 	struct timeval tv;
 
-	/* Init connection to master */
+	/* Init connection to provider */
 	rc = ldap_initialize( &ld, sb->sb_uri.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY,

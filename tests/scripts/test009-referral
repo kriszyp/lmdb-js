@@ -31,28 +31,28 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Starting master slapd on TCP/IP port $PORT1..."
-$SLAPD -n master -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+echo "Starting provider slapd on TCP/IP port $PORT1..."
+$SLAPD -n provider -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
 
-echo "Starting slave slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $REFSLAVECONF > $CONF2
-$SLAPD -n slave -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
-SLAVEPID=$!
+echo "Starting consumer slapd on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND $MONITORDB < $REFCONSUMERCONF > $CONF2
+$SLAPD -n consumer -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+CONSUMERPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
+    echo CONSUMERPID $CONSUMERPID
     read foo
 fi
 
-KILLPIDS="$PID $SLAVEPID"
+KILLPIDS="$PID $CONSUMERPID"
 
 sleep 1
 
-echo "Testing for master slapd..."
+echo "Testing for provider slapd..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		'objectclass=*' > /dev/null 2>&1
@@ -60,7 +60,7 @@ for i in 0 1 2 3 4 5; do
 	if test $RC = 0 ; then
 		break
 	fi
-	echo "Waiting 5 seconds for master slapd to start..."
+	echo "Waiting 5 seconds for provider slapd to start..."
 	sleep 5
 done
 
@@ -70,7 +70,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Testing for slave slapd..."
+echo "Testing for consumer slapd..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
 		'objectclass=*' > /dev/null 2>&1
@@ -78,7 +78,7 @@ for i in 0 1 2 3 4 5; do
 	if test $RC = 0 ; then
 		break
 	fi
-	echo "Waiting 5 seconds for slave slapd to start..."
+	echo "Waiting 5 seconds for consumer slapd to start..."
 	sleep 5
 done
 
@@ -160,7 +160,7 @@ fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
-LDIF=$SEARCHOUTMASTER
+LDIF=$SEARCHOUTPROVIDER
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT

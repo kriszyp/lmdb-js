@@ -34,7 +34,7 @@ fi
 mkdir -p $TESTDIR $DBDIR2A
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SQLSRMASTERCONF > $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $SQLSRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -61,17 +61,17 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Starting slave slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $R1SRSLAVECONF > $CONF2
+echo "Starting consumer slapd on TCP/IP port $PORT2..."
+. $CONFFILTER $BACKEND $MONITORDB < $R1SRCONSUMERCONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
-SLAVEPID=$!
+CONSUMERPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
+    echo CONSUMERPID $CONSUMERPID
     read foo
 fi
-KILLPIDS="$KILLPIDS $SLAVEPID"
+KILLPIDS="$KILLPIDS $CONSUMERPID"
 
-echo "Using ldapsearch to check that slave slapd is running..."
+echo "Using ldapsearch to check that consumer slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
 		'objectclass=*' > /dev/null 2>&1
@@ -91,8 +91,8 @@ fi
 
 cat /dev/null > $SEARCHOUT
 
-echo "Using ldapsearch to retrieve all the entries from the master..."
-echo "# Using ldapsearch to retrieve all the entries from the master..." \
+echo "Using ldapsearch to retrieve all the entries from the provider..."
+echo "# Using ldapsearch to retrieve all the entries from the provider..." \
 	>> $SEARCHOUT
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
 	-D "$MANAGERDN" -w $PASSWD \
@@ -107,8 +107,8 @@ fi
 
 cat /dev/null > $SEARCHOUT2
 
-echo "Using ldapsearch to retrieve all the entries from the slave..."
-echo "# Using ldapsearch to retrieve all the entries from the slave..." \
+echo "Using ldapsearch to retrieve all the entries from the consumer..."
+echo "# Using ldapsearch to retrieve all the entries from the consumer..." \
 	>> $SEARCHOUT2
 $LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" \
 	-D "$UPDATEDN" -w $PASSWD \
@@ -121,9 +121,9 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Filtering ldapsearch results from master..."
+echo "Filtering ldapsearch results from provider..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-echo "Filtering ldapsearch results from slave..."
+echo "Filtering ldapsearch results from consumer..."
 $LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
 echo "Comparing filter output..."
 $CMP $SEARCHFLT $SEARCHFLT2 > $CMPOUT
@@ -632,13 +632,13 @@ EOMODS
 		exit 1
 	fi
 
-	echo "Waiting 25 seconds for master to send changes..."
+	echo "Waiting 25 seconds for provider to send changes..."
 	sleep 25
 
 	cat /dev/null > $SEARCHOUT
 
-	echo "Using ldapsearch to retrieve all the entries from the master..."
-	echo "# Using ldapsearch to retrieve all the entries from the master..." \
+	echo "Using ldapsearch to retrieve all the entries from the provider..."
+	echo "# Using ldapsearch to retrieve all the entries from the provider..." \
 		>> $SEARCHOUT
 	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
 		-D "$MANAGERDN" -w $PASSWD \
@@ -653,8 +653,8 @@ EOMODS
 
 	cat /dev/null > $SEARCHOUT2
 
-	echo "Using ldapsearch to retrieve all the entries from the slave..."
-	echo "# Using ldapsearch to retrieve all the entries from the slave..." \
+	echo "Using ldapsearch to retrieve all the entries from the consumer..."
+	echo "# Using ldapsearch to retrieve all the entries from the consumer..." \
 		>> $SEARCHOUT2
 	$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT2 -b "$BASEDN" \
 		-D "$UPDATEDN" -w $PASSWD \
@@ -667,9 +667,9 @@ EOMODS
 		exit $RC
 	fi
 
-	echo "Filtering ldapsearch results from master..."
+	echo "Filtering ldapsearch results from provider..."
 	$LDIFFILTER < $SEARCHOUT > $SEARCHFLT
-	echo "Filtering ldapsearch results from slave..."
+	echo "Filtering ldapsearch results from consumer..."
 	$LDIFFILTER < $SEARCHOUT2 > $SEARCHFLT2
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $SEARCHFLT2 > $CMPOUT

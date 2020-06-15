@@ -82,26 +82,26 @@ CLIENTDIR=../clients/tools
 CONF=$DATADIR/slapd.conf
 CONFTWO=$DATADIR/slapd2.conf
 CONF2DB=$DATADIR/slapd-2db.conf
-MCONF=$DATADIR/slapd-master.conf
+MCONF=$DATADIR/slapd-provider.conf
 COMPCONF=$DATADIR/slapd-component.conf
 PWCONF=$DATADIR/slapd-pw.conf
 WHOAMICONF=$DATADIR/slapd-whoami.conf
 ACLCONF=$DATADIR/slapd-acl.conf
 RCONF=$DATADIR/slapd-referrals.conf
-SRMASTERCONF=$DATADIR/slapd-syncrepl-master.conf
-DSRMASTERCONF=$DATADIR/slapd-deltasync-master.conf
-DSRSLAVECONF=$DATADIR/slapd-deltasync-slave.conf
+SRPROVIDERCONF=$DATADIR/slapd-syncrepl-provider.conf
+DSRPROVIDERCONF=$DATADIR/slapd-deltasync-provider.conf
+DSRCONSUMERCONF=$DATADIR/slapd-deltasync-consumer.conf
 PPOLICYCONF=$DATADIR/slapd-ppolicy.conf
 PROXYCACHECONF=$DATADIR/slapd-proxycache.conf
 PROXYAUTHZCONF=$DATADIR/slapd-proxyauthz.conf
-CACHEMASTERCONF=$DATADIR/slapd-cache-master.conf
-PROXYAUTHZMASTERCONF=$DATADIR/slapd-cache-master-proxyauthz.conf
-R1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh1.conf
-R2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-refresh2.conf
-P1SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist1.conf
-P2SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist2.conf
-P3SRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist3.conf
-REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
+CACHEPROVIDERCONF=$DATADIR/slapd-cache-provider.conf
+PROXYAUTHZPROVIDERCONF=$DATADIR/slapd-cache-provider-proxyauthz.conf
+R1SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-refresh1.conf
+R2SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-refresh2.conf
+P1SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist1.conf
+P2SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist2.conf
+P3SRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist3.conf
+REFCONSUMERCONF=$DATADIR/slapd-ref-consumer.conf
 SCHEMACONF=$DATADIR/slapd-schema.conf
 GLUECONF=$DATADIR/slapd-glue.conf
 REFINTCONF=$DATADIR/slapd-refint.conf
@@ -120,7 +120,7 @@ CHAINCONF2=$DATADIR/slapd-chain2.conf
 GLUESYNCCONF1=$DATADIR/slapd-glue-syncrepl1.conf
 GLUESYNCCONF2=$DATADIR/slapd-glue-syncrepl2.conf
 SQLCONF=$DATADIR/slapd-sql.conf
-SQLSRMASTERCONF=$DATADIR/slapd-sql-syncrepl-master.conf
+SQLSRPROVIDERCONF=$DATADIR/slapd-sql-syncrepl-provider.conf
 TRANSLUCENTLOCALCONF=$DATADIR/slapd-translucent-local.conf
 TRANSLUCENTREMOTECONF=$DATADIR/slapd-translucent-remote.conf
 METACONF=$DATADIR/slapd-meta.conf
@@ -130,9 +130,9 @@ GLUELDAPCONF=$DATADIR/slapd-glue-ldap.conf
 ACICONF=$DATADIR/slapd-aci.conf
 VALSORTCONF=$DATADIR/slapd-valsort.conf
 DYNLISTCONF=$DATADIR/slapd-dynlist.conf
-RSLAVECONF=$DATADIR/slapd-repl-slave-remote.conf
-PLSRSLAVECONF=$DATADIR/slapd-syncrepl-slave-persist-ldap.conf
-PLSRMASTERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
+RCONSUMERCONF=$DATADIR/slapd-repl-consumer-remote.conf
+PLSRCONSUMERCONF=$DATADIR/slapd-syncrepl-consumer-persist-ldap.conf
+PLSRPROVIDERCONF=$DATADIR/slapd-syncrepl-multiproxy.conf
 DDSCONF=$DATADIR/slapd-dds.conf
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 UNDOCONF=$DATADIR/slapd-config-undo.conf
@@ -257,7 +257,7 @@ MONITOR=""
 REFDN="c=US"
 BASEDN="dc=example,dc=com"
 MANAGERDN="cn=Manager,$BASEDN"
-UPDATEDN="cn=Replica,$BASEDN"
+UPDATEDN="cn=consumer,$BASEDN"
 PASSWD=secret
 BABSDN="cn=Barbara Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
 BJORNSDN="cn=Bjorn Jensen,ou=Information Technology DivisioN,ou=People,$BASEDN"
@@ -313,29 +313,29 @@ SERVER5FLT=$TESTDIR/server5.flt
 SERVER6OUT=$TESTDIR/server6.out
 SERVER6FLT=$TESTDIR/server6.flt
 
-MASTEROUT=$SERVER1OUT
-MASTERFLT=$SERVER1FLT
-SLAVEOUT=$SERVER2OUT
-SLAVE2OUT=$SERVER3OUT
-SLAVEFLT=$SERVER2FLT
-SLAVE2FLT=$SERVER3FLT
+PROVIDEROUT=$SERVER1OUT
+PROVIDERFLT=$SERVER1FLT
+CONSUMEROUT=$SERVER2OUT
+CONSUMER2OUT=$SERVER3OUT
+CONSUMERFLT=$SERVER2FLT
+CONSUMER2FLT=$SERVER3FLT
 
 MTREADOUT=$TESTDIR/mtread.out
 
 # original outputs for cmp
 PROXYCACHEOUT=$DATADIR/proxycache.out
 REFERRALOUT=$DATADIR/referrals.out
-SEARCHOUTMASTER=$DATADIR/search.out.master
+SEARCHOUTPROVIDER=$DATADIR/search.out.provider
 SEARCHOUTX=$DATADIR/search.out.xsearch
 COMPSEARCHOUT=$DATADIR/compsearch.out
-MODIFYOUTMASTER=$DATADIR/modify.out.master
-ADDDELOUTMASTER=$DATADIR/adddel.out.master
-MODRDNOUTMASTER0=$DATADIR/modrdn.out.master.0
-MODRDNOUTMASTER1=$DATADIR/modrdn.out.master.1
-MODRDNOUTMASTER2=$DATADIR/modrdn.out.master.2
-MODRDNOUTMASTER3=$DATADIR/modrdn.out.master.3
-ACLOUTMASTER=$DATADIR/acl.out.master
-REPLOUTMASTER=$DATADIR/repl.out.master
+MODIFYOUTPROVIDER=$DATADIR/modify.out.provider
+ADDDELOUTPROVIDER=$DATADIR/adddel.out.provider
+MODRDNOUTPROVIDER0=$DATADIR/modrdn.out.provider.0
+MODRDNOUTPROVIDER1=$DATADIR/modrdn.out.provider.1
+MODRDNOUTPROVIDER2=$DATADIR/modrdn.out.provider.2
+MODRDNOUTPROVIDER3=$DATADIR/modrdn.out.provider.3
+ACLOUTPROVIDER=$DATADIR/acl.out.provider
+REPLOUTPROVIDER=$DATADIR/repl.out.provider
 MODSRCHFILTERS=$DATADIR/modify.search.filters
 CERTIFICATETLS=$DATADIR/certificate.tls
 CERTIFICATEOUT=$DATADIR/certificate.out

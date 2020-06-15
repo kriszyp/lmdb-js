@@ -5015,7 +5015,7 @@
            x="137.38075"
            y="681.46503"
            style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Arial" /></flowRegion><flowPara
-         id="flowPara15542">Replica Pool</flowPara></flowRoot>    <flowRoot
+         id="flowPara15542">Consumer Pool</flowPara></flowRoot>    <flowRoot
        xml:space="preserve"
        id="flowRoot15534"
        style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Arial"
@@ -5027,7 +5027,7 @@
            x="137.38075"
            y="681.46503"
            style="font-size:18px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Arial" /></flowRegion><flowPara
-         id="flowPara15544">Replica Pool</flowPara></flowRoot>    <path
+         id="flowPara15544">Consumer Pool</flowPara></flowRoot>    <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.71494228px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend);stroke-opacity:1"
        d="M 254.55844,186.23712 L 254.55844,261.49474"
        id="path16515" />

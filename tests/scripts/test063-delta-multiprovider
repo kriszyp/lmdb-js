@@ -25,7 +25,7 @@ if test $ACCESSLOG = accesslogno; then
 	exit 0
 fi
 
-MMR=2
+MPR=2
 
 XDIR=$TESTDIR/srv
 TMP=$TESTDIR/tmp
@@ -51,7 +51,7 @@ case "$SYNCMODE" in
 esac
 
 #
-# Test delta-sync mmr
+# Test delta-sync mpr
 # - start servers
 # - configure over ldap
 # - populate over ldap
@@ -69,7 +69,7 @@ KILLPIDS=
 
 echo "Initializing server configurations..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 
 DBDIR=${XDIR}$n/db
 CFDIR=${XDIR}$n/slapd.d
@@ -247,7 +247,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -266,9 +266,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -292,7 +292,7 @@ THEDN="cn=James A Jones 2,ou=Alumni Association,ou=People,dc=example,dc=com"
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$THEDN" -H $URI1 \
-		-s base '(objectClass=*)' entryCSN > "${MASTEROUT}.$i" 2>&1
+		-s base '(objectClass=*)' entryCSN > "${PROVIDEROUT}.$i" 2>&1
 	RC=$?
 
 	if test $RC = 0 ; then
@@ -300,7 +300,7 @@ for i in 1 2 3; do
 	fi
 
 	if test $RC != 32 ; then
-		echo "ldapsearch failed at slave ($RC)!"
+		echo "ldapsearch failed at consumer ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
@@ -310,7 +310,7 @@ for i in 1 2 3; do
 done
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -329,9 +329,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -343,7 +343,7 @@ done
 
 echo "Breaking replication between server 1 and 2..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
 PROVIDERURI=`eval echo '$URI'$o`
@@ -492,7 +492,7 @@ fi
 
 echo "Restoring replication between server 1 and 2..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
 PROVIDERURI=`eval echo '$URI'$o`
@@ -523,7 +523,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -542,9 +542,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

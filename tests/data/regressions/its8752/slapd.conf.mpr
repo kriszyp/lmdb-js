@@ -21,10 +21,10 @@ include		@SCHEMADIR@/nis.schema
 include		@DATADIR@/test.schema
 
 #
-pidfile		@TESTDIR@/slapd.MMR.pid
-argsfile	@TESTDIR@/slapd.MMR.args
+pidfile		@TESTDIR@/slapd.MPR.pid
+argsfile	@TESTDIR@/slapd.MPR.args
 
-serverid	MMR
+serverid	MPR
 #mod#modulepath ../servers/slapd/back-@BACKEND@/:../servers/slapd/overlays
 #mod#moduleload back_@BACKEND@.la
 #monitormod#modulepath ../servers/slapd/back-monitor/
@@ -41,7 +41,7 @@ database        @BACKEND@
 suffix          "dc=example,dc=com"
 rootdn          "cn=Manager,dc=example,dc=com"
 rootpw          secret
-#~null~#directory	@TESTDIR@/srvMMR/db.1
+#~null~#directory	@TESTDIR@/srvMPR/db.1
 #indexdb#index		objectClass	eq
 #indexdb#index		cn,sn,uid	pres,eq,sub
 
@@ -132,7 +132,7 @@ logpurge		24:00 01+00:00
 database        @BACKEND@
 suffix          "cn=log"
 rootdn          "cn=Manager,dc=example,dc=com"
-#~null~#directory	@TESTDIR@/srvMMR/db.2
+#~null~#directory	@TESTDIR@/srvMPR/db.2
 #indexdb#index		objectClass	eq
 #indexdb#index		entryCSN,entryUUID,reqEnd,reqResult,reqStart eq
 #mdb#maxsize        @MAPSIZE@

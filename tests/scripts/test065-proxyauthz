@@ -45,9 +45,9 @@ fi
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 # Test proxy caching:
-# - start master
+# - start provider
 # - start proxy cache
-# - populate master 
+# - populate provider 
 # - perform a first search
 # - verify cacheability
 # - perform a second search with the same filter and same user 
@@ -55,8 +55,8 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 # - perform a third search with the same user but a different filter
 # - verify cacheability of the bind and the non-answerability of the result 
 
-echo "Starting master slapd on TCP/IP port $PORT1..."
-. $CONFFILTER < $PROXYAUTHZMASTERCONF > $CONF1
+echo "Starting provider slapd on TCP/IP port $PORT1..."
+. $CONFFILTER < $PROXYAUTHZPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -67,7 +67,7 @@ KILLPIDS="$PID"
 
 sleep 1
 
-echo "Using ldapsearch to check that master slapd is running..."
+echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
 		-D "cn=Manager,dc=example,dc=com" -w secret 'objectclass=*' > /dev/null 2>&1
@@ -85,7 +85,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Using ldapadd to populate the master directory..."
+echo "Using ldapadd to populate the provider directory..."
 $LDAPADD -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?

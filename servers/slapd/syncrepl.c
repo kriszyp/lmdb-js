@@ -153,7 +153,7 @@ static struct berval * slap_uuidstr_from_normalized(
 static int syncrepl_add_glue_ancestors(
 	Operation* op, Entry *e );
 
-/* delta-mmr overlay handler */
+/* delta-mpr overlay handler */
 static int syncrepl_op_modify( Operation *op, SlapReply *rs );
 
 /* callback functions */
@@ -162,7 +162,7 @@ static int nonpresent_callback( Operation *, SlapReply * );
 
 static AttributeDescription *sync_descs[4];
 
-/* delta-mmr */
+/* delta-mpr */
 static AttributeDescription *ad_reqMod, *ad_reqDN;
 
 typedef struct logschema {
@@ -229,7 +229,7 @@ init_syncrepl(syncinfo_t *si)
 		overlay_register( &syncrepl_ov );
 	}
 
-	/* delta-MMR needs the overlay, nothing else does.
+	/* delta-MPR needs the overlay, nothing else does.
 	 * This must happen before accesslog overlay is configured.
 	 */
 	if ( si->si_syncdata &&
@@ -1513,10 +1513,10 @@ do_syncrepl(
 	 * in use. This may be complicated by the use of the glue
 	 * overlay.
 	 *
-	 * Typically there is a single syncprov mastering the entire
+	 * Typically there is a single syncprov controlling the entire
 	 * glued tree. In that case, our contextCSN updates should
-	 * go to the master DB. But if there is no syncprov on the
-	 * master DB, then nothing special is needed here.
+	 * go to the primary DB. But if there is no syncprov on the
+	 * primary DB, then nothing special is needed here.
 	 *
 	 * Alternatively, there may be individual syncprov overlays
 	 * on each glued branch. In that case, each syncprov only
@@ -2459,7 +2459,7 @@ syncrepl_message_to_op(
 			OpExtraSync oes;
 			op->orm_modlist = modlist;
 			op->o_bd = si->si_wbe;
-			/* delta-mmr needs additional checks in syncrepl_op_modify */
+			/* delta-mpr needs additional checks in syncrepl_op_modify */
 			if ( SLAP_MULTIMASTER( op->o_bd )) {
 				oes.oe.oe_key = (void *)syncrepl_message_to_op;
 				oes.oe_si = si;
@@ -3560,7 +3560,7 @@ syncrepl_del_nonpresent(
 		op->ors_limit = NULL;
 		op->ors_attrsonly = 0;
 		op->ors_filter = filter_dup( si->si_filter, op->o_tmpmemctx );
-		/* In multimaster, updates can continue to arrive while
+		/* In multi-provider, updates can continue to arrive while
 		 * we're searching. Limit the search result to entries
 		 * older than our newest cookie CSN.
 		 */
