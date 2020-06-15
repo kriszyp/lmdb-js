@@ -13,12 +13,12 @@
    id="svg7893"
    inkscape:version="0.46"
    sodipodi:docbase="/home/ghenry/Desktop"
-   sodipodi:docname="n-way-multi-master.svg"
+   sodipodi:docname="n-way-multi-provider.svg"
    sodipodi:version="0.32"
    width="744.09448"
    inkscape:output_extension="org.inkscape.output.svg.inkscape"
    version="1.0"
-   inkscape:export-filename="/home/ghenry/Desktop/n-way-multi-master.png"
+   inkscape:export-filename="/home/ghenry/Desktop/n-way-multi-provider.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <metadata
@@ -4573,7 +4573,7 @@
            x="194.28572"
            y="475.52304"
            style="font-size:24px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:Arial" /></flowRegion><flowPara
-         id="flowPara6968">N-Way Multi-Master</flowPara></flowRoot>    <text
+         id="flowPara6968">N-Way Multi-Provider</flowPara></flowRoot>    <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:Bitstream Vera Sans"
        x="316"

@@ -1324,7 +1324,7 @@ config_generic(ConfigArgs *c) {
 			break;
 		case CFG_MIRRORMODE:
 			if ( SLAP_SHADOW(c->be))
-				c->value_int = (SLAP_MULTIMASTER(c->be) != 0);
+				c->value_int = (SLAP_MULTIPROVIDER(c->be) != 0);
 			else
 				rc = 1;
 			break;
@@ -4042,7 +4042,7 @@ config_shadow( ConfigArgs *c, slap_mask_t flag )
 
 	} else {
 		SLAP_DBFLAGS(c->be) |= (SLAP_DBFLAG_SHADOW | flag);
-		if ( !SLAP_MULTIMASTER( c->be ))
+		if ( !SLAP_MULTIPROVIDER( c->be ))
 			SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_SINGLE_SHADOW;
 	}
 

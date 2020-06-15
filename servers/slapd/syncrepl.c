@@ -184,7 +184,7 @@ static int syncrepl_dirsync_cookie(
 
 static int syncrepl_dsee_update( syncinfo_t *si, Operation *op ) ;
 
-/* delta-mmr overlay handler */
+/* delta-mpr overlay handler */
 static int syncrepl_op_modify( Operation *op, SlapReply *rs );
 
 /* callback functions */
@@ -195,7 +195,7 @@ static AttributeDescription *sync_descs[4];
 
 static AttributeDescription *dsee_descs[7];
 
-/* delta-mmr */
+/* delta-mpr */
 static AttributeDescription *ad_reqMod, *ad_reqDN;
 
 typedef struct logschema {
@@ -272,7 +272,7 @@ init_syncrepl(syncinfo_t *si)
 		overlay_register( &syncrepl_ov );
 	}
 
-	/* delta-MMR needs the overlay, nothing else does.
+	/* delta-MPR needs the overlay, nothing else does.
 	 * This must happen before accesslog overlay is configured.
 	 */
 	if ( si->si_syncdata &&
@@ -822,7 +822,7 @@ do_syncrep1(
 	si->si_syncCookie.rid = si->si_rid;
 
 	/* whenever there are multiple data sources possible, advertise sid */
-	si->si_syncCookie.sid = ( SLAP_MULTIMASTER( si->si_be ) || si->si_be != si->si_wbe ) ?
+	si->si_syncCookie.sid = ( SLAP_MULTIPROVIDER( si->si_be ) || si->si_be != si->si_wbe ) ?
 		slap_serverID : -1;
 
 #ifdef LDAP_CONTROL_X_DIRSYNC
@@ -1432,7 +1432,7 @@ logerr:
 				}
 				ber_scanf( ber, /*"{"*/ "}" );
 			}
-			if ( SLAP_MULTIMASTER( op->o_bd ) && check_syncprov( op, si )) {
+			if ( SLAP_MULTIPROVIDER( op->o_bd ) && check_syncprov( op, si )) {
 				slap_sync_cookie_free( &syncCookie_req, 0 );
 				slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 			}
@@ -1619,7 +1619,7 @@ logerr:
 					continue;
 				}
 
-				if ( SLAP_MULTIMASTER( op->o_bd ) && check_syncprov( op, si )) {
+				if ( SLAP_MULTIPROVIDER( op->o_bd ) && check_syncprov( op, si )) {
 					slap_sync_cookie_free( &syncCookie_req, 0 );
 					slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 				}
@@ -1791,10 +1791,10 @@ do_syncrepl(
 	 * in use. This may be complicated by the use of the glue
 	 * overlay.
 	 *
-	 * Typically there is a single syncprov mastering the entire
+	 * Typically there is a single syncprov controlling the entire
 	 * glued tree. In that case, our contextCSN updates should
-	 * go to the master DB. But if there is no syncprov on the
-	 * master DB, then nothing special is needed here.
+	 * go to the primary DB. But if there is no syncprov on the
+	 * primary DB, then nothing special is needed here.
 	 *
 	 * Alternatively, there may be individual syncprov overlays
 	 * on each glued branch. In that case, each syncprov only
@@ -2844,14 +2844,14 @@ syncrepl_message_to_op(
 			OpExtraSync oes;
 			op->orm_modlist = modlist;
 			op->o_bd = si->si_wbe;
-			/* delta-mmr needs additional checks in syncrepl_op_modify */
-			if ( SLAP_MULTIMASTER( op->o_bd )) {
+			/* delta-mpr needs additional checks in syncrepl_op_modify */
+			if ( SLAP_MULTIPROVIDER( op->o_bd )) {
 				oes.oe.oe_key = (void *)syncrepl_message_to_op;
 				oes.oe_si = si;
 				LDAP_SLIST_INSERT_HEAD( &op->o_extra, &oes.oe, oe_next );
 			}
 			rc = op->o_bd->be_modify( op, &rs );
-			if ( SLAP_MULTIMASTER( op->o_bd )) {
+			if ( SLAP_MULTIPROVIDER( op->o_bd )) {
 				LDAP_SLIST_REMOVE( &op->o_extra, &oes.oe, OpExtra, oe_next );
 				BER_BVZERO( &op->o_csn );
 			}
@@ -4333,11 +4333,11 @@ syncrepl_del_nonpresent(
 		op->ors_limit = NULL;
 		op->ors_attrsonly = 0;
 		op->ors_filter = filter_dup( si->si_filter, op->o_tmpmemctx );
-		/* In multimaster, updates can continue to arrive while
+		/* In multi-provider, updates can continue to arrive while
 		 * we're searching. Limit the search result to entries
 		 * older than our newest cookie CSN.
 		 */
-		if ( SLAP_MULTIMASTER( op->o_bd )) {
+		if ( SLAP_MULTIPROVIDER( op->o_bd )) {
 			Filter *f;
 			int i;
 
@@ -4367,7 +4367,7 @@ syncrepl_del_nonpresent(
 
 
 		rc = be->be_search( op, &rs_search );
-		if ( SLAP_MULTIMASTER( op->o_bd )) {
+		if ( SLAP_MULTIPROVIDER( op->o_bd )) {
 			op->ors_filter = of;
 		}
 		if ( op->ors_filter ) filter_free_x( op, op->ors_filter, 1 );

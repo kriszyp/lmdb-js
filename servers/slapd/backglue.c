@@ -231,7 +231,7 @@ glue_op_func ( Operation *op, SlapReply *rs )
 
 	op->o_bd = glue_back_select (b0, &op->o_req_ndn);
 
-	/* If we're on the master backend, let overlay framework handle it */
+	/* If we're on the primary backend, let overlay framework handle it */
 	if ( op->o_bd == b0 )
 		return SLAP_CB_CONTINUE;
 
@@ -285,7 +285,7 @@ glue_response ( Operation *op, SlapReply *rs )
 	BackendDB *be = op->o_bd;
 	be = glue_back_select (op->o_bd, &op->o_req_ndn);
 
-	/* If we're on the master backend, let overlay framework handle it.
+	/* If we're on the primary backend, let overlay framework handle it.
 	 * Otherwise, bail out.
 	 */
 	return ( op->o_bd == be ) ? SLAP_CB_CONTINUE : SLAP_CB_BYPASS;
@@ -349,7 +349,7 @@ glue_chk_controls ( Operation *op, SlapReply *rs )
 
 /* ITS#4615 - overlays configured above the glue overlay should be
  * invoked for the entire glued tree. Overlays configured below the
- * glue overlay should only be invoked on the master backend.
+ * glue overlay should only be invoked on the primary backend.
  * So, if we're searching on any subordinates, we need to force the
  * current overlay chain to stop processing, without stopping the
  * overall callback flow.
@@ -358,7 +358,7 @@ static int
 glue_sub_search( Operation *op, SlapReply *rs, BackendDB *b0,
 	slap_overinst *on )
 {
-	/* Process any overlays on the master backend */
+	/* Process any overlays on the primary backend */
 	if ( op->o_bd == b0 && on->on_next ) {
 		BackendInfo *bi = op->o_bd->bd_info;
 		int rc = SLAP_CB_CONTINUE;

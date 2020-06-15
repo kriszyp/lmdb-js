@@ -276,7 +276,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -300,7 +300,7 @@ THEDN="cn=James A Jones 2,ou=Alumni Association,ou=People,dc=example,dc=com"
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$THEDN" -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -H $SURIP1 \
-		-s base '(objectClass=*)' entryCSN > "${MASTEROUT}.$i" 2>&1
+		-s base '(objectClass=*)' entryCSN > "${PROVIDEROUT}.$i" 2>&1
 	RC=$?
 
 	if test $RC = 0 ; then
@@ -308,7 +308,7 @@ for i in 1 2 3; do
 	fi
 
 	if test $RC != 32 ; then
-		echo "ldapsearch failed at slave ($RC)!"
+		echo "ldapsearch failed at replica ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
@@ -339,7 +339,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -552,7 +552,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

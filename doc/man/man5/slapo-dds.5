@@ -223,8 +223,8 @@ access to dn.onelevel="cn=Meetings"
 
 .SH REPLICATION
 This implementation of RFC 2589 provides a restricted interpretation of how
-dynamic objects replicate.  Only the master takes care of handling dynamic
-object expiration, while replicas simply see the dynamic object as a plain
+dynamic objects replicate.  Only the provider takes care of handling dynamic
+object expiration, while consumers simply see the dynamic object as a plain
 object.
 
 When replicating these objects, one needs to explicitly exclude the 

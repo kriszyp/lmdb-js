@@ -282,12 +282,12 @@ having the matching replication identifier in its definition. The
 .B rid
 must be provided in order for any other specified values to be used.
 .B sid
-is the server id in a multi-master/mirror-mode configuration.
+is the server id in a multi-provider configuration.
 .B csn
 is the commit sequence number received by a previous synchronization
-and represents the state of the consumer replica content which the
+and represents the state of the consumer content which the
 syncrepl engine will synchronize to the current provider content.
-In case of \fImirror-mode\fP or \fImulti-master\fP replication agreement,
+In case of \fImulti-provider\fP replication agreement,
 multiple
 .B csn
 values, semicolon separated, can appear.

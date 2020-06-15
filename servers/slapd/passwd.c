@@ -165,7 +165,7 @@ int passwd_extop(
 		goto error_return;
 	}
 
-	/* This does not apply to multi-master case */
+	/* This does not apply to multi-provider case */
 	if(!( !SLAP_SINGLE_SHADOW( op->o_bd ) || be_isupdate( op ))) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = op->o_bd->be_update_refs

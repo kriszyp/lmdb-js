@@ -235,7 +235,7 @@ the attribute type is non-operational.
 .TP
 .B LDAP_SCHEMA_DIRECTORY_OPERATION
 the attribute type is operational and is pertinent to the directory
-itself, i.e. it has the same value on all servers that master the
+itself, i.e. it has the same value on all servers that provide the
 entry containing this attribute type.
 .TP
 .B LDAP_SCHEMA_DISTRIBUTED_OPERATION
@@ -245,7 +245,7 @@ shadowing or other distributed directory aspect.  TBC.
 .B LDAP_SCHEMA_DSA_OPERATION
 the attribute type is operational and is pertinent to the directory
 server itself, i.e. it may have different values for the same entry
-when retrieved from different servers that master the entry.
+when retrieved from different servers that provide the entry.
 .LP
 Object classes can be of three kinds:
 .TP

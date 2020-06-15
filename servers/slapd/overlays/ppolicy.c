@@ -2104,7 +2104,7 @@ ppolicy_add(
 	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
 		return rs->sr_err;
 
-	/* If this is a replica, assume the master checked everything */
+	/* If this is a replica, assume the provider checked everything */
 	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) )
 		return SLAP_CB_CONTINUE;
 
@@ -2253,7 +2253,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if ( pi->disable_write ) return SLAP_CB_CONTINUE;
 
 	/* If this is a replica, we may need to tweak some of the
-	 * master's modifications. Otherwise, just pass it through.
+	 * provider's modifications. Otherwise, just pass it through.
 	 */
 	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
 		Modifications **prev;

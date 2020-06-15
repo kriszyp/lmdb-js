@@ -33,7 +33,7 @@ tuned to give quick response to high-volume lookup or search
 operations. They may have the ability to replicate information
 widely in order to increase availability and reliability, while
 reducing response time.  When directory information is replicated,
-temporary inconsistencies between the replicas may be okay, as long
+temporary inconsistencies between the consumers may be okay, as long
 as inconsistencies are resolved in a timely manner.
 
 There are many different ways to provide a directory service.
@@ -430,11 +430,11 @@ a pool of threads.  This reduces the amount of system overhead
 required while providing high performance.
 
 {{B:Replication}}: {{slapd}} can be configured to maintain shadow
-copies of directory information.  This {{single-master/multiple-slave}}
+copies of directory information.  This {{single-provider/multiple-consumer}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} installation just doesn't provide the necessary availability
 or reliability.  For extremely demanding environments where a
-single point of failure is not acceptable, {{multi-master}} replication
+single point of failure is not acceptable, {{multi-provider}} replication
 is also available.  {{slapd}} includes support for {{LDAP Sync}}-based
 replication.
 

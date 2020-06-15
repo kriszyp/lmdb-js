@@ -293,7 +293,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
-	 * 2) this backend is master for what it holds;
+	 * 2) this backend is the provider for what it holds;
 	 * 3) it's a replica and the dn supplied is the updatedn.
 	 */
 	if ( op->o_bd->be_add ) {

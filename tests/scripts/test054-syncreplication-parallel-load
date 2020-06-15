@@ -34,7 +34,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR4
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $CONF1
+. $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -74,14 +74,14 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT4..."
-. $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $CONF4
+. $CONFFILTER $BACKEND $MONITORDB < $P1SRCONSUMERCONF > $CONF4
 $SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
-SLAVEPID=$!
+CONSUMERPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
+    echo CONSUMERPID $CONSUMERPID
     read foo
 fi
-KILLPIDS="$KILLPIDS $SLAVEPID"
+KILLPIDS="$KILLPIDS $CONSUMERPID"
 
 sleep 1
 
@@ -134,7 +134,7 @@ if test $WAIT != 0 ; then
     echo PID $PID
     read foo
 fi
-KILLPIDS="$PID $SLAVEPID"
+KILLPIDS="$PID $CONSUMERPID"
 
 sleep 1
 
@@ -260,8 +260,8 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 echo "Stopping consumer to test recovery..."
-kill -HUP $SLAVEPID
-wait $SLAVEPID
+kill -HUP $CONSUMERPID
+wait $CONSUMERPID
 
 echo "Modifying more entries on the provider..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
@@ -286,12 +286,12 @@ EOMODS
 echo "Restarting consumer..."
 echo "RESTART" >> $LOG4
 $SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING >> $LOG4 2>&1 &
-SLAVEPID=$!
+CONSUMERPID=$!
 if test $WAIT != 0 ; then
-    echo SLAVEPID $SLAVEPID
+    echo CONSUMERPID $CONSUMERPID
     read foo
 fi
-KILLPIDS="$PID $SLAVEPID"
+KILLPIDS="$PID $CONSUMERPID"
 
 echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
@@ -335,7 +335,7 @@ OPATTRS="entryUUID creatorsName createTimestamp modifiersName modifyTimestamp"
 
 echo "Using ldapsearch to read all the entries from the provider..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	'(objectclass=*)' '*' $OPATTRS > $MASTEROUT 2>&1
+	'(objectclass=*)' '*' $OPATTRS > $PROVIDEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -346,7 +346,7 @@ fi
 
 echo "Using ldapsearch to read all the entries from the consumer..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
-	'(objectclass=*)' '*' $OPATTRS > $SLAVEOUT 2>&1
+	'(objectclass=*)' '*' $OPATTRS > $CONSUMEROUT 2>&1
 RC=$?
 
 if test $RC != 0 ; then
@@ -358,12 +358,12 @@ fi
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering provider results..."
-$LDIFFILTER < $MASTEROUT > $MASTERFLT
+$LDIFFILTER < $PROVIDEROUT > $PROVIDERFLT
 echo "Filtering consumer results..."
-$LDIFFILTER < $SLAVEOUT > $SLAVEFLT
+$LDIFFILTER < $CONSUMEROUT > $CONSUMERFLT
 
 echo "Comparing retrieved entries from provider and consumer..."
-$CMP $MASTERFLT $SLAVEFLT > $CMPOUT
+$CMP $PROVIDERFLT $CONSUMERFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - provider and consumer databases differ"

@@ -69,7 +69,7 @@ sdf-img: \
 	intro_tree.png \
 	ldap-sync-refreshandpersist.png \
 	ldap-sync-refreshonly.png \
-	n-way-multi-master.png \
+	n-way-multi-provider.png \
 	push-based-complete.png \
 	push-based-standalone.png \
 	refint.png \
