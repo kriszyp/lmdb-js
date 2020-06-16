@@ -11,6 +11,7 @@
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "src/node-lmdb.cpp",
         "src/env.cpp",
+        "src/ordered-binary.cpp",
         "src/misc.cpp",
         "src/txn.cpp",
         "src/dbi.cpp",

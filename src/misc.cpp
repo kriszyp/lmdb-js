@@ -131,6 +131,7 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
 }
 
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
+    /*return valueToKey(val, key);*/
     isValid = false;
 
     if (keyType == NodeLmdbKeyType::StringKey) {
@@ -184,6 +185,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
 }
 
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
+    return keyToValue(key);/*
     switch (keyType) {
     case NodeLmdbKeyType::Uint32Key:
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
@@ -194,7 +196,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
     default:
         Nan::ThrowError("Unknown key type. This is a bug in node-lmdb.");
         return Nan::Undefined();
-    }
+    }*/
 }
 
 Local<Value> valToStringUnsafe(MDB_val &data) {
@@ -205,6 +207,13 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 }
 
 Local<Value> valToString(MDB_val &data) {
+    const char *buffer = reinterpret_cast<const char*>(data.mv_data);
+    auto str = Nan::New<v8::String>(buffer, data.mv_size);
+
+    return str.ToLocalChecked();
+}
+
+Local<Value> valToStringUtf16(MDB_val &data) {
     // UTF-16 buffer
     const uint16_t *buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
     // Number of UTF-16 code points
@@ -280,6 +289,27 @@ void consoleLogN(int n) {
 }
 
 void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
+    unsigned int l = str->Length();
+    l = (((l + 10) >> 3) + (l >> 6)) << 3;
+    char *d = new char[l];
+    int written = 0;
+    #if NODE_VERSION_AT_LEAST(10,0,0)
+    str->WriteUtf8(Isolate::GetCurrent(), d, l, &written);
+    if (written > l -3) {
+        //fprintf(stderr, "Too much space");
+        delete[] d;
+        l = str->Utf8Length(Isolate::GetCurrent());
+        d = new char(l);
+        str->WriteUtf8(Isolate::GetCurrent(), d, l, &written);
+    }
+    #else
+    str->Write(d, 0);
+    #endif;
+    val->mv_data = d;
+    val->mv_size = written;
+}
+
+/*void CustomExternalStringResource::writeToUTF16(Local<String> str, MDB_val *val) {
     unsigned int l = str->Length() + 1;
     uint16_t *d = new uint16_t[l];
     #if NODE_VERSION_AT_LEAST(10,0,0)
@@ -291,7 +321,7 @@ void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
 
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
-}
+}*/
 
 CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
     // The UTF-16 data

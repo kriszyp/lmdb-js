@@ -179,7 +179,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
         // inferAndValidateKeyType already threw an error
         return;
     }
-    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;
@@ -188,6 +188,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     // Bookkeeping for old key so that we can free it even if key will point inside LMDB
     oldkey.mv_data = key.mv_data;
     oldkey.mv_size = key.mv_size;
+    fprintf(stderr, "the key is %s", key.mv_data);
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     
@@ -252,7 +253,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         // inferAndValidateKeyType already threw an error
         return;
     }
-    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;
@@ -295,9 +296,18 @@ NAN_METHOD(TxnWrap::putString) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
         CustomExternalStringResource::writeTo(Local<String>::Cast(info[2]), &data);
     }, [](MDB_val &data) -> void {
-        delete[] (uint16_t*)data.mv_data;
+        delete[] (char*)data.mv_data;
     });
 }
+
+/*NAN_METHOD(TxnWrap::putString) {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
+        CustomExternalStringResource::writeTo(Local<String>::Cast(info[2]), &data);
+    }, [](MDB_val &data) -> void {
+        delete[] (uint16_t*)data.mv_data;
+    });
+}*/
+
 
 NAN_METHOD(TxnWrap::putBinary) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
@@ -384,7 +394,7 @@ NAN_METHOD(TxnWrap::del) {
         // inferAndValidateKeyType already threw an error
         return;
     }
-    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
+    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;
