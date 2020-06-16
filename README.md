@@ -1,492 +1,118 @@
-node-lmdb
-=========
+LMDB is probably the fastest and most efficient database on the planet, if used correctly. `lmdb-store` provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB. Used directly, LMDB has certain characteristics that can be very challenging, including fixed db size, inefficieny with flushing small transactions, and complicated cursors usage. `lmdb-store` offers several key features that make it NodeJS idiomatic, highly performant, and easy to use than LMDB efficiently:
+* Automated database size handling
+* Queueing asynchronous write operations with promise-based API
+* Transaction management
+* Iterable queries/cursors
 
-This is a node.js binding for LMDB, an extremely fast and lightweight transactional key-value store database.
+`lmdb-store` is build on the excellent [node-lmdb](https://github.com/Venemo/node-lmdb) package.
 
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=venemo%40msn%2ecom&lc=US&item_name=to%20Timur%20Kristof%2c%20for%20node%2dlmdb%20development&item_number=node%2dlmdb&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHostedGuest)
+## Design
+When an `lmdb-store` is created, an LMDB environment/database is created, and starts with a default DB size of 1MB. LMDB itself uses a fixed size, but `lmdb-store` detects whenever the database goes beyond the current size, and automatically increases the size of DB, and re-executes the write operations after resizing. With this, you do not have to make any estimates of database size, the databases automatically grow as needed (as you would expect from a database!)
 
-About
------
+`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, read operations do not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, write operations do involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of batch operation are performed in a separate thread. Consequently, `lmdb-store` is designed for writes to go through this asynchronous batching process and return a simple promise that resolves once the write is completed and flushed to disk.
 
-### About this module
+LMDB supports multiple modes of transactions, including disabling of file sync'ing (noSync), which makes transaction commits much faster. We _highly_ discourage turning off sync'ing as it leaves the database prone to data corruption. With the default sync'ing enabled, LMDB has a crash-proof design; a machine can be turned off at any point, and data can only be corrupted if the written data is actually corrupted/changed. This does make transactions slower (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions just enable more writes per transaction, and lmdb-store is able to drive LMDB to achieve the same levels of throughput with safe sync'ed transactions as without, while still preserving the durability/safety of sync'ed transactions.
 
-The aim of this node module is to provide bindings so that people can use LMDB from their node applications, aiming for a simple and clean API which is on par with the LMDB API but tries to apply javascript patterns and naming conventions as much as possible to make users feel familiar about it.
+`lmdb-store` supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern.
 
-We support **zero-copy** retrieval of **string** and **binary** values. Binary values are operated on via the Node.js `Buffer` API.
-
-### About LMDB
-
-Here are the main highlights of LMDB, for more, visit http://symas.com/mdb :)
-
-* Key-value store, NoSQL
-* In-process, no need to squeeze your data through a socket
-* Support for transactions and multiple databases in the same environment
-* Support for multi-threaded and multi-process use
-* Zero-copy lookup (memory map)
-* Crash-proof design
-
-### Supported platforms
-
-* Tested and works on Linux (author uses Fedora)
-* Tested and works on Mac OS X
-* Tested and works on Windows
-
-### License info
-
-The `node-lmdb` code is licensed to you under the terms of the MIT license. LMDB itself is licensed under its own OpenLDAP public license (which is similarly permissive).
-
-Usage
------
-
-### Introduction
-
-#### Step 0: require the module
-
-Just like with any other node module, the first step is to `require()` the module.
-
-```javascript
-var lmdb = require('node-lmdb');
+## Usage
+An lmdb-store instances is created with by using `open` export from the main module:
 ```
-
-#### Step 1: create an environment
-
-`Env` represents a database environment. You can create one with the `new` operator and after that, you must open it before you can use it.
-`open()` accepts an object literal in which you can specify the configuration options for the environment.
-
-```javascript
-var env = new lmdb.Env();
-env.open({
-    path: __dirname + "/mydata",
-    mapSize: 2*1024*1024*1024, // maximum database size
-    maxDbs: 3
+const { open } = require('lmdb-store');
+// or
+// import { open } from 'lmdb-store';
+let myStore = open('my-store', {
+	// any options go where, write-map mode is faster:
+	useWritemap: true
 });
 ```
+(see store options below for more options)
+Once you have a store the following methods are available:
+### `store.get(key: Buffer, copy?: Function): Buffer`
+Get the value at the specified key. The `key` must be a buffer, and the return value will either be a buffer if the entry exists, or `undefined` if the entry does not exist.
 
-Close the environment when you no longer need it.
+For typical usage, no `copy` function is needed, and returned buffer will be a safe copy of the data from the database. However, some optimizations can be performed (such as decompression or immediate parsing to an object) by using using the `copy` argument, in which case a `buffer` as a reference directly to the shared, memory-mapped data in the database will provided to the `copy` function and it will be responsible for copying the data (or decompressing directly from the db). The shared memory reference should not be used outside the `copy` function, as it will be detached and unusable.
 
-```javascript
-env.close();
+### `store.put(key: Buffer, value: Buffer, ifValue?: Buffer): Promise<boolean>`
+This will set the provided value at the specified key. If the `ifValue` parameter is set, the put will only occur if the existing value at the provided key matches the value provided by `ifValue` at the instace the commit occurs (LMDB commits are atomic by default). If the `ifValue` parameter is not set, the put will occur regardless of the previous value.
+
+This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (20ms by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifValue` not matching at the time of the commit.
+
+### `store.remove(key: Buffer, ifValue?: Buffer): Promise<boolean>`
+This will delete the entry at the specified key. This functions like `put`, with the same optional conditional value. This is batched along with put operations, and returns a promise indicating the success of the operation.
+
+### `store.putSync(key: Buffer, value: Buffer, ifValue?: Buffer): boolean`
+This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, this put will be added to the current transaction. If not, a transaction will be started, the put will be executed, and the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (usually takes multiple milliseconds).
+
+### `store.removeSync(key: Buffer, ifValue?: Buffer): boolean`
+This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion.
+
+### store.transaction(execute: Function)
+This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `putSync`s, and `removeSync`s within the transaction, and the result will be committed.
+
+### `getRange(options: { start?: Buffer, end?: Buffer, reverse?: boolean}): Iterable<{ key: Buffer, value: Buffer }>`
+This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
-
-#### Step 2: open one or more databases
-
-An environment (`Env`) can contain one or more databases. Open a database with `env.openDbi()` which takes an object literal with which you can configure your database.
-
-```javascript
-var dbi = env.openDbi({
-    name: "myPrettyDatabase",
-    create: true // will create if database did not exist
-})
-```
-
-Close the database when you no longer need it.
-
-```javascript
-dbi.close();
-```
-
-#### Step 3: use transactions
-
-The basic unit of work in LMDB is a transaction, which is called `Txn` for short. Here is how you operate with your data.
-Every piece of data in LMDB is referred to by a **key**.
-You can use the methods `getString()`, `getBinary()`, `getNumber()` and `getBoolean()` to retrieve something,
-`putString()`, `putBinary()`, `putNumber()` and `putBoolean()` to store something and `del()` to delete something.
-
-**IMPORTANT:** always close your transactions with `abort()` or `commit()` when you are done with them.
-
-```javascript
-var txn = env.beginTxn();
-var value = txn.getString(dbi, 1);
-
-console.log(value);
-
-if (value === null) {
-    txn.putString(dbi, 1, "Hello world!");
-}
-else {
-    txn.del(dbi, 1);
-}
-
-txn.putString(dbi, 2, "Yes, it's this simple!");
-txn.commit();
-```
-
-#### Asynchronous batched operations
-
-You can batch together a set of operations to be processed asynchronously with `node-lmdb`. Committing multiple operations at once can improve performance, and performing a batch of operations and using sync transactions (slower, but maintains crash-proof integrity) can be efficiently delegated to an asynchronous thread. In addition, writes can be defined as conditional by specifying the required value to match in order for the operation to be performed, to allow for deterministic atomic writes based on prior state. The `batchWrite` method accepts an array of write operation requests, where each operation is an object or array. If it is an object, the supported properties are:
-* `db` (required) - The database to write to
-* `key` (required) - The key to write
-* `value` (optional) - If specified, this is the value to `put` into the entry. If absent or undefined, this write operation will be a delete, and delete this key. This should be a binary/buffer value.
-* `ifValue` (optional) - If specified, the write operation (put or delete) will only be performed if the provided `ifValue` matches the existing value for this entry. This should be a binary/buffer value.
-* `ifExactMatch` (optional) - If set to true, the conditional write requires that `ifValue` exactly match the existing value, byte for byte and length. By default `ifValue` can be a prefix and only needs to match the number of bytes in `ifValue` (for example if `ifValue` is `Buffer.from([5, 2])`, the conditional write will be performed if the `value` starts with 5, 2).
-* `ifKey` (optional) - If specified, indicates the key to use for for matching the conditional value. By default, the key use to match `ifValue` is the same key as the write operation.
-* `ifDB` (optional) - If specified, indicates the db to use for for matching the conditional value. By default, the key use to match `ifValue` is the same db as the write operation.
-
-If the write operation is a specified with an array, the supported elements are:
-* A three element array for `put`ing data: `[db, key, value]` (where `value` is a binary/buffer)
-* A two element array for `del`eting data: `[db, key]`
-* A four element array for conditionally `put`ing or `del`eting data: `[db, key, value, ifValue]` (where `value` and `ifValue` are as specificied in the object definition)
-
-When `batchWrite` is called, `node-ldmb` will asynchronously create a new write transaction, execute all the operations in the provided array, except for any conditional writes where the condition failed, and commit the transaction, if there were no errors. For conditional writes, if the condition did not match, the write will be skipped, but the transaction will still be committed. However, if any errors occur, the transaction will be aborted. This entire transaction will be created by `node-lmdb` and executed in a separate thread. The callback function will be called once the transaction is finished. It is possible for an explicit write transaction in the main JS thread to block or be blocked by the asynchronous transaction.
-For example:
-```javascript
-env.batchWrite([
-    [dbi, key1, Buffer.from("Hello")], // put in key 1
-    [dbi, key2, Buffer.from("World")], // put in key 2
-    [dbi, key3], // delete any entry from key 3 (can also use null as value to indicate delete)
-    [dbi, key4, valuePlusOne, oldValue] // you could atomically increment by specifying the require previous state
-], options, (error, results) => {
-    if (error) {
-        console.error(error);
-    } else {
-        // operations finished and transaction was committed
-        let didWriteToKey4Succeed = results[3] === 0
-    }
-})
-```
-The callback function will be either be called with an error in the first argument, or an array in the second argument with the results of the operations. The array will be the same length as the array of write operations, with one to one correspondence by position, and each value in the result array will be:
-0 - Operation successfully written
-1 - Condition not met (only can happen if a condition was provided)
-2 - Attempt to delete non-existent key (only can happen if `ignoreNotFound` enabled)
-
-
-The options include all the flags from `put` `options`, and this optional property:
-* `progress` - This should be a function, if provided, will be called to report the progress of the write operations, returning the results array, with completion values filled in for completed operations, and all uncompleted operations will correspond to `undefined` in the eleemnt positions in the array. Progress events are best-effort in node; the write operations are performed in a separate thread, and progress events occur if and when node's event queue is free to run them (they are not guaranteed to fire if the main thread is busy).
-
-
-### Basic concepts
-
-LMDB has four different entities:
-
-* `Env` represents a full database environment. The same environment can be used by multiple processes, but a particular `Env` object **must** be used by one process only. You can operate with the same environment from multiple threads.
-* `Dbi` represents a sub-database which belongs to a database environment. The same environment can contain either multiple named databases (if you specify a string name) or an unnamed database (if you specify `null` instead of a name).
-* `Txn` represents a transaction. Multiple threads can open transactions for the same `Env`, but a particular `Txn` object **must** only be accessed by one thread, and only one `Txn` object can be used on a thread at a time. (NOTE: The `noTls` option in the environment will change this behaviour for *read-only* transactions, so that a thread can then create any number of *read-only* transactions and any number of threads can access the same *read-only* transaction.) Note that **only one** *write* transaction can be open in an environment in any given time. `env.beginTxn()` will simply block until the previous one is either `commit()`ted or `abort()`ed.
-* `Cursor` objects can be used to iterate through multiple keys in the same database.
-
-Here is how you use LMDB in a typical scenario:
-
-* You create an `Env` and `open()` it with the desired configuration options.
-* You open a `Dbi` by calling `env.openDbi()` and passing the database configuration options.
-* Now you can create `Txn`s with `env.beginTxn()` and operate on the database through a transaction by calling `txn.getString()`, `txn.putString()` etc.
-* When you are done, you should either `abort()` or `commit()` your transactions and `close()` your databases and environment.
-
-Example iteration over a database with a `Cursor`:
-
-```javascript
-var cursor = new lmdb.Cursor(txn, dbi);
-
-for (var found = cursor.goToFirst(); found !== null; found = cursor.goToNext()) {
-    // Here 'found' contains the key, and you can get the data with eg. getCurrentString/getCurrentBinary etc.
-    // ...
+for (let { key, value } of db.getRange({ start, end })) {
+	// for each key-value pair in the given range
 }
 ```
-
-The cursor `goTo` methods (`goToFirst`, `goToNext`, etc.) will return the current key. When an item is not found, `null` is returned.
-Beware that the key itself could be a *falsy* JavaScript value, so you need to explicitly check against `null` with the `!==` operator in your loops.
-
-### Data Types in node-lmdb
-
-LMDB is very simple and fast. Using node-lmdb provides close to the native C API functionally, but expressed via a natural
-javascript API. To make simple things simple, node-lmdb defaults to presenting keys and values in LMDB as strings.
-For convenience number, boolean and `Buffer` values are also supported.
-
-The simplest way to store complex data types (such as objects) is to use `JSON.stringify` before putting it into the database
-and `JSON.parse` when you retrieve the data.
-
-For more complex use cases access to keys and values as binary (node.js `Buffer` type) is provided. In LMDB itself keys 
-(with one exception) and values are simply binary sequences of bytes. You can retrieve a key or value from an LMDB database
-as binary even if it was written as a string. The same does not apply in reverse! Using binary access
-also allows interoperation with LMDB databases created by, or shared with applications that use data serialisation formats
-other than UTF-16 strings (including, in particular, strings using other encodings such as UTF-8).  
-See our chapter *Working with strings* for more details.
-
-#### Keys
-
-* *Unsigned 32-bit integers*: The one exception in LMDBs representation of keys is an optimisation for fixed-length keys. This is exposed
-by node-lmdb for one particular fixed length type: unsigned 32 bit integers. To use this optimisation specify `keyIsUint32: true`
-to `openDbi`. Because the `keyIsUint32 : true` option is passed through to LMDB and stored in the LMDB metadata for the database,
-a database created with this option set cannot be accessed without setting this option, and vice-versa.
-* *Buffers*: If you pass `keyIsBuffer: true`, you can work with node `Buffer` instances as keys.
-* *Strings*: This is the default. You can also use `keyIsString: true`.
-
-When using a cursor keys are read from the database and it is necessary to specify how the keys should be returned.
-The most direct mapping from LMDB C API is as a node.js Buffer (binary), however it is often more convenient to
-return the key as a string, so that is the default.
-
-You can specify the key type when you open a database:
-
+Or we can use the provided methods:
 ```
-dbi = env.openDbi({
-    // ... etc.
-    keyIsBuffer: true
+db.getRange({ start, end })
+	.filter(({ key, value }) => test(key))
+	.forEach(({ key, value }) => {
+		// for each key-value pair in the given range that matched the filter
+	})
+```
+Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and can create async iterable if the callback functions execute asynchronously (return a promise).
+
+### openDB(dbName: string)
+LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default database, `"data"`. However, you can use multiple databases per environment and instantiate a store for each one. To do this, make sure you set the `maxDbs` (it defaults to 1). For example, we can open multiple stores for a single environment:
+```
+const { open } = require('lmdb-store');
+let myStore = open('all-my-data', {
+	maxDbs: 5
 });
+let usersStore = myStore.openDB('users');
+let groupsStore = myStore.openDB('groups');
+let productsStore = myStore.openDB('products');
 ```
-
-When working with transactions, you can override the key type passed to `openDbi` by providing options to `put`, `get` and `del` functions.  
-For example:
-
+Each of the opened/returned stores has the same API as the default store for the environment. Each of the stores for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two stores with the same environment will be batched together in the same commit. For example:
 ```
-var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
-var key = new Buffer('key2');
-txn.putBinary(dbi, key, buffer, { keyIsBuffer: true });
-var data = txn.getBinary(dbi, key, { keyIsBuffer: true });
-data.should.deep.equal(buffer);
-txn.del(dbi, key, { keyIsBuffer: true });
+usersStore.put(userKey, userData);
+groupsStore.put(groupKey, groupData);
 ```
+Both these puts will be batched and after 20ms be committed in the same transaction.
 
-Finally, when working with cursors, you can override the key type by passing similar options as the 3rd argument of the `Cursor` constructor:
+### Store Options
+The open method has the following signature:
+`open(path, options)`
+If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument should be an object, and supports the following properties, all of which are optional:
+* commitDelay - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 20ms. A shorter delay means more immediate commits, but a longer delay can be more efficient at collected more writes into a single transaction and reducing I/O load.
+* immediateBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
+* syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
+The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>:
+* useWritemap - Use writemaps (this is the main flag we recommend using), as it improves performance by reducing malloc calls.
+* noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
+* noSync - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
+* noMetaSync - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
+* readOnly - Self-descriptive.
+* mapAsync - Not recommended, lmdb-store provides the means to ensure commits are performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
-```
-cursor = new lmdb.Cursor(txn, dbi, { keyIsBuffer: true });
-```
+## Events
 
-### Examples
+The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
-You can find some in the source tree. There are some basic examples and I intend to create some advanced ones too.
+`beforecommit` - This event is fired before a batched operation begins to start transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
 
-The basic examples we currently have:
+## License
 
-* `examples/1-env.js` - shows basic usage of `Env`, `Dbi` and `Txn` operating on string values
-* `examples/2-datatypes.js` - shows how to use various data types for your data
-* `examples/3-multiple-transactions.js` - shows how LMDB will behave if you operate with multiple transactions
-* `examples/4-cursors.js` - shows how to work with cursors on a basic database
-* `examples/5-dupsort.js` - shows how to use a `dupSort` database with cursors
-* `examples/6-asyncio.js` - shows how to use the fastest (but also most dangerous) way for async IO
-* `examples/7-largedb.js` - shows how to work with an insanely large database
-* `examples/8-multiple-cursors-single-transactions.js` - shows how to use multiple cursors with a single transaction
-* `examples/9-unnamed-db.js` - shows how to use an unnamed database
-* `examples/10-binkeycursors.js` - shows how to work with cursors on a database with binary keys
+`lmdb-store` is licensed under the terms of the MIT license.
 
-Advanced examples:
+## Related Projects
 
-* `examples/advanced1-indexing.js` - this is a module pattern example which demonstrates the implementation of a search engine prototype
-* *More will come later, so don't forget to check back!*
+lmdb-store is built on top of [node-lmdb](https://github.com/Venemo/node-lmdb)
+cobase is built on top of lmdb-store: [cobase](https://github.com/DoctorEvidence/cobase)
 
-### Caveats
-
-#### Unsafe Get Methods
-Because of the nature of LMDB, the data returned by `txn.getStringUnsafe()`, `txn.getBinaryUnsafe()`, `cursor.getCurrentStringUnsafe()`
-and `cursor.getCurrentBinaryUnsafe()` is **only valid until the next `put` operation or the end of the transaction**. Also, with Node 14+, you must detach the buffer after using it, by calling `env.detachBuffer(buffer)`. This must be done before accessing the same entry again (or V8 will crash).
-If you need to use the data *later*, you can use the `txn.getBinary()`, `txn.getString()`, `cursor.getCurrentBinary()` and
-`cursor.getCurrentString()` methods. For most usage, the optimisation (no copy) gain from using the unsafe methods is so small
-as to be negligible - the `Unsafe` methods should be avoided.
-
-
-#### Working with strings
-
-Strings can come from many different places and can have many different encodings. In the JavaScript world (and therefore the node.js world) strings are encoded in UTF-16, so every string stored with node-lmdb is also encoded in UTF-16 internally. This means that the string API (`getString`, `putString`, etc.) will only work with UTF-16 encoded strings.
-
-If you only use strings that come from JavaScript code or other code that is a “good node citizen”, you never have to worry about encoding.
-
-##### How to use other encodings
-
-This has come up many times in discussions, so here is a way to use other encodings supported by node.js. You can use `Buffer`s with node-lmdb, which are a very friendly way to work with binary data. They also come in handy when you store strings in your database with encodings other than UTF-16.
-
-You can, for example, read a UTF-8 string as a buffer, and then use `Buffer`'s `toString` method and specify the encoding:
-
-```javascript
-// Get stored data as Buffer
-var buf = txn.getBinary(dbi, key);
-// Use the Buffer toString API to convert from UTF-8 to a JavaScript string
-var str = buf.toString('utf8');
-```
-
-Useful links:
-
-* Buffer API in node.js:  
-https://nodejs.org/api/buffer.html
-* The list of encodings supported by node.js:  
-https://github.com/nodejs/node/blob/master/lib/buffer.js#L490
-
-##### Storing UTF-16 strings as Buffers
-
-While node.js doesn't require the UTF-16 strings to be zero-terminated, node-lmdb automatically and transparently zero-terminates every string internally.
-As a user, this shouldn't concern you, but if you want to write a string using the Buffer API and read it as a string, you are in for a nasty surprise.
-
-However, it will work correctly if you manually add the terminating zero to your buffer.
-
-Conceptually, something like this will work:
-
-```javascript
-// The string we want to store using a buffer
-var expectedString = 'Hello world!';
-
-// node-lmdb internally stores a terminating zero, so we need to manually emulate that here
-// NOTE: this would NEVER work without 'utf16le'!
-var buf = Buffer.from(expectedString + '\0', 'utf16le');
-
-// Store data as binary
-txn.putBinary(dbi, key, buf);
-      
-// Retrieve same data as string and check
-var data3 = txn.getString(dbi, key);
-
-// At this point, data3 is equal to expectedString
-
-```
-
-### Limitations of node-lmdb
-
-* Fixed address map (called `MDB_FIXEDMAP` in C) features are **not exposed** by this binding because they are highly experimental
-* There is no option to specify a custom key comparison method, so if the order of traversal is important,
-the key must be constructed so as to be correctly ordered using lexicographical comparison of the
-binary byte sequence (LMDB's default comparison method). While LMDB itself does allow custom comparisons, exposing this through a
-language binding is not recommended by LMDB's author. The validity of the database depends on a consistent key comparison function
-so it is not appropriate to use this customisation except in very specialised use cases - exposing this customisation point
-would encourage misuse and potential database corruption. In any case, LMDB performance is very sensitive to comparison performance
-and many of the advantages of using LMDB would be lost were a complex (and non-native code) comparison function used.
-* Not all functions are wrapped by the binding yet. If there's one that you would like to see, drop me a line.
-
-
-Contributing
-------------
-
-If you find problems with this module, open an issue on GitHub.
-Also feel free to send me pull requests. Contributions are more than welcome! :)
-
-### Building node-lmdb
-
-LMDB is bundled in `node-lmdb` so you can simply build this module using `node-gyp`.
-
-```bash
-# Install node-gyp globally (needs admin permissions)
-npm -g install node-gyp
-
-# Clone node-lmdb
-git clone git@github.com:Venemo/node-lmdb.git
-
-# Go to node-lmdb directory
-cd node-lmdb
-
-# At first, you need to download all dependencies
-npm install
-
-# Once you have all the dependencies, the build is this simple
-node-gyp configure
-node-gyp build
-```
-
-### Building node-lmdb on Windows
-
-Windows isn't such a great platform for native node addons, but it can be made to work.
-See this very informative thread: https://github.com/nodejs/node-gyp/issues/629
-
-1. Install latest .NET Framework (v4.6.2 at the time of writing)
-2. Install latest node.js (v7.9.0 at the time of writing).
-3. This is Windows. Reboot.
-4. Now open a node.js command prompt as administrator and run the following commands.  
-*NOTE: these commands WILL take a LOT of time. Please be patient.*
-
-```
-npm -g install windows-build-tools
-npm -g install node-gyp
-npm -g install mocha
-npm config set msvs_version 2015 --global
-```
-
-After this, close the command prompt and open a new one (so that changes to `PATH` and whatever else
-can take proper effect). At this point you should have all the necessary junk for Windows to be able
-to handle the build. (You won't need to run node as administrator anymore.)
-Note that `windows-build-tools` will silently fail to install if you don't have the .NET Framework
-installed on your machine.
-
-5. Add python2 to `PATH`. Note that `windows-build-tools` installed python2 (v2.7.x) for you
-already, so easiest is to use "Change installation" in the Control Panel and select "Change" and then
-"Add python.exe to PATH".
-6. This is Windows. Reboot again just to be sure.
-
-Congrats! Now you can work with native node.js modules.
-
-When you are building node-lmdb for the first time, you need to install node-lmdb's dependencies with `npm install`:
-
-```
-cd node-lmdb
-npm install
-```
-
-Note that `npm install` will also attempt to build the module. However once you got all the dependencies,
-you only need to do the following for a build:
-
-```
-cd node-lmdb
-node-gyp configure
-node-gyp build
-```
-
-### Managing the LMDB dependency
-
-```bash
-# Adding upstream LMDB as remote
-git remote add lmdb https://git.openldap.org/openldap/openldap.git
-# Fetch new remote
-git fetch lmdb
-# Adding the subtree (when it's not there yet)
-git subtree add  --prefix=dependencies/lmdb lmdb mdb.master --squash
-# Updating the subtree (when already added)
-git subtree pull --prefix=dependencies/lmdb lmdb mdb.master --squash
-```
-
-### Developer FAQ
-
-#### How fast is this stuff?
-
-LMDB is one of the fastest databases on the planet, because it's **in-process** and **zero-copy**, which means it runs within your app, and not somewhere else,
-so it doesn't push your data through sockets and can retrieve your data without copying it in memory.
-
-We don't have any benchmarks for node-lmdb but you can enjoy a detailed benchmark of LMDB here: http://symas.com/mdb/microbench/
-obviously, the V8 wrapper will have some negative impact on performance, but I wouldn't expect a significant difference.
-
-#### Why is the code so ugly?
-
-Unfortunately, writing C++ addons to Node.js (and V8) requires a special pattern (as described in their docs) which most developers might find ugly.
-Fortunately, we've done this work for you so you can enjoy LMDB without the need to code C++.
-
-#### How does this module work?
-
-It glues together LMDB and Node.js with a native Node.js addon that wraps the LMDB C API.
-
-Zero-copy is implemented for string and binary values via a V8 custom external string resource and the Node.js Buffer class.
-
-#### How did you do it?
-
-These are the places I got my knowledge when developing node-lmdb:
-
-* V8 reference documentation: http://bespin.cz/~ondras/html/
-* Node.js C++ addons documentation: http://nodejs.org/api/addons.html
-* LMDB documentation: http://symas.com/mdb/doc/
-
-### Acknowledgements
-
-Below you can find a list of people who have contributed (in alphabetical order).
-Big thank you to everybody!  
-(NOTE: if you think your name should be here, but isn't, please contact the author.)
-
-* @aholstenson (Andreas Holstenson)
-* @antoinevw
-* @b-ono
-* @braydonf (Braydon Fuller)
-* @da77a
-* @erichocean (Erich Ocean)
-* @jahewson (John Hewson)
-* @jeffesquivels (Jeffrey Esquivel S.)
-* @justmoon (Stefan Thomas)
-* @kriszyp (Kris Zyp)
-* @Matt-Esch
-* @oliverzy (Oliver Zhou)
-* @paberr (Pascal Berrang)
-* @rneilson (Raymond Neilson)
-
-Support
--------
-
-node-lmdb is licensed to you under the terms of the MIT license, which means it comes with no warranty by default.
-
-However,
-
-* LMDB: Symas (the authors of LMDB) [offers commercial support of LMDB](https://symas.com/lightning-memory-mapped-database/).
-* node-lmdb: If you have urgent issues with node-lmdb or would like to get support, you can contact @Venemo (the node-lmdb author).
-
-You can also consider donating to support node-lmdb development:
-
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=venemo%40msn%2ecom&lc=US&item_name=to%20Timur%20Kristof%2c%20for%20node%2dlmdb%20development&item_number=node%2dlmdb&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHostedGuest)
-
+<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203"/></a>

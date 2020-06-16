@@ -1,38 +1,19 @@
 {
-  "name": "node-lmdb",
-  "description": "Node binding for LMDB, the Lightning Memory-Mapped Database",
-  "author": "Timur Kristóf <venemo@fedoraproject.org>",
-  "contributors": [
-    "Timur Kristóf",
-    "Erich Ocean",
-    "Braydon Fuller",
-    "Andreas Holstenson (aholstenson)",
-    "antoinevw",
-    "b-ono",
-    "da77a",
-    "John Hewson (jahewson)",
-    "Jeffrey Esquivel S. (jeffesquivels)",
-    "Stefan Thomas (justmoon)",
-    "Matt-Esch",
-    "Oliver Zhou (oliverzy)",
-    "Pascal Berrang (paberr)",
-    "Raymond Neilson (rneilson)",
-    "Kris Zyp (kriszyp)"
-  ],
+  "name": "lmdb-store",
+  "author": "Kris Zyp",
+  "version": "0.4.0",
+  "description": "Simple, efficient, scalable data store wrapper for LDMB",
   "license": "MIT",
-  "keywords": [
-    "lmdb",
-    "database",
-    "mdb",
-    "lightning",
-    "binding"
-  ],
-  "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.9.0",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/DoctorEvidence/lmdb-store"
+  },
   "main": "./index.js",
-  "scripts": {
+  "typings": "./index.d.ts",
+ "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
     "prebuild": "prebuild --all --verbose",
+    "test2": "./node_modules/.bin/mocha tests -u tdd",
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
     "benchmark": "node ./benchmark/index.js"
   },
@@ -52,4 +33,4 @@
     "rimraf": "^2.6.1",
     "jshint": "^2.9.4"
   }
-}
+}}
