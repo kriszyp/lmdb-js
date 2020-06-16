@@ -45,7 +45,7 @@ fi
 # 3. keep making changes on all servers to see things still work
 
 echo "This test tracks a case where slapd deadlocks during a significant write load"
-echo "See http://www.openldap.org/its/index.cgi/?findid=8752 for more information."
+echo "See https://bugs.openldap.org/show_bug.cgi?id=8752 for more information."
 
 MMR=4
 iterations=20000

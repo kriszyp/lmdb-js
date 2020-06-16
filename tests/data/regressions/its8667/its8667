@@ -19,7 +19,7 @@ echo "running defines.sh"
 echo ""
 echo "  This test tracks a case where the -g flag to slapcat fails to work"
 echo "  correctly, exporting the subordinate dbs as well as the root db."
-echo "  See http://www.openldap.org/its/index.cgi/?findid=8667 for more information."
+echo "  See https://bugs.openldap.org/show_bug.cgi?id=8667 for more information."
 echo ""
 
 DBDIR1=$TESTDIR/db.1.a
