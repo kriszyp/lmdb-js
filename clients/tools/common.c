@@ -159,6 +159,9 @@ static int print_syncdone( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_DIRSYNC
 static int print_dirsync( LDAP *ld, LDAPControl *ctrl );
 #endif
+#ifdef LDAP_CONTROL_X_ACCOUNT_USABILITY
+static int print_account_usability( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -188,6 +191,9 @@ static struct tool_ctrls_t {
 	{ LDAP_CONTROL_SYNC_DONE,			TOOL_SEARCH,	print_syncdone },
 #ifdef LDAP_CONTROL_X_DIRSYNC
 	{ LDAP_CONTROL_X_DIRSYNC,			TOOL_SEARCH,	print_dirsync },
+#endif
+#ifdef LDAP_CONTROL_X_ACCOUNT_USABILITY
+	{ LDAP_CONTROL_X_ACCOUNT_USABILITY,		TOOL_SEARCH,	print_account_usability },
 #endif
 	{ NULL,						0,		NULL }
 };
@@ -2562,6 +2568,77 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 
 		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
 			ldif ? "ppolicy: " : "ppolicy", buf, ptr - buf );
+	}
+
+	return rc;
+}
+#endif
+
+#ifdef LDAP_CONTROL_X_ACCOUNT_USABILITY
+static int
+print_account_usability( LDAP *ld, LDAPControl *ctrl )
+{
+	LDAPAccountUsability usability;
+	ber_int_t available = 0;
+	int rc;
+
+	rc = ldap_parse_accountusability_control( ld, ctrl, &available, &usability );
+	if ( rc == LDAP_SUCCESS ) {
+		char	buf[ BUFSIZ ], *ptr = buf;
+
+		ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+			   "%savailable", available ? "" : "not " );
+		if ( available ) {
+			if ( usability.seconds_remaining == -1 ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					" and does not expire" );
+			} else {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					" expire=%d", usability.seconds_remaining );
+			}
+		} else {
+			int added = 0;
+			ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+				" (" /* ')' */ );
+
+			if ( usability.more_info.inactive ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					"inactive " );
+				added++;
+			}
+			if ( usability.more_info.reset ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					"reset " );
+				added++;
+			}
+			if ( usability.more_info.expired ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					"expired " );
+				added++;
+			}
+
+			if ( added ) {
+				ptr[-1] = ')';
+				*ptr++ = ' ';
+			} else {
+				*(--ptr) = '\0';
+			}
+
+			if ( usability.more_info.remaining_grace != -1 ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					"grace=%d ", usability.more_info.remaining_grace );
+			}
+
+			if ( usability.more_info.seconds_before_unlock != -1 ) {
+				ptr += snprintf( ptr, sizeof( buf ) - ( ptr - buf ),
+					"seconds_before_unlock=%d ", usability.more_info.seconds_before_unlock );
+			}
+
+			*(--ptr) = '\0';
+		}
+
+		tool_write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			ldif ? "accountUsability: " : "accountUsability", buf, ptr - buf );
 	}
 
 	return rc;
