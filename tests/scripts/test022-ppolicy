@@ -89,8 +89,12 @@ if test $COUNT != 2 ; then
 	exit 1
 fi
 
-echo "Waiting 20 seconds for lockout to reset..."
-sleep 20
+DELAY=`$LDAPSEARCH -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+    -b "$USER" -E accountUsability 1.1 | sed -n -e 's/.*seconds_before_unlock=\(\d*\)/\1/p'`
+
+echo "Waiting $DELAY seconds for lockout to reset..."
+sleep $DELAY
+sleep 1
 
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1
@@ -101,9 +105,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+DELAY=`$LDAPSEARCH -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+    -b "$USER" -E accountUsability 1.1 | sed -n -e 's/.*expire=\(\d*\)/\1/p'`
+
 echo "Testing password expiration"
-echo "Waiting 20 seconds for password to expire..."
-sleep 20
+echo "Waiting $DELAY seconds for password to expire..."
+sleep $DELAY
+sleep 1
 
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
@@ -467,8 +475,12 @@ fi
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
 
-echo "Waiting 20 seconds for password to expire..."
-sleep 20
+DELAY=`$LDAPSEARCH -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+    -b "$USER" -E accountUsability 1.1 | sed -n -e 's/.*expire=\(\d*\)/\1/p'`
+
+echo "Waiting $DELAY seconds for password to expire..."
+sleep $DELAY
+sleep 1
 
 $LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$USER" -w $PASS \
 	-b "$BASEDN" -s base >> $SEARCHOUT 2>&1

@@ -41,6 +41,10 @@ when considering a single-valued password attribute, while
 the userPassword attribute allows multiple values.  This implementation
 enforces a single value for the userPassword attribute, despite
 its specification.
+.P
+In addition to supporting the IETF Password Policy, this module
+supports the SunDS Account Usability control (1.3.6.1.4.1.42.2.27.9.5.8)
+on search requests.
 
 .SH CONFIGURATION
 These 
@@ -976,6 +980,20 @@ policy option and when the lockout ends.
    NO\-USER\-MODIFICATION
    USAGE directoryOperation )
 .RE
+
+.SH SUNDS ACCOUNT USABILITY CONTROL
+.LP
+If the SunDS Account Usability control is used with a search request, the
+overlay will attach validity information to each entry provided all of the
+following are met:
+.IP \[bu] 2
+There is a password policy that applies to the entry
+.IP \[bu]
+The user has
+.B read
+access to the entry's password attribute.
+.IP \[bu]
+The configured password attribute is present in the entry
 
 .SH EXAMPLES
 .LP
