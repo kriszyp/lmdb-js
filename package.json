@@ -10,7 +10,7 @@
   },
   "main": "./index.js",
   "typings": "./index.d.ts",
- "scripts": {
+  "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
     "prebuild": "prebuild --all --verbose",
     "test2": "./node_modules/.bin/mocha tests -u tdd",
@@ -20,6 +20,7 @@
   "gypfile": true,
   "dependencies": {
     "bindings": "^1.5.0",
+    "fs-extra": "^9.0.0",
     "prebuild-install": "^5.2.5",
     "nan": "^2.13.1"
   },

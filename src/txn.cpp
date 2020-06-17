@@ -231,6 +231,93 @@ NAN_METHOD(TxnWrap::getBoolean) {
     return getCommon(info, valToBoolean);
 }
 
+NAN_METHOD(TxnWrap::getRange) {
+    Nan::HandleScope scope;
+    int argCount = info.Length();
+    if (argCount < 2) {
+        return Nan::ThrowError("Invalid number of arguments to cursor.get");
+    }
+
+    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(info[0]));
+
+    if (!tw->txn) {
+        return Nan::ThrowError("The transaction is already closed.");
+    }
+
+    MDB_val key, oldKey, endKey, data;
+
+    bool keyIsValid;
+
+    auto freeKeyStart = argToKey(info[1], key, NodeLmdbKeyType::StringKey, keyIsValid);
+    if (!keyIsValid) {
+        // argToKey already threw an error
+        return;
+    }
+    bool hasEnd = argCount > 2 && !info[2]->IsNullOrUndefined();
+    auto freeKeyEnd = hasEnd ? argToKey(info[2], endKey, NodeLmdbKeyType::StringKey, keyIsValid) : nullptr;
+    if (!keyIsValid) {
+        // argToKey already threw an error
+        return;
+    }
+    
+    if (!info[3]->IsNumber()) {
+        return Nan::ThrowError("4th/limit argument must be number");
+    }
+    int limit = argCount > 3 ? Nan::To<v8::Number>(info[3]).ToLocalChecked()->Value() : -1;
+    bool getKeys = !(argCount > 4 && info[4]->IsFalse());
+    bool getValues = !(argCount > 5 && info[5]->IsFalse());
+    bool reverse = argCount > 6 && info[6]->IsTrue();
+
+    // Bookkeeping for old key so that we can free it even if key will point inside LMDB
+    oldKey.mv_data = key.mv_data;
+    oldKey.mv_size = key.mv_size;
+
+    // Open the cursor
+    MDB_cursor *cursor;
+    int rc = mdb_cursor_open(tw->txn, dw->dbi, &cursor);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+    v8::Local<v8::Array> resultsArray = Nan::New<v8::Array>(limit > 0 ? limit * 2 : 0);
+    Local<Context> context = Nan::GetCurrentContext();
+    rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
+    // TODO: handle reverse
+    if (rc != 0 && rc != MDB_NOTFOUND) {
+        mdb_cursor_close(cursor);
+        return throwLmdbError(rc);
+    }
+    int retrieved = 0;
+    int resultsIndex = 0;
+    while (!(rc == MDB_NOTFOUND || hasEnd && (reverse ?
+                mdb_cmp(tw->txn, dw->dbi, &key, &endKey) <= 0 :
+                mdb_cmp(tw->txn, dw->dbi, &key, &endKey) >= 0))) {
+        if (getKeys) {
+            resultsArray->Set(context, resultsIndex++, valToString(key));
+        }
+        if (getValues) {
+            resultsArray->Set(context, resultsIndex++, valToString(data));
+        }
+        if (retrieved++ >= limit)
+            break;
+        rc = mdb_cursor_get(cursor, &key, &data, reverse ? MDB_PREV : MDB_NEXT);
+        if (rc != 0 && rc != MDB_NOTFOUND) {
+            mdb_cursor_close(cursor);
+            return throwLmdbError(rc);
+        }
+    }
+    mdb_cursor_close(cursor);
+
+    if (freeKeyStart) {
+        freeKeyStart(oldKey);
+    }
+    if (freeKeyEnd) {
+        freeKeyEnd(endKey);
+    }
+
+    return info.GetReturnValue().Set(resultsArray);
+}
+
 Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeData)(MDB_val&)) {
     Nan::HandleScope scope;
     

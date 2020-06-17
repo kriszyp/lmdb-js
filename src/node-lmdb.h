@@ -365,6 +365,12 @@ public:
     static NAN_METHOD(getNumber);
 
     /*
+        Get a range of entreis from a database
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static NAN_METHOD(getRange);
+
+    /*
         Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
         This method will copy the value out of the database.
         (Wrapper for `mdb_get`)
