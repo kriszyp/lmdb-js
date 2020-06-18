@@ -1,4 +1,4 @@
-LMDB is probably the fastest and most efficient database on the planet, if used correctly. `lmdb-store` provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB. Used directly, LMDB has certain characteristics that can be very challenging, including fixed db size, inefficieny with flushing small transactions, and complicated cursors usage. `lmdb-store` offers several key features that make it NodeJS idiomatic, highly performant, and easy to use than LMDB efficiently:
+LMDB is probably the fastest and most efficient database on the planet. `lmdb-store` provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB. Used directly, LMDB has certain characteristics that can be challenging, but `lmdb-store` offers several key features that make it NodeJS idiomatic, highly performant, and easy to use LMDB efficiently:
 * Automated database size handling
 * Queueing asynchronous write operations with promise-based API
 * Transaction management
@@ -28,10 +28,8 @@ let myStore = open('my-store', {
 ```
 (see store options below for more options)
 Once you have a store the following methods are available:
-### `store.get(key: Buffer, copy?: Function): Buffer`
+### `store.get(key: Buffer): Buffer`
 Get the value at the specified key. The `key` must be a buffer, and the return value will either be a buffer if the entry exists, or `undefined` if the entry does not exist.
-
-For typical usage, no `copy` function is needed, and returned buffer will be a safe copy of the data from the database. However, some optimizations can be performed (such as decompression or immediate parsing to an object) by using using the `copy` argument, in which case a `buffer` as a reference directly to the shared, memory-mapped data in the database will provided to the `copy` function and it will be responsible for copying the data (or decompressing directly from the db). The shared memory reference should not be used outside the `copy` function, as it will be detached and unusable.
 
 ### `store.put(key: Buffer, value: Buffer, ifValue?: Buffer): Promise<boolean>`
 This will set the provided value at the specified key. If the `ifValue` parameter is set, the put will only occur if the existing value at the provided key matches the value provided by `ifValue` at the instace the commit occurs (LMDB commits are atomic by default). If the `ifValue` parameter is not set, the put will occur regardless of the previous value.
@@ -93,7 +91,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * immediateBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
 * syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
 The following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>:
-* useWritemap - Use writemaps (this is the main flag we recommend using), as it improves performance by reducing malloc calls.
+* useWritemap - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data.
 * noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * noSync - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
 * noMetaSync - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
