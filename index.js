@@ -577,8 +577,12 @@ function open(path, options) {
 			openDB()
 			return retry()
 		}
-		readTxn = env.beginTxn(READING_TNX)
-		readTxn.reset()
+		try {
+			readTxn = env.beginTxn(READING_TNX)
+			readTxn.reset()
+		} catch(error) {
+			console.error(error.toString());
+		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
 	}
