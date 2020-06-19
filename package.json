@@ -40,14 +40,14 @@
   "dependencies": {
     "bindings": "^1.5.0",
     "prebuild-install": "^5.2.5",
-    "nan": "^2.13.1"
+    "nan": "^2.14.1"
   },
   "devDependencies": {
     "benchmark": "^2.1.4",
     "chai": "^3.5.0",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
-    "node-gyp": "^3.6.0",
+    "node-gyp": "^5.1.1",
     "prebuild": "8.2.1",
     "rimraf": "^2.6.1",
     "jshint": "^2.9.4"
