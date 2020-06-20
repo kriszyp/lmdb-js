@@ -977,6 +977,9 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	if ( rs->sr_err != LDAP_REFERRAL && rs->sr_type != REP_SEARCHREF ) {
 		return SLAP_CB_CONTINUE;
 	}
+	if ( !rs->sr_ref ) {
+		return SLAP_CB_CONTINUE;
+	}
 
 #ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
 	if ( rs->sr_err == LDAP_REFERRAL && get_chaining( op ) > SLAP_CONTROL_IGNORED ) {
