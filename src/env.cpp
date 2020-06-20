@@ -198,7 +198,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
             if (action->compress < 255) {
-                tryCompress(action->data, action->compress);
+                tryCompress(&action->data, action->compress);
             }
         }
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
@@ -774,6 +774,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(isolate, "abort", Nan::New<FunctionTemplate>(TxnWrap::abort));
     txnTpl->PrototypeTemplate()->Set(isolate, "getString", Nan::New<FunctionTemplate>(TxnWrap::getString));
     txnTpl->PrototypeTemplate()->Set(isolate, "getStringUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getStringUnsafe));
+    txnTpl->PrototypeTemplate()->Set(isolate, "getUtf8", Nan::New<FunctionTemplate>(TxnWrap::getUtf8));
     txnTpl->PrototypeTemplate()->Set(isolate, "getBinary", Nan::New<FunctionTemplate>(TxnWrap::getBinary));
     txnTpl->PrototypeTemplate()->Set(isolate, "getBinaryUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getBinaryUnsafe));
     txnTpl->PrototypeTemplate()->Set(isolate, "getNumber", Nan::New<FunctionTemplate>(TxnWrap::getNumber));
@@ -782,7 +783,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(isolate, "putBinary", Nan::New<FunctionTemplate>(TxnWrap::putBinary));
     txnTpl->PrototypeTemplate()->Set(isolate, "putNumber", Nan::New<FunctionTemplate>(TxnWrap::putNumber));
     txnTpl->PrototypeTemplate()->Set(isolate, "putBoolean", Nan::New<FunctionTemplate>(TxnWrap::putBoolean));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putUtf8WithVersion", Nan::New<FunctionTemplate>(TxnWrap::putUtf8WithVersion));
     txnTpl->PrototypeTemplate()->Set(isolate, "putUtf8", Nan::New<FunctionTemplate>(TxnWrap::putUtf8));
     txnTpl->PrototypeTemplate()->Set(isolate, "del", Nan::New<FunctionTemplate>(TxnWrap::del));
     txnTpl->PrototypeTemplate()->Set(isolate, "reset", Nan::New<FunctionTemplate>(TxnWrap::reset));

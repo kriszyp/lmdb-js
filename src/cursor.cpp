@@ -190,12 +190,16 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     Local<Value> keyHandle = Nan::Undefined();
     if (cw->key.mv_size) {
+//        fprintf(stdout, "cw->key.mv_size %u\n", cw->key.mv_size);
+  //      fprintf(stdout, "cw->key.mv_data %X %X %X\n", ((char*)cw->key.mv_data)[0], ((char*)cw->key.mv_data)[1], ((char*)cw->key.mv_data)[2]);
         keyHandle = keyToHandle(cw->key, cw->keyType);
     }
 
     Local<Value> dataHandle = Nan::Undefined();
     if (convertFunc) {
-        dataHandle = getVersionAndUncompress(cw->data, true, 0, convertFunc);
+    //    fprintf(stdout, "getVersionAndUncompress\n");
+
+        dataHandle = getVersionAndUncompress(cw->data, cw->dw->hasVersions, cw->dw->compressionThreshold, convertFunc);
 
         if (al > 0) {
             const auto &callbackFunc = info[al - 1];
@@ -209,6 +213,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
             }
         }
     }
+    fprintf(stdout, "freeData");
 
     if (freeData) {
         freeData(cw, info, tempdata);
@@ -234,6 +239,10 @@ NAN_METHOD(CursorWrap::getCurrentString) {
 
 NAN_METHOD(CursorWrap::getCurrentStringUnsafe) {
     return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToStringUnsafe);
+}
+
+NAN_METHOD(CursorWrap::getCurrentUtf8) {
+    return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToUtf8);
 }
 
 NAN_METHOD(CursorWrap::getCurrentBinary) {
@@ -317,7 +326,7 @@ template<size_t keyIndex, size_t optionsIndex>
 inline argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) {
     auto keyType = inferAndValidateKeyType(info[keyIndex], info[optionsIndex], cw->keyType, keyIsValid);
     if (keyIsValid) {
-        return argToKey(info[keyIndex], key, keyType, keyIsValid);
+        return valueToKey(info[keyIndex], key);//, keyType, keyIsValid);
     }
     return nullptr;
 }
@@ -359,6 +368,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("close").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::close));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentString").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentString));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentStringUnsafe").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentStringUnsafe));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentUtf8").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentUtf8));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBinary").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBinary));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBinaryUnsafe").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBinaryUnsafe));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentNumber").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentNumber));

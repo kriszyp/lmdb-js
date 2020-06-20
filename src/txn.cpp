@@ -188,7 +188,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     // Bookkeeping for old key so that we can free it even if key will point inside LMDB
     oldkey.mv_data = key.mv_data;
     oldkey.mv_size = key.mv_size;
-    fprintf(stderr, "the key is %s", key.mv_data);
+    //fprintf(stderr, "the key is %s\n", key.mv_data);
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
     
@@ -209,6 +209,10 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
 
 NAN_METHOD(TxnWrap::getString) {
     return getCommon(info, valToString);
+}
+
+NAN_METHOD(TxnWrap::getUtf8) {
+    return getCommon(info, valToUtf8);
 }
 
 NAN_METHOD(TxnWrap::getStringUnsafe) {
@@ -293,10 +297,10 @@ NAN_METHOD(TxnWrap::getRange) {
                 mdb_cmp(tw->txn, dw->dbi, &key, &endKey) <= 0 :
                 mdb_cmp(tw->txn, dw->dbi, &key, &endKey) >= 0))) {
         if (getKeys) {
-            resultsArray->Set(context, resultsIndex++, valToString(key));
+            resultsArray->Set(context, resultsIndex++, valToUtf8(key));
         }
         if (getValues) {
-            resultsArray->Set(context, resultsIndex++, valToString(data));
+            resultsArray->Set(context, resultsIndex++, valToUtf8(data));
         }
         if (retrieved++ >= limit)
             break;
@@ -318,7 +322,7 @@ NAN_METHOD(TxnWrap::getRange) {
     return info.GetReturnValue().Set(resultsArray);
 }
 
-Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeData)(MDB_val&), int headerSize) {
+Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, int headerSize), void (*freeData)(MDB_val&), bool supportsVersion) {
     Nan::HandleScope scope;
     
     if (info.Length() != 3 && info.Length() != 4) {
@@ -345,8 +349,11 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         // argToKey already threw an error
         return;
     }
-    
-    if (info[3]->IsObject()) {
+
+    int headerSize = 0;
+    if (supportsVersion && dw->hasVersions && info[3]->IsNumber()) {
+        headerSize = 8;
+    } else if (info[3]->IsObject()) {
         auto options = Local<Object>::Cast(info[3]);
         setFlagFromValue(&flags, MDB_NODUPDATA, "noDupData", false, options);
         setFlagFromValue(&flags, MDB_NOOVERWRITE, "noOverwrite", false, options);
@@ -357,15 +364,29 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     }
 
     // Fill key and data
-    fillFunc(info, data);
+    fillFunc(info, data, headerSize);
 
     if (data.mv_size > dw->compressionThreshold) {
-        tryCompress(data, headerSize);
+        tryCompress(&data, headerSize);
+    }
+    if (headerSize > 0) {
+        auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
+        long long version = versionLocal->Value();
+        unsigned char* charData = (unsigned char*) data.mv_data;
+        charData[0] = 253;
+        charData[1] = (uint8_t) (version >> 48u);
+        charData[2] = (uint8_t) (version >> 40u);
+        charData[3] = (uint8_t) (version >> 32u);
+        charData[4] = (uint8_t) (version >> 24u);
+        charData[5] = (uint8_t) (version >> 16u);
+        charData[6] = (uint8_t) (version >> 8u);
+        charData[7] = (uint8_t) version;
     }
     
     // Keep a copy of the original key and data, so we can free them
     MDB_val originalKey = key;
     MDB_val originalData = data;
+    fprintf(stderr, "putting data %s", data.mv_data);
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     
@@ -384,7 +405,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
 }
 
 NAN_METHOD(TxnWrap::putString) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         CustomExternalStringResource::writeTo(Local<String>::Cast(info[2]), &data);
     }, [](MDB_val &data) -> void {
         delete[] (char*)data.mv_data;
@@ -401,7 +422,7 @@ NAN_METHOD(TxnWrap::putString) {
 
 
 NAN_METHOD(TxnWrap::putBinary) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         data.mv_size = node::Buffer::Length(info[2]);
         data.mv_data = node::Buffer::Data(info[2]);
     }, [](MDB_val &) -> void {
@@ -413,7 +434,7 @@ NAN_METHOD(TxnWrap::putBinary) {
 static thread_local double numberToPut = 0.0;
 
 NAN_METHOD(TxnWrap::putNumber) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         auto numberLocal = Nan::To<v8::Number>(info[2]).ToLocalChecked();
         numberToPut = numberLocal->Value();
 
@@ -426,7 +447,7 @@ NAN_METHOD(TxnWrap::putNumber) {
 static thread_local bool booleanToPut = false;
 
 NAN_METHOD(TxnWrap::putBoolean) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         auto booleanLocal = Nan::To<v8::Boolean>(info[2]).ToLocalChecked();
         booleanToPut = booleanLocal->Value();
 
@@ -435,23 +456,12 @@ NAN_METHOD(TxnWrap::putBoolean) {
     }, nullptr);
 }
 
-NAN_METHOD(TxnWrap::putUtf8WithVersion) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        writeUtf8ToEntry(Local<String>::Cast(info[2]), &data, 8);
-        auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
-        long long version = versionLocal->Value();
-        memcpy(data.mv_data, &version + 2, 6);
-    }, [](MDB_val &data) -> void {
-        delete[] (char*)data.mv_data;
-    }, 8);
-}
-
 NAN_METHOD(TxnWrap::putUtf8) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        writeUtf8ToEntry(Local<String>::Cast(info[2]), &data);
+    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
+        writeUtf8ToEntry(Local<String>::Cast(info[2]), &data, headerSize);
     }, [](MDB_val &data) -> void {
         delete[] (char*)data.mv_data;
-    });
+    }, true);
 }
 
 NAN_METHOD(TxnWrap::del) {

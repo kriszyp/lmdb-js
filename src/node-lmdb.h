@@ -65,7 +65,7 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-void tryCompress(MDB_val &value, int headerSize);
+void tryCompress(MDB_val *value, int headerSize);
 void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize = 0);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val);
@@ -78,6 +78,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
 NAN_METHOD(getLastVersion);
 static thread_local long long lastVersion = 0;
 
+Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
@@ -283,7 +284,7 @@ public:
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&), int headerSize = 0);
+    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, int headerSize), void (*freeFunc)(MDB_val&), bool supportsVersion = false);
 
     /*
         Commits the transaction.
@@ -308,6 +309,18 @@ public:
         (Wrapper for `mdb_txn_renew`)
     */
     static NAN_METHOD(renew);
+
+    /*
+        Gets string data (JavaScript string type) associated with the given key from a database as UTF-8. You need to open a database in the environment to use this.
+        This method is not zero-copy and the return value will usable as long as there is a reference to it.
+        (Wrapper for `mdb_get`)
+
+        Parameters:
+
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is retrieved
+    */
+    static NAN_METHOD(getUtf8);
 
     /*
         Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
@@ -410,18 +423,6 @@ public:
         * data to store for the given key
     */
     static NAN_METHOD(putUtf8);
-
-    /*
-        Puts string data (JavaScript string type) and version into a database as UTF-8.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putUtf8WithVersion);
 
     /*
         Puts binary data (Node.js Buffer) into a database.
@@ -591,6 +592,17 @@ public:
 
     // Helper method for getters (not exposed)
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);
+
+    /*
+        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
+        This method is not zero-copy and the return value will usable as long as there is a reference to it.
+        (Wrapper for `mdb_cursor_get`)
+
+        Parameters:
+
+        * Callback that accepts the key and value
+    */
+    static NAN_METHOD(getCurrentUtf8);
 
     /*
         Gets the current key-data pair that the cursor is pointing to. Returns the current key.

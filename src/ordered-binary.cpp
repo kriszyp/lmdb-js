@@ -15,10 +15,10 @@ control character types:
 30 - multipart separator
 > 31 normal string characters
 */
-const long long MAX_24_BITS = 1 << 24;
-const long long MAX_32_BITS = 1 << 32;
-const long long MAX_40_BITS = 1 << 40;
-const long long MAX_48_BITS = 1 << 48;
+const long long MAX_24_BITS = 1 << 24u;
+const long long MAX_32_BITS = 1 << 32u;
+const long long MAX_40_BITS = 1 << 40u;
+const long long MAX_48_BITS = 1 << 48u;
 /*
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
@@ -29,7 +29,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         /*if (key.charCodeAt(0) < 32) {
             return Buffer.from('\u001B' + key) // escape, if there is a control character that starts it
         }*/
-        CustomExternalStringResource::writeTo(Local<String>::Cast(jsKey), &mdbKey);
+        writeUtf8ToEntry(Local<String>::Cast(jsKey), &mdbKey, 0);
         return ([](MDB_val &key) -> void {
             delete[] (char*)key.mv_data;
         });
@@ -75,8 +75,14 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
               fprintf(stderr,"integer ");
                 keyBytes = new char[8];
             }
-            memcpy(keyBytes + 1, &integer + 2, 6);
             keyBytes[0] = negative ? 18 : 19;
+            keyBytes[1] = (uint8_t) (integer >> 48u);
+            keyBytes[2] = (uint8_t) (integer >> 40u);
+            keyBytes[3] = (uint8_t) (integer >> 32u);
+            keyBytes[4] = (uint8_t) (integer >> 24u);
+            keyBytes[5] = (uint8_t) (integer >> 16u);
+            keyBytes[6] = (uint8_t) (integer >> 8u);
+            keyBytes[7] = (uint8_t) integer;
 /*            if (negative) {
                 // two's complement
                 for (let i = 1, l = bufferArray.length; i < l; i++) {
@@ -108,7 +114,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
 
 Local<Value> keyToValue(MDB_val &val) {
     Local<Value> value;
-      bool hasMore = false;
+    bool hasMore = false;
     do {
         int consumed;
         char controlByte = ((char*) val.mv_data)[0];
@@ -143,12 +149,12 @@ Local<Value> keyToValue(MDB_val &val) {
                     Nan::ThrowError("Unknown control byte");
                     return Nan::Undefined();
                 }
-                
                 char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
                 if (separator) {
+                    fprintf(stdout, "separator %p\n", separator);
                     value = Nan::New<v8::String>((char*) val.mv_data, separator - ((char*) val.mv_data)).ToLocalChecked();
                 } else {
-                    value = Nan::New<v8::String>((char*) val.mv_data, separator - ((char*) val.mv_data)).ToLocalChecked();
+                    value = Nan::New<v8::String>((char*) val.mv_data, val.mv_size).ToLocalChecked();
                 }/*
                 if (multipart) {
                     consumed = buffer.indexOf(30)

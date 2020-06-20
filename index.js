@@ -1,10 +1,10 @@
 const fs = require('fs-extra')
 const pathModule = require('path')
-const { Env, openDbi, Cursor } = require('node-lmdb')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
-//Object.assign(exports, require('bindings')('node-lmdb.node'))
+Object.assign(exports, require('bindings')('node-lmdb.node'))
+const { Env, openDbi, Cursor } = exports
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB

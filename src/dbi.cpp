@@ -113,7 +113,7 @@ NAN_METHOD(DbiWrap::ctor) {
         #endif;
             txnFlags |= MDB_RDONLY;
         }
-        Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("hasVersions").ToLocalChecked()).ToLocalChecked();
+        Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
         hasVersions = hasVersionsLocal->IsTrue();
 
         Local<Value> compressLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compressionThreshold").ToLocalChecked()).ToLocalChecked();
