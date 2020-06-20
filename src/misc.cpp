@@ -22,6 +22,7 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
+#include "lz4.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -37,6 +38,7 @@ void setupExportMisc(Local<Object> exports) {
     versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
 
     exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
+    Nan::SetMethod(exports, "getLastVersion", getLastVersion);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
@@ -52,7 +54,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 }
 
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType) {
-    if (val->IsNull() || val->IsUndefined()) {
+    if (val->IsNullOrUndefined()) {
         return defaultKeyType;
     }
     if (!val->IsObject()) {
@@ -257,6 +259,42 @@ Local<Value> valToBoolean(MDB_val &data) {
     return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
+Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&)) {
+    char statusByte = compressionThreshold < 0xffffffff ? ((char*) data.mv_data)[0] : 0;
+    int headerSize = 0;
+    if (getVersion) {
+        lastVersion = *((long long*) data.mv_data) && 0xffffffffffffff;
+        data.mv_data = (char*) data.mv_data + 8;
+        data.mv_size -= 8;
+        headerSize = 8;
+    }
+    if (statusByte >= 254) {
+        int uncompressedLength;
+        int prefixSize;
+        if (statusByte == 254) {
+            uncompressedLength = *((uint32_t*) data.mv_data) & 0xffffff;
+            prefixSize = headerSize + 4;
+        } else if (statusByte == 255) {
+            uncompressedLength = *((long long*) data.mv_data) && 0xffffffffffffff;
+            prefixSize = headerSize + 8;
+        } else {
+            Nan::ThrowError("Unknown status byte");
+            return Nan::Undefined();
+        }
+        char* uncompressedData = new char[uncompressedLength];
+        LZ4_decompress_safe((char*) data.mv_data + prefixSize, uncompressedData, data.mv_size - prefixSize, uncompressedLength);
+        data.mv_data = uncompressedData;
+        data.mv_size = uncompressedLength;
+        Local<Value> value = successFunc(data);
+        delete[] uncompressedData;
+    }
+    return successFunc(data);
+}
+
+NAN_METHOD(getLastVersion) {
+    return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
+}
+
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));
     err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
@@ -288,28 +326,47 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
+void tryCompress(MDB_val &value, int headerSize) {
+    int dataLength = value.mv_size;
+    char* data = (char*) value.mv_data;
+    bool longSize = dataLength >= 0x1000000;
+    int prefixSize = (longSize ? 8 : 4) + headerSize;
+    int maxCompressedSize = dataLength - 100;
+    char* compressed = new char[maxCompressedSize + prefixSize];
+    int compressedSize = LZ4_compress_default(data, compressed + prefixSize, dataLength, maxCompressedSize);
+    if (compressedSize > 0) {
+        memcpy(compressed, data, 8);
+        value.mv_data = compressed;
+        value.mv_size = compressedSize + headerSize;
+        compressed[0] = longSize ? 255 : 254;
+        delete[] data;
+    } else {
+        delete[] compressed;
+    }
+}
+
+void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize) {
     unsigned int l = str->Length();
     l = (((l + 10) >> 3) + (l >> 6)) << 3;
-    char *d = new char[l];
+    char *d = new char[l + headerSize];
     int written = 0;
     #if NODE_VERSION_AT_LEAST(10,0,0)
-    str->WriteUtf8(Isolate::GetCurrent(), d, l, &written);
+    str->WriteUtf8(Isolate::GetCurrent(), d + headerSize, l, &written);
     if (written > l -3) {
         //fprintf(stderr, "Too much space");
         delete[] d;
         l = str->Utf8Length(Isolate::GetCurrent());
-        d = new char(l);
-        str->WriteUtf8(Isolate::GetCurrent(), d, l, &written);
+        d = new char[l + headerSize];
+        str->WriteUtf8(Isolate::GetCurrent(), d + headerSize, l, &written);
     }
     #else
     str->Write(d, 0);
     #endif;
     val->mv_data = d;
-    val->mv_size = written;
+    val->mv_size = written + headerSize;
 }
 
-/*void CustomExternalStringResource::writeToUTF16(Local<String> str, MDB_val *val) {
+void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
     unsigned int l = str->Length() + 1;
     uint16_t *d = new uint16_t[l];
     #if NODE_VERSION_AT_LEAST(10,0,0)
@@ -321,7 +378,7 @@ void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
 
     val->mv_data = d;
     val->mv_size = l * sizeof(uint16_t);
-}*/
+}
 
 CustomExternalStringResource::CustomExternalStringResource(MDB_val *val) {
     // The UTF-16 data

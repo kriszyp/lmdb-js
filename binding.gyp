@@ -9,6 +9,8 @@
       "sources": [
         "dependencies/lmdb/libraries/liblmdb/mdb.c",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
+        "dependencies/lz4/lib/lz4.h",
+        "dependencies/lz4/lib/lz4.c",
         "src/node-lmdb.cpp",
         "src/env.cpp",
         "src/ordered-binary.cpp",
@@ -20,7 +22,8 @@
       "defines": ["MDB_FIXEDSIZE"],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
-        "dependencies/lmdb/libraries/liblmdb"
+        "dependencies/lmdb/libraries/liblmdb",
+        "dependencies/lz4/lib"
       ],
       "conditions": [
         ["OS=='linux'", {
@@ -40,7 +43,8 @@
           ],
           "cflags": [
             "-fPIC",
-            "-fvisibility=hidden"
+            "-fvisibility=hidden",
+            "-O3"
           ],
           "cflags_cc": [
             "-fPIC",

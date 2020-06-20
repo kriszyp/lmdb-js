@@ -4,6 +4,7 @@ const { Env, openDbi, Cursor } = require('node-lmdb')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
+//Object.assign(exports, require('bindings')('node-lmdb.node'))
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -12,6 +13,7 @@ const DEFAULT_COMMIT_DELAY = 20
 const READING_TNX = {
 	readOnly: true
 }
+
 const allDbs = exports.allDbs = new Map()
 function genericErrorHandler(err) {
 	if (err) {
@@ -577,8 +579,12 @@ function open(path, options) {
 			openDB()
 			return retry()
 		}
-		readTxn = env.beginTxn(READING_TNX)
-		readTxn.reset()
+		try {
+			readTxn = env.beginTxn(READING_TNX)
+			readTxn.reset()
+		} catch(error) {
+			console.error(error.toString());
+		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
 	}

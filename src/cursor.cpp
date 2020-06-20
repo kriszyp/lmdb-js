@@ -195,7 +195,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
 
     Local<Value> dataHandle = Nan::Undefined();
     if (convertFunc) {
-        dataHandle = convertFunc(cw->data);
+        dataHandle = getVersionAndUncompress(cw->data, true, 0, convertFunc);
 
         if (al > 0) {
             const auto &callbackFunc = info[al - 1];

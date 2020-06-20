@@ -161,6 +161,7 @@ struct action_t {
     MDB_val data;
     MDB_dbi dbi;
     condition_t *condition;
+    char compress;
     argtokey_callback_t freeKey;
 };
 
@@ -193,6 +194,13 @@ class BatchWorker : public Nan::AsyncProgressWorker {
 
     void Execute(const ExecutionProgress& executionProgress) {
         MDB_txn *txn;
+        // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
+        for (int i = 0; i < actionCount;) {
+            action_t* action = &actions[i];
+            if (action->compress < 255) {
+                tryCompress(action->data, action->compress);
+            }
+        }
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
         if (rc != 0) {
             return SetErrorMessage(mdb_strerror(rc));
@@ -645,15 +653,26 @@ NAN_METHOD(EnvWrap::batchWrite) {
         worker->SaveToPersistent(persistedIndex++, key);
         v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
+        long long version = -1;
+        v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
+        if (versionValue->IsNumber()) {
+            version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
+        }
         // check if this is a conditional save
-        v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
+        v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
         if (!ifValue->IsUndefined()) {
             condition_t *condition = action->condition = new condition_t();
 
             if (ifValue->IsNull()) {
                 condition->data.mv_data = &deleteValue;
+            } else if (ifValue->IsNumber()) {
+                condition->data.mv_size = 8;
+                condition->data.mv_data = calloc(8, 1);
+                auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
+                long long version = versionLocal->Value();
+                memcpy(condition->data.mv_data, &version + 2, 6);
             } else if (ifValue->IsArrayBufferView()) {
-                condition->data.mv_size = node::Buffer::Length(ifValue);
+                condition->data.mv_size = node::Buffer::Length(Nan::To<v8::Object>(ifValue).ToLocalChecked());
                 condition->data.mv_data = node::Buffer::Data(ifValue);
                 if (!isArray) {
                     v8::Local<v8::Value> ifExactMatch = operation->Get(context, Nan::New<String>("ifExactMatch").ToLocalChecked()).ToLocalChecked();
@@ -662,7 +681,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                     }
                 }
             } else {
-                return Nan::ThrowError("The ifValue must be a buffer or null/undefined.");
+                return Nan::ThrowError("The ifValue must be a number, buffer or null/undefined.");
             }
             if (isArray) {
                 condition->dbi = action->dbi;
@@ -672,7 +691,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 if (ifDB->IsNullOrUndefined()) {
                     condition->dbi = action->dbi;
                 } else if (ifDB->IsObject()) {
-                    dw = Nan::ObjectWrap::Unwrap<DbiWrap>(v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(Nan::GetCurrentContext(), Nan::New<String>("ifDB").ToLocalChecked())).ToLocalChecked()));
+                    dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<v8::Object>(ifDB).ToLocalChecked());
                     condition->dbi = dw->dbi;
                 } else {
                     return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
@@ -694,16 +713,29 @@ NAN_METHOD(EnvWrap::batchWrite) {
             action->condition = nullptr;
         }
 
+        char headerSize = 0;
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = &deleteValue;
+        } else if (value->IsString()) {
+            if (version >= 0) {
+                writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
+                memcpy(action->data.mv_data, &version + 2, 6);
+                headerSize = 8;
+            } else {
+                writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
+            }
         } else if (value->IsArrayBufferView()) {
+            if (version >= 0) {
+                return Nan::ThrowError("Can not use a version in conjunction with a buffer.");
+            }
             action->data.mv_size = node::Buffer::Length(value);
             action->data.mv_data = node::Buffer::Data(value);
             // likewise persist value if needed too
             worker->SaveToPersistent(persistedIndex++, value);
         } else {
-            return Nan::ThrowError("The value must be a buffer or null/undefined.");
+            return Nan::ThrowError("The value must be a string, buffer, or null/undefined.");
         }
+        action->compress = dw->compressionThreshold < action->data.mv_size ? headerSize : 255;
     }
 
     worker->SaveToPersistent("env", info.This());
@@ -746,11 +778,12 @@ void EnvWrap::setupExports(Local<Object> exports) {
     txnTpl->PrototypeTemplate()->Set(isolate, "getBinaryUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getBinaryUnsafe));
     txnTpl->PrototypeTemplate()->Set(isolate, "getNumber", Nan::New<FunctionTemplate>(TxnWrap::getNumber));
     txnTpl->PrototypeTemplate()->Set(isolate, "getBoolean", Nan::New<FunctionTemplate>(TxnWrap::getBoolean));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getRange", Nan::New<FunctionTemplate>(TxnWrap::getRange));
     txnTpl->PrototypeTemplate()->Set(isolate, "putString", Nan::New<FunctionTemplate>(TxnWrap::putString));
     txnTpl->PrototypeTemplate()->Set(isolate, "putBinary", Nan::New<FunctionTemplate>(TxnWrap::putBinary));
     txnTpl->PrototypeTemplate()->Set(isolate, "putNumber", Nan::New<FunctionTemplate>(TxnWrap::putNumber));
     txnTpl->PrototypeTemplate()->Set(isolate, "putBoolean", Nan::New<FunctionTemplate>(TxnWrap::putBoolean));
+    txnTpl->PrototypeTemplate()->Set(isolate, "putUtf8WithVersion", Nan::New<FunctionTemplate>(TxnWrap::putUtf8WithVersion));
+    txnTpl->PrototypeTemplate()->Set(isolate, "putUtf8", Nan::New<FunctionTemplate>(TxnWrap::putUtf8));
     txnTpl->PrototypeTemplate()->Set(isolate, "del", Nan::New<FunctionTemplate>(TxnWrap::del));
     txnTpl->PrototypeTemplate()->Set(isolate, "reset", Nan::New<FunctionTemplate>(TxnWrap::reset));
     txnTpl->PrototypeTemplate()->Set(isolate, "renew", Nan::New<FunctionTemplate>(TxnWrap::renew));

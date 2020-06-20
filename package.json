@@ -12,6 +12,7 @@
   "typings": "./index.d.ts",
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
+    "rebuild": "node-gyp rebuild",
     "prebuild": "prebuild --all --verbose",
     "test2": "./node_modules/.bin/mocha tests -u tdd",
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",

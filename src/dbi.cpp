@@ -33,6 +33,7 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->env = env;
     this->dbi = dbi;
     this->keyType = NodeLmdbKeyType::StringKey;
+    this->compressionThreshold = 0xffffffff;
     this->isOpen = false;
     this->ew = nullptr;
 }
@@ -69,6 +70,8 @@ NAN_METHOD(DbiWrap::ctor) {
     NodeLmdbKeyType keyType = NodeLmdbKeyType::StringKey;
     bool needsTransaction = true;
     bool isOpen = false;
+    bool hasVersions = false;
+    int compressionThreshold = 0xffffffff;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     
@@ -109,6 +112,13 @@ NAN_METHOD(DbiWrap::ctor) {
         if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).ToChecked() : true) {
         #endif;
             txnFlags |= MDB_RDONLY;
+        }
+        Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("hasVersions").ToLocalChecked()).ToLocalChecked();
+        hasVersions = hasVersionsLocal->IsTrue();
+
+        Local<Value> compressLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compressionThreshold").ToLocalChecked()).ToLocalChecked();
+        if (compressLocal->IsNumber()) {
+            compressionThreshold = Nan::To<v8::Number>(compressLocal).ToLocalChecked()->Value();
         }
         
         auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
@@ -161,6 +171,8 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->keyType = keyType;
     dw->flags = flags;
     dw->isOpen = isOpen;
+    dw->compressionThreshold = compressionThreshold;
+    dw->hasVersions = hasVersions;
     dw->Wrap(info.This());
 
     return info.GetReturnValue().Set(info.This());

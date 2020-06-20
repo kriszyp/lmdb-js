@@ -65,6 +65,8 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
+void tryCompress(MDB_val &value, int headerSize);
+void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize = 0);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val);
 
@@ -72,6 +74,9 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::StringKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
+Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&));
+NAN_METHOD(getLastVersion);
+static thread_local long long lastVersion = 0;
 
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
@@ -278,7 +283,7 @@ public:
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
+    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&), int headerSize = 0);
 
     /*
         Commits the transaction.
@@ -395,6 +400,30 @@ public:
     static NAN_METHOD(putString);
 
     /*
+        Puts string data (JavaScript string type) into a database as UTF-8.
+        (Wrapper for `mdb_put`)
+
+        Parameters:
+
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
+    static NAN_METHOD(putUtf8);
+
+    /*
+        Puts string data (JavaScript string type) and version into a database as UTF-8.
+        (Wrapper for `mdb_put`)
+
+        Parameters:
+
+        * database instance created with calling `openDbi()` on an `Env` instance
+        * key for which the value is stored
+        * data to store for the given key
+    */
+    static NAN_METHOD(putUtf8WithVersion);
+
+    /*
         Puts binary data (Node.js Buffer) into a database.
         (Wrapper for `mdb_put`)
 
@@ -459,6 +488,11 @@ private:
     EnvWrap *ew;
     // Whether the Dbi was opened successfully
     bool isOpen;
+    // use compression
+    int compressionThreshold;
+
+    // versions stored in data
+    bool hasVersions;
 
     friend class TxnWrap;
     friend class CursorWrap;
