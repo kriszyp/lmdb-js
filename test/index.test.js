@@ -586,7 +586,7 @@ describe('Node.js LMDB Bindings', function() {
       env.close();
     });
   });
-  describe.skip('Cursors', function() {
+  describe('Cursors', function() {
     this.timeout(10000);
     var env;
     var dbi;
@@ -740,7 +740,7 @@ describe('Node.js LMDB Bindings', function() {
         var key = cursor.goToRange(expectedKey);
         should.equal(expectedKey, key);
 
-        var data = cursor.getCurrentString();
+        var data = cursor.getCurrentUtf8();
         should.equal(expectedDataX + "0", data);
 
         var dc;
@@ -748,7 +748,7 @@ describe('Node.js LMDB Bindings', function() {
         // Iterate over dup keys
         dc = 0;
         for (var k = cursor.goToFirstDup(); k; k = cursor.goToNextDup()) {
-            var data = cursor.getCurrentString();
+            var data = cursor.getCurrentUtf8();
 
             should.equal(expectedKey, k);
             should.equal(expectedDataX + String(dc), data);
@@ -760,7 +760,7 @@ describe('Node.js LMDB Bindings', function() {
         // Iterate over dup keys by using goToDup first
         dc = 0;
         for (var k = cursor.goToDup(expectedKey, expectedDataX + "0"); k; k = cursor.goToNextDup()) {
-            var data = cursor.getCurrentString();
+            var data = cursor.getCurrentUtf8();
 
             should.equal(expectedKey, k);
             should.equal(expectedDataX + String(dc), data);
@@ -783,7 +783,7 @@ describe('Node.js LMDB Bindings', function() {
       env.close();
     });
   });
-  describe('Cursors (with strings)', function() {
+  describe.only('Cursors (with strings)', function() {
     this.timeout(10000);
     var env;
     var dbi;
@@ -813,11 +813,12 @@ describe('Node.js LMDB Bindings', function() {
       dbi.close();
       env.close();
     });
-    it('will move cursor over key/values (zero copy)', function(done) {
+    it.skip('will move cursor over key/values (zero copy)', function(done) {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);
       cursor.getCurrentStringUnsafe(function(key, value) {
+          console.log({key, value})
         key.should.equal(40);
         value.should.equal('40');
       });
@@ -826,6 +827,7 @@ describe('Node.js LMDB Bindings', function() {
       cursor.goToKey(0);
       function iterator() {
         cursor.getCurrentStringUnsafe(function(key, value) {
+          console.log({key, value})
           value.should.equal(values.length.toString());
           values.push(value);
         });
@@ -845,18 +847,22 @@ describe('Node.js LMDB Bindings', function() {
       }
       iterator();
     });
-    it('will move cursor over key/values', function(done) {
+    it.only('will move cursor over key/values', function(done) {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);
-      cursor.getCurrentString(function(key, value) {
+      console.log('goto 40');
+      cursor.getCurrentUtf8(function(key, value) {
+          console.log({ key, value })
         key.should.equal(40);
         value.should.equal('40');
       });
+      console.log('got 40');
       var values = [];
       cursor.goToKey(0);
       function iterator() {
-        cursor.getCurrentString(function(key, value) {
+        cursor.getCurrentUtf8(function(key, value) {
+          console.log({ key, value })
           value.should.equal(values.length.toString());
           values.push(value);
         });
@@ -880,12 +886,12 @@ describe('Node.js LMDB Bindings', function() {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToFirst();
-      cursor.getCurrentString(function(key, value) {
+      cursor.getCurrentUtf8(function(key, value) {
         key.should.equal(0);
         value.should.equal('0');
       });
       cursor.goToLast();
-      cursor.getCurrentString(function(key, value) {
+      cursor.getCurrentUtf8(function(key, value) {
         key.should.equal(total - 1);
         value.should.equal((total - 1).toString());
       });
@@ -1324,7 +1330,7 @@ describe('Node.js LMDB Bindings', function() {
     after(function() {
       env.close();
     });
-    it('will batchWrite and read it', function(done) {
+    it.skip('will batchWrite binary data and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
         create: true
@@ -1381,13 +1387,15 @@ describe('Node.js LMDB Bindings', function() {
     it('will batchWrite strings and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
-        create: true
+        create: true,
+        useVersions: true,
       });
       var data = [
-        [ dbi, 'key 1', Buffer.from([1, 2]) ],
-        [ dbi, 'key 2', Buffer.from([3, 4]) ],
-        [ dbi, 'key 3', Buffer.from([5, 6]) ]
+        [ dbi, 'key 1', 'this is a test 1' ],
+        [ dbi, 'key 2', 'this is a test 2', 444 ],
+        [ dbi, 'key 3', 'this is a test 3' ]
       ];
+      console.log('submitting batch')
       env.batchWrite(data, function(error) {
         if (error) {
           should.fail(error);
@@ -1398,16 +1406,20 @@ describe('Node.js LMDB Bindings', function() {
         for (var i = 0; i < data.length; i++) {
           var key = data[i][1];
           var value = data[i][2];
-          //console.log('checking', key, txn.getBinary(dbi, key));
+          var version = data[i][3];
+          console.log('checking', key, txn.getBinary(dbi, key));
           if (value)
-            should.equal(value.equals(txn.getBinary(dbi, key)), true);
+            value.should.equal(txn.getUtf8(dbi, key));
           else
-            should.equal(txn.getBinary(dbi, key), null);
+            should.equal(txn.getUtf8(dbi, key), null);
+          if (version)
+            version.should.equal(lmdb.getLastVersion())
         }
         txn.commit();
         dbi.close();
         done();
       });
+      console.log('submitted batch')
     });
   });
 });

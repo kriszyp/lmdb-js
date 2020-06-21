@@ -256,7 +256,7 @@ Local<Value> valToBoolean(MDB_val &data) {
 }
 
 Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&)) {
-    fprintf(stdout, "uncompressing %u\n", compressionThreshold);
+    //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     int headerSize = 0;
     unsigned char* charData = (unsigned char*) data.mv_data;
     unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
@@ -269,7 +269,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
         headerSize = 8;
         statusByte = charData[0];
     }
-    fprintf(stdout, "uncompressing status %X\n", statusByte);
+    //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 254) {
         unsigned int uncompressedLength;
         int compressionHeaderSize;
@@ -283,10 +283,10 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
             Nan::ThrowError("Unknown status byte");
             return Nan::Undefined();
         }
-        fprintf(stdout, "uncompressedLength %u, first byte %u\n", uncompressedLength, charData[compressionHeaderSize]);
+        //fprintf(stdout, "uncompressedLength %u, first byte %u\n", uncompressedLength, charData[compressionHeaderSize]);
         char* uncompressedData = new char[uncompressedLength];
         LZ4_decompress_safe((char*) charData + compressionHeaderSize, uncompressedData, data.mv_size - compressionHeaderSize, uncompressedLength);
-        fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
+        //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
         data.mv_data = uncompressedData;
         data.mv_size = uncompressedLength;
         Local<Value> value = successFunc(data);
@@ -338,9 +338,9 @@ void tryCompress(MDB_val* value, int headerSize) {
     int prefixSize = (longSize ? 8 : 4) + headerSize;
     int maxCompressedSize = dataLength - 100;
     char* compressed = new char[maxCompressedSize + prefixSize];
-    fprintf(stdout,"tryCompress %u %u %X\n", prefixSize, dataLength, data[13]);
+    //fprintf(stdout,"tryCompress %u %u %X\n", prefixSize, dataLength, data[13]);
     int compressedSize = LZ4_compress_default(data + headerSize, compressed + prefixSize, dataLength, maxCompressedSize);
-    fprintf(stdout,"compressedSize %u\n", compressedSize);
+    //fprintf(stdout,"compressedSize %u\n", compressedSize);
     if (compressedSize > 0) {
         if (headerSize > 0)
             memcpy(compressed, data, headerSize);
@@ -386,7 +386,7 @@ void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize) {
     #endif;
     val->mv_data = d;
     val->mv_size = written + headerSize;
-    fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
+    //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
 }
 
 void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {

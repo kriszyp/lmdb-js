@@ -188,12 +188,6 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
         return throwLmdbError(rc);
     }
 
-    Local<Value> keyHandle = Nan::Undefined();
-    if (cw->key.mv_size) {
-//        fprintf(stdout, "cw->key.mv_size %u\n", cw->key.mv_size);
-  //      fprintf(stdout, "cw->key.mv_data %X %X %X\n", ((char*)cw->key.mv_data)[0], ((char*)cw->key.mv_data)[1], ((char*)cw->key.mv_data)[2]);
-        keyHandle = keyToHandle(cw->key, cw->keyType);
-    }
 
     Local<Value> dataHandle = Nan::Undefined();
     if (convertFunc) {
@@ -207,13 +201,19 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
             if (callbackFunc->IsFunction()) {
                 // In this case, we expect the key/data pair to be correctly filled
                 constexpr const unsigned argc = 2;
+                Local<Value> keyHandle = Nan::Undefined();
+                if (cw->key.mv_size) {
+            //        fprintf(stdout, "cw->key.mv_size %u\n", cw->key.mv_size);
+              //      fprintf(stdout, "cw->key.mv_data %X %X %X\n", ((char*)cw->key.mv_data)[0], ((char*)cw->key.mv_data)[1], ((char*)cw->key.mv_data)[2]);
+                    keyHandle = keyToHandle(cw->key, cw->keyType);
+                }
                 Local<Value> argv[argc] = { keyHandle, dataHandle };
                 
                 Nan::Call(Nan::Callback(Local<Function>::Cast(callbackFunc)), argc, argv);
             }
         }
     }
-    fprintf(stdout, "freeData");
+    //fprintf(stdout, "freeData");
 
     if (freeData) {
         freeData(cw, info, tempdata);
@@ -223,7 +223,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
         return info.GetReturnValue().Set(dataHandle);
     }
     else if (cw->key.mv_size) {
-        return info.GetReturnValue().Set(keyHandle);
+        return info.GetReturnValue().Set(keyToHandle(cw->key, cw->keyType));
     }
 
     return info.GetReturnValue().Set(Nan::True());

@@ -25,7 +25,7 @@ const long long MAX_48_BITS = 1 << 48u;
 argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
 
     if (jsKey->IsString()) {
-      fprintf(stderr, "making key from string");
+      //fprintf(stderr, "making key from string");
         /*if (key.charCodeAt(0) < 32) {
             return Buffer.from('\u001B' + key) // escape, if there is a control character that starts it
         }*/
@@ -35,7 +35,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         });
         //return Buffer.from(key)
     }
-    char* keyBytes;
+    unsigned char* keyBytes;
     int size;
     if (jsKey->IsNumber()) {
         double number = Local<Number>::Cast(jsKey)->Value();
@@ -44,11 +44,11 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
             key = -key // do our serialization on the positive form
         }*/
         long long integer = number;
-                fprintf(stderr, "it is a number! %f %d %d", number, integer, MAX_48_BITS);
+                //fprintf(stderr, "it is a number! %f %d %d", number, integer, MAX_48_BITS);
         if (number <100000000000000 && number > -100000000000000) {
             if ((double) integer != number) {
                 // handle the decimal/mantissa
-                fprintf(stderr, "decimal!");
+                //fprintf(stderr, "decimal!");
                 /*
                 let index = 7
                 let asString = key.toString() // we operate with string representation to try to preserve non-binary decimal state
@@ -72,8 +72,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
                 }
                 bufferArray[index - 1]-- // remove the continuation bit on the last one*/
             } else {
-              fprintf(stderr,"integer ");
-                keyBytes = new char[8];
+                keyBytes = new unsigned char[8];
             }
             keyBytes[0] = negative ? 18 : 19;
             keyBytes[1] = (uint8_t) (integer >> 48u);
@@ -83,6 +82,8 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
             keyBytes[5] = (uint8_t) (integer >> 16u);
             keyBytes[6] = (uint8_t) (integer >> 8u);
             keyBytes[7] = (uint8_t) integer;
+        fprintf(stdout,"write integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
+            size = 8;
 /*            if (negative) {
                 // two's complement
                 for (let i = 1, l = bufferArray.length; i < l; i++) {
@@ -93,7 +94,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
             return nullptr;
         }
     } else if (jsKey->IsBoolean()) {
-        char* keyBytes = new char[1];
+        keyBytes = new unsigned char[1];
         size = 1;
         keyBytes[0] = jsKey->IsTrue() ? 15 : 14;
     } else if (node::Buffer::HasInstance(jsKey)) {
@@ -115,10 +116,12 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
 Local<Value> keyToValue(MDB_val &val) {
     Local<Value> value;
     bool hasMore = false;
+    int consumed = 0;
+    unsigned char* keyBytes = (unsigned char*) val.mv_data;
     do {
-        int consumed;
-        char controlByte = ((char*) val.mv_data)[0];
-        int number = 0;
+        unsigned char controlByte = keyBytes[0];
+        fprintf(stdout,"read integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
+        int number;
         switch (controlByte) {
             case 18:
                 // negative number
@@ -127,10 +130,9 @@ Local<Value> keyToValue(MDB_val &val) {
                 }*/
                 // fall through
             case 19: // number
-                
-                memcpy(&number + 2, (char*) val.mv_data + 1, 6);
+                number = (keyBytes[1] << 48u) | (keyBytes[2] << 40u) | (keyBytes[3] << 32u) | (keyBytes[4] << 24u) | (keyBytes[5] << 16u) | (keyBytes[6] << 8u) | keyBytes[7];
                 value = Nan::New<Number>(number);
-                consumed = 6;
+                consumed = 8;
                 break;
             case 14: // boolean false
                 consumed = 1;
@@ -148,6 +150,9 @@ Local<Value> keyToValue(MDB_val &val) {
                 if (controlByte < 27) {
                     Nan::ThrowError("Unknown control byte");
                     return Nan::Undefined();
+                }
+                if (val.mv_size > 40) {
+                    fprintf(stdout, "big string %u\n", val.mv_size);
                 }
                 char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
                 if (separator) {

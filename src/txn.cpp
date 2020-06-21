@@ -386,7 +386,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     // Keep a copy of the original key and data, so we can free them
     MDB_val originalKey = key;
     MDB_val originalData = data;
-    fprintf(stderr, "putting data %s", data.mv_data);
+    //fprintf(stderr, "putting data %s", data.mv_data);
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     

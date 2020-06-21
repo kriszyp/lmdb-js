@@ -41,16 +41,21 @@ function setup() {
   });
   dbi = env.openDbi({
     name: 'benchmarks',
-    create: true
+    create: true,
+    compressionThreshold: 1000,
   });
 
   var txn = env.beginTxn();
   var c = 0;
+  let value = 'hello world!'
+  for (let i = 0; i < 2; i++) {
+    value += value
+  }
   while(c < total) {
     var key = new Buffer(new Array(8));
     key.writeDoubleBE(c);
     keys.push(key.toString('hex'));
-    txn.putBinary(dbi, key.toString('hex'), crypto.randomBytes(32));
+    txn.putUtf8(dbi, key.toString('hex'), 'hello world!');
     c++;
   }
   txn.commit();
@@ -77,42 +82,76 @@ function getBinaryUnsafe() {
 }
 
 function getString() {
-  var data = txn.getString(dbi, keys[getIndex()]);
+  var data = txn.getUtf8(dbi, keys[getIndex()]);
 }
 
 function getStringUnsafe() {
   var data = txn.getStringUnsafe(dbi, keys[getIndex()]);
 }
 
-cleanup(function(err) {
-  if (err) {
-    throw err;
-  }
+let cursor;
 
-  setup();
+function cursorGoToNext() {
+    let readed = 0;
 
-  suite.add('getBinary', getBinary);
-  suite.add('getBinaryUnsafe', getBinaryUnsafe);
-  suite.add('getString', getString);
-  suite.add('getStringUnsafe', getStringUnsafe);
+    return () => {
+        let c = cursor.goToNext();
+        readed++;
+        if (readed >= total / 2) {
+            c = cursor.goToRange(keys[0]);
+            readed = 0; // reset to prevent goToRange on every loop
+        }
+    }
+}
 
-  suite.on('start', function() {
-    txn = env.beginTxn();
-  });
+function cursorGoToNextgetCurrentString() {
+    let readed = 0;
+    return () => {
+        const c = cursor.goToNext();
+        readed++;
+        if (readed >= total / 2) {
+            cursor.goToRange(keys[0]);
+            readed = 0; // reset to prevent goToRange on every loop
+        }
+        const v = cursor.getCurrentUtf8();
+    }
+}
 
-  suite.on('cycle', function(event) {
-    txn.abort();
-    txn = env.beginTxn();
-    console.log(String(event.target));
-  });
+cleanup(function (err) {
+    if (err) {
+        throw err;
+    }
 
-  suite.on('complete', function () {
-    txn.abort();
-    dbi.close();
-    env.close();
-    console.log('Fastest is ' + this.filter('fastest').map('name'));
-  });
+    setup();
 
-  suite.run();
+    //suite.add('getBinary', getBinary);
+    //suite.add('getBinaryUnsafe', getBinaryUnsafe);
+    suite.add('getString', getString);
+    //suite.add('getStringUnsafe', getStringUnsafe);
+    suite.add('cursorGoToNext', cursorGoToNext());
+    suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());
+
+    suite.on('start', function () {
+        txn = env.beginTxn();
+    });
+
+    suite.on('cycle', function (event) {
+        txn.abort();
+        txn = env.beginTxn();
+        if (cursor) cursor.close();
+        cursor = new lmdb.Cursor(txn, dbi, {keyIsBuffer: true});
+        console.log(String(event.target));
+    });
+
+    suite.on('complete', function () {
+        txn.abort();
+        dbi.close();
+        env.close();
+        if (cursor)
+            cursor.close();
+        console.log('Fastest is ' + this.filter('fastest').map('name'));
+    });
+
+    suite.run();
 
 });

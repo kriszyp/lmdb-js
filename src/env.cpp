@@ -161,7 +161,7 @@ struct action_t {
     MDB_val data;
     MDB_dbi dbi;
     condition_t *condition;
-    char compress;
+    unsigned char compress;
     argtokey_callback_t freeKey;
 };
 
@@ -195,7 +195,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
     void Execute(const ExecutionProgress& executionProgress) {
         MDB_txn *txn;
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
-        for (int i = 0; i < actionCount;) {
+        for (int i = 0; i < actionCount; i++) {
             action_t* action = &actions[i];
             if (action->compress < 255) {
                 tryCompress(&action->data, action->compress);
@@ -644,7 +644,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 return;
             }
         }
-        action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
+        action->freeKey = valueToKey(key, action->key);//, keyType, keyIsValid);
         if (!keyIsValid) {
             // argToKey already threw an error
             return;
@@ -719,7 +719,15 @@ NAN_METHOD(EnvWrap::batchWrite) {
         } else if (value->IsString()) {
             if (version >= 0) {
                 writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
-                memcpy(action->data.mv_data, &version + 2, 6);
+                unsigned char* charData = (unsigned char*) action->data.mv_data;
+                charData[0] = 253;
+                charData[1] = (uint8_t) (version >> 48u);
+                charData[2] = (uint8_t) (version >> 40u);
+                charData[3] = (uint8_t) (version >> 32u);
+                charData[4] = (uint8_t) (version >> 24u);
+                charData[5] = (uint8_t) (version >> 16u);
+                charData[6] = (uint8_t) (version >> 8u);
+                charData[7] = (uint8_t) version;
                 headerSize = 8;
             } else {
                 writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
