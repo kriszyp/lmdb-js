@@ -48,7 +48,9 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         if (number <0xffffffffffffff && number > -0xffffffffffffff) {
             if ((double) integer != number) {
                 // handle the decimal/mantissa
-                //fprintf(stderr, "decimal!");
+                fprintf(stderr, "decimal!");
+                char mantissaString[50];
+                snprintf(mantissaString, 50, "%f", number);
                 /*
                 let index = 7
                 let asString = key.toString() // we operate with string representation to try to preserve non-binary decimal state
@@ -158,42 +160,21 @@ Local<Value> keyToValue(MDB_val &val) {
             consumed = 1;
             value = Nan::New<Boolean>(false);
             break;
-        case 1: case 255:// metadata, return next byte as the code
-            /*consumed = 2
-            value = new Metadata(buffer[1])*/
-            break;
         default:
             if (controlByte < 27) {
-                Nan::ThrowError("Unknown control byte");
-                return Nan::Undefined();
-            }
-            if (val.mv_size > 40) {
-                fprintf(stdout, "big string %u\n", val.mv_size);
+                return Nan::CopyBuffer(
+                    (char*)val.mv_data,
+                    val.mv_size
+                ).ToLocalChecked();
             }
             char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
             if (separator) {
-                fprintf(stdout, "separator %p\n", separator);
                 consumed = separator - ((char*) val.mv_data);
                 value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
             } else {
                 consumed = val.mv_size;
                 value = Nan::New<v8::String>((char*) val.mv_data, val.mv_size).ToLocalChecked();
-            }/*
-            if (multipart) {
-                consumed = buffer.indexOf(30)
-                if (consumed === -1) {
-                    strBuffer = buffer
-                    consumed = buffer.length
-                } else
-                    strBuffer = buffer.slice(0, consumed)
-            } else
-                strBuffer = buffer
-            if (strBuffer[strBuffer.length - 1] == 27) {
-                // TODO: needs escaping here
-                value = strBuffer.toString()
-            } else {
-                value = strBuffer.toString()
-            }*/
+            }
     }
     if (consumed < size) {
         if (keyBytes[consumed] != 30) {
