@@ -45,7 +45,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         }*/
         long long integer = number;
                 //fprintf(stderr, "it is a number! %f %d %d", number, integer, MAX_48_BITS);
-        if (number <100000000000000 && number > -100000000000000) {
+        if (number <0xffffffffffffff && number > -0xffffffffffffff) {
             if ((double) integer != number) {
                 // handle the decimal/mantissa
                 //fprintf(stderr, "decimal!");
@@ -82,7 +82,6 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
             keyBytes[5] = (uint8_t) (integer >> 16u);
             keyBytes[6] = (uint8_t) (integer >> 8u);
             keyBytes[7] = (uint8_t) integer;
-        fprintf(stdout,"write integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
             size = 8;
 /*            if (negative) {
                 // two's complement
@@ -93,12 +92,29 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         } else {
             return nullptr;
         }
+    } else if (jsKey->IsArray()) {
+        Local<Array> array = Local<Array>::Cast(jsKey);
+        int length = array->Length();
+        MDB_val* segments = new MDB_val[length];
+        size = length > 0 ? length - 1 : 0;
+        Local<Context> context = Nan::GetCurrentContext();
+        for (unsigned int i = 0; i < length; i++) {
+            valueToKey(array->Get(context, i).ToLocalChecked(), segments[i]);
+            size += segments[i].mv_size;
+        }
+        keyBytes = new unsigned char[size];
+        int position = 0;
+        for (unsigned int i = 0; i < length; i++) {
+            memcpy(&keyBytes[position], segments[i].mv_data, segments[i].mv_size);
+            position += segments[i].mv_size;
+            keyBytes[position++] = 30;
+        }
+        fprintf(stdout, "created array key size %u %x %x %x", size, keyBytes[0], keyBytes[4], keyBytes[5]);
     } else if (jsKey->IsBoolean()) {
         keyBytes = new unsigned char[1];
         size = 1;
         keyBytes[0] = jsKey->IsTrue() ? 15 : 14;
     } else if (node::Buffer::HasInstance(jsKey)) {
-        fprintf(stderr, "is Buffer");
         mdbKey.mv_size = node::Buffer::Length(jsKey);
         mdbKey.mv_data = node::Buffer::Data(jsKey);
         return nullptr;
@@ -118,82 +134,91 @@ Local<Value> keyToValue(MDB_val &val) {
     bool hasMore = false;
     int consumed = 0;
     unsigned char* keyBytes = (unsigned char*) val.mv_data;
-    do {
-        unsigned char controlByte = keyBytes[0];
-        fprintf(stdout,"read integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
-        int number;
-        switch (controlByte) {
-            case 18:
-                // negative number
-                /*for (let i = 1; i < 7; i++) {
-                    buffer[i] = buffer[i] ^ 255
-                }*/
-                // fall through
-            case 19: // number
-                number = (keyBytes[1] << 48u) | (keyBytes[2] << 40u) | (keyBytes[3] << 32u) | (keyBytes[4] << 24u) | (keyBytes[5] << 16u) | (keyBytes[6] << 8u) | keyBytes[7];
-                value = Nan::New<Number>(number);
-                consumed = 8;
-                break;
-            case 14: // boolean false
-                consumed = 1;
-                value = Nan::New<Boolean>(true);
-                break;
-            case 15: // boolean true
-                consumed = 1;
-                value = Nan::New<Boolean>(false);
-                break;
-            case 1: case 255:// metadata, return next byte as the code
-                /*consumed = 2
-                value = new Metadata(buffer[1])*/
-                break;
-            default:
-                if (controlByte < 27) {
-                    Nan::ThrowError("Unknown control byte");
-                    return Nan::Undefined();
-                }
-                if (val.mv_size > 40) {
-                    fprintf(stdout, "big string %u\n", val.mv_size);
-                }
-                char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
-                if (separator) {
-                    fprintf(stdout, "separator %p\n", separator);
-                    value = Nan::New<v8::String>((char*) val.mv_data, separator - ((char*) val.mv_data)).ToLocalChecked();
-                } else {
-                    value = Nan::New<v8::String>((char*) val.mv_data, val.mv_size).ToLocalChecked();
-                }/*
-                if (multipart) {
-                    consumed = buffer.indexOf(30)
-                    if (consumed === -1) {
-                        strBuffer = buffer
-                        consumed = buffer.length
-                    } else
-                        strBuffer = buffer.slice(0, consumed)
-                } else
-                    strBuffer = buffer
-                if (strBuffer[strBuffer.length - 1] == 27) {
-                    // TODO: needs escaping here
-                    value = strBuffer.toString()
-                } else {
-                    value = strBuffer.toString()
-                }*/
-        }/*
-        if (multipart) {
-            if (!values) {
-                values = [value]
-            } else {
-                values.push(value)
-            }
-            if (buffer.length === consumed) {
-                return values // done, consumed all the values
-            }
-            if (buffer[consumed] !== 30) {
-                Nan::ThrowError("Invalid separator byte");
+    int size = val.mv_size;
+    unsigned char controlByte = keyBytes[0];
+    fprintf(stdout,"read integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
+    int number;
+    switch (controlByte) {
+        case 18:
+            // negative number
+            /*for (let i = 1; i < 7; i++) {
+                buffer[i] = buffer[i] ^ 255
+            }*/
+            // fall through
+        case 19: // number
+            number = (keyBytes[1] << 48u) | (keyBytes[2] << 40u) | (keyBytes[3] << 32u) | (keyBytes[4] << 24u) | (keyBytes[5] << 16u) | (keyBytes[6] << 8u) | keyBytes[7];
+            value = Nan::New<Number>(number);
+            consumed = 8;
+            break;
+        case 14: // boolean false
+            consumed = 1;
+            value = Nan::New<Boolean>(true);
+            break;
+        case 15: // boolean true
+            consumed = 1;
+            value = Nan::New<Boolean>(false);
+            break;
+        case 1: case 255:// metadata, return next byte as the code
+            /*consumed = 2
+            value = new Metadata(buffer[1])*/
+            break;
+        default:
+            if (controlByte < 27) {
+                Nan::ThrowError("Unknown control byte");
                 return Nan::Undefined();
-
             }
-            buffer = buffer.slice(consumed + 1)
-        }*/
-    } while (hasMore);
-    // single value mode
+            if (val.mv_size > 40) {
+                fprintf(stdout, "big string %u\n", val.mv_size);
+            }
+            char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
+            if (separator) {
+                fprintf(stdout, "separator %p\n", separator);
+                consumed = separator - ((char*) val.mv_data);
+                value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
+            } else {
+                consumed = val.mv_size;
+                value = Nan::New<v8::String>((char*) val.mv_data, val.mv_size).ToLocalChecked();
+            }/*
+            if (multipart) {
+                consumed = buffer.indexOf(30)
+                if (consumed === -1) {
+                    strBuffer = buffer
+                    consumed = buffer.length
+                } else
+                    strBuffer = buffer.slice(0, consumed)
+            } else
+                strBuffer = buffer
+            if (strBuffer[strBuffer.length - 1] == 27) {
+                // TODO: needs escaping here
+                value = strBuffer.toString()
+            } else {
+                value = strBuffer.toString()
+            }*/
+    }
+    if (consumed < size) {
+        if (keyBytes[consumed] != 30) {
+            Nan::ThrowError("Invalid separator byte");
+            return Nan::Undefined();
+        }
+        MDB_val nextPart;
+        nextPart.mv_size = size - consumed - 1;
+        nextPart.mv_data = &keyBytes[consumed + 1];
+        Local<Value> nextValue = keyToValue(nextPart);
+        v8::Local<v8::Array> resultsArray;
+        Local<Context> context = Nan::GetCurrentContext();
+        if (nextValue->IsArray()) {
+            // unshift
+            resultsArray = Local<Array>::Cast(nextValue);
+            int length = resultsArray->Length();
+            for (unsigned int i = 0; i < length; i++) {
+                resultsArray->Set(context, i + 1, resultsArray->Get(context, i).ToLocalChecked());
+            }
+        } else {
+            resultsArray = Nan::New<v8::Array>(2);
+            resultsArray->Set(context, 1, nextValue);
+        }
+        resultsArray->Set(context, 0, value);
+        value = resultsArray;
+    }
     return value;
 }

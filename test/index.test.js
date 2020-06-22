@@ -304,7 +304,7 @@ describe('Node.js LMDB Bindings', function() {
 //      console.log('sent copy')
     });
   });
-  describe('Data types', function() {
+  describe.only('Data types', function() {
     this.timeout(10000);
     var env;
     var dbi;
@@ -383,13 +383,13 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getUtf8Unsafe(dbi, 'key1');
       should.equal(data2, null);
     });
-    it('binary', function() {
+    it.only('binary', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
-      txn.putBinary(dbi, 'key2', buffer);
-      var data = txn.getBinary(dbi, 'key2');
+      txn.putBinary(dbi, ['key2', 2], buffer);
+      var data = txn.getBinary(dbi, ['key2', 2]);
       data.should.deep.equal(buffer);
-      txn.del(dbi, 'key2');
-      var data2 = txn.getBinary(dbi, 'key2');
+      txn.del(dbi, ['key2', 2]);
+      var data2 = txn.getBinary(dbi, ['key2', 2]);
       should.equal(data2, null);
     });
     it('binary (zero copy)', function() {
@@ -417,9 +417,9 @@ describe('Node.js LMDB Bindings', function() {
       should.equal(data2, null);
     });
     it('number', function() {
-      txn.putNumber(dbi, 'key3', 9007199254740991);
+      txn.putNumber(dbi, 'key3', 900719925474099);
       var data = txn.getNumber(dbi, 'key3');
-      data.should.equal(Math.pow(2, 53) - 1);
+      data.should.equal(900719925474099);
       txn.del(dbi, 'key3');
       var data2 = txn.getNumber(dbi, 'key3');
       should.equal(data2, null);
@@ -499,7 +499,7 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     var env;
     var dbi;
-    var total = 50;
+    var total = 5;
 
     before(function() {
       env = new lmdb.Env();
@@ -520,10 +520,31 @@ describe('Node.js LMDB Bindings', function() {
         txn.putUtf8(dbi, key, data);
         count++;
       }
+      count = 0;
+      while (count < total) {
+        let key = count - 2
+        let data = key + "_data";
+        txn.putUtf8(dbi, key, data);
+        count++;
+      }
+      count = 0;
+      while (count < total) {
+        let key = ["hello_" + count.toString(16), count];
+        let data = key + "_data";
+        txn.putUtf8(dbi, key, data);
+        count++;
+      }
+      count = 0;
+      while (count < total) {
+        let key = [count, "hello_" + count.toString(16)];
+        let data = key + "_data";
+        txn.putUtf8(dbi, key, data);
+        count++;
+      }
       txn.commit();
       console.log('finished setting up data');
     });
-    it('will move cursor over values, expects to get correct key', function (done) {
+    it.only('will move cursor over values, expects to get correct key', function (done) {
       var txn = env.beginTxn({ readOnly: true });
       var cursor = new lmdb.Cursor(txn, dbi);
       var count;
@@ -535,17 +556,40 @@ describe('Node.js LMDB Bindings', function() {
         console.log('gotoKey got', {key})
         should.equal(expectedKey, key);
       }
+      for (count = 0; count < total; count ++) {
+        var expectedKey = count - 2;
+        console.log('gotoKey', {expectedKey})
+        var key = cursor.goToKey(expectedKey);
+        console.log('gotoKey got', {key})
+        should.equal(expectedKey, key);
+      }
+      for (count = 0; count < total; count ++) {
+        var expectedKey = ["hello_" + count.toString(16), count];
+        console.log('gotoKey', {expectedKey})
+        var key = cursor.goToKey(expectedKey);
+        console.log('gotoKey got', {key})
+        should.equal(JSON.stringify(expectedKey), JSON.stringify(key));
+      }
+      for (count = 0; count < total; count ++) {
+        var expectedKey = [count, "hello_" + count.toString(16)];
+        console.log('gotoKey', {expectedKey})
+        var key = cursor.goToKey(expectedKey);
+        console.log('gotoKey got', {key})
+        should.equal(JSON.stringify(expectedKey), JSON.stringify(key));
+      }
 
       should.equal(count, total);
       count = 0;
 
-      for (var key = cursor.goToFirst(); key; key = cursor.goToNext()) {
+      for (var key = cursor.goToFirst(); key != null; key = cursor.goToNext()) {
+        console.log('last loop', {key})
         var key2 = cursor.goToKey(key);
-        should.equal(key, key2);
+        should.equal(JSON.stringify(key), JSON.stringify(key2));
         count ++;
       }
+      console.log('last one', {key})
 
-      should.equal(count, total);
+      should.equal(count, total * 4);
 
       cursor.close();
       txn.abort();
@@ -783,7 +827,7 @@ describe('Node.js LMDB Bindings', function() {
       env.close();
     });
   });
-  describe.only('Cursors (with strings)', function() {
+  describe('Cursors (with strings)', function() {
     this.timeout(10000);
     var env;
     var dbi;
@@ -799,7 +843,7 @@ describe('Node.js LMDB Bindings', function() {
         name: 'cursorstrings',
         create: true,
         dupSort: true,
-        keyIsUint32: true
+        //keyIsUint32: true
       });
       var txn = env.beginTxn();
       var c = 0;
@@ -847,7 +891,7 @@ describe('Node.js LMDB Bindings', function() {
       }
       iterator();
     });
-    it.only('will move cursor over key/values', function(done) {
+    it('will move cursor over key/values', function(done) {
       var txn = env.beginTxn();
       var cursor = new lmdb.Cursor(txn, dbi);
       cursor.goToKey(40);

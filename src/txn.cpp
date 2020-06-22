@@ -191,6 +191,8 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     //fprintf(stderr, "the key is %s\n", key.mv_data);
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
+        fprintf(stdout, "get data size %u\n", data.mv_size);
+
     
     if (freeKey) {
         freeKey(oldkey);
@@ -386,7 +388,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     // Keep a copy of the original key and data, so we can free them
     MDB_val originalKey = key;
     MDB_val originalData = data;
-    //fprintf(stderr, "putting data %s", data.mv_data);
 
     int rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
     
@@ -412,15 +413,6 @@ NAN_METHOD(TxnWrap::putString) {
     });
 }
 
-/*NAN_METHOD(TxnWrap::putString) {
-    return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
-        CustomExternalStringResource::writeTo(Local<String>::Cast(info[2]), &data);
-    }, [](MDB_val &data) -> void {
-        delete[] (uint16_t*)data.mv_data;
-    });
-}*/
-
-
 NAN_METHOD(TxnWrap::putBinary) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         data.mv_size = node::Buffer::Length(info[2]);
@@ -437,7 +429,6 @@ NAN_METHOD(TxnWrap::putNumber) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
         auto numberLocal = Nan::To<v8::Number>(info[2]).ToLocalChecked();
         numberToPut = numberLocal->Value();
-
         data.mv_size = sizeof(double);
         data.mv_data = &numberToPut;
     }, nullptr);
