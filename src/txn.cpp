@@ -309,7 +309,11 @@ NAN_METHOD(TxnWrap::putBinary) {
 }
 
 // This is used by putNumber for temporary storage
+#ifdef thread_local
 static thread_local double numberToPut = 0.0;
+#else
+static double numberToPut = 0.0;
+#endif
 
 NAN_METHOD(TxnWrap::putNumber) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
@@ -322,7 +326,11 @@ NAN_METHOD(TxnWrap::putNumber) {
 }
 
 // This is used by putBoolean for temporary storage
+#ifdef thread_local
 static thread_local bool booleanToPut = false;
+#else
+static bool booleanToPut = false;
+#endif
 
 NAN_METHOD(TxnWrap::putBoolean) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) -> void {
