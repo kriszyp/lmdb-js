@@ -61,12 +61,7 @@ Update manual pages as needed.
 
 
 For additional TODO items, see:
-  http://www.openldap.org/its/index.cgi/Software%20Enhancements
-  http://www.openldap.org/its/index.cgi/Software%20Bugs
-
-
-JLDAP TODO items, see:
-  http://www.openldap.org/devel/gitweb.cgi?p=openldap-jldap.git;a=blob_plain;f=design/todo.txt
+  https://bugs.openldap.org
 
 ---
 $OpenLDAP$

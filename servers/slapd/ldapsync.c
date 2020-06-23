@@ -36,7 +36,8 @@ slap_compose_sync_cookie(
 	struct berval *cookie,
 	BerVarray csn,
 	int rid,
-	int sid )
+	int sid,
+	struct berval *delcsn )
 {
 	int len, numcsn = 0;
 
@@ -65,6 +66,8 @@ slap_compose_sync_cookie(
 		len = 0;
 		for ( i=0; i<numcsn; i++)
 			len += csn[i].bv_len + 1;
+		if ( delcsn && !BER_BVISEMPTY(delcsn) )
+			len += STRLENOF(",delcsn=") + delcsn->bv_len;
 
 		len += STRLENOF("rid=123,csn=");
 		if ( sid >= 0 )
@@ -83,6 +86,10 @@ slap_compose_sync_cookie(
 			*ptr++ = ';';
 		}
 		ptr--;
+		if ( delcsn && !BER_BVISEMPTY(delcsn) ) {
+			ptr = lutil_strcopy( ptr, ",delcsn=" );
+			ptr = lutil_strncopy( ptr, delcsn->bv_val, delcsn->bv_len );
+		}
 		*ptr = '\0';
 		cookie->bv_len = ptr - cookie->bv_val;
 	}
@@ -110,6 +117,11 @@ slap_sync_cookie_free(
 	if ( !BER_BVISNULL( &cookie->octet_str )) {
 		ch_free( cookie->octet_str.bv_val );
 		BER_BVZERO( &cookie->octet_str );
+	}
+
+	if ( !BER_BVISNULL( &cookie->delcsn )) {
+		ch_free( cookie->delcsn.bv_val );
+		BER_BVZERO( &cookie->delcsn );
 	}
 
 	if ( free_cookie ) {
@@ -273,6 +285,7 @@ slap_parse_sync_cookie(
 	cookie->ctxcsn = NULL;
 	cookie->sids = NULL;
 	cookie->numcsns = 0;
+	BER_BVZERO( &cookie->delcsn );
 
 	end = cookie->octet_str.bv_val + cookie->octet_str.bv_len;
 
@@ -359,6 +372,49 @@ slap_parse_sync_cookie(
 			}
 			continue;
 		}
+		if ( !strncmp( next, "delcsn=", STRLENOF("delcsn=") )) {
+			struct berval stamp;
+
+			next += STRLENOF("delcsn=");
+			while ( next < end ) {
+				csn_str = next;
+				csn_ptr = strchr( csn_str, '#' );
+				if ( !csn_ptr || csn_ptr > end )
+					break;
+				/* ad will be NULL when called from main. we just
+				 * want to parse the rid then. But we still iterate
+				 * through the string to find the end.
+				 */
+				cval = strchr( csn_ptr, ';' );
+				if ( !cval )
+					cval = strchr(csn_ptr, ',' );
+				if ( cval )
+					stamp.bv_len = cval - csn_str;
+				else
+					stamp.bv_len = end - csn_str;
+				if ( ad ) {
+					struct berval bv;
+					stamp.bv_val = csn_str;
+					if ( ad->ad_type->sat_syntax->ssyn_validate(
+						ad->ad_type->sat_syntax, &stamp ) != LDAP_SUCCESS )
+						break;
+					if ( ad->ad_type->sat_equality->smr_normalize(
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						ad->ad_type->sat_syntax,
+						ad->ad_type->sat_equality,
+						&stamp, &bv, memctx ) != LDAP_SUCCESS )
+						break;
+					cookie->delcsn = bv;
+				}
+				if ( cval ) {
+					next = cval + 1;
+				} else {
+					next = end;
+				}
+				break;
+			}
+			continue;
+		}
 		next++;
 	}
 	if ( cookie->numcsns ) {
@@ -411,6 +467,7 @@ slap_init_sync_cookie_ctxcsn(
 	value_add_one( &cookie->ctxcsn, &ctxcsn );
 	cookie->numcsns = 1;
 	cookie->sid = -1;
+	BER_BVZERO( &cookie->delcsn );
 
 	return 0;
 }
@@ -453,6 +510,10 @@ slap_dup_sync_cookie(
 		new->sids = ch_malloc( src->numcsns * sizeof(int) );
 		for (i=0; i<src->numcsns; i++)
 			new->sids[i] = src->sids[i];
+	}
+
+	if ( !BER_BVISNULL( &src->delcsn )) {
+		ber_dupbv( &new->delcsn, &src->delcsn );
 	}
 
 	if ( !BER_BVISNULL( &src->octet_str )) {

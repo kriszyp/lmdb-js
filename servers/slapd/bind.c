@@ -60,8 +60,8 @@ do_bind(
 	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 		/* log authorization identity demotion */
 		Debug( LDAP_DEBUG_STATS,
-			"%s BIND anonymous mech=implicit ssf=0\n",
-			op->o_log_prefix );
+			"%s BIND anonymous mech=implicit bind_ssf=0 ssf=%d\n",
+			op->o_log_prefix, op->o_conn->c_ssf );
 	}
 	connection2anonymous( op->o_conn );
 	if ( op->o_conn->c_sasl_bind_in_progress ) {
@@ -534,9 +534,9 @@ fe_op_bind_success( Operation *op, SlapReply *rs )
 
 	/* log authorization identity */
 	Debug( LDAP_DEBUG_STATS,
-		"%s BIND dn=\"%s\" mech=%s ssf=0\n",
+		"%s BIND dn=\"%s\" mech=%s bind_ssf=0 ssf=%d\n",
 		op->o_log_prefix,
-		op->o_conn->c_dn.bv_val, op->orb_mech.bv_val );
+		op->o_conn->c_dn.bv_val, op->orb_mech.bv_val, op->o_conn->c_ssf );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"do_bind: v%d bind: \"%s\" to \"%s\"\n",

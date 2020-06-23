@@ -558,9 +558,9 @@ In {{F:slapd.conf}}(5):
 >       ...
 >       overlay dynlist
 >       dynlist-attrset groupOfURLs labeledURI member
-+
-+Note: We must include the {{F:dyngroup.schema}} file that defines the
-+{{F:groupOfURLs}} objectClass used in this example.
+
+Note: We must include the {{F:dyngroup.schema}} file that defines the {{F:groupOfURLs}}
+objectClass used in this example.
 
 Let's apply it to the following entry:
 

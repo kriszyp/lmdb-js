@@ -197,6 +197,15 @@ entry like
 .TP
 ETCDIR/slapd.conf
 default slapd configuration file
+.SH BACKWARD COMPATIBILITY
+The dyngroup overlay has been reworked with the 2.5 release to use
+a consistent namespace as with other overlays. As a side-effect the
+following cn=config parameters are deprecated and will be removed in
+a future release:
+.B olcDlAttrSet
+is replaced with olcDynListAttrSet
+.B olcDynamicList
+is replaced with olcDynListConfig
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd\-config (5),

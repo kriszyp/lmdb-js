@@ -535,7 +535,7 @@ static ConfigTable config_back_cf_table[] = {
 #endif
 		"( OLcfgGlAt:38 NAME 'olcPlugin' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "pluginlog", "filename", 2, 2, 0,
 #ifdef LDAP_SLAPI
 		ARG_STRING, &slapi_log_file,
@@ -1418,8 +1418,13 @@ config_generic(ConfigArgs *c) {
 		case CFG_SYNC_SUBENTRY:
 			break;
 
-		/* no-ops, requires slapd restart */
+#ifdef LDAP_SLAPI
 		case CFG_PLUGIN:
+			slapi_int_unregister_plugins(c->be, c->valx);
+			break;
+#endif
+
+		/* no-op, requires slapd restart */
 		case CFG_MODLOAD:
 			snprintf(c->log, sizeof( c->log ), "change requires slapd restart");
 			break;
@@ -2409,7 +2414,7 @@ sortval_reject:
 
 #ifdef LDAP_SLAPI
 		case CFG_PLUGIN:
-			if(slapi_int_read_config(c->be, c->fname, c->lineno, c->argc, c->argv) != LDAP_SUCCESS)
+			if(slapi_int_read_config(c->be, c->fname, c->lineno, c->argc, c->argv, c->valx) != LDAP_SUCCESS)
 				return(1);
 			slapi_plugins_used++;
 			break;
@@ -5676,6 +5681,8 @@ done:
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		} else if ( coptr->co_type == Cft_Schema ) {
 			schema_destroy_one( ca, colst, nocs, last );
+		} else if ( ca->cleanup ) {
+			ca->cleanup( ca );
 		}
 	}
 done_noop:

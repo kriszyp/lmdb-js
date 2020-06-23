@@ -107,7 +107,7 @@ ${mainInclude}olcDbMode: 384
 # {0}memberof, {1}$BACKEND, config
 dn: olcOverlay={0}memberof,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcOverlay: {0}memberof
 olcMemberOfRefInt: TRUE
 olcMemberOfGroupOC: groupOfNames

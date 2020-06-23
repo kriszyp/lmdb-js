@@ -14,7 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 echo "This test is no longer valid after the fixes in ITS#9015"
-echo "http://www.openldap.org/its/index.cgi/?findid=9015"
+echo "https://bugs.openldap.org/show_bug.cgi?id=9015"
 exit 0
 
 echo "running defines.sh"
@@ -28,8 +28,8 @@ fi
 echo ""
 echo "  This test tracks a case where a consumer fails to replicate from the provider"
 echo "  when the provider is dynamically configured for replication."
-echo "  See http://www.openldap.org/its/index.cgi/?findid=8521 and"
-echo "  See http://www.openldap.org/its/index.cgi/?findid=8281 for more information."
+echo "  See https://bugs.openldap.org/show_bug.cgi?id=8521 and"
+echo "  See https://bugs.openldap.org/show_bug.cgi?id=8281 for more information."
 echo ""
 
 PRODIR=$TESTDIR/pro

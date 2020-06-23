@@ -195,9 +195,9 @@ $LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: olcOverlay=autoca,olcDatabase={1}$BACKEND,cn=config
 changetype: add
 objectClass: olcOverlayConfig
-objectClass: olcACAConfig
+objectClass: olcAutoCAConfig
 olcOverlay: autoca
-olcACAlocalDN: cn=localhost,ou=Servers,$BASEDN
+olcAutoCAlocalDN: cn=localhost,ou=Servers,$BASEDN
 EOF
 RC=$?
 if test $RC != 0 ; then

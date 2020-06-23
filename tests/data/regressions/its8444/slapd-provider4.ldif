@@ -101,13 +101,13 @@ olcSyncrepl: {2}rid=102 provider=@URI1@ binddn="cn=manager,dc=example,dc=com
 
 dn: olcOverlay={0}dynlist,olcDatabase={1}@BACKEND@,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcDynamicList
+objectClass: olcDynListConfig
 olcOverlay: {0}dynlist
-olcDlAttrSet: {0}groupOfURLs memberURL
+olcDynListAttrSet: {0}groupOfURLs memberURL
 
 dn: olcOverlay={1}memberof,olcDatabase={1}@BACKEND@,cn=config
 objectClass: olcOverlayConfig
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcOverlay: {1}memberof
 olcMemberOfDangling: ignore
 olcMemberOfRefInt: TRUE

@@ -1398,7 +1398,7 @@ static ConfigDriver	dl_cfgen;
 static ConfigTable dlcfg[] = {
 	{ "dynlist-attrset", "group-oc> [uri] <URL-ad> <[mapped:]member-ad> [...]",
 		3, 0, 0, ARG_MAGIC|DL_ATTRSET, dl_cfgen,
-		"( OLcfgOvAt:8.1 NAME 'olcDlAttrSet' "
+		"( OLcfgOvAt:8.1 NAME ( 'olcDynListAttrSet' 'olcDlAttrSet' ) "
 			"DESC 'Dynamic list: <group objectClass>, <URL attributeDescription>, <member attributeDescription>' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString "
@@ -1417,10 +1417,10 @@ static ConfigTable dlcfg[] = {
 
 static ConfigOCs dlocs[] = {
 	{ "( OLcfgOvOc:8.1 "
-		"NAME 'olcDynamicList' "
+		"NAME ( 'olcDynListConfig' 'olcDynamicList' ) "
 		"DESC 'Dynamic list configuration' "
 		"SUP olcOverlayConfig "
-		"MAY olcDLattrSet )",
+		"MAY olcDynListAttrSet )",
 		Cft_Overlay, dlcfg, NULL, NULL },
 	{ NULL, 0, NULL }
 };

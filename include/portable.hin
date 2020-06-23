@@ -169,6 +169,9 @@
 /* Define to 1 if you have the `flock' function. */
 #undef HAVE_FLOCK
 
+/* Define to 1 if you have the `fmemopen' function. */
+#undef HAVE_FMEMOPEN
+
 /* Define to 1 if you have the `fstat' function. */
 #undef HAVE_FSTAT
 

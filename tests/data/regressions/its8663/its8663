@@ -24,7 +24,7 @@ fi
 echo ""
 echo "  This test tracks a case where it was not possible to modify the memberof overlay configuration"
 echo "  when the provider is dynamically configured for replication."
-echo "  See http://www.openldap.org/its/index.cgi/?findid=8663 for more information"
+echo "  See https://bugs.openldap.org/show_bug.cgi?id=8663 for more information"
 echo ""
 
 PRODIR=$TESTDIR/pro
@@ -134,7 +134,7 @@ changetype: add
 objectClass: olcOverlayConfig
 objectClass: olcConfig
 objectClass: top
-objectClass: olcMemberOf
+objectClass: olcMemberOfConfig
 olcMemberOfGroupOC: groupOfNames
 olcMemberOfMemberAD: member
 olcMemberOfMemberOfAD: memberOf

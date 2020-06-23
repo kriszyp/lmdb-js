@@ -1872,14 +1872,14 @@ static int connection_bind_cb( Operation *op, SlapReply *rs )
 
 			/* log authorization identity */
 			Debug( LDAP_DEBUG_STATS,
-				"%s BIND dn=\"%s\" mech=%s sasl_ssf=%d ssf=%d\n",
+				"%s BIND dn=\"%s\" mech=%s bind_ssf=%d ssf=%d\n",
 				op->o_log_prefix,
 				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->o_conn->c_authmech.bv_val,
 				op->orb_ssf, op->o_conn->c_ssf );
 
 			Debug( LDAP_DEBUG_TRACE,
-				"do_bind: SASL/%s bind: dn=\"%s\" sasl_ssf=%d\n",
+				"do_bind: SASL/%s bind: dn=\"%s\" bind_ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
 				BER_BVISNULL( &op->o_conn->c_dn ) ? "<empty>" : op->o_conn->c_dn.bv_val,
 				op->orb_ssf );

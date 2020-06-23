@@ -99,6 +99,10 @@ typedef struct LDIFFP {
 LDAP_LDIF_F( LDIFFP * )
 ldif_open LDAP_P(( LDAP_CONST char *file, LDAP_CONST char *mode ));
 
+/* ldif_open equivalent that opens ldif stream in memory rather than from file */
+LDAP_LDIF_F( LDIFFP * )
+ldif_open_mem LDAP_P(( char *ldif, size_t size, LDAP_CONST char *mode ));
+
 LDAP_LDIF_F( void )
 ldif_close LDAP_P(( LDIFFP * ));
 

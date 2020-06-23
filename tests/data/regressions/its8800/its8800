@@ -36,7 +36,7 @@ if test $BACKEND = ldif ; then
 fi
 
 echo "This test tracks a case where changes are not refreshed when an old db is reloaded"
-echo "See http://www.openldap.org/its/index.cgi/?findid=8800 for more information."
+echo "See https://bugs.openldap.org/show_bug.cgi?id=8800 for more information."
 
 MMR=4
 XDIR=$TESTDIR/srv

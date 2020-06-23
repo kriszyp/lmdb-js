@@ -55,6 +55,7 @@ typedef struct pp_info {
 	int use_lockout;		/* send AccountLocked result? */
 	int hash_passwords;		/* transparently hash cleartext pwds */
 	int forward_updates;	/* use frontend for policy state updates */
+	int disable_write;
 } pp_info;
 
 /* Our per-connection info - note, it is not per-instance, it is 
@@ -415,7 +416,8 @@ static ldap_pvt_thread_mutex_t chk_syntax_mutex;
 enum {
 	PPOLICY_DEFAULT = 1,
 	PPOLICY_HASH_CLEARTEXT,
-	PPOLICY_USE_LOCKOUT
+	PPOLICY_USE_LOCKOUT,
+	PPOLICY_DISABLE_WRITE,
 };
 
 static ConfigDriver ppolicy_cf_default;
@@ -447,6 +449,12 @@ static ConfigTable ppolicycfg[] = {
 	  "( OLcfgOvAt:12.3 NAME 'olcPPolicyUseLockout' "
 	  "DESC 'Warn clients with AccountLocked' "
 	  "EQUALITY booleanMatch "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_disable_write", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET|PPOLICY_DISABLE_WRITE,
+	  (void *)offsetof(pp_info,disable_write),
+	  "( OLcfgOvAt:12.5 NAME 'olcPPolicyDisableWrite' "
+	  "DESC 'Prevent all policy overlay writes' "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -1571,7 +1579,7 @@ done:
 	be_entry_release_r( op, e );
 
 locked:
-	if ( mod ) {
+	if ( mod && !pi->disable_write ) {
 		Operation op2 = *op;
 		SlapReply r2 = { REP_RESULT };
 		slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
@@ -1610,6 +1618,8 @@ locked:
 			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		}
 		rc = op2.o_bd->be_modify( &op2, &r2 );
+	}
+	if ( mod ) {
 		slap_mods_free( mod, 1 );
 	}
 
@@ -1984,6 +1994,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	op->o_bd->bd_info = (BackendInfo *)on;
 
 	if ( rc != LDAP_SUCCESS ) return SLAP_CB_CONTINUE;
+	if ( pi->disable_write ) return SLAP_CB_CONTINUE;
 
 	/* If this is a replica, we may need to tweak some of the
 	 * master's modifications. Otherwise, just pass it through.
