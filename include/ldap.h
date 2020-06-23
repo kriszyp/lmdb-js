@@ -392,6 +392,10 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_X_ACCOUNT_USABILITY_REMAINING_GRACE	((ber_tag_t) 0x83U)	/* primitive + 3 */
 #define LDAP_TAG_X_ACCOUNT_USABILITY_UNTIL_UNLOCK	((ber_tag_t) 0x84U)	/* primitive + 4 */
 
+/* Netscape Password policy response controls */
+#define LDAP_CONTROL_X_PASSWORD_EXPIRED		"2.16.840.1.113730.3.4.4"
+#define LDAP_CONTROL_X_PASSWORD_EXPIRING	"2.16.840.1.113730.3.4.5"
+
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 4511 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
@@ -2401,6 +2405,12 @@ ldap_parse_passwordpolicy_control LDAP_P((
 LDAP_F( const char * )
 ldap_passwordpolicy_err2txt LDAP_P(( LDAPPasswordPolicyError ));
 #endif /* LDAP_CONTROL_PASSWORDPOLICYREQUEST */
+
+LDAP_F( int )
+ldap_parse_password_expiring_control LDAP_P((
+	LDAP           *ld,
+	LDAPControl    *ctrl,
+	long           *secondsp ));
 
 /*
  * LDAP Dynamic Directory Services Refresh -- RFC 2589
