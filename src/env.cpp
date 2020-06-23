@@ -638,13 +638,9 @@ NAN_METHOD(EnvWrap::batchWrite) {
         
         if (!keyIsValid) {
             // just execute this the first time so we didn't need to re-execute for each iteration
-            keyType = inferAndValidateKeyType(key, options, dw->keyType, keyIsValid);
-            if (!keyIsValid) {
-                // inferAndValidateKeyType already threw an error
-                return;
-            }
+            keyType = keyTypeFromOptions(options, dw->keyType);
         }
-        action->freeKey = valueToKey(key, action->key);//, keyType, keyIsValid);
+        action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
         if (!keyIsValid) {
             // argToKey already threw an error
             return;

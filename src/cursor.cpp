@@ -324,11 +324,8 @@ static void freeDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB
 
 template<size_t keyIndex, size_t optionsIndex>
 inline argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid) {
-    auto keyType = inferAndValidateKeyType(info[keyIndex], info[optionsIndex], cw->keyType, keyIsValid);
-    if (keyIsValid) {
-        return valueToKey(info[keyIndex], key);//, keyType, keyIsValid);
-    }
-    return nullptr;
+    auto keyType = keyTypeFromOptions(info[optionsIndex], cw->keyType);
+    return argToKey(info[keyIndex], key, keyType, keyIsValid);
 }
 
 NAN_METHOD(CursorWrap::goToKey) {

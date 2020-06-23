@@ -25,7 +25,6 @@ const long long MAX_48_BITS = 1 << 48u;
 argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
 
     if (jsKey->IsString()) {
-      //fprintf(stderr, "making key from string");
         /*if (key.charCodeAt(0) < 32) {
             return Buffer.from('\u001B' + key) // escape, if there is a control character that starts it
         }*/
@@ -98,10 +97,12 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         Local<Array> array = Local<Array>::Cast(jsKey);
         int length = array->Length();
         MDB_val* segments = new MDB_val[length];
+        argtokey_callback_t* callbacks = new argtokey_callback_t[length];
         size = length > 0 ? length - 1 : 0;
         Local<Context> context = Nan::GetCurrentContext();
         for (unsigned int i = 0; i < length; i++) {
-            valueToKey(array->Get(context, i).ToLocalChecked(), segments[i]);
+            auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i]);
+            callbacks[i] = freeData;
             size += segments[i].mv_size;
         }
         keyBytes = new unsigned char[size];
@@ -110,8 +111,10 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
             memcpy(&keyBytes[position], segments[i].mv_data, segments[i].mv_size);
             position += segments[i].mv_size;
             keyBytes[position++] = 30;
+            if (callbacks[i]) {
+                callbacks[i](segments[i]);
+            }
         }
-        fprintf(stdout, "created array key size %u %x %x %x", size, keyBytes[0], keyBytes[4], keyBytes[5]);
     } else if (jsKey->IsBoolean()) {
         keyBytes = new unsigned char[1];
         size = 1;
@@ -138,7 +141,6 @@ Local<Value> keyToValue(MDB_val &val) {
     unsigned char* keyBytes = (unsigned char*) val.mv_data;
     int size = val.mv_size;
     unsigned char controlByte = keyBytes[0];
-    fprintf(stdout,"read integer %X %X %X %X %X %X %X %X\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
     int number;
     switch (controlByte) {
         case 18:

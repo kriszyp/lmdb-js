@@ -67,12 +67,12 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void tryCompress(MDB_val *value, int headerSize);
 void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize = 0);
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
+argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
-NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::StringKey);
+NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);

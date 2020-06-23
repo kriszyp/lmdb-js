@@ -4,7 +4,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('bindings')('node-lmdb.node'))
-const { Env, openDbi, Cursor } = exports
+const { Env, openDbi, Cursor, getLastVersion } = exports
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -56,7 +56,6 @@ function open(path, options) {
 						name: dbName || null,
 						create: true,
 						txn: writeTxn,
-						keyIsBuffer: true,
 					})
 					this.db.name = dbName || null
 				} catch(error) {
@@ -123,7 +122,7 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.transaction(execute))
 			}
 		}
-		get(id, copy) {
+		get(id) {
 			let txn
 			try {
 				if (writeTxn) {
@@ -132,27 +131,17 @@ function open(path, options) {
 					txn = readTxn
 					txn.renew()
 				}
-				let result = copy ? txn.getBinaryUnsafe(this.db, id) : txn.getBinary(this.db, id)
-				if (result === null) // missing entry, really should be undefined
-					result = undefined
-				try {
-					if (copy && result) {
-						let buffer = result
-						result = copy(buffer)
-						env.detachBuffer(buffer.buffer) // we might end up with something like this for node 14
-					}
-				} finally {
-					if (!writeTxn) {
-						txn.reset()
-					}
+				let result = txn.getUtf8(this.db, id)
+				if (!writeTxn) {
+					txn.reset()
 				}
 				this.reads++
 				return result
 			} catch(error) {
-				return handleError(error, this, txn, () => this.get(id, copy))
+				return handleError(error, this, txn, () => this.get(id))
 			}
 		}
-		put(id, value, ifValue) {
+		put(id, value, version, ifVersion) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
@@ -160,14 +149,14 @@ function open(path, options) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
-			let index = scheduledOperations.push([this.db, id, value, ifValue]) - 1
+			let index = scheduledOperations.push([this.db, id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
-			scheduledOperations.bytes += id.length + (value && value.length || 0) + (ifValue && ifValue.length || 0) + 200
+			scheduledOperations.bytes += id.length + (value && value.length || 0) + 200
 			let commit = this.scheduleCommit()
-			return ifValue === undefined ? commit.unconditionalResults :
+			return ifVersion === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
 		}
-		putSync(id, value) {
+		putSync(id, value, version) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
@@ -179,14 +168,14 @@ function open(path, options) {
 				}
 				this.writes++
 				txn = writeTxn || env.beginTxn()
-				txn.putBinary(this.db, id, value)
+				txn.putUtf8(this.db, id, value, version)
 				if (!writeTxn) {
 					txn.commit()
 				}
 			} catch(error) {
 				if (writeTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
-				return handleError(error, this, txn, () => this.putSync(id, value))
+				return handleError(error, this, txn, () => this.putSync(id, value, version))
 			}
 		}
 		removeSync(id) {
@@ -213,7 +202,7 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.removeSync(id))
 			}
 		}
-		remove(id, ifValue) {
+		remove(id, ifVersion) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
@@ -221,17 +210,16 @@ function open(path, options) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
-			let index = scheduledOperations.push([this.db, id, undefined, ifValue]) - 1
-			scheduledOperations.bytes += id.length + (ifValue && ifValue.length || 0) + 200
+			let index = scheduledOperations.push([this.db, id, undefined, ifVersion]) - 1
+			scheduledOperations.bytes += id.length + 200
 			let commit = this.scheduleCommit()
-			return ifValue === undefined ? commit.unconditionalResults :
+			return ifVersion === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
 		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
 			if (!options)
 				options = {}
-			let copy = options.copy
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? Buffer.from([255, 255]) : Buffer.from([0]))
 				let endKey = options.end || (options.reverse ? Buffer.from([0]) : Buffer.from([255, 255]))
@@ -272,12 +260,7 @@ function open(path, options) {
 							i++ < RANGE_BATCH_SIZE) {
 							let value
 							if (options.values !== false) {
-								if (copy) {
-									let buffer = cursor.getCurrentBinaryUnsafe()
-									value = copy(buffer)
-									env.detachBuffer(buffer.buffer)
-								} else
-									value = cursor.getCurrentBinary()
+								value = cursor.getCurrentUtf8()
 							}
 							array.push(currentKey, value)
 							if (++count >= options.limit) {
@@ -423,18 +406,19 @@ function open(path, options) {
 			let results = new Array(operations.length)
 			this.transaction(() => {
 				for (let i = 0, l = operations.length; i < l; i++) {
-					let [db, id, value, ifValue] = operations[i]
-					if (ifValue !== undefined) {
-						let previousValue = this.get.call({ db }, id)
+					let [db, id, value, version, ifVersion] = operations[i]
+					if (ifVersion !== undefined) {
+						this.get.call({ db }, id)
+						let previousVersion = getLastVersion()
 						let matches
-						if (previousValue) {
-							if (ifValue) {
-								matches = value.length >= ifValue.length && value.slice(0, ifValue.length).equals(ifValue)
+						if (previousVersion) {
+							if (ifVersion) {
+								matches = ifVersion == previousVersion
 							} else {
 								matches = false
 							}
 						} else {
-							matches = !ifValue
+							matches = !ifVersion
 						}
 						if (!matches) {
 							results[i] = 1
@@ -587,27 +571,5 @@ function open(path, options) {
 		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
-	}
-}
-
-class ConditionalWriteResult {
-	constructor(syncResults, index) {
-		this.syncResults = syncResults
-		this.index = index
-	}
-	get synced() {
-		return this._synced || (this._synced = this.syncResults.then((writeResults) =>
-			writeResults[this.index] === 0)) // 0 is success
-	}
-	get committed() {
-		return this._committed || (this._committed = this.syncResults.committed.then((writeResults) =>
-			writeResults[this.index] === 0))
-	}
-	get written() {
-		// TODO: If we provide progress events, we can fulfill this as soon as this is written in the transaction
-		return this.committed
-	}
-	then(onFulfilled, onRejected) {
-		return this.synced.then(onFulfilled, onRejected)
 	}
 }

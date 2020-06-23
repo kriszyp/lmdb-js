@@ -173,13 +173,9 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     MDB_val key, oldkey, data;
+    auto keyType = keyTypeFromOptions(info[2], dw->keyType);
     bool keyIsValid;
-    auto keyType = inferAndValidateKeyType(info[1], info[2], dw->keyType, keyIsValid);
-    if (!keyIsValid) {
-        // inferAndValidateKeyType already threw an error
-        return;
-    }
-    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;
@@ -191,7 +187,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     //fprintf(stderr, "the key is %s\n", key.mv_data);
 
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
-        fprintf(stdout, "get data size %u\n", data.mv_size);
 
     
     if (freeKey) {
@@ -199,7 +194,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     if (rc == MDB_NOTFOUND) {
-        return info.GetReturnValue().Set(Nan::Null());
+        return info.GetReturnValue().Set(Nan::Undefined());
     }
     else if (rc != 0) {
         return throwLmdbError(rc);
@@ -340,13 +335,9 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
 
     int flags = 0;
     MDB_val key, data;
+    auto keyType = keyTypeFromOptions(info[3], dw->keyType);
     bool keyIsValid;
-    auto keyType = inferAndValidateKeyType(info[1], info[3], dw->keyType, keyIsValid);
-    if (!keyIsValid) {
-        // inferAndValidateKeyType already threw an error
-        return;
-    }
-    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;
@@ -499,13 +490,9 @@ NAN_METHOD(TxnWrap::del) {
     }
 
     MDB_val key;
+    auto keyType = keyTypeFromOptions(options, dw->keyType);
     bool keyIsValid;
-    auto keyType = inferAndValidateKeyType(info[1], options, dw->keyType, keyIsValid);
-    if (!keyIsValid) {
-        // inferAndValidateKeyType already threw an error
-        return;
-    }
-    auto freeKey = valueToKey(info[1], key);//, keyType, keyIsValid);
+    auto freeKey = argToKey(info[1], key, keyType, keyIsValid);
     if (!keyIsValid) {
         // argToKey already threw an error
         return;

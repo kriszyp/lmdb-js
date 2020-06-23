@@ -57,7 +57,6 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
     if (!val->IsObject()) {
         return defaultKeyType;
     }
-    
     auto obj = Local<Object>::Cast(val);
 
     NodeLmdbKeyType keyType = defaultKeyType;
@@ -128,11 +127,13 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
     return keyType;
 }
 
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
-    /*return valueToKey(val, key);*/
+argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
     isValid = false;
 
-    if (keyType == NodeLmdbKeyType::StringKey) {
+    if (keyType == NodeLmdbKeyType::DefaultKey) {
+        isValid = true;
+        return valueToKey(val, key);
+    } else if (keyType == NodeLmdbKeyType::StringKey) {
         if (!val->IsString()) {
             Nan::ThrowError("Invalid key. Should be a string. (Specified with env.openDbi)");
             return nullptr;
@@ -183,8 +184,9 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
 }
 
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
-    return keyToValue(key);/*
     switch (keyType) {
+    case NodeLmdbKeyType::DefaultKey:
+        return keyToValue(key);
     case NodeLmdbKeyType::Uint32Key:
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
     case NodeLmdbKeyType::BinaryKey:
@@ -194,7 +196,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
     default:
         Nan::ThrowError("Unknown key type. This is a bug in node-lmdb.");
         return Nan::Undefined();
-    }*/
+    }
 }
 
 Local<Value> valToStringUnsafe(MDB_val &data) {
@@ -262,7 +264,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
     unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
     if (getVersion && charData[0] == 253) {
         lastVersion = (charData[1] << 48) | (charData[2] << 40) | (charData[3] << 32) | (charData[4] << 24) | (charData[5] << 16) | (charData[6] << 8) | charData[7];
-        fprintf(stdout, "getVersion %u\n", lastVersion);
+        //fprintf(stdout, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
         data.mv_size -= 8;
@@ -368,24 +370,25 @@ void tryCompress(MDB_val* value, int headerSize) {
 }
 
 void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize) {
-    unsigned int l = str->Length();
-    l = (((l + 10) >> 3) + (l >> 6)) << 3;
-    char *d = new char[l + headerSize];
-    int written = 0;
+    unsigned int strLength = str->Length();
+    // an optimized guess at buffer length that works >99% of time and has good byte alignment
+    unsigned int byteLength = str->IsOneByte() ? strLength :
+        (((strLength >> 3) + ((strLength + 115) >> 6)) << 3);
+    char *data = new char[byteLength + headerSize];
+    int utfWritten = 0;
     #if NODE_VERSION_AT_LEAST(10,0,0)
-    str->WriteUtf8(Isolate::GetCurrent(), d + headerSize, l, &written);
-    if (written > l -3) {
-        fprintf(stdout, "Need to resize string");
-        delete[] d;
-        l = str->Utf8Length(Isolate::GetCurrent());
-        d = new char[l + headerSize];
-        str->WriteUtf8(Isolate::GetCurrent(), d + headerSize, l, &written);
+    int bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+    if (utfWritten < strLength) {
+        delete[] data;
+        byteLength = strLength * 3;
+        data = new char[byteLength + headerSize];
+        bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
     }
     #else
-    str->Write(d, 0);
+    str->Write(data, 0);
     #endif;
-    val->mv_data = d;
-    val->mv_size = written + headerSize;
+    val->mv_data = data;
+    val->mv_size = bytes + headerSize;
     //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
 }
 

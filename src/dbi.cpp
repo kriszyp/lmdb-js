@@ -32,7 +32,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->env = env;
     this->dbi = dbi;
-    this->keyType = NodeLmdbKeyType::StringKey;
+    this->keyType = NodeLmdbKeyType::DefaultKey;
     this->compressionThreshold = 0xffffffff;
     this->isOpen = false;
     this->ew = nullptr;
@@ -67,7 +67,7 @@ NAN_METHOD(DbiWrap::ctor) {
     int txnFlags = 0;
     Local<String> name;
     bool nameIsNull = false;
-    NodeLmdbKeyType keyType = NodeLmdbKeyType::StringKey;
+    NodeLmdbKeyType keyType = NodeLmdbKeyType::DefaultKey;
     bool needsTransaction = true;
     bool isOpen = false;
     bool hasVersions = false;
