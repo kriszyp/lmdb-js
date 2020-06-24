@@ -159,6 +159,7 @@ function open(path, options) {
 				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, value, ifValue]) - 1
+			this.writes++
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
 			scheduledOperations.bytes += id.length + (value && value.length || 0) + (ifValue && ifValue.length || 0) + 200
 			let commit = this.scheduleCommit()
@@ -221,6 +222,7 @@ function open(path, options) {
 			}
 			let index = scheduledOperations.push([this.db, id, undefined, ifValue]) - 1
 			scheduledOperations.bytes += id.length + (ifValue && ifValue.length || 0) + 200
+			this.writes++
 			let commit = this.scheduleCommit()
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -570,8 +572,8 @@ function open(path, options) {
 			try {
 				env.close()
 			} catch (error) {}
-			console.warn('Corrupted database,', location, 'attempting to delete the store file and restart', error)
-			fs.removeSync(location + '.mdb')
+			console.warn('Corrupted database,', path, 'attempting to delete the store file and restart', error)
+			fs.removeSync(path + '.mdb')
 			env = new Env()
 			env.open(options)
 			openDB()
