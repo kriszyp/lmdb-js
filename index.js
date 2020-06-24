@@ -99,17 +99,17 @@ function open(path, options) {
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
-				let startCpu = process.cpuUsage()
-				let start = Date.now()
+				if (scheduledOperations) {
+					scheduledOperations.bytes = this.syncBatchThreshold // try to run all the operations immediately
+					this.scheduleCommit()
+				}
 				return when(execute(), () => {
-					//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
 					if (abort) {
 						txn.abort()
 					} else {
 						txn.commit()
 					}
 					writeTxn = null
-					//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 					if (noSync)
 						return result
 					else
@@ -154,12 +154,22 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
+			this.writes++
+			if (writeTxn) {
+				if (ifValue !== undefined) {
+					let previousValue = this.get(id)
+					if (!matches(previousValue, ifValue)) {
+						return Promise.resolve(false)
+					}
+				}
+				writeTxn.putBinary(this.db, id, value)
+				return Promise.resolve(true)
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, value, ifValue]) - 1
-			this.writes++
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
 			scheduledOperations.bytes += id.length + (value && value.length || 0) + (ifValue && ifValue.length || 0) + 200
 			let commit = this.scheduleCommit()
@@ -216,13 +226,22 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
+			this.writes++
+			if (writeTxn) {
+				if (ifValue !== undefined) {
+					let previousValue = this.get(id)
+					if (!matches(previousValue, ifValue)) {
+						return Promise.resolve(false)
+					}
+				}
+				return Promise.resolve(this.removeSync(id))
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, undefined, ifValue]) - 1
 			scheduledOperations.bytes += id.length + (ifValue && ifValue.length || 0) + 200
-			this.writes++
 			let commit = this.scheduleCommit()
 			return ifValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -426,17 +445,7 @@ function open(path, options) {
 					let [db, id, value, ifValue] = operations[i]
 					if (ifValue !== undefined) {
 						let previousValue = this.get.call({ db }, id)
-						let matches
-						if (previousValue) {
-							if (ifValue) {
-								matches = value.length >= ifValue.length && value.slice(0, ifValue.length).equals(ifValue)
-							} else {
-								matches = false
-							}
-						} else {
-							matches = !ifValue
-						}
-						if (!matches) {
+						if (!matches(previousValue, ifValue)) {
 							results[i] = 1
 							continue
 						}
@@ -451,6 +460,7 @@ function open(path, options) {
 			})
 			return results
 		}
+
 		batch(operations) {
 			this.writes += operations.length
 			if (!scheduledOperations) {
@@ -610,4 +620,18 @@ class ConditionalWriteResult {
 	then(onFulfilled, onRejected) {
 		return this.synced.then(onFulfilled, onRejected)
 	}
+}
+
+function matches(previousValue, ifValue){
+	let matches
+	if (previousValue) {
+		if (ifValue) {
+			matches = value.length >= ifValue.length && value.slice(0, ifValue.length).equals(ifValue)
+		} else {
+			matches = false
+		}
+	} else {
+		matches = !ifValue
+	}
+	return matches
 }
