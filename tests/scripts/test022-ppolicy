@@ -38,6 +38,8 @@ KILLPIDS="$PID"
 
 USER="uid=nd, ou=People, dc=example, dc=com"
 PASS=testpassword
+PWADMIN="uid=ndadmin, ou=People, dc=example, dc=com"
+ADMINPASSWD=testpw
 
 sleep 1
 
@@ -216,17 +218,43 @@ if test $RC = 0 ; then
 	exit 1
 fi
 
+echo "Testing failed logins when password/policy missing..."
+
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 \
+	-D "uid=test, ou=People,$BASEDN" -w hasnopolicy \
+	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "Password accepted ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPSEARCH -e ppolicy -h $LOCALHOST -p $PORT1 -D "$BASEDN" -w hasnopw \
+	-b "$BASEDN" -s base > $SEARCHOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "Password accepted ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPSEARCH -H $URI1 -D "$MANAGERDN" -w $PASSWD -b "$BASEDN" \* \+ > $SEARCHOUT 2>&1
+COUNT=`grep "pwdFailureTime" $SEARCHOUT | wc -l`
+if test $COUNT != 0 ; then
+	echo "Failed login stored on an account without policy and or password"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
 echo "Testing forced reset..."
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+$LDAPMODIFY -v -D "$PWADMIN" -h $LOCALHOST -p $PORT1 -w $ADMINPASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 replace: userPassword
 userPassword: $PASS
--
-replace: pwdReset
-pwdReset: TRUE
 
 EOMODS
 RC=$?
