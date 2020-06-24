@@ -182,7 +182,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     }
 
     if (rc == MDB_NOTFOUND) {
-        return info.GetReturnValue().Set(Nan::Null());
+        return info.GetReturnValue().Set(Nan::Undefined());
     }
     else if (rc != 0) {
         return throwLmdbError(rc);

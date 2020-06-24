@@ -5,12 +5,14 @@
 /*
 control character types:
 1 - metadata
-14 - true
-15 - false
-17 - number <= -2^48
-18 - -2^48 < number < 0
-19 - 0 <= number < 2^48
-20 - 2^48 <= number
+9 - true
+10 - false
+11 - number <= -2^55
+12 - -2^55 < number < -2^23 (8 bytes min)
+13 - -2^23 < number < 0 (6 bytes min)
+14 - 0 <= number < 2^23  (6 bytes min)
+15 - 2^23 <= number < 2^55 (8 bytes min)
+16 - 2^55 <= number
 27 - used for escaping control bytes in strings
 30 - multipart separator
 > 31 normal string characters
@@ -76,13 +78,13 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
                 keyBytes = new unsigned char[8];
             }
             keyBytes[0] = negative ? 18 : 19;
-            keyBytes[1] = (uint8_t) (integer >> 48u);
-            keyBytes[2] = (uint8_t) (integer >> 40u);
-            keyBytes[3] = (uint8_t) (integer >> 32u);
-            keyBytes[4] = (uint8_t) (integer >> 24u);
-            keyBytes[5] = (uint8_t) (integer >> 16u);
-            keyBytes[6] = (uint8_t) (integer >> 8u);
-            keyBytes[7] = (uint8_t) integer;
+            keyBytes[1] = (uint8_t) (integer >> 47u);
+            keyBytes[2] = (uint8_t) (integer >> 39u);
+            keyBytes[3] = (uint8_t) (integer >> 31u);
+            keyBytes[4] = (uint8_t) (integer >> 23u);
+            keyBytes[5] = (uint8_t) (integer >> 15u);
+            keyBytes[6] = (uint8_t) (integer >> 7u);
+            keyBytes[7] = (uint8_t) (integer << 1u);
             size = 8;
 /*            if (negative) {
                 // two's complement
@@ -150,7 +152,7 @@ Local<Value> keyToValue(MDB_val &val) {
             }*/
             // fall through
         case 19: // number
-            number = (keyBytes[1] << 48u) | (keyBytes[2] << 40u) | (keyBytes[3] << 32u) | (keyBytes[4] << 24u) | (keyBytes[5] << 16u) | (keyBytes[6] << 8u) | keyBytes[7];
+            number = (keyBytes[1] << 47u) | (keyBytes[2] << 39u) | (keyBytes[3] << 31u) | (keyBytes[4] << 23u) | (keyBytes[5] << 15u) | (keyBytes[6] << 7u) | (keyBytes[7] >> 1u);
             value = Nan::New<Number>(number);
             consumed = 8;
             break;
