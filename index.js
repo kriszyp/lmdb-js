@@ -100,17 +100,17 @@ function open(path, options) {
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
-				let startCpu = process.cpuUsage()
-				let start = Date.now()
+				if (scheduledOperations) {
+					scheduledOperations.bytes = this.syncBatchThreshold // try to run all the operations immediately
+					this.scheduleCommit()
+				}
 				return when(execute(), () => {
-					//console.log('after execute', Date.now() - start, process.cpuUsage(startCpu))
 					if (abort) {
 						txn.abort()
 					} else {
 						txn.commit()
 					}
 					writeTxn = null
-					//console.log('after commit', Date.now() - start, process.cpuUsage(startCpu))
 					if (noSync)
 						return result
 					else
@@ -145,11 +145,21 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
+			this.writes++
+			if (writeTxn) {
+				if (ifValue !== undefined) {
+					let previousValue = this.get(id)
+					if (!matches(previousValue, ifValue)) {
+						return Promise.resolve(false)
+					}
+				}
+				writeTxn.putBinary(this.db, id, value)
+				return Promise.resolve(true)
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
-			this.writes++
 			let index = scheduledOperations.push([this.db, id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
 			scheduledOperations.bytes += id.length + (value && value.length || 0) + 200
@@ -207,11 +217,20 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
+			this.writes++
+			if (writeTxn) {
+				if (ifValue !== undefined) {
+					let previousValue = this.get(id)
+					if (!matches(previousValue, ifValue)) {
+						return Promise.resolve(false)
+					}
+				}
+				return Promise.resolve(this.removeSync(id))
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
-			this.writes++
 			let index = scheduledOperations.push([this.db, id, undefined, ifVersion]) - 1
 			scheduledOperations.bytes += id.length + 200
 			let commit = this.scheduleCommit()
@@ -412,17 +431,7 @@ function open(path, options) {
 					if (ifVersion !== undefined) {
 						this.get.call({ db }, id)
 						let previousVersion = getLastVersion()
-						let matches
-						if (previousVersion) {
-							if (ifVersion) {
-								matches = ifVersion == previousVersion
-							} else {
-								matches = false
-							}
-						} else {
-							matches = !ifVersion
-						}
-						if (!matches) {
+						if (!matches(previousVersion, ifVersion)) {
 							results[i] = 1
 							continue
 						}
@@ -437,6 +446,7 @@ function open(path, options) {
 			})
 			return results
 		}
+
 		batch(operations) {
 			this.writes += operations.length
 			if (!scheduledOperations) {
@@ -574,4 +584,18 @@ function open(path, options) {
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
 	}
+}
+
+function matches(previousVersion, ifVersion){
+	let matches
+	if (previousValue) {
+		if (ifValue) {
+			matches = previousVersion == ifVersion
+		} else {
+			matches = false
+		}
+	} else {
+		matches = !ifValue
+	}
+	return matches
 }
