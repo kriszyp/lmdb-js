@@ -1,5 +1,5 @@
 const fs = require('fs-extra')
-const pathModule = require('path')
+const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
@@ -28,10 +28,10 @@ function open(path, options) {
 	let scheduledWrites
 	let scheduledOperations
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch
-	let extension = pathModule.extname(path)
-	let name = pathModule.basename(path, extension)
-	if (!fs.existsSync(pathModule.dirname(path)))
-    	fs.ensureDirSync(pathModule.dirname(path))
+	let extension = extname(path)
+	let name = basename(path, extension)
+	if (!fs.existsSync(extension ? dirname(path) : path))
+	    	fs.ensureDirSync(extension ? dirname(path) : path)
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),

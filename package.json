@@ -28,8 +28,8 @@
   "devDependencies": {
     "benchmark": "^2.1.4",
     "chai": "^3.5.0",
-    "mkdirp": "^0.5.1",
-    "mocha": "^5.2.0",
+    "mkdirp": "^1.0.4",
+    "mocha": "^8.0.1",
     "node-gyp": "^3.6.0",
     "prebuild": "8.2.1",
     "rimraf": "^2.6.1",

@@ -261,10 +261,10 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     int headerSize = 0;
     if (data.mv_size == 0)
-        return Nan::Undefined()
+        return Nan::Undefined();
     unsigned char* charData = (unsigned char*) data.mv_data;
     unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
-    if (getVersion)
+    if (getVersion) {
         if (charData[0] == 253) {
             lastVersion = (charData[1] << 48) | (charData[2] << 40) | (charData[3] << 32) | (charData[4] << 24) | (charData[5] << 16) | (charData[6] << 8) | charData[7];
             //fprintf(stdout, "getVersion %u\n", lastVersion);
