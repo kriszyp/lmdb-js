@@ -39,6 +39,8 @@ void setupExportMisc(Local<Object> exports) {
 
     exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
     Nan::SetMethod(exports, "getLastVersion", getLastVersion);
+    Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
+    Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
@@ -200,7 +202,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
 }
 
 Local<Value> valToStringUnsafe(MDB_val &data) {
-    auto resource = new CustomExternalStringResource(&data);
+    auto resource = new CustomExternalOneByteStringResource(&data);
     auto str = Nan::New<v8::String>(resource);
 
     return str.ToLocalChecked();
@@ -208,6 +210,8 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 
 Local<Value> valToUtf8(MDB_val &data) {
     const char *buffer = (const char*)(data.mv_data);
+    //Isolate *isolate = Isolate::GetCurrent();
+    //auto str = v8::String::NewFromOneByte(isolate, buffer, v8::NewStringType::kNormal, data.mv_size);
     auto str = Nan::New<v8::String>(buffer, data.mv_size);
 
     return str.ToLocalChecked();
@@ -297,6 +301,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
         //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
         data.mv_data = uncompressedData;
         data.mv_size = uncompressedLength;
+        // TODO: Allow 253 and 252 to denote that it is a latin-only string so can use the CustomExternalOneByteStringResource for large one-byte strings to reduce memory copying
         Local<Value> value = successFunc(data);
         delete[] uncompressedData;
         return value;
@@ -439,5 +444,32 @@ const uint16_t *CustomExternalStringResource::data() const {
 }
 
 size_t CustomExternalStringResource::length() const {
+    return this->l;
+}
+
+CustomExternalOneByteStringResource::CustomExternalOneByteStringResource(MDB_val *val) {
+    // The Latin data
+    this->d = (char*)(val->mv_data);
+    // Number of Latin characters in the string
+    this->l = val->mv_size;
+}
+
+CustomExternalOneByteStringResource::~CustomExternalOneByteStringResource() { }
+
+void CustomExternalOneByteStringResource::Dispose() {
+    // No need to do anything, the data is owned by LMDB, not us
+    
+    // But actually need to delete the string resource itself:
+    // the docs say that "The default implementation will use the delete operator."
+    // while initially I thought this means using delete on the string,
+    // apparently they meant just calling the destructor of this class.
+    delete this;
+}
+
+const char *CustomExternalOneByteStringResource::data() const {
+    return this->d;
+}
+
+size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }

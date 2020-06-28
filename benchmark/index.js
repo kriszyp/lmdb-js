@@ -23,12 +23,9 @@ function cleanup(done) {
       return done(err);
     }
     // setup clean directory
-    mkdirp(testDirPath, function(err) {
-      if (err) {
-        return done(err);
-      }
+    mkdirp(testDirPath).then(() => {
       done();
-    });
+    }, error => done(error));
   });
 }
 
@@ -37,18 +34,18 @@ function setup() {
   env.open({
     path: testDirPath,
     maxDbs: 10,
-    mapSize: 16 * 1024 * 1024 * 1024
+    mapSize: 1024 * 1024 * 1024
   });
   dbi = env.openDbi({
     name: 'benchmarks',
     create: true,
-    compressionThreshold: 1000,
+//    compressionThreshold: 1000,
   });
 
   var txn = env.beginTxn();
   var c = 0;
   let value = 'hello world!'
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 7; i++) {
     value += value
   }
   while(c < total) {
@@ -97,7 +94,7 @@ function cursorGoToNext() {
     return () => {
         let c = cursor.goToNext();
         readed++;
-        if (readed >= total / 2) {
+        if (readed >= total) {
             c = cursor.goToRange(keys[0]);
             readed = 0; // reset to prevent goToRange on every loop
         }
@@ -109,12 +106,23 @@ function cursorGoToNextgetCurrentString() {
     return () => {
         const c = cursor.goToNext();
         readed++;
-        if (readed >= total / 2) {
+        if (readed >= total) {
             cursor.goToRange(keys[0]);
             readed = 0; // reset to prevent goToRange on every loop
         }
         const v = cursor.getCurrentUtf8();
     }
+}
+let b = Buffer.from('Hi there!');
+function bufferToKeyValue() {
+  if (lmdb.bufferToKeyValue(b) != 'Hi there!')
+    throw new Error('wrong string')
+
+}
+function keyValueToBuffer() {
+  if (!lmdb.keyValueToBuffer('Hi there!').equals(b))
+    throw new Error('wrong string')
+
 }
 
 cleanup(function (err) {
@@ -124,10 +132,12 @@ cleanup(function (err) {
 
     setup();
 
-    //suite.add('getBinary', getBinary);
+ //   suite.add('getBinary', getBinary);
     //suite.add('getBinaryUnsafe', getBinaryUnsafe);
-    suite.add('getString', getString);
-    //suite.add('getStringUnsafe', getStringUnsafe);
+    suite.add('bufferToKeyValue', bufferToKeyValue)
+    //suite.add('keyValueToBuffer', keyValueToBuffer)
+    /suite.add('getString', getString);
+    suite.add('getStringUnsafe', getStringUnsafe);
     suite.add('cursorGoToNext', cursorGoToNext());
     suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());
 
@@ -139,7 +149,7 @@ cleanup(function (err) {
         txn.abort();
         txn = env.beginTxn();
         if (cursor) cursor.close();
-        cursor = new lmdb.Cursor(txn, dbi, {keyIsBuffer: true});
+        cursor = new lmdb.Cursor(txn, dbi);
         console.log(String(event.target));
     });
 

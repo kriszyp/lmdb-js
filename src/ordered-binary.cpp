@@ -171,14 +171,28 @@ Local<Value> keyToValue(MDB_val &val) {
                     val.mv_size
                 ).ToLocalChecked();
             }
-            char* separator = (char*) memchr(((char*) val.mv_data) + consumed, 30, val.mv_size - consumed);
-            if (separator) {
-                consumed = separator - ((char*) val.mv_data);
-                value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
-            } else {
-                consumed = val.mv_size;
-                value = Nan::New<v8::String>((char*) val.mv_data, val.mv_size).ToLocalChecked();
+            bool needsEscaping = false;
+            consumed = val.mv_size;
+            bool isOneByte = true;
+            int8_t* position = ((int8_t*) val.mv_data);
+            int8_t* end = position + consumed;
+            for (; position < end; position++) {
+                if (*position < 32) { // by using signed chars, non-latin is negative and escapes and separators are less than 32
+                    int8_t c = *position;
+                    if (c < 0) {
+                        isOneByte = false;
+                    } else if (c == 30) {
+                        consumed = position - ((int8_t*) val.mv_data);
+                    } else {
+                        needsEscaping = true;
+                        // needs escaping
+                    }
+                }
             }
+            if (isOneByte) {
+                value = v8::String::NewFromOneByte(Isolate::GetCurrent(), (uint8_t*) val.mv_data, v8::NewStringType::kNormal, consumed).ToLocalChecked();
+            } else
+                value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
     }
     if (consumed < size) {
         if (keyBytes[consumed] != 30) {
@@ -206,4 +220,36 @@ Local<Value> keyToValue(MDB_val &val) {
         value = resultsArray;
     }
     return value;
+}
+
+NAN_METHOD(bufferToKeyValue) {
+    if (!node::Buffer::HasInstance(info[0])) {
+        Nan::ThrowError("Invalid key. Should be a Buffer.");
+        return;
+    }
+    
+    MDB_val key;
+    key.mv_size = node::Buffer::Length(info[0]);
+    key.mv_data = node::Buffer::Data(info[0]);
+    info.GetReturnValue().Set(keyToValue(key));
+}
+NAN_METHOD(keyValueToBuffer) {
+    MDB_val key;
+    auto freeKey = valueToKey(info[0], key);
+    Nan::MaybeLocal<v8::Object> buffer;
+    if (freeKey) {
+        buffer = Nan::NewBuffer(
+            (char*)key.mv_data,
+            key.mv_size);
+    } else {
+        buffer = Nan::NewBuffer(
+            (char*)key.mv_data,
+            key.mv_size,
+            [](char *, void *) {
+                // do nothing
+            },
+            nullptr
+        );
+    }
+    info.GetReturnValue().Set(buffer.ToLocalChecked());
 }

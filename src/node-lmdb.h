@@ -76,6 +76,8 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
+NAN_METHOD(bufferToKeyValue);
+NAN_METHOD(keyValueToBuffer);
 static thread_local long long lastVersion = 0;
 
 Local<Value> valToUtf8(MDB_val &data);
@@ -763,5 +765,21 @@ public:
 
     static void writeTo(Local<String> str, MDB_val *val);
 };
+
+class CustomExternalOneByteStringResource : public String::ExternalOneByteStringResource {
+private:
+    const char *d;
+    size_t l;
+
+public:
+    CustomExternalOneByteStringResource(MDB_val *val);
+    ~CustomExternalOneByteStringResource();
+
+    void Dispose();
+    const char *data() const;
+    size_t length() const;
+
+};
+
 
 #endif // NODE_LMDB_H
