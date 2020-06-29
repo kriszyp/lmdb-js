@@ -5,26 +5,22 @@
 /*
 control character types:
 1 - metadata
-9 - true
-10 - false
-11 - number <= -2^55
-12 - -2^55 < number < -2^23 (8 bytes min)
-13 - -2^23 < number < 0 (6 bytes min)
-14 - 0 <= number < 2^23  (6 bytes min)
-15 - 2^23 <= number < 2^55 (8 bytes min)
-16 - 2^55 <= number
+6 - false
+7 - false
+8- 16 - negative doubles
+16-24 positive doubles
 27 - used for escaping control bytes in strings
 30 - multipart separator
 > 31 normal string characters
 */
-const long long MAX_24_BITS = 1 << 24u;
-const long long MAX_32_BITS = 1 << 32u;
-const long long MAX_40_BITS = 1 << 40u;
-const long long MAX_48_BITS = 1 << 48u;
+const long long MAX_24_BITS = 1i64 << 24u;
+const long long MAX_32_BITS = 1i64 << 32u;
+const long long MAX_40_BITS = 1i64 << 40u;
+const long long MAX_48_BITS = 1i64 << 48u;
 /*
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
-argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
+argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength = false) {
 
     if (jsKey->IsString()) {
         /*if (key.charCodeAt(0) < 32) {
@@ -36,65 +32,38 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         });
         //return Buffer.from(key)
     }
-    unsigned char* keyBytes;
+    uint8_t* keyBytes;
     int size;
     if (jsKey->IsNumber()) {
         double number = Local<Number>::Cast(jsKey)->Value();
         bool negative = number < 0;
-/*        if (negative) {
-            key = -key // do our serialization on the positive form
-        }*/
-        long long integer = number;
-                //fprintf(stderr, "it is a number! %f %d %d", number, integer, MAX_48_BITS);
-        if (number <0xffffffffffffff && number > -0xffffffffffffff) {
-            if ((double) integer != number) {
-                // handle the decimal/mantissa
-                fprintf(stderr, "decimal!");
-                char mantissaString[50];
-                snprintf(mantissaString, 50, "%f", number);
-                /*
-                let index = 7
-                let asString = key.toString() // we operate with string representation to try to preserve non-binary decimal state
-                let exponentPosition = asString.indexOf('e')
-                let mantissa
-                if (exponentPosition > -1) {
-                    let exponent = Number(asString.slice(exponentPosition + 2)) - 2
-                    let i
-                    for (i = 0; i < exponent; i += 2) {
-                        bufferArray[index++] = 1 // zeros with continuance bit
-                    }
-                    asString = asString.slice(0, exponentPosition).replace(/\./, '')
-                    if (i == exponent) {
-                        asString = '0' + asString
-                    }
-                } else {
-                    asString = asString.slice(asString.indexOf('.') + 1)
-                }
-                for (var i = 0, l = asString.length; i < l; i += 2) {
-                    bufferArray[index++] = Number(asString[i] + (asString[i + 1] || 0)) * 2 + 1
-                }
-                bufferArray[index - 1]-- // remove the continuation bit on the last one*/
-            } else {
-                keyBytes = new unsigned char[8];
-            }
-            keyBytes[0] = negative ? 18 : 19;
-            keyBytes[1] = (uint8_t) (integer >> 47u);
-            keyBytes[2] = (uint8_t) (integer >> 39u);
-            keyBytes[3] = (uint8_t) (integer >> 31u);
-            keyBytes[4] = (uint8_t) (integer >> 23u);
-            keyBytes[5] = (uint8_t) (integer >> 15u);
-            keyBytes[6] = (uint8_t) (integer >> 7u);
-            keyBytes[7] = (uint8_t) (integer << 1u);
-            size = 8;
-/*            if (negative) {
-                // two's complement
-                for (let i = 1, l = bufferArray.length; i < l; i++) {
-                    bufferArray[i] = bufferArray[i] ^ 255
-                }
-            }*/
+        uint64_t asInt = *((uint64_t*) &number);
+        keyBytes = new uint8_t[9]; // TODO: if last is zero, this can be zero
+        if (number < 0) {
+            asInt = asInt ^ 0x7fffffffffffffff;
+            keyBytes[0] = (uint8_t) (asInt >> 60);
         } else {
-            return nullptr;
+            keyBytes[0] = (uint8_t) (asInt >> 60) | 0x10;
         }
+        keyBytes[1] = (uint8_t) (asInt >> 52) & 0xff;
+        keyBytes[2] = (uint8_t) (asInt >> 44) & 0xff;
+        keyBytes[3] = (uint8_t) (asInt >> 36) & 0xff;
+        keyBytes[4] = (uint8_t) (asInt >> 28) & 0xff;
+        keyBytes[5] = (uint8_t) (asInt >> 20) & 0xff;
+        keyBytes[6] = (uint8_t) (asInt >> 12) & 0xff;
+        keyBytes[7] = (uint8_t) (asInt >> 4) & 0xff;
+        keyBytes[8] = (uint8_t) (asInt << 4) & 0xff;
+        if (keyBytes[8] == 0 && !fullLength)
+            if (keyBytes[6] == 0 && keyBytes[7] == 0) {
+                if (keyBytes[5] == 0 && keyBytes[4] == 0)
+                        size = 4;
+                else
+                    size = 6;
+            else
+                size = 8;
+        else
+            size = 9;
+//        fprintf(stdout, "asInt %x %x %x %x %x %x %x %x\n", keyBytes[0], keyBytes[1], keyBytes[2], keyBytes[3], keyBytes[4], keyBytes[5], keyBytes[6], keyBytes[7]);
     } else if (jsKey->IsArray()) {
         Local<Array> array = Local<Array>::Cast(jsKey);
         int length = array->Length();
@@ -102,14 +71,14 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
         argtokey_callback_t* callbacks = new argtokey_callback_t[length];
         size = length > 0 ? length - 1 : 0;
         Local<Context> context = Nan::GetCurrentContext();
-        for (unsigned int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
             auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i]);
             callbacks[i] = freeData;
             size += segments[i].mv_size;
         }
-        keyBytes = new unsigned char[size];
+        keyBytes = new uint8_t[size];
         int position = 0;
-        for (unsigned int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
             memcpy(&keyBytes[position], segments[i].mv_data, segments[i].mv_size);
             position += segments[i].mv_size;
             keyBytes[position++] = 30;
@@ -117,8 +86,12 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey) {
                 callbacks[i](segments[i]);
             }
         }
+    } else if (jsKey->IsNullOrUndefined()) {
+        keyBytes = new uint8_t[1];
+        size = 1;
+        keyBytes[0] = 0;
     } else if (jsKey->IsBoolean()) {
-        keyBytes = new unsigned char[1];
+        keyBytes = new uint8_t[1];
         size = 1;
         keyBytes[0] = jsKey->IsTrue() ? 15 : 14;
     } else if (node::Buffer::HasInstance(jsKey)) {
@@ -140,21 +113,27 @@ Local<Value> keyToValue(MDB_val &val) {
     Local<Value> value;
     bool hasMore = false;
     int consumed = 0;
-    unsigned char* keyBytes = (unsigned char*) val.mv_data;
+    uint8_t* keyBytes = (uint8_t*) val.mv_data;
     int size = val.mv_size;
-    unsigned char controlByte = keyBytes[0];
-    int number;
-    switch (controlByte) {
-        case 18:
-            // negative number
-            /*for (let i = 1; i < 7; i++) {
-                buffer[i] = buffer[i] ^ 255
-            }*/
-            // fall through
-        case 19: // number
-            number = (keyBytes[1] << 47u) | (keyBytes[2] << 39u) | (keyBytes[3] << 31u) | (keyBytes[4] << 23u) | (keyBytes[5] << 15u) | (keyBytes[6] << 7u) | (keyBytes[7] >> 1u);
-            value = Nan::New<Number>(number);
-            consumed = 8;
+    uint8_t controlByte = keyBytes[0];
+    if (controlByte < 24) {
+        if (controlByte < 8) {
+
+        } else {
+            double number;
+            uint64_t asInt = ((uint64_t) keyBytes[0] << 60) | ((uint64_t) keyBytes[1] << 52) | ((uint64_t) keyBytes[2] << 44) | ((uint64_t) keyBytes[3] << 36);
+            if (controlByte < 16)
+                asInt = asInt ^ 0x7fffffffffffffff;
+            if (size > 4) {
+                asInt |= ((uint64_t) keyBytes[4] << 28) | ((uint64_t) keyBytes[5] << 20);
+                if (size > 6) {
+                    asInt |= ((uint64_t) keyBytes[6] << 12) | ((uint64_t) keyBytes[7] << 4);
+                    if (size > 8)
+                        asInt |= (uint64_t) keyBytes[8] >> 4;
+                }
+            }
+            value = Nan::New<Number>(*((*double) &asInt));
+            consumed = 9;
             break;
         case 14: // boolean false
             consumed = 1;
@@ -164,6 +143,8 @@ Local<Value> keyToValue(MDB_val &val) {
             consumed = 1;
             value = Nan::New<Boolean>(false);
             break;
+        case 0:
+            value = Nan::Null();
         default:
             if (controlByte < 27) {
                 return Nan::CopyBuffer(
@@ -191,8 +172,9 @@ Local<Value> keyToValue(MDB_val &val) {
             }
             if (isOneByte) {
                 value = v8::String::NewFromOneByte(Isolate::GetCurrent(), (uint8_t*) val.mv_data, v8::NewStringType::kNormal, consumed).ToLocalChecked();
-            } else
+            } else {
                 value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
+            }
     }
     if (consumed < size) {
         if (keyBytes[consumed] != 30) {

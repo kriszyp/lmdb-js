@@ -344,7 +344,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     }
 
     int headerSize = 0;
-    if (supportsVersion && dw->hasVersions && info[3]->IsNumber()) {
+    if (supportsVersion && dw->hasVersions) {
         headerSize = 8;
     } else if (info[3]->IsObject()) {
         auto options = Local<Object>::Cast(info[3]);
@@ -363,8 +363,12 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         tryCompress(&data, headerSize);
     }
     if (headerSize > 0) {
-        auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
-        long long version = versionLocal->Value();
+        long long version;
+        if (info[3]->IsNumber()) {
+            auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
+            version = versionLocal->Value();
+        } else
+             version = 0;
         unsigned char* charData = (unsigned char*) data.mv_data;
         charData[0] = 253;
         charData[1] = (uint8_t) (version >> 48u);

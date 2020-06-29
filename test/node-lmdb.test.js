@@ -429,6 +429,14 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getNumber(dbi, 'key3');
       should.equal(data2, undefined);
     });
+    it.only('string and number key', function() {
+      txn.putUtf8(dbi, -2.4, 'Hello world!');
+      var data = txn.getUtf8(dbi, -2.4);
+      data.should.equal('Hello world!');
+      txn.del(dbi, -2.4);
+      var data2 = txn.getUtf8(dbi, -2.4);
+      should.equal(data2, undefined);
+    });
     it('boolean', function() {
       txn.putBoolean(dbi, 'key4', true);
       var data = txn.getBoolean(dbi, 'key4');

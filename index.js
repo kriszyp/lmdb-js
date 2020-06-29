@@ -4,9 +4,9 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('bindings')('node-lmdb.node'))
-const { Env, openDbi, Cursor, getLastVersion } = exports
+const { Env, Cursor, getLastVersion } = exports
 
-const RANGE_BATCH_SIZE = 100
+const RANGE_BATCH_SIZE = 1
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
 const DEFAULT_COMMIT_DELAY = 20
@@ -20,6 +20,7 @@ function genericErrorHandler(err) {
 		console.error(err)
 	}
 }
+const LAST_KEY = String.fromCharCode(0xffff)
 let env
 exports.open = open
 function open(path, options) {
@@ -48,15 +49,15 @@ function open(path, options) {
 	readTxn.reset()
 	let stores = []
 	class LMDBStore extends EventEmitter {
-		constructor(dbName) {
+		constructor(dbName, dbOptions) {
 			super()
 			const openDB = () => {
 				try {
-					this.db = env.openDbi({
+					this.db = env.openDbi(Object.assign({
 						name: dbName || null,
 						create: true,
 						txn: writeTxn,
-					})
+					}, dbOptions))
 					this.db.name = dbName || null
 				} catch(error) {
 					handleError(error, null, null, openDB)
@@ -76,9 +77,9 @@ function open(path, options) {
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
 		}
-		openDB(dbName) {
+		openDB(dbName, dbOptions) {
 			try {
-				return new LMDBStore(dbName)
+				return new LMDBStore(dbName, dbOptions)
 			} catch(error) {
 				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
 					error.message += ' (increase your maxDbs option)'
@@ -142,18 +143,24 @@ function open(path, options) {
 			}
 		}
 		put(id, value, version, ifVersion) {
+			debugger
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
 			if (writeTxn) {
-				if (ifValue !== undefined) {
-					let previousValue = this.get(id)
-					if (!matches(previousValue, ifValue)) {
+				if (ifVersion !== undefined) {
+					this.get(id)
+					let previousVersion = this.get(id) ? getLastVersion() : null
+					if (!matches(previousVersion, ifVersion)) {
 						return Promise.resolve(false)
 					}
 				}
-				writeTxn.putBinary(this.db, id, value)
+				if (typeof value === 'object') {
+					txn.putBinary(this.db, id, value, version)
+				} else {
+					txn.putUtf8(this.db, id, value, version)
+				}
 				return Promise.resolve(true)
 			}
 			if (!scheduledOperations) {
@@ -173,13 +180,13 @@ function open(path, options) {
 			}
 			let txn
 			try {
-				if (typeof value !== 'object') {
-					throw new Error('putting string value')
-					value = Buffer.from(value)
-				}
 				this.writes++
 				txn = writeTxn || env.beginTxn()
-				txn.putUtf8(this.db, id, value, version)
+				if (typeof value === 'object') {
+					txn.putBinary(this.db, id, value, version)
+				} else {
+					txn.putUtf8(this.db, id, value, version)
+				}
 				if (!writeTxn) {
 					txn.commit()
 				}
@@ -219,9 +226,9 @@ function open(path, options) {
 			}
 			this.writes++
 			if (writeTxn) {
-				if (ifValue !== undefined) {
-					let previousValue = this.get(id)
-					if (!matches(previousValue, ifValue)) {
+				if (ifVersion !== undefined) {
+					let previousVersion = this.get(id) ? getLastVersion() : null
+					if (!matches(previousVersion, ifVersion)) {
 						return Promise.resolve(false)
 					}
 				}
@@ -242,8 +249,8 @@ function open(path, options) {
 			if (!options)
 				options = {}
 			iterable[Symbol.iterator] = () => {
-				let currentKey = options.start || (options.reverse ? Buffer.from([255, 255]) : Buffer.from([0]))
-				let endKey = options.end || (options.reverse ? Buffer.from([0]) : Buffer.from([255, 255]))
+				let currentKey = options.start || (options.reverse ? LAST_KEY : null)
+				let endKey = options.end || (options.reverse ? null : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
 				const goToDirection = reverse ? 'goToPrev' : 'goToNext'
@@ -263,7 +270,7 @@ function open(path, options) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
 							if (nextKey) {
-								if (!nextKey.equals(currentKey)) {
+								if (compare(nextKey, currentKey) == 0) {
 									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
 									currentKey = cursor.goToPrev()
 								} // else they match, we are good, and currentKey is already correct
@@ -276,8 +283,9 @@ function open(path, options) {
 							currentKey = cursor.goToRange(currentKey)
 						}
 						let i = 0
-						while (!(finished = currentKey === null ||
-								(reverse ? currentKey.compare(endKey) <= 0 : currentKey.compare(endKey) >= 0)) &&
+						// TODO: Make a makeCompare(endKey)
+						while (!(finished = currentKey === undefined ||
+								(reverse ? compare(currentKey, endKey) <= 0 : compare(currentKey, endKey) >= 0)) &&
 							i++ < RANGE_BATCH_SIZE) {
 							let value
 							if (options.values !== false) {
@@ -516,7 +524,7 @@ function open(path, options) {
 			}
 		}
 	}
-	return new LMDBStore(options.dbName)
+	return new LMDBStore(options.dbName, options)
 	function handleError(error, store, txn, retry) {
 		try {
 			if (readTxn) {
@@ -588,14 +596,58 @@ function open(path, options) {
 
 function matches(previousVersion, ifVersion){
 	let matches
-	if (previousValue) {
-		if (ifValue) {
+	if (previousVersion) {
+		if (ifVersion) {
 			matches = previousVersion == ifVersion
 		} else {
 			matches = false
 		}
 	} else {
-		matches = !ifValue
+		matches = !ifVersion
 	}
 	return matches
+}
+
+function compare(a, b) {
+	// compare with type consistency that matches ordered-binary
+	if (typeof a == 'object') {
+		if (!a) {
+			return b == null ? 0 : -1
+		}
+		if (a.compare) {
+			if (b == null) {
+				return 1
+			} else if (b.compare) {
+				return a.compare(b)
+			} else {
+				return -1
+			}
+		}
+		let arrayComparison
+		if (b instanceof Array) {
+			let i = 0
+			while((arrayComparison = compare(a[i], b[i])) == 0 && i <= a.length)  {
+				i++
+			}
+			return arrayComparison
+		}
+		arrayComparison = compare(a[0], b)
+		if (arrayComparison == 0 && a.length > 1)
+			return 1
+		return 0
+	} else if (typeof a == typeof b)
+		return a < b ? -1 : a === b ? 0 : 1
+	else if (typeof b == 'object') {
+		if (b instanceof Array)
+			return -compare(b, a)
+		return 1
+	} else {
+		return typeOrder[typeof a] > typeOrder[typeof b] ? -1 : 1
+	}
+}
+const typeOrder = {
+	undefined: 0,
+	boolean: 1,
+	number: 2,
+	string: 3
 }

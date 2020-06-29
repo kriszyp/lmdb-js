@@ -264,32 +264,28 @@ Local<Value> valToBoolean(MDB_val &data) {
 Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&)) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     int headerSize = 0;
-    if (data.mv_size == 0)
-        return Nan::Undefined();
+    if (data.mv_size == 0) 
+        return successFunc(data);
     unsigned char* charData = (unsigned char*) data.mv_data;
-    unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
     if (getVersion) {
-        if (charData[0] == 253) {
-            lastVersion = (charData[1] << 48) | (charData[2] << 40) | (charData[3] << 32) | (charData[4] << 24) | (charData[5] << 16) | (charData[6] << 8) | charData[7];
-            //fprintf(stdout, "getVersion %u\n", lastVersion);
-            charData = charData + 8;
-            data.mv_data = charData;
-            data.mv_size -= 8;
-            headerSize = 8;
-            statusByte = charData[0];
-        } else {
-            lastVersion = 0;
-        }
+        lastVersion = ((int64_t) charData[1] << 48) | ((int64_t) charData[2] << 40) | ((int64_t) charData[3] << 32) |
+            ((int64_t) charData[4] << 24) | ((int64_t) charData[5] << 16) | ((int64_t) charData[6] << 8) | (int64_t) charData[7];
+        fprintf(stdout, "getVersion %u\n", lastVersion);
+        charData = charData + 8;
+        data.mv_data = charData;
+        data.mv_size -= 8;
+        headerSize = 8;
     }
-    //fprintf(stdout, "uncompressing status %X\n", statusByte);
+    unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
+        //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 254) {
-        unsigned int uncompressedLength;
+        uint32_t uncompressedLength;
         int compressionHeaderSize;
         if (statusByte == 254) {
-            uncompressedLength = (charData[1] << 16) | (charData[2] << 8) | charData[3];
+            uncompressedLength = ((uint32_t) charData[1] << 16) | ((uint32_t) charData[2] << 8) | (uint32_t) charData[3];
             compressionHeaderSize = 4;
         } else if (statusByte == 255) {
-            uncompressedLength = (charData[2] << 40) | (charData[3] << 32) | (charData[4] << 24) | (charData[5] << 16) | (charData[6] << 8) | charData[7];
+            uncompressedLength = ((uint32_t) charData[4] << 24) | ((uint32_t) charData[5] << 16) | ((uint32_t) charData[6] << 8) | (uint32_t) charData[7];
             compressionHeaderSize = 8;
         } else {
             Nan::ThrowError("Unknown status byte");
@@ -351,9 +347,7 @@ void tryCompress(MDB_val* value, int headerSize) {
     int prefixSize = (longSize ? 8 : 4) + headerSize;
     int maxCompressedSize = dataLength - 100;
     char* compressed = new char[maxCompressedSize + prefixSize];
-    //fprintf(stdout,"tryCompress %u %u %X\n", prefixSize, dataLength, data[13]);
     int compressedSize = LZ4_compress_default(data + headerSize, compressed + prefixSize, dataLength, maxCompressedSize);
-    //fprintf(stdout,"compressedSize %u\n", compressedSize);
     if (compressedSize > 0) {
         if (headerSize > 0)
             memcpy(compressed, data, headerSize);

@@ -712,6 +712,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         char headerSize = 0;
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = &deleteValue;
+            action->data.mv_size = 0;
         } else if (value->IsString()) {
             if (version >= 0) {
                 writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
