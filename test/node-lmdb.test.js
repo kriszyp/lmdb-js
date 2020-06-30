@@ -421,7 +421,7 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getBinary(dbi, key);
       should.equal(data2, undefined);
     });
-    it('number', function() {
+    it.skip('number', function() {
       txn.putNumber(dbi, 'key3', 900719925474099);
       var data = txn.getNumber(dbi, 'key3');
       data.should.equal(900719925474099);
@@ -429,7 +429,7 @@ describe('Node.js LMDB Bindings', function() {
       var data2 = txn.getNumber(dbi, 'key3');
       should.equal(data2, undefined);
     });
-    it.only('string and number key', function() {
+    it('string and number key', function() {
       txn.putUtf8(dbi, -2.4, 'Hello world!');
       var data = txn.getUtf8(dbi, -2.4);
       data.should.equal('Hello world!');
@@ -528,7 +528,7 @@ describe('Node.js LMDB Bindings', function() {
       const txn = env.beginTxn();
       let count = 0;
       while (count < total) {
-        let key = "hello_" + count.toString(16);
+        let key = "hello\x1E_" + count.toString(16);
         let data = key + "_data";
         txn.putUtf8(dbi, key, data);
         count++;
@@ -542,7 +542,7 @@ describe('Node.js LMDB Bindings', function() {
       }
       count = 0;
       while (count < total) {
-        let key = ["hello_" + count.toString(16), count];
+        let key = ["hello_\x1B" + count.toString(16) + '\x1E', count];
         let data = key + "_data";
         txn.putUtf8(dbi, key, data);
         count++;
@@ -562,7 +562,7 @@ describe('Node.js LMDB Bindings', function() {
       var count;
 
       for (count = 0; count < total; count ++) {
-        var expectedKey = "hello_" + count.toString(16);
+        var expectedKey = "hello\x1E_" + count.toString(16);
         var key = cursor.goToKey(expectedKey);
         should.equal(expectedKey, key);
       }
@@ -572,7 +572,7 @@ describe('Node.js LMDB Bindings', function() {
         should.equal(expectedKey, key);
       }
       for (count = 0; count < total; count ++) {
-        var expectedKey = ["hello_" + count.toString(16), count];
+        var expectedKey = ["hello_\x1B" + count.toString(16) + '\x1E', count];
         var key = cursor.goToKey(expectedKey);
         should.equal(JSON.stringify(expectedKey), JSON.stringify(key));
       }
@@ -1423,16 +1423,16 @@ describe('Node.js LMDB Bindings', function() {
         done();
       });
     });
-    it('will batchWrite strings and read it', function(done) {
+    it.only('will batchWrite strings and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
         create: true,
         useVersions: true,
       });
       var data = [
-        [ dbi, 'key 1', 'this is a test 1' ],
+        [ dbi, 'key 1', 'this is a test 1', 546 ],
         [ dbi, 'key 2', 'this is a test 2', 444 ],
-        [ dbi, 'key 3', 'this is a test 3' ]
+        [ dbi, 'key 3', 'this is a test 3', 643 ]
       ];
       env.batchWrite(data, function(error) {
         if (error) {

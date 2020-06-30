@@ -221,8 +221,11 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                         different = true;
                     } else {
                         different = (condition->matchSize ? value.mv_size != condition->data.mv_size : value.mv_size < condition->data.mv_size) ||
-                        memcmp(value.mv_data, condition->data.mv_data, condition->data.mv_size);
+                            memcmp(value.mv_data, condition->data.mv_data, condition->data.mv_size);
                     }
+                }
+                if (condition->data.mv_data == &deleteValue) {
+                    delete[] (char*) condition->data.mv_data;
                 }
                 if (different) {
                     results[i] = 1;
@@ -246,6 +249,9 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 } else {
                     rc = mdb_put(txn, action->dbi, &action->key, &action->data, putFlags);
                 }
+            }
+            if (action->data.mv_data != &deleteValue) {
+                delete[] (char*) action->data.mv_data;
             }
 
             if (action->freeKey) { // if we created a key and needs to be cleaned up, do it now
@@ -646,7 +652,8 @@ NAN_METHOD(EnvWrap::batchWrite) {
             return;
         }
         // persist the reference until we are done with the operation
-        worker->SaveToPersistent(persistedIndex++, key);
+        if (!action->freeKey)
+            worker->SaveToPersistent(persistedIndex++, key);
         v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
         long long version = -1;
@@ -666,10 +673,12 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 condition->data.mv_data = calloc(8, 1);
                 auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
                 long long version = versionLocal->Value();
-                memcpy(condition->data.mv_data, &version + 2, 6);
+                condition->ifVersion = version;
+                //memcpy(condition->data.mv_data, &version + 2, 6);
             } else if (ifValue->IsArrayBufferView()) {
-                condition->data.mv_size = node::Buffer::Length(Nan::To<v8::Object>(ifValue).ToLocalChecked());
-                condition->data.mv_data = node::Buffer::Data(ifValue);
+                int size = condition->data.mv_size = node::Buffer::Length(Nan::To<v8::Object>(ifValue).ToLocalChecked());
+                condition->data.mv_data = new char[size];
+                memcpy(condition->data.mv_data, node::Buffer::Data(ifValue), size);
                 if (!isArray) {
                     v8::Local<v8::Value> ifExactMatch = operation->Get(context, Nan::New<String>("ifExactMatch").ToLocalChecked()).ToLocalChecked();
                     if (ifExactMatch->IsTrue()) {
@@ -704,7 +713,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                     worker->SaveToPersistent(persistedIndex++, ifKey);
                 }
             }
-            worker->SaveToPersistent(persistedIndex++, ifValue);
+            
         } else {
             action->condition = nullptr;
         }
@@ -733,10 +742,9 @@ NAN_METHOD(EnvWrap::batchWrite) {
             if (version >= 0) {
                 return Nan::ThrowError("Can not use a version in conjunction with a buffer.");
             }
-            action->data.mv_size = node::Buffer::Length(value);
-            action->data.mv_data = node::Buffer::Data(value);
-            // likewise persist value if needed too
-            worker->SaveToPersistent(persistedIndex++, value);
+            int size = action->data.mv_size = node::Buffer::Length(value);
+            action->data.mv_data = new char[size];
+            memcpy(action->data.mv_data, node::Buffer::Data(ifValue), size);
         } else {
             return Nan::ThrowError("The value must be a string, buffer, or null/undefined.");
         }

@@ -270,7 +270,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
     if (getVersion) {
         lastVersion = ((int64_t) charData[1] << 48) | ((int64_t) charData[2] << 40) | ((int64_t) charData[3] << 32) |
             ((int64_t) charData[4] << 24) | ((int64_t) charData[5] << 16) | ((int64_t) charData[6] << 8) | (int64_t) charData[7];
-        fprintf(stdout, "getVersion %u\n", lastVersion);
+        //fprintf(stdout, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
         data.mv_size -= 8;

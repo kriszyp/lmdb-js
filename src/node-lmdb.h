@@ -68,7 +68,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 void tryCompress(MDB_val *value, int headerSize);
 void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize = 0);
 argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val);
+argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val, bool fullLength = false);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
@@ -78,7 +78,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
 NAN_METHOD(getLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
-static thread_local uint64_t lastVersion = 0;
+static thread_local int64_t lastVersion = 0;
 
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
