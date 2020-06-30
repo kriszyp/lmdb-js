@@ -363,21 +363,13 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         tryCompress(&data, headerSize);
     }
     if (headerSize > 0) {
-        long long version;
+        double version;
         if (info[3]->IsNumber()) {
             auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
             version = versionLocal->Value();
         } else
              version = 0;
-        unsigned char* charData = (unsigned char*) data.mv_data;
-        charData[0] = 253;
-        charData[1] = (uint8_t) (version >> 48u);
-        charData[2] = (uint8_t) (version >> 40u);
-        charData[3] = (uint8_t) (version >> 32u);
-        charData[4] = (uint8_t) (version >> 24u);
-        charData[5] = (uint8_t) (version >> 16u);
-        charData[6] = (uint8_t) (version >> 8u);
-        charData[7] = (uint8_t) version;
+        *((double*) data.mv_data) = version;
     }
     
     // Keep a copy of the original key and data, so we can free them

@@ -238,7 +238,7 @@ function open(path, options) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
 			}
-			let index = scheduledOperations.push([this.db, id, undefined, ifVersion]) - 1
+			let index = scheduledOperations.push([this.db, id, undefined, undefined, ifVersion]) - 1
 			scheduledOperations.bytes += id.length + 200
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :

@@ -268,8 +268,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
         return successFunc(data);
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (getVersion) {
-        lastVersion = ((int64_t) charData[1] << 48) | ((int64_t) charData[2] << 40) | ((int64_t) charData[3] << 32) |
-            ((int64_t) charData[4] << 24) | ((int64_t) charData[5] << 16) | ((int64_t) charData[6] << 8) | (int64_t) charData[7];
+        lastVersion = *((double*) charData);
         //fprintf(stdout, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
@@ -352,7 +351,7 @@ void tryCompress(MDB_val* value, int headerSize) {
         if (headerSize > 0)
             memcpy(compressed, data, headerSize);
         delete[] value->mv_data;
-        char* compressedData = compressed + headerSize;
+        uint8_t* compressedData = (uint8_t*) compressed + headerSize;
         if (longSize) {
             compressedData[0] = 255;
             compressedData[2] = (uint8_t) (dataLength >> 40u);
@@ -375,9 +374,9 @@ void tryCompress(MDB_val* value, int headerSize) {
 }
 
 void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize) {
-    unsigned int strLength = str->Length();
+    int strLength = str->Length();
     // an optimized guess at buffer length that works >99% of time and has good byte alignment
-    unsigned int byteLength = str->IsOneByte() ? strLength :
+    int byteLength = str->IsOneByte() ? strLength :
         (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
     char *data = new char[byteLength + headerSize];
     int utfWritten = 0;

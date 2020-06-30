@@ -155,17 +155,19 @@ struct condition_t {
     bool matchSize;
     argtokey_callback_t freeKey;
 };
-
+const double ANY_VERSION = -3.3434325325532E-199;
+const double NO_EXIST_VERSION = -4.2434325325532E-199;
+int DELETE_VALUE; // pointer to this as the value represents a delete
 struct action_t {
     MDB_val key;
     MDB_val data;
     MDB_dbi dbi;
     condition_t *condition;
-    unsigned char compress;
+    double ifVersion;
+    uint8_t compress;
     argtokey_callback_t freeKey;
 };
 
-int deleteValue; // pointer to this as the value represents a delete
 
 class BatchWorker : public Nan::AsyncProgressWorker {
   public:
@@ -214,7 +216,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 MDB_val value;
                 rc = mdb_get(txn, condition->dbi, &condition->key, &value);
                 bool different;
-                if (condition->data.mv_data == &deleteValue) {
+                if (condition->data.mv_data == &DELETE_VALUE) {
                     different = rc != MDB_NOTFOUND;
                 } else {
                     if (rc == MDB_NOTFOUND) {
@@ -224,11 +226,32 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                             memcmp(value.mv_data, condition->data.mv_data, condition->data.mv_size);
                     }
                 }
-                if (condition->data.mv_data == &deleteValue) {
+                if (condition->data.mv_data == &DELETE_VALUE) {
                     delete[] (char*) condition->data.mv_data;
                 }
                 if (different) {
                     results[i] = 1;
+                } else {
+                    // condition matches, remove condition, same as having no condition
+                    condition = nullptr;
+                    results[i] = 0;
+                }
+            } else if (action->ifVersion != ANY_VERSION) {
+                MDB_val value;
+                rc = mdb_get(txn, action->dbi, &action->key, &value);
+                bool different;
+                if (action->ifVersion == NO_EXIST_VERSION) {
+                    different = rc != MDB_NOTFOUND;
+                } else {
+                    if (rc == MDB_NOTFOUND) {
+                        different = true;
+                    } else {
+                        different = action->ifVersion != *((double*) value.mv_data);
+                    }
+                }
+                if (different) {
+                    results[i] = 1;
+                    condition = (condition_t*) action;
                 } else {
                     // condition matches, remove condition, same as having no condition
                     condition = nullptr;
@@ -240,7 +263,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             if (condition) {
                 rc = 0; // make sure this gets set back to zero, failed conditions shouldn't trigger error
             } else {
-                if (action->data.mv_data == &deleteValue) {
+                if (action->data.mv_data == &DELETE_VALUE) {
                     rc = mdb_del(txn, action->dbi, &action->key, nullptr);
                     if (rc == MDB_NOTFOUND) {
                         rc = 0; // ignore not_found errors
@@ -250,7 +273,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                     rc = mdb_put(txn, action->dbi, &action->key, &action->data, putFlags);
                 }
             }
-            if (action->data.mv_data != &deleteValue) {
+            if (action->data.mv_data != &DELETE_VALUE) {
                 delete[] (char*) action->data.mv_data;
             }
 
@@ -656,26 +679,31 @@ NAN_METHOD(EnvWrap::batchWrite) {
             worker->SaveToPersistent(persistedIndex++, key);
         v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
-        long long version = -1;
+        double version = 0;
         v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
         if (versionValue->IsNumber()) {
             version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
         }
         // check if this is a conditional save
         v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
-        if (!ifValue->IsUndefined()) {
-            condition_t *condition = action->condition = new condition_t();
-
+        if (ifValue->IsUndefined()) {
+            action->condition = nullptr;
+            action->ifVersion = ANY_VERSION;
+        } else {
+            condition_t *condition = action->condition = nullptr;
             if (ifValue->IsNull()) {
-                condition->data.mv_data = &deleteValue;
+                if (dw->hasVersions)
+                    action->ifVersion = NO_EXIST_VERSION;
+                else {
+                    condition = action->condition = new condition_t();
+                    condition->data.mv_data = &DELETE_VALUE;
+                    condition->data.mv_size = 0;
+                }
             } else if (ifValue->IsNumber()) {
-                condition->data.mv_size = 8;
-                condition->data.mv_data = calloc(8, 1);
-                auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
-                long long version = versionLocal->Value();
-                condition->ifVersion = version;
-                //memcpy(condition->data.mv_data, &version + 2, 6);
+                auto versionLocal = Nan::To<v8::Number>(ifValue).ToLocalChecked();
+                action->ifVersion = versionLocal->Value();
             } else if (ifValue->IsArrayBufferView()) {
+                condition = action->condition = new condition_t();
                 int size = condition->data.mv_size = node::Buffer::Length(Nan::To<v8::Object>(ifValue).ToLocalChecked());
                 condition->data.mv_data = new char[size];
                 memcpy(condition->data.mv_data, node::Buffer::Data(ifValue), size);
@@ -688,58 +716,48 @@ NAN_METHOD(EnvWrap::batchWrite) {
             } else {
                 return Nan::ThrowError("The ifValue must be a number, buffer or null/undefined.");
             }
-            if (isArray) {
-                condition->dbi = action->dbi;
-                condition->key = action->key;
-            } else {
-                v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
-                if (ifDB->IsNullOrUndefined()) {
+            if (condition) {
+                if (isArray) {
                     condition->dbi = action->dbi;
-                } else if (ifDB->IsObject()) {
-                    dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<v8::Object>(ifDB).ToLocalChecked());
-                    condition->dbi = dw->dbi;
-                } else {
-                    return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
-                }
-                v8::Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
-                if (ifKey->IsNullOrUndefined()) {
                     condition->key = action->key;
                 } else {
-                    condition->freeKey = argToKey(ifKey, condition->key, keyType, keyIsValid);
-                    if (!keyIsValid) {
-                        // argToKey already threw an error
-                        return;
+                    v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
+                    if (ifDB->IsNullOrUndefined()) {
+                        condition->dbi = action->dbi;
+                    } else if (ifDB->IsObject()) {
+                        dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<v8::Object>(ifDB).ToLocalChecked());
+                        condition->dbi = dw->dbi;
+                    } else {
+                        return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
                     }
-                    worker->SaveToPersistent(persistedIndex++, ifKey);
+                    v8::Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
+                    if (ifKey->IsNullOrUndefined()) {
+                        condition->key = action->key;
+                    } else {
+                        condition->freeKey = argToKey(ifKey, condition->key, keyType, keyIsValid);
+                        if (!keyIsValid) {
+                            // argToKey already threw an error
+                            return;
+                        }
+                        worker->SaveToPersistent(persistedIndex++, ifKey);
+                    }
                 }
             }
-            
-        } else {
-            action->condition = nullptr;
         }
-
         char headerSize = 0;
         if (value->IsNullOrUndefined()) {
-            action->data.mv_data = &deleteValue;
+            action->data.mv_data = &DELETE_VALUE;
             action->data.mv_size = 0;
         } else if (value->IsString()) {
-            if (version >= 0) {
+            if (dw->hasVersions) {
                 writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
-                unsigned char* charData = (unsigned char*) action->data.mv_data;
-                charData[0] = 253;
-                charData[1] = (uint8_t) (version >> 48u);
-                charData[2] = (uint8_t) (version >> 40u);
-                charData[3] = (uint8_t) (version >> 32u);
-                charData[4] = (uint8_t) (version >> 24u);
-                charData[5] = (uint8_t) (version >> 16u);
-                charData[6] = (uint8_t) (version >> 8u);
-                charData[7] = (uint8_t) version;
+                *((double*) action->data.mv_data) = version;
                 headerSize = 8;
             } else {
                 writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
             }
         } else if (value->IsArrayBufferView()) {
-            if (version >= 0) {
+            if (version != ANY_VERSION) {
                 return Nan::ThrowError("Can not use a version in conjunction with a buffer.");
             }
             int size = action->data.mv_size = node::Buffer::Length(value);
@@ -748,7 +766,8 @@ NAN_METHOD(EnvWrap::batchWrite) {
         } else {
             return Nan::ThrowError("The value must be a string, buffer, or null/undefined.");
         }
-        action->compress = dw->compressionThreshold < action->data.mv_size ? headerSize : 255;
+        action->compress = dw->compressionThreshold < action->data.mv_size ||
+            action->data.mv_size > 0 && ((uint8_t*) action->data.mv_data)[0] > 250 ? headerSize : 255;
     }
 
     worker->SaveToPersistent("env", info.This());

@@ -1423,7 +1423,7 @@ describe('Node.js LMDB Bindings', function() {
         done();
       });
     });
-    it.only('will batchWrite strings and read it', function(done) {
+    it('will batchWrite strings and read it', function(done) {
       var dbi = env.openDbi({
         name: 'mydb8',
         create: true,

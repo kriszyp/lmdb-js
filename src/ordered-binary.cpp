@@ -224,7 +224,7 @@ Local<Value> keyToValue(MDB_val &val) {
             // unshift
             resultsArray = Local<Array>::Cast(nextValue);
             int length = resultsArray->Length();
-            for (unsigned int i = 0; i < length; i++) {
+            for (int i = 0; i < length; i++) {
                 resultsArray->Set(context, i + 1, resultsArray->Get(context, i).ToLocalChecked());
             }
         } else {

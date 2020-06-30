@@ -78,7 +78,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
 NAN_METHOD(getLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
-static thread_local int64_t lastVersion = 0;
+static thread_local double lastVersion = 0;
 
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
