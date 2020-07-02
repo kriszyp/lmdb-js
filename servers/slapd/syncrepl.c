@@ -1257,9 +1257,7 @@ do_syncrep2(
 				 *	1) err code : LDAP_BUSY ...
 				 *	2) on err policy : stop service, stop sync, retry
 				 */
-				if ( refreshDeletes == 0 && match < 0 &&
-					err == LDAP_SUCCESS &&
-					syncCookie_req.numcsns == syncCookie.numcsns )
+				if ( refreshDeletes == 0 && match < 0 && err == LDAP_SUCCESS )
 				{
 					syncrepl_del_nonpresent( op, si, NULL,
 						&syncCookie, m );
@@ -1435,8 +1433,7 @@ do_syncrep2(
 
 				if ( match < 0 ) {
 					if ( si->si_refreshPresent == 1 &&
-						si_tag != LDAP_TAG_SYNC_NEW_COOKIE &&
-						syncCookie_req.numcsns == syncCookie.numcsns ) {
+						si_tag != LDAP_TAG_SYNC_NEW_COOKIE ) {
 						syncrepl_del_nonpresent( op, si, NULL,
 							&syncCookie, m );
 					}
@@ -3568,7 +3565,7 @@ syncrepl_del_nonpresent(
 	slap_callback	cb = { NULL };
 	struct nonpresent_entry *np_list, *np_prev;
 	int rc;
-	AttributeName	an[2];
+	AttributeName	an[3]; /* entryUUID, entryCSN, NULL */
 
 	struct berval pdn = BER_BVNULL;
 	struct berval csn;
@@ -3627,9 +3624,11 @@ syncrepl_del_nonpresent(
 		AttributeAssertion mmaa;
 		SlapReply rs_search = {REP_RESULT};
 
-		memset( &an[0], 0, 2 * sizeof( AttributeName ) );
+		memset( &an[0], 0, 3 * sizeof( AttributeName ) );
 		an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
 		an[0].an_desc = slap_schema.si_ad_entryUUID;
+		an[1].an_name = slap_schema.si_ad_entryCSN->ad_cname;
+		an[1].an_desc = slap_schema.si_ad_entryCSN;
 		op->ors_attrs = an;
 		op->ors_slimit = SLAP_NO_LIMIT;
 		op->ors_tlimit = SLAP_NO_LIMIT;
@@ -4556,6 +4555,7 @@ nonpresent_callback(
 	int count = 0;
 	char *present_uuid = NULL;
 	struct nonpresent_entry *np_entry;
+	struct sync_cookie *syncCookie = op->o_controls[slap_cids.sc_LDAPsync];
 
 	if ( rs->sr_type == REP_RESULT ) {
 		count = presentlist_free( si->si_presentlist );
@@ -4583,11 +4583,34 @@ nonpresent_callback(
 		}
 
 		if ( present_uuid == NULL ) {
-			np_entry = (struct nonpresent_entry *)
-				ch_calloc( 1, sizeof( struct nonpresent_entry ) );
-			np_entry->npe_name = ber_dupbv( NULL, &rs->sr_entry->e_name );
-			np_entry->npe_nname = ber_dupbv( NULL, &rs->sr_entry->e_nname );
-			LDAP_LIST_INSERT_HEAD( &si->si_nonpresentlist, np_entry, npe_link );
+			int covered = 1; /* covered by our new contextCSN? */
+
+			/* TODO: This can go once we can build a filter that takes care of
+			 * the check for us */
+			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
+			if ( a ) {
+				int i, sid = slap_parse_csn_sid( &a->a_nvals[0] );
+				if ( sid != -1 ) {
+					covered = 0;
+					for ( i=0; i < syncCookie->numcsns && syncCookie->sids[i] <= sid; i++ ) {
+						if ( syncCookie->sids[i] == sid &&
+								ber_bvcmp( &a->a_nvals[0], &syncCookie->ctxcsn[i] ) <= 0 ) {
+							covered = 1;
+						}
+					}
+				}
+			}
+
+			if ( covered ) {
+				np_entry = (struct nonpresent_entry *)
+					ch_calloc( 1, sizeof( struct nonpresent_entry ) );
+				np_entry->npe_name = ber_dupbv( NULL, &rs->sr_entry->e_name );
+				np_entry->npe_nname = ber_dupbv( NULL, &rs->sr_entry->e_nname );
+				LDAP_LIST_INSERT_HEAD( &si->si_nonpresentlist, np_entry, npe_link );
+				Debug( LDAP_DEBUG_SYNC, "nonpresent_callback: %s "
+					"adding entry %s to non-present list\n",
+					si->si_ridtxt, np_entry->npe_name->bv_val, 0 );
+			}
 
 		} else {
 			presentlist_delete( &si->si_presentlist, &a->a_nvals[0] );
