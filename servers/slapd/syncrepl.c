@@ -502,6 +502,103 @@ ldap_sync_search(
 }
 
 static int
+merge_state( syncinfo_t *si )
+{
+	int i, j = 0, k, numcsns = 0, alloc = 0, changed = 0;
+	BerVarray new_ctxcsn = si->si_syncCookie.ctxcsn;
+	int *new_sids = NULL;
+
+	/* Count and set up sids */
+	for ( i=0; i < si->si_cookieState->cs_num; i++ ) {
+		if ( si->si_cookieState->cs_sids[i] == -1 ) {
+			continue;
+		}
+
+		for ( ; j < si->si_syncCookie.numcsns &&
+					si->si_syncCookie.sids[j] == -1;
+				j++ )
+			alloc = 1; /* Just skip over them */
+
+		for ( ; j < si->si_syncCookie.numcsns &&
+					si->si_syncCookie.sids[j] < si->si_cookieState->cs_sids[i];
+				j++ ) {
+			if ( si->si_syncCookie.sids[j] != -1 ) {
+				new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
+				new_sids[numcsns++] = si->si_syncCookie.sids[j];
+			}
+		}
+
+		if ( j < si->si_syncCookie.numcsns &&
+				si->si_syncCookie.sids[j] == si->si_cookieState->cs_sids[i] ) j++;
+
+		new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
+		new_sids[numcsns++] = si->si_cookieState->cs_sids[i];
+	}
+
+	for ( ; j < si->si_syncCookie.numcsns; j++ ) {
+		if ( si->si_syncCookie.sids[j] != -1 ) {
+			new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
+			new_sids[numcsns++] = si->si_syncCookie.sids[j];
+		}
+	}
+
+	if ( alloc || numcsns != si->si_syncCookie.numcsns ) {
+		/* Short circuit allocations if we don't need to start over */
+		alloc = 1;
+		new_ctxcsn = ch_calloc( numcsns + 1, sizeof( BerValue ) );
+	}
+
+	i = j = 0;
+	for ( k=0; k < numcsns; k++ ) {
+		while ( i < si->si_cookieState->cs_num &&
+				si->si_cookieState->cs_sids[i] < new_sids[k] )
+			i++;
+
+		while ( j < si->si_syncCookie.numcsns &&
+				si->si_syncCookie.sids[j] < new_sids[k] )
+			j++;
+
+		if ( j < si->si_syncCookie.numcsns &&
+				si->si_cookieState->cs_sids[i] == si->si_syncCookie.sids[j] ) {
+			assert( si->si_cookieState->cs_sids[i] == new_sids[k] );
+			if ( !bvmatch( &si->si_syncCookie.ctxcsn[j],
+					&si->si_cookieState->cs_vals[i] )) {
+				ber_bvreplace( &new_ctxcsn[k], &si->si_cookieState->cs_vals[i] );
+				changed = 1;
+			} else if ( alloc ) {
+				ber_dupbv( &new_ctxcsn[k], &si->si_syncCookie.ctxcsn[j] );
+			}
+			i++;
+			j++;
+		} else if ( si->si_cookieState->cs_sids[i] == new_sids[k] ) {
+			changed = 1;
+			ber_bvreplace( &new_ctxcsn[k], &si->si_cookieState->cs_vals[i] );
+			i++;
+		} else {
+			if ( alloc ) {
+				ber_dupbv( &new_ctxcsn[k], &si->si_syncCookie.ctxcsn[j] );
+			}
+			j++;
+		}
+	}
+	assert( i == si->si_cookieState->cs_num );
+	assert( j == si->si_syncCookie.numcsns );
+
+	si->si_syncCookie.numcsns = numcsns;
+	if ( alloc ) {
+		changed = 1;
+		ch_free( si->si_syncCookie.sids );
+		si->si_syncCookie.sids = new_sids;
+
+		ber_bvarray_free( si->si_syncCookie.ctxcsn );
+		si->si_syncCookie.ctxcsn = new_ctxcsn;
+	} else {
+		ch_free( new_sids );
+	}
+	return changed;
+}
+
+static int
 check_syncprov(
 	Operation *op,
 	syncinfo_t *si )
@@ -571,29 +668,8 @@ check_syncprov(
 			ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
 				si->si_cookieState->cs_vals, NULL );
 			changed = 1;
-		} else {
-			for (i=0; !BER_BVISNULL( &si->si_syncCookie.ctxcsn[i] ); i++) {
-				/* bogus, just dup everything */
-				if ( si->si_syncCookie.sids[i] == -1 ) {
-					ber_bvarray_free( si->si_syncCookie.ctxcsn );
-					ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
-						si->si_cookieState->cs_vals, NULL );
-					changed = 1;
-					break;
-				}
-				for (j=0; j<si->si_cookieState->cs_num; j++) {
-					if ( si->si_syncCookie.sids[i] !=
-						si->si_cookieState->cs_sids[j] )
-						continue;
-					if ( bvmatch( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] ))
-						break;
-					ber_bvreplace( &si->si_syncCookie.ctxcsn[i],
-						&si->si_cookieState->cs_vals[j] );
-					changed = 1;
-					break;
-				}
-			}
+		} else if ( merge_state( si ) ) {
+			changed = 1;
 		}
 	}
 	if ( changed ) {
