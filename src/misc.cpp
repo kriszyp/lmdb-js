@@ -209,9 +209,10 @@ Local<Value> valToStringUnsafe(MDB_val &data) {
 }
 
 Local<Value> valToUtf8(MDB_val &data) {
-    const char *buffer = (const char*)(data.mv_data);
+    //const uint8_t *buffer = (const uint8_t*)(data.mv_data);
     //Isolate *isolate = Isolate::GetCurrent();
     //auto str = v8::String::NewFromOneByte(isolate, buffer, v8::NewStringType::kNormal, data.mv_size);
+    const char *buffer = (const char*)(data.mv_data);
     auto str = Nan::New<v8::String>(buffer, data.mv_size);
 
     return str.ToLocalChecked();

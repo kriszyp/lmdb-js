@@ -59,6 +59,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
         } else {
             keyBytes[0] = (uint8_t) (asInt >> 60) | 0x10;
         }
+        // TODO: Use byte_swap to do this faster
         keyBytes[1] = (uint8_t) (asInt >> 52) & 0xff;
         keyBytes[2] = (uint8_t) (asInt >> 44) & 0xff;
         keyBytes[3] = (uint8_t) (asInt >> 36) & 0xff;

@@ -14,7 +14,7 @@ var lmdb = require('..');
 var env;
 var dbi;
 var keys = [];
-var total = 10;
+var total = 100000;
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -45,7 +45,7 @@ function setup() {
   var txn = env.beginTxn();
   var c = 0;
   let value = 'hello world!'
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 6; i++) {
     value += value
   }
   while(c < total) {
@@ -134,12 +134,12 @@ cleanup(function (err) {
 
  //   suite.add('getBinary', getBinary);
     //suite.add('getBinaryUnsafe', getBinaryUnsafe);
-    suite.add('bufferToKeyValue', bufferToKeyValue)
+    //suite.add('bufferToKeyValue', bufferToKeyValue)
     //suite.add('keyValueToBuffer', keyValueToBuffer)
-    /*suite.add('getString', getString);
-    suite.add('getStringUnsafe', getStringUnsafe);
-    suite.add('cursorGoToNext', cursorGoToNext());
-    suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());*/
+    suite.add('getString', getString);
+    //suite.add('getStringUnsafe', getStringUnsafe);
+    //suite.add('cursorGoToNext', cursorGoToNext());
+    suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());
 
     suite.on('start', function () {
         txn = env.beginTxn();
