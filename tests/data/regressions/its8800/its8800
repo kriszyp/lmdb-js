@@ -103,7 +103,7 @@ while [ $n -le $MMR ]; do
 	n=`expr $n + 1`
 done
 
-echo "Sleeping 10 seconds to allow stabalization..."
+echo "Sleeping 10 seconds to allow stabilization..."
 sleep 10
 
 echo "Looping failed authentications for 50 users 10 times each..."
