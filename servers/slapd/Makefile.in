@@ -104,7 +104,7 @@ SLAPD_OBJECTS = $(@PLAT@_SLAPD_OBJECTS)
 # symbols that are imported from other DLLs). The set of symbols to
 # export INCLUDES symbols from all static libraries that slapd gets
 # linked with, e.g. avl, lunicode, lutil, etc. This list
-# will also include liblber and libldap_r if they were built as static
+# will also include liblber and libldap if they were built as static
 # libraries. ALSO included will be symbols from other STATIC libraries
 # outside the domain of the OpenLDAP source tree, e.g. regex, ltdl,
 # crypto, ssl, sasl, etc. (If these libraries are dynamic, we won't want

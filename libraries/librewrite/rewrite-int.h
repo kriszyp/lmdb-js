@@ -47,9 +47,10 @@
 #undef strdup
 #define	strdup(x)	ber_strdup(x)
 
-/* Uncomment to use ldap pvt threads */
+#ifndef NO_THREADS
 #define USE_REWRITE_LDAP_PVT_THREADS
 #include <ldap_pvt_thread.h>
+#endif
 
 /*
  * For details, see RATIONALE.

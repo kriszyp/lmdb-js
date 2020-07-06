@@ -20,8 +20,8 @@
 #ifndef	_LDAP_INT_H
 #define	_LDAP_INT_H 1
 
-#ifdef LDAP_R_COMPILE
-#define LDAP_THREAD_SAFE 1
+#ifndef NO_THREADS
+#define LDAP_R_COMPILE 1
 #endif
 
 #include "../liblber/lber-int.h"

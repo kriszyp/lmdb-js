@@ -1696,9 +1696,9 @@ dnl		#ifdef LDAP_R_COMPILE
 dnl		#	include <ldap_pvt_thread.h>
 dnl		#endif
 dnl
-dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
+dnl LDAP_R_COMPILE is defined by libldap/ldap-int.h
 dnl specifically for compiling the threadsafe version of
-dnl	the ldap library (-lldap_r).
+dnl the ldap library.
 dnl		
 dnl	dnl check for reentrant/threadsafe functions
 dnl	dnl
@@ -1744,10 +1744,15 @@ fi
 if test $ol_link_threads != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1,
 		[define to 1 if library is thread safe])
+
+	dnl This could be enabled without threads if all of the
+	dnl reentrant functions are available. Needs testing.
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1,
+		[define to 1 if library is reentrant])
 fi
 
 dnl ----------------------------------------------------------------
-dnl Tests for reentrant functions necessary to build -lldap_r
+dnl Tests for reentrant functions necessary for reentrant build
 AC_CHECK_FUNCS(		\
 	ctime_r			\
 	gmtime_r localtime_r \
@@ -3060,7 +3065,6 @@ AC_CONFIG_FILES([Makefile:build/top.mk:Makefile.in:build/dir.mk]
 [libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk]
 [libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk]
-[libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk]
 [libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk]
 [libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk]
 [libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk]

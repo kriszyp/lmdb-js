@@ -40,6 +40,9 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+#ifdef LDAP_R_COMPILE
+
 #include "ldap_pvt_thread.h" /* Get the thread interface */
 #define LDAP_THREAD_RDWR_IMPLEMENTATION
 #include "ldap_thr_debug.h"  /* May rename the symbols defined below */
@@ -456,3 +459,5 @@ int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rwlock)
 #endif /* LDAP_RDWR_DEBUG */
 
 #endif /* LDAP_THREAD_HAVE_RDWR */
+
+#endif /* LDAP_R_COMPILE */

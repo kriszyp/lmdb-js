@@ -1,7 +1,17 @@
 stages:
   - build
 
-build1:
+build-no-threads-no-slapd:
+  stage: build
+  script:
+    - apt update
+    - DEBIAN_FRONTEND=noninteractive apt install -y build-essential autoconf groff-base libsasl2-dev libssl-dev
+    - autoreconf
+    - ./configure --without-threads --disable-slapd
+    - make depend
+    - make
+
+build-openssl-heimdal:
   stage: build
   script:
     - apt update
@@ -19,7 +29,7 @@ build1:
     paths:
       - tests/testrun/
 
-build2:
+build-gnutls-mit:
   stage: build
   script:
     - apt update

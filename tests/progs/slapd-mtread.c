@@ -25,6 +25,9 @@
 
 #include "portable.h"
 
+/* Requires libldap with threads */
+#ifndef NO_THREADS
+
 #include <stdio.h>
 #include "ldap_pvt_thread.h"
 
@@ -705,3 +708,17 @@ retry:;
 		}
 	}
 }
+
+#else /* NO_THREADS */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main( int argc, char **argv )
+{
+	fprintf( stderr, "%s: not available when configured --without-threads\n", argv[0] );
+	exit( EXIT_FAILURE );
+}
+
+#endif /* NO_THREADS */

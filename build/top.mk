@@ -166,7 +166,6 @@ WT_LIBS = @WT_LIBS@
 
 LDAP_LIBLBER_LA = $(LDAP_LIBDIR)/liblber/liblber.la
 LDAP_LIBLDAP_LA = $(LDAP_LIBDIR)/libldap/libldap.la
-LDAP_LIBLDAP_R_LA = $(LDAP_LIBDIR)/libldap_r/libldap_r.la
 
 LDAP_LIBREWRITE_A = $(LDAP_LIBDIR)/librewrite/librewrite.a
 LDAP_LIBLUNICODE_A = $(LDAP_LIBDIR)/liblunicode/liblunicode.a
@@ -175,7 +174,7 @@ LDAP_LIBLUTIL_A = $(LDAP_LIBDIR)/liblutil/liblutil.a
 LDAP_L = $(LDAP_LIBLUTIL_A) \
 	$(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA)
 SLAPD_L = $(LDAP_LIBLUNICODE_A) $(LDAP_LIBREWRITE_A) \
-	$(LDAP_LIBLUTIL_A) $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
+	$(LDAP_LIBLUTIL_A) $(LDAP_LIBLDAP_LA) $(LDAP_LIBLBER_LA)
 
 WRAP_LIBS = @WRAP_LIBS@
 # AutoConfig generated 

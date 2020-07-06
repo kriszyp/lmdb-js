@@ -29,7 +29,8 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	tls2.c tls_o.c tls_g.c \
 	turn.c ppolicy.c dds.c txn.c ldap_sync.c stctrl.c \
 	assertion.c deref.c ldifutil.c ldif.c fetch.c lbase64.c \
-	msctrl.c psearchctrl.c
+	msctrl.c psearchctrl.c threads.c rdwr.c tpool.c rq.c \
+	thr_posix.c thr_thr.c thr_nt.c thr_pth.c thr_debug.c
 
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo cyrus.lo \
@@ -43,7 +44,8 @@ OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	tls2.lo tls_o.lo tls_g.lo \
 	turn.lo ppolicy.lo dds.lo txn.lo ldap_sync.lo stctrl.lo \
 	assertion.lo deref.lo ldifutil.lo ldif.lo fetch.lo lbase64.lo \
-	msctrl.lo psearchctrl.lo
+	msctrl.lo psearchctrl.lo threads.lo rdwr.lo tpool.lo rq.lo \
+	thr_posix.lo thr_thr.lo thr_nt.lo thr_pth.lo thr_debug.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
@@ -53,7 +55,7 @@ LIB_DEFS = -DLDAP_LIBRARY
 XLIBS = $(LIBRARY) $(LDAP_LIBLBER_LA) $(LDAP_LIBLUTIL_A)
 XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 NT_LINK_LIBS = $(LDAP_LIBLBER_LA) $(AC_LIBS) $(SECURITY_LIBS)
-UNIX_LINK_LIBS = $(LDAP_LIBLBER_LA) $(AC_LIBS) $(SECURITY_LIBS)
+UNIX_LINK_LIBS = $(LDAP_LIBLBER_LA) $(AC_LIBS) $(SECURITY_LIBS) $(LTHREAD_LIBS)
 
 apitest:	$(XLIBS) apitest.o
 	$(LTLINK) -o $@ apitest.o $(LIBS)
