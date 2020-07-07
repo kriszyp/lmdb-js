@@ -2505,7 +2505,7 @@ int ppolicy_initialize()
 	}
 
 	code = register_supported_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, extops,
+		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY, extops,
 		ppolicy_parseCtrl, &ppolicy_cid );
 	if ( code != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code, 0, 0 );
