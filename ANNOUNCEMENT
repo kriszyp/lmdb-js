@@ -55,7 +55,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.5
             - libldap has TLS channel binding support
             - libldap has TLS public key pinning support
             - libldap has TLS SNI support
-            - libldap has GSASPI channel binding support
+            - libldap has GSSAPI channel binding support
         * Clients and tools
             - slapmodify for offline updates to cn=config
         * Significant performance enhancements throughout
@@ -66,7 +66,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.5
             - authzid implements RFC 3829 support
             - usn adds MS AD usnCreated and usnChanged
                operational attributes to entries
-            - vc provides the verified credentials
+            - vc provides the verify credentials
                extended operation
             - pw-radius allows bind operations to be
                passed to the specified radius server(s)
