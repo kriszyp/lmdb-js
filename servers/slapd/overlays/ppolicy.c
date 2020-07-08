@@ -466,7 +466,8 @@ static ConfigOCs ppolicyocs[] = {
 	  "DESC 'Password Policy configuration' "
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
-	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates ) )",
+	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates $ "
+	  "olcPPolicyDisableWrite ) )",
 	  Cft_Overlay, ppolicycfg },
 	{ NULL, 0, NULL }
 };
