@@ -1845,12 +1845,14 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		"sync control csn %s\n",
 		op->o_log_prefix, srs->sr_state.ctxcsn[0].bv_val );
 	for ( se=sl->sl_head; se; se=se->se_next ) {
+		char uuidstr[40] = {};
 		int k;
 
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-			char uuidstr[40];
-			lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
-				uuidstr, 40 );
+			if ( !BER_BVISEMPTY( &se->se_uuid ) ) {
+				lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
+					uuidstr, 40 );
+			}
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"log entry tag=%lu uuid=%s cookie=%s\n",
 				op->o_log_prefix, se->se_tag, uuidstr, se->se_csn.bv_val );
@@ -1900,9 +1902,6 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		csns[j].bv_len = se->se_csn.bv_len;
 
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-			char uuidstr[40];
-			lutil_uuidstr_from_normalized( uuids[j].bv_val, uuids[j].bv_len,
-				uuidstr, 40 );
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"picking a %s entry uuid=%s cookie=%s\n",
 				op->o_log_prefix, se->se_tag == LDAP_REQ_DELETE ? "deleted" : "modified",
