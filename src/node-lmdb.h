@@ -66,7 +66,7 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void tryCompress(MDB_val *value, int headerSize);
-void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize = 0);
+void writeValueToEntry(Local<Value> str, MDB_val *val, int headerSize = 0);
 argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val, bool fullLength = false);
 

@@ -265,8 +265,6 @@ Local<Value> valToBoolean(MDB_val &data) {
 Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&)) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     int headerSize = 0;
-    if (data.mv_size == 0) 
-        return successFunc(data);
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (getVersion) {
         lastVersion = *((double*) charData);
@@ -276,9 +274,11 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
         data.mv_size -= 8;
         headerSize = 8;
     }
+    if (data.mv_size == 0)
+        return successFunc(data);
     unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
-    if (statusByte >= 254) {
+    if (statusByte >= 250) {
         uint32_t uncompressedLength;
         int compressionHeaderSize;
         if (statusByte == 254) {
@@ -287,9 +287,14 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
         } else if (statusByte == 255) {
             uncompressedLength = ((uint32_t) charData[4] << 24) | ((uint32_t) charData[5] << 16) | ((uint32_t) charData[6] << 8) | (uint32_t) charData[7];
             compressionHeaderSize = 8;
+        } else if (statusByte == 251) {
+            return Nan::New<Number>(*((double*) (charData + 1)));
         } else {
-            Nan::ThrowError("Unknown status byte");
-            return Nan::Undefined();
+            fprintf(stderr, "Unknown status byte %u\n", statusByte);
+            return Nan::CopyBuffer(
+                (char*)data.mv_data,
+                data.mv_size
+            ).ToLocalChecked();
         }
         //fprintf(stdout, "uncompressedLength %u, first byte %u\n", uncompressedLength, charData[compressionHeaderSize]);
         char* uncompressedData = new char[uncompressedLength];
@@ -374,28 +379,38 @@ void tryCompress(MDB_val* value, int headerSize) {
     }
 }
 
-void writeUtf8ToEntry(Local<String> str, MDB_val *val, int headerSize) {
-    int strLength = str->Length();
-    // an optimized guess at buffer length that works >99% of time and has good byte alignment
-    int byteLength = str->IsOneByte() ? strLength :
-        (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
-    char *data = new char[byteLength + headerSize];
-    int utfWritten = 0;
-    #if NODE_VERSION_AT_LEAST(10,0,0)
-    int bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
-    if (utfWritten < strLength) {
-        // we didn't allocate enough memory, need to expand
-        delete[] data;
-        byteLength = strLength * 3;
-        data = new char[byteLength + headerSize];
-        bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+void writeValueToEntry(Local<Value> value, MDB_val *val, int headerSize) {
+    if (value->IsString()) {
+        Local<String> str = Local<String>::Cast(value);
+        int strLength = str->Length();
+        // an optimized guess at buffer length that works >99% of time and has good byte alignment
+        int byteLength = str->IsOneByte() ? strLength :
+            (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
+        char *data = new char[byteLength + headerSize];
+        int utfWritten = 0;
+        #if NODE_VERSION_AT_LEAST(10,0,0)
+        int bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        if (utfWritten < strLength) {
+            // we didn't allocate enough memory, need to expand
+            delete[] data;
+            byteLength = strLength * 3;
+            data = new char[byteLength + headerSize];
+            bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        }
+        #else
+        str->Write(data, 0);
+        #endif;
+        val->mv_data = data;
+        val->mv_size = bytes + headerSize;
+        //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
+    } else if (value->IsNumber()) {
+        val->mv_data = new char[9 + headerSize];
+        ((uint8_t*) val->mv_data)[headerSize] = 251;
+        val->mv_size = 9 + headerSize;
+        *((double*) (((char*) val->mv_data) + 1 + headerSize)) = Nan::To<v8::Number>(value).ToLocalChecked()->Value();
+    } else {
+        Nan::ThrowError("Unknown value type");
     }
-    #else
-    str->Write(data, 0);
-    #endif;
-    val->mv_data = data;
-    val->mv_size = bytes + headerSize;
-    //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
 }
 
 void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {

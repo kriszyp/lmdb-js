@@ -748,23 +748,21 @@ NAN_METHOD(EnvWrap::batchWrite) {
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = &DELETE_VALUE;
             action->data.mv_size = 0;
-        } else if (value->IsString()) {
-            if (dw->hasVersions) {
-                writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
-                *((double*) action->data.mv_data) = version;
-                headerSize = 8;
-            } else {
-                writeUtf8ToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
-            }
         } else if (value->IsArrayBufferView()) {
-            if (version != ANY_VERSION) {
+            if (version) {
                 return Nan::ThrowError("Can not use a version in conjunction with a buffer.");
             }
             int size = action->data.mv_size = node::Buffer::Length(value);
             action->data.mv_data = new char[size];
-            memcpy(action->data.mv_data, node::Buffer::Data(ifValue), size);
+            memcpy(action->data.mv_data, node::Buffer::Data(value), size);
         } else {
-            return Nan::ThrowError("The value must be a string, buffer, or null/undefined.");
+            if (dw->hasVersions) {
+                writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
+                *((double*) action->data.mv_data) = version;
+                headerSize = 8;
+            } else {
+                writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
+            }
         }
         action->compress = dw->compressionThreshold < action->data.mv_size ||
             action->data.mv_size > 0 && ((uint8_t*) action->data.mv_data)[0] > 250 ? headerSize : 255;

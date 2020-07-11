@@ -4,7 +4,7 @@
   },
   "targets": [
     {
-      "target_name": "node-lmdb",
+      "target_name": "lmdb-store",
       "win_delay_load_hook": "false",
       "sources": [
         "dependencies/lmdb/libraries/liblmdb/mdb.c",

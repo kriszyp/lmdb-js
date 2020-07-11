@@ -17,9 +17,8 @@ control character types:
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
 argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength) {
-
     if (jsKey->IsString()) {
-        writeUtf8ToEntry(Local<String>::Cast(jsKey), &mdbKey, 0);
+        writeValueToEntry(jsKey, &mdbKey, 0);
         int needsEscaping = 0;
         uint8_t* position = (uint8_t*) mdbKey.mv_data;
         for (uint8_t* end = position + mdbKey.mv_size; position < end; position++) {
@@ -108,7 +107,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
     } else if (jsKey->IsBoolean()) {
         keyBytes = new uint8_t[1];
         size = 1;
-        keyBytes[0] = jsKey->IsTrue() ? 15 : 14;
+        keyBytes[0] = jsKey->IsTrue() ? 7 : 6;
     } else if (node::Buffer::HasInstance(jsKey)) {
         mdbKey.mv_size = node::Buffer::Length(jsKey);
         mdbKey.mv_data = node::Buffer::Data(jsKey);
@@ -134,9 +133,9 @@ Local<Value> keyToValue(MDB_val &val) {
     if (controlByte < 24) {
         if (controlByte < 8) {
             consumed = 1;
-            if (controlByte == 4) {
+            if (controlByte == 6) {
                 value = Nan::New<Boolean>(false);
-            } else if (controlByte == 5) {
+            } else if (controlByte == 7) {
                 value = Nan::New<Boolean>(true);
             } else if (controlByte == 0) {
                 value = Nan::Null();

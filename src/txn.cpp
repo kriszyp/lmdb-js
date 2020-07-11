@@ -436,7 +436,7 @@ NAN_METHOD(TxnWrap::putBoolean) {
 
 NAN_METHOD(TxnWrap::putUtf8) {
     return putCommon(info, [](Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data, int headerSize) -> void {
-        writeUtf8ToEntry(Local<String>::Cast(info[2]), &data, headerSize);
+        writeValueToEntry(Local<String>::Cast(info[2]), &data, headerSize);
     }, [](MDB_val &data) -> void {
         delete[] (char*)data.mv_data;
     }, true);

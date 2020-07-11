@@ -32,7 +32,7 @@ describe('lmdb-store', function() {
       done();
     });
   });
-  describe.only('Basic use', function() {
+  describe('Basic use', function() {
     this.timeout(10000);
     let db;
     before(function() {

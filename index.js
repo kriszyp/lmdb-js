@@ -3,13 +3,13 @@ const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
-Object.assign(exports, require('bindings')('node-lmdb.node'))
+Object.assign(exports, require('./build/Release/lmdb-store.node'))
 const { Env, Cursor, getLastVersion } = exports
 
 const RANGE_BATCH_SIZE = 1
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
-const DEFAULT_COMMIT_DELAY = 20
+const DEFAULT_COMMIT_DELAY = 1
 const READING_TNX = {
 	readOnly: true
 }
@@ -133,6 +133,9 @@ function open(path, options) {
 					txn.renew()
 				}
 				let result = txn.getUtf8(this.db, id)
+				if (result && result[0] == '\x00') {
+					result = JSON.parse(result.slice(1))
+				}
 				if (!writeTxn) {
 					txn.reset()
 				}
@@ -143,11 +146,15 @@ function open(path, options) {
 			}
 		}
 		put(id, value, version, ifVersion) {
-			debugger
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
+			if (typeof value !== 'string' || value[0] == '\x00') {
+				if (!(value && typeof value == 'object' && value.readInt16BE)) {
+					value = '\x00' + JSON.stringify(value)
+				}
+			}
 			if (writeTxn) {
 				if (ifVersion !== undefined) {
 					this.get(id)
@@ -156,10 +163,10 @@ function open(path, options) {
 						return Promise.resolve(false)
 					}
 				}
-				if (typeof value === 'object') {
-					txn.putBinary(this.db, id, value, version)
-				} else {
+				if (typeof value === 'string') {
 					txn.putUtf8(this.db, id, value, version)
+				} else {
+					txn.putBinary(this.db, id, value, version)
 				}
 				return Promise.resolve(true)
 			}
@@ -169,7 +176,7 @@ function open(path, options) {
 			}
 			let index = scheduledOperations.push([this.db, id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
-			scheduledOperations.bytes += id.length + (value && value.length || 0) + 200
+			scheduledOperations.bytes += (id.length || 6) + (value && value.length || 0) + 100
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -179,6 +186,11 @@ function open(path, options) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			let txn
+			if (typeof value !== 'string' || value[0] == '\x00') {
+				if (!(value && typeof value == 'object' && value.readInt16BE)) {
+					value = '\x00' + JSON.stringify(value)
+				}
+			}
 			try {
 				this.writes++
 				txn = writeTxn || env.beginTxn()
@@ -239,7 +251,7 @@ function open(path, options) {
 				scheduledOperations.bytes = 0
 			}
 			let index = scheduledOperations.push([this.db, id, undefined, undefined, ifVersion]) - 1
-			scheduledOperations.bytes += id.length + 200
+			scheduledOperations.bytes += (id.length || 6) + 100
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => writeResults[index] === 0)
@@ -248,6 +260,7 @@ function open(path, options) {
 			let iterable = new ArrayLikeIterable()
 			if (!options)
 				options = {}
+			let includeValues = options.values !== false
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? LAST_KEY : null)
 				let endKey = options.end || (options.reverse ? null : LAST_KEY)
@@ -270,7 +283,7 @@ function open(path, options) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
 							if (nextKey) {
-								if (compare(nextKey, currentKey) == 0) {
+								if (compareKey(nextKey, currentKey) == 0) {
 									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
 									currentKey = cursor.goToPrev()
 								} // else they match, we are good, and currentKey is already correct
@@ -285,13 +298,20 @@ function open(path, options) {
 						let i = 0
 						// TODO: Make a makeCompare(endKey)
 						while (!(finished = currentKey === undefined ||
-								(reverse ? compare(currentKey, endKey) <= 0 : compare(currentKey, endKey) >= 0)) &&
+								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0)) &&
 							i++ < RANGE_BATCH_SIZE) {
-							let value
-							if (options.values !== false) {
-								value = cursor.getCurrentUtf8()
-							}
-							array.push(currentKey, value)
+							if (includeValues) {
+								let value = cursor.getCurrentUtf8()
+								if (value[0] == '\x00') {
+									try {
+										value = JSON.parse(value.slice(1))
+									} catch (error) {
+										value = error
+									}
+								}
+								array.push(currentKey, value)
+							} else
+								array.push(currentKey)
 							if (++count >= options.limit) {
 								finished = true
 								break
@@ -329,12 +349,18 @@ function open(path, options) {
 								return this.next()
 							}
 						}
-						let key = array[i++]
-						let value = array[i++]
-						store.bytesRead += value && value.length || 0
-						return {
-							value: {
-								key, value
+						if (includeValues) {
+							let key = array[i++]
+							let value = array[i++]
+							store.bytesRead += value && value.length || 0
+							return {
+								value: {
+									key, value
+								}
+							}
+						} else {
+							return {
+								value: array[i++]
 							}
 						}
 					},
@@ -354,7 +380,7 @@ function open(path, options) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
 					when(currentCommit, () => {
-						let timeout = setTimeout(runNextBatch = (batchWriter) => {
+						let timeout = (this.commitDelay > 0 ? setTimeout : setImmediate)(runNextBatch = (batchWriter) => {
 							runNextBatch = null
 							if (pendingBatch) {
 								for (const store of stores) {
@@ -608,7 +634,7 @@ function matches(previousVersion, ifVersion){
 	return matches
 }
 
-function compare(a, b) {
+function compareKey(a, b) {
 	// compare with type consistency that matches ordered-binary
 	if (typeof a == 'object') {
 		if (!a) {
@@ -626,25 +652,26 @@ function compare(a, b) {
 		let arrayComparison
 		if (b instanceof Array) {
 			let i = 0
-			while((arrayComparison = compare(a[i], b[i])) == 0 && i <= a.length)  {
+			while((arrayComparison = compareKey(a[i], b[i])) == 0 && i <= a.length)  {
 				i++
 			}
 			return arrayComparison
 		}
-		arrayComparison = compare(a[0], b)
+		arrayComparison = compareKey(a[0], b)
 		if (arrayComparison == 0 && a.length > 1)
 			return 1
-		return 0
+		return arrayComparison
 	} else if (typeof a == typeof b)
 		return a < b ? -1 : a === b ? 0 : 1
 	else if (typeof b == 'object') {
 		if (b instanceof Array)
-			return -compare(b, a)
+			return -compareKey(b, a)
 		return 1
 	} else {
-		return typeOrder[typeof a] > typeOrder[typeof b] ? -1 : 1
+		return typeOrder[typeof a] < typeOrder[typeof b] ? -1 : 1
 	}
 }
+exports.compareKey = compareKey
 const typeOrder = {
 	undefined: 0,
 	boolean: 1,
