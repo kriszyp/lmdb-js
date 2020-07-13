@@ -6513,7 +6513,7 @@ add_syncrepl(
 	/* Use main slapd defaults */
 	bindconf_tls_defaults( &si->si_bindconf );
 #endif
-	if ( rc < 0 ) {
+	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n" );
 		syncinfo_free( si, 0 );	
 		return 1;
