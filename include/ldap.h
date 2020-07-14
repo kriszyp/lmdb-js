@@ -380,6 +380,18 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
+/* Sun's analogue to ppolicy */
+#define LDAP_CONTROL_X_ACCOUNT_USABILITY "1.3.6.1.4.1.42.2.27.9.5.8"
+
+#define LDAP_TAG_X_ACCOUNT_USABILITY_AVAILABLE	((ber_tag_t) 0x80U)	/* primitive + 0 */
+#define LDAP_TAG_X_ACCOUNT_USABILITY_NOT_AVAILABLE	((ber_tag_t) 0xA1U)	/* constructed + 1 */
+
+#define LDAP_TAG_X_ACCOUNT_USABILITY_INACTIVE	((ber_tag_t) 0x80U)	/* primitive + 0 */
+#define LDAP_TAG_X_ACCOUNT_USABILITY_RESET	((ber_tag_t) 0x81U)	/* primitive + 1 */
+#define LDAP_TAG_X_ACCOUNT_USABILITY_EXPIRED	((ber_tag_t) 0x82U)	/* primitive + 2 */
+#define LDAP_TAG_X_ACCOUNT_USABILITY_REMAINING_GRACE	((ber_tag_t) 0x83U)	/* primitive + 3 */
+#define LDAP_TAG_X_ACCOUNT_USABILITY_UNTIL_UNLOCK	((ber_tag_t) 0x84U)	/* primitive + 4 */
+
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036" /* RFC 4511 */
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
@@ -2684,6 +2696,33 @@ ldap_parse_entrychange_control LDAP_P((
 	struct berval *prevdnp,
 	int *chgnumpresentp,
 	long *chgnump ));
+
+/* in account_usability.c */
+
+LDAP_F( int )
+ldap_create_accountusability_control LDAP_P((
+	LDAP *ld,
+	LDAPControl **ctrlp ));
+
+typedef struct LDAPAccountUsabilityMoreInfo {
+	ber_int_t inactive;
+	ber_int_t reset;
+	ber_int_t expired;
+	ber_int_t remaining_grace;
+	ber_int_t seconds_before_unlock;
+} LDAPAccountUsabilityMoreInfo;
+
+typedef union LDAPAccountUsability {
+	ber_int_t seconds_remaining;
+	LDAPAccountUsabilityMoreInfo more_info;
+} LDAPAccountUsability;
+
+LDAP_F( int )
+ldap_parse_accountusability_control LDAP_P((
+	LDAP           *ld,
+	LDAPControl    *ctrl,
+	int            *availablep,
+	LDAPAccountUsability *usabilityp ));
 
 
 /*

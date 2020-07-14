@@ -801,6 +801,9 @@
 /* define to large integer type */
 #undef LBER_TAG_T
 
+/* define to 1 if library is reentrant */
+#undef LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
+
 /* define to 1 if library is thread safe */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 

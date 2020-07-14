@@ -67,6 +67,7 @@ typedef struct pw_conn {
 
 static pw_conn *pwcons;
 static int ppolicy_cid;
+static int account_usability_cid;
 static int ov_count;
 
 typedef struct pass_policy {
@@ -465,7 +466,8 @@ static ConfigOCs ppolicyocs[] = {
 	  "DESC 'Password Policy configuration' "
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
-	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates ) )",
+	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates $ "
+	  "olcPPolicyDisableWrite ) )",
 	  Cft_Overlay, ppolicycfg },
 	{ NULL, 0, NULL }
 };
@@ -540,8 +542,6 @@ account_locked( Operation *op, Entry *e,
 		PassPolicy *pp, Modifications **mod ) 
 {
 	Attribute       *la;
-
-	assert(mod != NULL);
 
 	if ( (la = attr_find( e->e_attrs, ad_pwdStartTime )) != NULL ) {
 		BerVarray vals = la->a_nvals;
@@ -641,13 +641,15 @@ account_locked( Operation *op, Entry *e,
 			if (now < then + pp->pwdLockoutDuration)
 				return 1;
 
-			m = ch_calloc( sizeof(Modifications), 1 );
-			m->sml_op = LDAP_MOD_DELETE;
-			m->sml_flags = 0;
-			m->sml_type = ad_pwdAccountLockedTime->ad_cname;
-			m->sml_desc = ad_pwdAccountLockedTime;
-			m->sml_next = *mod;
-			*mod = m;
+			if ( mod != NULL ) {
+				m = ch_calloc( sizeof(Modifications), 1 );
+				m->sml_op = LDAP_MOD_DELETE;
+				m->sml_flags = 0;
+				m->sml_type = ad_pwdAccountLockedTime->ad_cname;
+				m->sml_desc = ad_pwdAccountLockedTime;
+				m->sml_next = *mod;
+				*mod = m;
+			}
 		}
 	}
 
@@ -662,6 +664,7 @@ account_locked( Operation *op, Entry *e,
 #define PPOLICY_GRACE  0x81L	/* primitive + 1 */
 
 static const char ppolicy_ctrl_oid[] = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
+static const char ppolicy_account_ctrl_oid[] = LDAP_CONTROL_X_ACCOUNT_USABILITY;
 
 static LDAPControl *
 create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyError err )
@@ -748,6 +751,65 @@ add_passcontrol( Operation *op, SlapReply *rs, LDAPControl *ctrl )
 	rs->sr_ctrls = ctrls;
 
 	return oldctrls;
+}
+
+static void
+add_account_control(
+	Operation *op,
+	SlapReply *rs,
+	int available,
+	int remaining,
+	LDAPAccountUsabilityMoreInfo *more_info )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *) &berbuf;
+	LDAPControl c = { 0 }, *cp = NULL, **ctrls;
+	int i = 0;
+
+	BER_BVZERO( &c.ldctl_value );
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+
+	if ( available ) {
+		ber_put_int( ber, remaining, LDAP_TAG_X_ACCOUNT_USABILITY_AVAILABLE );
+	} else {
+		assert( more_info != NULL );
+
+		ber_start_seq( ber, LDAP_TAG_X_ACCOUNT_USABILITY_NOT_AVAILABLE );
+		ber_put_boolean( ber, more_info->inactive, LDAP_TAG_X_ACCOUNT_USABILITY_INACTIVE );
+		ber_put_boolean( ber, more_info->reset, LDAP_TAG_X_ACCOUNT_USABILITY_RESET );
+		ber_put_boolean( ber, more_info->expired, LDAP_TAG_X_ACCOUNT_USABILITY_EXPIRED );
+		ber_put_int( ber, more_info->remaining_grace, LDAP_TAG_X_ACCOUNT_USABILITY_REMAINING_GRACE );
+		ber_put_int( ber, more_info->seconds_before_unlock, LDAP_TAG_X_ACCOUNT_USABILITY_UNTIL_UNLOCK );
+		ber_put_seq( ber );
+	}
+
+	if (ber_flatten2( ber, &c.ldctl_value, 0 ) == -1) {
+		goto fail;
+	}
+
+	if ( rs->sr_ctrls != NULL ) {
+		for ( ; rs->sr_ctrls[ i ] != NULL; i++ ) /* Count */;
+	}
+
+	ctrls = op->o_tmprealloc( rs->sr_ctrls, sizeof(LDAPControl *)*( i + 2 ), op->o_tmpmemctx );
+	if ( ctrls == NULL ) {
+		goto fail;
+	}
+
+	cp = op->o_tmpalloc( sizeof( LDAPControl ) + c.ldctl_value.bv_len, op->o_tmpmemctx );
+	cp->ldctl_oid = (char *)ppolicy_account_ctrl_oid;
+	cp->ldctl_iscritical = 0;
+	cp->ldctl_value.bv_val = (char *)&cp[1];
+	cp->ldctl_value.bv_len = c.ldctl_value.bv_len;
+	AC_MEMCPY( cp->ldctl_value.bv_val, c.ldctl_value.bv_val, c.ldctl_value.bv_len );
+
+	ctrls[ i ] = cp;
+	ctrls[ i + 1 ] = NULL;
+	rs->sr_ctrls = ctrls;
+
+fail:
+	(void)ber_free_buf(ber);
 }
 
 static void
@@ -1800,6 +1862,153 @@ ppolicy_restrict(
 }
 
 static int
+ppolicy_account_usability_entry_cb( Operation *op, SlapReply *rs )
+{
+	slap_overinst *on = op->o_callback->sc_private;
+	BackendInfo *bi = op->o_bd->bd_info;
+	LDAPControl *ctrl = NULL;
+	PassPolicy pp;
+	Attribute *a;
+	Entry *e = NULL;
+	time_t pwtime = 0, seconds_until_expiry = -1, now = op->o_time;
+	int isExpired = 0, grace = -1;
+
+	if ( rs->sr_type != REP_SEARCH ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	if ( be_entry_get_rw( op, &rs->sr_entry->e_nname, NULL, NULL, 0, &e ) != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	op->o_bd->bd_info = (BackendInfo *)on;
+
+	if ( ppolicy_get( op, e, &pp ) != LDAP_SUCCESS ) {
+		/* TODO: If there is no policy, should we check if */
+		goto done;
+	}
+
+	if ( !access_allowed( op, e, pp.ad, NULL, ACL_COMPARE, NULL ) ) {
+		goto done;
+	}
+
+	if ( attr_find( e->e_attrs, pp.ad ) == NULL ) {
+		goto done;
+	}
+
+	if ((a = attr_find( e->e_attrs, ad_pwdChangedTime )) != NULL) {
+		pwtime = parse_time( a->a_nvals[0].bv_val );
+	}
+
+	if ( pp.pwdMaxAge && pwtime ) {
+		seconds_until_expiry = pwtime + pp.pwdMaxAge - now;
+		if ( seconds_until_expiry <= 0 ) isExpired = 1;
+		if ( pp.pwdGraceAuthNLimit ) {
+			if ( !pp.pwdGraceExpiry || seconds_until_expiry + pp.pwdGraceExpiry > 0 ) {
+				grace = pp.pwdGraceAuthNLimit;
+				if ( attr_find( e->e_attrs, ad_pwdGraceUseTime ) ) {
+					grace -= a->a_numvals;
+				}
+			}
+		}
+	}
+	if ( !isExpired && pp.pwdMaxIdle && (a = attr_find( e->e_attrs, ad_pwdLastSuccess )) ) {
+		time_t lastbindtime = pwtime;
+
+		if ( (a = attr_find( e->e_attrs, ad_pwdLastSuccess )) != NULL ) {
+			lastbindtime = parse_time( a->a_nvals[0].bv_val );
+		}
+
+		if ( lastbindtime ) {
+			int remaining_idle = lastbindtime + pp.pwdMaxIdle - now;
+			if ( remaining_idle <= 0 ) {
+				isExpired = 1;
+			} else if ( seconds_until_expiry == -1 || remaining_idle < seconds_until_expiry ) {
+				seconds_until_expiry = remaining_idle;
+			}
+		}
+	}
+
+	if ( isExpired || account_locked( op, e, &pp, NULL ) ) {
+		LDAPAccountUsabilityMoreInfo more_info = { 0, 0, 0, -1, -1 };
+		time_t then, lockoutEnd = 0;
+
+		if ( isExpired ) more_info.remaining_grace = grace;
+
+		if ( (a = attr_find( e->e_attrs, ad_pwdAccountLockedTime )) != NULL ) {
+			then = parse_time( a->a_vals[0].bv_val );
+			if ( then == 0 )
+				lockoutEnd = -1;
+
+			/* Still in the future? not yet in effect */
+			if ( now < then )
+				then = 0;
+
+			if ( !pp.pwdLockoutDuration )
+				lockoutEnd = -1;
+
+			if ( now < then + pp.pwdLockoutDuration )
+				lockoutEnd = then + pp.pwdLockoutDuration;
+		}
+
+		a = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
+		if ( (a = attr_find( e->e_attrs, ad_pwdAccountTmpLockoutEnd )) != NULL ) {
+			then = parse_time( a->a_vals[0].bv_val );
+			if ( lockoutEnd != -1 && then > lockoutEnd )
+				lockoutEnd = then;
+		}
+
+		if ( lockoutEnd > now ) {
+			more_info.inactive = 1;
+			more_info.seconds_before_unlock = lockoutEnd - now;
+		}
+
+		if ( pp.pwdMustChange &&
+			(a = attr_find( e->e_attrs, ad_pwdReset )) &&
+			bvmatch( &a->a_nvals[0], &slap_true_bv ) )
+		{
+			more_info.reset = 1;
+		}
+
+		add_account_control( op, rs, 0, -1, &more_info );
+	} else {
+		add_account_control( op, rs, 1, seconds_until_expiry, NULL );
+	}
+
+done:
+	op->o_bd->bd_info = bi;
+	if ( e ) {
+		be_entry_release_r( op, e );
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+ppolicy_search(
+	Operation *op,
+	SlapReply *rs )
+{
+	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	int rc = ppolicy_restrict( op, rs );
+
+	if ( rc != SLAP_CB_CONTINUE ) {
+		return rc;
+	}
+
+	if ( op->o_ctrlflag[account_usability_cid] ) {
+		slap_callback *cb;
+
+		cb = op->o_tmpcalloc( sizeof(slap_callback), 1, op->o_tmpmemctx );
+
+		cb->sc_response = ppolicy_account_usability_entry_cb;
+		cb->sc_private = on;
+		overlay_callback_after_backover( op, cb, 1 );
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
 ppolicy_compare_response(
 	Operation *op,
 	SlapReply *rs )
@@ -2802,6 +3011,23 @@ ppolicy_parseCtrl(
 }
 
 static int
+ppolicy_au_parseCtrl(
+	Operation *op,
+	SlapReply *rs,
+	LDAPControl *ctrl )
+{
+	if ( !BER_BVISNULL( &ctrl->ldctl_value ) ) {
+		rs->sr_text = "account usability control value not absent";
+		return LDAP_PROTOCOL_ERROR;
+	}
+	op->o_ctrlflag[account_usability_cid] = ctrl->ldctl_iscritical
+		? SLAP_CONTROL_CRITICAL
+		: SLAP_CONTROL_NONCRITICAL;
+
+	return LDAP_SUCCESS;
+}
+
+static int
 attrPretty(
 	Syntax *syntax,
 	struct berval *val,
@@ -2876,6 +3102,11 @@ ppolicy_db_open(
 	ConfigReply *cr
 )
 {
+	int rc;
+
+	if ( (rc = overlay_register_control( be, LDAP_CONTROL_X_ACCOUNT_USABILITY )) != LDAP_SUCCESS ) {
+		return rc;
+	}
 	return overlay_register_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
 }
 
@@ -2887,6 +3118,7 @@ ppolicy_db_close(
 {
 #ifdef SLAP_CONFIG_DELETE
 	overlay_unregister_control( be, LDAP_CONTROL_PASSWORDPOLICYREQUEST );
+	overlay_unregister_control( be, LDAP_CONTROL_X_ACCOUNT_USABILITY );
 #endif /* SLAP_CONFIG_DELETE */
 
 	return 0;
@@ -2965,8 +3197,16 @@ int ppolicy_initialize()
 	}
 
 	code = register_supported_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY|SLAP_CTRL_HIDE, extops,
+		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY, extops,
 		ppolicy_parseCtrl, &ppolicy_cid );
+	if ( code != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
+		return code;
+	}
+
+	code = register_supported_control( LDAP_CONTROL_X_ACCOUNT_USABILITY,
+		SLAP_CTRL_SEARCH, NULL,
+		ppolicy_au_parseCtrl, &account_usability_cid );
 	if ( code != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
 		return code;
@@ -2985,7 +3225,7 @@ int ppolicy_initialize()
 	ppolicy.on_bi.bi_op_compare = ppolicy_compare;
 	ppolicy.on_bi.bi_op_delete = ppolicy_restrict;
 	ppolicy.on_bi.bi_op_modify = ppolicy_modify;
-	ppolicy.on_bi.bi_op_search = ppolicy_restrict;
+	ppolicy.on_bi.bi_op_search = ppolicy_search;
 	ppolicy.on_bi.bi_connection_destroy = ppolicy_connection_destroy;
 
 	ppolicy.on_bi.bi_cf_ocs = ppolicyocs;
