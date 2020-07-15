@@ -50,8 +50,8 @@ provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
 matter where you are in relation to the data itself.
 
-A web directory, such as provided by the {{Open Directory Project}}
-<{{URL:http://dmoz.org}}>, is a good example of a directory service.
+A web directory, such as provided by the {{Curlie Project}}
+<{{URL:https://curlie.org}}>, is a good example of a directory service.
 These services catalog web pages and are specifically designed to
 support browsing and searching.
 
