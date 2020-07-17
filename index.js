@@ -70,6 +70,7 @@ function open(path, options) {
 			this.writes = 0
 			this.transactions = 0
 			this.averageTransactionTime = 5
+			this.encoding = 'json'
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
@@ -132,9 +133,9 @@ function open(path, options) {
 					txn = readTxn
 					txn.renew()
 				}
-				let result = txn.getUtf8(this.db, id)
-				if (result && result[0] == '\x00') {
-					result = JSON.parse(result.slice(1))
+				let result, resultString = txn.getUtf8(this.db, id)
+				if (resultString && this.encoding == 'json') {
+					result = JSON.parse(resultString)
 				}
 				if (!writeTxn) {
 					txn.reset()
@@ -150,10 +151,8 @@ function open(path, options) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
-			if (typeof value !== 'string' || value[0] == '\x00') {
-				if (!(value && typeof value == 'object' && value.readInt16BE)) {
-					value = '\x00' + JSON.stringify(value)
-				}
+			if (this.encoding == 'json') {
+				value = JSON.stringify(value)
 			}
 			if (writeTxn) {
 				if (ifVersion !== undefined) {
@@ -186,18 +185,15 @@ function open(path, options) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			let txn
-			if (typeof value !== 'string' || value[0] == '\x00') {
-				if (!(value && typeof value == 'object' && value.readInt16BE)) {
-					value = '\x00' + JSON.stringify(value)
-				}
-			}
 			try {
 				this.writes++
 				txn = writeTxn || env.beginTxn()
-				if (typeof value === 'object') {
-					txn.putBinary(this.db, id, value, version)
-				} else {
+				if (this.encoding == 'json') {
+					txn.putUtf8(this.db, id, JSON.stringify(value, version)
+				} else if (typeof value == 'string') {
 					txn.putUtf8(this.db, id, value, version)
+				} else {
+					txn.putBinary(this.db, id, value, version)
 				}
 				if (!writeTxn) {
 					txn.commit()
@@ -302,9 +298,9 @@ function open(path, options) {
 							i++ < RANGE_BATCH_SIZE) {
 							if (includeValues) {
 								let value = cursor.getCurrentUtf8()
-								if (value[0] == '\x00') {
+								if (this.encoding == 'json') {
 									try {
-										value = JSON.parse(value.slice(1))
+										value = JSON.parse(value)
 									} catch (error) {
 										value = error
 									}
@@ -488,9 +484,9 @@ function open(path, options) {
 				scheduledOperations.bytes = 0
 			}
 			for (let operation of operations) {
-				if (typeof operation.key != 'object')
-					throw new Error('non-buffer key')
 				let value = operation.value
+				if (this.encoding == 'json')
+					value = JSON.stringify(value)
 				scheduledOperations.push([this.db, operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
