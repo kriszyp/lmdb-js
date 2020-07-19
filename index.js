@@ -6,7 +6,7 @@ const EventEmitter = require('events')
 Object.assign(exports, require('./build/Release/lmdb-store.node'))
 const { Env, Cursor, getLastVersion } = exports
 
-const RANGE_BATCH_SIZE = 1
+const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
 const DEFAULT_COMMIT_DELAY = 1
@@ -133,9 +133,9 @@ function open(path, options) {
 					txn = readTxn
 					txn.renew()
 				}
-				let result, resultString = txn.getUtf8(this.db, id)
-				if (resultString && this.encoding == 'json') {
-					result = JSON.parse(resultString)
+				let result = this.encoding == 'binary' ? txn.getBinary(this.db, id) : txn.getUtf8(this.db, id)
+				if (result && this.encoding == 'json') {
+					result = JSON.parse(result)
 				}
 				if (!writeTxn) {
 					txn.reset()
@@ -165,6 +165,9 @@ function open(path, options) {
 				if (typeof value === 'string') {
 					txn.putUtf8(this.db, id, value, version)
 				} else {
+					if (!(value && value.readUInt16BE)) {
+						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
+					}
 					txn.putBinary(this.db, id, value, version)
 				}
 				return Promise.resolve(true)
@@ -189,10 +192,13 @@ function open(path, options) {
 				this.writes++
 				txn = writeTxn || env.beginTxn()
 				if (this.encoding == 'json') {
-					txn.putUtf8(this.db, id, JSON.stringify(value, version)
+					txn.putUtf8(this.db, id, JSON.stringify(value, version))
 				} else if (typeof value == 'string') {
 					txn.putUtf8(this.db, id, value, version)
 				} else {
+					if (!(value && value.readUInt16BE)) {
+						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
+					}
 					txn.putBinary(this.db, id, value, version)
 				}
 				if (!writeTxn) {
@@ -297,7 +303,7 @@ function open(path, options) {
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0)) &&
 							i++ < RANGE_BATCH_SIZE) {
 							if (includeValues) {
-								let value = cursor.getCurrentUtf8()
+								let value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
 								if (this.encoding == 'json') {
 									try {
 										value = JSON.parse(value)

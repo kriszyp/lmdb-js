@@ -680,9 +680,11 @@ NAN_METHOD(EnvWrap::batchWrite) {
         v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
         double version = 0;
-        v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
-        if (versionValue->IsNumber()) {
-            version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
+        if (dw->hasVersions) {
+            v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
+            if (versionValue->IsNumber()) {
+                version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
+            }
         }
         // check if this is a conditional save
         v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
