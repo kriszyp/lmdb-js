@@ -51,7 +51,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
         double number = Local<Number>::Cast(jsKey)->Value();
         bool negative = number < 0;
         uint64_t asInt = *((uint64_t*) &number);
-        keyBytes = new uint8_t[9]; // TODO: if last is zero, this can be zero
+        keyBytes = new uint8_t[9]; // TODO: if last is zero, this can be 8
         if (number < 0) {
             asInt = asInt ^ 0x7fffffffffffffff;
             keyBytes[0] = (uint8_t) (asInt >> 60);
@@ -93,13 +93,16 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
         keyBytes = new uint8_t[size];
         int position = 0;
         for (int i = 0; i < length; i++) {
+            if (i > 0)
+                keyBytes[position++] = 30;
             memcpy(&keyBytes[position], segments[i].mv_data, segments[i].mv_size);
             position += segments[i].mv_size;
-            keyBytes[position++] = 30;
             if (callbacks[i]) {
                 callbacks[i](segments[i]);
             }
         }
+        delete[] segments;
+        delete[] callbacks;
     } else if (jsKey->IsNullOrUndefined()) {
         keyBytes = new uint8_t[1];
         size = 1;
@@ -145,7 +148,7 @@ Local<Value> keyToValue(MDB_val &val) {
                         (char*)val.mv_data,
                         val.mv_size
                     ).ToLocalChecked();
-                }                
+                }
             }
         } else {
             uint64_t asInt = ((uint64_t) keyBytes[0] << 60) | ((uint64_t) keyBytes[1] << 52) | ((uint64_t) keyBytes[2] << 44) | ((uint64_t) keyBytes[3] << 36);
