@@ -59,7 +59,7 @@ olcRootDN: cn=manager,dc=example,dc=com
 olcRootPW: secret
 olcSizeLimit: unlimited
 olcTimeLimit: unlimited
-olcMirrorMode: TRUE
+olcMultiProvider: TRUE
 olcSyncrepl: {0}rid=100 provider=@URI1@ binddn="cn=manager,dc=example,dc=com
  " credentials=secret bindmethod=simple searchbase="dc=example,dc=com" logba
  se="cn=accesslog" logfilter="(&(objectClass=auditWriteObject)(reqResult=0))

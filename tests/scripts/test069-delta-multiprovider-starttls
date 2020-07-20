@@ -178,7 +178,7 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
   syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
   starttls=critical
-olcMirrorMode: TRUE
+olcMultiProvider: TRUE
 $INDEX2
 
 dn: olcOverlay=syncprov,olcDatabase={2}$BACKEND,cn=config
@@ -367,8 +367,8 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
   starttls=critical
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -517,8 +517,8 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
   starttls=critical
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?

@@ -6503,7 +6503,7 @@ add_syncrepl(
 					rc = -1;
 			}
 		} else {
-			/* mirrormode still needs to see this flag in tool mode */
+			/* multiprovider still needs to see this flag in tool mode */
 			rc = config_sync_shadow( c ) ? -1 : 0;
 		}
 		ldap_free_urldesc( lud );

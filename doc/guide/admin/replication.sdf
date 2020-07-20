@@ -13,16 +13,17 @@ a {{master}} server and some number of {{slave}} servers. A master
 accepted directory updates from other clients, and a slave only
 accepted updates from a (single) master. The replication structure
 was rigidly defined and any particular database could only fulfill
-a single role, either master or slave.
+a single role, either master or slave. Another historic term introduced
+with OpenLDAP 2.4 was multimaster.
 
 As OpenLDAP now supports a wide variety of replication topologies, these
-terms have been deprecated in favor of {{provider}} and
-{{consumer}}: A provider replicates directory updates to consumers; 
-consumers receive replication updates from providers. Unlike the
-rigidly defined master/slave relationships, provider/consumer roles
-are quite fluid: replication updates received in a consumer can be
-further propagated by that consumer to other servers, so a consumer
-can also act simultaneously as a provider. Also, a consumer need not
+terms have been deprecated in favor of {{provider}}/{{multi-provider}} and
+{{consumer}}: A provider can accept external write operations and make them
+available for retrieval by consumers; consumers request replication updates from
+providers. Unlike the rigidly defined master/slave relationships,
+provider/consumer roles are quite fluid: replication updates received in a
+consumer can be further propagated by that consumer to other servers, so a
+consumer can also act simultaneously as a provider. Also, a consumer need not
 be an actual LDAP server; it may be just an LDAP client.
 
 The following sections will describe the replication technology and
@@ -392,11 +393,11 @@ writes to the clients that are partitioned from the single provider
 
 For configuration, please see the {{SECT:N-Way Multi-Provider}} section below
 
-H3: MirrorMode replication
+H3: Mirror mode replication
 
-MirrorMode is a hybrid configuration that provides all of the consistency
+Mirror mode is a hybrid configuration that provides all of the consistency
 guarantees of single-provider replication, while also providing the high
-availability of multi-provider. In MirrorMode two providers are set up to
+availability of multi-provider. In Mirror mode two providers are set up to
 replicate from each other (as a multi-provider configuration), but an
 external frontend is employed to direct all writes to only one of
 the two servers. The second provider will only be used for writes if
@@ -405,7 +406,7 @@ directing all writes to the second provider. When a crashed provider is
 repaired and restarted it will automatically catch up to any changes
 on the running provider and resync.
 
-H4: Arguments for MirrorMode
+H4: Arguments for Mirror mode
 
 * Provides a high-availability (HA) solution for directory writes (replicas handle reads)
 * As long as one provider is operational, writes can safely be accepted
@@ -414,16 +415,16 @@ can be ready to take over (hot standby)
 * Syncrepl also allows the provider nodes to re-synchronize after any downtime
 
 
-H4: Arguments against MirrorMode
+H4: Arguments against Mirror mode
 
-* MirrorMode is not what is termed as a Multi-Provider solution. This is because 
+* Mirror mode is not what is termed as a Multi-Provider solution. This is because
 writes have to go to just one of the mirror nodes at a time
-* MirrorMode can be termed as Active-Active Hot-Standby, therefore an external 
+* Mirror mode can be termed as Active-Active Hot-Standby, therefore an external
 server (slapd in proxy mode) or device (hardware load balancer)
 is needed to manage which provider is currently active
 * Backups are managed slightly differently
 
-For configuration, please see the {{SECT:MirrorMode}} section below
+For configuration, please see the {{SECT:Mirror mode}} section below
 
 
 H3: Syncrepl Proxy Mode
@@ -432,7 +433,7 @@ While the LDAP Sync protocol supports both pull- and push-based replication,
 the push mode (refreshAndPersist) must still be initiated from the consumer
 before the provider can begin pushing changes. In some network configurations,
 particularly where firewalls restrict the direction in which connections
-can be made, a provider-initiated push mode may be needed. 
+can be made, a provider-initiated push mode may be needed.
 
 This mode can be configured with the aid of the LDAP Backend
 ({{SECT: Backends}} and {{slapd-ldap(8)}}). Instead of running the
@@ -789,8 +790,8 @@ Now we setup the first Provider Node (replace $URI1, $URI2 and $URI3 etc. with y
 >       credentials=secret searchbase="cn=config" type=refreshAndPersist
 >       retry="5 5 300 5" timeout=1
 >     -
->     add: olcMirrorMode
->     olcMirrorMode: TRUE
+>     add: olcMultiProvider
+>     olcMultiProvider: TRUE
 
 Now start up the provider and a consumer/s, also add the above LDIF to the first consumer, second consumer etc. It will then replicate {{B:cn=config}}. You now have N-Way Multi-Provider on the config database.
 
@@ -814,7 +815,7 @@ We still have to replicate the actual data, not just the config, so add to the p
 >     olcSyncRepl: rid=006 provider=$URI3 binddn="$MANAGERDN" bindmethod=simple
 >       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
 >       interval=00:00:00:10 retry="5 5 300 5" timeout=1
->     olcMirrorMode: TRUE
+>     olcMultiProvider: TRUE
 >     
 >     dn: olcOverlay=syncprov,olcDatabase={1}${BACKEND},cn=config
 >     changetype: add
@@ -831,15 +832,15 @@ directives are the URLs of the servers from which to replicate. These
 must exactly match the URLs {{slapd}} listens on ({{-h}} in {{SECT:Command-Line Options}}).
 Otherwise slapd may attempt to replicate from itself, causing a loop.
 
-H3: MirrorMode
+H3: Mirror mode
 
-MirrorMode configuration is actually very easy. If you have ever setup a normal
+Mirror mode configuration is actually very easy. If you have ever setup a normal
 slapd syncrepl provider, then the only change is the following two directives:
 
->       mirrormode  on
+>       multiprovider  on
 >       serverID    1
 
-Note: You need to make sure that the {{serverID}} of each mirror node is 
+Note: You need to make sure that the {{serverID}} of each provider node is 
 different and add it as a global configuration option.
 
 H4: Mirror Node Configuration
@@ -850,13 +851,13 @@ The first step is to configure the syncrepl provider the same as in the
 Here's a specific cut down example using {{SECT:LDAP Sync Replication}} in
 {{refreshAndPersist}} mode:
 
-MirrorMode node 1:
+Mirror mode node 1:
 
 >       # Global section
 >       serverID    1
 >       # database section
 >       
->       # syncrepl directive    
+>       # syncrepl directive
 >       syncrepl      rid=001
 >                     provider=ldap://ldap-sid2.example.com
 >                     bindmethod=simple
@@ -867,9 +868,9 @@ MirrorMode node 1:
 >                     type=refreshAndPersist
 >                     retry="60 +"
 >
->       mirrormode on
+>       multiprovider on
 
-MirrorMode node 2:
+Mirror mode node 2:
 
 >       # Global section
 >       serverID    2
@@ -885,10 +886,10 @@ MirrorMode node 2:
 >                     schemachecking=on
 >                     type=refreshAndPersist
 >                     retry="60 +"
->       
->       mirrormode on
+>
+>       multiprovider on
 
-It's simple really; each MirrorMode node is setup {{B:exactly}} the same, except
+It's simple really; each Mirror mode node is setup {{B:exactly}} the same, except
 that the {{serverID}} is unique, and each consumer is pointed to 
 the other server.
 
@@ -899,8 +900,8 @@ dedicated proxy software, 2. using a Back-LDAP proxy as a syncrepl provider
 
 A typical enterprise example might be:
 
-!import "dual_dc.png"; align="center"; title="MirrorMode Enterprise Configuration"
-FT[align="Center"] Figure X.Y: MirrorMode in a Dual Data Center Configuration
+!import "dual_dc.png"; align="center"; title="Mirror mode Enterprise Configuration"
+FT[align="Center"] Figure X.Y: Mirror mode in a Dual Data Center Configuration
 
 H5: Normal Consumer Configuration
 
@@ -908,7 +909,7 @@ This is exactly the same as the {{SECT:Set up the consumer slapd}} section. It
 can either setup in normal {{SECT:syncrepl replication}} mode, or in 
 {{SECT:delta-syncrepl replication}} mode.
 
-H4: MirrorMode Summary
+H4: Mirror mode Summary
 
 You will now have a directory architecture that provides all of the 
 consistency guarantees of single-provider replication, while also providing the 

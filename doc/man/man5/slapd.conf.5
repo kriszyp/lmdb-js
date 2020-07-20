@@ -1566,14 +1566,14 @@ by means of the RFC 4533 LDAP Content Synchronization protocol
 Specifies the maximum number of aliases to dereference when trying to
 resolve an entry, used to avoid infinite alias loops. The default is 15.
 .TP
-.B mirrormode on | off
-This option puts a consumer database into "mirror" mode.  Update
+.B multiprovider on | off
+This option puts a consumer database into Multi-Provider mode.  Update
 operations will be accepted from any user, not just the updatedn.  The
 database must already be configured as a syncrepl consumer
 before this keyword may be set. This mode also requires a
 .B serverID
 (see above) to be configured.
-By default, mirrormode is off.
+By default, multiprovider is off.
 .TP
 .B monitoring on | off
 This option enables database-specific monitoring in the entry related

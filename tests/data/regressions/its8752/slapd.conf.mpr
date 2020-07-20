@@ -117,7 +117,7 @@ syncrepl
     sizeLimit=unlimited
     timelimit=unlimited
 
-mirrormode		TRUE
+multiprovider		TRUE
 
 overlay syncprov
 syncprov-sessionlog	100
