@@ -202,6 +202,43 @@ entry like
     dgIdentity: cn=Group Proxy,ou=Services,dc=example,dc=com
 .fi
 
+
+This example extends the dynamic group feature to add a dynamic
+.B dgMemberOf
+attribute to all the members of a dynamic group:
+.LP
+.nf
+    include /path/to/dyngroup.schema
+    # ...
+
+    database <database>
+    # ...
+
+    overlay dynlist
+    dynlist\-attrset groupOfURLs memberURL member+dgMemberOf
+.fi
+.LP
+
+
+This example extends the dynamic memberOf feature to add the
+.B dgMemberOf
+attribute to all the members of both static and dynamic groups:
+.LP
+.nf
+    include /path/to/dyngroup.schema
+    # ...
+
+    database <database>
+    # ...
+
+    overlay dynlist
+    dynlist\-attrset groupOfURLs memberURL member+dgMemberOf@groupOfNames
+.fi
+.LP
+This dynamic memberOf feature can fully replace the functionality of the
+.BR slapo\-memberof (5)
+overlay.
+
 .SH FILES
 .TP
 ETCDIR/slapd.conf
