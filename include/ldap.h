@@ -393,7 +393,9 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_X_ACCOUNT_USABILITY_UNTIL_UNLOCK	((ber_tag_t) 0x84U)	/* primitive + 4 */
 
 /* Netscape Password policy response controls */
+/* https://docs.oracle.com/cd/E19957-01/816-5618-10/netscape/ldap/controls/LDAPPasswordExpiredControl.html */
 #define LDAP_CONTROL_X_PASSWORD_EXPIRED		"2.16.840.1.113730.3.4.4"
+/* https://docs.oracle.com/cd/E19957-01/816-5618-10/netscape/ldap/controls/LDAPPasswordExpiringControl.html */
 #define LDAP_CONTROL_X_PASSWORD_EXPIRING	"2.16.840.1.113730.3.4.5"
 
 /* LDAP Unsolicited Notifications */
