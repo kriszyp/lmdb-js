@@ -79,17 +79,16 @@ of the database may in turn be provided to other consumers using the Syncprov
 overlay. The Syncprov overlay works with any number of consumers over a single 
 database or over arbitrarily many glued databases.
 
-H3: N-Way Multimaster Replication
+H3: N-Way Multiprovider Replication
 
 As a consequence of the work to support multiple consumer contexts, the syncrepl 
-system now supports full N-Way multimaster replication with entry-level conflict 
+system now supports full N-Way multiprovider replication with entry-level conflict 
 resolution. There are some important constraints, of course: In order to maintain 
 consistent results across all servers, you must maintain tightly synchronized 
 clocks across all participating servers (e.g., you must use NTP on all servers). 
 
 The entryCSNs used for replication now record timestamps with microsecond resolution, 
-instead of just seconds. The delta-syncrepl code has not been updated to support 
-multimaster usage yet, that will come later in the 2.4 cycle.
+instead of just seconds.
 
 H3: Replicating {{slapd}} Configuration (syncrepl and {{B:cn=config}})
 

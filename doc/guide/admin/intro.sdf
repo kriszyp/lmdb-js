@@ -441,7 +441,10 @@ replication scheme is vital in high-volume environments where a
 single {{slapd}} installation just doesn't provide the necessary availability
 or reliability.  For extremely demanding environments where a
 single point of failure is not acceptable, {{multi-provider}} replication
-is also available.  {{slapd}} includes support for {{LDAP Sync}}-based
+is also available. With {{multi-provider}} replication two or more nodes can
+accept write operations allowing for redundancy at the provider level.
+
+{{slapd}} includes support for {{LDAP Sync}}-based
 replication.
 
 {{B:Proxy Cache}}: {{slapd}} can be configured as a caching

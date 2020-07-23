@@ -13,16 +13,17 @@ a {{master}} server and some number of {{slave}} servers. A master
 accepted directory updates from other clients, and a slave only
 accepted updates from a (single) master. The replication structure
 was rigidly defined and any particular database could only fulfill
-a single role, either master or slave.
+a single role, either master or slave. Another historic term introduced
+with OpenLDAP 2.4 was multimaster.
 
 As OpenLDAP now supports a wide variety of replication topologies, these
-terms have been deprecated in favor of {{provider}} and
-{{consumer}}: A provider replicates directory updates to consumers; 
-consumers receive replication updates from providers. Unlike the
-rigidly defined master/slave relationships, provider/consumer roles
-are quite fluid: replication updates received in a consumer can be
-further propagated by that consumer to other servers, so a consumer
-can also act simultaneously as a provider. Also, a consumer need not
+terms have been deprecated in favor of {{provider}}/{{multi-provider}} and
+{{consumer}}: A provider can accept external write operations and make them
+available for retrieval by consumers; consumers request replication updates from
+providers. Unlike the rigidly defined master/slave relationships,
+provider/consumer roles are quite fluid: replication updates received in a
+consumer can be further propagated by that consumer to other servers, so a
+consumer can also act simultaneously as a provider. Also, a consumer need not
 be an actual LDAP server; it may be just an LDAP client.
 
 The following sections will describe the replication technology and
