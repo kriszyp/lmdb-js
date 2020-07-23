@@ -497,7 +497,7 @@ int main( int argc, char **argv )
 			urls = optarg;
 			break;
 
-		case 'c':	/* provide sync cookie, override if exist in replica */
+		case 'c':	/* provide sync cookie, override if exist in consumer */
 			scp = (struct sync_cookie *) ch_calloc( 1,
 										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, 0, 1, &scp->octet_str );

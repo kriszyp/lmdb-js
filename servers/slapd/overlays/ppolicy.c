@@ -56,6 +56,7 @@ typedef struct pp_info {
 	int hash_passwords;		/* transparently hash cleartext pwds */
 	int forward_updates;	/* use frontend for policy state updates */
 	int disable_write;
+	int send_netscape_controls;	/* send netscape password controls */
 } pp_info;
 
 /* Our per-connection info - note, it is not per-instance, it is 
@@ -456,6 +457,14 @@ static ConfigTable ppolicycfg[] = {
 	  (void *)offsetof(pp_info,disable_write),
 	  "( OLcfgOvAt:12.5 NAME 'olcPPolicyDisableWrite' "
 	  "DESC 'Prevent all policy overlay writes' "
+	  "EQUALITY booleanMatch "
+	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
+	{ "ppolicy_send_netscape_controls", "on|off", 1, 2, 0,
+	  ARG_ON_OFF|ARG_OFFSET,
+	  (void *)offsetof(pp_info,send_netscape_controls),
+	  "( OLcfgOvAt:12.6 NAME 'olcPPolicySendNetscapeControls' "
+	  "DESC 'Send Netscape policy controls' "
+	  "EQUALITY booleanMatch "
 	  "SYNTAX OMsBoolean SINGLE-VALUE )", NULL, NULL },
 	{ NULL, NULL, 0, 0, 0, ARG_IGNORED }
 };
@@ -467,7 +476,7 @@ static ConfigOCs ppolicyocs[] = {
 	  "SUP olcOverlayConfig "
 	  "MAY ( olcPPolicyDefault $ olcPPolicyHashCleartext $ "
 	  "olcPPolicyUseLockout $ olcPPolicyForwardUpdates $ "
-	  "olcPPolicyDisableWrite ) )",
+	  "olcPPolicyDisableWrite $ olcPPolicySendNetscapeControls ) )",
 	  Cft_Overlay, ppolicycfg },
 	{ NULL, 0, NULL }
 };
@@ -665,6 +674,8 @@ account_locked( Operation *op, Entry *e,
 
 static const char ppolicy_ctrl_oid[] = LDAP_CONTROL_PASSWORDPOLICYRESPONSE;
 static const char ppolicy_account_ctrl_oid[] = LDAP_CONTROL_X_ACCOUNT_USABILITY;
+static const char ppolicy_pwd_expired_oid[] = LDAP_CONTROL_X_PASSWORD_EXPIRED;
+static const char ppolicy_pwd_expiring_oid[] = LDAP_CONTROL_X_PASSWORD_EXPIRING;
 
 static LDAPControl *
 create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyError err )
@@ -721,6 +732,42 @@ create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyErr
 fail:
 	(void)ber_free_buf(ber);
 	
+	return cp;
+}
+
+static LDAPControl *
+create_passexpiry( Operation *op, int expired, int warn )
+{
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *) &berbuf;
+	LDAPControl c = { 0 }, *cp;
+	char buf[sizeof("-2147483648")];
+	struct berval bv = { .bv_val = buf, .bv_len = sizeof(buf) };
+	int rc;
+
+	BER_BVZERO( &c.ldctl_value );
+
+	bv.bv_len = snprintf( bv.bv_val, bv.bv_len, "%d", warn );
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_printf( ber, "O", &bv );
+
+	if (ber_flatten2( ber, &c.ldctl_value, 0 ) == -1) {
+		return NULL;
+	}
+	cp = op->o_tmpalloc( sizeof( LDAPControl ) + c.ldctl_value.bv_len, op->o_tmpmemctx );
+	if ( expired ) {
+		cp->ldctl_oid = (char *)ppolicy_pwd_expired_oid;
+	} else {
+		cp->ldctl_oid = (char *)ppolicy_pwd_expiring_oid;
+	}
+	cp->ldctl_iscritical = 0;
+	cp->ldctl_value.bv_val = (char *)&cp[1];
+	cp->ldctl_value.bv_len = c.ldctl_value.bv_len;
+	AC_MEMCPY( cp->ldctl_value.bv_val, c.ldctl_value.bv_val, c.ldctl_value.bv_len );
+fail:
+	(void)ber_free_buf(ber);
+
 	return cp;
 }
 
@@ -1332,7 +1379,9 @@ ctrls_cleanup( Operation *op, SlapReply *rs, LDAPControl **oldctrls )
 	assert( rs->sr_ctrls[0] != NULL );
 
 	for ( n = 0; rs->sr_ctrls[n]; n++ ) {
-		if ( rs->sr_ctrls[n]->ldctl_oid == ppolicy_ctrl_oid ) {
+		if ( rs->sr_ctrls[n]->ldctl_oid == ppolicy_ctrl_oid ||
+			rs->sr_ctrls[n]->ldctl_oid == ppolicy_pwd_expired_oid ||
+			rs->sr_ctrls[n]->ldctl_oid == ppolicy_pwd_expiring_oid ) {
 			op->o_tmpfree( rs->sr_ctrls[n], op->o_tmpmemctx );
 			rs->sr_ctrls[n] = (LDAPControl *)(-1);
 			break;
@@ -1375,6 +1424,7 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	char nowstr_usec[ LDAP_LUTIL_GENTIME_BUFSIZE+8 ];
 	struct berval timestamp, timestamp_usec;
 	BackendInfo *bi = op->o_bd->bd_info;
+	LDAPControl *ctrl = NULL;
 	Entry *e;
 
 	/* If we already know it's locked, just get on with it */
@@ -1727,13 +1777,20 @@ locked:
 	}
 
 	if ( ppb->send_ctrl ) {
-		LDAPControl *ctrl = NULL;
 
 		/* Do we really want to tell that the account is locked? */
 		if ( ppb->pErr == PP_accountLocked && !pi->use_lockout ) {
 			ppb->pErr = PP_noError;
 		}
 		ctrl = create_passcontrol( op, warn, ngut, ppb->pErr );
+	} else if ( pi->send_netscape_controls ) {
+		if ( ppb->pErr != PP_noError || ngut > 0 ) {
+			ctrl = create_passexpiry( op, 1, 0 );
+		} else if ( warn > 0 ) {
+			ctrl = create_passexpiry( op, 0, warn );
+		}
+	}
+	if ( ctrl ) {
 		ppb->oldctrls = add_passcontrol( op, rs, ctrl );
 		op->o_callback->sc_cleanup = ppolicy_ctrls_cleanup;
 	}
@@ -2104,7 +2161,7 @@ ppolicy_add(
 	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
 		return rs->sr_err;
 
-	/* If this is a replica, assume the master checked everything */
+	/* If this is a replica, assume the provider checked everything */
 	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) )
 		return SLAP_CB_CONTINUE;
 
@@ -2253,7 +2310,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	if ( pi->disable_write ) return SLAP_CB_CONTINUE;
 
 	/* If this is a replica, we may need to tweak some of the
-	 * master's modifications. Otherwise, just pass it through.
+	 * provider's modifications. Otherwise, just pass it through.
 	 */
 	if ( SLAPD_SYNC_IS_SYNCCONN( op->o_connid ) ) {
 		Modifications **prev;
@@ -3207,6 +3264,21 @@ int ppolicy_initialize()
 	code = register_supported_control( LDAP_CONTROL_X_ACCOUNT_USABILITY,
 		SLAP_CTRL_SEARCH, NULL,
 		ppolicy_au_parseCtrl, &account_usability_cid );
+	if ( code != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
+		return code;
+	}
+
+	/* We don't expect to receive these controls, only send them */
+	code = register_supported_control( LDAP_CONTROL_X_PASSWORD_EXPIRED,
+		0, NULL, NULL, NULL );
+	if ( code != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
+		return code;
+	}
+
+	code = register_supported_control( LDAP_CONTROL_X_PASSWORD_EXPIRING,
+		0, NULL, NULL, NULL );
 	if ( code != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "Failed to register control %d\n", code );
 		return code;

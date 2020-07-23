@@ -87,7 +87,7 @@ type are:
 .{{S: }}
 +{{B: Start the server}}
 
-Obviously this doesn't cater for any complicated deployments like {{SECT: MirrorMode}} or {{SECT: N-Way Multi-Master}}, 
+Obviously this doesn't cater for any complicated deployments like {{SECT: Mirror mode}} or {{SECT: N-Way Multi-Provider}}, 
 but following the above sections and using either commercial support or community support should help. Also check the
 {{SECT: Troubleshooting}} section.
 

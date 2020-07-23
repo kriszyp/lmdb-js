@@ -16,6 +16,11 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
+if test $WITH_TLS = no ; then
+        echo "TLS support not available, test skipped"
+        exit 0
+fi
+
 if test $SYNCPROV = syncprovno; then
 	echo "Syncrepl provider overlay not available, test skipped"
 	exit 0
@@ -31,6 +36,7 @@ XDIR=$TESTDIR/srv
 TMP=$TESTDIR/tmp
 
 mkdir -p $TESTDIR
+cp -r $DATADIR/tls $TESTDIR
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
@@ -82,6 +88,8 @@ dn: cn=config
 objectClass: olcGlobal
 cn: config
 olcServerID: $n
+olcTLSCertificateFile: $TESTDIR/tls/certs/localhost.crt
+olcTLSCertificateKeyFile: $TESTDIR/tls/private/localhost.key
 
 EOF
 
@@ -112,7 +120,7 @@ olcModuleLoad: back_$BACKEND.la
 EOF
 fi
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URI'$o`
+PROVIDERURI=`eval echo '$URIP'$o`
 if test $INDEXDB = indexdb ; then
 INDEX1="olcDbIndex: objectClass,entryCSN,reqStart,reqDN,reqResult eq"
 INDEX2="olcDbIndex: objectClass,entryCSN,entryUUID eq"
@@ -168,8 +176,9 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog
-olcMirrorMode: TRUE
+  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  starttls=critical
+olcMultiProvider: TRUE
 $INDEX2
 
 dn: olcOverlay=syncprov,olcDatabase={2}$BACKEND,cn=config
@@ -268,7 +277,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -292,7 +301,7 @@ THEDN="cn=James A Jones 2,ou=Alumni Association,ou=People,dc=example,dc=com"
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$THEDN" -H $URI1 \
-		-s base '(objectClass=*)' entryCSN > "${MASTEROUT}.$i" 2>&1
+		-s base '(objectClass=*)' entryCSN > "${PROVIDEROUT}.$i" 2>&1
 	RC=$?
 
 	if test $RC = 0 ; then
@@ -300,7 +309,7 @@ for i in 1 2 3; do
 	fi
 
 	if test $RC != 32 ; then
-		echo "ldapsearch failed at slave ($RC)!"
+		echo "ldapsearch failed at replica ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
@@ -331,7 +340,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -346,7 +355,7 @@ n=1
 while [ $n -le $MMR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URI'$o`
+PROVIDERURI=`eval echo '$URIP'$o`
 $LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
@@ -355,10 +364,11 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=InvalidPw searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog
+  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  starttls=critical
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -495,7 +505,7 @@ n=1
 while [ $n -le $MMR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URI'$o`
+PROVIDERURI=`eval echo '$URIP'$o`
 $LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
@@ -504,10 +514,11 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog
+  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  starttls=critical
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -544,7 +555,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

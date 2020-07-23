@@ -51,7 +51,7 @@ occurrences, and it must appear after the
 .B overlay
 directive.
 .TP
-.B dynlist\-attrset <group-oc> [<URI>] <URL-ad> [[<mapped-ad>:]<member-ad>[@<memberOf-ad] ...]
+.B dynlist\-attrset <group-oc> [<URI>] <URL-ad> [[<mapped-ad>:]<member-ad>[+<memberOf-ad[@<static-oc>[*]] ...]
 The value 
 .B group\-oc
 is the name of the objectClass that triggers the dynamic expansion of the
@@ -94,6 +94,15 @@ If the optional
 .B memberOf-ad
 attribute is also specified, then it will be populated with the DNs of the
 dynamic groups that an entry is a member of.
+If the optional
+.B static-oc
+objectClass is also specified, then the memberOf attribute will also be
+populated with the DNs of the static groups that an entry is a member of.
+If the optional
+.B *
+character is also specified, then the member and memberOf values will be
+populated recursively, for nested groups. Note that currently nesting is
+only supported for Search operations, not Compares.
 
 Alternatively, 
 .B mapped-ad
@@ -192,6 +201,43 @@ entry like
     memberURL: ldap:///ou=People,dc=example,dc=com??sub?(objectClass=person)
     dgIdentity: cn=Group Proxy,ou=Services,dc=example,dc=com
 .fi
+
+
+This example extends the dynamic group feature to add a dynamic
+.B dgMemberOf
+attribute to all the members of a dynamic group:
+.LP
+.nf
+    include /path/to/dyngroup.schema
+    # ...
+
+    database <database>
+    # ...
+
+    overlay dynlist
+    dynlist\-attrset groupOfURLs memberURL member+dgMemberOf
+.fi
+.LP
+
+
+This example extends the dynamic memberOf feature to add the
+.B dgMemberOf
+attribute to all the members of both static and dynamic groups:
+.LP
+.nf
+    include /path/to/dyngroup.schema
+    # ...
+
+    database <database>
+    # ...
+
+    overlay dynlist
+    dynlist\-attrset groupOfURLs memberURL member+dgMemberOf@groupOfNames
+.fi
+.LP
+This dynamic memberOf feature can fully replace the functionality of the
+.BR slapo\-memberof (5)
+overlay.
 
 .SH FILES
 .TP

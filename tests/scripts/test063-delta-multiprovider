@@ -16,11 +16,6 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test $WITH_TLS = no ; then
-        echo "TLS support not available, test skipped"
-        exit 0
-fi
-
 if test $SYNCPROV = syncprovno; then
 	echo "Syncrepl provider overlay not available, test skipped"
 	exit 0
@@ -30,13 +25,12 @@ if test $ACCESSLOG = accesslogno; then
 	exit 0
 fi
 
-MMR=2
+MPR=2
 
 XDIR=$TESTDIR/srv
 TMP=$TESTDIR/tmp
 
 mkdir -p $TESTDIR
-cp -r $DATADIR/tls $TESTDIR
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
@@ -57,7 +51,7 @@ case "$SYNCMODE" in
 esac
 
 #
-# Test delta-sync mmr
+# Test delta-sync mpr
 # - start servers
 # - configure over ldap
 # - populate over ldap
@@ -75,7 +69,7 @@ KILLPIDS=
 
 echo "Initializing server configurations..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 
 DBDIR=${XDIR}$n/db
 CFDIR=${XDIR}$n/slapd.d
@@ -88,8 +82,6 @@ dn: cn=config
 objectClass: olcGlobal
 cn: config
 olcServerID: $n
-olcTLSCertificateFile: $TESTDIR/tls/certs/localhost.crt
-olcTLSCertificateKeyFile: $TESTDIR/tls/private/localhost.key
 
 EOF
 
@@ -120,7 +112,7 @@ olcModuleLoad: back_$BACKEND.la
 EOF
 fi
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URIP'$o`
+PROVIDERURI=`eval echo '$URI'$o`
 if test $INDEXDB = indexdb ; then
 INDEX1="olcDbIndex: objectClass,entryCSN,reqStart,reqDN,reqResult eq"
 INDEX2="olcDbIndex: objectClass,entryCSN,entryUUID eq"
@@ -176,9 +168,8 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
-  starttls=critical
-olcMirrorMode: TRUE
+  syncdata=accesslog
+olcMultiProvider: TRUE
 $INDEX2
 
 dn: olcOverlay=syncprov,olcDatabase={2}$BACKEND,cn=config
@@ -256,7 +247,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -275,9 +266,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -301,7 +292,7 @@ THEDN="cn=James A Jones 2,ou=Alumni Association,ou=People,dc=example,dc=com"
 sleep 1
 for i in 1 2 3; do
 	$LDAPSEARCH -S "" -b "$THEDN" -H $URI1 \
-		-s base '(objectClass=*)' entryCSN > "${MASTEROUT}.$i" 2>&1
+		-s base '(objectClass=*)' entryCSN > "${PROVIDEROUT}.$i" 2>&1
 	RC=$?
 
 	if test $RC = 0 ; then
@@ -309,7 +300,7 @@ for i in 1 2 3; do
 	fi
 
 	if test $RC != 32 ; then
-		echo "ldapsearch failed at slave ($RC)!"
+		echo "ldapsearch failed at consumer ($RC)!"
 		test $KILLSERVERS != no && kill -HUP $KILLPIDS
 		exit $RC
 	fi
@@ -319,7 +310,7 @@ for i in 1 2 3; do
 done
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -338,9 +329,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -352,10 +343,10 @@ done
 
 echo "Breaking replication between server 1 and 2..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URIP'$o`
+PROVIDERURI=`eval echo '$URI'$o`
 $LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
@@ -364,11 +355,10 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=InvalidPw searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
-  starttls=critical
+  syncdata=accesslog
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -502,10 +492,10 @@ fi
 
 echo "Restoring replication between server 1 and 2..."
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 o=`expr 3 - $n`
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URIP'$o`
+PROVIDERURI=`eval echo '$URI'$o`
 $LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
@@ -514,11 +504,10 @@ olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
-  starttls=critical
+  syncdata=accesslog
 -
-replace: olcMirrorMode
-olcMirrorMode: TRUE
+replace: olcMultiProvider
+olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -534,7 +523,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 n=1
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 PORT=`expr $BASEPORT + $n`
 URI="ldap://${LOCALHOST}:$PORT/"
 
@@ -553,9 +542,9 @@ n=`expr $n + 1`
 done
 
 n=2
-while [ $n -le $MMR ]; do
+while [ $n -le $MPR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

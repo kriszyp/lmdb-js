@@ -2,7 +2,7 @@
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
-## Copyright 1998-2020 The OpenLDAP Foundation.
+## Copyright 1998-2018 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without
@@ -15,11 +15,6 @@
 
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
-
-if test $WITH_TLS = no ; then
-        echo "TLS support not available, test skipped"
-        exit 0
-fi
 
 if test $SYNCPROV = syncprovno; then
 	echo "Syncrepl provider overlay not available, test skipped"
@@ -36,7 +31,6 @@ XDIR=$TESTDIR/srv
 TMP=$TESTDIR/tmp
 
 mkdir -p $TESTDIR
-cp -r $DATADIR/tls $TESTDIR
 
 $SLAPPASSWD -g -n >$CONFIGPWF
 
@@ -88,8 +82,6 @@ dn: cn=config
 objectClass: olcGlobal
 cn: config
 olcServerID: $n
-olcTLSCertificateFile: $TESTDIR/tls/certs/localhost.crt
-olcTLSCertificateKeyFile: $TESTDIR/tls/private/localhost.key
 
 EOF
 
@@ -119,8 +111,8 @@ olcModuleLoad: back_$BACKEND.la
 
 EOF
 fi
-MYURI=`eval echo '$SURIP'$n`
-PROVIDERURI=`eval echo '$SURIP'$o`
+MYURI=`eval echo '$URI'$n`
+PROVIDERURI=`eval echo '$URI'$o`
 if test $INDEXDB = indexdb ; then
 INDEX1="olcDbIndex: objectClass,entryCSN,reqStart,reqDN,reqResult eq"
 INDEX2="olcDbIndex: objectClass,entryCSN,entryUUID eq"
@@ -173,10 +165,7 @@ ${nullExclude}olcDbDirectory: ${DBDIR}.2
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
 olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
-  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="3 +" timeout=3 logbase="cn=log"
-  logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE retry="3 +" timeout=3
 olcMirrorMode: TRUE
 $INDEX2
 
@@ -184,6 +173,7 @@ dn: olcOverlay=syncprov,olcDatabase={2}$BACKEND,cn=config
 objectClass: olcOverlayConfig
 objectClass: olcSyncProvConfig
 olcOverlay: syncprov
+olcSpSessionlogSource: cn=log
 
 dn: olcOverlay=accesslog,olcDatabase={2}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -210,7 +200,7 @@ cd $TESTWD
 
 echo "Using ldapsearch to check that server $n is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -s base -b "" -H $MYURI \
+	$LDAPSEARCH -s base -b "" -H $MYURI \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -228,7 +218,7 @@ fi
 
 if [ $n = 1 ]; then
 echo "Using ldapadd for context on server 1..."
-$LDAPADD -D "$MANAGERDN" -H $SURIP1 -w $PASSWD -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -f $LDIFORDEREDCP \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDEREDCP \
 	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -242,11 +232,11 @@ n=`expr $n + 1`
 done
 
 echo "Using ldapadd to populate server 1..."
-$LDAPADD -D "$MANAGERDN" -H $SURIP1 -w $PASSWD -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -f $LDIFORDEREDNOCP \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -f $LDIFORDEREDNOCP \
 	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
-	echo "ldapadd failed for server $n database ($RC)!"
+	echo "ldapadd failed for server 1 database ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit $RC
 fi
@@ -256,11 +246,10 @@ sleep $SLEEP1
 
 n=1
 while [ $n -le $MMR ]; do
-PORT=`expr $BASEPORT + $n`
-URI="ldaps://${LOCALIP}:$PORT/"
+URI=`eval echo '$URI'$n`
 
 echo "Using ldapsearch to read all the entries from server $n..."
-$LDAPSEARCH -S "" -b "$BASEDN" -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $URI -w $PASSWD  \
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
 	'objectclass=*' > $TESTDIR/server$n.out 2>&1
 RC=$?
 
@@ -276,7 +265,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -287,7 +276,7 @@ n=`expr $n + 1`
 done
 
 echo "Using ldapadd to populate server 2..."
-$LDAPADD -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP2 -w $PASSWD -f $LDIFADD1 \
+$LDAPADD -D "$MANAGERDN" -H $URI2 -w $PASSWD -f $LDIFADD1 \
 	>> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -299,8 +288,8 @@ fi
 THEDN="cn=James A Jones 2,ou=Alumni Association,ou=People,dc=example,dc=com"
 sleep 1
 for i in 1 2 3; do
-	$LDAPSEARCH -S "" -b "$THEDN" -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -H $SURIP1 \
-		-s base '(objectClass=*)' entryCSN > "${MASTEROUT}.$i" 2>&1
+	$LDAPSEARCH -S "" -b "$THEDN" -H $URI1 \
+		-s base '(objectClass=*)' entryCSN > "${PROVIDEROUT}.$i" 2>&1
 	RC=$?
 
 	if test $RC = 0 ; then
@@ -319,11 +308,10 @@ done
 
 n=1
 while [ $n -le $MMR ]; do
-PORT=`expr $BASEPORT + $n`
-URI="ldaps://${LOCALIP}:$PORT/"
+URI=`eval echo '$URI'$n`
 
 echo "Using ldapsearch to read all the entries from server $n..."
-$LDAPSEARCH -S "" -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
 	'objectclass=*' > $TESTDIR/server$n.out 2>&1
 RC=$?
 
@@ -339,7 +327,7 @@ done
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"
@@ -349,21 +337,74 @@ fi
 n=`expr $n + 1`
 done
 
-echo "Breaking replication between server 1 and 2..."
+echo "Retrieving syncrepl cookie..."
+cookie=`$LDAPRSEARCH -b "$BASEDN" -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+    -E "sync=ro" 'objectclass=*' 1.1 | grep cookie | sed "s/.*cookie: //"`
+
+if test -z "$cookie"; then
+	echo "Failed to retrieve cookie from server!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Deleting an entry from server 1..."
+$LDAPDELETE -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+    "cn=Mark Elliot,ou=Alumni Association,ou=People,$BASEDN" \
+	>> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapdelete failed for server 1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+
+echo "Restarting servers..."
+kill -HUP $KILLPIDS
+wait
+KILLPIDS=""
 n=1
 while [ $n -le $MMR ]; do
 o=`expr 3 - $n`
-MYURI=`eval echo '$SURIP'$n`
-PROVIDERURI=`eval echo '$SURIP'$o`
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
+MYURI=`eval echo '$URI'$n`
+PROVIDERURI=`eval echo '$URI'$o`
+
+echo "Starting server $n again..."
+cd ${XDIR}${n}
+LOG=`eval echo '$LOG'$n`
+echo "RESTART" >> $LOG
+#if test $n = 2; then
+#echo $SLAPD -F slapd.d -h $MYURI -d $LVL $TIMING
+#else
+$SLAPD -F slapd.d -h $MYURI -d $LVL $TIMING > $LOG 2>&1 &
+#fi
+PID=$!
+if test $WAIT != 0 ; then
+    echo PID $PID
+    read foo
+fi
+KILLPIDS="$PID $KILLPIDS"
+cd $TESTWD
+
+echo "Using ldapsearch to check that server $n is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "" -H $MYURI \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+echo "Breaking replication between server $n and $o..."
+$LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
 replace: olcSyncRepl
 olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
-  credentials=InvalidPw searchbase="$BASEDN" $SYNCTYPE
-  retry="3 +" timeout=3 logbase="cn=log"
-  logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  credentials=InvalidPw searchbase="$BASEDN" $SYNCTYPE retry="3 +" timeout=3
 -
 replace: olcMirrorMode
 olcMirrorMode: TRUE
@@ -379,7 +420,7 @@ n=`expr $n + 1`
 done
 
 echo "Using ldapmodify to force conflicts between server 1 and 2..."
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP1 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -394,7 +435,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP2 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -409,7 +450,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP1 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -427,7 +468,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP2 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -445,7 +486,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP1 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -463,7 +504,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP2 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -481,7 +522,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -D "$MANAGERDN" -H $SURIP1 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
@@ -498,21 +539,39 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Deleting an entry from both servers..."
+$LDAPDELETE -D "$MANAGERDN" -H $URI1 -w $PASSWD \
+    "cn=John Doe,ou=Information Technology Division,ou=People,$BASEDN" \
+	>> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapdelete failed for server 1 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+$LDAPDELETE -D "$MANAGERDN" -H $URI2 -w $PASSWD \
+    "cn=John Doe,ou=Information Technology Division,ou=People,$BASEDN" \
+	>> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapdelete failed for server 2 database ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Restoring replication between server 1 and 2..."
 n=1
 while [ $n -le $MMR ]; do
 o=`expr 3 - $n`
-MYURI=`eval echo '$SURIP'$n`
-PROVIDERURI=`eval echo '$SURIP'$o`
-$LDAPMODIFY -D cn=config -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
+MYURI=`eval echo '$URI'$n`
+PROVIDERURI=`eval echo '$URI'$o`
+$LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
 replace: olcSyncRepl
 olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
-  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
-  retry="3 +" timeout=3 logbase="cn=log"
-  logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt
+  credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE retry="3 +" timeout=3
 -
 replace: olcMirrorMode
 olcMirrorMode: TRUE
@@ -530,13 +589,15 @@ done
 echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
+echo 2 >$TESTDIR/repl.test
+echo 1 >>$TESTDIR/repl.test
+
 n=1
 while [ $n -le $MMR ]; do
-PORT=`expr $BASEPORT + $n`
-URI="ldaps://${LOCALIP}:$PORT/"
+URI=`eval echo '$URI'$n`
 
 echo "Using ldapsearch to read all the entries from server $n..."
-$LDAPSEARCH -o tls_cacert=$TESTDIR/tls/ca/certs/testsuiteCA.crt -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
+$LDAPSEARCH -S "" -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD  \
 	'objectclass=*' > $TESTDIR/server$n.out 2>&1
 RC=$?
 
@@ -546,13 +607,27 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 $LDIFFILTER -s a < $TESTDIR/server$n.out > $TESTDIR/server$n.flt
+
+echo "Checking server $n can remember which entries have been deleted even after it's been restarted..."
+$LDAPRSEARCH -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD \
+    -E "sync=ro/$cookie" 'objectclass=*' 1.1 | grep syncUUIDs | wc -l >$TESTDIR/repl.out
+$LDAPRSEARCH -b "$BASEDN" -D "$MANAGERDN" -H $URI -w $PASSWD \
+    -E "sync=ro/$cookie" 'objectclass=*' 1.1 | grep SyncDone | grep "refreshDeletes=1" | wc -l >>$TESTDIR/repl.out
+
+$CMP $TESTDIR/repl.out $TESTDIR/repl.test > $CMPOUT
+
+if test $? != 0 ; then
+	echo "test failed - server did not respond with delete phase"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
 n=`expr $n + 1`
 done
 
 n=2
 while [ $n -le $MMR ]; do
 echo "Comparing retrieved entries from server 1 and server $n..."
-$CMP $MASTERFLT $TESTDIR/server$n.flt > $CMPOUT
+$CMP $PROVIDERFLT $TESTDIR/server$n.flt > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - server 1 and server $n databases differ"

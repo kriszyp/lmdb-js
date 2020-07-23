@@ -84,8 +84,7 @@ Currently simple and kerberos-based authentication, are supported.
 To use LDAP and still have reasonable security in a networked, 
 Internet/Intranet environment, secure shell can be used to setup
 secure, encrypted connections between client machines and the LDAP
-server, and between the LDAP server and any replica or slave servers
-that might be used.
+server, and between all LDAP nodes that might be used.
 
 To perform the LDAP "bind" operation:
 

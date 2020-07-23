@@ -33,7 +33,7 @@ tuned to give quick response to high-volume lookup or search
 operations. They may have the ability to replicate information
 widely in order to increase availability and reliability, while
 reducing response time.  When directory information is replicated,
-temporary inconsistencies between the replicas may be okay, as long
+temporary inconsistencies between the consumers may be okay, as long
 as inconsistencies are resolved in a timely manner.
 
 There are many different ways to provide a directory service.
@@ -50,8 +50,8 @@ provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
 matter where you are in relation to the data itself.
 
-A web directory, such as provided by the {{Open Directory Project}}
-<{{URL:http://dmoz.org}}>, is a good example of a directory service.
+A web directory, such as provided by the {{Curlie Project}}
+<{{URL:https://curlie.org}}>, is a good example of a directory service.
 These services catalog web pages and are specifically designed to
 support browsing and searching.
 
@@ -430,12 +430,15 @@ a pool of threads.  This reduces the amount of system overhead
 required while providing high performance.
 
 {{B:Replication}}: {{slapd}} can be configured to maintain shadow
-copies of directory information.  This {{single-master/multiple-slave}}
+copies of directory information.  This {{single-provider/multiple-consumer}}
 replication scheme is vital in high-volume environments where a
 single {{slapd}} installation just doesn't provide the necessary availability
 or reliability.  For extremely demanding environments where a
-single point of failure is not acceptable, {{multi-master}} replication
-is also available.  {{slapd}} includes support for {{LDAP Sync}}-based
+single point of failure is not acceptable, {{multi-provider}} replication
+is also available. With {{multi-provider}} replication two or more nodes can
+accept write operations allowing for redundancy at the provider level.
+
+{{slapd}} includes support for {{LDAP Sync}}-based
 replication.
 
 {{B:Proxy Cache}}: {{slapd}} can be configured as a caching

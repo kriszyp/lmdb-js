@@ -107,9 +107,9 @@ The memberof overlay may be used with any backend that provides full
 read-write functionality, but it is mainly intended for use 
 with local storage backends. The maintenance operations it performs
 are internal to the server on which the overlay is configured and
-are never replicated. Replica servers should be configured with their
+are never replicated. Consumer servers should be configured with their
 own instances of the memberOf overlay if it is desired to maintain
-these memberOf attributes on the replicas.  Note that slapo-memberOf
+these memberOf attributes on the consumers.  Note that slapo-memberOf
 is not compatible with syncrepl based replication, and should not be
 used in a replicated environment. An alternative is to use slapo-dynlist
 to emulate slapo-memberOf behavior.

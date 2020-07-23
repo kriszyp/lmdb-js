@@ -101,7 +101,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-LDIF=$MODIFYOUTMASTER
+LDIF=$MODIFYOUTPROVIDER
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT

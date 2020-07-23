@@ -830,10 +830,15 @@ static char *safe_realloc( char **buf, int len )
 
 char * ldap_pvt_get_fqdn( char *name )
 {
-	char *fqdn, *ha_buf;
-	char hostbuf[MAXHOSTNAMELEN+1];
+#ifdef HAVE_GETADDRINFO
+	struct addrinfo hints, *res;
+#else
+	char *ha_buf;
 	struct hostent *hp, he_buf;
-	int rc, local_h_errno;
+	int local_h_errno;
+#endif
+	int rc;
+	char *fqdn, hostbuf[MAXHOSTNAMELEN+1];
 
 	if( name == NULL ) {
 		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
@@ -844,6 +849,22 @@ char * ldap_pvt_get_fqdn( char *name )
 		}
 	}
 
+#ifdef HAVE_GETADDRINFO
+	memset( &hints, 0, sizeof( hints ));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_flags = AI_CANONNAME;
+
+	LDAP_MUTEX_LOCK( &ldap_int_resolv_mutex );
+	rc = getaddrinfo( name, NULL, &hints, &res );
+	LDAP_MUTEX_UNLOCK( &ldap_int_resolv_mutex );
+	if ( rc == 0 && res->ai_canonname ) {
+		fqdn = LDAP_STRDUP( res->ai_canonname );
+	} else {
+		fqdn = LDAP_STRDUP( name );
+	}
+	if ( rc == 0 )
+		freeaddrinfo( res );
+#else
 	rc = ldap_pvt_gethostbyname_a( name,
 		&he_buf, &ha_buf, &hp, &local_h_errno );
 
@@ -854,6 +875,7 @@ char * ldap_pvt_get_fqdn( char *name )
 	}
 
 	LDAP_FREE( ha_buf );
+#endif
 	return fqdn;
 }
 

@@ -95,7 +95,7 @@ if test $RC != 0 ; then
 fi
 
 
-LDIF=$MODRDNOUTMASTER1
+LDIF=$MODRDNOUTPROVIDER1
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
@@ -122,7 +122,7 @@ if test $RC != 0 ; then
 fi
 
 
-LDIF=$MODRDNOUTMASTER2
+LDIF=$MODRDNOUTPROVIDER2
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
@@ -166,7 +166,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-LDIF=$MODRDNOUTMASTER0
+LDIF=$MODRDNOUTPROVIDER0
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
@@ -206,7 +206,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-LDIF=$MODRDNOUTMASTER3
+LDIF=$MODRDNOUTPROVIDER3
 
 echo "Filtering ldapsearch results..."
 $LDIFFILTER < $SEARCHOUT > $SEARCHFLT

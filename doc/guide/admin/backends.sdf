@@ -86,7 +86,7 @@ server is moved to the head, so that it will be first contacted the next time
 a connection needs be created.
 
 This feature can be used to provide a form of load balancing when using 
-{{SECT: MirrorMode replication}}.
+{{SECT: Mirror mode replication}}.
 
 H3: Further Information
 

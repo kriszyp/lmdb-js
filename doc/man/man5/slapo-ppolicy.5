@@ -44,7 +44,8 @@ its specification.
 .P
 In addition to supporting the IETF Password Policy, this module
 supports the SunDS Account Usability control (1.3.6.1.4.1.42.2.27.9.5.8)
-on search requests.
+on search requests and can send the Netscape Password validity controls
+when configured to do so.
 
 .SH CONFIGURATION
 These 
@@ -62,7 +63,7 @@ and no default is given, then no policies will be enforced.
 .B ppolicy_forward_updates
 Specify that policy state changes that result from Bind operations (such
 as recording failures, lockout, etc.) on a consumer should be forwarded
-to a master instead of being written directly into the consumer's local
+to a provider instead of being written directly into the consumer's local
 database. This setting is only useful on a replication consumer, and
 also requires the
 .B updateref
@@ -93,6 +94,12 @@ that sending the
 error code provides useful information
 to an attacker; sites that are sensitive to security issues should not
 enable this option.
+.TP
+.B ppolicy_send_netscape_controls
+If set, ppolicy will send the password policy expired (2.16.840.1.113730.3.4.4)
+and password policy expiring (2.16.840.1.113730.3.4.5) controls when
+appropriate. The controls are not sent for bind requests where the Password
+policy control has already been requested. Default is not to send the controls.
 
 .SH OBJECT CLASS
 The 
@@ -692,12 +699,12 @@ module.
 Note that the current IETF Password Policy proposal does not define
 how these operational attributes are expected to behave in a
 replication environment. In general, authentication attempts on
-a slave server only affect the copy of the operational attributes
-on that slave and will not affect any attributes for
-a user's entry on the master server. Operational attribute changes
-resulting from authentication attempts on a master server
-will usually replicate to the slaves (and also overwrite
-any changes that originated on the slave). 
+a replica server only affect the copy of the operational attributes
+on that replica and will not affect any attributes for
+a user's entry on the provider. Operational attribute changes
+resulting from authentication attempts on a provider
+will usually replicate to the replicas (and also overwrite
+any changes that originated on the replica). 
 These behaviors are not guaranteed and are subject to change
 when a formal specification emerges.
 
@@ -990,7 +997,7 @@ following are met:
 There is a password policy that applies to the entry
 .IP \[bu]
 The user has
-.B read
+.B compare
 access to the entry's password attribute.
 .IP \[bu]
 The configured password attribute is present in the entry
