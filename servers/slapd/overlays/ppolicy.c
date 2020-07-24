@@ -414,6 +414,7 @@ static char *pwd_ocs[] = {
 };
 
 static ldap_pvt_thread_mutex_t chk_syntax_mutex;
+static ldap_pvt_thread_mutex_t pwdFailureTime_mutex;
 
 enum {
 	PPOLICY_DEFAULT = 1,
@@ -1418,11 +1419,13 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 		goto locked;
 	}
 
+	ldap_pvt_thread_mutex_lock( &pwdFailureTime_mutex );
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	op->o_bd->bd_info = bi;
 
 	if ( rc != LDAP_SUCCESS ) {
+		ldap_pvt_thread_mutex_unlock( &pwdFailureTime_mutex );
 		return SLAP_CB_CONTINUE;
 	}
 
@@ -1781,6 +1784,7 @@ locked:
 		op->o_callback->sc_cleanup = ppolicy_ctrls_cleanup;
 	}
 	op->o_bd->bd_info = bi;
+	ldap_pvt_thread_mutex_unlock( &pwdFailureTime_mutex );
 	return SLAP_CB_CONTINUE;
 }
 
@@ -3136,6 +3140,8 @@ ppolicy_db_init(
 
 	ov_count++;
 
+	ldap_pvt_thread_mutex_init( &pwdFailureTime_mutex );
+
 	return 0;
 }
 
@@ -3187,6 +3193,7 @@ ppolicy_db_destroy(
 		pwc--;
 		ch_free( pwc );
 	}
+	ldap_pvt_thread_mutex_destroy( &pwdFailureTime_mutex );
 	return 0;
 }
 
