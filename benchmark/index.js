@@ -4,6 +4,7 @@ var crypto = require('crypto');
 var path = require('path');
 var testDirPath = path.resolve(__dirname, './benchdata');
 
+var fs =require('fs');
 var rimraf = require('rimraf');
 var mkdirp = require('mkdirp');
 var benchmark = require('benchmark');
@@ -14,7 +15,7 @@ var lmdb = require('..');
 var env;
 var dbi;
 var keys = [];
-var total = 100000;
+var total = 10000;
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -39,7 +40,10 @@ function setup() {
   dbi = env.openDbi({
     name: 'benchmarks',
     create: true,
-//    compressionThreshold: 1000,
+    compression: new lmdb.Compression({
+      threshold: 1000,
+      dictionary: fs.readFileSync(require.resolve('../dict/dict.txt')),
+    })
   });
 
   var txn = env.beginTxn();
@@ -52,7 +56,7 @@ function setup() {
     var key = new Buffer(new Array(8));
     key.writeDoubleBE(c);
     keys.push(key.toString('hex'));
-    txn.putUtf8(dbi, key.toString('hex'), 'hello world!');
+    txn.putUtf8(dbi, key.toString('hex'), '{"id":34,"enabled":true,"title":"this is a test that should be using common words of our language and seeing if it is well compressed","children":[{"data":"some more"}]}');
     c++;
   }
   txn.commit();

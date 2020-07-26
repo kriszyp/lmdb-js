@@ -32,6 +32,7 @@
 #include <nan.h>
 #include <uv.h>
 #include "lmdb.h"
+#include "lz4.h"
 
 using namespace v8;
 using namespace node;
@@ -55,6 +56,12 @@ enum class NodeLmdbKeyType {
 
 };
 
+class TxnWrap;
+class DbiWrap;
+class EnvWrap;
+class CursorWrap;
+class Compression;
+
 // Exports misc stuff to the module
 void setupExportMisc(Local<Object> exports);
 
@@ -65,7 +72,6 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-void tryCompress(MDB_val *value, int headerSize);
 void writeValueToEntry(Local<Value> str, MDB_val *val, int headerSize = 0);
 argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val, bool fullLength = false);
@@ -74,7 +80,7 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
-Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&));
+Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, Compression *compression, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
@@ -91,11 +97,6 @@ Local<Value> valToBoolean(MDB_val &data);
 Local<Value> keyToValue(MDB_val &data);
 
 void throwLmdbError(int rc);
-
-class TxnWrap;
-class DbiWrap;
-class EnvWrap;
-class CursorWrap;
 
 /*
     `Env`
@@ -114,7 +115,9 @@ private:
     static Nan::Persistent<Function> txnCtor;
     // Constructor for DbiWrap
     static Nan::Persistent<Function> dbiCtor;
-    
+    // compression settings and space
+    Compression *compression;
+
     // Cleans up stray transactions
     void cleanupStrayTxns();
 
@@ -478,7 +481,7 @@ public:
     (Wrapper for `MDB_dbi`)
 */
 class DbiWrap : public Nan::ObjectWrap {
-private:
+public:
     // Tells how keys should be treated
     NodeLmdbKeyType keyType;
     // Stores flags set when opened
@@ -491,9 +494,8 @@ private:
     EnvWrap *ew;
     // Whether the Dbi was opened successfully
     bool isOpen;
-    // use compression
-    int compressionThreshold;
-
+    // compression settings and space
+    Compression* compression;
     // versions stored in data
     bool hasVersions;
 
@@ -501,7 +503,6 @@ private:
     friend class CursorWrap;
     friend class EnvWrap;
 
-public:
     DbiWrap(MDB_env *env, MDB_dbi dbi);
     ~DbiWrap();
 
@@ -529,6 +530,25 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+};
+
+class Compression : public Nan::ObjectWrap {
+public:
+    char* dictionary;
+    char* decompressTarget;
+    unsigned int decompressSize;
+    unsigned int compressionThreshold;
+    // compression acceleration (defaults to 1)
+    int acceleration;
+    LZ4_stream_t* stream;
+    void decompress(MDB_val& data);
+    void compress(MDB_val* value, int headerSize);
+    void expand(unsigned int size);
+    static NAN_METHOD(ctor);
+    Compression();
+    ~Compression();
+    friend class EnvWrap;
+    friend class DbiWrap;
 };
 
 /*

@@ -200,7 +200,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
         return throwLmdbError(rc);
     }
     else {
-        return info.GetReturnValue().Set(getVersionAndUncompress(data, dw->hasVersions, dw->compressionThreshold, successFunc));
+        return info.GetReturnValue().Set(getVersionAndUncompress(data, dw->hasVersions, dw->compression, successFunc));
     }
 }
 
@@ -359,8 +359,8 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     // Fill key and data
     fillFunc(info, data, headerSize);
 
-    if (data.mv_size > dw->compressionThreshold) {
-        tryCompress(&data, headerSize);
+    if (dw->compression && data.mv_size > dw->compression->compressionThreshold) {
+        dw->compression->compress(&data, headerSize);
     }
     if (headerSize > 0) {
         double version;

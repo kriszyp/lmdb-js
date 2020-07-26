@@ -4,8 +4,11 @@ var path = require('path');
 var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
 var chai = require('chai');
+var fs = require('fs');
 var should = chai.should();
 var spawn = require('child_process').spawn;
+var inspector = require('inspector')
+//inspector.open(9330, null, true)
 
 var lmdb = require('..');
 const MAX_DB_SIZE = 256 * 1024 * 1024;
@@ -306,6 +309,7 @@ describe('Node.js LMDB Bindings', function() {
     var env;
     var dbi;
     var txn;
+    console.log({dict: fs.readFileSync(require.resolve('../dict/dict.txt'))})
     before(function() {
       env = new lmdb.Env();
       env.open({
@@ -316,7 +320,10 @@ describe('Node.js LMDB Bindings', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
-        compressionThreshold: 256,
+        compression: new lmdb.Compression({
+          threshold: 100,
+          dictionary: fs.readFileSync(require.resolve('../dict/dict.txt')),
+        })
       });
       txn = env.beginTxn();
     });
@@ -353,8 +360,8 @@ describe('Node.js LMDB Bindings', function() {
       should.equal(data2, undefined);
     });
     it('string with compression', function() {
-      let value = 'Hello world!'
-      for (let i = 0; i < 7; i++)
+      let value = '{"id":34,"enabled":true,"title":"this is a test that should be using common words of our language and seeing if it is well compressed","children":[{"data":"some more"}]}'
+      for (let i = 0; i < 0; i++)
         value += value;
       console.log('value length',value.length);
       txn.putUtf8(dbi, 'key1', value);

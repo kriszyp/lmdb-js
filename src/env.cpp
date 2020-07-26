@@ -42,6 +42,8 @@ EnvWrap::~EnvWrap() {
         this->cleanupStrayTxns();
         mdb_env_close(env);
     }
+    if (this->compression)
+        this->compression->Unref();
 }
 
 void EnvWrap::cleanupStrayTxns() {
@@ -161,10 +163,9 @@ int DELETE_VALUE; // pointer to this as the value represents a delete
 struct action_t {
     MDB_val key;
     MDB_val data;
-    MDB_dbi dbi;
+    DbiWrap* dw;
     condition_t *condition;
     double ifVersion;
-    uint8_t compress;
     argtokey_callback_t freeKey;
 };
 
@@ -199,9 +200,10 @@ class BatchWorker : public Nan::AsyncProgressWorker {
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
         for (int i = 0; i < actionCount; i++) {
             action_t* action = &actions[i];
-            if (action->compress < 255) {
-                tryCompress(&action->data, action->compress);
-            }
+            DbiWrap* dw = action->dw;
+            Compression* compression = dw->compression;
+            if (compression && compression->compressionThreshold <= action->data.mv_size)
+                compression->compress(&action->data, dw->hasVersions ? 8 : 0);
         }
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
         if (rc != 0) {
@@ -238,7 +240,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 }
             } else if (action->ifVersion != ANY_VERSION) {
                 MDB_val value;
-                rc = mdb_get(txn, action->dbi, &action->key, &value);
+                rc = mdb_get(txn, action->dw->dbi, &action->key, &value);
                 bool different;
                 if (action->ifVersion == NO_EXIST_VERSION) {
                     different = rc != MDB_NOTFOUND;
@@ -264,13 +266,13 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 rc = 0; // make sure this gets set back to zero, failed conditions shouldn't trigger error
             } else {
                 if (action->data.mv_data == &DELETE_VALUE) {
-                    rc = mdb_del(txn, action->dbi, &action->key, nullptr);
+                    rc = mdb_del(txn, action->dw->dbi, &action->key, nullptr);
                     if (rc == MDB_NOTFOUND) {
                         rc = 0; // ignore not_found errors
                         results[i] = 2;
                     }
                 } else {
-                    rc = mdb_put(txn, action->dbi, &action->key, &action->data, putFlags);
+                    rc = mdb_put(txn, action->dw->dbi, &action->key, &action->data, putFlags);
                 }
             }
             if (action->data.mv_data != &DELETE_VALUE) {
@@ -340,6 +342,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
     action_t* actions;
     int putFlags;
     Nan::Callback* progress;
+    friend class DbiWrap;
 };
 
 
@@ -356,6 +359,7 @@ NAN_METHOD(EnvWrap::open) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
+    ew->compression = nullptr;
 
     Local<Object> options = Local<Object>::Cast(info[0]);
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
@@ -374,6 +378,11 @@ NAN_METHOD(EnvWrap::open) {
         if (rc != 0) {
             return throwLmdbError(rc);
         }
+    }
+    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
+    if (compressionOption->IsObject()) {
+        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(compressionOption).ToLocalChecked());
+        ew->compression->Ref();
     }
 
     // Parse the maxReaders option
@@ -661,8 +670,10 @@ NAN_METHOD(EnvWrap::batchWrite) {
         v8::Local<v8::Object> operation = v8::Local<v8::Object>::Cast(array->Get(context, i).ToLocalChecked());
 
         bool isArray = operation->IsArray();
-        DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(context, Nan::New<String>("db").ToLocalChecked())).ToLocalChecked()));
-        action->dbi = dw->dbi;
+        v8::Local<v8::Object> dbObject = v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(context, Nan::New<String>("db").ToLocalChecked())).ToLocalChecked());
+        worker->SaveToPersistent(persistedIndex++, dbObject);
+        DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(dbObject);
+        action->dw = dw;
         v8::Local<v8::Value> key = (isArray ? operation->Get(context, 1) : operation->Get(context, Nan::New<String>("key").ToLocalChecked())).ToLocalChecked();
         
         if (!keyIsValid) {
@@ -720,12 +731,12 @@ NAN_METHOD(EnvWrap::batchWrite) {
             }
             if (condition) {
                 if (isArray) {
-                    condition->dbi = action->dbi;
+                    condition->dbi = action->dw->dbi;
                     condition->key = action->key;
                 } else {
                     v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
                     if (ifDB->IsNullOrUndefined()) {
-                        condition->dbi = action->dbi;
+                        condition->dbi = action->dw->dbi;
                     } else if (ifDB->IsObject()) {
                         dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<v8::Object>(ifDB).ToLocalChecked());
                         condition->dbi = dw->dbi;
@@ -746,7 +757,6 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 }
             }
         }
-        char headerSize = 0;
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = &DELETE_VALUE;
             action->data.mv_size = 0;
@@ -761,13 +771,10 @@ NAN_METHOD(EnvWrap::batchWrite) {
             if (dw->hasVersions) {
                 writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
                 *((double*) action->data.mv_data) = version;
-                headerSize = 8;
             } else {
                 writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
             }
         }
-        action->compress = dw->compressionThreshold < action->data.mv_size ||
-            action->data.mv_size > 0 && ((uint8_t*) action->data.mv_data)[0] > 250 ? headerSize : 255;
     }
 
     worker->SaveToPersistent("env", info.This());
@@ -835,6 +842,11 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor.Reset( dbiTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+
+    Local<FunctionTemplate> compressionTpl = Nan::New<FunctionTemplate>(Compression::ctor);
+    compressionTpl->SetClassName(Nan::New<String>("Compression").ToLocalChecked());
+    compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Compression").ToLocalChecked(), compressionTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 
     // Set exports
     exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());

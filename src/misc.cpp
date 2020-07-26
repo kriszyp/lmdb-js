@@ -22,7 +22,6 @@
 // THE SOFTWARE.
 
 #include "node-lmdb.h"
-#include "lz4.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -262,7 +261,7 @@ Local<Value> valToBoolean(MDB_val &data) {
     return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
-Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compressionThreshold, Local<Value> (*successFunc)(MDB_val&)) {
+Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, Compression* compression, Local<Value> (*successFunc)(MDB_val&)) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     int headerSize = 0;
     unsigned char* charData = (unsigned char*) data.mv_data;
@@ -276,36 +275,10 @@ Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, int compres
     }
     if (data.mv_size == 0)
         return successFunc(data);
-    unsigned char statusByte = compressionThreshold < 0xffffffff ? charData[0] : 0;
+    unsigned char statusByte = compression ? charData[0] : 0;
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
-        uint32_t uncompressedLength;
-        int compressionHeaderSize;
-        if (statusByte == 254) {
-            uncompressedLength = ((uint32_t) charData[1] << 16) | ((uint32_t) charData[2] << 8) | (uint32_t) charData[3];
-            compressionHeaderSize = 4;
-        } else if (statusByte == 255) {
-            uncompressedLength = ((uint32_t) charData[4] << 24) | ((uint32_t) charData[5] << 16) | ((uint32_t) charData[6] << 8) | (uint32_t) charData[7];
-            compressionHeaderSize = 8;
-        } else if (statusByte == 251) {
-            return Nan::New<Number>(*((double*) (charData + 1)));
-        } else {
-            fprintf(stderr, "Unknown status byte %u\n", statusByte);
-            return Nan::CopyBuffer(
-                (char*)data.mv_data,
-                data.mv_size
-            ).ToLocalChecked();
-        }
-        //fprintf(stdout, "uncompressedLength %u, first byte %u\n", uncompressedLength, charData[compressionHeaderSize]);
-        char* uncompressedData = new char[uncompressedLength];
-        LZ4_decompress_safe((char*) charData + compressionHeaderSize, uncompressedData, data.mv_size - compressionHeaderSize, uncompressedLength);
-        //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
-        data.mv_data = uncompressedData;
-        data.mv_size = uncompressedLength;
-        // TODO: Allow 253 and 252 to denote that it is a latin-only string so can use the CustomExternalOneByteStringResource for large one-byte strings to reduce memory copying
-        Local<Value> value = successFunc(data);
-        delete[] uncompressedData;
-        return value;
+        compression->decompress(data);
     }
     return successFunc(data);
 }
@@ -345,40 +318,6 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void tryCompress(MDB_val* value, int headerSize) {
-    int dataLength = value->mv_size - headerSize;
-    char* data = (char*) value->mv_data;
-    bool longSize = dataLength >= 0x1000000;
-    int prefixSize = (longSize ? 8 : 4) + headerSize;
-    int maxCompressedSize = dataLength - 100;
-    char* compressed = new char[maxCompressedSize + prefixSize];
-    int compressedSize = LZ4_compress_default(data + headerSize, compressed + prefixSize, dataLength, maxCompressedSize);
-    if (compressedSize > 0) {
-        if (headerSize > 0)
-            memcpy(compressed, data, headerSize);
-        delete[] value->mv_data;
-        uint8_t* compressedData = (uint8_t*) compressed + headerSize;
-        if (longSize) {
-            compressedData[0] = 255;
-            compressedData[2] = (uint8_t) (dataLength >> 40u);
-            compressedData[3] = (uint8_t) (dataLength >> 32u);
-            compressedData[4] = (uint8_t) (dataLength >> 24u);
-            compressedData[5] = (uint8_t) (dataLength >> 16u);
-            compressedData[6] = (uint8_t) (dataLength >> 8u);
-            compressedData[7] = (uint8_t) dataLength;
-        } else {
-            compressedData[0] = 254;
-            compressedData[1] = (uint8_t) (dataLength >> 16u);
-            compressedData[2] = (uint8_t) (dataLength >> 8u);
-            compressedData[3] = (uint8_t) dataLength;
-        }
-        value->mv_data = compressed;
-        value->mv_size = compressedSize + prefixSize;
-    } else {
-        delete[] compressed;
-    }
-}
-
 void writeValueToEntry(Local<Value> value, MDB_val *val, int headerSize) {
     if (value->IsString()) {
         Local<String> str = Local<String>::Cast(value);
@@ -412,6 +351,7 @@ void writeValueToEntry(Local<Value> value, MDB_val *val, int headerSize) {
         Nan::ThrowError("Unknown value type");
     }
 }
+
 
 void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
     unsigned int l = str->Length() + 1;

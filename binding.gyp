@@ -13,6 +13,7 @@
         "dependencies/lz4/lib/lz4.c",
         "src/node-lmdb.cpp",
         "src/env.cpp",
+        "src/compression.cpp",
         "src/ordered-binary.cpp",
         "src/misc.cpp",
         "src/txn.cpp",

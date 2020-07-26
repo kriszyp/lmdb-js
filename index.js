@@ -4,7 +4,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('./build/Release/lmdb-store.node'))
-const { Env, Cursor, getLastVersion } = exports
+const { Env, Cursor, Compression, getLastVersion } = exports
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -38,6 +38,13 @@ function open(path, options) {
 		noSubdir: Boolean(extension),
 		maxDbs: 12,
 	}, options)
+	if (options.compression) {
+		options.compression = new Compression(Object.assign({
+			threshold: 1000,
+			dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+		}), options.compression)
+		console.log('compression object', options.compression)
+	}
 
 	if (options && options.clearOnStart) {
 		console.info('Removing', path)
@@ -63,6 +70,15 @@ function open(path, options) {
 					handleError(error, null, null, openDB)
 				}
 			}
+			if (dbOptions.compression && !(dbOptions.compression instanceof Compression)) {
+				dbOptions.compression = new Compression(Object.assign({
+					threshold: 1000,
+					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+				}), dbOptions.compression)
+				console.log('new compression object', dbOptions.compression)
+			}
+
+
 			openDB()
 			this.dbName = dbName
 			this.env = env
