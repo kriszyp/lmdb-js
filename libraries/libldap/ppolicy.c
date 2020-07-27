@@ -222,44 +222,34 @@ ldap_parse_password_expiring_control(
 	LDAPControl    *ctrl,
 	long           *secondsp )
 {
-	BerElement  *ber;
-	struct berval time_string;
 	long seconds = 0;
+	char buf[sizeof("-2147483648")];
 	char *next;
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( ctrl != NULL );
 
-	if ( !ctrl->ldctl_value.bv_val ) {
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ||
+		ctrl->ldctl_value.bv_len >= sizeof(buf) ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return(ld->ld_errno);
 	}
 
-	/* Create a BerElement from the berval returned in the control. */
-	ber = ber_init(&ctrl->ldctl_value);
+	memcpy( buf, ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len );
+	buf[ctrl->ldctl_value.bv_len] = '\0';
 
-	if (ber == NULL) {
-		ld->ld_errno = LDAP_NO_MEMORY;
-		return(ld->ld_errno);
-	}
-
-	if ( ber_get_stringbv( ber, &time_string, 0 ) == LBER_ERROR ) goto exit;
-
-	seconds = strtol( time_string.bv_val, &next, 10 );
-	if ( next == time_string.bv_val || next[0] != '\0' ) goto exit;
+	seconds = strtol( buf, &next, 10 );
+	if ( next == buf || next[0] != '\0' ) goto exit;
 
 	if ( secondsp != NULL ) {
 		*secondsp = seconds;
 	}
 
-	ber_free(ber, 1);
-
 	ld->ld_errno = LDAP_SUCCESS;
 	return(ld->ld_errno);
 
   exit:
-	ber_free(ber, 1);
 	ld->ld_errno = LDAP_DECODING_ERROR;
 	return(ld->ld_errno);
 }
