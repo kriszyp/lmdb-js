@@ -449,24 +449,13 @@ fail:
 static LDAPControl *
 create_passexpiry( Operation *op, int expired, int warn )
 {
-	BerElementBuffer berbuf;
-	BerElement *ber = (BerElement *) &berbuf;
-	LDAPControl c = { 0 }, *cp;
+	LDAPControl *cp;
 	char buf[sizeof("-2147483648")];
 	struct berval bv = { .bv_val = buf, .bv_len = sizeof(buf) };
-	int rc;
-
-	BER_BVZERO( &c.ldctl_value );
 
 	bv.bv_len = snprintf( bv.bv_val, bv.bv_len, "%d", warn );
 
-	ber_init2( ber, NULL, LBER_USE_DER );
-	ber_printf( ber, "O", &bv );
-
-	if (ber_flatten2( ber, &c.ldctl_value, 0 ) == -1) {
-		return NULL;
-	}
-	cp = op->o_tmpalloc( sizeof( LDAPControl ) + c.ldctl_value.bv_len, op->o_tmpmemctx );
+	cp = op->o_tmpalloc( sizeof( LDAPControl ) + bv.bv_len, op->o_tmpmemctx );
 	if ( expired ) {
 		cp->ldctl_oid = (char *)ppolicy_pwd_expired_oid;
 	} else {
@@ -474,11 +463,8 @@ create_passexpiry( Operation *op, int expired, int warn )
 	}
 	cp->ldctl_iscritical = 0;
 	cp->ldctl_value.bv_val = (char *)&cp[1];
-	cp->ldctl_value.bv_len = c.ldctl_value.bv_len;
-	AC_MEMCPY( cp->ldctl_value.bv_val, c.ldctl_value.bv_val, c.ldctl_value.bv_len );
-fail:
-	(void)ber_free_buf(ber);
-
+	cp->ldctl_value.bv_len = bv.bv_len;
+	AC_MEMCPY( cp->ldctl_value.bv_val, bv.bv_val, bv.bv_len );
 	return cp;
 }
 
