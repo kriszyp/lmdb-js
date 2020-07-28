@@ -657,6 +657,15 @@ if test -z "${AR}"; then
 	fi
 fi
 
+if test -z "${STRIP}"; then
+	AC_CHECK_PROGS(STRIP,strip,missing)
+
+	if test "${STRIP}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate strip(1) or suitable replacement.  Check PATH or set STRIP.])
+	fi
+fi
+
+
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_MAKE_SET
