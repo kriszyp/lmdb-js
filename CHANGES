@@ -6,6 +6,7 @@ OpenLDAP 2.4.51 Engineering
 	Fixed libldap to use getaddrinfo in ldap_pvt_get_fqdn (ITS#9287)
 	Fixed slapd syncrepl to not delete non-replicated attrs (ITS#9227)
 	Fixed slapd syncrepl to correctly delete entries on resync (ITS#9282)
+	Fixed slapd syncrepl to use replace on single valued attrs (ITS#9294, ITS#9295)
 	Fixed slapd-perl dynamic config with threaded slapd (ITS#7573)
 	Fixed slapo-ppolicy to expose the ppolicy control (ITS#9285)
 	Fixed slapo-chain to check referral (ITS#9262)
