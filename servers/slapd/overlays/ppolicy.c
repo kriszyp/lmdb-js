@@ -1773,7 +1773,7 @@ locked:
 		}
 		ctrl = create_passcontrol( op, warn, ngut, ppb->pErr );
 	} else if ( pi->send_netscape_controls ) {
-		if ( ppb->pErr != PP_noError || ngut > 0 ) {
+		if ( ppb->pErr != PP_noError || pwExpired ) {
 			ctrl = create_passexpiry( op, 1, 0 );
 		} else if ( warn > 0 ) {
 			ctrl = create_passexpiry( op, 0, warn );
