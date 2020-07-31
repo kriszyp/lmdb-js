@@ -1570,20 +1570,20 @@ tool_bind( LDAP *ld )
 #endif
 
 #ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
-	if ( ctrls ) {
-		LDAPControl *ctrl;
-		ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRED,
-			ctrls, NULL );
-		if ( !ctrl )
-			ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRING,
+		if ( ctrls ) {
+			LDAPControl *ctrl;
+			ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRED,
 				ctrls, NULL );
-		if ( ctrl ) {
-			LDAPControl *ctmp[2];
-			ctmp[0] = ctrl;
-			ctmp[1] = NULL;
-			tool_print_ctrls( ld, ctmp );
+			if ( !ctrl )
+				ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRING,
+					ctrls, NULL );
+			if ( ctrl ) {
+				LDAPControl *ctmp[2];
+				ctmp[0] = ctrl;
+				ctmp[1] = NULL;
+				tool_print_ctrls( ld, ctmp );
+			}
 		}
-	}
 #endif
 
 		if ( ctrls ) {
