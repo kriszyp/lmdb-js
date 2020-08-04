@@ -58,7 +58,7 @@ This will set the provided value at the specified key, but will do so synchronou
 ### `store.removeSync(key, ifVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion.
 
-### store.transaction(execute: Function)
+### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `putSync`s, and `removeSync`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
 ### `getRange(options: { start?, end?, reverse?: boolean, limit?: number}): Iterable<{ key, value: Buffer }>`
@@ -82,15 +82,15 @@ Note that `map` and `filter` are also lazy, they will only be executed once thei
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default database, `"data"`. However, you can use multiple databases per environment and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
 const { open } = require('lmdb-store');
-let myStore = open('all-my-data');
+let rootStore = open('all-my-data');
 let usersStore = myStore.openDB('users');
 let groupsStore = myStore.openDB('groups');
 let productsStore = myStore.openDB('products');
 ```
 Each of the opened/returned stores has the same API as the default store for the environment. Each of the stores for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two stores with the same environment will be batched together in the same commit. For example:
 ```
-usersStore.put("some-user", { data: userInfo });
-groupsStore.put("some-group", { groupData: moreData });
+usersStore.put('some-user', { data: userInfo });
+groupsStore.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and after 20ms be committed in the same transaction.
 
@@ -112,6 +112,7 @@ When using the various APIs, keys can be any JS primitive (string, number, boole
 ['hello', 1, 'world']
 ['hello', 'world']
 ```
+You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower).
 
 ### Values
 Values are stored and retrieved according the database encoding, which can be set using the `encoding` property on the database options. There are three supported encodings:
@@ -145,13 +146,14 @@ let myStore = open('my-store', {
 The open method has the following signature:
 `open(path, options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument should be an object, and supports the following properties, all of which are optional:
-* encoding - Sets the encoding for the database, which can be `'json'`, `'string'`, or `'binary'`.
-* compression - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
-* useVersions - Set this to true if you will be setting version numbers on the entries in the database.
-* maxDbs - The maximum number of databases to be able to open (there is extra overhead if this is set too high).
-* commitDelay - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 1ms. A delay of 0 means more immediate commits, but a longer delay can be more efficient at collecting more writes into a single transaction and reducing I/O load.
-* immediateBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
-* syncBatchThreshold - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
+* `encoding` - Sets the encoding for the database, which can be `'json'`, `'string'`, or `'binary'`.
+* `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
+* `useVersions` - Set this to true if you will be setting version numbers on the entries in the database.
+* `maxDbs` - The maximum number of databases to be able to open (there is extra overhead if this is set too high).
+* `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 1ms. A delay of 0 means more immediate commits, but a longer delay can be more efficient at collecting more writes into a single transaction and reducing I/O load.
+* `immediateBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
+* `syncBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
+* `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a> (none of these are recommended, but are available for adjusting performance):
 * useWritemap - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data.
