@@ -2157,6 +2157,8 @@ syncrepl_accesslog_mods(
 
 		if ( !mod || ad != mod->sml_desc || op != mod->sml_op ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			if ( op == LDAP_MOD_ADD && is_at_single_value( ad->ad_type ))
+				op = LDAP_MOD_REPLACE;
 			mod->sml_flags = 0;
 			mod->sml_op = op;
 			mod->sml_next = NULL;
@@ -5077,7 +5079,10 @@ attr_cmp( Operation *op, Attribute *old, Attribute *new,
 		/* some values were added */
 		if ( nn && no < o ) {
 			mod = ch_malloc( sizeof( Modifications ) );
-			mod->sml_op = LDAP_MOD_ADD;
+			if ( is_at_single_value( old->a_desc->ad_type ))
+				mod->sml_op = LDAP_MOD_REPLACE;
+			else
+				mod->sml_op = LDAP_MOD_ADD;
 			mod->sml_flags = 0;
 			mod->sml_desc = old->a_desc;
 			mod->sml_type = mod->sml_desc->ad_cname;

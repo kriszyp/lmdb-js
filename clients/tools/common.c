@@ -162,6 +162,10 @@ static int print_dirsync( LDAP *ld, LDAPControl *ctrl );
 #ifdef LDAP_CONTROL_X_ACCOUNT_USABILITY
 static int print_account_usability( LDAP *ld, LDAPControl *ctrl );
 #endif
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+static int print_netscape_pwexpired( LDAP *ld, LDAPControl *ctrl );
+static int print_netscape_pwexpiring( LDAP *ld, LDAPControl *ctrl );
+#endif
 
 static struct tool_ctrls_t {
 	const char	*oid;
@@ -194,6 +198,10 @@ static struct tool_ctrls_t {
 #endif
 #ifdef LDAP_CONTROL_X_ACCOUNT_USABILITY
 	{ LDAP_CONTROL_X_ACCOUNT_USABILITY,		TOOL_SEARCH,	print_account_usability },
+#endif
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+	{ LDAP_CONTROL_X_PASSWORD_EXPIRED,		TOOL_ALL,	print_netscape_pwexpired },
+	{ LDAP_CONTROL_X_PASSWORD_EXPIRING,		TOOL_ALL,	print_netscape_pwexpiring },
 #endif
 	{ NULL,						0,		NULL }
 };
@@ -1645,6 +1653,23 @@ tool_bind( LDAP *ld )
 		}
 	}
 
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+	if ( ctrls ) {
+		LDAPControl *ctrl;
+		ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRED,
+			ctrls, NULL );
+		if ( !ctrl )
+			ctrl = ldap_control_find( LDAP_CONTROL_X_PASSWORD_EXPIRING,
+				ctrls, NULL );
+		if ( ctrl ) {
+			LDAPControl *ctmp[2];
+			ctmp[0] = ctrl;
+			ctmp[1] = NULL;
+			tool_print_ctrls( ld, ctmp );
+		}
+	}
+#endif
+
 	if ( ctrls ) {
 		ldap_controls_free( ctrls );
 	}
@@ -2570,6 +2595,28 @@ print_ppolicy( LDAP *ld, LDAPControl *ctrl )
 			ldif ? "ppolicy: " : "ppolicy", buf, ptr - buf );
 	}
 
+	return rc;
+}
+#endif
+
+#ifdef LDAP_CONTROL_X_PASSWORD_EXPIRED
+static int
+print_netscape_pwexpired( LDAP *ld, LDAPControl *ctrl )
+{
+	printf(_("# PasswordExpired control\n") );
+	return 0;
+}
+
+static int
+print_netscape_pwexpiring( LDAP *ld, LDAPControl *ctrl )
+{
+	long expiring = 0;
+	int rc;
+
+	rc = ldap_parse_password_expiring_control( ld, ctrl, &expiring );
+	if ( rc == LDAP_SUCCESS ) {
+		printf(_("# PasswordExpiring control seconds=%ld\n"), expiring );
+	}
 	return rc;
 }
 #endif
