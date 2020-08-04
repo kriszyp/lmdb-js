@@ -178,12 +178,12 @@ function open(path, options) {
 					}
 				}
 				if (typeof value === 'string') {
-					txn.putUtf8(this.db, id, value, version)
+					writeTxn.putUtf8(this.db, id, value, version)
 				} else {
 					if (!(value && value.readUInt16BE)) {
 						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
 					}
-					txn.putBinary(this.db, id, value, version)
+					writeTxn.putBinary(this.db, id, value, version)
 				}
 				return Promise.resolve(true)
 			}
@@ -300,10 +300,11 @@ function open(path, options) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
 							if (nextKey) {
-								if (compareKey(nextKey, currentKey) == 0) {
+								if (compareKey(nextKey, currentKey)) {
 									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
 									currentKey = cursor.goToPrev()
-								} // else they match, we are good, and currentKey is already correct
+								} else
+									currentKey = nextKey // they match, we are good, and currentKey is already correct
 							} else {
 								// likewise, we have been position beyond the end of the index, need to go to last
 								currentKey = cursor.goToLast()
@@ -461,6 +462,7 @@ function open(path, options) {
 					let batch = pendingBatch
 					runNextBatch((operations, callback) => {
 						try {
+							console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
 							callback(null, this.commitBatchNow(operations))
 						} catch (error) {
 							callback(error)
@@ -475,7 +477,6 @@ function open(path, options) {
 			return pendingBatch
 		}
 		commitBatchNow(operations) {
-			console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
 			let value
 			let results = new Array(operations.length)
 			this.transaction(() => {
@@ -512,6 +513,10 @@ function open(path, options) {
 					value = JSON.stringify(value)
 				scheduledOperations.push([this.db, operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
+			}
+			if (writeTxn) {
+				this.commitBatchNow(scheduledOperations)
+				return Promise.resolve(true)
 			}
 			return this.scheduleCommit().unconditionalResults
 		}
