@@ -533,7 +533,7 @@ NAN_METHOD(EnvWrap::copy) {
     if (!info[info.Length() - 1]->IsFunction()) {
         return Nan::ThrowError("Call env.copy(path, compact?, callback) with a file path.");
     }
-    char* path = *Nan::Utf8String(info[0].As<String>());
+    Nan::Utf8String path(info[0].As<String>());
 
     int flags = 0;
     if (info.Length() > 1 && info[1]->IsTrue()) {
@@ -545,7 +545,7 @@ NAN_METHOD(EnvWrap::copy) {
     );
 
     CopyWorker* worker = new CopyWorker(
-      ew->env, path, flags, callback
+      ew->env, *path, flags, callback
     );
 
     Nan::AsyncQueueWorker(worker);

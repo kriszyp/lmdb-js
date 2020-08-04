@@ -8,6 +8,12 @@
     "type": "git",
     "url": "http://github.com/DoctorEvidence/lmdb-store"
   },
+  "keywords": [
+    "lmdb",
+    "database",
+    "mdb",
+    "lightning",
+  ],
   "main": "./index.js",
   "typings": "./index.d.ts",
   "scripts": {
@@ -23,14 +29,14 @@
     "bindings": "^1.5.0",
     "fs-extra": "^9.0.0",
     "prebuild-install": "^5.2.5",
-    "nan": "^2.13.1"
+    "nan": "^2.14.1"
   },
   "devDependencies": {
     "benchmark": "^2.1.4",
     "chai": "^3.5.0",
     "mkdirp": "^1.0.4",
     "mocha": "^8.0.1",
-    "node-gyp": "^3.6.0",
+    "node-gyp": "^5.1.1",
     "prebuild": "8.2.1",
     "rimraf": "^2.6.1",
     "jshint": "^2.9.4"

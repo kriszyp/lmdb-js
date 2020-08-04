@@ -1,6 +1,7 @@
 {
   "variables": {
       "os_linux_compiler%": "gcc",
+      "use_vl32%": "false",
   },
   "targets": [
     {
@@ -64,6 +65,13 @@
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
+        }],
+        ["use_vl32=='true'", {
+          "conditions": [
+            ["target_arch=='ia32'", {
+                "defines": ["MDB_VL32"]
+              }]
+            ]
         }],
       ],
     }
