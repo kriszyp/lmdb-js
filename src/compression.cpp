@@ -65,7 +65,7 @@ void Compression::decompress(MDB_val& data) {
         return;
     }
     //TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
-    fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
+    //fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
     if (uncompressedLength > decompressSize)
         expand(uncompressedLength);
     int written = LZ4_decompress_safe_usingDict(
@@ -83,6 +83,7 @@ void Compression::expand(unsigned int size) {
     unsigned int newTotalSize = dictSize + decompressSize;
     char* oldSpace = dictionary;
     dictionary = new char[newTotalSize];
+    decompressTarget = dictionary + dictSize;
     memcpy(dictionary, oldSpace, dictSize);
     delete oldSpace;
 }
