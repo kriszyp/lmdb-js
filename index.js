@@ -43,7 +43,6 @@ function open(path, options) {
 			threshold: 1000,
 			dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
 		}), options.compression)
-		console.log('compression object', options.compression)
 	}
 
 	if (options && options.clearOnStart) {
@@ -397,57 +396,59 @@ function open(path, options) {
 			if (!pendingBatch) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
-					when(currentCommit, () => {
-						let timeout = (this.commitDelay > 0 ? setTimeout : setImmediate)(runNextBatch = (batchWriter) => {
-							runNextBatch = null
-							if (pendingBatch) {
-								for (const store of stores) {
-									store.emit('beforecommit', { scheduledOperations })
-								}
+					runNextBatch = (batchWriter) => {
+						if (!whenCommitted)
+							return
+						runNextBatch = null
+						if (pendingBatch) {
+							for (const store of stores) {
+								store.emit('beforecommit', { scheduledOperations })
 							}
-							clearTimeout(timeout)
-							currentCommit = whenCommitted
-							pendingBatch = null
-							this.pendingSync = null
-							if (scheduledOperations) {
-								// operations to perform, collect them as an array and start doing them
-								let operations = scheduledOperations
-								scheduledOperations = null
-								const writeBatch = () => {
-									let start = Date.now()
-									let callback = (error, results) => {
-										let duration = Date.now() - start
-										this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
-										//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
-										if (error) {
-											try {
-												// see if we can recover from recoverable error (like full map with a resize)
-												handleError(error, this, null, writeBatch)
-											} catch(error) {
-												currentCommit = null
-												reject(error)
-											}
-										} else {
+						}
+						clearTimeout(timeout)
+						currentCommit = whenCommitted
+						whenCommitted = null
+						pendingBatch = null
+						if (scheduledOperations) {
+							// operations to perform, collect them as an array and start doing them
+							let operations = scheduledOperations
+							scheduledOperations = null
+							const writeBatch = () => {
+								let start = Date.now()
+								let callback = (error, results) => {
+									let duration = Date.now() - start
+									this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
+									//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
+									if (error) {
+										try {
+											// see if we can recover from recoverable error (like full map with a resize)
+											handleError(error, this, null, writeBatch)
+										} catch(error) {
 											currentCommit = null
-											resolve(results)
+											reject(error)
 										}
+									} else {
+										currentCommit = null
+										resolve(results)
 									}
-									if (typeof batchWriter === 'function')
-										batchWriter(operations, callback)
-									else
-										env.batchWrite(operations, callback)
 								}
-								try {
-									writeBatch()
-								} catch(error) {
-									reject(error)
-								}
-							} else {
-								resolve([])
+								if (typeof batchWriter === 'function')
+									batchWriter(operations, callback)
+								else
+									env.batchWrite(operations, callback)
 							}
-						}, this.commitDelay)
-						runNextBatch.timeout = timeout
-					})
+							try {
+								writeBatch()
+							} catch(error) {
+								reject(error)
+							}
+						} else {
+							resolve([])
+						}
+					}
+					let timeout = (this.commitDelay > 0 ? setTimeout : setImmediate)(() => {
+						when(currentCommit, () => whenCommitted && runNextBatch())
+					}, this.commitDelay)
 				})
 				pendingBatch = {
 					results: whenCommitted,
@@ -458,7 +459,6 @@ function open(path, options) {
 				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
 					// past a certain threshold, run it immediately and synchronously
 					let batch = pendingBatch
-					clearImmediate(runNextBatch.immediate)
 					runNextBatch((operations, callback) => {
 						try {
 							callback(null, this.commitBatchNow(operations))
@@ -468,7 +468,8 @@ function open(path, options) {
 					})
 					return batch
 				} else if (!runNextBatch.immediate) {
-					runNextBatch.immediate = setImmediate(runNextBatch)
+					let thisNextBatch = runNextBatch
+					runNextBatch.immediate = setImmediate(() => when(currentCommit, () => thisNextBatch()))
 				}
 			}
 			return pendingBatch
