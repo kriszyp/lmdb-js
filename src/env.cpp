@@ -332,7 +332,7 @@ NAN_METHOD(EnvWrap::open) {
     // Parse the mapSize option
     Local<Value> mapSizeOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
     if (mapSizeOption->IsNumber()) {
-        size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).ToChecked();
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
             return throwLmdbError(rc);
@@ -393,7 +393,7 @@ NAN_METHOD(EnvWrap::resize) {
         return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
     }
 
-    size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).ToChecked();
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
     if (rc != 0) {
         return throwLmdbError(rc);

@@ -28,7 +28,7 @@
     "binding"
   ],
   "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "main": "./index.js",
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
