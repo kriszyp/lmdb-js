@@ -447,6 +447,14 @@ else
 	dnl then require at least one built-in backend
 
 	if test $ol_enable_modules = no; then
+
+		for i in backends overlays $Backends $Overlays; do
+			eval "ol_tmp=\$ol_enable_$i"
+			if test -n "$ol_tmp" && test "$ol_tmp" = mod ; then
+				AC_MSG_ERROR([--enable-$i=mod requires --enable-modules])
+			fi
+		done
+
 		ol_any_backend=no
 		for i in $Backends; do
 			eval "ol_tmp=\$ol_enable_$i"
@@ -754,22 +762,6 @@ if test $ol_enable_modules != no ; then
 	fi
 	ol_link_modules=yes
 	WITH_MODULES_ENABLED=yes
-
-else
-	for i in $Backends; do
-		eval "ol_tmp=\$ol_enable_$i"
-		if test $ol_tmp = mod ; then
-			AC_MSG_WARN([building static $i backend])
-			eval "ol_enable_$i=yes"
-		fi
-	done
-	for i in $Overlays; do
-		eval "ol_tmp=\$ol_enable_$i"
-		if test $ol_tmp = mod ; then
-			AC_MSG_WARN([building static $i overlay])
-			eval "ol_enable_$i=yes"
-		fi
-	done
 fi
 
 dnl ----------------------------------------------------------------
