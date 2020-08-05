@@ -338,7 +338,7 @@ do_oc:;
 
 		ObjectClass	*oc;
 
-		for ( oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
+		for ( i = 0, oc_start( &oc ); oc != NULL; oc_next( &oc ) ) {
 			/* we can only add AUXILIARY objectClasses */
 			if ( oc->soc_kind != LDAP_SCHEMA_AUXILIARY ) {
 				continue;
