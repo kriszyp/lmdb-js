@@ -13,6 +13,7 @@ OpenLDAP 2.4.51 Engineering
 	Fixed slapo-chain to check referral (ITS#9262)
 	Contrib
 		Fix default prefix value for pw-argon2, pw-pbkdf2 modules (ITS#9248)
+		slapo-allowed - Fix usage of unitialized variable (ITS#9308)
 	Documentation
 		ldap_parse_result(3) - Document ldap_parse_intermediate (ITS#9271)
 
@@ -66,8 +67,6 @@ OpenLDAP 2.4.49 Release (2020/01/30)
 		Remove ICU library detection (ITS#9144)
 		Update config.guess and config.sub to support newer architectures (ITS#7855)
 		Disable ITS8521 regression test as it is no longer valid (ITS#9015)
-	Contrib
-		slapo-allowed - Fix usage of unitialized variable (ITS#9308)
 	Documentation
 		admin24 - Fix inconsistent whitespace in replication section (ITS#9153)
 		admin24 - Fix dmoz URL to point to Curlie (ITS#9289)
