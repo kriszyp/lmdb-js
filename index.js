@@ -28,7 +28,7 @@ function open(path, options) {
 	let committingWrites
 	let scheduledWrites
 	let scheduledOperations
-	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch
+	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed
 	let extension = extname(path)
 	let name = basename(path, extension)
 	if (!fs.existsSync(extension ? dirname(path) : path))
@@ -53,6 +53,17 @@ function open(path, options) {
 	env.open(options)
 	readTxn = env.beginTxn(READING_TNX)
 	readTxn.reset()
+	function renewReadTxn() {
+		readTxnRenewed = setImmediate(resetReadTxn)
+		readTxn.renew()
+		return readTxn
+	}
+	function resetReadTxn() {
+		if (readTxnRenewed) {
+			readTxnRenewed = null
+			readTxn.reset()
+		}
+	}
 	let stores = []
 	class LMDBStore extends EventEmitter {
 		constructor(dbName, dbOptions) {
@@ -126,6 +137,7 @@ function open(path, options) {
 						txn.abort()
 					} else {
 						txn.commit()
+						resetReadTxn()
 					}
 					writeTxn = null
 					if (noSync)
@@ -145,21 +157,20 @@ function open(path, options) {
 				if (writeTxn) {
 					txn = writeTxn
 				} else {
-					txn = readTxn
-					txn.renew()
+					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
 				let result = this.encoding == 'binary' ? txn.getBinary(this.db, id) : txn.getUtf8(this.db, id)
 				if (result && this.encoding == 'json') {
 					result = JSON.parse(result)
 				}
-				if (!writeTxn) {
-					txn.reset()
-				}
-				this.reads++
+//				this.reads++
 				return result
 			} catch(error) {
 				return handleError(error, this, txn, () => this.get(id))
 			}
+		}
+		resetReadTxn() {
+			resetReadTxn()
 		}
 		put(id, value, version, ifVersion) {
 			if (id.length > 511) {
@@ -218,6 +229,7 @@ function open(path, options) {
 				}
 				if (!writeTxn) {
 					txn.commit()
+					resetReadTxn()
 				}
 			} catch(error) {
 				if (writeTxn)
@@ -236,6 +248,7 @@ function open(path, options) {
 				txn.del(this.db, id)
 				if (!writeTxn) {
 					txn.commit()
+					resetReadTxn()
 				}
 				return true // object found and deleted
 			} catch(error) {
@@ -292,8 +305,7 @@ function open(path, options) {
 						if (writeTxn) {
 							txn = writeTxn
 						} else {
-							txn = readTxn
-							txn.renew()
+							txn = readTxnRenewed ? readTxn : renewReadTxn()
 						}
 						cursor = new Cursor(txn, this.db)
 						if (reverse) {
@@ -337,13 +349,9 @@ function open(path, options) {
 							currentKey = cursor[goToDirection]()
 						}
 						cursor.close()
-						if (!writeTxn)
-							txn.reset()
 					} catch(error) {
 						if (cursor) {
 							try {
-								if (!writeTxn)
-									txn.reset()
 								cursor.close()
 							} catch(error) { }
 						}
@@ -420,6 +428,7 @@ function open(path, options) {
 									let duration = Date.now() - start
 									this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
 									//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
+									resetReadTxn()
 									if (error) {
 										try {
 											// see if we can recover from recoverable error (like full map with a resize)
@@ -535,9 +544,7 @@ function open(path, options) {
 		}
 		getStats() {
 			try {
-				readTxn.renew()
-				let stats = this.db.stat(readTxn)
-				readTxn.reset()
+				let stats = this.db.stat(readTxnRenewed ? readTxn : renewReadTxn())
 				return stats
 			}
 			catch(error) {
@@ -614,6 +621,7 @@ function open(path, options) {
 
 			console.log('Resizing database', name, 'to', newSize)
 			env.resize(newSize)
+			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)
 			readTxn.reset()
 			let result = retry()
@@ -634,6 +642,7 @@ function open(path, options) {
 			return retry()
 		}
 		try {
+			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)
 			readTxn.reset()
 		} catch(error) {

@@ -1,4 +1,6 @@
 'use strict';
+var inspector = require('inspector')
+//inspector.open(9330, null, true)
 
 var crypto = require('crypto');
 var path = require('path');
@@ -16,6 +18,7 @@ var env;
 var dbi;
 var keys = [];
 var total = 10000;
+var store;
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -60,6 +63,21 @@ function setup() {
     c++;
   }
   txn.commit();
+  store = lmdb.open(testDirPath + '.mdb', {
+    encoding: 'string'
+  })
+  var c= 0;
+  let lastPromise
+  while(c < total) {
+    var key = new Buffer(new Array(8));
+    key.writeDoubleBE(c);
+    keys.push(key.toString('hex'));
+    lastPromise = store.put(key.toString('hex'), 'testing small');
+    c++;
+  }
+  return lastPromise.then(() => {
+    console.log('all committed');
+  })
 }
 
 var txn;
@@ -79,8 +97,15 @@ function getBinary() {
 }
 
 function getBinaryUnsafe() {
+//try {
+  txn.renew()
   var data = txn.getBinaryUnsafe(dbi, keys[getIndex()]);
   var b = dbi.unsafeBuffer
+  txn.reset()
+//}catch(error){console.error(error)}
+}
+function getStringFromStore() {
+  var data = store.get(keys[getIndex()]);
 }
 
 function getString() {
@@ -130,15 +155,16 @@ function keyValueToBuffer() {
 
 }
 
-cleanup(function (err) {
+cleanup(async function (err) {
     if (err) {
         throw err;
     }
 
-    setup();
+    await setup();
 
 //    suite.add('getBinary', getBinary);
-    suite.add('getBinaryUnsafe', getBinaryUnsafe);
+   // suite.add('getBinaryUnsafe', getBinaryUnsafe);
+    suite.add('getStringFromStore', getStringFromStore);
     //suite.add('bufferToKeyValue', bufferToKeyValue)
     //suite.add('keyValueToBuffer', keyValueToBuffer)
     suite.add('getString', getString);
@@ -147,12 +173,17 @@ cleanup(function (err) {
     suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());
 
     suite.on('start', function () {
-        txn = env.beginTxn();
+        txn = env.beginTxn({
+          readOnly: true
+        });
+        txn.reset();
     });
 
     suite.on('cycle', function (event) {
         txn.abort();
-        txn = env.beginTxn();
+        txn = env.beginTxn({
+          readOnly: true
+        });
         if (cursor) cursor.close();
         cursor = new lmdb.Cursor(txn, dbi);
         console.log(String(event.target));
