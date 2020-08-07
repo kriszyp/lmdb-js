@@ -103,7 +103,7 @@ When using the various APIs, keys can be any JS primitive (string, number, boole
 ```
 -10 // negative supported
 -1.1 // decimals supported
-300
+400
 3E10
 'Hello'
 ['Hello', 'World']

@@ -40,7 +40,9 @@ describe('lmdb-store', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
-        compressionThreshold: 256,
+        compression: {
+          threshold: 256,
+        },
       });
     });
     it('string', async function() {

@@ -22,10 +22,10 @@ NAN_METHOD(Compression::ctor) {
                 return Nan::ThrowError("Dictionary must be a buffer");
             }
             dictSize = node::Buffer::Length(dictionaryOption);
+            dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
             unsigned int newTotalSize = dictSize + 4096;
             dictionary = new char[newTotalSize];
             memcpy(dictionary, node::Buffer::Data(dictionaryOption), dictSize);
-
         }
         Local<Value> thresholdOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), Nan::New<String>("threshold").ToLocalChecked()).ToLocalChecked();
         if (thresholdOption->IsNumber()) {
@@ -88,21 +88,20 @@ void Compression::expand(unsigned int size) {
     delete oldSpace;
 }
 
-void Compression::compress(MDB_val* value, int headerSize) {
-    int dataLength = value->mv_size - headerSize;
+argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t freeValue) {
+    int dataLength = value->mv_size;
     char* data = (char*)value->mv_data;
     bool longSize = dataLength >= 0x1000000;
-    int prefixSize = (longSize ? 8 : 4) + headerSize;
+    int prefixSize = (longSize ? 8 : 4);
     int maxCompressedSize = dataLength;
     char* compressed = new char[maxCompressedSize + prefixSize];
     //fprintf(stdout, "compressing %u\n", dataLength);
     LZ4_loadDict(stream, dictionary, decompressTarget - dictionary);
-    int compressedSize = LZ4_compress_fast_continue(stream, data + headerSize, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
+    int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
     if (compressedSize > 0) {
-        if (headerSize > 0)
-            memcpy(compressed, data, headerSize);
-        delete[] value->mv_data;
-        uint8_t* compressedData = (uint8_t*)compressed + headerSize;
+        if (freeValue)
+            freeValue(*value);
+        uint8_t* compressedData = (uint8_t*)compressed;
         if (longSize) {
             compressedData[0] = 255;
             compressedData[2] = (uint8_t)(dataLength >> 40u);
@@ -120,9 +119,13 @@ void Compression::compress(MDB_val* value, int headerSize) {
         }
         value->mv_data = compressed;
         value->mv_size = compressedSize + prefixSize;
+        return ([](MDB_val &value) -> void {
+            delete[] (void*)value.mv_data;
+        });
     }
     else {
         delete[] compressed;
+        return nullptr;
     }
 }
 

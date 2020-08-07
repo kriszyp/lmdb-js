@@ -407,13 +407,20 @@ describe('Node.js LMDB Bindings', function() {
     it('binary (zero copy)', function() {
       var buffer = new Buffer('48656c6c6f2c20776f726c6421', 'hex');
       txn.putBinary(dbi, 'key2', buffer);
-      var data = txn.getBinaryUnsafe(dbi, 'key2');
+      var buffer2 = new Buffer('58636c6c6f2c20779f324c5414', 'hex');
+      txn.putBinary(dbi, 'key3', buffer2);
+      var length = txn.getBinaryUnsafe(dbi, 'key2');
+      var data = dbi.unsafeBuffer.slice(0, length);
+      data.toString()
+      console.log(data, buffer)
+      //data.slice(0, buffer.length).should.deep.equal(buffer);
+      //env.detachBuffer(data.buffer);
+      var length = txn.getBinaryUnsafe(dbi, 'key3');
+      var data2 = dbi.unsafeBuffer.slice(0, length);
       var byte = data[0]; // make sure we can access it
-      env.detachBuffer(data.buffer);
-      var data = txn.getBinaryUnsafe(dbi, 'key2');
-      var byte = data[0]; // make sure we can access it
-      data.should.deep.equal(buffer);
-      env.detachBuffer(data.buffer);
+      console.log(data[0], data[1], data2[0], data2[1], data, data2, buffer2)
+      data.slice(0, buffer2.length).should.deep.equal(buffer2);
+      //env.detachBuffer(data.buffer);
       txn.del(dbi, 'key2');
       var data2 = txn.getBinaryUnsafe(dbi, 'key2');
       should.equal(data2, undefined);

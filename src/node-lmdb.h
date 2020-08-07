@@ -72,7 +72,7 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-void writeValueToEntry(Local<Value> str, MDB_val *val, int headerSize = 0);
+void writeValueToEntry(Local<Value> str, MDB_val *val);
 argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(Local<Value> &key, MDB_val &val, bool fullLength = false);
 
@@ -80,11 +80,12 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
-Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, Compression *compression, Local<Value> (*successFunc)(MDB_val&));
+Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 static thread_local double lastVersion = 0;
+static thread_local DbiWrap* currentDb = nullptr;
 
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
@@ -95,6 +96,12 @@ Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
 Local<Value> keyToValue(MDB_val &data);
+
+int putWithVersion(MDB_txn *   txn,
+        MDB_dbi     dbi,
+        MDB_val *   key,
+        MDB_val *   data,
+        unsigned int    flags, double version);
 
 void throwLmdbError(int rc);
 
@@ -289,7 +296,7 @@ public:
     static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
 
     // Helper for all the put methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, int headerSize), void (*freeFunc)(MDB_val&), bool supportsVersion = false);
+    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
 
     /*
         Commits the transaction.
@@ -498,6 +505,9 @@ public:
     Compression* compression;
     // versions stored in data
     bool hasVersions;
+    // current unsafe buffer for this db
+    char* lastUnsafePtr;
+    void SetUnsafeBuffer(char* unsafePtr, int size);
 
     friend class TxnWrap;
     friend class CursorWrap;
@@ -542,7 +552,7 @@ public:
     int acceleration;
     LZ4_stream_t* stream;
     void decompress(MDB_val& data);
-    void compress(MDB_val* value, int headerSize);
+    argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     void expand(unsigned int size);
     static NAN_METHOD(ctor);
     Compression();

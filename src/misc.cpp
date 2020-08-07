@@ -242,15 +242,38 @@ Local<Value> valToBinary(MDB_val &data) {
     ).ToLocalChecked();
 }
 
+char* globalUnsafePtr = new char[8];
+int globalUnsafeSize = 8;
+
 Local<Value> valToBinaryUnsafe(MDB_val &data) {
-    return Nan::NewBuffer(
-        (char*)data.mv_data,
-        data.mv_size,
-        [](char *, void *) {
-            // Data belongs to LMDB, we shouldn't free it here
-        },
-        nullptr
-    ).ToLocalChecked();
+    DbiWrap* dw = currentDb;
+    Compression* compression = dw->compression;
+    if (compression) {
+        if (data.mv_data == compression->decompressTarget) {
+            // already decompressed to the target, nothing more to do
+        } else {
+            if (data.mv_size > compression->decompressSize) {
+                compression->expand(data.mv_size);
+            }
+            // copy into the buffer target
+            memcpy(compression->decompressTarget, data.mv_data, data.mv_size);
+        }
+        dw->SetUnsafeBuffer(compression->decompressTarget, compression->decompressSize);
+    } else {
+        if (data.mv_size > globalUnsafeSize) {
+            // TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
+            /* if(data.mv_size > 64000) {
+                dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
+                return Nan::New<Number>(data.mv_size);
+            }*/
+            delete globalUnsafePtr;
+            globalUnsafeSize = data.mv_size * 2;
+            globalUnsafePtr = new char[globalUnsafeSize];
+        }
+        memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
+        dw->SetUnsafeBuffer(globalUnsafePtr, globalUnsafeSize);
+    }
+    return Nan::New<Number>(data.mv_size);
 }
 
 Local<Value> valToNumber(MDB_val &data) {
@@ -261,25 +284,26 @@ Local<Value> valToBoolean(MDB_val &data) {
     return Nan::New<Boolean>(*((bool*)data.mv_data));
 }
 
-Local<Value> getVersionAndUncompress(MDB_val &data, bool getVersion, Compression* compression, Local<Value> (*successFunc)(MDB_val&)) {
+Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&)) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
-    int headerSize = 0;
     unsigned char* charData = (unsigned char*) data.mv_data;
-    if (getVersion) {
+    if (dw->hasVersions) {
         lastVersion = *((double*) charData);
-        //fprintf(stdout, "getVersion %u\n", lastVersion);
+//        fprintf(stderr, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
         data.mv_size -= 8;
-        headerSize = 8;
     }
-    if (data.mv_size == 0)
+    if (data.mv_size == 0) {
+        currentDb = dw;
         return successFunc(data);
-    unsigned char statusByte = compression ? charData[0] : 0;
+    }
+    unsigned char statusByte = dw->compression ? charData[0] : 0;
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
-        compression->decompress(data);
+        dw->compression->decompress(data);
     }
+    currentDb = dw;
     return successFunc(data);
 }
 
@@ -318,38 +342,54 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void writeValueToEntry(Local<Value> value, MDB_val *val, int headerSize) {
+void writeValueToEntry(Local<Value> value, MDB_val *val) {
     if (value->IsString()) {
         Local<String> str = Local<String>::Cast(value);
         int strLength = str->Length();
         // an optimized guess at buffer length that works >99% of time and has good byte alignment
         int byteLength = str->IsOneByte() ? strLength :
             (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
-        char *data = new char[byteLength + headerSize];
+        char *data = new char[byteLength];
         int utfWritten = 0;
         #if NODE_VERSION_AT_LEAST(10,0,0)
-        int bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        int bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten < strLength) {
             // we didn't allocate enough memory, need to expand
             delete[] data;
             byteLength = strLength * 3;
-            data = new char[byteLength + headerSize];
-            bytes = str->WriteUtf8(Isolate::GetCurrent(), data + headerSize, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+            data = new char[byteLength];
+            bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         }
         #else
         str->Write(data, 0);
         #endif;
         val->mv_data = data;
-        val->mv_size = bytes + headerSize;
+        val->mv_size = bytes;
         //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
-    } else if (value->IsNumber()) {
+    }/* else if (value->IsNumber()) {
         val->mv_data = new char[9 + headerSize];
         ((uint8_t*) val->mv_data)[headerSize] = 251;
         val->mv_size = 9 + headerSize;
         *((double*) (((char*) val->mv_data) + 1 + headerSize)) = Nan::To<v8::Number>(value).ToLocalChecked()->Value();
-    } else {
+    }*/ else {
         Nan::ThrowError("Unknown value type");
     }
+}
+
+int putWithVersion(MDB_txn *   txn,
+        MDB_dbi     dbi,
+        MDB_val *   key,
+        MDB_val *   data,
+        unsigned int    flags, double version) {
+    // leave 8 header bytes available for version and copy in with reserved memory
+    char* sourceData = (char*) data->mv_data;
+    int size = data->mv_size;
+    data->mv_size = size + 8;
+    int rc = mdb_put(txn, dbi, key, data, flags | MDB_RESERVE);
+    memcpy((char*) data->mv_data + 8, sourceData, size);
+    *((double*) data->mv_data) = version;
+    data->mv_data = sourceData; // restore this so that if it points to data that needs to be freed, it points to the right place
+    return rc;
 }
 
 

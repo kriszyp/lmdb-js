@@ -56,7 +56,7 @@ function setup() {
     var key = new Buffer(new Array(8));
     key.writeDoubleBE(c);
     keys.push(key.toString('hex'));
-    txn.putUtf8(dbi, key.toString('hex'), '{"id":34,"enabled":true,"title":"this is a test that should be using common words of our language and seeing if it is well compressed","children":[{"data":"some more"}]}');
+    txn.putUtf8(dbi, key.toString('hex'), 'testing small');
     c++;
   }
   txn.commit();
@@ -80,6 +80,7 @@ function getBinary() {
 
 function getBinaryUnsafe() {
   var data = txn.getBinaryUnsafe(dbi, keys[getIndex()]);
+  var b = dbi.unsafeBuffer
 }
 
 function getString() {
@@ -136,12 +137,12 @@ cleanup(function (err) {
 
     setup();
 
- //   suite.add('getBinary', getBinary);
-    //suite.add('getBinaryUnsafe', getBinaryUnsafe);
+//    suite.add('getBinary', getBinary);
+    suite.add('getBinaryUnsafe', getBinaryUnsafe);
     //suite.add('bufferToKeyValue', bufferToKeyValue)
     //suite.add('keyValueToBuffer', keyValueToBuffer)
     suite.add('getString', getString);
-    //suite.add('getStringUnsafe', getStringUnsafe);
+    suite.add('getStringUnsafe', getStringUnsafe);
     //suite.add('cursorGoToNext', cursorGoToNext());
     suite.add('cursorGoToNextgetCurrentString', cursorGoToNextgetCurrentString());
 

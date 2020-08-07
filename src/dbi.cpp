@@ -59,6 +59,21 @@ DbiWrap::~DbiWrap() {
         this->compression->Unref();
 }
 
+void DbiWrap::SetUnsafeBuffer(char* unsafePtr, int size) {
+    if (lastUnsafePtr != unsafePtr) {
+        Local<Object> newBuffer = Nan::NewBuffer(
+            lastUnsafePtr = unsafePtr,
+            size,
+            [](char *, void *) {
+                // Don't free it here
+            },
+            nullptr
+        ).ToLocalChecked();
+        handle()->Set(Nan::GetCurrentContext(), Nan::New<String>("unsafeBuffer").ToLocalChecked(), newBuffer);
+    }
+}
+
+
 NAN_METHOD(DbiWrap::ctor) {
     Nan::HandleScope scope;
 

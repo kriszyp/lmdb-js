@@ -18,7 +18,7 @@ control character types:
 */
 argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength) {
     if (jsKey->IsString()) {
-        writeValueToEntry(jsKey, &mdbKey, 0);
+        writeValueToEntry(jsKey, &mdbKey);
         int needsEscaping = 0;
         uint8_t* position = (uint8_t*) mdbKey.mv_data;
         for (uint8_t* end = position + mdbKey.mv_size; position < end; position++) {

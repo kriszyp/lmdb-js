@@ -166,7 +166,9 @@ struct action_t {
     DbiWrap* dw;
     condition_t *condition;
     double ifVersion;
+    double version;
     argtokey_callback_t freeKey;
+    argtokey_callback_t freeValue;
 };
 
 
@@ -202,8 +204,9 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             action_t* action = &actions[i];
             DbiWrap* dw = action->dw;
             Compression* compression = dw->compression;
-            if (compression && compression->compressionThreshold <= action->data.mv_size)
-                compression->compress(&action->data, dw->hasVersions ? 8 : 0);
+            if (compression && compression->compressionThreshold <= action->data.mv_size) {
+                action->freeValue = compression->compress(&action->data, action->freeValue);
+            }
         }
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
         if (rc != 0) {
@@ -213,6 +216,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
 
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
+            DbiWrap* dw = action->dw;
             condition_t* condition = action->condition;
             if (condition) {
                 MDB_val value;
@@ -240,7 +244,8 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 }
             } else if (action->ifVersion != ANY_VERSION) {
                 MDB_val value;
-                rc = mdb_get(txn, action->dw->dbi, &action->key, &value);
+                // TODO: Use a cursor
+                rc = mdb_get(txn, dw->dbi, &action->key, &value);
                 bool different;
                 if (action->ifVersion == NO_EXIST_VERSION) {
                     different = rc != MDB_NOTFOUND;
@@ -266,17 +271,20 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 rc = 0; // make sure this gets set back to zero, failed conditions shouldn't trigger error
             } else {
                 if (action->data.mv_data == &DELETE_VALUE) {
-                    rc = mdb_del(txn, action->dw->dbi, &action->key, nullptr);
+                    rc = mdb_del(txn, dw->dbi, &action->key, nullptr);
                     if (rc == MDB_NOTFOUND) {
                         rc = 0; // ignore not_found errors
                         results[i] = 2;
                     }
                 } else {
-                    rc = mdb_put(txn, action->dw->dbi, &action->key, &action->data, putFlags);
+                    if (dw->hasVersions)
+                        rc = putWithVersion(txn, action->dw->dbi, &action->key, &action->data, putFlags, action->version);
+                    else
+                        rc = mdb_put(txn, action->dw->dbi, &action->key, &action->data, putFlags);
                 }
             }
-            if (action->data.mv_data != &DELETE_VALUE) {
-                delete[] (char*) action->data.mv_data;
+            if (action->freeValue) {
+                action->freeValue(action->data);
             }
 
             if (action->freeKey) { // if we created a key and needs to be cleaned up, do it now
@@ -690,12 +698,13 @@ NAN_METHOD(EnvWrap::batchWrite) {
             worker->SaveToPersistent(persistedIndex++, key);
         v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
-        double version = 0;
         if (dw->hasVersions) {
+            double version = 0;
             v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
             if (versionValue->IsNumber()) {
                 version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
             }
+            action-> version = version;
         }
         // check if this is a conditional save
         v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
@@ -760,20 +769,18 @@ NAN_METHOD(EnvWrap::batchWrite) {
         if (value->IsNullOrUndefined()) {
             action->data.mv_data = &DELETE_VALUE;
             action->data.mv_size = 0;
+            action->freeValue = nullptr;
         } else if (value->IsArrayBufferView()) {
-            if (version) {
-                return Nan::ThrowError("Can not use a version in conjunction with a buffer.");
-            }
-            int size = action->data.mv_size = node::Buffer::Length(value);
-            action->data.mv_data = new char[size];
-            memcpy(action->data.mv_data, node::Buffer::Data(value), size);
+            action->data.mv_size = node::Buffer::Length(value);
+            action->data.mv_data = node::Buffer::Data(value);
+            action->freeValue = nullptr; // don't free, belongs to node
+            // persist value so it says in memory
+            worker->SaveToPersistent(persistedIndex++, value);
         } else {
-            if (dw->hasVersions) {
-                writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data, 8);
-                *((double*) action->data.mv_data) = version;
-            } else {
-                writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
-            }
+            writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
+            action->freeValue = ([](MDB_val &value) -> void {
+                delete[] (void*)value.mv_data;
+            });
         }
     }
 

@@ -193,7 +193,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     if (convertFunc) {
     //    fprintf(stdout, "getVersionAndUncompress\n");
 
-        dataHandle = getVersionAndUncompress(cw->data, cw->dw->hasVersions, cw->dw->compression, convertFunc);
+        dataHandle = getVersionAndUncompress(cw->data, cw->dw, convertFunc);
 
         if (al > 0) {
             const auto &callbackFunc = info[al - 1];
