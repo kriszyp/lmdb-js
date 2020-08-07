@@ -248,10 +248,10 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 rc = mdb_get(txn, dw->dbi, &action->key, &value);
                 bool different;
                 if (action->ifVersion == NO_EXIST_VERSION) {
-                    different = rc != MDB_NOTFOUND;
+                    different = !rc;
                 } else {
-                    if (rc == MDB_NOTFOUND) {
-                        different = true;
+                    if (rc) {
+                        different = rc == MDB_NOTFOUND;
                     } else {
                         different = action->ifVersion != *((double*) value.mv_data);
                     }
@@ -291,8 +291,12 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 action->freeKey(action->key);
             }
             if (rc != 0) {
-                mdb_txn_abort(txn);
-                return SetErrorMessage(mdb_strerror(rc));
+                if (rc == MDB_BAD_VALSIZE)
+                    results[i] = 3;
+                else {
+                    mdb_txn_abort(txn);
+                    return SetErrorMessage(mdb_strerror(rc));
+                }
             }
             i++;
             if (progress) { // let node know that progress updates are available

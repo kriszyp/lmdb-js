@@ -207,7 +207,14 @@ function open(path, options) {
 			scheduledOperations.bytes += (id.length || 6) + (value && value.length || 0) + 100
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :
-				commit.results.then((writeResults) => writeResults[index] === 0)
+				commit.results.then((writeResults) => {
+					if (writeResults[index] === 0)
+						return true
+					if (writeResults[index] === 3) {
+						throw new Error('The key size was 0 or too large')
+					}
+					return false
+				})
 		}
 		putSync(id, value, version) {
 			if (id.length > 511) {
@@ -284,7 +291,14 @@ function open(path, options) {
 			scheduledOperations.bytes += (id.length || 6) + 100
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :
-				commit.results.then((writeResults) => writeResults[index] === 0)
+				commit.results.then((writeResults) => {
+					if (writeResults[index] === 0)
+						return true
+					if (writeResults[index] === 3) {
+						throw new Error('The key size was 0 or too large')
+					}
+					return false
+				})
 		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
