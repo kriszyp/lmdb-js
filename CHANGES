@@ -11,6 +11,8 @@ OpenLDAP 2.4.51 Engineering
 	Fixed slapo-ppolicy to expose the ppolicy control (ITS#9285)
 	Fixed slapo-ppolicy race condition for pwdFailureTime (ITS#9302)
 	Fixed slapo-chain to check referral (ITS#9262)
+	Build Environment
+		Fix test064 so it no longer uses bashisms (ITS#9263)
 	Contrib
 		Fix default prefix value for pw-argon2, pw-pbkdf2 modules (ITS#9248)
 		slapo-allowed - Fix usage of unitialized variable (ITS#9308)
