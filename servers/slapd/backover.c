@@ -1314,16 +1314,16 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 		if ( be->bd_info == frontendDB->bd_info || SLAP_ISGLOBALOVERLAY( be ) ) {
 			isglobal = 1;
 			if ( on->on_bi.bi_flags & SLAPO_BFLAG_DBONLY ) {
-				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
-					"overlay \"%s\" cannot be global.\n",
-					ov, 0, 0 );
+				snprintf( cr->msg, sizeof( cr->msg ), "overlay_config(): "
+					"overlay \"%s\" cannot be global.", ov );
+				Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 				return 1;
 			}
 
 		} else if ( on->on_bi.bi_flags & SLAPO_BFLAG_GLOBONLY ) {
-			Debug( LDAP_DEBUG_ANY, "overlay_config(): "
-				"overlay \"%s\" can only be global.\n",
-				ov, 0, 0 );
+			snprintf( cr->msg, sizeof( cr->msg ), "overlay_config(): "
+				"overlay \"%s\" can only be global.", ov );
+			Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 			return 1;
 		}
 
@@ -1386,10 +1386,10 @@ overlay_config( BackendDB *be, const char *ov, int idx, BackendInfo **res, Confi
 
 	} else {
 		if ( overlay_is_inst( be, ov ) ) {
-			if ( SLAPO_SINGLE( be ) ) {
-				Debug( LDAP_DEBUG_ANY, "overlay_config(): "
-					"overlay \"%s\" already in list\n",
-					ov, 0, 0 );
+			if ( on->on_bi.bi_flags & SLAPO_BFLAG_SINGLE ) {
+				snprintf( cr->msg, sizeof( cr->msg ), "overlay_config(): "
+					"overlay \"%s\" already in list", ov );
+				Debug( LDAP_DEBUG_ANY, "%s\n", cr->msg, 0, 0 );
 				return 1;
 			}
 		}
