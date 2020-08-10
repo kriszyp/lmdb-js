@@ -74,7 +74,7 @@ RC=$?
 if test $RC = 0 ; then
 	echo "ldapadd should have failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit 1
 fi
 
 echo "Using ldapadd to populate the database..."
