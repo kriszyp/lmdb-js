@@ -4101,6 +4101,7 @@ syncprov_initialize()
 	}
 
 	syncprov.on_bi.bi_type = "syncprov";
+	syncprov.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	syncprov.on_bi.bi_db_init = syncprov_db_init;
 	syncprov.on_bi.bi_db_destroy = syncprov_db_destroy;
 	syncprov.on_bi.bi_db_open = syncprov_db_open;
