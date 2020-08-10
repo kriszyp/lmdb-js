@@ -3281,6 +3281,7 @@ int ppolicy_initialize()
 	ldap_pvt_thread_mutex_init( &chk_syntax_mutex );
 
 	ppolicy.on_bi.bi_type = "ppolicy";
+	ppolicy.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	ppolicy.on_bi.bi_db_init = ppolicy_db_init;
 	ppolicy.on_bi.bi_db_open = ppolicy_db_open;
 	ppolicy.on_bi.bi_db_close = ppolicy_db_close;
