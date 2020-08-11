@@ -1992,6 +1992,7 @@ dds_initialize()
 
 	dds.on_bi.bi_type = "dds";
 
+	dds.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	dds.on_bi.bi_db_init = dds_db_init;
 	dds.on_bi.bi_db_open = dds_db_open;
 	dds.on_bi.bi_db_close = dds_db_close;

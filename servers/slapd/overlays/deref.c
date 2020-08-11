@@ -564,6 +564,7 @@ int
 deref_initialize(void)
 {
 	deref.on_bi.bi_type = "deref";
+	deref.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	deref.on_bi.bi_db_init = deref_db_init;
 	deref.on_bi.bi_db_open = deref_db_open;
 #ifdef SLAP_CONFIG_DELETE

@@ -1207,6 +1207,7 @@ constraint_initialize( void ) {
 	int rc;
 
 	constraint_ovl.on_bi.bi_type = "constraint";
+	constraint_ovl.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	constraint_ovl.on_bi.bi_db_destroy = constraint_destroy;
 	constraint_ovl.on_bi.bi_op_add = constraint_add;
 	constraint_ovl.on_bi.bi_op_modify = constraint_update;

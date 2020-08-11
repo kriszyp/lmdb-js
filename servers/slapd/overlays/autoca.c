@@ -1088,6 +1088,7 @@ int autoca_initialize() {
 	int i, code;
 
 	autoca.on_bi.bi_type = "autoca";
+	autoca.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	autoca.on_bi.bi_db_init = autoca_db_init;
 	autoca.on_bi.bi_db_destroy = autoca_db_destroy;
 	autoca.on_bi.bi_db_open = autoca_db_open;

@@ -1514,6 +1514,7 @@ unique_initialize()
 	memset (&unique, 0, sizeof(unique));
 
 	unique.on_bi.bi_type = "unique";
+	unique.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	unique.on_bi.bi_db_init = unique_db_init;
 	unique.on_bi.bi_db_destroy = unique_db_destroy;
 	unique.on_bi.bi_op_add = unique_add;
