@@ -374,6 +374,7 @@ authzid_initialize( void )
 
 	authzid.on_bi.bi_type = "authzid";
 
+	authzid.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	authzid.on_bi.bi_db_init = authzid_db_init;
 	authzid.on_bi.bi_db_destroy = authzid_db_destroy;
 	authzid.on_bi.bi_op_bind = authzid_op_bind;

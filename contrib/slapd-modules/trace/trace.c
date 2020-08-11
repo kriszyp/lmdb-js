@@ -222,6 +222,7 @@ trace_initialize()
 {
 	trace.on_bi.bi_type = "trace";
 
+	trace.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	trace.on_bi.bi_db_init = trace_db_init;
 	trace.on_bi.bi_db_open = trace_db_open;
 	trace.on_bi.bi_db_config = trace_db_config;

@@ -332,6 +332,7 @@ int
 cloak_initialize( void ) {
 	int rc;
 	cloak_ovl.on_bi.bi_type = "cloak";
+	cloak_ovl.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	cloak_ovl.on_bi.bi_db_destroy = cloak_db_destroy;
 	cloak_ovl.on_bi.bi_op_search = cloak_search;
         cloak_ovl.on_bi.bi_cf_ocs = cloakocs;

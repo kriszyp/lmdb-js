@@ -296,6 +296,7 @@ usn_init( void )
 
 	memset( &usn, 0, sizeof( slap_overinst ) );
 	usn.on_bi.bi_type = "usn";
+	usn.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	usn.on_bi.bi_db_init = usn_db_init;
 	usn.on_bi.bi_db_destroy = usn_db_destroy;
 	usn.on_bi.bi_db_open = usn_db_open;

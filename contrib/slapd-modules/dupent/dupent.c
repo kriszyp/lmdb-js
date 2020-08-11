@@ -541,6 +541,7 @@ dupent_initialize( void )
 
 	dupent.on_bi.bi_type = "dupent";
 
+	dupent.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	dupent.on_bi.bi_op_search = dupent_op_search;
 
 	return overlay_register( &dupent );
