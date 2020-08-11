@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.51 Engineering
+OpenLDAP 2.4.51 Release (2020/08/11)
 	Added slapo-ppolicy implement Netscape password policy controls (ITS#9279)
 	Fixed libldap retry loop in ldap_int_tls_connect (ITS#8650)
 	Fixed libldap to use getaddrinfo in ldap_pvt_get_fqdn (ITS#9287)
