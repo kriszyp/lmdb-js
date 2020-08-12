@@ -45,4 +45,4 @@ node_modules/
 package-lock.json
 
 tests/db/
-.vs
+.DS_Store
