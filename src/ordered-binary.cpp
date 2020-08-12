@@ -37,7 +37,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
                     escaped[escapePosition++] = c;
                 }
             }
-            delete mdbKey.mv_data;
+            delete (char*) mdbKey.mv_data;
             mdbKey.mv_data = escaped;
             mdbKey.mv_size = newSize;
         }
@@ -49,7 +49,6 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
     int size;
     if (jsKey->IsNumber()) {
         double number = Local<Number>::Cast(jsKey)->Value();
-        bool negative = number < 0;
         uint64_t asInt = *((uint64_t*) &number);
         keyBytes = new uint8_t[9]; // TODO: if last is zero, this can be 8
         if (number < 0) {
@@ -86,7 +85,8 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
         size = length > 0 ? length - 1 : 0;
         Local<Context> context = Nan::GetCurrentContext();
         for (int i = 0; i < length; i++) {
-            auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i], true);
+            Local<Value> element = array->Get(context, i).ToLocalChecked();
+            auto freeData = valueToKey(element, segments[i], true);
             callbacks[i] = freeData;
             size += segments[i].mv_size;
         }
@@ -128,7 +128,6 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
 
 Local<Value> keyToValue(MDB_val &val) {
     Local<Value> value;
-    bool hasMore = false;
     int consumed = 0;
     uint8_t* keyBytes = (uint8_t*) val.mv_data;
     int size = val.mv_size;
@@ -207,7 +206,7 @@ Local<Value> keyToValue(MDB_val &val) {
                 }
 
                 value = Nan::New<v8::String>(escaped, convertedChars).ToLocalChecked();
-                delete escaped;
+                delete[] escaped;
             } else
                 value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
         }
@@ -253,7 +252,7 @@ NAN_METHOD(bufferToKeyValue) {
 }
 NAN_METHOD(keyValueToBuffer) {
     MDB_val key;
-    auto freeKey = valueToKey(info[0], key);
+    auto freeKey = valueToKey(info[0], key, false);
     Nan::MaybeLocal<v8::Object> buffer;
     if (freeKey) {
         buffer = Nan::NewBuffer(

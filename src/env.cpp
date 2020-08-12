@@ -212,7 +212,6 @@ class BatchWorker : public Nan::AsyncProgressWorker {
         if (rc != 0) {
             return SetErrorMessage(mdb_strerror(rc));
         }
-        int getCount = 0;
 
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
@@ -783,7 +782,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         } else {
             writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
             action->freeValue = ([](MDB_val &value) -> void {
-                delete[] (void*)value.mv_data;
+                delete[] (char*)value.mv_data;
             });
         }
     }

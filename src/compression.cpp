@@ -73,6 +73,10 @@ void Compression::decompress(MDB_val& data) {
         data.mv_size - compressionHeaderSize, uncompressedLength,
         dictionary, decompressTarget - dictionary);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
+    if (written < 0) {
+        fprintf(stderr, "Failed to decompress data\n");
+        return;
+    }
     data.mv_data = decompressTarget;
     data.mv_size = uncompressedLength;
 }
@@ -120,7 +124,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t fr
         value->mv_data = compressed;
         value->mv_size = compressedSize + prefixSize;
         return ([](MDB_val &value) -> void {
-            delete[] (void*)value.mv_data;
+            delete[] (char*)value.mv_data;
         });
     }
     else {

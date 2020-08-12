@@ -84,8 +84,13 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
 NAN_METHOD(getLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
+#ifdef thread_local
 static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
+#else
+static double lastVersion = 0;
+static DbiWrap* currentDb = nullptr;
+#endif
 
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
