@@ -78,5 +78,11 @@ describe('lmdb-store', function() {
       data = db.get('key1');
       should.equal(data, undefined);
     });
+    it('json objects', async function() {
+      let dataIn = {foo: 3, bar: true}
+      await db.put('key1',  dataIn);
+      let dataOut = db.get('key1');
+      dataOut.should.deep.equal(dataIn);
+    });
   });
 });

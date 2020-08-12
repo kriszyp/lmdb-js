@@ -131,7 +131,7 @@ NAN_METHOD(DbiWrap::ctor) {
         if (create->IsBoolean() ? !create->BooleanValue(Isolate::GetCurrent()) : true) {
         #else
         if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).ToChecked() : true) {
-        #endif;
+        #endif
             txnFlags |= MDB_RDONLY;
         }
         Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
@@ -234,7 +234,7 @@ NAN_METHOD(DbiWrap::drop) {
         del = opt->IsBoolean() ? !(opt->BooleanValue(Isolate::GetCurrent())) : 1;
         #else
         del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).ToChecked()) : 1;
-        #endif;
+        #endif
         
         // User-supplied txn
         auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
