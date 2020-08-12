@@ -128,7 +128,7 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
     return keyType;
 }
 
-argtokey_callback_t argToKey(Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
+argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid) {
     isValid = false;
 
     if (keyType == NodeLmdbKeyType::DefaultKey) {

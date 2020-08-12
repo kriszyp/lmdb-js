@@ -16,7 +16,7 @@ control character types:
 /*
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
-argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength) {
+argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength) {
     if (jsKey->IsString()) {
         writeValueToEntry(jsKey, &mdbKey);
         int needsEscaping = 0;
@@ -85,8 +85,7 @@ argtokey_callback_t valueToKey(Local<Value> &jsKey, MDB_val &mdbKey, bool fullLe
         size = length > 0 ? length - 1 : 0;
         Local<Context> context = Nan::GetCurrentContext();
         for (int i = 0; i < length; i++) {
-            Local<Value> element = array->Get(context, i).ToLocalChecked();
-            auto freeData = valueToKey(element, segments[i], true);
+            auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i], true);
             callbacks[i] = freeData;
             size += segments[i].mv_size;
         }
