@@ -59,7 +59,7 @@ DbiWrap::~DbiWrap() {
         this->compression->Unref();
 }
 
-void DbiWrap::SetUnsafeBuffer(char* unsafePtr, int size) {
+void DbiWrap::SetUnsafeBuffer(char* unsafePtr, size_t size) {
     if (lastUnsafePtr != unsafePtr) {
         Local<Object> newBuffer = Nan::NewBuffer(
             lastUnsafePtr = unsafePtr,

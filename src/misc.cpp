@@ -49,7 +49,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     if (opt->IsBoolean() ? opt->BooleanValue(Isolate::GetCurrent()) : defaultValue) {
     #else
     if (opt->IsBoolean() ? opt->BooleanValue(context).ToChecked() : defaultValue) {
-    #endif;
+    #endif
         *flags |= flag;
     }
 }
@@ -243,7 +243,7 @@ Local<Value> valToBinary(MDB_val &data) {
 }
 
 char* globalUnsafePtr = new char[8];
-int globalUnsafeSize = 8;
+size_t globalUnsafeSize = 8;
 
 Local<Value> valToBinaryUnsafe(MDB_val &data) {
     DbiWrap* dw = currentDb;
@@ -266,7 +266,7 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
                 dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
                 return Nan::New<Number>(data.mv_size);
             }*/
-            delete globalUnsafePtr;
+            delete[] globalUnsafePtr;
             globalUnsafeSize = data.mv_size * 2;
             globalUnsafePtr = new char[globalUnsafeSize];
         }
@@ -362,7 +362,7 @@ void writeValueToEntry(Local<Value> value, MDB_val *val) {
         }
         #else
         str->Write(data, 0);
-        #endif;
+        #endif
         val->mv_data = data;
         val->mv_size = bytes;
         //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
@@ -400,7 +400,7 @@ void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
     str->Write(Isolate::GetCurrent(), d);
     #else
     str->Write(d);
-    #endif;
+    #endif
     d[l - 1] = 0;
 
     val->mv_data = d;

@@ -512,7 +512,7 @@ public:
     bool hasVersions;
     // current unsafe buffer for this db
     char* lastUnsafePtr;
-    void SetUnsafeBuffer(char* unsafePtr, int size);
+    void SetUnsafeBuffer(char* unsafePtr, size_t size);
 
     friend class TxnWrap;
     friend class CursorWrap;

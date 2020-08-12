@@ -290,9 +290,9 @@ NAN_METHOD(TxnWrap::getRange) {
     }
     int retrieved = 0;
     int resultsIndex = 0;
-    while (!(rc == MDB_NOTFOUND || hasEnd && (reverse ?
+    while (!(rc == MDB_NOTFOUND || (hasEnd && (reverse ?
                 mdb_cmp(tw->txn, dw->dbi, &key, &endKey) <= 0 :
-                mdb_cmp(tw->txn, dw->dbi, &key, &endKey) >= 0))) {
+                mdb_cmp(tw->txn, dw->dbi, &key, &endKey) >= 0)))) {
         if (getKeys) {
             resultsArray->Set(context, resultsIndex++, valToUtf8(key));
         }
