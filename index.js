@@ -22,6 +22,7 @@ function genericErrorHandler(err) {
 }
 const LAST_KEY = String.fromCharCode(0xffff)
 let env
+let defaultCompression
 exports.open = open
 function open(path, options) {
 	let env = new Env()
@@ -39,10 +40,19 @@ function open(path, options) {
 		maxDbs: 12,
 	}, options)
 	if (options.compression) {
+		let setDefault
+		if (options.compression == true) {
+			if (defaultCompression)
+				options.compression = defaultCompression
+			else
+				setDefault = true
+		}
 		options.compression = new Compression(Object.assign({
 			threshold: 1000,
 			dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
 		}), options.compression)
+		if (setDefault)
+			defaultCompression = options.compression
 	}
 
 	if (options && options.clearOnStart) {
@@ -81,13 +91,14 @@ function open(path, options) {
 				}
 			}
 			if (dbOptions.compression && !(dbOptions.compression instanceof Compression)) {
-				dbOptions.compression = new Compression(Object.assign({
-					threshold: 1000,
-					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-				}), dbOptions.compression)
-				console.log('new compression object', dbOptions.compression)
+				if (dbOptions.compression == true && options.compression)
+					dbOptions.compression = options.compression // use the parent compression if available
+				else
+					dbOptions.compression = new Compression(Object.assign({
+						threshold: 1000,
+						dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+					}), dbOptions.compression)
 			}
-
 
 			openDB()
 			this.dbName = dbName
@@ -96,11 +107,14 @@ function open(path, options) {
 			this.writes = 0
 			this.transactions = 0
 			this.averageTransactionTime = 5
-			this.encoding = 'json'
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options)
+			if (!this.encoding && !this.parse && !this.serialize) {
+				this.parse = JSON.parse
+				this.serialize = JSON.stringify
+			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
 		}
@@ -159,9 +173,20 @@ function open(path, options) {
 				} else {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
-				let result = this.encoding == 'binary' ? txn.getBinary(this.db, id) : txn.getUtf8(this.db, id)
-				if (result && this.encoding == 'json') {
-					result = JSON.parse(result)
+				let result
+				if (this.parse) {
+					if (this.encoding == 'binary') {
+						result = txn.getBinaryUnsafe(this.db, id)
+						if (result != null)
+							result = this.parse(this.db.unsafeBuffer, result)
+					} else {
+						result = txn.getUtf8(this.db, id)
+						if (result != null)
+							result = this.parse(result)
+					}
+				} else {
+					result = this.encoding = 'binary' ? txn.getBinary(this.db, id) :
+						txn.getUtf8(this.db, id)
 				}
 //				this.reads++
 				return result
@@ -177,8 +202,8 @@ function open(path, options) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
-			if (this.encoding == 'json') {
-				value = JSON.stringify(value)
+			if (this.serialize) {
+				value = this.serialize(value)
 			}
 			if (writeTxn) {
 				if (ifVersion !== undefined) {
@@ -224,9 +249,9 @@ function open(path, options) {
 			try {
 				this.writes++
 				txn = writeTxn || env.beginTxn()
-				if (this.encoding == 'json') {
-					txn.putUtf8(this.db, id, JSON.stringify(value, version))
-				} else if (typeof value == 'string') {
+				if (this.serialize)
+					value = this.serialize(value)
+				if (typeof value == 'string') {
 					txn.putUtf8(this.db, id, value, version)
 				} else {
 					if (!(value && value.readUInt16BE)) {
@@ -305,6 +330,7 @@ function open(path, options) {
 			if (!options)
 				options = {}
 			let includeValues = options.values !== false
+			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? LAST_KEY : null)
 				let endKey = options.end || (options.reverse ? null : LAST_KEY)
@@ -321,7 +347,7 @@ function open(path, options) {
 						} else {
 							txn = readTxnRenewed ? readTxn : renewReadTxn()
 						}
-						cursor = new Cursor(txn, this.db)
+						cursor = new Cursor(txn, db)
 						if (reverse) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
@@ -345,13 +371,19 @@ function open(path, options) {
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0)) &&
 							i++ < RANGE_BATCH_SIZE) {
 							if (includeValues) {
-								let value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
-								if (this.encoding == 'json') {
-									try {
-										value = JSON.parse(value)
-									} catch (error) {
-										value = error
+								let value
+								if (this.parse) {
+									if (this.encoding == 'binary') {
+										value = cursor.getCurrentBinaryUnsafe(db, id)
+										if (value != null)
+											value = this.parse(db.unsafeBuffer, value)
+									} else {
+										value = cursor.getCurrentUtf8()(db, id)
+										if (value != null)
+											value = this.parse(value)
 									}
+								} else {
+									value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
 								}
 								array.push(currentKey, value)
 							} else
@@ -532,8 +564,8 @@ function open(path, options) {
 			}
 			for (let operation of operations) {
 				let value = operation.value
-				if (this.encoding == 'json')
-					value = JSON.stringify(value)
+				if (this.serialize)
+					value = this.serialize(value)
 				scheduledOperations.push([this.db, operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
