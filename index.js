@@ -374,7 +374,7 @@ function open(path, options) {
 								let value
 								if (this.parse) {
 									if (this.encoding == 'binary') {
-										value = cursor.getCurrentBinaryUnsafe(db, id)
+										value = cursor.getCurrentBinaryUnsafe()
 										if (value != null)
 											value = this.parse(db.unsafeBuffer, value)
 									} else {
