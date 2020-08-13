@@ -378,7 +378,7 @@ function open(path, options) {
 										if (value != null)
 											value = this.parse(db.unsafeBuffer, value)
 									} else {
-										value = cursor.getCurrentUtf8()(db, id)
+										value = cursor.getCurrentUtf8()
 										if (value != null)
 											value = this.parse(value)
 									}
