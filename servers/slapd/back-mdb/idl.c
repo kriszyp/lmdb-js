@@ -642,9 +642,30 @@ mdb_idl_delete_keys(
 				}
 				if ( lo2 >= hi2 ) {
 				/* The range has collapsed... */
-					rc = mdb_cursor_del( cursor, MDB_NODUPDATA );
+					/* delete the range marker */
+					rc = mdb_cursor_del( cursor, 0 );
 					if ( rc != 0 ) {
-						err = "c_del dup";
+						err = "c_del dup1";
+						goto fail;
+					}
+					/* skip past deleted marker */
+					rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+					if ( rc != 0 ) {
+						err = "c_get dup1";
+						goto fail;
+					}
+					/* delete the requested id */
+					if ( id == hi ) {
+						/* skip lo */
+						rc = mdb_cursor_get( cursor, &key, &data, MDB_NEXT_DUP );
+						if ( rc != 0 ) {
+							err = "c_get dup2";
+							goto fail;
+						}
+					}
+					rc = mdb_cursor_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del dup2";
 						goto fail;
 					}
 				} else {
