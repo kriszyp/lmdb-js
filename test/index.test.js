@@ -84,5 +84,23 @@ describe('lmdb-store', function() {
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
     });
+    it('should iterate over query', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      db.put('key1',  data1);
+      await db.put('key2',  data2);
+      let count = 0
+      for (let { key, value } of db.getRange({start:'key'})) {
+        count++
+        switch(key) {
+          case 'key1': data1.should.deep.equal(value); break;
+          case 'key2': data2.should.deep.equal(value); break;
+          default:
+            throw new Error('Bad key')
+        }
+      }
+      if (count != 2)
+        throw new Error('Not enough entries')
+    });
   });
 });
