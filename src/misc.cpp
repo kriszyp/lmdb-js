@@ -40,6 +40,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "getLastVersion", getLastVersion);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
+    makeGlobalUnsafeBuffer(8);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
@@ -242,8 +243,23 @@ Local<Value> valToBinary(MDB_val &data) {
     ).ToLocalChecked();
 }
 
-char* globalUnsafePtr = new char[8];
-size_t globalUnsafeSize = 8;
+char* globalUnsafePtr;
+size_t globalUnsafeSize;
+Persistent<Object> globalUnsafeBuffer;
+
+void makeGlobalUnsafeBuffer(size_t size) {
+    globalUnsafeSize = size;
+    globalUnsafePtr = new char[size];
+    Local<Object> newBuffer = Nan::NewBuffer(
+        globalUnsafePtr,
+        size,
+        [](char*, void*) {
+            // Don't free it here
+        },
+        nullptr
+    ).ToLocalChecked();
+    globalUnsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
+}
 
 Local<Value> valToBinaryUnsafe(MDB_val &data) {
     DbiWrap* dw = currentDb;
@@ -258,7 +274,7 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
             // copy into the buffer target
             memcpy(compression->decompressTarget, data.mv_data, data.mv_size);
         }
-        dw->SetUnsafeBuffer(compression->decompressTarget, compression->decompressSize);
+        dw->setUnsafeBuffer(compression->decompressTarget, compression->unsafeBuffer);
     } else {
         if (data.mv_size > globalUnsafeSize) {
             // TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
@@ -267,11 +283,10 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
                 return Nan::New<Number>(data.mv_size);
             }*/
             delete[] globalUnsafePtr;
-            globalUnsafeSize = data.mv_size * 2;
-            globalUnsafePtr = new char[globalUnsafeSize];
+            makeGlobalUnsafeBuffer(data.mv_size * 2);
         }
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
-        dw->SetUnsafeBuffer(globalUnsafePtr, globalUnsafeSize);
+        dw->setUnsafeBuffer(globalUnsafePtr, globalUnsafeBuffer);
     }
     return Nan::New<Number>(data.mv_size);
 }
@@ -342,7 +357,7 @@ void consoleLogN(int n) {
     consoleLog(c);
 }
 
-void writeValueToEntry(Local<Value> value, MDB_val *val) {
+void writeValueToEntry(const Local<Value> &value, MDB_val *val) {
     if (value->IsString()) {
         Local<String> str = Local<String>::Cast(value);
         int strLength = str->Length();

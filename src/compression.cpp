@@ -43,8 +43,21 @@ NAN_METHOD(Compression::ctor) {
     compression->compressionThreshold = compressionThreshold;
     compression->Wrap(info.This());
     compression->Ref();
+    compression->makeUnsafeBuffer();
 
     return info.GetReturnValue().Set(info.This());
+}
+
+void Compression::makeUnsafeBuffer() {
+    Local<Object> newBuffer = Nan::NewBuffer(
+        decompressTarget,
+        decompressSize,
+        [](char*, void*) {
+            // Don't free it here
+        },
+        nullptr
+    ).ToLocalChecked();
+    unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
 void Compression::decompress(MDB_val& data) {
@@ -89,6 +102,7 @@ void Compression::expand(unsigned int size) {
     dictionary = new char[newTotalSize];
     decompressTarget = dictionary + dictSize;
     memcpy(dictionary, oldSpace, dictSize);
+    makeUnsafeBuffer();
     delete oldSpace;
 }
 

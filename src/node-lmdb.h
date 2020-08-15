@@ -72,7 +72,7 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-void writeValueToEntry(Local<Value> str, MDB_val *val);
+void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 argtokey_callback_t valueToKey(const Local<Value> &key, MDB_val &val, bool fullLength = false);
 
@@ -101,6 +101,7 @@ Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
 Local<Value> keyToValue(MDB_val &data);
+void makeGlobalUnsafeBuffer(size_t size);
 
 int putWithVersion(MDB_txn *   txn,
         MDB_dbi     dbi,
@@ -512,7 +513,7 @@ public:
     bool hasVersions;
     // current unsafe buffer for this db
     char* lastUnsafePtr;
-    void SetUnsafeBuffer(char* unsafePtr, size_t size);
+    void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
 
     friend class TxnWrap;
     friend class CursorWrap;
@@ -553,11 +554,13 @@ public:
     char* decompressTarget;
     unsigned int decompressSize;
     unsigned int compressionThreshold;
+    Persistent<Object> unsafeBuffer;
     // compression acceleration (defaults to 1)
     int acceleration;
     LZ4_stream_t* stream;
     void decompress(MDB_val& data);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
+    void makeUnsafeBuffer();
     void expand(unsigned int size);
     static NAN_METHOD(ctor);
     Compression();
