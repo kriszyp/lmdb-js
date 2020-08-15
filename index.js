@@ -101,6 +101,7 @@ function open(path, options) {
 			}
 
 			openDB()
+			resetReadTxn() // a read transaction becomes invalid after opening another db
 			this.dbName = dbName
 			this.env = env
 			this.reads = 0
@@ -111,6 +112,10 @@ function open(path, options) {
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options)
+			if (this.serializer) {
+				this.serialize = this.serializer.serialize.bind(this.serializer)
+				this.parse = this.serializer.parse.bind(this.serializer)
+			}
 			if (!this.encoding && !this.parse && !this.serialize) {
 				this.parse = JSON.parse
 				this.serialize = JSON.stringify
@@ -128,36 +133,43 @@ function open(path, options) {
 				throw error
 			}
 		}
-		transaction(execute, noSync, abort) {
+		transaction(execute, abort) {
 			let result
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
 				result = execute()
-				if (noSync)
-					return result
-				else
-					return this.onDemandSync
+				return result
 			}
 			let txn
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
-				if (scheduledOperations) {
-					scheduledOperations.bytes = this.syncBatchThreshold // try to run all the operations immediately
-					this.scheduleCommit()
+				if (scheduledOperations && runNextBatch) {
+					runNextBatch((operations, callback) => {
+						try {
+							callback(null, this.commitBatchNow(operations))
+						} catch (error) {
+							callback(error)
+						}
+					})
 				}
-				return when(execute(), () => {
-					if (abort) {
-						txn.abort()
-					} else {
-						txn.commit()
-						resetReadTxn()
-					}
-					writeTxn = null
-					if (noSync)
+				return when(execute(), (result) => {
+					try {
+						if (abort) {
+							txn.abort()
+						} else {
+							txn.commit()
+							resetReadTxn()
+						}
+						writeTxn = null
 						return result
-					else
-						return this.onDemandSync
+					} catch(error) {
+						if (error.message == 'The transaction is already closed.') {
+							debugger
+							return result
+						}
+						return handleError(error, this, txn, () => this.transaction(execute))
+					}
 				}, (error) => {
 					return handleError(error, this, txn, () => this.transaction(execute))
 				})
@@ -245,22 +257,24 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
-			let txn
+			let localTxn
 			try {
 				this.writes++
-				txn = writeTxn || env.beginTxn()
+				if (!writeTxn)
+					localTxn = writeTxn = env.beginTxn()
 				if (this.serialize)
 					value = this.serialize(value)
 				if (typeof value == 'string') {
-					txn.putUtf8(this.db, id, value, version)
+					writeTxn.putUtf8(this.db, id, value, version)
 				} else {
 					if (!(value && value.readUInt16BE)) {
 						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
 					}
-					txn.putBinary(this.db, id, value, version)
+					writeTxn.putBinary(this.db, id, value, version)
 				}
-				if (!writeTxn) {
-					txn.commit()
+				if (localTxn) {
+					writeTxn = null
+					localTxn.commit()
 					resetReadTxn()
 				}
 			} catch(error) {
@@ -330,6 +344,7 @@ function open(path, options) {
 			if (!options)
 				options = {}
 			let includeValues = options.values !== false
+			let includeVersions = options.versions
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start || (options.reverse ? LAST_KEY : null)
@@ -385,7 +400,13 @@ function open(path, options) {
 								} else {
 									value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
 								}
-								array.push(currentKey, value)
+								if (includeVersions)
+									array.push(currentKey, value, getLastVersion())
+								else
+									array.push(currentKey, value)
+							} else if (includeVersions) {
+								cursor.getCurrentBinaryUnsafe()
+								array.push(currentKey, getLastVersion())
 							} else
 								array.push(currentKey)
 							if (++count >= options.limit) {
@@ -425,12 +446,29 @@ function open(path, options) {
 							let key = array[i++]
 							let value = array[i++]
 							store.bytesRead += value && value.length || 0
+							if (includeVersions) {
+								let version = array[i++]
+								return {
+									value: {
+										key, value, version
+									}
+								}
+
+							}
 							return {
 								value: {
 									key, value
 								}
 							}
 						} else {
+							if (includeVersions) {
+								return {
+									value: {
+										key: array[i++],
+										version: array[i++]
+									}
+								}
+							}
 							return {
 								value: array[i++]
 							}
@@ -564,8 +602,6 @@ function open(path, options) {
 			}
 			for (let operation of operations) {
 				let value = operation.value
-				if (this.serialize)
-					value = this.serialize(value)
 				scheduledOperations.push([this.db, operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
