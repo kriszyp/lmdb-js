@@ -112,12 +112,8 @@ function open(path, options) {
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options)
-			if (this.serializer) {
-				this.serialize = this.serializer.serialize.bind(this.serializer)
-				this.parse = this.serializer.parse.bind(this.serializer)
-			}
-			if (!this.encoding && !this.parse && !this.serialize) {
-				this.parse = JSON.parse
+			if (!this.encoding && !this.deserialize && !this.serialize) {
+				this.deserialize = JSON.parse
 				this.serialize = JSON.stringify
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
@@ -186,15 +182,15 @@ function open(path, options) {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
 				let result
-				if (this.parse) {
+				if (this.deserialize) {
 					if (this.encoding == 'binary') {
 						result = txn.getBinaryUnsafe(this.db, id)
 						if (result != null)
-							result = this.parse(this.db.unsafeBuffer, result)
+							result = this.deserialize(this.db.unsafeBuffer, result)
 					} else {
 						result = txn.getUtf8(this.db, id)
 						if (result != null)
-							result = this.parse(result)
+							result = this.deserialize(result)
 					}
 				} else {
 					result = this.encoding = 'binary' ? txn.getBinary(this.db, id) :
@@ -387,15 +383,15 @@ function open(path, options) {
 							i++ < RANGE_BATCH_SIZE) {
 							if (includeValues) {
 								let value
-								if (this.parse) {
+								if (this.deserialize) {
 									if (this.encoding == 'binary') {
 										value = cursor.getCurrentBinaryUnsafe()
 										if (value != null)
-											value = this.parse(db.unsafeBuffer, value)
+											value = this.deserialize(db.unsafeBuffer, value)
 									} else {
 										value = cursor.getCurrentUtf8()
 										if (value != null)
-											value = this.parse(value)
+											value = this.deserialize(value)
 									}
 								} else {
 									value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
