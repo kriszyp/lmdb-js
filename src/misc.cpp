@@ -381,12 +381,7 @@ void writeValueToEntry(const Local<Value> &value, MDB_val *val) {
         val->mv_data = data;
         val->mv_size = bytes;
         //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
-    }/* else if (value->IsNumber()) {
-        val->mv_data = new char[9 + headerSize];
-        ((uint8_t*) val->mv_data)[headerSize] = 251;
-        val->mv_size = 9 + headerSize;
-        *((double*) (((char*) val->mv_data) + 1 + headerSize)) = Nan::To<v8::Number>(value).ToLocalChecked()->Value();
-    }*/ else {
+    } else {
         Nan::ThrowError("Unknown value type");
     }
 }
@@ -401,8 +396,11 @@ int putWithVersion(MDB_txn *   txn,
     int size = data->mv_size;
     data->mv_size = size + 8;
     int rc = mdb_put(txn, dbi, key, data, flags | MDB_RESERVE);
-    memcpy((char*) data->mv_data + 8, sourceData, size);
-    *((double*) data->mv_data) = version;
+    if (rc == 0) {
+        // if put is successful, data->mv_data will point into the database where we copy the data to
+        memcpy((char*) data->mv_data + 8, sourceData, size);
+        *((double*) data->mv_data) = version;
+    }
     data->mv_data = sourceData; // restore this so that if it points to data that needs to be freed, it points to the right place
     return rc;
 }

@@ -356,7 +356,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     // Fill key and data
     fillFunc(info, data);
 
-    if (dw->compression && data.mv_size > dw->compression->compressionThreshold) {
+    if (dw->compression) {
         freeData = dw->compression->compress(&data, freeData);
     }
     

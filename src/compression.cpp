@@ -109,6 +109,8 @@ void Compression::expand(unsigned int size) {
 argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t freeValue) {
     int dataLength = value->mv_size;
     char* data = (char*)value->mv_data;
+    if (value->mv_size < compressionThreshold && !(value->mv_size > 0 && ((uint8_t*)data)[0] >= 250))
+        return freeValue; // don't compress if less than threshold (but we must compress if the first byte is the compression indicator)
     bool longSize = dataLength >= 0x1000000;
     int prefixSize = (longSize ? 8 : 4);
     int maxCompressedSize = dataLength;

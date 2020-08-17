@@ -204,7 +204,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             action_t* action = &actions[i];
             DbiWrap* dw = action->dw;
             Compression* compression = dw->compression;
-            if (compression && compression->compressionThreshold <= action->data.mv_size) {
+            if (compression) {
                 action->freeValue = compression->compress(&action->data, action->freeValue);
             }
         }
@@ -215,6 +215,9 @@ class BatchWorker : public Nan::AsyncProgressWorker {
 
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
+            uint8_t* keyData = (uint8_t*) action->key.mv_data;
+            if (keyData[0] == 20 && keyData[1] == 26 && keyData[2] == 91 && keyData[3] == 153 && keyData[4] == 49)
+                fprintf(stderr, "This is the key\n");
             DbiWrap* dw = action->dw;
             condition_t* condition = action->condition;
             if (condition) {
