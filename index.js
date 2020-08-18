@@ -111,7 +111,7 @@ function open(path, options) {
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
-			Object.assign(this, options)
+			Object.assign(this, options, dbOptions)
 			if (!this.encoding && !this.deserialize && !this.serialize) {
 				this.deserialize = JSON.parse
 				this.serialize = JSON.stringify
@@ -140,7 +140,7 @@ function open(path, options) {
 			try {
 				this.transactions++
 				txn = writeTxn = env.beginTxn()
-				if (scheduledOperations && runNextBatch) {
+				/*if (scheduledOperations && runNextBatch) {
 					runNextBatch((operations, callback) => {
 						try {
 							callback(null, this.commitBatchNow(operations))
@@ -149,6 +149,8 @@ function open(path, options) {
 						}
 					})
 				}
+				TODO: To reenable forced sequential writes, we need to be re-execute the operations if we get an env resize
+				*/
 				return when(execute(), (result) => {
 					try {
 						if (abort) {
@@ -210,9 +212,6 @@ function open(path, options) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
-			if (this.serialize) {
-				value = this.serialize(value)
-			}
 			if (writeTxn) {
 				if (ifVersion !== undefined) {
 					this.get(id)
@@ -221,15 +220,11 @@ function open(path, options) {
 						return Promise.resolve(false)
 					}
 				}
-				if (typeof value === 'string') {
-					writeTxn.putUtf8(this.db, id, value, version)
-				} else {
-					if (!(value && value.readUInt16BE)) {
-						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
-					}
-					writeTxn.putBinary(this.db, id, value, version)
-				}
+				this.putSync(id, value, version)
 				return Promise.resolve(true)
+			}
+			if (this.serialize) {
+				value = this.serialize(value)
 			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
