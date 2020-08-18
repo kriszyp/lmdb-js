@@ -37,6 +37,7 @@
 #include "lutil.h"
 
 static AttributeDescription *ad_dgIdentity, *ad_dgAuthz;
+static AttributeDescription *ad_memberOf;
 
 typedef struct dynlist_map_t {
 	AttributeDescription	*dlm_member_ad;
@@ -2626,7 +2627,28 @@ static
 int
 dynlist_initialize(void)
 {
+	const char *text;
 	int	rc = 0;
+
+	/* See if we need to define memberOf opattr */
+	rc = slap_str2ad( "memberOf", &ad_memberOf, &text );
+	if ( rc ) {
+		rc = register_at(
+		"( 1.2.840.113556.1.2.102 "
+		"NAME 'memberOf' "
+		"DESC 'Group that the entry belongs to' "
+		"SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' "
+		"EQUALITY distinguishedNameMatch "	/* added */
+		"USAGE dSAOperation "			/* added; questioned */
+		"NO-USER-MODIFICATION " 		/* added */
+		"X-ORIGIN 'iPlanet Delegated Administrator' )",
+		&ad_memberOf, 0 );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"dynlist_initialize: register_at (memberOf) failed\n" );
+			return rc;
+		}
+	}
 
 	dynlist.on_bi.bi_type = "dynlist";
 
