@@ -1043,6 +1043,14 @@ typedef struct ADlist {
 
 static ADlist *sortVals;
 
+static int new_daemon_threads;
+
+static int
+config_resize_lthreads(ConfigArgs *c)
+{
+	return slapd_daemon_resize( new_daemon_threads );
+}
+
 static int
 config_generic(ConfigArgs *c) {
 	int i;
@@ -1806,7 +1814,7 @@ config_generic(ConfigArgs *c) {
 		case CFG_THREADQS:
 			if ( c->value_int < 1 ) {
 				snprintf( c->cr_msg, sizeof( c->cr_msg ),
-					"threadqueuess=%d smaller than minimum value 1",
+					"threadqueues=%d smaller than minimum value 1",
 					c->value_int );
 				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
 					c->log, c->cr_msg );
@@ -1824,6 +1832,14 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_LTHREADS:
+			if ( c->value_uint < 1 ) {
+				snprintf( c->cr_msg, sizeof( c->cr_msg ),
+					"listenerthreads=%u smaller than minimum value 1",
+					c->value_uint );
+				Debug(LDAP_DEBUG_ANY, "%s: %s.\n",
+					c->log, c->cr_msg );
+				return 1;
+			}
 			{ int mask = 0;
 			/* use a power of two */
 			while (c->value_uint > 1) {
@@ -1831,8 +1847,8 @@ config_generic(ConfigArgs *c) {
 				mask <<= 1;
 				mask |= 1;
 			}
-			slapd_daemon_mask = mask;
-			slapd_daemon_threads = mask+1;
+			new_daemon_threads = mask+1;
+			config_push_cleanup( c, config_resize_lthreads );
 			}
 			break;
 
@@ -4195,11 +4211,11 @@ config_tls_option(ConfigArgs *c) {
 	if (c->op == SLAP_CONFIG_EMIT) {
 		return ldap_pvt_tls_get_option( ld, flag, berval ? (void *)&c->value_bv : (void *)&c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
-		c->cleanup = config_tls_cleanup;
+		config_push_cleanup( c, config_tls_cleanup );
 		return ldap_pvt_tls_set_option( ld, flag, NULL );
 	}
 	if ( !berval ) ch_free(c->value_string);
-	c->cleanup = config_tls_cleanup;
+	config_push_cleanup( c, config_tls_cleanup );
 	rc = ldap_pvt_tls_set_option(ld, flag, berval ? (void *)&c->value_bv : (void *)c->argv[1]);
 	if ( berval ) ch_free(c->value_bv.bv_val);
 	return rc;
@@ -4223,11 +4239,11 @@ config_tls_config(ConfigArgs *c) {
 		return slap_tls_get_config( slap_tls_ld, flag, &c->value_string );
 	} else if ( c->op == LDAP_MOD_DELETE ) {
 		int i = 0;
-		c->cleanup = config_tls_cleanup;
+		config_push_cleanup( c, config_tls_cleanup );
 		return ldap_pvt_tls_set_option( slap_tls_ld, flag, &i );
 	}
 	ch_free( c->value_string );
-	c->cleanup = config_tls_cleanup;
+	config_push_cleanup( c, config_tls_cleanup );
 	if ( isdigit( (unsigned char)c->argv[1][0] ) && c->type != CFG_TLS_PROTOCOL_MIN ) {
 		if ( lutil_atoi( &i, c->argv[1] ) != 0 ) {
 			Debug(LDAP_DEBUG_ANY, "%s: "
@@ -5613,8 +5629,8 @@ ok:
 				rc = ca->bi->bi_db_open( ca->be, &ca->reply );
 				ca->be->bd_info = bi_orig;
 			}
-		} else if ( ca->cleanup ) {
-			rc = ca->cleanup( ca );
+		} else if ( ca->num_cleanups ) {
+			rc = config_run_cleanup( ca );
 		}
 		if ( rc ) {
 			if (ca->cr_msg[0] == '\0')
@@ -5684,8 +5700,8 @@ done:
 			overlay_destroy_one( ca->be, (slap_overinst *)ca->bi );
 		} else if ( coptr->co_type == Cft_Schema ) {
 			schema_destroy_one( ca, colst, nocs, last );
-		} else if ( ca->cleanup ) {
-			ca->cleanup( ca );
+		} else if ( ca->num_cleanups ) {
+			config_run_cleanup( ca );
 		}
 	}
 done_noop:
@@ -6224,8 +6240,8 @@ out:
 		ca->reply = msg;
 	}
 
-	if ( ca->cleanup ) {
-		i = ca->cleanup( ca );
+	if ( ca->num_cleanups ) {
+		i = config_run_cleanup( ca );
 		if (rc == LDAP_SUCCESS)
 			rc = i;
 	}
