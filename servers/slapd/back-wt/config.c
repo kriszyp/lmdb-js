@@ -113,7 +113,7 @@ wt_cf_gen( ConfigArgs *c )
 		wi->wi_flags |= WT_OPEN_INDEX;
 
 		if ( wi->wi_flags & WT_IS_OPEN ) {
-			c->cleanup = wt_cf_cleanup;
+			config_push_cleanup( c, wt_cf_cleanup );
 
 			if ( !wi->wi_index_task ) {
 				/* Start the task as soon as we finish here. Set a long

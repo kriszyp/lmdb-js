@@ -168,8 +168,12 @@ typedef struct config_args_s {
 	BackendInfo *bi;
 	Entry *ca_entry;	/* entry being modified */
 	void *ca_private;	/* anything */
-	ConfigDriver *cleanup;
+#ifndef SLAP_CONFIG_CLEANUP_MAX
+#define SLAP_CONFIG_CLEANUP_MAX	16
+#endif
+	ConfigDriver *cleanups[SLAP_CONFIG_CLEANUP_MAX];
 	ConfigType table;	/* which config table did we come from */
+	int num_cleanups;
 } ConfigArgs;
 
 /* If lineno is zero, we have an actual LDAP Add request from a client.
@@ -194,6 +198,9 @@ int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_del_vals(ConfigTable *cf, ConfigArgs *c);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
 int config_add_vals(ConfigTable *ct, ConfigArgs *c);
+
+int config_push_cleanup(ConfigArgs *c, ConfigDriver *cleanup);
+int config_run_cleanup(ConfigArgs *c);
 
 void init_config_argv( ConfigArgs *c );
 int init_config_attrs(ConfigTable *ct);
