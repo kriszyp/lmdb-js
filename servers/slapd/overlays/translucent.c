@@ -146,7 +146,7 @@ translucent_ldadd( CfEntryInfo *cei, Entry *e, ConfigArgs *ca )
 	ca->be = &ov->db;
 	ca->ca_private = on;
 	if ( CONFIG_ONLINE_ADD( ca ))
-		ca->cleanup = translucent_ldadd_cleanup;
+		config_push_cleanup( ca, translucent_ldadd_cleanup );
 	else
 		ov->defer_db_open = 0;
 

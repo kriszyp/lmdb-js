@@ -1240,6 +1240,32 @@ ldap_pvt_thread_pool_pausecheck( ldap_pvt_thread_pool_t *tpool )
 }
 
 /*
+ * Wait for a pause, from a non-pooled thread.
+ */
+int
+ldap_pvt_thread_pool_pausecheck_native( ldap_pvt_thread_pool_t *tpool )
+{
+	struct ldap_int_thread_pool_s *pool;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(0);
+
+	if (!pool->ltp_pause)
+		return(0);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+	while (pool->ltp_pause)
+			ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return 1;
+}
+
+/*
  * Pause the pool.  The calling task must be active, not idle.
  * Return when all other tasks are paused or idle.
  */

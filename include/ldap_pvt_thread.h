@@ -283,6 +283,10 @@ ldap_pvt_thread_pool_pausecheck LDAP_P((
 	ldap_pvt_thread_pool_t *pool ));
 
 LDAP_F( int )
+ldap_pvt_thread_pool_pausecheck_native LDAP_P((
+	ldap_pvt_thread_pool_t *pool ));
+
+LDAP_F( int )
 ldap_pvt_thread_pool_pause LDAP_P((
 	ldap_pvt_thread_pool_t *pool ));
 

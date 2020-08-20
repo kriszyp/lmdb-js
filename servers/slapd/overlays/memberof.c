@@ -2155,7 +2155,7 @@ static struct {
 		"SYNTAX '1.3.6.1.4.1.1466.115.121.1.12' "
 		"EQUALITY distinguishedNameMatch "	/* added */
 		"USAGE dSAOperation "			/* added; questioned */
-		/* "NO-USER-MODIFICATION " */		/* add? */
+		"NO-USER-MODIFICATION " 		/* added */
 		"X-ORIGIN 'iPlanet Delegated Administrator' )",
 		&ad_memberOf },
 	{ NULL }
@@ -2170,8 +2170,8 @@ memberof_initialize( void )
 	int			code, i;
 
 	for ( i = 0; as[ i ].desc != NULL; i++ ) {
-		code = register_at( as[ i ].desc, as[ i ].adp, 0 );
-		if ( code ) {
+		code = register_at( as[ i ].desc, as[ i ].adp, 1 );
+		if ( code && code != SLAP_SCHERR_ATTR_DUP ) {
 			Debug( LDAP_DEBUG_ANY,
 				"memberof_initialize: register_at #%d failed\n",
 				i );

@@ -706,6 +706,17 @@ connection_destroy( Connection *c )
 	}
 }
 
+int connection_is_active( ber_socket_t s )
+{
+	Connection *c;
+
+	assert( s < dtblsize );
+	c = &connections[s];
+	return c->c_conn_state == SLAP_C_CLOSING ||
+		c->c_conn_state == SLAP_C_BINDING ||
+		c->c_conn_state == SLAP_C_ACTIVE ;
+}
+
 int connection_valid( Connection *c )
 {
 	/* c_mutex must be locked by caller */

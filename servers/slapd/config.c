@@ -564,6 +564,35 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 }
 
 int
+config_push_cleanup(ConfigArgs *ca, ConfigDriver *cleanup)
+{
+	int i;
+	/* silently ignore redundant push */
+	for (i=0; i < ca->num_cleanups; i++) {
+		if ( ca->cleanups[i] == cleanup )
+			return 0;
+	}
+
+	if (ca->num_cleanups >= SLAP_CONFIG_CLEANUP_MAX)
+		return -1;
+	ca->cleanups[ca->num_cleanups++] = cleanup;
+	return 0;
+}
+
+int
+config_run_cleanup(ConfigArgs *ca)
+{
+	int i, rc = 0;
+
+	for (i=0; i < ca->num_cleanups; i++) {
+		rc = ca->cleanups[i](ca);
+		if (rc)
+			break;
+	}
+	return rc;
+}
+
+int
 init_config_attrs(ConfigTable *ct) {
 	int i, code;
 

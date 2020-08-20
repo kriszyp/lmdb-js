@@ -2126,7 +2126,7 @@ meta_back_cf_gen( ConfigArgs *c )
 			return 1;
 		}
 		c->ca_private = mt;
-		c->cleanup = meta_cf_cleanup;
+		config_push_cleanup( c, meta_cf_cleanup );
 	} break;
 	case LDAP_BACK_CFG_SUBTREE_EX:
 	case LDAP_BACK_CFG_SUBTREE_IN:

@@ -445,7 +445,7 @@ mdb_cf_gen( ConfigArgs *c )
 			mdb->mi_flags |= MDB_RE_OPEN;
 			ch_free( mdb->mi_dbenv_home );
 			mdb->mi_dbenv_home = NULL;
-			c->cleanup = mdb_cf_cleanup;
+			config_push_cleanup( c, mdb_cf_cleanup );
 			ldap_pvt_thread_pool_purgekey( mdb->mi_dbenv );
 			break;
 		case MDB_DBNOSYNC:
@@ -462,7 +462,7 @@ mdb_cf_gen( ConfigArgs *c )
 						rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
 						if ( rc ) {
 							mdb->mi_flags |= MDB_RE_OPEN;
-							c->cleanup = mdb_cf_cleanup;
+							config_push_cleanup( c, mdb_cf_cleanup );
 							rc = 0;
 						}
 						mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
@@ -474,7 +474,7 @@ mdb_cf_gen( ConfigArgs *c )
 					rc = mdb_env_set_flags( mdb->mi_dbenv, mdb_envflags[i].mask, 0 );
 					if ( rc ) {
 						mdb->mi_flags |= MDB_RE_OPEN;
-						c->cleanup = mdb_cf_cleanup;
+						config_push_cleanup( c, mdb_cf_cleanup );
 						rc = 0;
 					}
 					mdb->mi_dbenv_flags ^= mdb_envflags[i].mask;
@@ -498,7 +498,7 @@ mdb_cf_gen( ConfigArgs *c )
 				}
 				mdb->mi_defaultmask = 0;
 				mdb->mi_flags |= MDB_DEL_INDEX;
-				c->cleanup = mdb_cf_cleanup;
+				config_push_cleanup( c, mdb_cf_cleanup );
 
 			} else {
 				struct berval bv, def = BER_BVC("default");
@@ -535,7 +535,7 @@ mdb_cf_gen( ConfigArgs *c )
 
 						ai->ai_indexmask |= MDB_INDEX_DELETING;
 						mdb->mi_flags |= MDB_DEL_INDEX;
-						c->cleanup = mdb_cf_cleanup;
+						config_push_cleanup( c, mdb_cf_cleanup );
 					}
 
 					bv.bv_val[ bv.bv_len ] = sep;
@@ -735,7 +735,7 @@ mdb_cf_gen( ConfigArgs *c )
 					rc = 0;
 				if ( rc ) {
 					mdb->mi_flags |= MDB_RE_OPEN;
-					c->cleanup = mdb_cf_cleanup;
+					config_push_cleanup( c, mdb_cf_cleanup );
 					rc = 0;
 				}
 				mdb->mi_dbenv_flags |= mdb_envflags[j].mask;
@@ -757,7 +757,7 @@ mdb_cf_gen( ConfigArgs *c )
 		if( rc != LDAP_SUCCESS ) return 1;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_OPEN_INDEX;
-			c->cleanup = mdb_cf_cleanup;
+			config_push_cleanup( c, mdb_cf_cleanup );
 			if ( !mdb->mi_index_task ) {
 				/* Start the task as soon as we finish here. Set a long
 				 * interval (10 hours) so that it only gets scheduled once.
@@ -791,7 +791,7 @@ mdb_cf_gen( ConfigArgs *c )
 		mdb->mi_readers = c->value_int;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
-			c->cleanup = mdb_cf_cleanup;
+			config_push_cleanup( c, mdb_cf_cleanup );
 		}
 		break;
 
@@ -799,7 +799,7 @@ mdb_cf_gen( ConfigArgs *c )
 		mdb->mi_mapsize = c->value_ulong;
 		if ( mdb->mi_flags & MDB_IS_OPEN ) {
 			mdb->mi_flags |= MDB_RE_OPEN;
-			c->cleanup = mdb_cf_cleanup;
+			config_push_cleanup( c, mdb_cf_cleanup );
 		}
 		break;
 
