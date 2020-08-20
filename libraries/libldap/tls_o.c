@@ -407,34 +407,30 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		DH_free( dh );
 	}
 
-	if ( is_server && lo->ldo_tls_ecname ) {
+	if ( lo->ldo_tls_ecname ) {
 #ifdef OPENSSL_NO_EC
 		Debug( LDAP_DEBUG_ANY,
 			"TLS: Elliptic Curves not supported.\n", 0,0,0 );
 		return -1;
 #else
-		EC_KEY *ecdh;
-
-		int nid = OBJ_sn2nid( lt->lt_ecname );
-		if ( nid == NID_undef ) {
+		if ( SSL_CTX_set1_curves_list( ctx, lt->lt_ecname )) {
 			Debug( LDAP_DEBUG_ANY,
-				"TLS: could not use EC name `%s'.\n",
+				"TLS: could not set EC name `%s'.\n",
 				lo->ldo_tls_ecname,0,0);
 			tlso_report_error();
 			return -1;
 		}
-		ecdh = EC_KEY_new_by_curve_name( nid );
-		if ( ecdh == NULL ) {
+	/*
+	 * This is a NOP in OpenSSL 1.1.0 and later, where curves are always
+	 * auto-negotiated.
+	 */
+#if OPENSSL_VERSION_NUMBER < 0x10100000UL
+		if ( SSL_CTX_set_ecdh_auto( ctx, 1 ) <= 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"TLS: could not generate key for EC name `%s'.\n",
-				lo->ldo_tls_ecname,0,0);
-			tlso_report_error();
-			return -1;
+				"TLS: could not enable automatic EC negotiation.\n", 0, 0, 0 );
 		}
-		SSL_CTX_set_tmp_ecdh( ctx, ecdh );
-		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_ECDH_USE );
-		EC_KEY_free( ecdh );
 #endif
+#endif	/* OPENSSL_NO_EC */
 	}
 
 	if ( tlso_opt_trace ) {

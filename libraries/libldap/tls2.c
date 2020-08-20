@@ -532,6 +532,7 @@ ldap_int_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 	case LDAP_OPT_X_TLS_DHFILE:
+	case LDAP_OPT_X_TLS_ECNAME:
 	case LDAP_OPT_X_TLS_CRLFILE:	/* GnuTLS only */
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
