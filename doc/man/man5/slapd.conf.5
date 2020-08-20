@@ -1139,9 +1139,9 @@ You should append "!ADH" to your cipher suites to ensure that these suites
 are not used.
 .TP
 .B TLSECName <name>
-Specify the name of a curve to use for Elliptic curve Diffie-Hellman
-ephemeral key exchange.  This is required to enable ECDHE algorithms in
-OpenSSL.  This option is not used with GnuTLS; the curves may be
+Specify the name of the curve(s) to use for Elliptic curve Diffie-Hellman
+ephemeral key exchange.  This option is only used for OpenSSL.
+This option is not used with GnuTLS; the curves may be
 chosen in the GnuTLS ciphersuite specification.
 .TP
 .B TLSProtocolMin <major>[.<minor>]

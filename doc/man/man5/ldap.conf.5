@@ -327,6 +327,12 @@ is always used before
 Specifies the file that contains the client certificate.
 .B This is a user-only option.
 .TP
+.B TLS_ECNAME <name>
+Specify the name of the curve(s) to use for Elliptic curve Diffie-Hellman
+ephemeral key exchange.  This option is only used for OpenSSL.
+This option is not used with GnuTLS; the curves may be
+chosen in the GnuTLS ciphersuite specification.
+.TP
 .B TLS_KEY <filename>
 Specifies the file that contains the private key that matches the certificate
 stored in the
