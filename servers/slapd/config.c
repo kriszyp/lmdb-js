@@ -1488,8 +1488,10 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("tls_cacert="), offsetof(slap_bindconf, sb_tls_cacert), 's', 1, NULL },
 	{ BER_BVC("tls_cacertdir="), offsetof(slap_bindconf, sb_tls_cacertdir), 's', 1, NULL },
 	{ BER_BVC("tls_reqcert="), offsetof(slap_bindconf, sb_tls_reqcert), 's', 0, NULL },
+	{ BER_BVC("tls_reqsan="), offsetof(slap_bindconf, sb_tls_reqsan), 's', 0, NULL },
 	{ BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 0, NULL },
 	{ BER_BVC("tls_protocol_min="), offsetof(slap_bindconf, sb_tls_protocol_min), 's', 0, NULL },
+	{ BER_BVC("tls_ecname="), offsetof(slap_bindconf, sb_tls_ecname), 's', 0, NULL },
 #ifdef HAVE_OPENSSL_CRL
 	{ BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 0, NULL },
 #endif
@@ -1855,6 +1857,10 @@ void bindconf_free( slap_bindconf *bc ) {
 		ch_free( bc->sb_tls_reqcert );
 		bc->sb_tls_reqcert = NULL;
 	}
+	if ( bc->sb_tls_reqsan ) {
+		ch_free( bc->sb_tls_reqsan );
+		bc->sb_tls_reqsan = NULL;
+	}
 	if ( bc->sb_tls_cipher_suite ) {
 		ch_free( bc->sb_tls_cipher_suite );
 		bc->sb_tls_cipher_suite = NULL;
@@ -1862,6 +1868,10 @@ void bindconf_free( slap_bindconf *bc ) {
 	if ( bc->sb_tls_protocol_min ) {
 		ch_free( bc->sb_tls_protocol_min );
 		bc->sb_tls_protocol_min = NULL;
+	}
+	if ( bc->sb_tls_ecname ) {
+		ch_free( bc->sb_tls_ecname );
+		bc->sb_tls_ecname = NULL;
 	}
 #ifdef HAVE_OPENSSL_CRL
 	if ( bc->sb_tls_crlcheck ) {
@@ -1898,6 +1908,11 @@ bindconf_tls_defaults( slap_bindconf *bc )
 				&bc->sb_tls_cipher_suite );
 		if ( !bc->sb_tls_reqcert )
 			bc->sb_tls_reqcert = ch_strdup("demand");
+		if ( !bc->sb_tls_reqsan )
+			bc->sb_tls_reqsan = ch_strdup("allow");
+		if ( !bc->sb_tls_ecname )
+			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_ECNAME,
+				&bc->sb_tls_ecname );
 #ifdef HAVE_OPENSSL_CRL
 		if ( !bc->sb_tls_crlcheck )
 			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_CRLCHECK,
@@ -1918,7 +1933,7 @@ static struct {
 	{ "tls_cacert", offsetof(slap_bindconf, sb_tls_cacert), LDAP_OPT_X_TLS_CACERTFILE },
 	{ "tls_cacertdir", offsetof(slap_bindconf, sb_tls_cacertdir), LDAP_OPT_X_TLS_CACERTDIR },
 	{ "tls_cipher_suite", offsetof(slap_bindconf, sb_tls_cipher_suite), LDAP_OPT_X_TLS_CIPHER_SUITE },
-	{ "tls_protocol_min", offsetof(slap_bindconf, sb_tls_protocol_min), LDAP_OPT_X_TLS_PROTOCOL_MIN },
+	{ "tls_ecname", offsetof(slap_bindconf, sb_tls_ecname), LDAP_OPT_X_TLS_ECNAME },
 	{0, 0}
 };
 
@@ -1948,6 +1963,16 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 			Debug( LDAP_DEBUG_ANY,
 				"bindconf_tls_set: failed to set tls_reqcert to %s\n",
 					bc->sb_tls_reqcert );
+			res = -1;
+		}
+	}
+	if ( bc->sb_tls_reqsan ) {
+		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_SAN,
+			bc->sb_tls_reqsan );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bindconf_tls_set: failed to set tls_reqsan to %s\n",
+					bc->sb_tls_reqsan );
 			res = -1;
 		}
 	}
