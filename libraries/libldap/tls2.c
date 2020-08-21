@@ -585,6 +585,7 @@ ldap_pvt_tls_config( LDAP *ld, int option, const char *arg )
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
 	case LDAP_OPT_X_TLS:
 		i = -1;
 		if ( strcasecmp( arg, "never" ) == 0 ) {
@@ -714,6 +715,9 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = lo->ldo_tls_require_cert;
+		break;
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
+		*(int *)arg = lo->ldo_tls_require_san;
 		break;
 #ifdef HAVE_OPENSSL_CRL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
@@ -918,6 +922,18 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		case LDAP_OPT_X_TLS_TRY:
 		case LDAP_OPT_X_TLS_HARD:
 			lo->ldo_tls_require_cert = * (int *) arg;
+			return 0;
+		}
+		return -1;
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
+		if ( !arg ) return -1;
+		switch( *(int *) arg ) {
+		case LDAP_OPT_X_TLS_NEVER:
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_ALLOW:
+		case LDAP_OPT_X_TLS_TRY:
+		case LDAP_OPT_X_TLS_HARD:
+			lo->ldo_tls_require_san = * (int *) arg;
 			return 0;
 		}
 		return -1;

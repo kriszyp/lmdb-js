@@ -559,6 +559,7 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 {
 	tlsg_session *s = (tlsg_session *)session;
 	int i, ret;
+	int chkSAN = ld->ld_options.ldo_tls_require_san, gotSAN = 0;
 	const gnutls_datum_t *peer_cert_list;
 	unsigned int list_size;
 	char altname[NI_MAXHOST];
@@ -620,12 +621,14 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 		}
 	}
 
+	if (chkSAN) {
 	for ( i=0, ret=0; ret >= 0; i++ ) {
 		altnamesize = sizeof(altname);
 		ret = gnutls_x509_crt_get_subject_alt_name( cert, i, 
 			altname, &altnamesize, NULL );
 		if ( ret < 0 ) break;
 
+		gotSAN = 1;
 		/* ignore empty */
 		if ( altnamesize == 0 ) continue;
 
@@ -661,7 +664,44 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 	}
 	if ( ret >= 0 ) {
 		ret = LDAP_SUCCESS;
-	} else {
+	}
+	}
+	if (ret != LDAP_SUCCESS && chkSAN) {
+		switch(chkSAN) {
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_HARD:
+			if (!gotSAN) {
+				Debug0( LDAP_DEBUG_ANY,
+					"TLS: unable to get subjectAltName from peer certificate.\n" );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: unable to get subjectAltName from peer certificate"));
+				goto done;
+			}
+			/* FALLTHRU */
+		case LDAP_OPT_X_TLS_TRY:
+			if (gotSAN) {
+				Debug1( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+					"subjectAltName in certificate.\n",
+					name );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: hostname does not match subjectAltName in peer certificate"));
+				goto done;
+			}
+			break;
+		case LDAP_OPT_X_TLS_ALLOW:
+			break;
+		}
+	}
+
+	if ( ret != LDAP_SUCCESS ){
 		/* find the last CN */
 		i=0;
 		do {
@@ -715,9 +755,10 @@ tlsg_session_chkhost( LDAP *ld, tls_session *session, const char *name_in )
 				LDAP_FREE( ld->ld_error );
 			}
 			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
+				_("TLS: hostname does not match name in peer certificate"));
 		}
 	}
+done:
 	gnutls_x509_crt_deinit( cert );
 	return ret;
 }

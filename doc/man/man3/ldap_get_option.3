@@ -815,6 +815,15 @@ one of
 .BR LDAP_OPT_X_TLS_ALLOW ,
 .BR LDAP_OPT_X_TLS_TRY .
 .TP
+.B LDAP_OPT_X_TLS_REQUIRE_SAN
+Sets/gets the peer certificate subjectAlternativeName checking strategy,
+one of
+.BR LDAP_OPT_X_TLS_NEVER ,
+.BR LDAP_OPT_X_TLS_HARD ,
+.BR LDAP_OPT_X_TLS_DEMAND ,
+.BR LDAP_OPT_X_TLS_ALLOW ,
+.BR LDAP_OPT_X_TLS_TRY .
+.TP
 .B LDAP_OPT_X_TLS_SSL_CTX
 Gets the TLS session context associated with this handle.
 .BR outvalue
