@@ -620,6 +620,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 {
 	tlso_session *s = (tlso_session *)sess;
 	int i, ret = LDAP_LOCAL_ERROR;
+	int chkSAN = ld->ld_options.ldo_tls_require_san, gotSAN = 0;
 	X509 *x;
 	const char *name;
 	char *ptr;
@@ -658,7 +659,8 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
 		if (inet_aton(name, (struct in_addr *)&addr)) ntype = IS_IP4;
 	}
-	
+
+	if (chkSAN) {
 	i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
 	if (i >= 0) {
 		X509_EXTENSION *ex;
@@ -671,6 +673,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			char *domain = NULL;
 			GENERAL_NAME *gn;
 
+			gotSAN = 1;
 			if (ntype == IS_DNS) {
 				domain = strchr(name, '.');
 				if (domain) {
@@ -727,6 +730,41 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			if (i < n) {	/* Found a match */
 				ret = LDAP_SUCCESS;
 			}
+		}
+	}
+	}
+	if (ret != LDAP_SUCCESS && chkSAN) {
+		switch(chkSAN) {
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_HARD:
+			if (!gotSAN) {
+				Debug( LDAP_DEBUG_ANY,
+					"TLS: unable to get subjectAltName from peer certificate.\n", 0, 0, 0 );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: unable to get subjectAltName from peer certificate"));
+				goto done;
+			}
+			/* FALLTHRU */
+		case LDAP_OPT_X_TLS_TRY:
+			if (gotSAN) {
+				Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+					"subjectAltName in certificate.\n",
+					name, 0, 0 );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: hostname does not match subjectAltName in peer certificate"));
+				goto done;
+			}
+			break;
+		case LDAP_OPT_X_TLS_ALLOW:
+			break;
 		}
 	}
 
@@ -792,9 +830,10 @@ no_cn:
 				LDAP_FREE( ld->ld_error );
 			}
 			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
+				_("TLS: hostname does not match name in peer certificate"));
 		}
 	}
+done:
 	X509_free(x);
 	return ret;
 }

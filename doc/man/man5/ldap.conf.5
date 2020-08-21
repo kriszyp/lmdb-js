@@ -464,6 +464,37 @@ certificate is provided, or a bad certificate is provided, the session
 is immediately terminated. This is the default setting.
 .RE
 .TP
+.B TLS_REQSAN <level>
+Specifies what checks to perform on the subjectAlternativeName
+(SAN) extensions in a server certificate when validating the certificate
+name against the specified hostname of the server. The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+The client will not check any SAN in the certificate.
+.TP
+.B allow
+The SAN is checked against the specified hostname. If a SAN is
+present but none match the specified hostname, the SANs are ignored
+and the usual check against the certificate DN is used.
+This is the default setting.
+.TP
+.B try
+The SAN is checked against the specified hostname. If no SAN is present
+in the server certificate, the usual check against the certificate DN
+is used. If a SAN is present but doesn't match the specified hostname,
+the session is immediately terminated. This setting may be preferred
+when a mix of certs with and without SANs are in use.
+.TP
+.B demand | hard
+These keywords are equivalent. The SAN is checked against the specified
+hostname. If no SAN is present in the server certificate, or no SANs
+match, the session is immediately terminated. This setting should be
+used when only certificates with SANs are in use.
+.RE
+.TP
 .B TLS_CRLCHECK <level>
 Specifies if the Certificate Revocation List (CRL) of the CA should be 
 used to verify if the server certificates have not been revoked. This
