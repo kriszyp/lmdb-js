@@ -1532,7 +1532,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace, int valx )
 
 		slap_sasl_rewrite_destroy();
 		sasl_rwinfo = rw;
-	} else {
+	} else if ( rw ) {
 		rewrite_info_delete( &rw );
 	}
 
