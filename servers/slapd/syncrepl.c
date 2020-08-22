@@ -874,7 +874,11 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 	return match;
 }
 
-#define	SYNC_PAUSED	-3
+#define SYNC_TIMEOUT	0
+#define SYNC_SHUTDOWN	-100
+#define SYNC_ERROR		-101
+#define SYNC_REPOLL		-102
+#define SYNC_PAUSED		-103
 
 static int
 do_syncrep2(
@@ -896,14 +900,13 @@ do_syncrep2(
 
 	int				m;
 
-	struct timeval *tout_p = NULL;
 	struct timeval tout = { 0, 0 };
 
 	int		refreshDeletes = 0;
 	char empty[6] = "empty";
 
 	if ( slapd_shutdown ) {
-		rc = -2;
+		rc = SYNC_SHUTDOWN;
 		goto done;
 	}
 
@@ -914,14 +917,8 @@ do_syncrep2(
 
 	slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 
-	if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST && si->si_refreshDone ) {
-		tout_p = &tout;
-	} else {
-		tout_p = NULL;
-	}
-
 	while ( ( rc = ldap_result( si->si_ld, si->si_msgid, LDAP_MSG_ONE,
-		tout_p, &msg ) ) > 0 )
+		&tout, &msg ) ) > 0 )
 	{
 		int				match, punlock, syncstate;
 		struct berval	*retdata, syncUUID[2], cookie = BER_BVNULL;
@@ -934,7 +931,7 @@ do_syncrep2(
 		struct berval	bdn;
 
 		if ( slapd_shutdown ) {
-			rc = -2;
+			rc = SYNC_SHUTDOWN;
 			goto done;
 		}
 		switch( ldap_msgtype( msg ) ) {
@@ -1044,7 +1041,7 @@ do_syncrep2(
 						/* check pending CSNs too */
 						while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
 							if ( slapd_shutdown ) {
-								rc = -2;
+								rc = SYNC_SHUTDOWN;
 								goto done;
 							}
 							if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
@@ -1206,7 +1203,7 @@ do_syncrep2(
 						"got search result with multiple "
 						"Sync State control\n", si->si_ridtxt, 0, 0 );
 					ldap_controls_free( rctrls );
-					rc = -1;
+					rc = SYNC_ERROR;
 					goto done;
 				}
 			}
@@ -1277,7 +1274,11 @@ do_syncrep2(
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
 				slap_resume_listeners();
 			} else {
-				rc = -2;
+				/* for persist, we shouldn't get a SearchResult so this is an error */
+				if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST )
+					rc = SYNC_ERROR;
+				else
+					rc = SYNC_REPOLL;
 			}
 			goto done;
 
@@ -1353,9 +1354,6 @@ do_syncrep2(
 						si->si_refreshDone = 1;
 					}
 					ber_scanf( ber, /*"{"*/ "}" );
-					if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
-						si->si_refreshDone )
-						tout_p = &tout;
 					break;
 				case LDAP_TAG_SYNC_ID_SET:
 					Debug( LDAP_DEBUG_SYNC,
@@ -1485,7 +1483,7 @@ do_syncrep2(
 		}
 	}
 
-	if ( rc == -1 ) {
+	if ( rc == SYNC_ERROR ) {
 		rc = LDAP_OTHER;
 		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 		err = rc;
@@ -1528,7 +1526,7 @@ do_syncrepl(
 	int rc = LDAP_SUCCESS;
 	int dostop = 0;
 	ber_socket_t s;
-	int i, defer = 1, fail = 0, freeinfo = 0;
+	int i, fail = 0, freeinfo = 0;
 	Backend *be;
 
 	if ( si == NULL )
@@ -1661,25 +1659,19 @@ deleted:
 			}
 			if ( si->si_conn )
 				dostop = 1;
-			rc = -1;
+			rc = SYNC_SHUTDOWN;
 		}
 
 		if ( rc != SYNC_PAUSED ) {
-			if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
-				/* If we succeeded, enable the connection for further listening.
-				 * If we failed, tear down the connection and reschedule.
-				 */
-				if ( rc == LDAP_SUCCESS ) {
-					if ( si->si_conn ) {
-						connection_client_enable( si->si_conn );
-					} else {
-						si->si_conn = connection_client_setup( s, do_syncrepl, arg );
-					} 
-				} else if ( si->si_conn ) {
-					dostop = 1;
+			if ( rc == SYNC_TIMEOUT ) {
+				/* there was nothing to read, try to listen for more */
+				if ( si->si_conn ) {
+					connection_client_enable( si->si_conn );
+				} else {
+					si->si_conn = connection_client_setup( s, do_syncrepl, arg );
 				}
-			} else {
-				if ( rc == -2 ) rc = 0;
+			} else if ( si->si_conn ) {
+				dostop = 1;
 			}
 		}
 	}
@@ -1688,8 +1680,8 @@ deleted:
 	 * 1) for any hard failure, give up and remove this task
 	 * 2) for ServerDown, reschedule this task to run later
 	 * 3) for threadpool pause, reschedule to run immediately
-	 * 4) for Refresh and Success, reschedule to run
-	 * 5) for Persist and Success, reschedule to defer
+	 * 4) for SYNC_REPOLL, reschedule to run later
+	 * 5) for SYNC_TIMEOUT, reschedule to defer
 	 */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 
@@ -1707,25 +1699,26 @@ deleted:
 		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 		rtask->interval.tv_sec = si->si_interval;
 		rc = 0;
-	} else if ( rc == LDAP_SUCCESS ) {
-		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
-			defer = 0;
-		}
+	} else if ( rc == SYNC_TIMEOUT ) {
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
+	} else if ( rc == SYNC_REPOLL ) {
 		rtask->interval.tv_sec = si->si_interval;
-		ldap_pvt_runqueue_resched( &slapd_rq, rtask, defer );
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 		if ( si->si_retrynum ) {
 			for ( i = 0; si->si_retrynum_init[i] != RETRYNUM_TAIL; i++ ) {
 				si->si_retrynum[i] = si->si_retrynum_init[i];
 			}
 			si->si_retrynum[i] = RETRYNUM_TAIL;
 		}
+		slap_wake_listener();
+		rc = 0;
 	} else {
 		for ( i = 0; si->si_retrynum && si->si_retrynum[i] <= 0; i++ ) {
 			if ( si->si_retrynum[i] == RETRYNUM_FOREVER || si->si_retrynum[i] == RETRYNUM_TAIL )
 				break;
 		}
 
-		if ( si->si_ctype < 1
+		if ( si->si_ctype < 1 || rc == SYNC_SHUTDOWN
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			if ( si->si_re ) {
 				ldap_pvt_runqueue_remove( &slapd_rq, rtask );
