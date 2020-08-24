@@ -134,7 +134,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
 
     if (keyType == NodeLmdbKeyType::DefaultKey) {
         isValid = true;
-        return valueToKey(val, key);
+        return valueToKey(val, key, isValid);
     } else if (keyType == NodeLmdbKeyType::StringKey) {
         if (!val->IsString()) {
             Nan::ThrowError("Invalid key. Should be a string. (Specified with env.openDbi)");

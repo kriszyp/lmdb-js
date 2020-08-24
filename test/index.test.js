@@ -5,6 +5,7 @@ let mkdirp = require('mkdirp');
 let rimraf = require('rimraf');
 let chai = require('chai');
 let should = chai.should();
+let expect = chai.expect;
 let spawn = require('child_process').spawn;
 
 let { open, getLastVersion } = require('..');
@@ -101,6 +102,10 @@ describe('lmdb-store', function() {
       }
       if (count != 2)
         throw new Error('Not enough entries')
+    });
+    it('invalid key', async function() {
+      expect(() => db.get({ foo: 'bar' })).to.throw();
+      //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
   });
 });

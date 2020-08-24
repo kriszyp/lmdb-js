@@ -16,7 +16,7 @@ control character types:
 /*
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
-argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool fullLength) {
+argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool &isValid, bool fullLength) {
     if (jsKey->IsString()) {
         writeValueToEntry(jsKey, &mdbKey);
         int needsEscaping = 0;
@@ -85,7 +85,7 @@ argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool 
         size = length > 0 ? length - 1 : 0;
         Local<Context> context = Nan::GetCurrentContext();
         for (int i = 0; i < length; i++) {
-            auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i], true);
+            auto freeData = valueToKey(array->Get(context, i).ToLocalChecked(), segments[i], isValid, true);
             callbacks[i] = freeData;
             size += segments[i].mv_size;
         }
@@ -116,6 +116,8 @@ argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool 
         return nullptr;
     } else {
         fprintf(stderr, "Unknown type");
+        Nan::ThrowError("Invalid type for key.");
+        isValid = false;
         return nullptr;
     }
     mdbKey.mv_data = keyBytes;
@@ -251,7 +253,10 @@ NAN_METHOD(bufferToKeyValue) {
 }
 NAN_METHOD(keyValueToBuffer) {
     MDB_val key;
-    auto freeKey = valueToKey(info[0], key, false);
+    bool isValid = true;
+    auto freeKey = valueToKey(info[0], key, isValid, false);
+    if (!isValid)
+        return;
     Nan::MaybeLocal<v8::Object> buffer;
     if (freeKey) {
         buffer = Nan::NewBuffer(

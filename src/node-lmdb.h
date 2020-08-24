@@ -74,7 +74,7 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-argtokey_callback_t valueToKey(const Local<Value> &key, MDB_val &val, bool fullLength = false);
+argtokey_callback_t valueToKey(const Local<Value> &key, MDB_val &val, bool &isValid, bool fullLength = false);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
