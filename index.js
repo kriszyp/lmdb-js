@@ -3,6 +3,7 @@ const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
+const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('./build/Release/lmdb-store.node'))
 const { Env, Cursor, Compression, getLastVersion } = exports
 
@@ -13,6 +14,7 @@ const DEFAULT_COMMIT_DELAY = 1
 const READING_TNX = {
 	readOnly: true
 }
+const SHARED_STRUCTURE_CHANGE = { name: 'SharedStructureChange' }
 
 const allDbs = exports.allDbs = new Map()
 function genericErrorHandler(err) {
@@ -23,6 +25,7 @@ function genericErrorHandler(err) {
 const LAST_KEY = String.fromCharCode(0xffff)
 let env
 let defaultCompression
+let lastSize
 exports.open = open
 function open(path, options) {
 	let env = new Env()
@@ -112,9 +115,10 @@ function open(path, options) {
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options, dbOptions)
-			if (!this.encoding && !this.deserialize && !this.serialize) {
-				this.deserialize = JSON.parse
-				this.serialize = JSON.stringify
+			if (!this.encoding || this.encoding == 'msgpack') {
+				this.packr = new Packr()
+				if (this.sharedStructuresKey)
+					this.setupSharedStructures()
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -184,21 +188,15 @@ function open(path, options) {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
 				let result
-				if (this.deserialize) {
-					if (this.encoding == 'binary') {
-						result = txn.getBinaryUnsafe(this.db, id)
-						if (result != null)
-							result = this.deserialize(this.db.unsafeBuffer, result)
-					} else {
-						result = txn.getUtf8(this.db, id)
-						if (result != null)
-							result = this.deserialize(result)
-					}
-				} else {
-					result = this.encoding = 'binary' ? txn.getBinary(this.db, id) :
-						txn.getUtf8(this.db, id)
+				if (this.packr) {
+					lastSize = result = txn.getBinaryUnsafe(this.db, id)
+					return result && this.packr.unpack(this.db.unsafeBuffer, result)
 				}
-//				this.reads++
+				if (this.encoding == 'binary')
+					return txn.getBinary(this.db, id)
+				result = txn.getUtf8(this.db, id)
+				if (this.encoding == 'json' && result)
+					return JSON.parse(result)
 				return result
 			} catch(error) {
 				return handleError(error, this, txn, () => this.get(id))
@@ -223,9 +221,10 @@ function open(path, options) {
 				this.putSync(id, value, version)
 				return Promise.resolve(true)
 			}
-			if (this.serialize) {
-				value = this.serialize(value)
-			}
+			if (this.packr)
+				value = this.packr.pack(value)
+			else if (this.encoding == 'json')
+				value = JSON.stringify(value)
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
@@ -253,8 +252,10 @@ function open(path, options) {
 				this.writes++
 				if (!writeTxn)
 					localTxn = writeTxn = env.beginTxn()
-				if (this.serialize)
-					value = this.serialize(value)
+				if (this.packr)
+					value = this.packr.pack(value)
+				else if (this.encoding == 'json')
+					value = JSON.stringify(value)
 				if (typeof value == 'string') {
 					writeTxn.putUtf8(this.db, id, value, version)
 				} else {
@@ -378,18 +379,16 @@ function open(path, options) {
 							i++ < RANGE_BATCH_SIZE) {
 							if (includeValues) {
 								let value
-								if (this.deserialize) {
-									if (this.encoding == 'binary') {
-										value = cursor.getCurrentBinaryUnsafe()
-										if (value != null)
-											value = this.deserialize(db.unsafeBuffer, value)
-									} else {
-										value = cursor.getCurrentUtf8()
-										if (value != null)
-											value = this.deserialize(value)
-									}
-								} else {
-									value = this.encoding == 'binary' ? cursor.getCurrentBinary() : cursor.getCurrentUtf8()
+								if (this.packr) {
+									lastSize = value = cursor.getCurrentBinaryUnsafe()
+									if (value)
+										value = this.packr.unpack(this.db.unsafeBuffer, value)
+								} else if (this.encoding == 'binary')
+									value = cursor.getCurrentBinary()
+								else {
+									value = cursor.getCurrentUtf8()
+									if (this.encoding == 'json' && value)
+										value = JSON.parse(value)
 								}
 								if (includeVersions)
 									array.push(currentKey, value, getLastVersion())
@@ -652,10 +651,32 @@ function open(path, options) {
 			} catch(error) {
 				handleError(error, this, null, () => this.clear())
 			}
+			if (this.packr && this.packr.structures)
+				this.packr.structures = []
+
+		}
+		setupSharedStructures() {
+			this.packr.saveStructures = (structures, previousLength) => {
+				return this.transaction(() => {
+					let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
+					let existingStructures = existingStructuresBuffer ? unpack(existingStructuresBuffer) : []
+					if (existingStructures.length != previousLength)
+						return false // it changed, we need to indicate that we couldn't update
+					writeTxn.putBinary(this.db, this.sharedStructuresKey, pack(structures))
+				})
+			}
+			this.packr.getStructures = () => {
+				return unpack((writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey))
+			}
+			this.packr.structures = []
 		}
 	}
 	return new LMDBStore(options.dbName, options)
 	function handleError(error, store, txn, retry) {
+		if (error === SHARED_STRUCTURE_CHANGE) {
+			store.packr.structures = unpack(txn.getBinary(store.db, store.sharedStructuresKey))
+			return retry()
+		}
 		try {
 			if (readTxn) {
 				readTxn.abort()
@@ -783,4 +804,7 @@ const typeOrder = {
 	boolean: 1,
 	number: 2,
 	string: 3
+}
+exports.getLastEntrySize = function() {
+	return lastSize
 }

@@ -47,8 +47,19 @@ argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool 
     }
     uint8_t* keyBytes;
     int size;
-    if (jsKey->IsNumber()) {
-        double number = Local<Number>::Cast(jsKey)->Value();
+    if (jsKey->IsNumber() || jsKey->IsBigInt()) {
+        double number;
+        if (jsKey->IsNumber())
+            number = Local<Number>::Cast(jsKey)->Value();
+        else {
+            bool lossless = true;
+            number = (double) Local<BigInt>::Cast(jsKey)->Int64Value(&lossless);
+            if (!lossless) {
+                Nan::ThrowError("BigInt was too large to use as a key.");
+                isValid = false;
+                return nullptr;
+            }
+        }
         uint64_t asInt = *((uint64_t*) &number);
         keyBytes = new uint8_t[9]; // TODO: if last is zero, this can be 8
         if (number < 0) {
@@ -115,7 +126,6 @@ argtokey_callback_t valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, bool 
         mdbKey.mv_data = node::Buffer::Data(jsKey);
         return nullptr;
     } else {
-        fprintf(stderr, "Unknown type");
         Nan::ThrowError("Invalid type for key.");
         isValid = false;
         return nullptr;
