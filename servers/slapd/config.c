@@ -1492,7 +1492,7 @@ static slap_cf_aux_table bindkey[] = {
 	{ BER_BVC("tls_cipher_suite="), offsetof(slap_bindconf, sb_tls_cipher_suite), 's', 0, NULL },
 	{ BER_BVC("tls_protocol_min="), offsetof(slap_bindconf, sb_tls_protocol_min), 's', 0, NULL },
 	{ BER_BVC("tls_ecname="), offsetof(slap_bindconf, sb_tls_ecname), 's', 0, NULL },
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	{ BER_BVC("tls_crlcheck="), offsetof(slap_bindconf, sb_tls_crlcheck), 's', 0, NULL },
 #endif
 #endif
@@ -1873,7 +1873,7 @@ void bindconf_free( slap_bindconf *bc ) {
 		ch_free( bc->sb_tls_ecname );
 		bc->sb_tls_ecname = NULL;
 	}
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	if ( bc->sb_tls_crlcheck ) {
 		ch_free( bc->sb_tls_crlcheck );
 		bc->sb_tls_crlcheck = NULL;
@@ -1913,7 +1913,7 @@ bindconf_tls_defaults( slap_bindconf *bc )
 		if ( !bc->sb_tls_ecname )
 			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_ECNAME,
 				&bc->sb_tls_ecname );
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 		if ( !bc->sb_tls_crlcheck )
 			slap_tls_get_config( slap_tls_ld, LDAP_OPT_X_TLS_CRLCHECK,
 				&bc->sb_tls_crlcheck );
@@ -1986,7 +1986,7 @@ int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 			res = -1;
 		}
 	}
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	if ( bc->sb_tls_crlcheck ) {
 		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_CRLCHECK,
 			bc->sb_tls_crlcheck );

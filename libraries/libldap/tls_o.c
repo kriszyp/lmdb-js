@@ -46,8 +46,6 @@
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/dh.h>
-#elif defined( HAVE_SSL_H )
-#include <ssl.h>
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
@@ -244,11 +242,7 @@ tlso_destroy( void )
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000
 	EVP_cleanup();
-#if OPENSSL_VERSION_NUMBER < 0x10000000
-	ERR_remove_state(0);
-#else
 	ERR_remove_thread_state(NULL);
-#endif
 	ERR_free_strings();
 #endif
 
@@ -498,7 +492,6 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 #if OPENSSL_VERSION_NUMBER < 0x10100000
 	SSL_CTX_set_tmp_rsa_callback( ctx, tlso_tmp_rsa_cb );
 #endif
-#ifdef HAVE_OPENSSL_CRL
 	if ( lo->ldo_tls_crlcheck ) {
 		X509_STORE *x509_s = SSL_CTX_get_cert_store( ctx );
 		if ( lo->ldo_tls_crlcheck == LDAP_OPT_X_TLS_CRL_PEER ) {
@@ -508,7 +501,6 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 					X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL  );
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -904,7 +896,6 @@ tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
 static int
 tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 {
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	tlso_session *s = (tlso_session *)sess;
 	const EVP_MD *md;
 	unsigned int md_len;
@@ -944,9 +935,6 @@ tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 	buf->bv_len = md_len;
 
 	return md_len;
-#else
-	return 0;
-#endif
 }
 
 static const char *
@@ -1470,7 +1458,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	RSA *tmp_rsa;
 	/* FIXME:  Pregenerate the key on startup */
 	/* FIXME:  Who frees the key? */
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	BIGNUM *bn = BN_new();
 	tmp_rsa = NULL;
 	if ( bn ) {
@@ -1483,9 +1470,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 		}
 		BN_free( bn );
 	}
-#else
-	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
-#endif
 
 	if ( !tmp_rsa ) {
 		Debug2( LDAP_DEBUG_ANY,
