@@ -316,7 +316,10 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
     unsigned char statusByte = dw->compression ? charData[0] : 0;
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
-        dw->compression->decompress(data);
+        bool isValid;
+        dw->compression->decompress(data, isValid);
+        if (!isValid)
+            return Nan::Null();
     }
     currentDb = dw;
     return successFunc(data);

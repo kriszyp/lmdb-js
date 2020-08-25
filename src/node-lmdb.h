@@ -558,7 +558,7 @@ public:
     // compression acceleration (defaults to 1)
     int acceleration;
     LZ4_stream_t* stream;
-    void decompress(MDB_val& data);
+    void decompress(MDB_val& data, bool &isValid);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     void makeUnsafeBuffer();
     void expand(unsigned int size);

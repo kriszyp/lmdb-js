@@ -60,7 +60,7 @@ void Compression::makeUnsafeBuffer() {
     unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
-void Compression::decompress(MDB_val& data) {
+void Compression::decompress(MDB_val& data, bool &isValid) {
     uint32_t uncompressedLength;
     int compressionHeaderSize;
     unsigned char* charData = (unsigned char*) data.mv_data;
@@ -75,6 +75,8 @@ void Compression::decompress(MDB_val& data) {
     }
     else {
         fprintf(stderr, "Unknown status byte %u\n", charData[0]);
+        Nan::ThrowError("Unknown status byte");
+        isValid = false;
         return;
     }
     //TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
@@ -88,10 +90,13 @@ void Compression::decompress(MDB_val& data) {
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
         fprintf(stderr, "Failed to decompress data\n");
+        Nan::ThrowError("Failed to decompress data");
+        isValid = false;
         return;
     }
     data.mv_data = decompressTarget;
     data.mv_size = uncompressedLength;
+    isValid = true;
 }
 
 void Compression::expand(unsigned int size) {
