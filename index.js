@@ -33,6 +33,10 @@ function open(path, options) {
 	let scheduledWrites
 	let scheduledOperations
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed
+	if (typeof path == 'object' && !options) {
+		options = path
+		path = options.path
+	}
 	let extension = extname(path)
 	let name = basename(path, extension)
 	if (!fs.existsSync(extension ? dirname(path) : path))
@@ -81,6 +85,11 @@ function open(path, options) {
 	class LMDBStore extends EventEmitter {
 		constructor(dbName, dbOptions) {
 			super()
+			if (typeof dbName == 'object' && !dbOptions) {
+				dbOptions = dbName
+				dbName = options.name
+			}
+
 			const openDB = () => {
 				try {
 					this.db = env.openDbi(Object.assign({
@@ -105,7 +114,7 @@ function open(path, options) {
 
 			openDB()
 			resetReadTxn() // a read transaction becomes invalid after opening another db
-			this.dbName = dbName
+			this.name = dbName
 			this.env = env
 			this.reads = 0
 			this.writes = 0
@@ -671,7 +680,7 @@ function open(path, options) {
 			this.packr.structures = []
 		}
 	}
-	return new LMDBStore(options.dbName, options)
+	return new LMDBStore(options.name, options)
 	function handleError(error, store, txn, retry) {
 		if (error === SHARED_STRUCTURE_CHANGE) {
 			store.packr.structures = unpack(txn.getBinary(store.db, store.sharedStructuresKey))
