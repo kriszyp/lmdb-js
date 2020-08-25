@@ -5,7 +5,7 @@ const when  = require('./util/when')
 const EventEmitter = require('events')
 const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('./build/Release/lmdb-store.node'))
-const { Env, Cursor, Compression, getLastVersion } = exports
+const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -675,7 +675,13 @@ function open(path, options) {
 				})
 			}
 			this.packr.getStructures = () => {
-				return unpack((writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey))
+				let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
+				if (this.useVersions)
+					lastVersion = getLastVersion()
+				let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+				if (this.useVersions)
+					setLastVersion(lastVersion)
+				return unpack(buffer)
 			}
 			this.packr.structures = []
 		}

@@ -82,6 +82,7 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
+NAN_METHOD(setLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 #ifdef thread_local

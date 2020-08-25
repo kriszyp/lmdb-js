@@ -38,6 +38,7 @@ void setupExportMisc(Local<Object> exports) {
 
     exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
     Nan::SetMethod(exports, "getLastVersion", getLastVersion);
+    Nan::SetMethod(exports, "setLastVersion", setLastVersion);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     makeGlobalUnsafeBuffer(8);
@@ -327,6 +328,9 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
 
 NAN_METHOD(getLastVersion) {
     return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
+}
+NAN_METHOD(setLastVersion) {
+    lastVersion = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
 }
 
 void throwLmdbError(int rc) {
