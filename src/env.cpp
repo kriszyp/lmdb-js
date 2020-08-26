@@ -107,7 +107,7 @@ class SyncWorker : public Nan::AsyncWorker {
 
     void HandleOKCallback() {
         Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {
+        Local<v8::Value> argv[] = {
             Nan::Null()
         };
 
@@ -137,7 +137,7 @@ class CopyWorker : public Nan::AsyncWorker {
 
     void HandleOKCallback() {
         Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {
+        Local<v8::Value> argv[] = {
             Nan::Null()
         };
 
@@ -310,10 +310,10 @@ class BatchWorker : public Nan::AsyncProgressWorker {
         }
     }
 
-    v8::Local<v8::Array> updatedResultsArray(int currentIndex) {
-        v8::Local<v8::Array> resultsArray;
+    Local<v8::Array> updatedResultsArray(int currentIndex) {
+        Local<v8::Array> resultsArray;
         if (hasResultsArray) {
-            resultsArray = v8::Local<v8::Array>::Cast(GetFromPersistent("results"));
+            resultsArray = Local<v8::Array>::Cast(GetFromPersistent("results"));
         } else {
             resultsArray = Nan::New<v8::Array>(actionCount);
             SaveToPersistent("results", resultsArray);
@@ -328,7 +328,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
 
     void HandleProgressCallback(const char *data, size_t count) {
         Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {
+        Local<v8::Value> argv[] = {
             updatedResultsArray(*reinterpret_cast<int*>(const_cast<char*>(data)))
         };
 
@@ -337,7 +337,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
 
     void HandleOKCallback() {
         Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {
+        Local<v8::Value> argv[] = {
             Nan::Null(),
             updatedResultsArray(actionCount)
         };
@@ -393,7 +393,7 @@ NAN_METHOD(EnvWrap::open) {
     }
     Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
     if (compressionOption->IsObject()) {
-        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(compressionOption).ToLocalChecked());
+        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
         ew->compression->Ref();
     }
 
@@ -553,7 +553,7 @@ NAN_METHOD(EnvWrap::copy) {
     }
 
     Nan::Callback* callback = new Nan::Callback(
-      v8::Local<v8::Function>::Cast(info[info.Length()  > 2 ? 2 : 1])
+      Local<v8::Function>::Cast(info[info.Length()  > 2 ? 2 : 1])
     );
 
     CopyWorker* worker = new CopyWorker(
@@ -617,7 +617,7 @@ NAN_METHOD(EnvWrap::sync) {
     }
 
     Nan::Callback* callback = new Nan::Callback(
-      v8::Local<v8::Function>::Cast(info[0])
+      Local<v8::Function>::Cast(info[0])
     );
 
     SyncWorker* worker = new SyncWorker(
@@ -638,7 +638,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
-    v8::Local<v8::Array> array = v8::Local<v8::Array>::Cast(info[0]);
+    Local<v8::Array> array = Local<v8::Array>::Cast(info[0]);
 
     int length = array->Length();
     action_t* actions = new action_t[length];
@@ -657,14 +657,14 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
         Local<Value> progressValue = optionsObject->Get(context, Nan::New<String>("progress").ToLocalChecked()).ToLocalChecked();
         if (progressValue->IsFunction()) {
-            progress = new Nan::Callback(v8::Local<v8::Function>::Cast(progressValue));
+            progress = new Nan::Callback(Local<v8::Function>::Cast(progressValue));
         }
         callback = new Nan::Callback(
-            v8::Local<v8::Function>::Cast(info[2])
+            Local<v8::Function>::Cast(info[2])
         );
     } else {
         callback = new Nan::Callback(
-            v8::Local<v8::Function>::Cast(info[1])
+            Local<v8::Function>::Cast(info[1])
         );
     }
 
@@ -676,17 +676,18 @@ NAN_METHOD(EnvWrap::batchWrite) {
     NodeLmdbKeyType keyType;
 
     for (unsigned int i = 0; i < array->Length(); i++) {
-        if (!array->Get(context, i).ToLocalChecked()->IsObject())
-            continue;
+        //Local<Value> element = array->Get(context, i).ToLocalChecked(); // checked/enforce in js
+        //if (!element->IsObject())
+          //  continue;
         action_t* action = &actions[i];
-        v8::Local<v8::Object> operation = v8::Local<v8::Object>::Cast(array->Get(context, i).ToLocalChecked());
+        Local<Object> operation = Local<Object>::Cast(array->Get(context, i).ToLocalChecked());
 
         bool isArray = operation->IsArray();
-        v8::Local<v8::Object> dbObject = v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(context, Nan::New<String>("db").ToLocalChecked())).ToLocalChecked());
-        worker->SaveToPersistent(persistedIndex++, dbObject);
+        Local<Object> dbObject = Local<Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(context, Nan::New<String>("db").ToLocalChecked())).ToLocalChecked());
+        // worker->SaveToPersistent(persistedIndex++, dbObject); // this is coordinated to always be referenced on the JS side
         DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(dbObject);
         action->dw = dw;
-        v8::Local<v8::Value> key = (isArray ? operation->Get(context, 1) : operation->Get(context, Nan::New<String>("key").ToLocalChecked())).ToLocalChecked();
+        Local<v8::Value> key = (isArray ? operation->Get(context, 1) : operation->Get(context, Nan::New<String>("key").ToLocalChecked())).ToLocalChecked();
         
         if (!keyIsValid) {
             // just execute this the first time so we didn't need to re-execute for each iteration
@@ -698,20 +699,20 @@ NAN_METHOD(EnvWrap::batchWrite) {
             return;
         }
         // persist the reference until we are done with the operation
-        if (!action->freeKey)
-            worker->SaveToPersistent(persistedIndex++, key);
-        v8::Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
+        //if (!action->freeKey)
+          //  worker->SaveToPersistent(persistedIndex++, key);// this is coordinated to always be referenced on the JS side
+        Local<v8::Value> value = (isArray ? operation->Get(context, 2) : operation->Get(context, Nan::New<String>("value").ToLocalChecked())).ToLocalChecked();
 
         if (dw->hasVersions) {
             double version = 0;
-            v8::Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
+            Local<v8::Value> versionValue = (isArray ? operation->Get(context, 3) : operation->Get(context, Nan::New<String>("version").ToLocalChecked())).ToLocalChecked();
             if (versionValue->IsNumber()) {
                 version = Nan::To<v8::Number>(versionValue).ToLocalChecked()->Value();
             }
             action-> version = version;
         }
         // check if this is a conditional save
-        v8::Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
+        Local<v8::Value> ifValue = (isArray ? operation->Get(context, 4) : operation->Get(context, Nan::New<String>("ifValue").ToLocalChecked())).ToLocalChecked();
         if (ifValue->IsUndefined()) {
             action->condition = nullptr;
             action->ifVersion = ANY_VERSION;
@@ -730,11 +731,11 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 action->ifVersion = versionLocal->Value();
             } else if (ifValue->IsArrayBufferView()) {
                 condition = action->condition = new condition_t();
-                int size = condition->data.mv_size = node::Buffer::Length(Nan::To<v8::Object>(ifValue).ToLocalChecked());
+                int size = condition->data.mv_size = node::Buffer::Length(Nan::To<Object>(ifValue).ToLocalChecked());
                 condition->data.mv_data = new char[size];
                 memcpy(condition->data.mv_data, node::Buffer::Data(ifValue), size);
                 if (!isArray) {
-                    v8::Local<v8::Value> ifExactMatch = operation->Get(context, Nan::New<String>("ifExactMatch").ToLocalChecked()).ToLocalChecked();
+                    Local<v8::Value> ifExactMatch = operation->Get(context, Nan::New<String>("ifExactMatch").ToLocalChecked()).ToLocalChecked();
                     if (ifExactMatch->IsTrue()) {
                         condition->matchSize = true;
                     }
@@ -747,16 +748,16 @@ NAN_METHOD(EnvWrap::batchWrite) {
                     condition->dbi = action->dw->dbi;
                     condition->key = action->key;
                 } else {
-                    v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
+                    Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
                     if (ifDB->IsNullOrUndefined()) {
                         condition->dbi = action->dw->dbi;
                     } else if (ifDB->IsObject()) {
-                        dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<v8::Object>(ifDB).ToLocalChecked());
+                        dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Nan::To<Object>(ifDB).ToLocalChecked());
                         condition->dbi = dw->dbi;
                     } else {
                         return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
                     }
-                    v8::Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
+                    Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
                     if (ifKey->IsNullOrUndefined()) {
                         condition->key = action->key;
                     } else {
@@ -765,7 +766,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                             // argToKey already threw an error
                             return;
                         }
-                        worker->SaveToPersistent(persistedIndex++, ifKey);
+                        //worker->SaveToPersistent(persistedIndex++, ifKey);// this is coordinated to always be referenced on the JS side
                     }
                 }
             }
@@ -779,7 +780,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
             action->data.mv_data = node::Buffer::Data(value);
             action->freeValue = nullptr; // don't free, belongs to node
             // persist value so it says in memory
-            worker->SaveToPersistent(persistedIndex++, value);
+            //worker->SaveToPersistent(persistedIndex++, value); // this is coordinated to always be referenced on the JS side
         } else {
             writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
             action->freeValue = ([](MDB_val &value) -> void {
@@ -788,7 +789,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         }
     }
 
-    worker->SaveToPersistent("env", info.This());
+    //worker->SaveToPersistent("env", info.This()); // this is coordinated to always be referenced on the JS side
 
     Nan::AsyncQueueWorker(worker);
     return;
