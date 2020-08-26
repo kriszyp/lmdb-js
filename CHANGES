@@ -4,6 +4,7 @@ OpenLDAP 2.4.52 Engineering
 	Added libldap LDAP_OPT_X_TLS_REQUIRE_SAN option (ITS#9318)
 	Added libldap OpenSSL support for multiple EECDH curves (ITS#9054)
 	Added slapd OpenSSL support for multiple EECDH curves (ITS#9054)
+	Fixed librewrite malloc/free corruption (ITS#9249)
 	Fixed slapd syncrepl rare deadlock due to network issues (ITS#9324)
 	Fixed slapd syncrepl regression that could trigger an assert (ITS#9329)
 
