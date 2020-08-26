@@ -89,7 +89,7 @@ void Compression::decompress(MDB_val& data, bool &isValid) {
         dictionary, decompressTarget - dictionary);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
-        fprintf(stderr, "Failed to decompress data\n");
+        fprintf(stderr, "Failed to decompress data %u %u %u %u\n", charData[0], data.mv_size, compressionHeaderSize, uncompressedLength);
         Nan::ThrowError("Failed to decompress data");
         isValid = false;
         return;
@@ -118,7 +118,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t fr
         return freeValue; // don't compress if less than threshold (but we must compress if the first byte is the compression indicator)
     bool longSize = dataLength >= 0x1000000;
     int prefixSize = (longSize ? 8 : 4);
-    int maxCompressedSize = dataLength;
+    int maxCompressedSize = LZ4_COMPRESSBOUND(dataLength);
     char* compressed = new char[maxCompressedSize + prefixSize];
     //fprintf(stdout, "compressing %u\n", dataLength);
     LZ4_loadDict(stream, dictionary, decompressTarget - dictionary);
