@@ -129,7 +129,7 @@ install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP_OPTS) -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(bindir);				\
 	    done							\
 	)

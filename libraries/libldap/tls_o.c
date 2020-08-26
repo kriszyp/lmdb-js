@@ -46,8 +46,6 @@
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/dh.h>
-#elif defined( HAVE_SSL_H )
-#include <ssl.h>
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10100000
@@ -244,11 +242,7 @@ tlso_destroy( void )
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000
 	EVP_cleanup();
-#if OPENSSL_VERSION_NUMBER < 0x10000000
-	ERR_remove_state(0);
-#else
 	ERR_remove_thread_state(NULL);
-#endif
 	ERR_free_strings();
 #endif
 
@@ -453,34 +447,30 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 		DH_free( dh );
 	}
 
-	if ( is_server && lo->ldo_tls_ecname ) {
+	if ( lo->ldo_tls_ecname ) {
 #ifdef OPENSSL_NO_EC
 		Debug0( LDAP_DEBUG_ANY,
 			"TLS: Elliptic Curves not supported.\n" );
 		return -1;
 #else
-		EC_KEY *ecdh;
-
-		int nid = OBJ_sn2nid( lt->lt_ecname );
-		if ( nid == NID_undef ) {
+		if ( SSL_CTX_set1_curves_list( ctx, lt->lt_ecname )) {
 			Debug1( LDAP_DEBUG_ANY,
-				"TLS: could not use EC name `%s'.\n",
+				"TLS: could not set EC name `%s'.\n",
 				lo->ldo_tls_ecname );
 			tlso_report_error();
 			return -1;
 		}
-		ecdh = EC_KEY_new_by_curve_name( nid );
-		if ( ecdh == NULL ) {
-			Debug1( LDAP_DEBUG_ANY,
-				"TLS: could not generate key for EC name `%s'.\n",
-				lo->ldo_tls_ecname );
-			tlso_report_error();
-			return -1;
+	/*
+	 * This is a NOP in OpenSSL 1.1.0 and later, where curves are always
+	 * auto-negotiated.
+	 */
+#if OPENSSL_VERSION_NUMBER < 0x10100000UL
+		if ( SSL_CTX_set_ecdh_auto( ctx, 1 ) <= 0 ) {
+			Debug0( LDAP_DEBUG_ANY,
+				"TLS: could not enable automatic EC negotiation.\n" );
 		}
-		SSL_CTX_set_tmp_ecdh( ctx, ecdh );
-		SSL_CTX_set_options( ctx, SSL_OP_SINGLE_ECDH_USE );
-		EC_KEY_free( ecdh );
 #endif
+#endif	/* OPENSSL_NO_EC */
 	}
 
 	if ( tlso_opt_trace ) {
@@ -502,7 +492,6 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 #if OPENSSL_VERSION_NUMBER < 0x10100000
 	SSL_CTX_set_tmp_rsa_callback( ctx, tlso_tmp_rsa_cb );
 #endif
-#ifdef HAVE_OPENSSL_CRL
 	if ( lo->ldo_tls_crlcheck ) {
 		X509_STORE *x509_s = SSL_CTX_get_cert_store( ctx );
 		if ( lo->ldo_tls_crlcheck == LDAP_OPT_X_TLS_CRL_PEER ) {
@@ -512,7 +501,6 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 					X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL  );
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -666,6 +654,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 {
 	tlso_session *s = (tlso_session *)sess;
 	int i, ret = LDAP_LOCAL_ERROR;
+	int chkSAN = ld->ld_options.ldo_tls_require_san, gotSAN = 0;
 	X509 *x;
 	const char *name;
 	char *ptr;
@@ -703,7 +692,8 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 	if ((ptr = strrchr(name, '.')) && isdigit((unsigned char)ptr[1])) {
 		if (inet_aton(name, (struct in_addr *)&addr)) ntype = IS_IP4;
 	}
-	
+
+	if (chkSAN) {
 	i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
 	if (i >= 0) {
 		X509_EXTENSION *ex;
@@ -716,6 +706,7 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			char *domain = NULL;
 			GENERAL_NAME *gn;
 
+			gotSAN = 1;
 			if (ntype == IS_DNS) {
 				domain = strchr(name, '.');
 				if (domain) {
@@ -772,6 +763,41 @@ tlso_session_chkhost( LDAP *ld, tls_session *sess, const char *name_in )
 			if (i < n) {	/* Found a match */
 				ret = LDAP_SUCCESS;
 			}
+		}
+	}
+	}
+	if (ret != LDAP_SUCCESS && chkSAN) {
+		switch(chkSAN) {
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_HARD:
+			if (!gotSAN) {
+				Debug0( LDAP_DEBUG_ANY,
+					"TLS: unable to get subjectAltName from peer certificate.\n" );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: unable to get subjectAltName from peer certificate"));
+				goto done;
+			}
+			/* FALLTHRU */
+		case LDAP_OPT_X_TLS_TRY:
+			if (gotSAN) {
+				Debug1( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+					"subjectAltName in certificate.\n",
+					name );
+				ret = LDAP_CONNECT_ERROR;
+				if ( ld->ld_error ) {
+					LDAP_FREE( ld->ld_error );
+				}
+				ld->ld_error = LDAP_STRDUP(
+					_("TLS: hostname does not match subjectAltName in peer certificate"));
+				goto done;
+			}
+			break;
+		case LDAP_OPT_X_TLS_ALLOW:
+			break;
 		}
 	}
 
@@ -836,9 +862,10 @@ no_cn:
 				LDAP_FREE( ld->ld_error );
 			}
 			ld->ld_error = LDAP_STRDUP(
-				_("TLS: hostname does not match CN in peer certificate"));
+				_("TLS: hostname does not match name in peer certificate"));
 		}
 	}
+done:
 	X509_free(x);
 	return ret;
 }
@@ -869,7 +896,6 @@ tlso_session_unique( tls_session *sess, struct berval *buf, int is_server)
 static int
 tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 {
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	tlso_session *s = (tlso_session *)sess;
 	const EVP_MD *md;
 	unsigned int md_len;
@@ -909,9 +935,6 @@ tlso_session_endpoint( tls_session *sess, struct berval *buf, int is_server )
 	buf->bv_len = md_len;
 
 	return md_len;
-#else
-	return 0;
-#endif
 }
 
 static const char *
@@ -1435,7 +1458,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	RSA *tmp_rsa;
 	/* FIXME:  Pregenerate the key on startup */
 	/* FIXME:  Who frees the key? */
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
 	BIGNUM *bn = BN_new();
 	tmp_rsa = NULL;
 	if ( bn ) {
@@ -1448,9 +1470,6 @@ tlso_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 		}
 		BN_free( bn );
 	}
-#else
-	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
-#endif
 
 	if ( !tmp_rsa ) {
 		Debug2( LDAP_DEBUG_ANY,

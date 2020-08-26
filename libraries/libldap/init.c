@@ -119,12 +119,14 @@ static const struct ol_attribute {
   	{0, ATTR_TLS,	"TLS_CACERT",		NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,	"TLS_CACERTDIR",	NULL,	LDAP_OPT_X_TLS_CACERTDIR},
   	{0, ATTR_TLS,	"TLS_REQCERT",		NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{0, ATTR_TLS,	"TLS_REQSAN",		NULL,	LDAP_OPT_X_TLS_REQUIRE_SAN},
 	{0, ATTR_TLS,	"TLS_RANDFILE",		NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 	{0, ATTR_TLS,	"TLS_CIPHER_SUITE",	NULL,	LDAP_OPT_X_TLS_CIPHER_SUITE},
 	{0, ATTR_TLS,	"TLS_PROTOCOL_MIN",	NULL,	LDAP_OPT_X_TLS_PROTOCOL_MIN},
 	{0, ATTR_TLS,	"TLS_PEERKEY_HASH",	NULL,	LDAP_OPT_X_TLS_PEERKEY_HASH},
+	{0, ATTR_TLS,	"TLS_ECNAME",		NULL,	LDAP_OPT_X_TLS_ECNAME},
 
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	{0, ATTR_TLS,	"TLS_CRLCHECK",		NULL,	LDAP_OPT_X_TLS_CRLCHECK},
 #endif
 #ifdef HAVE_GNUTLS
@@ -596,6 +598,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_tls_connect_cb = NULL;
 	gopts->ldo_tls_connect_arg = NULL;
 	gopts->ldo_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+	gopts->ldo_tls_require_san = LDAP_OPT_X_TLS_ALLOW;
 #endif
 	gopts->ldo_keepalive_probes = 0;
 	gopts->ldo_keepalive_interval = 0;

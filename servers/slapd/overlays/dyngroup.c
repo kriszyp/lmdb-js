@@ -208,6 +208,7 @@ int dyngroup_initialize() {
 	int code;
 
 	dyngroup.on_bi.bi_type = "dyngroup";
+	dyngroup.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	dyngroup.on_bi.bi_db_destroy = dyngroup_destroy;
 	dyngroup.on_response = dyngroup_response;
 

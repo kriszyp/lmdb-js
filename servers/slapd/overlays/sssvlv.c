@@ -1406,6 +1406,7 @@ int sssvlv_initialize()
 	int rc;
 
 	sssvlv.on_bi.bi_type				= "sssvlv";
+	sssvlv.on_bi.bi_flags				= SLAPO_BFLAG_SINGLE;
 	sssvlv.on_bi.bi_db_init				= sssvlv_db_init;
 	sssvlv.on_bi.bi_db_destroy			= sssvlv_db_destroy;
 	sssvlv.on_bi.bi_db_open				= sssvlv_db_open;

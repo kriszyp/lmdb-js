@@ -545,6 +545,7 @@ int valsort_initialize( void )
 	int rc;
 
 	valsort.on_bi.bi_type = "valsort";
+	valsort.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	valsort.on_bi.bi_db_destroy = valsort_destroy;
 	valsort.on_bi.bi_db_open = valsort_db_open;
 

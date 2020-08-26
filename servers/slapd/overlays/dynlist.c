@@ -2657,6 +2657,7 @@ dynlist_initialize(void)
 	dynlist.on_bi.bi_obsolete_names = obsolete_names;
 #endif
 
+	dynlist.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	dynlist.on_bi.bi_db_init = dynlist_db_init;
 	dynlist.on_bi.bi_db_config = config_generic_wrapper;
 	dynlist.on_bi.bi_db_open = dynlist_db_open;

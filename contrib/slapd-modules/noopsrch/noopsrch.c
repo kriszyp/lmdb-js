@@ -236,6 +236,7 @@ noopsrch_initialize( void )
 
 	noopsrch.on_bi.bi_type = "noopsrch";
 
+	noopsrch.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	noopsrch.on_bi.bi_db_init = noopsrch_db_init;
 	noopsrch.on_bi.bi_db_destroy = noopsrch_db_destroy;
 	noopsrch.on_bi.bi_op_search = noopsrch_op_search;

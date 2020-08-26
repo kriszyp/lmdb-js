@@ -342,7 +342,7 @@ ldap_int_tls_connect( LDAP *ld, LDAPConn *conn, const char *host )
 	Sockbuf *sb = conn->lconn_sb;
 	int	err;
 	tls_session	*ssl = NULL;
-	char *sni = host;
+	char *sni = (char *)host;
 
 	if ( HAS_TLS( sb )) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
@@ -580,10 +580,12 @@ ldap_pvt_tls_config( LDAP *ld, int option, const char *arg )
 	case LDAP_OPT_X_TLS_CIPHER_SUITE:
 	case LDAP_OPT_X_TLS_DHFILE:
 	case LDAP_OPT_X_TLS_PEERKEY_HASH:
+	case LDAP_OPT_X_TLS_ECNAME:
 	case LDAP_OPT_X_TLS_CRLFILE:	/* GnuTLS only */
 		return ldap_pvt_tls_set_option( ld, option, (void *) arg );
 
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
 	case LDAP_OPT_X_TLS:
 		i = -1;
 		if ( strcasecmp( arg, "never" ) == 0 ) {
@@ -627,7 +629,7 @@ ldap_pvt_tls_config( LDAP *ld, int option, const char *arg )
 		}
 		return ldap_pvt_tls_set_option( ld, option, &i );
 		}
-#ifdef HAVE_OPENSSL_CRL
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		i = -1;
 		if ( strcasecmp( arg, "none" ) == 0 ) {
@@ -714,7 +716,10 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = lo->ldo_tls_require_cert;
 		break;
-#ifdef HAVE_OPENSSL_CRL
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
+		*(int *)arg = lo->ldo_tls_require_san;
+		break;
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		*(int *)arg = lo->ldo_tls_crlcheck;
 		break;
@@ -920,7 +925,19 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 			return 0;
 		}
 		return -1;
-#ifdef HAVE_OPENSSL_CRL
+	case LDAP_OPT_X_TLS_REQUIRE_SAN:
+		if ( !arg ) return -1;
+		switch( *(int *) arg ) {
+		case LDAP_OPT_X_TLS_NEVER:
+		case LDAP_OPT_X_TLS_DEMAND:
+		case LDAP_OPT_X_TLS_ALLOW:
+		case LDAP_OPT_X_TLS_TRY:
+		case LDAP_OPT_X_TLS_HARD:
+			lo->ldo_tls_require_san = * (int *) arg;
+			return 0;
+		}
+		return -1;
+#ifdef HAVE_OPENSSL
 	case LDAP_OPT_X_TLS_CRLCHECK:	/* OpenSSL only */
 		if ( !arg ) return -1;
 		switch( *(int *) arg ) {

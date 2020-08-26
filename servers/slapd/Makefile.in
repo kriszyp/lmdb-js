@@ -372,7 +372,7 @@ install-local-srv: install-slapd install-tools \
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
 	-$(MKDIR) $(DESTDIR)$(localstatedir)/run
-	$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 \
+	$(LTINSTALL) $(INSTALLFLAGS) $(STRIP_OPTS) -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
 	    if test -d $$i && test -f $$i/Makefile ; then \

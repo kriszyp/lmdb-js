@@ -236,6 +236,17 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing list substring searching..."
+echo "# Testing list substring searching..." >> $SEARCHOUT
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	'(postalAddress=*Anytown*)' postalAddress >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 LDIF=$SEARCHOUTPROVIDER

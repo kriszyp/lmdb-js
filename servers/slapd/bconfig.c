@@ -812,7 +812,7 @@ static ConfigTable config_back_cf_table[] = {
 			"EQUALITY caseExactMatch "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
 	{ "TLSCRLCheck", NULL, 2, 2, 0,
-#if defined(HAVE_TLS) && defined(HAVE_OPENSSL_CRL)
+#if defined(HAVE_TLS) && defined(HAVE_OPENSSL)
 		CFG_TLS_CRLCHECK|ARG_STRING|ARG_MAGIC, &config_tls_config,
 #else
 		ARG_IGNORED, NULL,

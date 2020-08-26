@@ -630,6 +630,7 @@ int adremap_initialize()
 	int i, code;
 
 	adremap.on_bi.bi_type = "adremap";
+	adremap.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	adremap.on_bi.bi_db_init = adremap_db_init;
 	adremap.on_bi.bi_db_destroy = adremap_db_destroy;
 	adremap.on_bi.bi_op_search = adremap_search;

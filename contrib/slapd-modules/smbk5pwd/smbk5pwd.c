@@ -1052,6 +1052,7 @@ smbk5pwd_initialize(void)
 
 	smbk5pwd.on_bi.bi_type = "smbk5pwd";
 
+	smbk5pwd.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	smbk5pwd.on_bi.bi_db_init = smbk5pwd_db_init;
 	smbk5pwd.on_bi.bi_db_open = smbk5pwd_db_open;
 	smbk5pwd.on_bi.bi_db_destroy = smbk5pwd_db_destroy;

@@ -2207,6 +2207,7 @@ autogroup_initialize(void)
 	int		rc = 0;
 	autogroup.on_bi.bi_type = "autogroup";
 
+	autogroup.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	autogroup.on_bi.bi_db_open = autogroup_db_open;
 	autogroup.on_bi.bi_db_close = autogroup_db_close;
 	autogroup.on_bi.bi_db_destroy = autogroup_db_destroy;

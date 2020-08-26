@@ -664,102 +664,131 @@ ldap_sync_search(
 	return rc;
 }
 
-static int
-merge_state( syncinfo_t *si )
-{
-	int i, j = 0, k, numcsns = 0, alloc = 0, changed = 0;
-	BerVarray new_ctxcsn = si->si_syncCookie.ctxcsn;
-	int *new_sids = NULL;
+/* #define DEBUG_MERGE_STATE	1 */
 
-	/* Count and set up sids */
-	for ( i=0; i < si->si_cookieState->cs_num; i++ ) {
-		if ( si->si_cookieState->cs_sids[i] == -1 ) {
+static int
+merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
+{
+	int i, j, k, changed = 0;
+	int ei, ej;
+	int *newsids;
+	struct berval *newcsns;
+
+	ei = sc1->numcsns;
+	ej = sc2->numcsns;
+#ifdef DEBUG_MERGE_STATE
+	for ( i=0; i<ei; i++ ) {
+		fprintf(stderr, "merge_state: %s si_syncCookie [%d] %d %s\n",
+			si->si_ridtxt, i, sc1->sids[i], sc1->ctxcsn[i].bv_val );
+	}
+	for ( i=0; i<ej; i++ ) {
+		fprintf(stderr, "merge_state: %s si_cookieState [%d] %d %s\n",
+			si->si_ridtxt, i, sc2->sids[i], sc2->ctxcsn[i].bv_val );
+	}
+#endif
+	/* see if they cover the same SIDs */
+	if ( ei == ej ) {
+		for ( i = 0; i < ei; i++ ) {
+			if ( sc1->sids[i] != sc2->sids[i] ) {
+				changed = 1;
+				break;
+			}
+		}
+		/* SIDs are the same, take fast path */
+		if ( !changed ) {
+			for ( i = 0; i > ei; i++ ) {
+				if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[i] )) {
+					ber_bvreplace( &sc1->ctxcsn[i], &sc2->ctxcsn[i] );
+					changed = 1;
+				}
+			}
+			return changed;
+		}
+		changed = 0;
+	}
+
+	i = ei + ej;
+	newsids = ch_malloc( sizeof(int) * i );
+	newcsns = ch_malloc( sizeof(struct berval) * ( i + 1 ));
+
+	for ( i=0, j=0, k=0; i < ei || j < ej ; ) {
+		if ( sc1->sids[i] == -1 ) {
+			i++;
 			continue;
 		}
-
-		for ( ; j < si->si_syncCookie.numcsns &&
-					si->si_syncCookie.sids[j] == -1;
-				j++ )
-			alloc = 1; /* Just skip over them */
-
-		for ( ; j < si->si_syncCookie.numcsns &&
-					si->si_syncCookie.sids[j] < si->si_cookieState->cs_sids[i];
-				j++ ) {
-			if ( si->si_syncCookie.sids[j] != -1 ) {
-				new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
-				new_sids[numcsns++] = si->si_syncCookie.sids[j];
-			}
+		if ( j >= ej || (i < ei && sc1->sids[i] < sc2->sids[j] )) {
+			newsids[k] = sc1->sids[i];
+			ber_dupbv( &newcsns[k], &sc1->ctxcsn[i] );
+			i++; k++;
+			continue;
 		}
-
-		if ( j < si->si_syncCookie.numcsns &&
-				si->si_syncCookie.sids[j] == si->si_cookieState->cs_sids[i] ) j++;
-
-		new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
-		new_sids[numcsns++] = si->si_cookieState->cs_sids[i];
-	}
-
-	for ( ; j < si->si_syncCookie.numcsns; j++ ) {
-		if ( si->si_syncCookie.sids[j] != -1 ) {
-			new_sids = ch_realloc( new_sids, (numcsns+1)*sizeof(int) );
-			new_sids[numcsns++] = si->si_syncCookie.sids[j];
-		}
-	}
-
-	if ( alloc || numcsns != si->si_syncCookie.numcsns ) {
-		/* Short circuit allocations if we don't need to start over */
-		alloc = 1;
-		new_ctxcsn = ch_calloc( numcsns + 1, sizeof( BerValue ) );
-	}
-
-	i = j = 0;
-	for ( k=0; k < numcsns; k++ ) {
-		while ( i < si->si_cookieState->cs_num &&
-				si->si_cookieState->cs_sids[i] < new_sids[k] )
-			i++;
-
-		while ( j < si->si_syncCookie.numcsns &&
-				si->si_syncCookie.sids[j] < new_sids[k] )
-			j++;
-
-		if ( j < si->si_syncCookie.numcsns &&
-				si->si_cookieState->cs_sids[i] == si->si_syncCookie.sids[j] ) {
-			assert( si->si_cookieState->cs_sids[i] == new_sids[k] );
-			if ( !bvmatch( &si->si_syncCookie.ctxcsn[j],
-					&si->si_cookieState->cs_vals[i] )) {
-				ber_bvreplace( &new_ctxcsn[k], &si->si_cookieState->cs_vals[i] );
+		if ( i < ei && sc1->sids[i] == sc2->sids[j] ) {
+			newsids[k] = sc1->sids[i];
+			ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
+			if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[j] ))
 				changed = 1;
-			} else if ( alloc ) {
-				ber_dupbv( &new_ctxcsn[k], &si->si_syncCookie.ctxcsn[j] );
+			i++; j++; k++;
+			continue;
+		}
+		if ( j < ej ) {
+			if ( sc2->sids[j] == -1 ) {
+				j++;
+				continue;
 			}
-			i++;
-			j++;
-		} else if ( si->si_cookieState->cs_sids[i] == new_sids[k] ) {
+			newsids[k] = sc2->sids[j];
+			ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
 			changed = 1;
-			ber_bvreplace( &new_ctxcsn[k], &si->si_cookieState->cs_vals[i] );
-			i++;
-		} else {
-			if ( alloc ) {
-				ber_dupbv( &new_ctxcsn[k], &si->si_syncCookie.ctxcsn[j] );
-			}
-			j++;
+			j++; k++;
 		}
 	}
-	assert( i == si->si_cookieState->cs_num );
-	assert( j == si->si_syncCookie.numcsns );
 
-	si->si_syncCookie.numcsns = numcsns;
-	if ( alloc ) {
-		changed = 1;
-		ch_free( si->si_syncCookie.sids );
-		si->si_syncCookie.sids = new_sids;
-
-		ber_bvarray_free( si->si_syncCookie.ctxcsn );
-		si->si_syncCookie.ctxcsn = new_ctxcsn;
-	} else {
-		ch_free( new_sids );
+	ber_bvarray_free( sc1->ctxcsn );
+	ch_free( sc1->sids );
+	sc1->numcsns = k;
+	sc1->sids = ch_realloc( newsids, sizeof(int) * k );
+	sc1->ctxcsn = ch_realloc( newcsns, sizeof(struct berval) * (k+1) );
+	BER_BVZERO( &sc1->ctxcsn[k] );
+#ifdef DEBUG_MERGE_STATE
+	for ( i=0; i<sc1->numcsns; i++ ) {
+		fprintf(stderr, "merge_state: %s si_syncCookie2 [%d] %d %s\n",
+			si->si_ridtxt, i, sc1->sids[i], sc1->ctxcsn[i].bv_val );
 	}
+#endif
+
 	return changed;
 }
+
+#ifdef DEBUG_MERGE_STATE
+static void
+merge_test( syncinfo_t *si ) {
+	struct sync_cookie sc1, sc2;
+	int ret;
+
+	sc1.numcsns = 1;
+	sc1.sids = malloc( sizeof(int));
+	sc1.ctxcsn = malloc( sizeof( struct berval ) * 2);
+	sc1.sids[0] = 1;
+	{ struct berval bv = BER_BVC("20200826182258.100566Z#000000#001#000000");
+	ber_dupbv( &sc1.ctxcsn[0], &bv ); }
+	BER_BVZERO( &sc1.ctxcsn[1] );
+
+	sc2.numcsns = 3;
+	sc2.sids = malloc( sizeof(int) * 3);
+	sc2.ctxcsn = malloc( sizeof(struct berval) * 4);
+	sc2.sids[0] = 1;
+	sc2.sids[1] = 2;
+	sc2.sids[2] = 3;
+	{ struct berval bv = BER_BVC("20200826182258.100567Z#000000#001#000000");
+	ber_dupbv( &sc2.ctxcsn[0], &bv ); }
+	{ struct berval bv = BER_BVC("20200826182259.141950Z#000000#002#000000");
+	ber_dupbv( &sc2.ctxcsn[1], &bv ); }
+	{ struct berval bv = BER_BVC("20200826182300.171795Z#000000#003#000000");
+	ber_dupbv( &sc2.ctxcsn[2], &bv ); }
+	BER_BVZERO( &sc2.ctxcsn[3] );
+
+	ret = merge_state( si, &sc1, &sc2 );
+}
+#endif
 
 static int
 check_syncprov(
@@ -831,8 +860,9 @@ check_syncprov(
 			ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
 				si->si_cookieState->cs_vals, NULL );
 			changed = 1;
-		} else if ( merge_state( si ) ) {
-			changed = 1;
+		} else {
+			changed = merge_state( si, &si->si_syncCookie,
+				(struct sync_cookie *)&si->si_cookieState->cs_vals );
 		}
 	}
 	if ( changed ) {
@@ -1077,7 +1107,11 @@ compare_csns( struct sync_cookie *sc1, struct sync_cookie *sc2, int *which )
 	return match;
 }
 
-#define	SYNC_PAUSED	-3
+#define SYNC_TIMEOUT	0
+#define SYNC_SHUTDOWN	-100
+#define SYNC_ERROR		-101
+#define SYNC_REPOLL		-102
+#define SYNC_PAUSED		-103
 
 static int
 do_syncrep2(
@@ -1099,14 +1133,13 @@ do_syncrep2(
 
 	int				m;
 
-	struct timeval *tout_p = NULL;
 	struct timeval tout = { 0, 0 };
 
 	int		refreshDeletes = 0;
 	char empty[6] = "empty";
 
 	if ( slapd_shutdown ) {
-		rc = -2;
+		rc = SYNC_SHUTDOWN;
 		goto done;
 	}
 
@@ -1117,14 +1150,8 @@ do_syncrep2(
 
 	slap_dup_sync_cookie( &syncCookie_req, &si->si_syncCookie );
 
-	if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST && si->si_refreshDone ) {
-		tout_p = &tout;
-	} else {
-		tout_p = NULL;
-	}
-
 	while ( ( rc = ldap_result( si->si_ld, si->si_msgid, LDAP_MSG_ONE,
-		tout_p, &msg ) ) > 0 )
+		&tout, &msg ) ) > 0 )
 	{
 		int				match, punlock, syncstate;
 		struct berval	*retdata, syncUUID[2], cookie = BER_BVNULL;
@@ -1137,7 +1164,7 @@ do_syncrep2(
 		struct berval	bdn;
 
 		if ( slapd_shutdown ) {
-			rc = -2;
+			rc = SYNC_SHUTDOWN;
 			goto done;
 		}
 		switch( ldap_msgtype( msg ) ) {
@@ -1292,7 +1319,7 @@ do_syncrep2(
 						/* check pending CSNs too */
 						while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
 							if ( slapd_shutdown ) {
-								rc = -2;
+								rc = SYNC_SHUTDOWN;
 								goto done;
 							}
 							if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
@@ -1448,7 +1475,7 @@ logerr:
 						si->si_refreshDone = 1;
 						rc = LDAP_SYNC_REFRESH_REQUIRED;
 					} else {
-						rc = -2;
+						rc = SYNC_REPOLL;
 					}
 				}
 				goto done;
@@ -1459,7 +1486,7 @@ logerr:
 				if ( si->si_ctype == MSAD_DIRSYNC ) {
 					rc = syncrepl_dirsync_cookie( si, op, rctrls );
 					if ( rc == LDAP_SUCCESS )
-						rc = -2;	/* schedule a re-poll */
+						rc = SYNC_REPOLL;	/* schedule a re-poll */
 					goto done;
 				}
 #endif
@@ -1477,7 +1504,7 @@ logerr:
 						"got search result with multiple "
 						"Sync State control\n", si->si_ridtxt );
 					ldap_controls_free( rctrls );
-					rc = -1;
+					rc = SYNC_ERROR;
 					goto done;
 				}
 			}
@@ -1548,7 +1575,11 @@ logerr:
 				rc = LDAP_SYNC_REFRESH_REQUIRED;
 				slap_resume_listeners();
 			} else {
-				rc = -2;
+				/* for persist, we shouldn't get a SearchResult so this is an error */
+				if ( si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST )
+					rc = SYNC_ERROR;
+				else
+					rc = SYNC_REPOLL;
 			}
 			goto done;
 
@@ -1628,9 +1659,6 @@ logerr:
 						Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s finished refresh\n",
 							si->si_ridtxt );
 					}
-					if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST &&
-						si->si_refreshDone )
-						tout_p = &tout;
 					break;
 				case LDAP_TAG_SYNC_ID_SET:
 					Debug( LDAP_DEBUG_SYNC,
@@ -1760,7 +1788,7 @@ logerr:
 		}
 	}
 
-	if ( rc == -1 ) {
+	if ( rc == SYNC_ERROR ) {
 		rc = LDAP_OTHER;
 		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 		err = rc;
@@ -1803,7 +1831,7 @@ do_syncrepl(
 	int rc = LDAP_SUCCESS;
 	int dostop = 0;
 	ber_socket_t s;
-	int i, defer = 1, fail = 0, freeinfo = 0;
+	int i, fail = 0, freeinfo = 0;
 	Backend *be;
 
 	if ( si == NULL )
@@ -1939,25 +1967,19 @@ deleted:
 			}
 			if ( si->si_conn )
 				dostop = 1;
-			rc = -1;
+			rc = SYNC_SHUTDOWN;
 		}
 
 		if ( rc != SYNC_PAUSED ) {
-			if ( abs(si->si_type) == LDAP_SYNC_REFRESH_AND_PERSIST ) {
-				/* If we succeeded, enable the connection for further listening.
-				 * If we failed, tear down the connection and reschedule.
-				 */
-				if ( rc == LDAP_SUCCESS ) {
-					if ( si->si_conn ) {
-						connection_client_enable( si->si_conn );
-					} else {
-						si->si_conn = connection_client_setup( s, do_syncrepl, arg );
-					} 
-				} else if ( si->si_conn ) {
-					dostop = 1;
+			if ( rc == SYNC_TIMEOUT ) {
+				/* there was nothing to read, try to listen for more */
+				if ( si->si_conn ) {
+					connection_client_enable( si->si_conn );
+				} else {
+					si->si_conn = connection_client_setup( s, do_syncrepl, arg );
 				}
-			} else {
-				if ( rc == -2 ) rc = 0;
+			} else if ( si->si_conn ) {
+				dostop = 1;
 			}
 		}
 	}
@@ -1966,8 +1988,8 @@ deleted:
 	 * 1) for any hard failure, give up and remove this task
 	 * 2) for ServerDown, reschedule this task to run later
 	 * 3) for threadpool pause, reschedule to run immediately
-	 * 4) for Refresh and Success, reschedule to run
-	 * 5) for Persist and Success, reschedule to defer
+	 * 4) for SYNC_REPOLL, reschedule to run later
+	 * 5) for SYNC_TIMEOUT, reschedule to defer
 	 */
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
 
@@ -1985,29 +2007,26 @@ deleted:
 		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 		rtask->interval.tv_sec = si->si_interval;
 		rc = 0;
-	} else if ( rc == LDAP_SUCCESS ) {
-		if ( si->si_type == LDAP_SYNC_REFRESH_ONLY
-#ifdef LDAP_CONTROL_X_DIRSYNC
-			|| si->si_type == MSAD_DIRSYNC
-#endif
-		) {
-			defer = 0;
-		}
+	} else if ( rc == SYNC_TIMEOUT ) {
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 1 );
+	} else if ( rc == SYNC_REPOLL ) {
 		rtask->interval.tv_sec = si->si_interval;
-		ldap_pvt_runqueue_resched( &slapd_rq, rtask, defer );
+		ldap_pvt_runqueue_resched( &slapd_rq, rtask, 0 );
 		if ( si->si_retrynum ) {
 			for ( i = 0; si->si_retrynum_init[i] != RETRYNUM_TAIL; i++ ) {
 				si->si_retrynum[i] = si->si_retrynum_init[i];
 			}
 			si->si_retrynum[i] = RETRYNUM_TAIL;
 		}
+		slap_wake_listener();
+		rc = 0;
 	} else {
 		for ( i = 0; si->si_retrynum && si->si_retrynum[i] <= 0; i++ ) {
 			if ( si->si_retrynum[i] == RETRYNUM_FOREVER || si->si_retrynum[i] == RETRYNUM_TAIL )
 				break;
 		}
 
-		if ( si->si_ctype < 1
+		if ( si->si_ctype < 1 || rc == SYNC_SHUTDOWN
 			|| !si->si_retrynum || si->si_retrynum[i] == RETRYNUM_TAIL ) {
 			if ( si->si_re ) {
 				ldap_pvt_runqueue_remove( &slapd_rq, rtask );

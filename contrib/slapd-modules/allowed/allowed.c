@@ -475,6 +475,7 @@ aa_initialize( void )
 
 	aa.on_bi.bi_type = "allowed";
 
+	aa.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	aa.on_bi.bi_operational = aa_operational;
 
 	/* aa schema integration */

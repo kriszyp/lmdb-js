@@ -219,6 +219,7 @@ int auditlog_initialize() {
 	int rc;
 
 	auditlog.on_bi.bi_type = "auditlog";
+	auditlog.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	auditlog.on_bi.bi_db_init = auditlog_db_init;
 	auditlog.on_bi.bi_db_destroy = auditlog_db_destroy;
 	auditlog.on_response = auditlog_response;

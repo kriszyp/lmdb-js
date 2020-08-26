@@ -654,6 +654,15 @@ if test -z "${AR}"; then
 	fi
 fi
 
+if test -z "${STRIP}"; then
+	AC_CHECK_PROGS(STRIP,strip,missing)
+
+	if test "${STRIP}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate strip(1) or suitable replacement.  Check PATH or set STRIP.])
+	fi
+fi
+
+
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_MAKE_SET
@@ -1151,6 +1160,13 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 	AC_CHECK_HEADERS(openssl/ssl.h)
 
 	if test $ac_cv_header_openssl_ssl_h = yes ; then
+			AC_PREPROC_IFELSE([AC_LANG_SOURCE(
+				[[#include <openssl/opensslv.h>]
+[#if OPENSSL_VERSION_NUMBER < 0x1000200fL]
+[#error "OpenSSL is too old"]
+[#endif]])],
+					, [AC_MSG_FAILURE([OpenSSL 1.0.2a or newer required])])
+
 		AC_CHECK_LIB(ssl, SSL_CTX_set_msg_callback,
 			[have_openssl=yes
 			need_rsaref=no], [have_openssl=no],
@@ -1178,12 +1194,6 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
 			else
 				TLS_LIBS="-lssl -lcrypto"
-			fi
-
-			OL_SSL_COMPAT
-			if test $ol_cv_ssl_crl_compat = yes ; then
-				AC_DEFINE(HAVE_OPENSSL_CRL, 1, 
-					[define if you have OpenSSL with CRL checking capability])
 			fi
 		fi
 	fi

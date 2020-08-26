@@ -1651,9 +1651,11 @@ typedef struct slap_bindconf {
 	char *sb_tls_cacert;
 	char *sb_tls_cacertdir;
 	char *sb_tls_reqcert;
+	char *sb_tls_reqsan;
 	char *sb_tls_cipher_suite;
 	char *sb_tls_protocol_min;
-#ifdef HAVE_OPENSSL_CRL
+	char *sb_tls_ecname;
+#ifdef HAVE_OPENSSL
 	char *sb_tls_crlcheck;
 #endif
 	int sb_tls_do_init;

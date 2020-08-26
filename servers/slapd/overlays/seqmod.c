@@ -185,6 +185,7 @@ int
 seqmod_initialize()
 {
 	seqmod.on_bi.bi_type = "seqmod";
+	seqmod.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	seqmod.on_bi.bi_db_open = seqmod_db_open;
 	seqmod.on_bi.bi_db_close = seqmod_db_close;
 

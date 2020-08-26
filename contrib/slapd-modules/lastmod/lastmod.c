@@ -933,6 +933,7 @@ int
 lastmod_initialize()
 {
 	lastmod.on_bi.bi_type = "lastmod";
+	lastmod.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	lastmod.on_bi.bi_db_init = lastmod_db_init;
 	lastmod.on_bi.bi_db_config = lastmod_db_config;
 	lastmod.on_bi.bi_db_destroy = lastmod_db_destroy;

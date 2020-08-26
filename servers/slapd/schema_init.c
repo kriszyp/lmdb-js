@@ -6647,7 +6647,8 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", /* Substring Assertion */
 		SLAP_MR_SUBSTR, NULL,
-		NULL, NULL, NULL, NULL, NULL,
+		NULL, postalAddressNormalize, directoryStringSubstringsMatch,
+		octetStringSubstringsIndexer, octetStringSubstringsFilter,
 		"caseIgnoreListMatch" },
 
 	{"( 2.5.13.13 NAME 'booleanMatch' "

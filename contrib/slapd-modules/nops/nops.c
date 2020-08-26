@@ -163,6 +163,7 @@ static
 int
 nops_initialize( void ) {
 	nops_ovl.on_bi.bi_type = "nops";
+	nops_ovl.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
 	nops_ovl.on_bi.bi_op_modify = nops_modify;
 	return overlay_register( &nops_ovl );
 }

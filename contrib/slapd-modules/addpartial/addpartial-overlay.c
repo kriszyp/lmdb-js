@@ -337,6 +337,7 @@ static int collect_error_msg_cb( Operation *op, SlapReply *rs)
 int addpartial_init() 
 {
     addpartial.on_bi.bi_type = "addpartial";
+	addpartial.on_bi.bi_flags = SLAPO_BFLAG_SINGLE;
     addpartial.on_bi.bi_op_add = addpartial_add;
 
     return (overlay_register(&addpartial));
