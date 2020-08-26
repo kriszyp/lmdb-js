@@ -486,7 +486,8 @@ retry:
 #ifdef LDAP_CONNECTIONLESS
 	if ( LDAP_IS_UDP(ld) ) {
 		struct sockaddr_storage from;
-		ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr_storage) );
+		if ( ber_int_sb_read( lc->lconn_sb, &from, sizeof(struct sockaddr_storage) ) < 0 )
+			goto fail;
 		if ( ld->ld_options.ldo_version == LDAP_VERSION2 ) isv2 = 1;
 	}
 nextresp3:
@@ -502,10 +503,11 @@ nextresp3:
 		break;
 
 	case LBER_DEFAULT:
+fail:
 		err = sock_errno();
 #ifdef LDAP_DEBUG		   
-		Debug0( LDAP_DEBUG_CONNS,
-			"ber_get_next failed.\n" );
+		Debug1( LDAP_DEBUG_CONNS,
+			"ber_get_next failed, errno=%d.\n", err );
 #endif		   
 		if ( err == EWOULDBLOCK ) return LDAP_MSG_X_KEEP_LOOKING;
 		if ( err == EAGAIN ) return LDAP_MSG_X_KEEP_LOOKING;
