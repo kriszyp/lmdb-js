@@ -32,21 +32,20 @@ function cleanup(done) {
     }, error => done(error));
   });
 }
-
+let data = {
+  name: 'test',
+  something: 'test2',
+  flag: true,
+  foo: 32,
+  bar: 55
+}
 function setup() {
   store = open(testDirPath, {
     sharedStructuresKey: Buffer.from([ 2 ]),
-    compressed: true,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
-    lastPromise = store.put(i, {
-      name: 'test',
-      something: 'test2',
-      flag: true,
-      foo: 32,
-      bar: 55
-    })
+    lastPromise = store.put(i, data)
   }
   return lastPromise.then(() => {
     console.log('all committed');
@@ -58,19 +57,23 @@ var c = 0;
 var k = Buffer.from([2,3])
 let result
 
-function getIndex() {
-  if (c < total - 1) {
-    c++;
-  } else {
-    c = 0;
-  }
-  return c;
+function setData(deferred) {
+  result = store.put((c += 357) % total, data)
+  if (c % 1500 == 0) {
+      setImmediate(() => deferred.resolve(), 0)
+  } else
+    deferred.resolve()
 }
 
+
 function getData() {
-  
-  result = store.get(getIndex())
+  result = store.get((c += 357) % total)
 }
+let jsonBuffer = Buffer.from(JSON.stringify(data))
+function plainJSON() {
+  result = JSON.parse(jsonBuffer)
+}
+
 
 cleanup(async function (err) {
     if (err) {
@@ -78,16 +81,27 @@ cleanup(async function (err) {
     }
 
     await setup();
-
+debugger
+    suite.add('put', {
+      defer: true,
+      fn: setData
+    });
     suite.add('get', getData);
+    suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
       console.log('last result', result)
+      if (result.then) {
+        let start = Date.now()
+        result.then(() => {
+          console.log('last commit took ' + (Date.now() - start) + 'ms')
+        })
+      }
       console.log(String(event.target));
     });
     suite.on('complete', function () {
         console.log('Fastest is ' + this.filter('fastest').map('name'));
     });
 
-    suite.run();
+    suite.run({ async: true });
 
 });

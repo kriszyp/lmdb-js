@@ -162,7 +162,7 @@ function open(path, options) {
 						}
 					})
 				}
-				TODO: To reenable forced sequential writes, we need to be re-execute the operations if we get an env resize
+				TODO: To reenable forced sequential writes, we need to re-execute the operations if we get an env resize
 				*/
 				return when(execute(), (result) => {
 					try {
@@ -176,7 +176,6 @@ function open(path, options) {
 						return result
 					} catch(error) {
 						if (error.message == 'The transaction is already closed.') {
-							debugger
 							return result
 						}
 						return handleError(error, this, txn, () => this.transaction(execute))
@@ -658,6 +657,27 @@ function open(path, options) {
 					txn: writeTxn,
 				})
 			} catch(error) {
+				if (error.message.startsWith('MDB_TXN_FULL')) {
+					writeTxn.abort()
+					let done
+					while(!done) {
+						writeTxn = env.beginTxn()
+						let done = true
+						let count = 0
+						for (let key of this.getRange({
+							values: false
+						})) {
+							count++
+							writeTxn.del(this.db, key)
+							if (count > 10000) {
+								done =  false
+								writeTxn.commit()
+								break
+							}
+						}
+					}
+					return
+				}
 				handleError(error, this, null, () => this.clear())
 			}
 			if (this.packr && this.packr.structures)
