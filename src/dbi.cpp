@@ -63,6 +63,7 @@ void DbiWrap::setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeB
     if (lastUnsafePtr != unsafePtr) {
         handle()->Set(Nan::GetCurrentContext(), Nan::New<String>("unsafeBuffer").ToLocalChecked(),
             unsafeBuffer.Get(Isolate::GetCurrent()));
+        lastUnsafePtr = unsafePtr;
     }
 }
 
