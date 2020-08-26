@@ -250,15 +250,8 @@ Persistent<Object> globalUnsafeBuffer;
 
 void makeGlobalUnsafeBuffer(size_t size) {
     globalUnsafeSize = size;
-    globalUnsafePtr = new char[size];
-    Local<Object> newBuffer = Nan::NewBuffer(
-        globalUnsafePtr,
-        size,
-        [](char*, void*) {
-            // Don't free it here
-        },
-        nullptr
-    ).ToLocalChecked();
+    Local<Object> newBuffer = Nan::NewBuffer(size).ToLocalChecked();
+    globalUnsafePtr = node::Buffer::Data(newBuffer);
     globalUnsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
@@ -283,7 +276,6 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
                 dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
                 return Nan::New<Number>(data.mv_size);
             }*/
-            delete[] globalUnsafePtr;
             makeGlobalUnsafeBuffer(data.mv_size * 2);
         }
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);

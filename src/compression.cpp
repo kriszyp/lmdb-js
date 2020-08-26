@@ -52,10 +52,11 @@ void Compression::makeUnsafeBuffer() {
     Local<Object> newBuffer = Nan::NewBuffer(
         decompressTarget,
         decompressSize,
-        [](char*, void*) {
-            // Don't free it here
+        [](char*, void* data) {
+            // free the data once it is not used
+            delete data;
         },
-        nullptr
+        dictionary
     ).ToLocalChecked();
     unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
@@ -108,7 +109,6 @@ void Compression::expand(unsigned int size) {
     decompressTarget = dictionary + dictSize;
     memcpy(dictionary, oldSpace, dictSize);
     makeUnsafeBuffer();
-    delete oldSpace;
 }
 
 argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t freeValue) {
