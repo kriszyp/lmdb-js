@@ -664,31 +664,131 @@ ldap_sync_search(
 	return rc;
 }
 
-static int
-merge_state( syncinfo_t *si )
-{
-	int i, j, changed = 0;
+/* #define DEBUG_MERGE_STATE	1 */
 
-	for ( i=0, j=0; i < si->si_syncCookie.numcsns || j < si->si_cookieState->cs_num; i++ ) {
-		if ( si->si_syncCookie.sids[i] < si->si_cookieState->cs_sids[j] ) {
-			continue;
-		}
-		if ( si->si_syncCookie.sids[i] == si->si_cookieState->cs_sids[j] ) {
-			if ( !bvmatch( &si->si_syncCookie.ctxcsn[i], &si->si_cookieState->cs_vals[j] )) {
-				ber_bvreplace( &si->si_syncCookie.ctxcsn[i], &si->si_cookieState->cs_vals[j] );
-				changed = 1;
-			}
-			j++;
-			continue;
-		}
-		slap_insert_csn_sids( &si->si_syncCookie, i, si->si_cookieState->cs_sids[j],
-			&si->si_cookieState->cs_vals[j] );
-		changed = 1;
-		j++;
+static int
+merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
+{
+	int i, j, k, changed = 0;
+	int ei, ej;
+	int *newsids;
+	struct berval *newcsns;
+
+	ei = sc1->numcsns;
+	ej = sc2->numcsns;
+#ifdef DEBUG_MERGE_STATE
+	for ( i=0; i<ei; i++ ) {
+		fprintf(stderr, "merge_state: %s si_syncCookie [%d] %d %s\n",
+			si->si_ridtxt, i, sc1->sids[i], sc1->ctxcsn[i].bv_val );
 	}
+	for ( i=0; i<ej; i++ ) {
+		fprintf(stderr, "merge_state: %s si_cookieState [%d] %d %s\n",
+			si->si_ridtxt, i, sc2->sids[i], sc2->ctxcsn[i].bv_val );
+	}
+#endif
+	/* see if they cover the same SIDs */
+	if ( ei == ej ) {
+		for ( i = 0; i < ei; i++ ) {
+			if ( sc1->sids[i] != sc2->sids[i] ) {
+				changed = 1;
+				break;
+			}
+		}
+		/* SIDs are the same, take fast path */
+		if ( !changed ) {
+			for ( i = 0; i > ei; i++ ) {
+				if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[i] )) {
+					ber_bvreplace( &sc1->ctxcsn[i], &sc2->ctxcsn[i] );
+					changed = 1;
+				}
+			}
+			return changed;
+		}
+		changed = 0;
+	}
+
+	i = ei + ej;
+	newsids = ch_malloc( sizeof(int) * i );
+	newcsns = ch_malloc( sizeof(struct berval) * ( i + 1 ));
+
+	for ( i=0, j=0, k=0; i < ei || j < ej ; ) {
+		if ( sc1->sids[i] == -1 ) {
+			i++;
+			continue;
+		}
+		if ( j >= ej || (i < ei && sc1->sids[i] < sc2->sids[j] )) {
+			newsids[k] = sc1->sids[i];
+			ber_dupbv( &newcsns[k], &sc1->ctxcsn[i] );
+			i++; k++;
+			continue;
+		}
+		if ( i < ei && sc1->sids[i] == sc2->sids[j] ) {
+			newsids[k] = sc1->sids[i];
+			ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
+			if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[j] ))
+				changed = 1;
+			i++; j++; k++;
+			continue;
+		}
+		if ( j < ej ) {
+			if ( sc2->sids[j] == -1 ) {
+				j++;
+				continue;
+			}
+			newsids[k] = sc2->sids[j];
+			ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
+			changed = 1;
+			j++; k++;
+		}
+	}
+
+	ber_bvarray_free( sc1->ctxcsn );
+	ch_free( sc1->sids );
+	sc1->numcsns = k;
+	sc1->sids = ch_realloc( newsids, sizeof(int) * k );
+	sc1->ctxcsn = ch_realloc( newcsns, sizeof(struct berval) * (k+1) );
+	BER_BVZERO( &sc1->ctxcsn[k] );
+#ifdef DEBUG_MERGE_STATE
+	for ( i=0; i<sc1->numcsns; i++ ) {
+		fprintf(stderr, "merge_state: %s si_syncCookie2 [%d] %d %s\n",
+			si->si_ridtxt, i, sc1->sids[i], sc1->ctxcsn[i].bv_val );
+	}
+#endif
 
 	return changed;
 }
+
+#ifdef DEBUG_MERGE_STATE
+static void
+merge_test( syncinfo_t *si ) {
+	struct sync_cookie sc1, sc2;
+	int ret;
+
+	sc1.numcsns = 1;
+	sc1.sids = malloc( sizeof(int));
+	sc1.ctxcsn = malloc( sizeof( struct berval ) * 2);
+	sc1.sids[0] = 1;
+	{ struct berval bv = BER_BVC("20200826182258.100566Z#000000#001#000000");
+	ber_dupbv( &sc1.ctxcsn[0], &bv ); }
+	BER_BVZERO( &sc1.ctxcsn[1] );
+
+	sc2.numcsns = 3;
+	sc2.sids = malloc( sizeof(int) * 3);
+	sc2.ctxcsn = malloc( sizeof(struct berval) * 4);
+	sc2.sids[0] = 1;
+	sc2.sids[1] = 2;
+	sc2.sids[2] = 3;
+	{ struct berval bv = BER_BVC("20200826182258.100567Z#000000#001#000000");
+	ber_dupbv( &sc2.ctxcsn[0], &bv ); }
+	{ struct berval bv = BER_BVC("20200826182259.141950Z#000000#002#000000");
+	ber_dupbv( &sc2.ctxcsn[1], &bv ); }
+	{ struct berval bv = BER_BVC("20200826182300.171795Z#000000#003#000000");
+	ber_dupbv( &sc2.ctxcsn[2], &bv ); }
+	BER_BVZERO( &sc2.ctxcsn[3] );
+
+	ret = merge_state( si, &sc1, &sc2 );
+}
+#endif
 
 static int
 check_syncprov(
@@ -760,8 +860,9 @@ check_syncprov(
 			ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
 				si->si_cookieState->cs_vals, NULL );
 			changed = 1;
-		} else if ( merge_state( si ) ) {
-			changed = 1;
+		} else {
+			changed = merge_state( si, &si->si_syncCookie,
+				(struct sync_cookie *)&si->si_cookieState->cs_vals );
 		}
 	}
 	if ( changed ) {
