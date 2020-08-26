@@ -22,7 +22,8 @@
     "prebuild": "prebuild --all --verbose",
     "test2": "./node_modules/.bin/mocha tests -u tdd",
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
-    "benchmark": "node ./benchmark/index.js"
+    "benchmark": "node ./benchmark/index.js",
+    "benchmark-ll": "node ./benchmark/low-level.js"
   },
   "gypfile": true,
   "dependencies": {

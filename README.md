@@ -1,4 +1,4 @@
-`lmdb-store` is an interface to the incredibly fast LMDB, and is probably the fastest and most efficient NodeJS key-value/database interface that exists for the full process of storing and retrieving JavaScript data in a true persisted, scalable, ACID-compliant, database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+`lmdb-store` is an interface to the incredibly fast LMDB, and is probably the fastest and most efficient NodeJS key-value/database interface that exists for the storing and retrieving JavaScript structured data in a true persisted, scalable, ACID-compliant, database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary data
 * Queueing asynchronous write operations with promise-based API
 * Automated database size handling
@@ -29,7 +29,8 @@ An lmdb-store instances is created with by using `open` export from the main mod
 const { open } = require('lmdb-store');
 // or
 // import { open } from 'lmdb-store';
-let myStore = open('my-store', {
+let myStore = open({
+	path: 'my-store',
 	// any options go here, we can turn on compression like this:
 	compression: true,
 });
@@ -107,7 +108,7 @@ db.getRange({ start, end })
 ```
 Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create async iterable if the callback functions execute asynchronously (return a promise).
 
-### openDB(dbName: string)
+### openDB(database: string|{name:string,...})
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
 const { open } = require('lmdb-store');
@@ -142,6 +143,8 @@ let myStore = open('my-store', {
 ```
 Once shared structures has been enabled, you can store JavaScript objects just as you would normally would, and lmdb-store will automatically generate, increment, and save the structural information in the provided key to improve storage efficiency and performance. You never need to directly access this key, just be aware that that entry is being used by lmdb-store.
 
+This option is recommended when storing with data with similiar object structures in a database (including inside of array).
+
 ## Compression
 lmdb-store can optionally use off-thread LZ4 compression as part of the asynchronous writes to enable efficient compression with virtually no overhead to the main thread. LZ4 decompression (in `get` and `getRange` calls) is extremely fast and generally has little impact on performance. Compression is turned off by default, but can be turned on by setting the `compression` property when opening a database. The value of compression can be `true` or an object with compression settings, including properties:
 * `threshold` - Only entries that are larger than this value (in bytes) will be compressed. This defaults to 1000 (if compression is enabled)
@@ -155,20 +158,27 @@ let myStore = open('my-store', {
 	}
 })
 ```
+Compression is recommended for large databases that may be larger than available RAM, to improving OS caching.
 
 ### Store Options
-The open method has the following signature:
-`open(path, options)`
-If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument should be an object, and supports the following properties, all of which are optional:
-* `encoding` - Sets the encoding for the database, which can be `msgpack`, `'json'`, `'string'`, or `'binary'`.
+The open method can be used to create the main database/environment with the following signature:
+`open(path, options)` or `open(options)`
+Additional databases can be opened within the main database environment with:
+`store.openDB(name, options)` or `store.openDB(options)`
+If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional:
+* `name` - This is the name of the database.
+* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'string'`, or `'binary'`.
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database.
+* `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
+
+The following additional option properties are only available when creating the main database environment (`open`):
+* `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open (there is some extra overhead if this is set very high).
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 1ms. A delay of 0 means more immediate commits, but a longer delay can be more efficient at collecting more writes into a single transaction and reducing I/O load.
 * `immediateBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
 * `syncBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
-* `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a> (none of these are recommended, but are available for adjusting performance):
 * useWritemap - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data.
