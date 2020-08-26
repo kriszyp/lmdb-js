@@ -5,6 +5,7 @@ OpenLDAP 2.4.52 Engineering
 	Added libldap OpenSSL support for multiple EECDH curves (ITS#9054)
 	Added slapd OpenSSL support for multiple EECDH curves (ITS#9054)
 	Fixed librewrite malloc/free corruption (ITS#9249)
+	Fixed libldap hang when using UDP and server down (ITS#9328)
 	Fixed slapd syncrepl rare deadlock due to network issues (ITS#9324)
 	Fixed slapd syncrepl regression that could trigger an assert (ITS#9329)
 
