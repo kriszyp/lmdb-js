@@ -413,7 +413,7 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 			"TLS: Elliptic Curves not supported.\n", 0,0,0 );
 		return -1;
 #else
-		if ( SSL_CTX_set1_curves_list( ctx, lt->lt_ecname )) {
+		if ( !SSL_CTX_set1_curves_list( ctx, lt->lt_ecname )) {
 			Debug( LDAP_DEBUG_ANY,
 				"TLS: could not set EC name `%s'.\n",
 				lo->ldo_tls_ecname,0,0);
