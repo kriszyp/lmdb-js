@@ -8,6 +8,7 @@ OpenLDAP 2.4.52 Engineering
 	Fixed libldap hang when using UDP and server down (ITS#9328)
 	Fixed slapd syncrepl rare deadlock due to network issues (ITS#9324)
 	Fixed slapd syncrepl regression that could trigger an assert (ITS#9329)
+	Fixed slapd-mdb index error with collapsed range (ITS#9135)
 
 OpenLDAP 2.4.51 Release (2020/08/11)
 	Added slapo-ppolicy implement Netscape password policy controls (ITS#9279)
