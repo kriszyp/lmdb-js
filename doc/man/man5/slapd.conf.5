@@ -1750,7 +1750,9 @@ the contextCSN is stored in the context entry.
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
 .B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<names>]
 .B [tls_crlcheck=none|peer|all]
 .B [tls_protocol_min=<major>[.<minor>]]
 .B [suffixmassage=<real DN>]
@@ -1949,7 +1951,9 @@ to establish a TLS session before Binding to the provider. If the
 argument is supplied, the session will be aborted if the StartTLS request
 fails. Otherwise the syncrepl session continues without TLS. The
 .B tls_reqcert
-setting defaults to "demand" and the other TLS settings
+setting defaults to "demand", the
+.B tls_reqsan
+seting defaults to "allow", and the other TLS settings
 default to the same as the main slapd TLS settings.
 
 The
