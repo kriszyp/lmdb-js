@@ -27,7 +27,6 @@ describe('Node.js LMDB Bindings', function() {
     str = str + str;
     return str;
   }
-
   before(function(done) {
     // cleanup previous test directory
     rimraf(testDirPath, function(err) {

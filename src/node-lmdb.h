@@ -55,12 +55,18 @@ enum class NodeLmdbKeyType {
     BinaryKey = 3,
 
 };
+enum class KeyCreation {
+    Reset = 0,
+    Continue = 1,
+    InArray = 2,
+};
 
 class TxnWrap;
 class DbiWrap;
 class EnvWrap;
 class CursorWrap;
 class Compression;
+class KeySpace;
 
 // Exports misc stuff to the module
 void setupExportMisc(Local<Object> exports);
@@ -74,7 +80,7 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-argtokey_callback_t valueToKey(const Local<Value> &key, MDB_val &val, bool &isValid, bool fullLength = false);
+bool valueToMDBKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
@@ -85,12 +91,33 @@ NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
+
+class KeySpaceHolder {
+public:
+    uint8_t* data;
+    KeySpaceHolder* previousSpace;
+    KeySpaceHolder(KeySpaceHolder* existingPreviousSpace, uint8_t* existingData);
+    KeySpaceHolder();
+    ~KeySpaceHolder();
+};
+class KeySpace : public KeySpaceHolder {
+public:
+    int position;
+    int size;
+    bool fixedSize;
+    uint8_t* getTarget();
+    KeySpace(bool fixed);
+};
+
+
 #ifdef thread_local
 static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
+static thread_local KeySpace* fixedKeySpace;
 #else
 static double lastVersion = 0;
 static DbiWrap* currentDb = nullptr;
+static KeySpace* fixedKeySpace;
 #endif
 
 Local<Value> valToUtf8(MDB_val &data);
@@ -101,7 +128,7 @@ Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
-Local<Value> keyToValue(MDB_val &data);
+Local<Value> MDBKeyToValue(MDB_val &data);
 void makeGlobalUnsafeBuffer(size_t size);
 
 int putWithVersion(MDB_txn *   txn,

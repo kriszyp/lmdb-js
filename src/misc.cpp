@@ -42,6 +42,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     makeGlobalUnsafeBuffer(8);
+    fixedKeySpace = new KeySpace(true);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
@@ -134,8 +135,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
     isValid = false;
 
     if (keyType == NodeLmdbKeyType::DefaultKey) {
-        isValid = true;
-        return valueToKey(val, key, isValid);
+        isValid = valueToMDBKey(val, key, *fixedKeySpace);
     } else if (keyType == NodeLmdbKeyType::StringKey) {
         if (!val->IsString()) {
             Nan::ThrowError("Invalid key. Should be a string. (Specified with env.openDbi)");
@@ -189,7 +189,7 @@ argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyT
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType) {
     switch (keyType) {
     case NodeLmdbKeyType::DefaultKey:
-        return keyToValue(key);
+        return MDBKeyToValue(key);
     case NodeLmdbKeyType::Uint32Key:
         return Nan::New<Integer>(*((uint32_t*)key.mv_data));
     case NodeLmdbKeyType::BinaryKey:
