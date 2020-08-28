@@ -1658,6 +1658,8 @@ typedef struct slap_bindconf {
 #ifdef HAVE_OPENSSL
 	char *sb_tls_crlcheck;
 #endif
+	int sb_tls_int_reqcert;
+	int sb_tls_int_reqsan;
 	int sb_tls_do_init;
 #endif
 } slap_bindconf;

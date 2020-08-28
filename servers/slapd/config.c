@@ -1939,76 +1939,99 @@ static struct {
 
 int bindconf_tls_set( slap_bindconf *bc, LDAP *ld )
 {
-	int i, rc, res = 0;
+	int i, rc, newctx = 0, res = 0;
 	char *ptr = (char *)bc, **word;
 
-	bc->sb_tls_do_init = 0;
-
-	for (i=0; bindtlsopts[i].opt; i++) {
-		word = (char **)(ptr + bindtlsopts[i].offset);
-		if ( *word ) {
-			rc = ldap_set_option( ld, bindtlsopts[i].opt, *word );
-			if ( rc ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bindconf_tls_set: failed to set %s to %s\n",
-						bindtlsopts[i].key, *word );
-				res = -1;
+	if ( bc->sb_tls_do_init ) {
+		for (i=0; bindtlsopts[i].opt; i++) {
+			word = (char **)(ptr + bindtlsopts[i].offset);
+			if ( *word ) {
+				rc = ldap_set_option( ld, bindtlsopts[i].opt, *word );
+				if ( rc ) {
+					Debug( LDAP_DEBUG_ANY,
+						"bindconf_tls_set: failed to set %s to %s\n",
+							bindtlsopts[i].key, *word );
+					res = -1;
+				} else
+					newctx = 1;
 			}
 		}
-	}
-	if ( bc->sb_tls_reqcert ) {
-		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_CERT,
-			bc->sb_tls_reqcert );
-		if ( rc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bindconf_tls_set: failed to set tls_reqcert to %s\n",
-					bc->sb_tls_reqcert );
-			res = -1;
+		if ( bc->sb_tls_reqcert ) {
+			rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_CERT,
+				bc->sb_tls_reqcert );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bindconf_tls_set: failed to set tls_reqcert to %s\n",
+						bc->sb_tls_reqcert );
+				res = -1;
+			} else {
+				newctx = 1;
+				/* retrieve the parsed setting for later use */
+				ldap_get_option( ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &bc->sb_tls_int_reqcert );
+			}
 		}
-	}
-	if ( bc->sb_tls_reqsan ) {
-		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_SAN,
-			bc->sb_tls_reqsan );
-		if ( rc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bindconf_tls_set: failed to set tls_reqsan to %s\n",
-					bc->sb_tls_reqsan );
-			res = -1;
+		if ( bc->sb_tls_reqsan ) {
+			rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_REQUIRE_SAN,
+				bc->sb_tls_reqsan );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bindconf_tls_set: failed to set tls_reqsan to %s\n",
+						bc->sb_tls_reqsan );
+				res = -1;
+			} else {
+				newctx = 1;
+				/* retrieve the parsed setting for later use */
+				ldap_get_option( ld, LDAP_OPT_X_TLS_REQUIRE_SAN, &bc->sb_tls_int_reqsan );
+			}
 		}
-	}
-	if ( bc->sb_tls_protocol_min ) {
-		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_PROTOCOL_MIN,
-			bc->sb_tls_protocol_min );
-		if ( rc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bindconf_tls_set: failed to set tls_protocol_min to %s\n",
-					bc->sb_tls_protocol_min );
-			res = -1;
+		if ( bc->sb_tls_protocol_min ) {
+			rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_PROTOCOL_MIN,
+				bc->sb_tls_protocol_min );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bindconf_tls_set: failed to set tls_protocol_min to %s\n",
+						bc->sb_tls_protocol_min );
+				res = -1;
+			} else
+				newctx = 1;
 		}
-	}
 #ifdef HAVE_OPENSSL
-	if ( bc->sb_tls_crlcheck ) {
-		rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_CRLCHECK,
-			bc->sb_tls_crlcheck );
-		if ( rc ) {
-			Debug( LDAP_DEBUG_ANY,
-				"bindconf_tls_set: failed to set tls_crlcheck to %s\n",
-					bc->sb_tls_crlcheck );
-			res = -1;
+		if ( bc->sb_tls_crlcheck ) {
+			rc = ldap_pvt_tls_config( ld, LDAP_OPT_X_TLS_CRLCHECK,
+				bc->sb_tls_crlcheck );
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY,
+					"bindconf_tls_set: failed to set tls_crlcheck to %s\n",
+						bc->sb_tls_crlcheck );
+				res = -1;
+			} else
+				newctx = 1;
 		}
-	}
 #endif
-	if ( bc->sb_tls_ctx ) {
-		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, bc->sb_tls_ctx );
-		if ( rc )
-			res = rc;
-	} else {
+		if ( !res )
+			bc->sb_tls_do_init = 0;
+	}
+
+	if ( newctx ) {
 		int opt = 0;
+
+		if ( bc->sb_tls_ctx ) {
+			ldap_pvt_tls_ctx_free( bc->sb_tls_ctx );
+			bc->sb_tls_ctx = NULL;
+		}
 		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_NEWCTX, &opt );
 		if ( rc )
 			res = rc;
 		else
 			ldap_get_option( ld, LDAP_OPT_X_TLS_CTX, &bc->sb_tls_ctx );
+	} else if ( bc->sb_tls_ctx ) {
+		rc = ldap_set_option( ld, LDAP_OPT_X_TLS_CTX, bc->sb_tls_ctx );
+		if ( rc == LDAP_SUCCESS ) {
+			/* these options aren't actually inside the ctx, so have to be set again */
+			ldap_set_option( ld, LDAP_OPT_X_TLS_REQUIRE_CERT, &bc->sb_tls_int_reqcert );
+			ldap_set_option( ld, LDAP_OPT_X_TLS_REQUIRE_SAN, &bc->sb_tls_int_reqsan );
+		} else
+			res = rc;
 	}
 	
 	return res;
