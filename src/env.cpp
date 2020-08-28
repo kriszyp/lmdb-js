@@ -174,12 +174,13 @@ struct action_t {
 
 class BatchWorker : public Nan::AsyncProgressWorker {
   public:
-    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, Nan::Callback *callback, Nan::Callback *progress)
+    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, Nan::Callback *callback, Nan::Callback *progress)
       : Nan::AsyncProgressWorker(callback, "node-lmdb:Batch"),
       actions(actions),
       actionCount(actionCount),
       putFlags(putFlags),
       env(env),
+      keySpace(keySpace),
       progress(progress) {
         results = new int[actionCount];
     }
@@ -195,6 +196,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
         delete[] actions;
         delete[] results;
         delete progress;
+        delete keySpace;
     }
 
     void Execute(const ExecutionProgress& executionProgress) {
@@ -354,6 +356,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
     action_t* actions;
     int putFlags;
     Nan::Callback* progress;
+    KeySpace* keySpace;
     friend class DbiWrap;
 };
 
@@ -644,6 +647,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     action_t* actions = new action_t[length];
 
     int putFlags = 0;
+    KeySpace* keySpace = new KeySpace(false);
     Nan::Callback* callback;
     Nan::Callback* progress = nullptr;
     Local<Value> options = info[1];
@@ -669,7 +673,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     }
 
     BatchWorker* worker = new BatchWorker(
-        ew->env, actions, length, putFlags, callback, progress
+        ew->env, actions, length, putFlags, keySpace, callback, progress
     );
     int persistedIndex = 0;
     bool keyIsValid = false;
@@ -693,9 +697,14 @@ NAN_METHOD(EnvWrap::batchWrite) {
             // just execute this the first time so we didn't need to re-execute for each iteration
             keyType = keyTypeFromOptions(options, dw->keyType);
         }
-        action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
+        if (keyType == NodeLmdbKeyType::DefaultKey) {
+            action->freeKey = nullptr;
+            keyIsValid = valueToKey(key, action->key, *keySpace);
+        } else
+            action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
         if (!keyIsValid) {
             // argToKey already threw an error
+            delete worker;
             return;
         }
         // persist the reference until we are done with the operation

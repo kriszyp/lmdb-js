@@ -97,7 +97,7 @@ describe('lmdb-store', function() {
           case 'key1': data1.should.deep.equal(value); break;
           case 'key2': data2.should.deep.equal(value); break;
           default:
-            throw new Error('Bad key')
+            throw new Error('Bad key ' + key)
         }
       }
       if (count != 2)
