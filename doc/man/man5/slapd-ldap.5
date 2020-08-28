@@ -113,7 +113,9 @@ needs to be created.
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
 .B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<names>]
 .B [tls_protocol_min=<major>[.<minor>]]
 .B [tls_crlcheck=none|peer|all]
 .RS
@@ -148,7 +150,9 @@ which is \fIintrinsically unsafe and should be used with extreme care\fP.
 The TLS settings default to the same as the main slapd TLS settings,
 except for
 .B tls_reqcert
-which defaults to "demand".
+which defaults to "demand", and
+.B tls_reqsan
+which defaults to "allow".
 .RE
 
 .TP
@@ -223,7 +227,9 @@ case allows anonymous rather than denies.
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
 .B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<names>]
 .B [tls_protocol_min=<version>]
 .B [tls_crlcheck=none|peer|all]
 .RS
@@ -383,7 +389,9 @@ after the bind for the same purpose.
 The TLS settings default to the same as the main slapd TLS settings,
 except for
 .B tls_reqcert
-which defaults to "demand".
+which defaults to "demand", and
+.B tls_reqsan
+which defaults to "allow".
 
 The identity associated to this directive is also used for privileged
 operations whenever \fBidassert\-bind\fP is defined and \fBacl\-bind\fP
@@ -580,7 +588,9 @@ is used.
 .B [tls_cacert=<file>]
 .B [tls_cacertdir=<path>]
 .B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
 .B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<names>]
 .B [tls_crlcheck=none|peer|all]
 .RS
 Specify TLS settings for regular connections.
@@ -596,7 +606,9 @@ if the StartTLS operation failed; its use is \fBnot\fP recommended.
 The TLS settings default to the same as the main slapd TLS settings,
 except for
 .B tls_reqcert
-which defaults to "demand" and
+which defaults to "demand",
+.B tls_reqsan
+which defaults to "allow", and
 .B starttls
 which is overshadowed by the first keyword and thus ignored.
 .RE

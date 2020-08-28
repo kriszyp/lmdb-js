@@ -62,7 +62,7 @@ olcSyncrepl: {0}rid=001 provider=@URI@ type=refreshAndPersist retry="10 +"
  dn="cn=manager,dc=example,dc=com" credentials=secret timeout=1
 olcMultiProvider: TRUE
 
-dn: olcOverlay={0}syncprov,olcDatabase={1}mdb,cn=config
+dn: olcOverlay={0}syncprov,olcDatabase={1}@BACKEND@,cn=config
 objectClass: olcSyncProvConfig
 olcOverlay: {0}syncprov
 olcSpCheckpoint: 100 10

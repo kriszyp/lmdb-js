@@ -174,6 +174,11 @@ do_extended(
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_extended( op, rs );
 
+	if ( rs->sr_err == SLAPD_ASYNCOP ){
+		/* skip cleanup */
+		return rs->sr_err;
+	}
+
 	/* clean up in case some overlay set them? */
 	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
 		if ( !BER_BVISNULL( &op->o_req_dn )
