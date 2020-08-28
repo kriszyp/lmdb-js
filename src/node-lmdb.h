@@ -80,7 +80,7 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-bool valueToKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace, bool inArray = false);
+bool valueToMDBKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
@@ -92,15 +92,21 @@ NAN_METHOD(setLastVersion);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 
-class KeySpace {
+class KeySpaceHolder {
 public:
     uint8_t* data;
+    KeySpaceHolder* previousSpace;
+    KeySpaceHolder(KeySpaceHolder* existingPreviousSpace, uint8_t* existingData);
+    KeySpaceHolder();
+    ~KeySpaceHolder();
+};
+class KeySpace : public KeySpaceHolder {
+public:
     int position;
     int size;
     bool fixedSize;
-    uint8_t* getTarget(int space);
+    uint8_t* getTarget();
     KeySpace(bool fixed);
-    ~KeySpace();
 };
 
 
@@ -122,7 +128,7 @@ Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
-Local<Value> keyToValue(MDB_val &data);
+Local<Value> MDBKeyToValue(MDB_val &data);
 void makeGlobalUnsafeBuffer(size_t size);
 
 int putWithVersion(MDB_txn *   txn,

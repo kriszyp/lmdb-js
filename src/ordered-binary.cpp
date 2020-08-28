@@ -9,40 +9,34 @@ control character types:
 7 - true
 8- 16 - negative doubles
 16-24 positive doubles
-27 - used for escaping control bytes in strings
+27 - String starts with a character 27 or less or is an empty string
 0 - multipart separator
-> 31 normal string characters
+> 27 normal string characters
 */
 /*
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
 
-MDB_val arrayElement;
-bool valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, KeySpace &keySpace, bool inArray) {
-    if (!inArray && keySpace.fixedSize) {
-        keySpace.position = 0;
-    }
-    uint8_t* targetBytes;
-    if (!(targetBytes = keySpace.getTarget(10)))
-        return false;
-    int end = keySpace.size;
+int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingBytes, bool inArray) {
     int bytesWritten;
     if (jsKey->IsString()) {
         int utfWritten = 0;
         Local<String> string = Local<String>::Cast(jsKey);
-        bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes, end - keySpace.position - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes, remainingBytes, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten < string->Length()) {
-            if (!(targetBytes = keySpace.getTarget(string->Length() * 3 + 1)))
-                return false;
-            bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes, end - keySpace.position - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+            Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+            return 0;
         }
-        if (targetBytes[0] < 32) {
+        if (bytesWritten == 0 || targetBytes[0] < 28) {
+            // use string/escape indicator starting byte
+            if (remainingBytes == 0) {
+                Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+                return 0;
+            }
             memmove(targetBytes + 1, targetBytes, bytesWritten++);
+            targetBytes[0] = 27;
         }
-        keySpace.position += bytesWritten;
-        mdbKey.mv_size = bytesWritten;
-        mdbKey.mv_data = targetBytes;
-        return true;
+        return bytesWritten;
     }
 
     if (jsKey->IsNumber() || jsKey->IsBigInt()) {
@@ -76,62 +70,76 @@ bool valueToKey(const Local<Value> &jsKey, MDB_val &mdbKey, KeySpace &keySpace, 
         if (targetBytes[8] == 0 && !inArray) {
             if (targetBytes[6] == 0 && targetBytes[7] == 0) {
                 if (targetBytes[5] == 0 && targetBytes[4] == 0)
-                        bytesWritten = 4;
+                        return 4;
                 else
-                    bytesWritten = 6;
+                    return 6;
             } else
-                bytesWritten = 8;
+                return 8;
         } else
-            bytesWritten = 9;
+            return 9;
        //fprintf(stdout, "asInt %x %x %x %x %x %x %x %x %x\n", targetBytes[0], targetBytes[1], targetBytes[2], targetBytes[3], targetBytes[4], targetBytes[5], targetBytes[6], targetBytes[7], targetBytes[8]);
     } else if (jsKey->IsArray()) {
         Local<Array> array = Local<Array>::Cast(jsKey);
         int length = array->Length();
         Local<Context> context = Nan::GetCurrentContext();
-        int start = keySpace.position;
-        MDB_val arrayElement;
+        bytesWritten = 0;
         for (int i = 0; i < length; i++) {
             if (i > 0) {
-                if (!(targetBytes = keySpace.getTarget(1)))
-                    return false;
-                targetBytes[0] = 0;
-                keySpace.position++;
+                if (remainingBytes <= 10) {
+                    Nan::ThrowError("Array is too large to fit in a key with a maximum of 511 bytes");
+                    return 0;
+                }
+                *targetBytes = 0;
+                targetBytes++;
+                bytesWritten++;
+                remainingBytes--;
             }
-            if (!valueToKey(array->Get(context, i).ToLocalChecked(), arrayElement, keySpace, true))
-                return false;
+            int size = valueToKey(array->Get(context, i).ToLocalChecked(), targetBytes, remainingBytes, true);
+            if (!size)
+                return 0;
+            targetBytes += size;
+            bytesWritten += size;
+            remainingBytes -= size;
         }
-        bytesWritten = keySpace.position - start;
-        targetBytes = &keySpace.data[start]; // retrieve target bytes from the start
+        return bytesWritten;
     } else if (jsKey->IsNullOrUndefined()) {
         targetBytes[0] = 0;
-        bytesWritten = 1;
+        return 1;
     } else if (jsKey->IsBoolean()) {
         targetBytes[0] = jsKey->IsTrue() ? 7 : 6;
-        bytesWritten = 1;
-    } else if (node::Buffer::HasInstance(jsKey)) {
-        bytesWritten = node::Buffer::Length(jsKey);
-        if (inArray) {
-            // if it is an array element, it is needs to be copied into the key sapce
-            if (!(targetBytes = keySpace.getTarget(bytesWritten)))
-                return false;
-            memcpy(targetBytes, node::Buffer::Data(jsKey), bytesWritten);
-        } else {
-            // we can make a special case here and directly use the buffer itself
-            mdbKey.mv_data = node::Buffer::Data(jsKey);
-            mdbKey.mv_size = bytesWritten;
-            return true;
+        return 1;
+    } else if (jsKey->IsArrayBufferView()) {
+        bytesWritten = Local<ArrayBufferView>::Cast(jsKey)->CopyContents(targetBytes, remainingBytes);
+        if (bytesWritten > remainingBytes - 10 && // guard the second check with this first check to see if we are close to the end
+                Local<ArrayBufferView>::Cast(jsKey)->ByteLength() > bytesWritten) {
+            Nan::ThrowError("Buffer is too long to fit in a key with a maximum of 511 bytes");
+            return 0; // not enough space
         }
+        return bytesWritten;
+    //} else if (jsKey->IsSymbol()) {
+
     } else {
         Nan::ThrowError("Invalid type for key.");
-        return false;
+        return 0;
     }
-    keySpace.position += bytesWritten;
-    mdbKey.mv_size = bytesWritten;
-    mdbKey.mv_data = targetBytes;
-    return true;
 }
 
-Local<Value> keyToValue(MDB_val &val) {
+bool valueToMDBKey(const Local<Value>& jsKey, MDB_val& mdbKey, KeySpace& keySpace) {
+    if (jsKey->IsArrayBufferView()) {
+        // special case where we can directly use this
+        mdbKey.mv_data = node::Buffer::Data(jsKey);
+        mdbKey.mv_size = Local<ArrayBufferView>::Cast(jsKey)->ByteLength();
+        return true;
+    }
+    uint8_t* targetBytes = keySpace.getTarget();
+    int size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false);
+    mdbKey.mv_data = targetBytes;
+    if (!keySpace.fixedSize)
+        keySpace.position += size;
+    return size;
+}
+
+Local<Value> MDBKeyToValue(MDB_val &val) {
     Local<Value> value;
     int consumed = 0;
     uint8_t* keyBytes = (uint8_t*) val.mv_data;
@@ -181,7 +189,7 @@ Local<Value> keyToValue(MDB_val &val) {
             val.mv_data = (char*) val.mv_data + 1;
         }
         for (; position < end; position++) {
-            if (*position < 1) { // by using signed chars, non-latin is negative and separators are less than 1
+            if (*position < 31) { // by using signed chars, non-latin is negative and separators are less than 1
                 int8_t c = *position;
                 if (c < 0) {
                     isOneByte = false;
@@ -204,7 +212,7 @@ Local<Value> keyToValue(MDB_val &val) {
         MDB_val nextPart;
         nextPart.mv_size = size - consumed - 1;
         nextPart.mv_data = &keyBytes[consumed + 1];
-        Local<Value> nextValue = keyToValue(nextPart);
+        Local<Value> nextValue = MDBKeyToValue(nextPart);
         v8::Local<v8::Array> resultsArray;
         Local<Context> context = Nan::GetCurrentContext();
         if (nextValue->IsArray()) {
@@ -232,32 +240,44 @@ NAN_METHOD(bufferToKeyValue) {
     MDB_val key;
     key.mv_size = node::Buffer::Length(info[0]);
     key.mv_data = node::Buffer::Data(info[0]);
-    info.GetReturnValue().Set(keyToValue(key));
+    info.GetReturnValue().Set(MDBKeyToValue(key));
 }
 NAN_METHOD(keyValueToBuffer) {
-    MDB_val key;
     bool isValid = true;
-    if (!valueToKey(info[0], key, *fixedKeySpace, false)) {
+    uint8_t* targetBytes = fixedKeySpace->getTarget();
+    int size = valueToKey(info[0], targetBytes, 511, false);
+    if (!size) {
         return;
     }
     Nan::MaybeLocal<v8::Object> buffer = Nan::CopyBuffer(
-            (char*)key.mv_data,
-            key.mv_size);
+            (char*)targetBytes,
+            size);
     info.GetReturnValue().Set(buffer.ToLocalChecked());
 }
 
-uint8_t* KeySpace::getTarget(int space) {
-    if (position + space > size) {
+
+KeySpaceHolder::KeySpaceHolder() {
+    previousSpace = nullptr;
+}
+KeySpaceHolder::KeySpaceHolder(KeySpaceHolder* existingSpace, uint8_t* existingData) {
+    previousSpace = existingSpace;
+    data = existingData;
+}
+KeySpaceHolder::~KeySpaceHolder() {
+    if (previousSpace)
+        delete previousSpace;
+    delete[] data;
+}
+
+uint8_t* KeySpace::getTarget() {
+    if (position + 511 > size) {
         if (fixedSize) {
             Nan::ThrowError("Key is too large");
             return nullptr;
         } else {
-            uint8_t* oldData = data;
-            int oldSize = size;
-            size = size << 2;
+            previousSpace = new KeySpaceHolder(previousSpace, data);
+            size = size << 1; // grow on each expansion
             data = new uint8_t[size];
-            memcpy(data, oldData, position);
-            delete[] oldData;
         }
     }
     return &data[position];
@@ -267,7 +287,4 @@ KeySpace::KeySpace(bool fixed) {
     position = 0;
     size = fixed ? 512 : 8192;
     data = new uint8_t[size];
-}
-KeySpace::~KeySpace() {
-    delete[] data;
 }

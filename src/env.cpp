@@ -699,7 +699,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         }
         if (keyType == NodeLmdbKeyType::DefaultKey) {
             action->freeKey = nullptr;
-            keyIsValid = valueToKey(key, action->key, *keySpace);
+            keyIsValid = valueToMDBKey(key, action->key, *keySpace);
         } else
             action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
         if (!keyIsValid) {
