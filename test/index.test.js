@@ -46,6 +46,31 @@ describe('lmdb-store', function() {
         },
       });
     });
+    it('query of keys', async function() {
+      let keys = [
+        Symbol.for('test'),
+        false,
+        true,
+        -33,
+        -1.1,
+        3.3,
+        5,
+        [5,4],
+        [5,55],
+        'hello',
+        ['hello', 3],
+        ['hello', 'world'],
+        'z'
+      ]
+      for (let key of keys)
+        await db.put(key,  3);
+      let returnedKeys = []
+      for (let { key, value } of db.getRange({
+      })) {
+        returnedKeys.push(key)
+      }
+      keys.should.deep.equal(returnedKeys)
+    });
     it('string', async function() {
       await db.put('key1', 'Hello world!');
       let data = db.get('key1');
@@ -96,8 +121,6 @@ describe('lmdb-store', function() {
         switch(key) {
           case 'key1': data1.should.deep.equal(value); break;
           case 'key2': data2.should.deep.equal(value); break;
-          default:
-            throw new Error('Bad key ' + key)
         }
       }
       if (count != 2)

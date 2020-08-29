@@ -814,10 +814,11 @@ function compareKey(a, b) {
 }
 exports.compareKey = compareKey
 const typeOrder = {
-	undefined: 0,
-	boolean: 1,
-	number: 2,
-	string: 3
+	symbol: 0,
+	undefined: 1,
+	boolean: 2,
+	number: 3,
+	string: 4
 }
 exports.getLastEntrySize = function() {
 	return lastSize

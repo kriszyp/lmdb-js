@@ -5,6 +5,7 @@
 /*
 control character types:
 1 - metadata
+2 - symbols
 6 - false
 7 - true
 8- 16 - negative doubles
@@ -116,8 +117,16 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
             return 0; // not enough space
         }
         return bytesWritten;
-    //} else if (jsKey->IsSymbol()) {
-
+    } else if (jsKey->IsSymbol()) {
+        int utfWritten;
+        Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Name());
+        targetBytes[0] = 2;
+        bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
+        if (utfWritten < string->Length()) {
+            Nan::ThrowError("Symbol name is too long to fit in a key with a maximum of 511 bytes");
+            return 0;
+        }
+        return bytesWritten;
     } else {
         Nan::ThrowError("Invalid type for key.");
         return 0;
@@ -154,6 +163,9 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
                 value = Nan::New<Boolean>(true);
             } else if (controlByte == 0) {
                 value = Nan::Null();
+            } else if (controlByte == 2) {
+                consumed = size;
+                value = Symbol::For(Isolate::GetCurrent(), Nan::New<v8::String>((char*) keyBytes + 1, size - 1).ToLocalChecked());
             } else {
                 return Nan::CopyBuffer(
                     (char*)val.mv_data,

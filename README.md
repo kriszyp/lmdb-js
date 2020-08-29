@@ -44,6 +44,7 @@ Once you have created a store, you can store and retrieve values using keys.
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean), an array of primitives, or a Buffer. These primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys :
 ```
+Symbol.for('even symbols')
 -10 // negative supported
 -1.1 // decimals supported
 400
@@ -135,10 +136,10 @@ let myStore = open('my-store', { useVersions: true })
 You can set a version by using the `version` argument in `put` calls. You can later update data and ensure that the data will only be updated if the version matches the expected version by using the `ifVersion` argument. When retrieving entries, you can access the version number by calling `getLastVersion()`.
 
 ## Shared Structures
-Shared structures are mechanism for storing the structural information about objects stored in database in a way that can be resused across of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack encoding, using the msgpackr package). We highly recommend using this when storing structured objects in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. We recommend using a binary key outside of the range of the standard JS values (which start at byte 5):
+Shared structures are mechanism for storing the structural information about objects stored in database in a way that can be resused across of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack encoding, using the msgpackr package). We highly recommend using this when storing structured objects in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. We recommend using symbols as a metadata key, as they are outside of the range of the standard JS primitive values:
 ```
 let myStore = open('my-store', {
-	sharedStructuresKey: Buffer.from([ 2 ])
+	sharedStructuresKey: Symbol.for('structures')
 })
 ```
 Once shared structures has been enabled, you can store JavaScript objects just as you would normally would, and lmdb-store will automatically generate, increment, and save the structural information in the provided key to improve storage efficiency and performance. You never need to directly access this key, just be aware that that entry is being used by lmdb-store.

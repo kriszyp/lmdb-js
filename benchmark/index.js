@@ -41,7 +41,7 @@ let data = {
 }
 function setup() {
   store = open(testDirPath, {
-    sharedStructuresKey: Buffer.from([ 2 ]),
+    sharedStructuresKey: Symbol.for('structures'),
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
