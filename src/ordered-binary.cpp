@@ -18,20 +18,22 @@ control character types:
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
 
-int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingBytes, bool inArray) {
+int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingBytes, bool inArray, bool throwErrors) {
     int bytesWritten;
     if (jsKey->IsString()) {
         int utfWritten = 0;
         Local<String> string = Local<String>::Cast(jsKey);
         bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes, remainingBytes, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten < string->Length()) {
-            Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+            if (throwErrors)
+                Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
             return 0;
         }
         if (bytesWritten == 0 || targetBytes[0] < 28) {
             // use string/escape indicator starting byte
             if (remainingBytes == 0) {
-                Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+                if (throwErrors)
+                    Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
                 return 0;
             }
             memmove(targetBytes + 1, targetBytes, bytesWritten++);
@@ -48,8 +50,9 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
             bool lossless = true;
             number = (double) Local<BigInt>::Cast(jsKey)->Int64Value(&lossless);
             if (!lossless) {
-                Nan::ThrowError("BigInt was too large to use as a key.");
-                return false;
+                if (throwErrors)
+                    Nan::ThrowError("BigInt was too large to use as a key.");
+                return 0;
             }
         }
         uint64_t asInt = *((uint64_t*) &number);
@@ -87,7 +90,8 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         for (int i = 0; i < length; i++) {
             if (i > 0) {
                 if (remainingBytes <= 10) {
-                    Nan::ThrowError("Array is too large to fit in a key with a maximum of 511 bytes");
+                    if (throwErrors)
+                        Nan::ThrowError("Array is too large to fit in a key with a maximum of 511 bytes");
                     return 0;
                 }
                 *targetBytes = 0;
@@ -95,7 +99,7 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
                 bytesWritten++;
                 remainingBytes--;
             }
-            int size = valueToKey(array->Get(context, i).ToLocalChecked(), targetBytes, remainingBytes, true);
+            int size = valueToKey(array->Get(context, i).ToLocalChecked(), targetBytes, remainingBytes, true, throwErrors);
             if (!size)
                 return 0;
             targetBytes += size;
@@ -113,7 +117,8 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         bytesWritten = Local<ArrayBufferView>::Cast(jsKey)->CopyContents(targetBytes, remainingBytes);
         if (bytesWritten > remainingBytes - 10 && // guard the second check with this first check to see if we are close to the end
                 Local<ArrayBufferView>::Cast(jsKey)->ByteLength() > bytesWritten) {
-            Nan::ThrowError("Buffer is too long to fit in a key with a maximum of 511 bytes");
+            if (throwErrors)
+                Nan::ThrowError("Buffer is too long to fit in a key with a maximum of 511 bytes");
             return 0; // not enough space
         }
         return bytesWritten;
@@ -128,7 +133,8 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         }
         return bytesWritten;
     } else {
-        Nan::ThrowError("Invalid type for key.");
+        if (throwErrors)
+            Nan::ThrowError("Invalid type for key.");
         return 0;
     }
 }
@@ -141,7 +147,7 @@ bool valueToMDBKey(const Local<Value>& jsKey, MDB_val& mdbKey, KeySpace& keySpac
         return true;
     }
     uint8_t* targetBytes = keySpace.getTarget();
-    int size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false);
+    int size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false, keySpace.fixedSize);
     mdbKey.mv_data = targetBytes;
     if (!keySpace.fixedSize)
         keySpace.position += size;
@@ -257,7 +263,7 @@ NAN_METHOD(bufferToKeyValue) {
 NAN_METHOD(keyValueToBuffer) {
     bool isValid = true;
     uint8_t* targetBytes = fixedKeySpace->getTarget();
-    int size = valueToKey(info[0], targetBytes, 511, false);
+    int size = valueToKey(info[0], targetBytes, 511, false, true);
     if (!size) {
         return;
     }

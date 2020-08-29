@@ -592,8 +592,16 @@ function open(path, options) {
 			return results
 		}
 
+		if(db, key, version) {
+
+
+		}
+
 		batch(operations) {
-			this.writes += operations.length
+			if (writeTxn) {
+				this.commitBatchNow(operations.map(operation => [this.db, operation.key, operation.value]))
+				return Promise.resolve(true)
+			}
 			if (!scheduledOperations) {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
@@ -602,10 +610,6 @@ function open(path, options) {
 				let value = operation.value
 				scheduledOperations.push([this.db, operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
-			}
-			if (writeTxn) {
-				this.commitBatchNow(scheduledOperations)
-				return Promise.resolve(true)
 			}
 			return this.scheduleCommit().unconditionalResults
 		}

@@ -1,6 +1,6 @@
 'use strict';
 var inspector = require('inspector')
-//inspector.open(9330, null, true)
+inspector.open(9330, null, true)
 
 var crypto = require('crypto');
 var path = require('path');
@@ -13,7 +13,7 @@ var benchmark = require('benchmark');
 var suite = new benchmark.Suite();
 
 const { open } = require('..');
-
+debugger
 var env;
 var dbi;
 var keys = [];
@@ -36,8 +36,11 @@ let data = {
   name: 'test',
   something: 'test2',
   flag: true,
-  foo: 32,
-  bar: 55
+  foo: 332232,
+  bar: 54435,
+  double:1.332232,
+  another:'val',
+  there: 'sss',
 }
 function setup() {
   store = open(testDirPath, {
@@ -69,7 +72,7 @@ function setData(deferred) {
 function getData() {
   result = store.get((c += 357) % total)
 }
-let jsonBuffer = Buffer.from(JSON.stringify(data))
+let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
   result = JSON.parse(jsonBuffer)
 }

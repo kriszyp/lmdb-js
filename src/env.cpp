@@ -700,12 +700,14 @@ NAN_METHOD(EnvWrap::batchWrite) {
         if (keyType == NodeLmdbKeyType::DefaultKey) {
             action->freeKey = nullptr;
             keyIsValid = valueToMDBKey(key, action->key, *keySpace);
-        } else
+        }
+        else {
             action->freeKey = argToKey(key, action->key, keyType, keyIsValid);
-        if (!keyIsValid) {
-            // argToKey already threw an error
-            delete worker;
-            return;
+            if (!keyIsValid) {
+                // argToKey already threw an error
+                delete worker;
+                return;
+            }
         }
         // persist the reference until we are done with the operation
         //if (!action->freeKey)
