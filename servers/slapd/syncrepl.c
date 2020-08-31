@@ -534,7 +534,7 @@ merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
 		/* SIDs are the same, take fast path */
 		if ( !changed ) {
 			for ( i = 0; i > ei; i++ ) {
-				if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[i] )) {
+				if ( ber_bvcmp( &sc1->ctxcsn[i], &sc2->ctxcsn[i] ) < 0 ) {
 					ber_bvreplace( &sc1->ctxcsn[i], &sc2->ctxcsn[i] );
 					changed = 1;
 				}
@@ -561,9 +561,12 @@ merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
 		}
 		if ( i < ei && sc1->sids[i] == sc2->sids[j] ) {
 			newsids[k] = sc1->sids[i];
-			ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
-			if ( !bvmatch( &sc1->ctxcsn[i], &sc2->ctxcsn[j] ))
+			if ( ber_bvcmp( &sc1->ctxcsn[i], &sc2->ctxcsn[j] ) < 0 ) {
 				changed = 1;
+				ber_dupbv( &newcsns[k], &sc2->ctxcsn[j] );
+			} else {
+				ber_dupbv( &newcsns[k], &sc1->ctxcsn[i] );
+			}
 			i++; j++; k++;
 			continue;
 		}
@@ -601,27 +604,39 @@ merge_test( syncinfo_t *si ) {
 	struct sync_cookie sc1, sc2;
 	int ret;
 
-	sc1.numcsns = 1;
-	sc1.sids = malloc( sizeof(int));
-	sc1.ctxcsn = malloc( sizeof( struct berval ) * 2);
+	sc1.numcsns = 4;
+	sc1.sids = malloc( sizeof( int ) * sc1.numcsns );
+	sc1.ctxcsn = malloc( sizeof( struct berval ) * ( sc1.numcsns + 1 ));
 	sc1.sids[0] = 1;
-	{ struct berval bv = BER_BVC("20200826182258.100566Z#000000#001#000000");
+	sc1.sids[1] = 3;
+	sc1.sids[2] = 4;
+	sc1.sids[3] = 5;
+	{ struct berval bv = BER_BVC("20200101000000.100000Z#sc1#001#000000");	/* unique */
 	ber_dupbv( &sc1.ctxcsn[0], &bv ); }
-	BER_BVZERO( &sc1.ctxcsn[1] );
+	{ struct berval bv = BER_BVC("20200101000000.100000Z#sc1#003#000000");	/* lower */
+	ber_dupbv( &sc1.ctxcsn[1], &bv ); }
+	{ struct berval bv = BER_BVC("20201231000000.100000Z#sc1#004#000000");	/* higher */
+	ber_dupbv( &sc1.ctxcsn[2], &bv ); }
+	{ struct berval bv = BER_BVC("20200228000000.100000Z#sc1#005#000000");	/* unique */
+	ber_dupbv( &sc1.ctxcsn[3], &bv ); }
+	BER_BVZERO( &sc1.ctxcsn[sc1.numcsns] );
 
-	sc2.numcsns = 3;
-	sc2.sids = malloc( sizeof(int) * 3);
-	sc2.ctxcsn = malloc( sizeof(struct berval) * 4);
-	sc2.sids[0] = 1;
-	sc2.sids[1] = 2;
-	sc2.sids[2] = 3;
-	{ struct berval bv = BER_BVC("20200826182258.100567Z#000000#001#000000");
+	sc2.numcsns = 4;
+	sc2.sids = malloc( sizeof( int ) * sc2.numcsns );
+	sc2.ctxcsn = malloc( sizeof( struct berval ) * ( sc2.numcsns + 1 ));
+	sc2.sids[0] = 2;
+	sc2.sids[1] = 3;
+	sc2.sids[2] = 4;
+	sc2.sids[3] = 6;
+	{ struct berval bv = BER_BVC("20200101000000.100000Z#sc2#002#000000");	/* unique */
 	ber_dupbv( &sc2.ctxcsn[0], &bv ); }
-	{ struct berval bv = BER_BVC("20200826182259.141950Z#000000#002#000000");
+	{ struct berval bv = BER_BVC("20200331000000.100000Z#sc2#003#000000");	/* higher */
 	ber_dupbv( &sc2.ctxcsn[1], &bv ); }
-	{ struct berval bv = BER_BVC("20200826182300.171795Z#000000#003#000000");
+	{ struct berval bv = BER_BVC("20200501000000.100000Z#sc2#004#000000");	/* lower */
 	ber_dupbv( &sc2.ctxcsn[2], &bv ); }
-	BER_BVZERO( &sc2.ctxcsn[3] );
+	{ struct berval bv = BER_BVC("20200628000000.100000Z#sc2#006#000000");	/* unique */
+	ber_dupbv( &sc2.ctxcsn[3], &bv ); }
+	BER_BVZERO( &sc2.ctxcsn[sc2.numcsns] );
 
 	ret = merge_state( si, &sc1, &sc2 );
 }
