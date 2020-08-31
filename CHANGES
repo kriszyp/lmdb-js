@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.53 Engineering
+	Build
+		Require OpenSSL 1.0.2 or later (ITS#9323)
 
 OpenLDAP 2.4.52 (2020/08/28)
 	Added libldap LDAP_OPT_X_TLS_REQUIRE_SAN option (ITS#9318)
