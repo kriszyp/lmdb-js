@@ -4613,6 +4613,9 @@ nonpresent_callback(
 		if ( present_uuid == NULL ) {
 			int covered = 1; /* covered by our new contextCSN? */
 
+			if ( !syncCookie )
+				syncCookie = &si->si_syncCookie;
+
 			/* TODO: This can go once we can build a filter that takes care of
 			 * the check for us */
 			a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryCSN );
