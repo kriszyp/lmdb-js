@@ -272,7 +272,7 @@ function open(path, options) {
 			else if (typeof value != 'string' && !(value && value.readUInt16BE))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 			let operations = this.getScheduledOperations()
-			let index = operations.push([id, value, version, ifVersion]) - 1
+			let index = operations.push(ifVersion == null ? version == null ? [id, value] : [id, value, version] : [id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
 			operations.bytes += (id.length || 6) + (value && value.length || 0) + 100
 			let commit = this.scheduleCommit()
@@ -520,7 +520,7 @@ function open(path, options) {
 			if (!pendingBatch) {
 				// pendingBatch promise represents the completion of the transaction
 				let whenCommitted = new Promise((resolve, reject) => {
-					runNextBatch = (batchWriter) => {
+					runNextBatch = (sync) => {
 						if (!whenCommitted)
 							return
 						runNextBatch = null
@@ -558,10 +558,15 @@ function open(path, options) {
 										resolve(results)
 									}
 								}
-								if (typeof batchWriter === 'function')
-									batchWriter(operations, results, callback)
-								else
-									env.batchWrite(operations, results, callback)
+								try {
+									if (sync === true) {
+										env.batchWrite(operations, results)
+										callback()
+									} else
+										env.batchWrite(operations, results, callback)
+								} catch (error) {
+									callback(error)
+								}
 							}
 							try {
 								writeBatch()
@@ -585,14 +590,8 @@ function open(path, options) {
 				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
 					// past a certain threshold, run it immediately and synchronously
 					let batch = pendingBatch
-					runNextBatch((operations, callback) => {
-						try {
-							console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
-							callback(null, this.commitBatchNow(operations))
-						} catch (error) {
-							callback(error)
-						}
-					})
+					console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
+					runNextBatch(true)
 					return batch
 				} else if (!runNextBatch.immediate) {
 					let thisNextBatch = runNextBatch
@@ -600,29 +599,6 @@ function open(path, options) {
 				}
 			}
 			return pendingBatch
-		}
-		commitBatchNow(operations, results) {
-			let value
-			this.transaction(() => {
-				for (let i = 0, l = operations.length; i < l; i++) {
-					let [db, id, value, version, ifVersion] = operations[i]
-					if (ifVersion !== undefined) {
-						this.get.call({ db }, id)
-						let previousVersion = getLastVersion()
-						if (!matches(previousVersion, ifVersion)) {
-							results[i] = 1
-							continue
-						}
-					}
-					if (value === undefined) {
-						results[i] = this.removeSync.call({ db }, id) ? 0 : 2
-					} else {
-						this.putSync.call({ db }, id, value)
-						results[i] = 0
-					}
-				}
-			})
-			return results
 		}
 
 		batch(operations) {

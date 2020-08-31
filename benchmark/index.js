@@ -1,6 +1,6 @@
 'use strict';
 var inspector = require('inspector')
-inspector.open(9330, null, true)
+//inspector.open(9330, null, true)
 
 var crypto = require('crypto');
 var path = require('path');
@@ -13,7 +13,6 @@ var benchmark = require('benchmark');
 var suite = new benchmark.Suite();
 
 const { open } = require('..');
-debugger
 var env;
 var dbi;
 var keys = [];
@@ -34,13 +33,15 @@ function cleanup(done) {
 }
 let data = {
   name: 'test',
-  something: 'test2',
+  greeting: 'Hello, World!',
   flag: true,
-  foo: 332232,
-  bar: 54435,
-  double:1.332232,
-  another:'val',
-  there: 'sss',
+  littleNum: 3,
+  biggerNum: 32254435,
+  decimal:1.332232,
+  bigDecimal: 3.5522E102,
+  negative: -54,
+  aNull: null,
+  more: 'another string',
 }
 function setup() {
   store = open(testDirPath, {
@@ -82,9 +83,8 @@ cleanup(async function (err) {
     if (err) {
         throw err;
     }
-
-    await setup();
 debugger
+    await setup();
     suite.add('put', {
       defer: true,
       fn: setData

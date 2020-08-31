@@ -188,16 +188,15 @@ struct action_t {
 };*/
 
 
-class BatchWorker : public Nan::AsyncProgressWorker {
+class BatchWorker : public Nan::AsyncWorker {
   public:
-    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, uint8_t* results, Nan::Callback *callback, Nan::Callback *progress)
-      : Nan::AsyncProgressWorker(callback, "node-lmdb:Batch"),
+    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, uint8_t* results, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback, "node-lmdb:Batch"),
       actions(actions),
       actionCount(actionCount),
       putFlags(putFlags),
       env(env),
       keySpace(keySpace),
-      progress(progress),
       results(results) {
     }
 
@@ -206,11 +205,10 @@ class BatchWorker : public Nan::AsyncProgressWorker {
             action_t* action = &actions[i];
         }
         delete[] actions;
-        delete progress;
         delete keySpace;
     }
 
-    void Execute(const ExecutionProgress& executionProgress) {
+    void Execute() {
         MDB_txn *txn;
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
         DbiWrap* dw;
@@ -285,7 +283,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 validated = true;
                 results[i] = 0;
             }
-            if ((actionType & 2) == 2) { // has value to save
+            if ((actionType & 2) == 2) { // has write operation to perform
                 if (validated) {
                     if (action->data.mv_data == &DELETE_VALUE) {
                         rc = mdb_del(txn, dw->dbi, &action->key, nullptr);
@@ -319,42 +317,18 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 }
             }
             i++;
-            if (progress) { // let node know that progress updates are available
-                executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
-            }
         }
 
         rc = mdb_txn_commit(txn);
         if (rc != 0) {
-            return SetErrorMessage(mdb_strerror(rc));
+            if ((putFlags & 1) > 0) // sync mode
+                return Nan::ThrowError(mdb_strerror(rc));
+            else
+                return SetErrorMessage(mdb_strerror(rc));
         }
     }
 
-    Local<v8::Array> updatedResultsArray(int currentIndex) {
-        Local<v8::Array> resultsArray;
-        if (hasResultsArray) {
-            resultsArray = Local<v8::Array>::Cast(GetFromPersistent("results"));
-        } else {
-            resultsArray = Nan::New<v8::Array>(actionCount);
-            SaveToPersistent("results", resultsArray);
-            hasResultsArray = true;
-        }
-        Local<Context> context = Nan::GetCurrentContext();
-        for (; resultIndex < currentIndex; resultIndex++) {
-            resultsArray->Set(context, resultIndex, Nan::New<Number>(results[resultIndex]));
-        }
-        return resultsArray;
-    }
-
-    void HandleProgressCallback(const char *data, size_t count) {
-        Nan::HandleScope scope;
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-
-        progress->Call(1, argv, async_resource);
-    }
-
+   
     void HandleOKCallback() {
         Nan::HandleScope scope;
         Local<v8::Value> argv[] = {
@@ -372,7 +346,6 @@ class BatchWorker : public Nan::AsyncProgressWorker {
     bool hasResultsArray = false;
     action_t* actions;
     int putFlags;
-    Nan::Callback* progress;
     KeySpace* keySpace;
     friend class DbiWrap;
 };
@@ -666,7 +639,6 @@ NAN_METHOD(EnvWrap::batchWrite) {
     int putFlags = 0;
     KeySpace* keySpace = new KeySpace(false);
     Nan::Callback* callback;
-    Nan::Callback* progress = nullptr;
     uint8_t* results = (uint8_t*) node::Buffer::Data(Local<Object>::Cast(info[1]));
     Local<Value> options = info[2];
 
@@ -676,22 +648,23 @@ NAN_METHOD(EnvWrap::batchWrite) {
         setFlagFromValue(&putFlags, MDB_NOOVERWRITE, "noOverwrite", false, optionsObject);
         setFlagFromValue(&putFlags, MDB_APPEND, "append", false, optionsObject);
         setFlagFromValue(&putFlags, MDB_APPENDDUP, "appendDup", false, optionsObject);
-
-        Local<Value> progressValue = optionsObject->Get(context, Nan::New<String>("progress").ToLocalChecked()).ToLocalChecked();
-        if (progressValue->IsFunction()) {
-            progress = new Nan::Callback(Local<v8::Function>::Cast(progressValue));
-        }
         callback = new Nan::Callback(
             Local<v8::Function>::Cast(info[3])
         );
     } else {
-        callback = new Nan::Callback(
-            Local<v8::Function>::Cast(info[2])
-        );
+        if (info.Length() > 2 || info[0]->IsFunction())
+            callback = new Nan::Callback(
+                Local<v8::Function>::Cast(info[2])
+            );
+        else {
+            // sync mode
+            putFlags &= 1;
+            callback = nullptr;
+        }
     }
 
     BatchWorker* worker = new BatchWorker(
-        ew->env, actions, length, putFlags, keySpace, results, callback, progress
+        ew->env, actions, length, putFlags, keySpace, results, callback
     );
     int persistedIndex = 0;
     bool keyIsValid = false;
@@ -785,8 +758,13 @@ NAN_METHOD(EnvWrap::batchWrite) {
     }
 
     //worker->SaveToPersistent("env", info.This()); // this is coordinated to always be referenced on the JS side
-
-    Nan::AsyncQueueWorker(worker);
+    if (callback) {
+        Nan::AsyncQueueWorker(worker);
+    } else {
+        // sync mode
+        worker->Execute();
+        delete worker;
+    }
     return;
 }
 

@@ -135,6 +135,17 @@ describe('lmdb-store', function() {
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
     });
+    it('trigger sync commit', async function() {
+      let dataIn = {foo: 4, bar: false}
+      db.immediateBatchThreshold = 1
+      db.syncBatchThreshold = 1
+      await db.put('key1',  dataIn);
+      await db.put('key2',  dataIn);
+      db.immediateBatchThreshold = 100000
+      db.syncBatchThreshold = 1000000
+      let dataOut = db.get('key1');
+      dataOut.should.deep.equal(dataIn);
+    });
     it('should iterate over query', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
