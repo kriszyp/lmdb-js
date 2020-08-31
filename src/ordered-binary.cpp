@@ -207,7 +207,7 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
             val.mv_data = (char*) val.mv_data + 1;
         }
         for (; position < end; position++) {
-            if (*position < 31) { // by using signed chars, non-latin is negative and separators are less than 1
+            if (*position < 1) { // by using signed chars, non-latin is negative and separators are less than 1
                 int8_t c = *position;
                 if (c < 0) {
                     isOneByte = false;

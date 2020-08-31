@@ -23,7 +23,6 @@ describe('lmdb-store', function() {
     str = str + str;
     return str;
   }
-
   before(function(done) {
     // cleanup previous test directory
     rimraf(testDirPath, function(err) {
@@ -35,12 +34,19 @@ describe('lmdb-store', function() {
   });
   describe('Basic use', function() {
     this.timeout(10000);
-    let db;
+    let db, db2;
     before(function() {
       db = open(testDirPath, {
         name: 'mydb3',
         create: true,
         useVersions: true,
+        compression: {
+          threshold: 256,
+        },
+      });
+      db2 = db.openDB({
+        name: 'mydb4',
+        create: true,
         compression: {
           threshold: 256,
         },
@@ -91,6 +97,25 @@ describe('lmdb-store', function() {
       data = db.get('key1');
       should.equal(data, undefined);
     });
+    it('string with version branching', async function() {
+      await db.put('key1', 'Hello world!', 53252);
+      let data = db.get('key1');
+      data.should.equal('Hello world!');
+      getLastVersion().should.equal(53252);
+      (await db.ifVersion('key1', 777, () => {
+        db.put('newKey', 'test', 6);
+        db2.put('keyB', 'test', 6);
+      })).should.equal(false);
+      should.equal(db.get('newKey'), undefined)
+      should.equal(db2.get('keyB'), undefined)
+      let result = (await db.ifVersion('key1', 53252, () => {
+        db.put('newKey', 'test', 6);
+        db2.put('keyB', 'test', 6);
+      }))
+      should.equal(db.get('newKey'), 'test')
+      should.equal(db2.get('keyB'), 'test')
+      should.equal(result, true);
+    });
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
       await db.put('key1', str, 53252);
@@ -116,7 +141,7 @@ describe('lmdb-store', function() {
       db.put('key1',  data1);
       await db.put('key2',  data2);
       let count = 0
-      for (let { key, value } of db.getRange({start:'key'})) {
+      for (let { key, value } of db.getRange({start:'key', end:'keyz'})) {
         count++
         switch(key) {
           case 'key1': data1.should.deep.equal(value); break;

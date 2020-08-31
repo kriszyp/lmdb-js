@@ -1443,11 +1443,13 @@ describe('Node.js LMDB Bindings', function() {
         useVersions: true,
       });
       var data = [
-        [ dbi, 'key 1', 'this is a test 1', 546 ],
-        [ dbi, 'key 2', 'this is a test 2', 444 ],
-        [ dbi, 'key 3', 'this is a test 3', 643 ]
+        dbi,
+        [ 'key 1', 'this is a test 1', 546 ],
+        [ 'key 2', 'this is a test 2', 444 ],
+        [ 'key 3', 'this is a test 3', 643 ]
       ];
-      env.batchWrite(data, function(error) {
+      var results = Buffer.alloc(3)
+      env.batchWrite(data, results, function(error) {
         if (error) {
           should.fail(error);
           return done();
@@ -1455,9 +1457,11 @@ describe('Node.js LMDB Bindings', function() {
 
         var txn = env.beginTxn();
         for (var i = 0; i < data.length; i++) {
-          var key = data[i][1];
-          var value = data[i][2];
-          var version = data[i][3];
+          if (!data[i].length)
+            continue
+          var key = data[i][0];
+          var value = data[i][1];
+          var version = data[i][2];
           if (value)
             value.should.equal(txn.getUtf8(dbi, key));
           else

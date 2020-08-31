@@ -213,6 +213,42 @@ function open(path, options) {
 		resetReadTxn() {
 			resetReadTxn()
 		}
+		ifVersion(key, version, callback) {
+			let scheduledOperations = this.getScheduledOperations()
+			let index = scheduledOperations.push([key, version]) - 1
+			try {
+				callback()
+				let commit = this.scheduleCommit()
+				return commit.results.then((writeResults) => {
+					if (writeResults[index] === 0)
+						return true
+					if (writeResults[index] === 3) {
+						throw new Error('The key size was 0 or too large')
+					}
+					return false
+				})
+			} finally {
+				scheduledOperations.push(false) // reset condition
+			}
+		}
+		getWithVersion(key) {
+			return {
+				value: get(key),
+				version: getLastVersion(),
+			}
+		}
+		getScheduledOperations() {
+			if (!scheduledOperations) {
+				scheduledOperations = []
+				scheduledOperations.bytes = 0
+			}
+			if (scheduledOperations.store != this) {
+				// issue action to switch dbs
+				scheduledOperations.store = this
+				scheduledOperations.push(this.db)
+			}
+			return scheduledOperations
+		}
 		put(id, value, version, ifVersion) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
@@ -233,15 +269,14 @@ function open(path, options) {
 				value = this.packr.pack(value)
 			else if (this.encoding == 'json')
 				value = JSON.stringify(value)
-			if (!scheduledOperations) {
-				scheduledOperations = []
-				scheduledOperations.bytes = 0
-			}
-			let index = scheduledOperations.push([this.db, id, value, version, ifVersion]) - 1
+			else if (typeof value != 'string' && !(value && value.readUInt16BE))
+				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
+			let operations = this.getScheduledOperations()
+			let index = operations.push([id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
-			scheduledOperations.bytes += (id.length || 6) + (value && value.length || 0) + 100
+			operations.bytes += (id.length || 6) + (value && value.length || 0) + 100
 			let commit = this.scheduleCommit()
-			return ifVersion === undefined ? commit.unconditionalResults :
+			return ifVersion === undefined ? commit.unconditionalResults : // TODO: Technically you can get a bad key if an array is passed in there is no ifVersion and still fail
 				commit.results.then((writeResults) => {
 					if (writeResults[index] === 0)
 						return true
@@ -322,11 +357,9 @@ function open(path, options) {
 				}
 				return Promise.resolve(this.removeSync(id))
 			}
-			if (!scheduledOperations) {
-				scheduledOperations = []
-				scheduledOperations.bytes = 0
-			}
-			let index = scheduledOperations.push([this.db, id, undefined, undefined, ifVersion]) - 1
+			let scheduledOperations = this.getScheduledOperations()
+			let index = scheduledOperations.push(typeof ifVersion == 'number' ?
+				[id, undefined, undefined, ifVersion] : [id]) - 1
 			scheduledOperations.bytes += (id.length || 6) + 100
 			let commit = this.scheduleCommit()
 			return ifVersion === undefined ? commit.unconditionalResults :
@@ -506,7 +539,8 @@ function open(path, options) {
 							scheduledOperations = null
 							const writeBatch = () => {
 								let start = Date.now()
-								let callback = (error, results) => {
+								let results = Buffer.alloc(operations.length)
+								let callback = (error) => {
 									let duration = Date.now() - start
 									this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
 									//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
@@ -525,9 +559,9 @@ function open(path, options) {
 									}
 								}
 								if (typeof batchWriter === 'function')
-									batchWriter(operations, callback)
+									batchWriter(operations, results, callback)
 								else
-									env.batchWrite(operations, callback)
+									env.batchWrite(operations, results, callback)
 							}
 							try {
 								writeBatch()
@@ -567,9 +601,8 @@ function open(path, options) {
 			}
 			return pendingBatch
 		}
-		commitBatchNow(operations) {
+		commitBatchNow(operations, results) {
 			let value
-			let results = new Array(operations.length)
 			this.transaction(() => {
 				for (let i = 0, l = operations.length; i < l; i++) {
 					let [db, id, value, version, ifVersion] = operations[i]
@@ -592,23 +625,15 @@ function open(path, options) {
 			return results
 		}
 
-		if(db, key, version) {
-
-
-		}
-
 		batch(operations) {
-			if (writeTxn) {
+			/*if (writeTxn) {
 				this.commitBatchNow(operations.map(operation => [this.db, operation.key, operation.value]))
 				return Promise.resolve(true)
-			}
-			if (!scheduledOperations) {
-				scheduledOperations = []
-				scheduledOperations.bytes = 0
-			}
+			}*/
+			let scheduledOperations = this.getScheduledOperations()
 			for (let operation of operations) {
 				let value = operation.value
-				scheduledOperations.push([this.db, operation.key, value])
+				scheduledOperations.push([operation.key, value])
 				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
 			}
 			return this.scheduleCommit().unconditionalResults
@@ -814,6 +839,19 @@ function compareKey(a, b) {
 		return 1
 	} else {
 		return typeOrder[typeof a] < typeOrder[typeof b] ? -1 : 1
+	}
+}
+class Entry {
+	constructor(value, version, db) {
+		this.value = value
+		this.version = version
+		this.db = db
+	}
+	ifSamePut() {
+
+	}
+	ifSameRemove() {
+
 	}
 }
 exports.compareKey = compareKey

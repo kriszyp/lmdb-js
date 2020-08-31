@@ -89,6 +89,9 @@ This will set the provided value at the specified key, but will do so synchronou
 ### `store.removeSync(key, ifVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion.
 
+### `store.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
+This will define conditionally writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition of an entry with the provided key having the provided version.
+
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
@@ -128,12 +131,27 @@ Both these puts will be batched and after 1ms be committed in the same transacti
 ### getLastVersion(): number
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database).
 
-## Versioning
-Versioning is the preferred method for achieving atomicity with data updates. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
+## Concurrency and Versioning
+LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning is the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
 let myStore = open('my-store', { useVersions: true })
 ```
 You can set a version by using the `version` argument in `put` calls. You can later update data and ensure that the data will only be updated if the version matches the expected version by using the `ifVersion` argument. When retrieving entries, you can access the version number by calling `getLastVersion()`.
+
+You can then make conditional writes, examples:
+
+```
+myStore.put('key1', 'value1', 4, 3); // new version of 4, only if previous version was 3
+```
+```
+myStore.ifVersion('key1', 4, () => {
+	myStore.put('key1', 'value2', 5); // equivalent to myStore.put('key1', 'value2', 5, 4);
+	myStore.put('anotherKey', 'value', 3); // we can do other puts based on the same condition above
+	// we can make puts in other stores (from the same db environment) based on same condition too
+	myStore2.put('keyInOtherDb', 'value'); 
+});
+```
+
 
 ## Shared Structures
 Shared structures are mechanism for storing the structural information about objects stored in database in a way that can be resused across of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack encoding, using the msgpackr package). We highly recommend using this when storing structured objects in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. We recommend using symbols as a metadata key, as they are outside of the range of the standard JS primitive values:
