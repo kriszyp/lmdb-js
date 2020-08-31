@@ -1199,36 +1199,32 @@ overlay_destroy_one( BackendDB *be, slap_overinst *on )
 
 #ifdef SLAP_CONFIG_DELETE
 typedef struct ov_remove_ctx {
-	BackendDB *be;
+	BackendDB be;
 	slap_overinst *on;
 } ov_remove_ctx;
 
 int
 overlay_remove_cb( Operation *op, SlapReply *rs )
 {
+	slap_callback *sc = op->o_callback;
 	ov_remove_ctx *rm_ctx = (ov_remove_ctx*) op->o_callback->sc_private;
-	BackendInfo *bi_orig = rm_ctx->be->bd_info;
 
-	rm_ctx->be->bd_info = (BackendInfo*) rm_ctx->on;
+	op->o_callback = sc->sc_next;
+	rm_ctx->be.bd_info = (BackendInfo*) rm_ctx->on;
 
 	if ( rm_ctx->on->on_bi.bi_db_close ) {
-		rm_ctx->on->on_bi.bi_db_close( rm_ctx->be, NULL );
+		rm_ctx->on->on_bi.bi_db_close( &rm_ctx->be, NULL );
 	}
 	if ( rm_ctx->on->on_bi.bi_db_destroy ) {
-		rm_ctx->on->on_bi.bi_db_destroy( rm_ctx->be, NULL );
+		rm_ctx->on->on_bi.bi_db_destroy( &rm_ctx->be, NULL );
 	}
 
 	/* clean up after removing last overlay */
 	if ( ! rm_ctx->on->on_info->oi_list ) {
-		/* reset db flags and bd_info to orig */
-		SLAP_DBFLAGS( rm_ctx->be ) &= ~SLAP_DBFLAG_GLOBAL_OVERLAY;
-		rm_ctx->be->bd_info = rm_ctx->on->on_info->oi_orig;
 		ch_free(rm_ctx->on->on_info);
-	} else {
-		rm_ctx->be->bd_info = bi_orig;
 	}
-	free( rm_ctx->on );
-	op->o_tmpfree(rm_ctx, op->o_tmpmemctx);
+	ch_free( rm_ctx->on );
+	op->o_tmpfree( sc, op->o_tmpmemctx );
 	return SLAP_CB_CONTINUE;
 }
 
@@ -1251,16 +1247,17 @@ overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 	/* The db_close and db_destroy handlers to cleanup a release
 	 * the overlay's resources are called from the cleanup callback
 	 */
-	rm_ctx = op->o_tmpalloc( sizeof( ov_remove_ctx ), op->o_tmpmemctx );
-	rm_ctx->be = be;
-	rm_ctx->on = on;
 
-	rm_cb = op->o_tmpalloc( sizeof( slap_callback ), op->o_tmpmemctx );
+	rm_cb = op->o_tmpalloc( sizeof( slap_callback ) + sizeof( ov_remove_ctx ), op->o_tmpmemctx );
 	rm_cb->sc_next = NULL;
 	rm_cb->sc_cleanup = overlay_remove_cb;
 	rm_cb->sc_response = NULL;
-	rm_cb->sc_private = (void*) rm_ctx;
+	rm_cb->sc_private = (void*) ( rm_cb + 1 );
 	rm_cb->sc_writewait = NULL;
+
+	rm_ctx = rm_cb->sc_private;
+	rm_ctx->be = *be;
+	rm_ctx->on = on;
 
 	/* Append callback to the end of the list */
 	if ( !op->o_callback ) {
@@ -1268,6 +1265,13 @@ overlay_remove( BackendDB *be, slap_overinst *on, Operation *op )
 	} else {
 		for ( cb = op->o_callback; cb->sc_next; cb = cb->sc_next );
 		cb->sc_next = rm_cb;
+	}
+
+	/* if this is the last overlay */
+	if ( ! on->on_info->oi_list ) {
+		/* reset db flags and bd_info to orig */
+		SLAP_DBFLAGS( be ) &= ~SLAP_DBFLAG_GLOBAL_OVERLAY;
+		be->bd_info = on->on_info->oi_orig;
 	}
 }
 #endif /* SLAP_CONFIG_DELETE */
