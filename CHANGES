@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.53 Engineering
+	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
 	Build
 		Require OpenSSL 1.0.2 or later (ITS#9323)
 
