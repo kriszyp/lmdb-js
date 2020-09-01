@@ -445,6 +445,12 @@ upon StartTLS operation receipt.
 .B tls_authc
 disallows the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
+.B proxy_authz_non_critical
+disables acceptance of the proxied authorization control (RFC4370)
+with criticality set to FALSE.
+.B dontusecopy_non_critical
+disables acceptance of the dontUseCopy control (a work in progress)
+with criticality set to FALSE.
 .TP
 .B olcGentleHUP: { TRUE | FALSE }
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
