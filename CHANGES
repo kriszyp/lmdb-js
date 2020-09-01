@@ -4,6 +4,7 @@ OpenLDAP 2.4.53 Engineering
 	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
 	Build
 		Require OpenSSL 1.0.2 or later (ITS#9323)
+		Fixed libldap compilation issue with broken C compilers (ITS#9332)
 
 OpenLDAP 2.4.52 (2020/08/28)
 	Added libldap LDAP_OPT_X_TLS_REQUIRE_SAN option (ITS#9318)
