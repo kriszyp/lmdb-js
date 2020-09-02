@@ -1072,7 +1072,7 @@ do_syncrep1(
 
 	si->si_refreshDone = 0;
 	Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s starting refresh (sending cookie=%s)\n",
-		si->si_ridtxt, si->si_syncCookie.octet_str.bv_val );
+		si->si_ridtxt, si->si_syncCookie.octet_str.bv_val, 0 );
 
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
 
