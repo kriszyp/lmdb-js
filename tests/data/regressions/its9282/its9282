@@ -67,7 +67,7 @@ while [ $n -le $MMR ]; do
 	CFDIR=${XDIR}$n/slapd.d
 
 	echo "Starting provider slapd on TCP/IP URI $MYURI"
-	$SLAPD -F $CFDIR -h $MYURI -d $LVL $TIMING > $MYLOG 2>&1 &
+	$SLAPD -F $CFDIR -h $MYURI -d $LVL -d sync $TIMING > $MYLOG 2>&1 &
 
 	PID=$!
 	if test $WAIT != 0 ; then
@@ -246,6 +246,16 @@ if test $? != 0 ; then
 	echo "test failed - entry exists on provider 1"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
+fi
+
+echo "Checking provider 2 sent the right cookie..."
+grep "starting refresh.*csn=.*#002#.*" $LOG2 >/dev/null 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+    echo "Provider 2 did not send its CSN in the cookie"
+    test $KILLSERVERS != no && kill -HUP $KILLPIDS
+    exit $RC
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
