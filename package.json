@@ -28,7 +28,7 @@
   "gypfile": true,
   "dependencies": {
     "fs-extra": "^9.0.0",
-    "msgpackr": "^0.2.2",
+    "msgpackr": "^0.3.0",
     "prebuild-install": "^5.2.5",
     "nan": "^2.14.1"
   },
