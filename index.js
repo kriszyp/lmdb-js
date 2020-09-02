@@ -213,7 +213,20 @@ function open(path, options) {
 		resetReadTxn() {
 			resetReadTxn()
 		}
+		ifNoExists(key, version, callback) {
+			return ifVersion(key, null, callback)
+		}
 		ifVersion(key, version, callback) {
+			if (typeof version != 'number') {
+				if (version == null) {
+					if (version === null)
+						version = -4.2434325325532E-199 // NO_EXIST_VERSION
+					else // if undefined, just do callback without any condition being added
+						callback()
+				} else {
+					throw new Error('Version must be a number or null')
+				}
+			}
 			let scheduledOperations = this.getScheduledOperations()
 			let index = scheduledOperations.push([key, version]) - 1
 			try {
