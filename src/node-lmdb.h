@@ -117,9 +117,9 @@ private:
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
     // Constructor for TxnWrap
-    static thread_local Nan::Persistent<Function> txnCtor;
+    static thread_local Nan::Persistent<Function>* txnCtor;
     // Constructor for DbiWrap
-    static thread_local Nan::Persistent<Function> dbiCtor;
+    static thread_local Nan::Persistent<Function>* dbiCtor;
     
     static uv_mutex_t* envsLock;
     static std::vector<env_path_t> envs;
