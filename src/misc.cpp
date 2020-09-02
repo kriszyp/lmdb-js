@@ -25,6 +25,10 @@
 #include <string.h>
 #include <stdio.h>
 
+static thread_local char* globalUnsafePtr;
+static thread_local size_t globalUnsafeSize;
+static thread_local Persistent<Object>* globalUnsafeBuffer;
+
 void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
 
@@ -41,6 +45,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "setLastVersion", setLastVersion);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
+    globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
 }
@@ -244,15 +249,11 @@ Local<Value> valToBinary(MDB_val &data) {
     ).ToLocalChecked();
 }
 
-static thread_local char* globalUnsafePtr;
-static thread_local size_t globalUnsafeSize;
-static thread_local Persistent<Object> globalUnsafeBuffer;
-
 void makeGlobalUnsafeBuffer(size_t size) {
     globalUnsafeSize = size;
     Local<Object> newBuffer = Nan::NewBuffer(size).ToLocalChecked();
     globalUnsafePtr = node::Buffer::Data(newBuffer);
-    globalUnsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
+    globalUnsafeBuffer->Reset(Isolate::GetCurrent(), newBuffer);
 }
 
 Local<Value> valToBinaryUnsafe(MDB_val &data) {
@@ -279,7 +280,7 @@ Local<Value> valToBinaryUnsafe(MDB_val &data) {
             makeGlobalUnsafeBuffer(data.mv_size * 2);
         }
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
-        dw->setUnsafeBuffer(globalUnsafePtr, globalUnsafeBuffer);
+        dw->setUnsafeBuffer(globalUnsafePtr, *globalUnsafeBuffer);
     }
     return Nan::New<Number>(data.mv_size);
 }
