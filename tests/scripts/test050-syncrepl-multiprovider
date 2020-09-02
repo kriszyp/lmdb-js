@@ -85,7 +85,7 @@ done
 
 echo "Starting server 1 on TCP/IP port $PORT1..."
 cd ${XDIR}1
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -186,7 +186,7 @@ URI="ldap://${LOCALHOST}:$PORT/"
 LOG=$TESTDIR/slapd.$n.log
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}$n
-$SLAPD -F ./slapd.d -h $URI -d $LVL $TIMING > $LOG 2>&1 &
+$SLAPD -F ./slapd.d -h $URI -d $LVL > $LOG 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -642,7 +642,7 @@ KILLPIDS=""
 echo "Starting server 1 on TCP/IP port $PORT1..."
 echo "======================= RESTART =======================" >> $LOG1
 cd ${XDIR}1
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -679,7 +679,7 @@ LOG=$TESTDIR/slapd.$n.log
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}$n
 echo "======================= RESTART =======================" >> $LOG
-$SLAPD -F ./slapd.d -h $URI -d $LVL $TIMING >> $LOG 2>&1 &
+$SLAPD -F ./slapd.d -h $URI -d $LVL >> $LOG 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

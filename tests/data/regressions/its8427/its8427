@@ -139,7 +139,7 @@ olcOverlay: syncprov
 EOF
 
 echo "Starting provider..."
-$SLAPD -F ./slapd.d -h "$SURIP1 ldaps://127.0.0.2:$PORT1" -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F ./slapd.d -h "$SURIP1 ldaps://127.0.0.2:$PORT1" -d $LVL > $LOG1 2>&1 &
 MASTERPID=$!
 if test $WAIT != 0 ; then
     echo MASTERPID $MASTERPID
@@ -181,7 +181,7 @@ olcSyncRepl: rid=001 provider=ldaps://127.0.0.2:$PORT1
 EOF
 
 echo "Starting consumer..."
-$SLAPD -F ./slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -F ./slapd.d -h $URI2 -d $LVL > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
     echo SLAVEPID $SLAVEPID
@@ -252,7 +252,7 @@ sleep $SLEEP2
 
 echo "======================= RESTART =======================" >> $LOG1
 cd $TESTDIR/srv1
-$SLAPD -F slapd.d -h "$SURIP1 ldaps://127.0.0.2:$PORT1" -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -F slapd.d -h "$SURIP1 ldaps://127.0.0.2:$PORT1" -d $LVL >> $LOG1 2>&1 &
 MASTERPID=$!
 if test $WAIT != 0 ; then
     echo MASTERPID $MASTERPID

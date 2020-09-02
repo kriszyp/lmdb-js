@@ -191,7 +191,7 @@ PORT=`eval echo '$PORT'$n`
 echo "Starting server $n on TCP/IP port $PORT..."
 cd ${XDIR}${n}
 LOG=`eval echo '$LOG'$n`
-$SLAPD -F slapd.d -h $MYURI -d $LVL $TIMING > $LOG 2>&1 &
+$SLAPD -F slapd.d -h $MYURI -d $LVL > $LOG 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

@@ -52,7 +52,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting remote slapd on TCP/IP port $PORT1..."
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -86,7 +86,7 @@ mkdir -p $DBDIR2
 . $CONFFILTER $BACKEND $MONITORDB < $TRANSLUCENTLOCALCONF > $CONF2
 
 echo "Starting local slapd on TCP/IP port $PORT2..."
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

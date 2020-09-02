@@ -20,7 +20,7 @@ mkdir -p $TESTDIR $DBDIR2
 
 echo "Starting slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND < $CONFTWO > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > /dev/null 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > /dev/null 2>&1 &
 PID=$!
 
 echo "Using ldapsearch to retrieve all the entries..."

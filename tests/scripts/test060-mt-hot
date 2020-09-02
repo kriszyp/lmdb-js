@@ -56,8 +56,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-echo $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+echo $SLAPD -f $CONF1 -h $URI1 -d $LVL
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

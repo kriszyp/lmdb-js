@@ -53,7 +53,7 @@ echo "database config" >> $CONF1
 echo "include $TESTDIR/configpw.conf" >> $CONF1
 
 echo "Starting slapd listening on $URIP1 and $SURIP2..."
-$SLAPD -f $CONF1 -h "$URIP1 $SURIP2" -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h "$URIP1 $SURIP2" -d $LVL > $LOG1 2>&1 &
 SERVERPID=$!
 if test $WAIT != 0 ; then
     echo SERVERPID $SERVERPID
@@ -86,7 +86,7 @@ echo "include $TESTDIR/configpw.conf" >> $CONF2
 
 echo "Starting proxy slapd on TCP/IP port $PORT3..."
 . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
-$SLAPD -f $CONF2 -h $URI3 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI3 -d $LVL > $LOG2 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then
     echo PROXYPID $PROXYPID

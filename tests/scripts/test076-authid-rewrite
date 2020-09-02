@@ -32,7 +32,7 @@ echo "Starting slapd on TCP/IP port $PORT1... $PWD"
 . $CONFFILTER $BACKEND $MONITORDB < $DYNAMICCONF > $CONFLDIF
 $SLAPADD -F $CONFDIR -n 0 -l $CONFLDIF
 cd $TESTDIR
-$SLAPD -F ./slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F ./slapd.d -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

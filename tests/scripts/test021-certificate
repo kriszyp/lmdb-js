@@ -29,8 +29,8 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-#valgrind -v --gdb-attach=yes --logfile=info --num-callers=16 --leak-check=yes --leak-resolution=high $SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING </dev/tty > $LOG1 2>&1 &
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+#valgrind -v --gdb-attach=yes --logfile=info --num-callers=16 --leak-check=yes --leak-resolution=high $SLAPD -f $CONF1 -h $URI1 -d $LVL </dev/tty > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

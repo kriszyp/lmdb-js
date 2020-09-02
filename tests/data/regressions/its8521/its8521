@@ -47,7 +47,7 @@ ITSDIR=$DATADIR/regressions/its$ITS
 echo "Starting provider slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd-provider.ldif > $CONFLDIF
 $SLAPADD -F $CFPRO -n 0 -l $CONFLDIF
-$SLAPD -F $CFPRO -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F $CFPRO -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
 	echo PID $PID
@@ -78,7 +78,7 @@ fi
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd-consumer.ldif > $CONFLDIF
 $SLAPADD -F $CFCON -n 0 -l $CONFLDIF
-$SLAPD -F $CFCON -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -F $CFCON -h $URI2 -d $LVL > $LOG2 2>&1 &
 SLAVEPID=$!
 if test $WAIT != 0 ; then
 	echo SLAVEPID $SLAVEPID

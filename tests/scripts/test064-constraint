@@ -122,7 +122,7 @@ EOF
 $SLAPADD -F $CONFDIR -n 0 -l $TESTDIR/config.ldif
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -F $CONFDIR -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F $CONFDIR -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
 	echo PID $PID
