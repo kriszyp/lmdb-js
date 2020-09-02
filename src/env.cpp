@@ -27,9 +27,18 @@ using namespace v8;
 using namespace node;
 
 #define IGNORE_NOTFOUND    (1)
-Nan::Persistent<Function> EnvWrap::txnCtor;
+thread_local Nan::Persistent<Function> EnvWrap::txnCtor;
+thread_local Nan::Persistent<Function> EnvWrap::dbiCtor;
+//Nan::Persistent<Function> EnvWrap::txnCtor;
+//Nan::Persistent<Function> EnvWrap::dbiCtor;
+uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
+std::vector<env_path_t> EnvWrap::envs;
 
-Nan::Persistent<Function> EnvWrap::dbiCtor;
+uv_mutex_t* EnvWrap::initMutex() {
+    uv_mutex_t* mutex = new uv_mutex_t;
+    uv_mutex_init(mutex);
+    return mutex;
+}
 
 EnvWrap::EnvWrap() {
     this->env = nullptr;
@@ -248,37 +257,31 @@ class BatchWorker : public Nan::AsyncWorker {
                 results[i++] = 0;
                 continue;
             }
+            bool validated;
             if (validatedDepth < conditionDepth) {
                 // we are in an invalidated branch, just need to track depth
-                if (actionType == 1)
-                    conditionDepth++;
-                results[i++] = 1;
-                continue;
-            }
-            bool validated;
-            if ((actionType & 1) == 1) { // has precondition
+                results[i] = 1;
+                validated = false;
+            } else if ((actionType & 1) == 1) { // has precondition
                 MDB_val value;
                 // TODO: Use a cursor
                 rc = mdb_get(txn, dw->dbi, &action->key, &value);
-                bool different;
-                if (action->ifVersion == NO_EXIST_VERSION) {
-                    different = !rc;
-                } else {
-                    if (rc) {
-                        different = rc == MDB_NOTFOUND;
-                    } else {
-                        different = action->ifVersion != *((double*) value.mv_data);
-                    }
-                }
-                if (different) {
-                    results[i] = 1;
+                if (rc == MDB_BAD_VALSIZE) {
+                    results[i] = 3;
                     validated = false;
-                    rc = 0;
                 } else {
-                    // condition matches, remove condition, same as having no condition
-                    validated = true;
-                    results[i] = 0;
+                    if (action->ifVersion == NO_EXIST_VERSION) {
+                        validated = rc;
+                    }
+                    else {
+                        if (rc)
+                            validated = false;
+                        else
+                            validated = action->ifVersion == *((double*)value.mv_data);
+                    }
+                    results[i] = validated ? 0 : 1;
                 }
+                rc = 0;
             } else {
                 validated = true;
                 results[i] = 0;
@@ -297,6 +300,15 @@ class BatchWorker : public Nan::AsyncWorker {
                         else
                             rc = mdb_put(txn, dw->dbi, &action->key, &action->data, putFlags);
                     }
+                    if (rc != 0) {
+                        if (rc == MDB_BAD_VALSIZE) {
+                            results[i] = 3;
+                            rc = 0;
+                        } else {
+                            mdb_txn_abort(txn);
+                            return SetErrorMessage(mdb_strerror(rc));
+                        }
+                    }
                 }
                 if (action->freeValue) {
                     action->freeValue(action->data);
@@ -306,15 +318,6 @@ class BatchWorker : public Nan::AsyncWorker {
                 conditionDepth++;
                 if (validated)
                     validatedDepth++;
-            }
-
-            if (rc != 0) {
-                if (rc == MDB_BAD_VALSIZE)
-                    results[i] = 3;
-                else {
-                    mdb_txn_abort(txn);
-                    return SetErrorMessage(mdb_strerror(rc));
-                }
             }
             i++;
         }
@@ -368,6 +371,22 @@ NAN_METHOD(EnvWrap::open) {
 
     Local<Object> options = Local<Object>::Cast(info[0]);
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
+    Nan::Utf8String charPath(path);
+    uv_mutex_lock(envsLock);
+    for (env_path_t envPath : envs) {
+        char* existingPath = envPath.path;
+        if (!strcmp(existingPath, *charPath)) {
+            mdb_env_close(ew->env);
+            ew->env = envPath.env;
+            uv_mutex_unlock(envsLock);
+            return;
+        }
+    }
+    env_path_t envPath;
+    envPath.path = strdup(*charPath);
+    envPath.env = ew->env;
+    envs.push_back(envPath);
+    uv_mutex_unlock(envsLock);
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
@@ -458,6 +477,16 @@ NAN_METHOD(EnvWrap::close) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
+
+    uv_mutex_lock(envsLock);
+    for (auto envPath = envs.begin(); envPath != envs.end(); ) {
+        if (envPath->env == ew->env) {
+            envs.erase(envPath);
+            break;
+        }
+        ++envPath;
+    }
+    uv_mutex_unlock(envsLock);
 
     ew->cleanupStrayTxns();
     mdb_env_close(ew->env);

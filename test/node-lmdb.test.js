@@ -16,7 +16,6 @@ const MAX_DB_SIZE = 256 * 1024 * 1024;
 describe('Node.js LMDB Bindings', function() {
   var testDirPath = path.resolve(__dirname, './testdata');
   var testBackupDirPath = path.resolve(__dirname, './testdata/backup');
-
   // just to make a reasonable sized chunk of data...
   function expand(str) {
     str = '(' + str + ')';
@@ -308,7 +307,6 @@ describe('Node.js LMDB Bindings', function() {
     var env;
     var dbi;
     var txn;
-    console.log({dict: fs.readFileSync(require.resolve('../dict/dict.txt'))})
     before(function() {
       env = new lmdb.Env();
       env.open({
@@ -353,7 +351,6 @@ describe('Node.js LMDB Bindings', function() {
       data.should.equal('Hello world!');
       var lastVersion = lmdb.getLastVersion();
       lastVersion.should.equal(334);
-      console.log({lastVersion})
       txn.del(dbi, 'key1');
       var data2 = txn.getUtf8(dbi, 'key1');
       should.equal(data2, undefined);
@@ -362,9 +359,7 @@ describe('Node.js LMDB Bindings', function() {
       let value = '{"id":34,"enabled":true,"title":"this is a test that should be using common words of our language and seeing if it is well compressed","children":[{"data":"some more"}]}'
       for (let i = 0; i < 0; i++)
         value += value;
-      console.log('value length',value.length);
       txn.putUtf8(dbi, 'key1', value);
-      console.log(txn.getBinary(dbi, 'key1'));
       var data = txn.getUtf8(dbi, 'key1');
       data.should.equal(value);
       txn.del(dbi, 'key1');
@@ -375,9 +370,7 @@ describe('Node.js LMDB Bindings', function() {
       let value = 'Hello world!'
       for (let i = 0; i < 7; i++)
         value += value;
-      console.log('value length',value.length);
       txn.putUtf8(dbi, 'key1', value, 5555);
-      console.log(txn.getBinary(dbi, 'key1'));
       var data = txn.getUtf8(dbi, 'key1');
       data.should.equal(value);
       var lastVersion = lmdb.getLastVersion();
@@ -411,13 +404,11 @@ describe('Node.js LMDB Bindings', function() {
       var length = txn.getBinaryUnsafe(dbi, 'key2');
       var data = dbi.unsafeBuffer.slice(0, length);
       data.toString()
-      console.log(data, buffer)
       //data.slice(0, buffer.length).should.deep.equal(buffer);
       //env.detachBuffer(data.buffer);
       var length = txn.getBinaryUnsafe(dbi, 'key3');
       var data2 = dbi.unsafeBuffer.slice(0, length);
       var byte = data[0]; // make sure we can access it
-      console.log(data[0], data[1], data2[0], data2[1], data, data2, buffer2)
       data.slice(0, buffer2.length).should.deep.equal(buffer2);
       //env.detachBuffer(data.buffer);
       txn.del(dbi, 'key2');
@@ -1094,6 +1085,22 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     it('will run a cluster of processes with read-only transactions', function(done) {
       var child = spawn('node', [path.resolve(__dirname, './cluster')]);
+      child.stdout.on('data', function(data) {
+        console.log(data.toString());
+      });
+      child.stderr.on('data', function(data) {
+        console.error(data.toString());
+      });
+      child.on('close', function(code) {
+        code.should.equal(0);
+        done();
+      });
+    });
+  });
+  describe('Threads', function() {
+    this.timeout(10000);
+    it('will run a group of threads with read-only transactions', function(done) {
+      var child = spawn('node', [path.resolve(__dirname, './threads')]);
       child.stdout.on('data', function(data) {
         console.log(data.toString());
       });

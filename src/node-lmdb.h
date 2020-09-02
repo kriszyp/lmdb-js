@@ -109,16 +109,21 @@ public:
     KeySpace(bool fixed);
 };
 
+#ifndef thread_local
+#ifdef __GNUC__
+# define thread_local __thread
+#elif __STDC_VERSION__ >= 201112L
+# define thread_local _Thread_local
+#elif defined(_MSC_VER)
+# define thread_local __declspec(thread)
+#else
+# define thread_local
+#endif
+#endif
 
-#ifdef thread_local
 static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
 static thread_local KeySpace* fixedKeySpace;
-#else
-static double lastVersion = 0;
-static DbiWrap* currentDb = nullptr;
-static KeySpace* fixedKeySpace;
-#endif
 
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
@@ -139,6 +144,11 @@ int putWithVersion(MDB_txn *   txn,
 
 void throwLmdbError(int rc);
 
+struct env_path_t {
+    MDB_env* env;
+    char* path;
+};
+
 /*
     `Env`
     Represents a database environment.
@@ -152,10 +162,12 @@ private:
     TxnWrap *currentWriteTxn;
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
-    // Constructor for TxnWrap
-    static Nan::Persistent<Function> txnCtor;
-    // Constructor for DbiWrap
-    static Nan::Persistent<Function> dbiCtor;
+    // Constructor for TxnWrap and for DbiWrap
+    static thread_local Nan::Persistent<Function> txnCtor;
+    static thread_local Nan::Persistent<Function> dbiCtor;
+    static uv_mutex_t* envsLock;
+    static std::vector<env_path_t> envs;
+    static uv_mutex_t* initMutex();
     // compression settings and space
     Compression *compression;
 

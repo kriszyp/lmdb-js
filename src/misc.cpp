@@ -244,9 +244,9 @@ Local<Value> valToBinary(MDB_val &data) {
     ).ToLocalChecked();
 }
 
-char* globalUnsafePtr;
-size_t globalUnsafeSize;
-Persistent<Object> globalUnsafeBuffer;
+static thread_local char* globalUnsafePtr;
+static thread_local size_t globalUnsafeSize;
+static thread_local Persistent<Object> globalUnsafeBuffer;
 
 void makeGlobalUnsafeBuffer(size_t size) {
     globalUnsafeSize = size;

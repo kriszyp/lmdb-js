@@ -40,5 +40,5 @@ extern "C" {
     }
 
     // Context-aware, ie. thread safe
-    NODE_MODULE_CONTEXT_AWARE(node_lmdb, initializeModule)
+    NODE_MODULE_CONTEXT_AWARE(lmdb, initializeModule)
 }
