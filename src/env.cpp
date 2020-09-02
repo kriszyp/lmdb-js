@@ -27,8 +27,8 @@ using namespace v8;
 using namespace node;
 
 #define IGNORE_NOTFOUND    (1)
-thread_local Nan::Persistent<Function> EnvWrap::txnCtor;
-thread_local Nan::Persistent<Function> EnvWrap::dbiCtor;
+thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
+thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
 //Nan::Persistent<Function> EnvWrap::txnCtor;
 //Nan::Persistent<Function> EnvWrap::dbiCtor;
 uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
@@ -171,13 +171,12 @@ const double NO_EXIST_VERSION = -4.2434325325532E-199;
 int DELETE_VALUE; // pointer to this as the value represents a delete
 struct action_t {
     int actionType;
+    MDB_val key;
     union {
         struct {
-            MDB_val key;
             DbiWrap* dw;
         };
         struct {
-            MDB_val key;
             MDB_val data;
             double ifVersion;
             double version;
@@ -598,7 +597,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
     const int argc = 2;
 
     Local<Value> argv[argc] = { info.This(), info[0] };
-    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(txnCtor), argc, argv);
+    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
 
     // Check if txn could be created
     if ((maybeInstance.IsEmpty())) {
@@ -616,7 +615,7 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     const unsigned argc = 2;
     Local<Value> argv[argc] = { info.This(), info[0] };
-    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(dbiCtor), argc, argv);
+    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(*dbiCtor), argc, argv);
 
     // Check if database could be opened
     if ((maybeInstance.IsEmpty())) {
@@ -843,7 +842,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // TODO: wrap mdb_cmp too
     // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor
-    EnvWrap::txnCtor.Reset( txnTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    EnvWrap::txnCtor = new Nan::Persistent<Function>();
+    EnvWrap::txnCtor->Reset( txnTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 
     // DbiWrap: Prepare constructor template
     Local<FunctionTemplate> dbiTpl = Nan::New<FunctionTemplate>(DbiWrap::ctor);
@@ -855,7 +855,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
-    EnvWrap::dbiCtor.Reset( dbiTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    EnvWrap::dbiCtor = new Nan::Persistent<Function>();
+    EnvWrap::dbiCtor->Reset( dbiTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 
     Local<FunctionTemplate> compressionTpl = Nan::New<FunctionTemplate>(Compression::ctor);
     compressionTpl->SetClassName(Nan::New<String>("Compression").ToLocalChecked());
