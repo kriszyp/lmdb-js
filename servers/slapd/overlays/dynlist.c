@@ -1047,6 +1047,7 @@ dynlist_search1resp( Operation *op, SlapReply *rs )
 			dyn->dy_dli = ds->ds_dli;
 			dyn->dy_name.bv_len = rs->sr_entry->e_nname.bv_len;
 			if ( a ) {
+				Filter *f;
 				/* parse and validate the URIs */
 				for (i=0; i<a->a_numvals; i++) {
 					if (ldap_url_parse( a->a_vals[i].bv_val, &ludp ) != LDAP_URL_SUCCESS )
@@ -1066,12 +1067,17 @@ dynlist_search1resp( Operation *op, SlapReply *rs )
 					/* cheat here, reuse fields */
 					ludp->lud_port = nbase.bv_len;
 					if ( ludp->lud_filter && *ludp->lud_filter ) {
-						Filter *f = str2filter( ludp->lud_filter );
+						f = str2filter( ludp->lud_filter );
 						if ( f == NULL )
 							goto skipit;
 						ldap_memfree( ludp->lud_filter );
-						ludp->lud_filter = (char *)f;
+					} else {
+						f = ch_malloc( sizeof( Filter ));
+						f->f_choice = SLAPD_FILTER_COMPUTED;
+						f->f_result = LDAP_COMPARE_TRUE;
+						f->f_next = NULL;
 					}
+					ludp->lud_filter = (char *)f;
 					dyn->dy_uris[j] = ludp;
 					j++;
 				}
