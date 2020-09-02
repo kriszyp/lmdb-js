@@ -27,9 +27,18 @@ using namespace v8;
 using namespace node;
 
 #define IGNORE_NOTFOUND    (1)
-Nan::Persistent<Function> EnvWrap::txnCtor;
+thread_local Nan::Persistent<Function> EnvWrap::txnCtor;
+thread_local Nan::Persistent<Function> EnvWrap::dbiCtor;
+//Nan::Persistent<Function> EnvWrap::txnCtor;
+//Nan::Persistent<Function> EnvWrap::dbiCtor;
+uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
+std::vector<env_path_t> EnvWrap::envs;
 
-Nan::Persistent<Function> EnvWrap::dbiCtor;
+uv_mutex_t* EnvWrap::initMutex() {
+    uv_mutex_t* mutex = new uv_mutex_t;
+    uv_mutex_init(mutex);
+    return mutex;
+}
 
 EnvWrap::EnvWrap() {
     this->env = nullptr;
@@ -223,6 +232,7 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                     condition = nullptr;
                     results[i] = 0;
                 }
+                rc = 0;
             } else {
                 results[i] = 0;
             }
@@ -326,6 +336,22 @@ NAN_METHOD(EnvWrap::open) {
 
     Local<Object> options = Local<Object>::Cast(info[0]);
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
+    Nan::Utf8String charPath(path);
+    uv_mutex_lock(envsLock);
+    for (env_path_t envPath : envs) {
+        char* existingPath = envPath.path;
+        if (!strcmp(existingPath, *charPath)) {
+            mdb_env_close(ew->env);
+            ew->env = envPath.env;
+            uv_mutex_unlock(envsLock);
+            return;
+        }
+    }
+    env_path_t envPath;
+    envPath.path = strdup(*charPath);
+    envPath.env = ew->env;
+    envs.push_back(envPath);
+    uv_mutex_unlock(envsLock);
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
@@ -414,6 +440,16 @@ NAN_METHOD(EnvWrap::close) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
+
+    uv_mutex_lock(envsLock);
+    for (auto envPath = envs.begin(); envPath != envs.end(); ) {
+        if (envPath->env == ew->env) {
+            envs.erase(envPath);
+            break;
+        }
+        ++envPath;
+    }
+    uv_mutex_unlock(envsLock);
 
     ew->cleanupStrayTxns();
     mdb_env_close(ew->env);

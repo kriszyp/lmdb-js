@@ -71,6 +71,20 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::StringKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 
+#ifndef thread_local
+#ifdef __GNUC__
+# define thread_local __thread
+#elif __STDC_VERSION__ >= 201112L
+# define thread_local _Thread_local
+#elif defined(_MSC_VER)
+# define thread_local __declspec(thread)
+#else
+# define thread_local
+#endif
+#endif
+
+static thread_local double lastVersion = 0;
+
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
@@ -84,6 +98,10 @@ class TxnWrap;
 class DbiWrap;
 class EnvWrap;
 class CursorWrap;
+struct env_path_t {
+    MDB_env* env;
+    char* path;
+};
 
 /*
     `Env`
@@ -99,10 +117,13 @@ private:
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
     // Constructor for TxnWrap
-    static Nan::Persistent<Function> txnCtor;
+    static thread_local Nan::Persistent<Function> txnCtor;
     // Constructor for DbiWrap
-    static Nan::Persistent<Function> dbiCtor;
+    static thread_local Nan::Persistent<Function> dbiCtor;
     
+    static uv_mutex_t* envsLock;
+    static std::vector<env_path_t> envs;
+    static uv_mutex_t* initMutex();
     // Cleans up stray transactions
     void cleanupStrayTxns();
 
