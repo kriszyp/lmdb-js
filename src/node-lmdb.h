@@ -147,6 +147,7 @@ void throwLmdbError(int rc);
 struct env_path_t {
     MDB_env* env;
     char* path;
+    int count;
 };
 
 /*
