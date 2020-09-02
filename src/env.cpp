@@ -341,6 +341,7 @@ NAN_METHOD(EnvWrap::open) {
     for (env_path_t envPath : envs) {
         char* existingPath = envPath.path;
         if (!strcmp(existingPath, *charPath)) {
+            envPath.count++;
             mdb_env_close(ew->env);
             ew->env = envPath.env;
             uv_mutex_unlock(envsLock);
@@ -350,6 +351,7 @@ NAN_METHOD(EnvWrap::open) {
     env_path_t envPath;
     envPath.path = strdup(*charPath);
     envPath.env = ew->env;
+    envPath.count = 1;
     envs.push_back(envPath);
     uv_mutex_unlock(envsLock);
 
@@ -440,19 +442,23 @@ NAN_METHOD(EnvWrap::close) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
+    ew->cleanupStrayTxns();
 
     uv_mutex_lock(envsLock);
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
         if (envPath->env == ew->env) {
-            envs.erase(envPath);
+            envPath->count--;
+            if (envPath->count <= 0) {
+                // last thread using it, we can really close it now
+                envs.erase(envPath);
+                mdb_env_close(ew->env);
+            }
             break;
         }
         ++envPath;
     }
     uv_mutex_unlock(envsLock);
 
-    ew->cleanupStrayTxns();
-    mdb_env_close(ew->env);
     ew->env = nullptr;
 }
 

@@ -101,6 +101,7 @@ class CursorWrap;
 struct env_path_t {
     MDB_env* env;
     char* path;
+    int count;
 };
 
 /*
