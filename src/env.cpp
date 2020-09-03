@@ -241,7 +241,6 @@ class BatchWorker : public Nan::AsyncWorker {
 
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
-            uint8_t* keyData = (uint8_t*) action->key.mv_data;
             int actionType = action->actionType;
             if (actionType >= 8) {
                 if (actionType == 8) {
@@ -422,6 +421,7 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
     setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
     setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
+    setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
