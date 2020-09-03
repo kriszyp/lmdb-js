@@ -207,10 +207,10 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 rc = mdb_get(txn, condition->dbi, &condition->key, &value);
                 bool different;
                 if (condition->data.mv_data == &deleteValue) {
-                    different = rc != MDB_NOTFOUND;
+                    different = !rc;
                 } else {
-                    if (rc == MDB_NOTFOUND) {
-                        different = true;
+                    if (rc) {
+                        different = rc == MDB_NOTFOUND;
                     } else {
                         different = (condition->matchSize ? value.mv_size != condition->data.mv_size : value.mv_size < condition->data.mv_size) ||
                         memcmp(value.mv_data, condition->data.mv_data, condition->data.mv_size);
@@ -244,8 +244,12 @@ class BatchWorker : public Nan::AsyncProgressWorker {
                 action->freeKey(action->key);
             }
             if (rc != 0) {
-                mdb_txn_abort(txn);
-                return SetErrorMessage(mdb_strerror(rc));
+                if (rc == MDB_BAD_VALSIZE)
+                    results[i] = 3;
+                else {
+                    mdb_txn_abort(txn);
+                    return SetErrorMessage(mdb_strerror(rc));
+                }
             }
             i++;
             if (progress) { // let node know that progress updates are available
@@ -351,6 +355,7 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
     setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
     setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
+    setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
