@@ -21,9 +21,9 @@ if test $WITH_TLS = no ; then
         exit 0
 fi
 
-openssl="$(which openssl 2>/dev/null)"
-certtool="$(which certtool 2>/dev/null)"
-base64="$(which base64 2>/dev/null)"
+openssl="$(command -v openssl 2>/dev/null)"
+certtool="$(command -v certtool 2>/dev/null)"
+base64="$(command -v base64 2>/dev/null)"
 
 mkdir -p $TESTDIR $DBDIR1
 cp -r $DATADIR/tls $TESTDIR
