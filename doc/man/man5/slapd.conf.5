@@ -443,10 +443,10 @@ disallows the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
 .B proxy_authz_non_critical
 disables acceptance of the proxied authorization control (RFC4370)
-when criticality is FALSE.
+with criticality set to FALSE.
 .B dontusecopy_non_critical
 disables acceptance of the dontUseCopy control (a work in progress)
-when criticality is FALSE.
+with criticality set to FALSE.
 .HP
 .hy 0
 .B ditcontentrule "(\ <oid>\
@@ -1531,12 +1531,12 @@ The keyword
 .I unlimited
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
-.B size.prtotal={<integer>|unlimited|disabled}
+.B size.prtotal={<integer>|hard|unlimited|disabled}
 allows one to set a limit on the total number of entries that the pagedResults
 control will return.
 By default it is set to the 
 .B hard
-limit.
+limit which will use the size.hard value.
 When set, 
 .I integer
 is the max number of entries that the whole search with pagedResults control

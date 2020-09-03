@@ -83,6 +83,7 @@
 #define	ldap_pvt_thread_cond_broadcast	ldap_int_thread_cond_broadcast
 #define	ldap_pvt_thread_cond_wait		ldap_int_thread_cond_wait
 #define	ldap_pvt_thread_mutex_init		ldap_int_thread_mutex_init
+#define	ldap_pvt_thread_mutex_recursive_init		ldap_int_thread_mutex_recursive_init
 #define	ldap_pvt_thread_mutex_destroy	ldap_int_thread_mutex_destroy
 #define	ldap_pvt_thread_mutex_lock		ldap_int_thread_mutex_lock
 #define	ldap_pvt_thread_mutex_trylock	ldap_int_thread_mutex_trylock
@@ -118,6 +119,8 @@
 #define	ldap_pvt_thread_pool_pause		ldap_int_thread_pool_pause
 #define	ldap_pvt_thread_pool_resume		ldap_int_thread_pool_resume
 #define	ldap_pvt_thread_pool_destroy	ldap_int_thread_pool_destroy
+#define	ldap_pvt_thread_pool_close		ldap_int_thread_pool_close
+#define	ldap_pvt_thread_pool_free		ldap_int_thread_pool_free
 #define	ldap_pvt_thread_pool_getkey		ldap_int_thread_pool_getkey
 #define	ldap_pvt_thread_pool_setkey	ldap_int_thread_pool_setkey
 #define	ldap_pvt_thread_pool_purgekey	ldap_int_thread_pool_purgekey
@@ -135,8 +138,10 @@
  */
 #undef	ldap_pvt_thread_pool_destroy
 #define	ldap_pvt_thread_pool_destroy(p,r) ldap_int_thread_pool_destroy(p,r)
+#if 0
 #define	ldap_pvt_thread_pool_close(p,r) ldap_int_thread_pool_close(p,r)
 #define	ldap_pvt_thread_pool_free(p) ldap_int_thread_pool_free(p)
+#endif
 #endif
 
 #ifdef LDAP_THREAD_DEBUG_IMPLEMENTATION	/* thr_debug.c */
@@ -156,6 +161,7 @@
 #undef	ldap_pvt_thread_cond_broadcast
 #undef	ldap_pvt_thread_cond_wait
 #undef	ldap_pvt_thread_mutex_init
+#undef	ldap_pvt_thread_mutex_recursive_init
 #undef	ldap_pvt_thread_mutex_destroy
 #undef	ldap_pvt_thread_mutex_lock
 #undef	ldap_pvt_thread_mutex_trylock
@@ -183,6 +189,8 @@
 #undef	ldap_pvt_thread_pool_pause
 #undef	ldap_pvt_thread_pool_resume
 #undef	ldap_pvt_thread_pool_destroy
+#undef	ldap_pvt_thread_pool_close
+#undef	ldap_pvt_thread_pool_free
 #undef	ldap_pvt_thread_pool_getkey
 #undef	ldap_pvt_thread_pool_setkey
 #undef	ldap_pvt_thread_pool_purgekey

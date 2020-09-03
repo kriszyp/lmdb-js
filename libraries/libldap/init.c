@@ -604,6 +604,9 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 	gopts->ldo_keepalive_interval = 0;
 	gopts->ldo_keepalive_idle = 0;
 
+#ifdef LDAP_R_COMPILE
+	ldap_pvt_thread_mutex_init( &gopts->ldo_mutex );
+#endif
 	gopts->ldo_valid = LDAP_INITIALIZED;
    	return;
 }

@@ -445,6 +445,12 @@ upon StartTLS operation receipt.
 .B tls_authc
 disallows the StartTLS operation if authenticated (see also
 .BR tls_2_anon ).
+.B proxy_authz_non_critical
+disables acceptance of the proxied authorization control (RFC4370)
+with criticality set to FALSE.
+.B dontusecopy_non_critical
+disables acceptance of the dontUseCopy control (a work in progress)
+with criticality set to FALSE.
 .TP
 .B olcGentleHUP: { TRUE | FALSE }
 A SIGHUP signal will only cause a 'gentle' shutdown-attempt:
@@ -1594,12 +1600,12 @@ The keyword
 .I unlimited
 indicates that no limit is applied to the pagedResults control page size.
 The syntax
-.B size.prtotal={<integer>|unlimited|disabled}
+.B size.prtotal={<integer>|hard|unlimited|disabled}
 allows one to set a limit on the total number of entries that the pagedResults
 control will return.
 By default it is set to the 
 .B hard
-limit.
+limit which will use the size.hard value.
 When set, 
 .I integer
 is the max number of entries that the whole search with pagedResults control

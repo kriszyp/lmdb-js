@@ -288,7 +288,7 @@ struct ldapoptions {
 	int			ldo_tls_require_san;
 	char		*ldo_tls_pin_hashalg;
 	struct berval	ldo_tls_pin;
-#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0,0,{0,0}
+#define LDAP_LDO_TLS_NULLARG ,0,0,0,{0,0,0,0,0,0,0,0,0},0,0,0,0,0,0,{0,0}
 #else
 #define LDAP_LDO_TLS_NULLARG
 #endif
