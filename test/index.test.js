@@ -32,11 +32,10 @@ describe('Node.js LMDB Bindings', function() {
         return done(err);
       }
       // setup clean directory
-      mkdirp(testBackupDirPath, function(err) {
-        if (err) {
-          return done(err);
-        }
+      mkdirp(testBackupDirPath).then(function() {
         done();
+      }, function(err) {
+        done(err);
       });
     });
   });
