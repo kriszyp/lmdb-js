@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.53 Engineering
 	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
+	Fixed slapo-ppolicy race condition for pwdFailureTime (ITS#9302,ITS#9334)
 	Build
 		Require OpenSSL 1.0.2 or later (ITS#9323)
 		Fixed libldap compilation issue with broken C compilers (ITS#9332)
