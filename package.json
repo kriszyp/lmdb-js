@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store",
   "author": "Kris Zyp",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
   "license": "MIT",
   "repository": {
@@ -28,7 +28,7 @@
   "gypfile": true,
   "dependencies": {
     "fs-extra": "^9.0.0",
-    "msgpackr": "^0.3.0",
+    "msgpackr": "^0.3.1",
     "prebuild-install": "^5.3.5",
     "nan": "^2.14.1"
   },
