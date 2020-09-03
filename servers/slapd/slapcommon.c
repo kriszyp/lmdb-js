@@ -294,6 +294,8 @@ slap_tool_init(
 	ldif_debug = slap_debug;
 #endif
 	ldap_syslog = 0;
+	/* make sure libldap gets init'd */
+	ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug );
 
 #ifdef CSRIMALLOC
 	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
