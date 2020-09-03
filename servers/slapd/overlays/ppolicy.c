@@ -995,12 +995,12 @@ ppolicy_bind_response( Operation *op, SlapReply *rs )
 	LDAPControl *ctrl = NULL;
 	Entry *e;
 
+	ldap_pvt_thread_mutex_lock( &pi->pwdFailureTime_mutex );
 	/* If we already know it's locked, just get on with it */
 	if ( ppb->pErr != PP_noError ) {
 		goto locked;
 	}
 
-	ldap_pvt_thread_mutex_lock( &pi->pwdFailureTime_mutex );
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
 	op->o_bd->bd_info = bi;
