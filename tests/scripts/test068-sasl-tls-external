@@ -21,6 +21,11 @@ if test $WITH_TLS = no ; then
         exit 0
 fi
 
+if test $WITH_SASL = no ; then
+	echo "SASL support not available, test skipped"
+	exit 0
+fi
+
 mkdir -p $TESTDIR $DBDIR1
 cp -r $DATADIR/tls $TESTDIR
 
