@@ -200,6 +200,7 @@ The following additional option properties are only available when creating the 
 * `syncBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
 
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a> (none of these are recommended, but are available for adjusting performance):
+* noMemInit - This provides a performance boost (when not using useWritemap) for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database.
 * useWritemap - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data.
 * noSubdir - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * noSync - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
