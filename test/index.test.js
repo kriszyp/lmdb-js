@@ -167,4 +167,34 @@ describe('lmdb-store', function() {
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
   });
+  describe('uint32 keys', function() {
+    this.timeout(10000);
+    let db, db2;
+    before(function() {
+      db = open(testDirPath, {
+        name: 'uint32',
+        keyIsUint32: true,
+        compression: true,
+      });
+    });
+    it('write and read range', async function() {
+      let lastPromise
+      for (let i = 0; i < 10; i++) {
+        lastPromise = db.put(i, 'value' + i);
+      }
+      await lastPromise
+      let i = 0
+      for (let { key, value } of db.getRange()) {
+        key.should.equal(i);
+        value.should.equal('value' + i);
+        i++;
+      }
+      i = 0
+      for (let { key, value } of db.getRange({ start: 0 })) {
+        key.should.equal(i);
+        value.should.equal('value' + i);
+        i++;
+      }
+    });
+  });
 });

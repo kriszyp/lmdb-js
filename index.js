@@ -393,8 +393,10 @@ function open(path, options) {
 			let includeVersions = options.versions
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
-				let currentKey = options.start || (options.reverse ? LAST_KEY : null)
-				let endKey = options.end || (options.reverse ? null : LAST_KEY)
+				let currentKey = options.start !== undefined ? options.start :
+					(options.reverse ? this.keyIsUint32 ? 0xffffffff : LAST_KEY : this.keyIsUint32 ? 0 : null)
+				let endKey = options.end !== undefined ? options.end :
+					(options.reverse ? this.keyIsUint32 ? 0 : null : this.keyIsUint32 ? 0xffffffff : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
 				const goToDirection = reverse ? 'goToPrev' : 'goToNext'
