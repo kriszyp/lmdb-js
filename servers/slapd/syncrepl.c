@@ -1842,7 +1842,8 @@ done:
 
 	if ( msg ) ldap_msgfree( msg );
 
-	if ( rc && rc != LDAP_SYNC_REFRESH_REQUIRED && si->si_ld ) {
+	if ( rc ) {
+		/* never reuse existing connection */
 		if ( si->si_conn ) {
 			connection_client_stop( si->si_conn );
 			si->si_conn = NULL;
@@ -1958,6 +1959,7 @@ do_syncrepl(
 	if ( !si->si_schemachecking )
 		op->o_no_schema_check = 1;
 
+reload:
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		si->si_refreshDelete = 0;
@@ -1975,7 +1977,6 @@ do_syncrepl(
 		rc = do_syncrep1( op, si );
 	}
 
-reload:
 	/* Process results */
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
@@ -1986,11 +1987,6 @@ reload:
 		op->o_ndn = op->o_bd->be_rootndn;
 		rc = do_syncrep2( op, si );
 		if ( rc == LDAP_SYNC_REFRESH_REQUIRED )	{
-			if ( BER_BVISNULL( &si->si_syncCookie.octet_str ))
-				slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-					si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-					si->si_syncCookie.sid, NULL );
-			rc = ldap_sync_search( si, op->o_tmpmemctx );
 			goto reload;
 		}
 
