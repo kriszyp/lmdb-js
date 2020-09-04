@@ -409,7 +409,6 @@ fail:
 		ldap_pvt_thread_pool_idle( &connection_pool );
 		slap_writewait_play( op );
 		err = slapd_wait_writer( conn->c_sd );
-		conn->c_writewaiter = 0;
 		ldap_pvt_thread_pool_unidle( &connection_pool );
 		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 		/* 0 is timeout, so we close it.
@@ -420,8 +419,13 @@ fail:
 				close_reason = "writetimeout";
 			else
 				close_reason = "connection lost on writewait";
+			conn->c_writewaiter = 0;
 			goto fail;
 		}
+
+		/* Resched connection if there are pending ops */
+		connection_write( conn->c_sd );
+		conn->c_writewaiter = 0;
 
 		if ( conn->c_writers < 0 ) {
 			ret = 0;
