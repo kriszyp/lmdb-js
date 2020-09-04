@@ -182,6 +182,8 @@ static struct tool_ctrls_t {
 enum { Intr_None = 0, Intr_Abandon, Intr_Cancel, Intr_Ignore }; 
 static volatile sig_atomic_t	gotintr, abcan;
 
+int backlog;
+
 
 #ifdef LDAP_CONTROL_X_SESSION_TRACKING
 static int
@@ -671,6 +673,13 @@ tool_args( int argc, char **argv )
 				if ( crit ) {
 					gotintr = abcan;
 				}
+
+			} else if ( strcasecmp( control, "backlog" ) == 0 ) {
+				/* special search: accumulate lots of responses
+				 * but don't read any, force slapd writer to wait.
+				 * Then abandon the search and issue a new one.
+				 */
+				backlog = 1;
 
 			} else if ( tool_is_oid( control ) ) {
 				LDAPControl	*tmpctrls, ctrl;
