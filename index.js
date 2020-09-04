@@ -89,11 +89,13 @@ function open(path, options) {
 				dbOptions = dbName
 				dbName = options.name
 			}
+			if (dbName === undefined)
+				throw new Error('Database name must be supplied in name property (may be null for root database)')
 
 			const openDB = () => {
 				try {
 					this.db = env.openDbi(Object.assign({
-						name: dbName || null,
+						name: dbName,
 						create: true,
 						txn: writeTxn,
 					}, dbOptions))
@@ -705,7 +707,7 @@ function open(path, options) {
 			this.packr.structures = []
 		}
 	}
-	return new LMDBStore(options.name, options)
+	return new LMDBStore(options.name || null, options)
 	function handleError(error, store, txn, retry) {
 		if (error === SHARED_STRUCTURE_CHANGE) {
 			store.packr.structures = unpack(txn.getBinary(store.db, store.sharedStructuresKey))
