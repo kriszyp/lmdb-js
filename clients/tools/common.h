@@ -99,6 +99,9 @@ extern ber_int_t	vlvPos;
 extern ber_int_t	vlvCount;
 extern struct berval	*vlvContext;
 
+/* features */
+extern int		backlog;
+
 /* options */
 extern struct timeval	nettimeout;
 
