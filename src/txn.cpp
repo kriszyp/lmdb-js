@@ -194,6 +194,7 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     }
 
     if (rc == MDB_NOTFOUND) {
+        setLastVersion(NO_EXIST_VERSION);
         return info.GetReturnValue().Set(Nan::Undefined());
     }
     else if (rc != 0) {

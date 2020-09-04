@@ -166,8 +166,7 @@ struct condition_t {
     bool matchSize;
     argtokey_callback_t freeKey;
 };
-const double ANY_VERSION = -3.3434325325532E-199;
-const double NO_EXIST_VERSION = -4.2434325325532E-199;
+
 int DELETE_VALUE; // pointer to this as the value represents a delete
 struct action_t {
     int actionType;

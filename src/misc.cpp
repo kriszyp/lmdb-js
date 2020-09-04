@@ -320,7 +320,12 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
 }
 
 NAN_METHOD(getLastVersion) {
+    if (lastVersion == NO_EXIST_VERSION)
+        return info.GetReturnValue().Set(Nan::Null());
     return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
+}
+void setLastVersion(double version) {
+    lastVersion = version;
 }
 NAN_METHOD(setLastVersion) {
     lastVersion = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();

@@ -93,8 +93,10 @@ describe('lmdb-store', function() {
       (await db.remove('key1', 33)).should.equal(false);
       data = db.get('key1');
       data.should.equal('Hello world!');
+      getLastVersion().should.equal(53252);
       (await db.remove('key1', 53252)).should.equal(true);
       data = db.get('key1');
+      should.equal(getLastVersion(), null);
       should.equal(data, undefined);
     });
     it('string with version branching', async function() {
