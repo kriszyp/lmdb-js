@@ -324,6 +324,10 @@ var data3 = txn.getString(dbi, key);
 // At this point, data3 is equal to expectedString
 
 ```
+##### Build Options
+A couple of LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
+`npm install --use_vl32=true`: This will enable LMDB's VL32 mode, when running on 32-bit architecture, which adds support for large (multi-GB) databases on 32-bit architecture.
+`npm install --use_fixed_size=true`: This will enable LMDB's fixed-size option, when running on Windows, which causes Windows to allocate the full file size needed for the memory-mapped allocation size. The default behavior of dynamically growing file size as the allocated memory map, while convenient, uses a non-standard Windows API and can cause significant performance degradation, but using the fixed size option ensures much more stable/better performance on Windows (consider using [lmdb-store](https://github.com/DoctorEvidence/lmdb-store) on top of node-lmdb for automated memory-map growth).
 
 ### Limitations of node-lmdb
 
