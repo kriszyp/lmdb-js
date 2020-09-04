@@ -3,6 +3,7 @@ OpenLDAP 2.4 Change Log
 OpenLDAP 2.4.53 Engineering
 	Added slapd syncrepl additional SYNC logging (ITS#9043)
 	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
+	Fixed slapd syncrepl to use fresh connection on REFRESH fallback (ITS#9338)
 	Fixed slapo-ppolicy race condition for pwdFailureTime (ITS#9302,ITS#9334)
 	Build
 		Require OpenSSL 1.0.2 or later (ITS#9323)
