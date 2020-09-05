@@ -18,7 +18,8 @@ echo "running defines.sh"
 
 OPATTRS="creatorsName createTimestamp modifiersName modifyTimestamp"
 
-if test ! "`which dsadm`"; then
+DSADM=`command -v dsadm`
+if test -z "$DSADM"; then
 	echo "DSEE dsadm not in path, test skipped"
 	exit 0
 fi
@@ -73,7 +74,7 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT4..."
 . $CONFFILTER $BACKEND $MONITORDB < $DSEESYNC2CONF > $CONF4
-$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
+$SLAPD -f $CONF4 -h $URI4 -d $LVL > $LOG4 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -363,7 +364,7 @@ fi
 
 echo "Restarting consumer..."
 echo "RESTART" >> $LOG4
-$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING >> $LOG4 2>&1 &
+$SLAPD -f $CONF4 -h $URI4 -d $LVL >> $LOG4 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID

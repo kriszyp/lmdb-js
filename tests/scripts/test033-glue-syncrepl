@@ -37,7 +37,7 @@ cp -pr $DBDIR1C $DBDIR2C
 
 echo "Starting slapd 1 on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF1 > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -61,7 +61,7 @@ done
 
 echo "Starting slapd 2 on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $GLUESYNCCONF2 > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

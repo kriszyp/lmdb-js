@@ -119,8 +119,8 @@
 #define	ldap_pvt_thread_pool_pause		ldap_int_thread_pool_pause
 #define	ldap_pvt_thread_pool_resume		ldap_int_thread_pool_resume
 #define	ldap_pvt_thread_pool_destroy	ldap_int_thread_pool_destroy
-#define	ldap_pvt_thread_pool_close		ldap_int_thread_pool_close
-#define	ldap_pvt_thread_pool_free		ldap_int_thread_pool_free
+#define	ldap_pvt_thread_pool_close	ldap_int_thread_pool_close
+#define	ldap_pvt_thread_pool_free	ldap_int_thread_pool_free
 #define	ldap_pvt_thread_pool_getkey		ldap_int_thread_pool_getkey
 #define	ldap_pvt_thread_pool_setkey	ldap_int_thread_pool_setkey
 #define	ldap_pvt_thread_pool_purgekey	ldap_int_thread_pool_purgekey
@@ -138,10 +138,6 @@
  */
 #undef	ldap_pvt_thread_pool_destroy
 #define	ldap_pvt_thread_pool_destroy(p,r) ldap_int_thread_pool_destroy(p,r)
-#if 0
-#define	ldap_pvt_thread_pool_close(p,r) ldap_int_thread_pool_close(p,r)
-#define	ldap_pvt_thread_pool_free(p) ldap_int_thread_pool_free(p)
-#endif
 #endif
 
 #ifdef LDAP_THREAD_DEBUG_IMPLEMENTATION	/* thr_debug.c */

@@ -46,7 +46,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 SERVERPID=$!
 if test $WAIT != 0 ; then
     echo SERVERPID $SERVERPID
@@ -76,7 +76,7 @@ fi
 
 echo "Starting chain slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then
     echo PROXYPID $PROXYPID

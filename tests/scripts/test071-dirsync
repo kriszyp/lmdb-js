@@ -88,7 +88,7 @@ objectclass: dcObject
 o: OpenLDAP Testing
 
 EOMODS
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID

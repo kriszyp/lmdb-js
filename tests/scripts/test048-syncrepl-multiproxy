@@ -45,7 +45,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $PLSRPROVIDERCONF > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
     echo PROVIDERPID $PROVIDERPID
@@ -85,7 +85,7 @@ fi
 
 echo "Starting P1 consumer slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 P1CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo P1CONSUMERPID $P1CONSUMERPID
@@ -115,7 +115,7 @@ fi
 
 echo "Starting R1 consumer slapd on TCP/IP port $PORT3..."
 . $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF | sed -e 's;\.2\.\([^/]*\)$;.3.\1;' > $CONF3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+$SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 R1CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo R1CONSUMERPID $R1CONSUMERPID
@@ -223,7 +223,7 @@ wait $PROVIDERPID
 sleep $SLEEP2
 
 echo "======================= RESTART =======================" >> $LOG1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL >> $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
     echo PROVIDERPID $PROVIDERPID
@@ -432,7 +432,7 @@ EOMODS
 
 echo "Restarting P1 consumer..."
 echo "======================= RESTART =======================" >> $LOG3
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL >> $LOG2 2>&1 &
 P1CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo P1CONSUMERPID $P1CONSUMERPID
@@ -441,7 +441,7 @@ fi
 
 echo "Restarting R1 consumer..."
 echo "======================= RESTART =======================" >> $LOG3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+$SLAPD -f $CONF3 -h $URI3 -d $LVL >> $LOG3 2>&1 &
 R1CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo R1CONSUMERPID $R1CONSUMERPID

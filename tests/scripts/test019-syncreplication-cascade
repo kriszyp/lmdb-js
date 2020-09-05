@@ -34,7 +34,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3 $DBDIR4 $DBDIR5 $DBDIR6
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -74,7 +74,7 @@ fi
 
 echo "Starting R1 consumer slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $R1SRCONSUMERCONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER R1 PID $CONSUMERPID
@@ -104,7 +104,7 @@ fi
 
 echo "Starting R2 consumer slapd on TCP/IP port $PORT3..."
 . $CONFFILTER $BACKEND $MONITORDB < $R2SRCONSUMERCONF > $CONF3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+$SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER R2 PID $CONSUMERPID
@@ -134,7 +134,7 @@ fi
 
 echo "Starting P1 consumer slapd on TCP/IP port $PORT4..."
 . $CONFFILTER $BACKEND $MONITORDB < $P1SRCONSUMERCONF > $CONF4
-$SLAPD -f $CONF4 -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
+$SLAPD -f $CONF4 -h $URI4 -d $LVL > $LOG4 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P1 PID $CONSUMERPID
@@ -164,7 +164,7 @@ fi
 
 echo "Starting P2 consumer slapd on TCP/IP port $PORT5..."
 . $CONFFILTER $BACKEND $MONITORDB < $P2SRCONSUMERCONF > $CONF5
-$SLAPD -f $CONF5 -h $URI5 -d $LVL $TIMING > $LOG5 2>&1 &
+$SLAPD -f $CONF5 -h $URI5 -d $LVL > $LOG5 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P2 PID $CONSUMERPID
@@ -194,7 +194,7 @@ fi
 
 echo "Starting P3 consumer slapd on TCP/IP port $PORT6..."
 . $CONFFILTER $BACKEND $MONITORDB < $P3SRCONSUMERCONF > $CONF6
-$SLAPD -f $CONF6 -h $URI6 -d $LVL $TIMING > $LOG6 2>&1 &
+$SLAPD -f $CONF6 -h $URI6 -d $LVL > $LOG6 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMER P3 PID $CONSUMERPID

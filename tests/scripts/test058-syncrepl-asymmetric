@@ -195,7 +195,7 @@ done
 
 echo "Starting central provider slapd on TCP/IP port $PORT1..."
 cd $SMC_DIR
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL > $LOG1 2>&1 &
 SMC_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SMC_PID
@@ -221,7 +221,7 @@ fi
 
 echo "Starting site1 provider slapd on TCP/IP port $PORT2..."
 cd $SM1_DIR
-$SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -F slapd.d -h $URI2 -d $LVL > $LOG2 2>&1 &
 SM1_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SM1_PID
@@ -247,7 +247,7 @@ fi
 
 echo "Starting site2 provider slapd on TCP/IP port $PORT3..."
 cd $SM2_DIR
-$SLAPD -F slapd.d -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+$SLAPD -F slapd.d -h $URI3 -d $LVL > $LOG3 2>&1 &
 SM2_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SM2_PID
@@ -273,7 +273,7 @@ fi
 
 echo "Starting central search slapd on TCP/IP port $PORT4..."
 cd $SSC_DIR
-$SLAPD -F slapd.d -h $URI4 -d $LVL $TIMING > $LOG4 2>&1 &
+$SLAPD -F slapd.d -h $URI4 -d $LVL > $LOG4 2>&1 &
 SSC_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SSC_PID
@@ -300,7 +300,7 @@ fi
 
 echo "Starting site1 search slapd on TCP/IP port $PORT5..."
 cd $SS1_DIR
-$SLAPD -F slapd.d -h $URI5 -d $LVL $TIMING > $LOG5 2>&1 &
+$SLAPD -F slapd.d -h $URI5 -d $LVL > $LOG5 2>&1 &
 SS1_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SS1_PID
@@ -327,7 +327,7 @@ fi
 
 echo "Starting site2 search slapd on TCP/IP port $PORT6..."
 cd $SS2_DIR
-$SLAPD -F slapd.d -h $URI6 -d $LVL $TIMING > $LOG6 2>&1 &
+$SLAPD -F slapd.d -h $URI6 -d $LVL > $LOG6 2>&1 &
 SS2_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SS2_PID
@@ -1007,7 +1007,7 @@ fi
 if test -z "$SM1_PID" ; then
 	echo "Restarting site1 provider slapd on TCP/IP port $PORT2..."
 	cd $SM1_DIR
-	$SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
+	$SLAPD -F slapd.d -h $URI2 -d $LVL >> $LOG2 2>&1 &
 	SM1_PID=$!
 	if test $WAIT != 0 ; then
 	    echo PID $SM1_PID
@@ -1286,7 +1286,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site1 provider slapd on TCP/IP port $PORT2..."
 	cd $SM1_DIR
-	$SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
+	$SLAPD -F slapd.d -h $URI2 -d $LVL >> $LOG2 2>&1 &
 	SM1_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SM1_PID
@@ -1312,7 +1312,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site2 provider slapd on TCP/IP port $PORT3..."
 	cd $SM2_DIR
-	$SLAPD -F slapd.d -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+	$SLAPD -F slapd.d -h $URI3 -d $LVL >> $LOG3 2>&1 &
 	SM2_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SM2_PID
@@ -1338,7 +1338,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting central provider slapd on TCP/IP port $PORT1..."
 	cd $SMC_DIR
-	$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+	$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 	SMC_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SMC_PID
@@ -1372,7 +1372,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site1 provider slapd on TCP/IP port $PORT2..."
 	cd $SM1_DIR
-	$SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
+	$SLAPD -F slapd.d -h $URI2 -d $LVL >> $LOG2 2>&1 &
 	SM1_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SM1_PID
@@ -1398,7 +1398,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site2 provider slapd on TCP/IP port $PORT3..."
 	cd $SM2_DIR
-	$SLAPD -F slapd.d -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+	$SLAPD -F slapd.d -h $URI3 -d $LVL >> $LOG3 2>&1 &
 	SM2_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SM2_PID
@@ -1427,7 +1427,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting central search slapd on TCP/IP port $PORT4..."
 	cd $SSC_DIR
-	$SLAPD -F slapd.d -h $URI4 -d $LVL $TIMING >> $LOG4 2>&1 &
+	$SLAPD -F slapd.d -h $URI4 -d $LVL >> $LOG4 2>&1 &
 	SSC_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SSC_PID
@@ -1453,7 +1453,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site1 search slapd on TCP/IP port $PORT5..."
 	cd $SS1_DIR
-	$SLAPD -F slapd.d -h $URI5 -d $LVL $TIMING >> $LOG5 2>&1 &
+	$SLAPD -F slapd.d -h $URI5 -d $LVL >> $LOG5 2>&1 &
 	SS1_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SS1_PID
@@ -1479,7 +1479,7 @@ if test $CSN_ERRORS != 0 ; then
 
 	echo "Restarting site2 search slapd on TCP/IP port $PORT6..."
 	cd $SS2_DIR
-	$SLAPD -F slapd.d -h $URI6 -d $LVL $TIMING >> $LOG6 2>&1 &
+	$SLAPD -F slapd.d -h $URI6 -d $LVL >> $LOG6 2>&1 &
 	SS2_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SS2_PID
@@ -2041,7 +2041,7 @@ rm -rf $SS2_DIR/db/*
 
 echo "Starting site2 provider slapd on TCP/IP port $PORT3..."
 cd $SM2_DIR
-$SLAPD -F slapd.d -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+$SLAPD -F slapd.d -h $URI3 -d $LVL >> $LOG3 2>&1 &
 SM2_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SM2_PID
@@ -2067,7 +2067,7 @@ fi
 
 echo "Starting site2 search slapd on TCP/IP port $PORT6..."
 cd $SS2_DIR
-$SLAPD -F slapd.d -h $URI6 -d $LVL $TIMING >> $LOG6 2>&1 &
+$SLAPD -F slapd.d -h $URI6 -d $LVL >> $LOG6 2>&1 &
 SS2_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SS2_PID
@@ -2093,7 +2093,7 @@ fi
 
 echo "Starting central provider slapd on TCP/IP port $PORT1..."
 cd $SMC_DIR
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 SMC_PID=$!
 if test $WAIT != 0 ; then
 	echo PID $SMC_PID
@@ -2211,7 +2211,7 @@ if test $RC != 0 ; then
 	KILLPIDS=`echo "$KILLPIDS " | sed -e "s/ $SMC_PID / /"`;
 
 	cd $SMC_DIR
-	$SLAPD -F slapd.d -h $URI1 -c rid=4,csn=0 -d $LVL $TIMING >> $LOG1 2>&1 &
+	$SLAPD -F slapd.d -h $URI1 -c rid=4,csn=0 -d $LVL >> $LOG1 2>&1 &
 	SMC_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SMC_PID
@@ -2277,7 +2277,7 @@ if test $RC != 0 ; then
 	KILLPIDS=`echo "$KILLPIDS " | sed -e "s/ $SSC_PID / /"`;
 
 	cd $SSC_DIR
-	$SLAPD -F slapd.d -h $URI4 -c rid=1,csn=0 -d $LVL $TIMING >> $LOG4 2>&1 &
+	$SLAPD -F slapd.d -h $URI4 -c rid=1,csn=0 -d $LVL >> $LOG4 2>&1 &
 	SSC_PID=$!
 	if test $WAIT != 0 ; then
 		echo PID $SSC_PID
@@ -2364,7 +2364,7 @@ EOF
 
 	echo "Starting central provider again..."
 	cd $SMC_DIR
-	$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+	$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 	SMC_PID=$!
 	KILLPIDS="$KILLPIDS $SMC_PID"
 	cd $TESTWD
@@ -2410,7 +2410,7 @@ EOF
 
 	echo "Starting central provider again..."
 	cd $SMC_DIR
-	$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+	$SLAPD -F slapd.d -h $URI1 -d $LVL >> $LOG1 2>&1 &
 	SMC_PID=$!
 	KILLPIDS="$KILLPIDS $SMC_PID"
 	cd $TESTWD

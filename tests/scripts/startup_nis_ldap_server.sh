@@ -47,7 +47,7 @@ if [ $RC != 0 ]; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $NIS_CONF -p $PORT -d $LVL $TIMING > $PROVIDERLOG 2>&1 &
+$SLAPD -f $NIS_CONF -p $PORT -d $LVL > $PROVIDERLOG 2>&1 &
 PID=$!
 
 echo ">>>>> LDAP server with NIS schema is up! PID=$PID"

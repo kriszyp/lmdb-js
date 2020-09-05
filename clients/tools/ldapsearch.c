@@ -156,7 +156,7 @@ usage( void )
 #ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
 	fprintf( stderr, _("             [!]serverNotif              (MS AD Server Notification)\n"));
 #endif
-	fprintf( stderr, _("             [!]<oid>[=:<b64value>] (generic control; no response handling)\n"));
+	fprintf( stderr, _("             [!]<oid>[=:<value>|::<b64value>] (generic control; no response handling)\n"));
 	fprintf( stderr, _("  -f file    read operations from `file'\n"));
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds, or \"none\" or \"max\") for search\n"));
@@ -1742,6 +1742,7 @@ static int dosearch(
 		tv_timelimitp = &tv_timelimit;
 	}
 
+again:
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
 		sctrls, cctrls, tv_timelimitp, sizelimit, &msgid );
 
@@ -1763,6 +1764,21 @@ static int dosearch(
 		tv.tv_sec = -1;
 		tv.tv_usec = 0;
 		tvp = &tv;
+	}
+
+	if ( backlog == 1 ) {
+		printf( _("\nWaiting for responses to accumulate, press Enter to continue: "));
+		fflush( stdout );
+		getchar();
+		printf( _("Abandoning msgid %d\n"), msgid );
+		ldap_abandon_ext( ld, msgid, NULL, NULL );
+		/* turn off syncrepl control */
+		ldap_set_option( ld, LDAP_OPT_SERVER_CONTROLS, NULL );
+		backlog = 2;
+		scope = LDAP_SCOPE_BASE;
+		goto again;
+	} else if ( backlog == 2 ) {
+		tv.tv_sec = timelimit;
 	}
 
 	while ((rc = ldap_result( ld, LDAP_RES_ANY,

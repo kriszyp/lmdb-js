@@ -46,7 +46,7 @@ fi
 
 echo "Starting first slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF1 > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID1=$!
 if test $WAIT != 0 ; then
     echo PID $PID1
@@ -56,7 +56,7 @@ KILLPIDS="$PID1"
 
 echo "Starting second slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF2 > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID2=$!
 if test $WAIT != 0 ; then
     echo PID $PID2

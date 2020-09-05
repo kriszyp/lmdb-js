@@ -70,7 +70,7 @@ while [ $n -le $MPR ]; do
 	CFDIR=${XDIR}$n/slapd.d
 
 	echo "Starting provider slapd on TCP/IP URI $MYURI"
-	$SLAPD -F $CFDIR -h $MYURI -d $LVL $TIMING > $MYLOG 2>&1 &
+	$SLAPD -F $CFDIR -h $MYURI -d $LVL > $MYLOG 2>&1 &
 
 	PID=$!
 	if test $WAIT != 0 ; then
@@ -146,7 +146,7 @@ echo "done"
 
 echo "Starting provider1 slapd on TCP/IP URI $URI1"
 CFDIR="$TESTDIR/srv1/slapd.d"
-$SLAPD -F $CFDIR -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -F $CFDIR -h $URI1 -d $LVL >> $LOG1 2>&1 &
 
 PID=$!
 if test $WAIT != 0 ; then

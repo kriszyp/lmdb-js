@@ -960,6 +960,22 @@ ldap_pvt_thread_cond_wait(
 }
 
 int
+ldap_pvt_thread_mutex_recursive_init( ldap_pvt_thread_mutex_t *mutex )
+{
+	int rc;
+	init_usage( &mutex->usage, "ldap_pvt_thread_mutex_recursive_init" );
+	rc = ldap_int_thread_mutex_recursive_init( WRAPPED( mutex ) );
+	if( rc ) {
+		ERROR( rc, "ldap_pvt_thread_mutex_recursive_init" );
+		destroy_usage( &mutex->usage );
+	} else {
+		RESET_OWNER( mutex );
+		adjust_count( Idx_mutex, +1 );
+	}
+	return rc;
+}
+
+int
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	int rc;

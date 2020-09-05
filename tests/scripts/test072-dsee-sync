@@ -16,7 +16,8 @@
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
-if test ! "`which dsadm`"; then
+DSADM=`command -v dsadm`
+if test -z "$DSADM"; then
 	echo "DSEE dsadm not in path, test skipped"
 	exit 0
 fi 
@@ -70,7 +71,7 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $DSEESYNC1CONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID

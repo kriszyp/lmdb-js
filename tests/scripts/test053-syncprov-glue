@@ -101,7 +101,7 @@ EOF
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
 cd $PRODDIR
-$SLAPD -F slapd.d -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -F slapd.d -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -129,7 +129,7 @@ fi
 
 echo "Starting provider2 slapd on TCP/IP port $PORT2..."
 cd $PRO2DIR
-$SLAPD -F slapd.d -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -F slapd.d -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID
@@ -157,7 +157,7 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT3..."
 cd $CONSDIR
-$SLAPD -F slapd.d -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+$SLAPD -F slapd.d -h $URI3 -d $LVL > $LOG3 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
     echo PID $PID

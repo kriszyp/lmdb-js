@@ -52,7 +52,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING > $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
     echo PROVIDERPID $PROVIDERPID
@@ -92,7 +92,7 @@ fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
 . $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF > $CONF2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING > $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -122,7 +122,7 @@ fi
 
 echo "Starting proxy slapd on TCP/IP port $PORT3..."
 . $CONFFILTER $BACKEND $MONITORDB < $PLSRCONSUMERCONF > $CONF3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING > $LOG3 2>&1 &
+$SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then
     echo PROXYPID $PROXYPID
@@ -246,7 +246,7 @@ wait $PROVIDERPID
 sleep $SLEEP2
 
 echo "======================= RESTART =======================" >> $LOG1
-$SLAPD -f $CONF1 -h $URI1 -d $LVL $TIMING >> $LOG1 2>&1 &
+$SLAPD -f $CONF1 -h $URI1 -d $LVL >> $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
     echo PROVIDERPID $PROVIDERPID
@@ -460,7 +460,7 @@ EOMODS
 
 echo "Restarting proxy..."
 echo "======================= RESTART =======================" >> $LOG3
-$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+$SLAPD -f $CONF3 -h $URI3 -d $LVL >> $LOG3 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then
     echo PROXYPID $PROXYPID
@@ -645,7 +645,7 @@ sleep $SLEEP2
 
 echo "Restarting consumer..."
 echo "======================= RESTART =======================" >> $LOG2
-$SLAPD -f $CONF2 -h $URI2 -d $LVL $TIMING >> $LOG2 2>&1 &
+$SLAPD -f $CONF2 -h $URI2 -d $LVL >> $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
     echo CONSUMERPID $CONSUMERPID
@@ -731,7 +731,7 @@ if test $? != 0 ; then
 
 	echo "	${CHECK}.1 > Restarting proxy..."
 	echo "======================= RESTART =======================" >> $LOG3
-	$SLAPD -f $CONF3 -h $URI3 -d $LVL $TIMING >> $LOG3 2>&1 &
+	$SLAPD -f $CONF3 -h $URI3 -d $LVL >> $LOG3 2>&1 &
 	PROXYPID=$!
 	if test $WAIT != 0 ; then
 		echo PROXYPID $PROXYPID
