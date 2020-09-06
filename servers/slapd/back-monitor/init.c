@@ -68,7 +68,8 @@ static const monitor_extra_t monitor_extra = {
 
 	monitor_back_entry_stub,
 	monitor_back_entrypriv_create,
-	monitor_back_register_subsys_late
+	monitor_back_register_subsys_late,
+	monitor_back_entry_get_unlocked
 };
 	
 
@@ -1961,6 +1962,7 @@ monitor_back_initialize(
 		{ "olmSubSystemAttributes",		"olmAttributes:0" },
 		{ "olmGenericAttributes",		"olmSubSystemAttributes:0" },
 		{ "olmDatabaseAttributes",		"olmSubSystemAttributes:1" },
+		{ "olmOverlayAttributes",		"olmSubSystemAttributes:2" },
 
 		/* for example, back-mdb specific attrs
 		 * are in "olmDatabaseAttributes:12"
@@ -1972,6 +1974,7 @@ monitor_back_initialize(
 		{ "olmSubSystemObjectClasses",		"olmObjectClasses:0" },
 		{ "olmGenericObjectClasses",		"olmSubSystemObjectClasses:0" },
 		{ "olmDatabaseObjectClasses",		"olmSubSystemObjectClasses:1" },
+		{ "olmOverlayObjectClasses",		"olmSubSystemObjectClasses:2" },
 
 		/* for example, back-mdb specific objectClasses
 		 * are in "olmDatabaseObjectClasses:12"

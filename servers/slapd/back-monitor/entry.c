@@ -221,3 +221,16 @@ monitor_entry_stub(
 	}
 	return e;
 }
+
+Entry *
+monitor_entry_get_unlocked(
+	struct berval *ndn
+)
+{
+	monitor_info_t *mi = ( monitor_info_t * )be_monitor->be_private;
+	Entry *ret = NULL;
+
+	if ( !monitor_cache_get( mi, ndn, &ret ))
+		monitor_cache_release( mi, ret );
+	return ret;
+}
