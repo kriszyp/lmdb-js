@@ -2858,6 +2858,14 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 
 typedef struct Listener Listener;
 
+#ifdef LDAP_PF_LOCAL
+#define SLAP_ADDRLEN	(MAXPATHLEN + sizeof("PATH="))
+#elif defined(LDAP_PF_INET6)
+#define SLAP_ADDRLEN	sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")
+#else
+#define SLAP_ADDRLEN	sizeof("IP=255.255.255.255:65336")
+#endif
+
 /*
  * represents a connection from an ldap client
  */

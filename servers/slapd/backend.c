@@ -78,6 +78,8 @@ backend_init_controls( BackendInfo *bi )
 	return 0;
 }
 
+extern int syncrepl_monitor_init(void);
+
 int backend_init(void)
 {
 	int rc = -1;
@@ -114,6 +116,9 @@ int backend_init(void)
 
 		LDAP_STAILQ_INSERT_TAIL(&backendInfo, bi, bi_next);
 	}
+	/* HACK: need schema defined in deterministic order */
+	syncrepl_monitor_init();
+
 
 	if ( nBackendInfo > 0) {
 		return 0;
