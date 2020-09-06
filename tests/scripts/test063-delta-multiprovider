@@ -111,6 +111,17 @@ olcModuleLoad: back_$BACKEND.la
 
 EOF
 fi
+if [ "$MONITORDB" = mod ]; then
+cat <<EOF >> $TMP
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: $TESTWD/../servers/slapd/back-monitor
+olcModuleLoad: back_monitor.la
+
+EOF
+fi
+
 MYURI=`eval echo '$URI'$n`
 PROVIDERURI=`eval echo '$URI'$o`
 if test $INDEXDB = indexdb ; then
@@ -186,6 +197,16 @@ olcAccessLogOps: writes
 olcAccessLogSuccess: TRUE
 
 EOF
+if [ "$MONITORDB" != no ]; then
+cat <<EOF >> $TMP
+dn: olcDatabase={3}monitor,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcmonitorConfig
+olcDatabase: {3}monitor
+
+EOF
+fi
+
 $SLAPADD -F $CFDIR -n 0  -d-1< $TMP > $TESTOUT 2>&1
 PORT=`eval echo '$PORT'$n`
 echo "Starting server $n on TCP/IP port $PORT..."
