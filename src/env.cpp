@@ -91,7 +91,7 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
     int rc;
     const Local<Value> value = options->Get(Nan::GetCurrentContext(), Nan::New<String>(keyName).ToLocalChecked()).ToLocalChecked();
     if (value->IsUint32()) {
-        rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).ToChecked());
+        rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).FromJust());
     }
     else {
         rc = f(e, dflt);
@@ -359,7 +359,7 @@ NAN_METHOD(EnvWrap::open) {
     // Parse the mapSize option
     Local<Value> mapSizeOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
     if (mapSizeOption->IsNumber()) {
-        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
             uv_mutex_unlock(envsLock);
@@ -395,7 +395,11 @@ NAN_METHOD(EnvWrap::open) {
     flags |= MDB_NOTLS;
 
     // TODO: make file attributes configurable
+    #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
+    #else
+    rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
+    #endif;
 
     if (rc != 0) {
         mdb_env_close(ew->env);
@@ -431,7 +435,7 @@ NAN_METHOD(EnvWrap::resize) {
         return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
     }
 
-    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
     if (rc != 0) {
         return throwLmdbError(rc);
@@ -721,7 +725,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 condition->key = action->key;
             } else {
                 v8::Local<v8::Value> ifDB = operation->Get(context, Nan::New<String>("ifDB").ToLocalChecked()).ToLocalChecked();
-                if (ifDB->IsNullOrUndefined()) {
+                if (ifDB->IsNull() || ifDB->IsUndefined()) {
                     condition->dbi = action->dbi;
                 } else if (ifDB->IsObject()) {
                     dw = Nan::ObjectWrap::Unwrap<DbiWrap>(v8::Local<v8::Object>::Cast((isArray ? operation->Get(context, 0) : operation->Get(Nan::GetCurrentContext(), Nan::New<String>("ifDB").ToLocalChecked())).ToLocalChecked()));
@@ -730,7 +734,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                     return Nan::ThrowError("The ifDB must be a database object or null/undefined.");
                 }
                 v8::Local<v8::Value> ifKey = operation->Get(context, Nan::New<String>("ifKey").ToLocalChecked()).ToLocalChecked();
-                if (ifKey->IsNullOrUndefined()) {
+                if (ifKey->IsNull() || ifKey->IsUndefined()) {
                     condition->key = action->key;
                 } else {
                     condition->freeKey = argToKey(ifKey, condition->key, keyType, keyIsValid);
@@ -746,7 +750,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
             action->condition = nullptr;
         }
 
-        if (value->IsNullOrUndefined()) {
+        if (value->IsNull() || value->IsUndefined()) {
             action->data.mv_data = &deleteValue;
         } else if (value->IsArrayBufferView()) {
             action->data.mv_size = node::Buffer::Length(value);

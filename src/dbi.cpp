@@ -106,7 +106,7 @@ NAN_METHOD(DbiWrap::ctor) {
         #if NODE_VERSION_AT_LEAST(12,0,0)
         if (create->IsBoolean() ? !create->BooleanValue(Isolate::GetCurrent()) : true) {
         #else
-        if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).ToChecked() : true) {
+        if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).FromJust() : true) {
         #endif;
             txnFlags |= MDB_RDONLY;
         }
@@ -133,7 +133,11 @@ NAN_METHOD(DbiWrap::ctor) {
 
     // Open database
     // NOTE: nullptr in place of the name means using the unnamed database.
+    #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name), flags, &dbi);
+    #else
+    rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(name), flags, &dbi);
+    #endif
     if (rc != 0) {
         if (needsTransaction) {
             mdb_txn_abort(txn);
@@ -203,7 +207,7 @@ NAN_METHOD(DbiWrap::drop) {
         #if NODE_VERSION_AT_LEAST(12,0,0)
         del = opt->IsBoolean() ? !(opt->BooleanValue(Isolate::GetCurrent())) : 1;
         #else
-        del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).ToChecked()) : 1;
+        del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).FromJust()) : 1;
         #endif;
         
         // User-supplied txn
