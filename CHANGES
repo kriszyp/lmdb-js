@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.53 Engineering
+OpenLDAP 2.4.53 (2020/09/07)
 	Added slapd syncrepl additional SYNC logging (ITS#9043)
 	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
 	Fixed slapd syncrepl to use fresh connection on REFRESH fallback (ITS#9338)
