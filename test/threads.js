@@ -1,6 +1,4 @@
 'use strict';
-var inspector = require('inspector')
-//inspector.open(9331, null, true)
 
 var assert = require('assert');
 const { Worker, isMainThread, parentPort } = require('worker_threads');
@@ -10,6 +8,8 @@ var numCPUs = require('os').cpus().length;
 var lmdb = require('..');
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 if (isMainThread) {
+  var inspector = require('inspector')
+//  inspector.open(9331, null, true)
 
   // The main thread
 
@@ -69,7 +69,6 @@ if (isMainThread) {
 } else {
 
   // The worker process
-
   var env = new lmdb.Env();
   env.open({
     path: path.resolve(__dirname, './testdata'),

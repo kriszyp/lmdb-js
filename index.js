@@ -23,6 +23,8 @@ function genericErrorHandler(err) {
 	}
 }
 const LAST_KEY = String.fromCharCode(0xffff)
+const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
+const FIRST_BUFFER_KEY = Buffer.from([0])
 let env
 let defaultCompression
 let lastSize
@@ -127,7 +129,7 @@ function open(path, options) {
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options, dbOptions)
 			if (!this.encoding || this.encoding == 'msgpack') {
-				this.packr = new Packr()
+				this.packr = new Packr(Object.assign({}, options, dbOptions))
 				if (this.sharedStructuresKey)
 					this.setupSharedStructures()
 			}
@@ -396,9 +398,11 @@ function open(path, options) {
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start !== undefined ? options.start :
-					(options.reverse ? this.keyIsUint32 ? 0xffffffff : LAST_KEY : this.keyIsUint32 ? 0 : null)
+					(options.reverse ? this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY :
+						this.keyIsUint32 ? 0 : this.keyIsBuffer ? FIRST_BUFFER_KEY : false)
 				let endKey = options.end !== undefined ? options.end :
-					(options.reverse ? this.keyIsUint32 ? 0 : null : this.keyIsUint32 ? 0xffffffff : LAST_KEY)
+					(options.reverse ? this.keyIsUint32 ? 0 : this.keyIsBuffer ? FIRST_BUFFER_KEY : false :
+						this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
 				const goToDirection = reverse ? 'goToPrev' : 'goToNext'
@@ -749,7 +753,7 @@ function open(path, options) {
 				store.emit('remap')
 			}
 
-			console.log('Resizing database', name, 'to', newSize)
+			console.log('Resizing database', name, 'to', newSize, 'process', process.pid)
 			env.resize(newSize)
 			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)

@@ -4582,7 +4582,8 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_VL32 this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-		munmap(env->me_map, env->me_mapsize);
+		// Don't unmap, too hard to know if another thread might still be using the old address
+		// munmap(env->me_map, env->me_mapsize);
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);

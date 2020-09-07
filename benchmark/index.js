@@ -1,6 +1,6 @@
 'use strict';
-var inspector = require('inspector')
-//inspector.open(9330, null, true)
+const { Worker, isMainThread, parentPort } = require('worker_threads');
+const { isMaster, fork } = require('cluster');
 
 var crypto = require('crypto');
 var path = require('path');
@@ -17,20 +17,7 @@ var env;
 var dbi;
 var keys = [];
 var total = 10000;
-var store;
-
-function cleanup(done) {
-  // cleanup previous test directory
-  rimraf(testDirPath, function(err) {
-    if (err) {
-      return done(err);
-    }
-    // setup clean directory
-    mkdirp(testDirPath).then(() => {
-      done();
-    }, error => done(error));
-  });
-}
+var store
 let data = {
   name: 'test',
   greeting: 'Hello, World!',
@@ -41,24 +28,10 @@ let data = {
   bigDecimal: 3.5522E102,
   negative: -54,
   aNull: null,
-  more: 'another string',
-}
-function setup() {
-  store = open(testDirPath, {
-    sharedStructuresKey: Symbol.for('structures'),
-  })
-  let lastPromise
-  for (let i = 0; i < total; i++) {
-    lastPromise = store.put(i, data)
-  }
-  return lastPromise.then(() => {
-    console.log('all committed');
-  })
+  more: 'string',
 }
 
-var txn;
 var c = 0;
-var k = Buffer.from([2,3])
 let result
 
 function setData(deferred) {
@@ -78,22 +51,51 @@ function plainJSON() {
   result = JSON.parse(jsonBuffer)
 }
 
+if (isMainThread && isMaster) {
+var inspector = require('inspector')
+//inspector.open(9330, null, true)
+
+function cleanup(done) {
+  // cleanup previous test directory
+  rimraf(testDirPath, function(err) {
+    if (err) {
+      return done(err);
+    }
+    // setup clean directory
+    mkdirp(testDirPath).then(() => {
+      done();
+    }, error => done(error));
+  });
+}
+function setup() {
+  store = open(testDirPath, {
+    noMemInit: true,
+    sharedStructuresKey: Symbol.for('structures'),
+  })
+  let lastPromise
+  for (let i = 0; i < total; i++) {
+    lastPromise = store.put(i, data)
+  }
+  return lastPromise.then(() => {
+    console.log('setup completed');
+  })
+}
+
+var txn;
 
 cleanup(async function (err) {
     if (err) {
         throw err;
     }
-debugger
     await setup();
-    suite.add('put', {
+    /*suite.add('put', {
       defer: true,
       fn: setData
-    });
+    });*/
     suite.add('get', getData);
-    suite.add('plainJSON', plainJSON);
+    //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
-      console.log('last result', result)
-      if (result.then) {
+      if (result && result.then) {
         let start = Date.now()
         result.then(() => {
           console.log('last commit took ' + (Date.now() - start) + 'ms')
@@ -103,8 +105,38 @@ debugger
     });
     suite.on('complete', function () {
         console.log('Fastest is ' + this.filter('fastest').map('name'));
+        var numCPUs = require('os').cpus().length;
+        console.log('Now will run benchmark across ' + numCPUs + ' threads');
+        for (var i = 0; i < numCPUs; i++) {
+          var worker = new Worker(__filename);
+          //var worker = fork();
+        }
     });
 
     suite.run({ async: true });
 
 });
+} else {
+  store = open(testDirPath, {
+    noMemInit: true,
+    sharedStructuresKey: Symbol.for('structures'),
+  })
+
+  // other threads
+    suite.add('put', {
+      defer: true,
+      fn: setData
+    });
+    suite.add('get', getData);
+    suite.on('cycle', function (event) {
+      if (result.then) {
+        let start = Date.now()
+        result.then(() => {
+          console.log('last commit took ' + (Date.now() - start) + 'ms')
+        })
+      }
+      console.log(String(event.target));
+    });
+    suite.run({ async: true });
+
+}

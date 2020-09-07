@@ -465,6 +465,17 @@ NAN_METHOD(EnvWrap::resize) {
 
     mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).ToChecked();
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
+    if (rc == EINVAL) {
+        //fprintf(stderr, "Resize failed, will try to get transaction and try again");
+        MDB_txn *txn;
+        rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
+        if (rc != 0)
+            return throwLmdbError(rc);
+        rc = mdb_txn_commit(txn);
+        if (rc != 0)
+            return throwLmdbError(rc);
+        rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
+    }
     if (rc != 0) {
         return throwLmdbError(rc);
     }

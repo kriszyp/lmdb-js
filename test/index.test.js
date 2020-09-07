@@ -72,6 +72,7 @@ describe('lmdb-store', function() {
         await db.put(key,  3);
       let returnedKeys = []
       for (let { key, value } of db.getRange({
+        start: Symbol.for('A')
       })) {
         returnedKeys.push(key)
       }
