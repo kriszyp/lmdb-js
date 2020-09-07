@@ -348,16 +348,11 @@ NAN_METHOD(EnvWrap::open) {
             return;
         }
     }
-    env_path_t envPath;
-    envPath.path = strdup(*charPath);
-    envPath.env = ew->env;
-    envPath.count = 1;
-    envs.push_back(envPath);
-    uv_mutex_unlock(envsLock);
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
+        uv_mutex_unlock(envsLock);
         return throwLmdbError(rc);
     }
 
@@ -367,6 +362,7 @@ NAN_METHOD(EnvWrap::open) {
         mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).ToChecked();
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
+            uv_mutex_unlock(envsLock);
             return throwLmdbError(rc);
         }
     }
@@ -403,9 +399,16 @@ NAN_METHOD(EnvWrap::open) {
 
     if (rc != 0) {
         mdb_env_close(ew->env);
+        uv_mutex_unlock(envsLock);
         ew->env = nullptr;
         return throwLmdbError(rc);
     }
+    env_path_t envPath;
+    envPath.path = strdup(*charPath);
+    envPath.env = ew->env;
+    envPath.count = 1;
+    envs.push_back(envPath);
+    uv_mutex_unlock(envsLock);
 }
 
 NAN_METHOD(EnvWrap::resize) {
