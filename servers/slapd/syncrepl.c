@@ -2654,6 +2654,9 @@ syncrepl_message_to_op(
 		Debug( rc ? LDAP_DEBUG_ANY : LDAP_DEBUG_SYNC,
 			"syncrepl_message_to_op: %s be_delete %s (%d)\n", 
 			si->si_ridtxt, op->o_req_dn.bv_val, rc );
+		/* silently ignore this */
+		if ( rc == LDAP_NO_SUCH_OBJECT )
+			rc = LDAP_SUCCESS;
 		do_graduate = 0;
 		break;
 	}
