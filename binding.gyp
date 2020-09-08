@@ -2,6 +2,7 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_vl32%": "false",
+      "use_fixed_size%": "false"
   },
   "targets": [
     {
@@ -21,7 +22,6 @@
         "src/dbi.cpp",
         "src/cursor.cpp"
       ],
-      "defines": ["MDB_FIXEDSIZE"],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
         "dependencies/lmdb/libraries/liblmdb",
@@ -65,6 +65,9 @@
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
+        }],
+        ["use_fixed_size=='true'", {
+          "defines": ["MDB_FIXEDSIZE"],
         }],
         ["use_vl32=='true'", {
           "conditions": [

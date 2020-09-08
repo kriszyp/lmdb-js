@@ -149,6 +149,10 @@ int putWithVersion(MDB_txn *   txn,
 
 void throwLmdbError(int rc);
 
+class TxnWrap;
+class DbiWrap;
+class EnvWrap;
+class CursorWrap;
 struct env_path_t {
     MDB_env* env;
     char* path;
@@ -168,8 +172,9 @@ private:
     TxnWrap *currentWriteTxn;
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
-    // Constructor for TxnWrap and for DbiWrap
+    // Constructor for TxnWrap
     static thread_local Nan::Persistent<Function>* txnCtor;
+    // Constructor for DbiWrap
     static thread_local Nan::Persistent<Function>* dbiCtor;
     static uv_mutex_t* envsLock;
     static std::vector<env_path_t> envs;

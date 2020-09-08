@@ -93,7 +93,7 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
     int rc;
     const Local<Value> value = options->Get(Nan::GetCurrentContext(), Nan::New<String>(keyName).ToLocalChecked()).ToLocalChecked();
     if (value->IsUint32()) {
-        rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).ToChecked());
+        rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).FromJust());
     }
     else {
         rc = f(e, dflt);
@@ -380,25 +380,21 @@ NAN_METHOD(EnvWrap::open) {
             return;
         }
     }
-    env_path_t envPath;
-    envPath.path = strdup(*charPath);
-    envPath.env = ew->env;
-    envPath.count = 1;
-    envs.push_back(envPath);
-    uv_mutex_unlock(envsLock);
 
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
+        uv_mutex_unlock(envsLock);
         return throwLmdbError(rc);
     }
 
     // Parse the mapSize option
     Local<Value> mapSizeOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
     if (mapSizeOption->IsNumber()) {
-        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
+            uv_mutex_unlock(envsLock);
             return throwLmdbError(rc);
         }
     }
@@ -421,6 +417,8 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
     setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
     setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
+    setFlagFromValue(&flags, MDB_NOMEMINIT , "noMemInit", false, options);
+    setFlagFromValue(&flags, MDB_NORDAHEAD , "noReadAhead", false, options);
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
@@ -434,13 +432,24 @@ NAN_METHOD(EnvWrap::open) {
     flags |= MDB_NOTLS;
 
     // TODO: make file attributes configurable
+    #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
+    #else
+    rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
+    #endif;
 
     if (rc != 0) {
         mdb_env_close(ew->env);
+        uv_mutex_unlock(envsLock);
         ew->env = nullptr;
         return throwLmdbError(rc);
     }
+    env_path_t envPath;
+    envPath.path = strdup(*charPath);
+    envPath.env = ew->env;
+    envPath.count = 1;
+    envs.push_back(envPath);
+    uv_mutex_unlock(envsLock);
 }
 
 NAN_METHOD(EnvWrap::resize) {
@@ -463,7 +472,7 @@ NAN_METHOD(EnvWrap::resize) {
         return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
     }
 
-    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).ToChecked();
+    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
     if (rc == EINVAL) {
         //fprintf(stderr, "Resize failed, will try to get transaction and try again");
@@ -783,7 +792,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         } else
             action->actionType = 2;
 
-        if (value->IsNullOrUndefined()) {
+        if (value->IsNull() || value->IsUndefined()) {
             action->data.mv_data = &DELETE_VALUE;
             action->data.mv_size = 0;
             action->freeValue = nullptr;

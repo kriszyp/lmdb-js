@@ -4,7 +4,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 const { Packr, pack, unpack } = require('msgpackr')
-Object.assign(exports, require('./build/Release/lmdb-store.node'))
+Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 
 const RANGE_BATCH_SIZE = 100
