@@ -88,7 +88,7 @@ if (isMainThread) {
       var value = txn.getBinary(dbi, msg.key);
       
       if (value === null) {
-        parent.postMessage("");
+        parentPort.postMessage("");
       } else {
         parentPort.postMessage(value.toString('hex'));
       }
