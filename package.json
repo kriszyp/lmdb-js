@@ -28,10 +28,11 @@
     "binding"
   ],
   "repository": "https://github.com/Venemo/node-lmdb",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "main": "./index.js",
   "scripts": {
     "install": "node-gyp-build",
+    "recompile": "node-gyp build",
     "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
     "benchmark": "node ./benchmark/index.js"
   },
