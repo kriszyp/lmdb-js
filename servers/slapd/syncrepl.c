@@ -51,7 +51,6 @@ typedef struct cookie_vals {
 } cookie_vals;
 
 typedef struct cookie_state {
-	ldap_pvt_thread_mutex_t	cs_modmutex;
 	ldap_pvt_thread_mutex_t	cs_mutex;
 	ldap_pvt_thread_cond_t cs_cond;
 	struct berval *cs_vals;
@@ -144,7 +143,7 @@ static char *presentlist_find( Avlnode *av, struct berval *syncUUID );
 static int presentlist_free( Avlnode *av );
 static void syncrepl_del_nonpresent( Operation *, syncinfo_t *, BerVarray, struct sync_cookie *, int );
 static int syncrepl_message_to_op(
-					syncinfo_t *, Operation *, LDAPMessage * );
+					syncinfo_t *, Operation *, LDAPMessage *, int );
 static int syncrepl_message_to_entry(
 					syncinfo_t *, Operation *, LDAPMessage *,
 					Modifications **, Entry **, int, struct berval* );
@@ -974,6 +973,20 @@ check_csn_age(
 #define SYNC_PAUSED		-103
 
 static int
+get_pmutex(
+	syncinfo_t *si
+)
+{
+	while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
+		if ( slapd_shutdown )
+			return SYNC_SHUTDOWN;
+		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+			ldap_pvt_thread_yield();
+	}
+	return 0;
+}
+
+static int
 do_syncrep2(
 	Operation *op,
 	syncinfo_t *si )
@@ -1117,14 +1130,8 @@ do_syncrep2(
 						si->si_too_old = 0;
 
 						/* check pending CSNs too */
-						while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
-							if ( slapd_shutdown ) {
-								rc = SYNC_SHUTDOWN;
-								goto done;
-							}
-							if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
-								ldap_pvt_thread_yield();
-						}
+						if (( rc = get_pmutex( si )))
+							goto done;
 
 						i = check_csn_age( si, &bdn, syncCookie.ctxcsn, sid, (cookie_vals *)&si->si_cookieState->cs_pvals, &slot );
 						if ( i == CV_CSN_OK ) {
@@ -1158,7 +1165,7 @@ do_syncrep2(
 			rc = 0;
 			if ( si->si_syncdata && si->si_logstate == SYNCLOG_LOGGING ) {
 				modlist = NULL;
-				if ( ( rc = syncrepl_message_to_op( si, op, msg ) ) == LDAP_SUCCESS &&
+				if ( ( rc = syncrepl_message_to_op( si, op, msg, punlock < 0 ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
 					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
@@ -1185,12 +1192,18 @@ do_syncrep2(
 			} else if ( ( rc = syncrepl_message_to_entry( si, op, msg,
 				&modlist, &entry, syncstate, syncUUID ) ) == LDAP_SUCCESS )
 			{
+				if ( punlock < 0 ) {
+					if (( rc = get_pmutex( si )))
+						goto done;
+				}
 				if ( ( rc = syncrepl_entry( si, op, entry, &modlist,
 					syncstate, syncUUID, syncCookie.ctxcsn ) ) == LDAP_SUCCESS &&
 					syncCookie.ctxcsn )
 				{
 					rc = syncrepl_updateCookie( si, op, &syncCookie, 0 );
 				}
+				if ( punlock < 0 )
+					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 			}
 			if ( punlock >= 0 ) {
 				/* on failure, revert pending CSN */
@@ -2387,7 +2400,8 @@ static int
 syncrepl_message_to_op(
 	syncinfo_t	*si,
 	Operation	*op,
-	LDAPMessage	*msg
+	LDAPMessage	*msg,
+	int do_lock
 )
 {
 	BerElement	*ber = NULL;
@@ -2526,8 +2540,11 @@ syncrepl_message_to_op(
 		goto done;
 	}
 
-	ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_modmutex );
-	do_unlock = 1;
+	if ( do_lock ) {
+		if (( rc = get_pmutex( si )))
+			goto done;
+		do_unlock = 1;
+	}
 	if ( csn.bv_len ) {
 		int i, sid = slap_parse_csn_sid( &csn );
 		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
@@ -2664,7 +2681,7 @@ done:
 	if ( do_graduate )
 		slap_graduate_commit_csn( op );
 	if ( do_unlock )
-		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_modmutex );
+		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_pmutex );
 	op->o_bd = si->si_be;
 	op->o_tmpfree( op->o_csn.bv_val, op->o_tmpmemctx );
 	BER_BVZERO( &op->o_csn );
@@ -4926,7 +4943,6 @@ syncinfo_free( syncinfo_t *sie, int free_all )
 				ber_bvarray_free( sie->si_cookieState->cs_vals );
 				ldap_pvt_thread_cond_destroy( &sie->si_cookieState->cs_cond );
 				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_mutex );
-				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_modmutex );
 				ch_free( sie->si_cookieState->cs_psids );
 				ber_bvarray_free( sie->si_cookieState->cs_pvals );
 				ldap_pvt_thread_mutex_destroy( &sie->si_cookieState->cs_pmutex );
@@ -5725,7 +5741,6 @@ add_syncrepl(
 			sip->si_next = si;
 		} else {
 			si->si_cookieState = ch_calloc( 1, sizeof( cookie_state ));
-			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_modmutex );
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_mutex );
 			ldap_pvt_thread_mutex_init( &si->si_cookieState->cs_pmutex );
 			ldap_pvt_thread_cond_init( &si->si_cookieState->cs_cond );
