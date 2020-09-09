@@ -75,6 +75,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.5
     This release includes the following major components:
 
         * slapd - a stand-alone LDAP directory server
+        * lloadd - a stand-alone LDAP load balancing proxy server
         * -lldap - a LDAP client library
         * -llber - a lightweight BER/DER encoding/decoding library
         * LDIF tools - data conversion tools for use with slapd
