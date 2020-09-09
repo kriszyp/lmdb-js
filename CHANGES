@@ -1,6 +1,9 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.54 Engineering
+	Fixed slapd delta-syncrepl to ignore delete ops on deleted entry (ITS#9342)
+	Fixed slapd delta-syncrepl to be fully serialized (ITS#9330)
+	Fixed slapd sycnrepl to be fully serialized (ITS#8102)
 
 OpenLDAP 2.4.53 (2020/09/07)
 	Added slapd syncrepl additional SYNC logging (ITS#9043)
