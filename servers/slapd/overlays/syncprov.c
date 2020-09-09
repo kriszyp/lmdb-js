@@ -1953,7 +1953,7 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	syncprov_info_t *si = (syncprov_info_t *)on->on_bi.bi_private;
 	sessionlog *sl = si->si_logs;
-	int i, j, ndel, num, nmods, mmods, do_play = 0, rc = -1;
+	int i, j, ndel, num, nmods, mmods, do_play = 0, rc = -1, *sidchks;
 	BerVarray uuids, csns;
 	struct berval uuid[2] = {}, csn[2] = {};
 	slog_entry *se;
@@ -1998,6 +1998,8 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	sl->sl_playing++;
 	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 
+	sidchks = op->o_tmpcalloc( srs->sr_state.numcsns + 1, sizeof( int ),
+			op->o_tmpmemctx );
 	uuids = op->o_tmpalloc( (num) * sizeof( struct berval ) +
 			num * UUID_LEN, op->o_tmpmemctx );
 	uuids[0].bv_val = (char *)(uuids + num);
@@ -2009,36 +2011,44 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	 * and everything else at the end. Do this first so we can
 	 * unlock the list mutex.
 	 */
-	Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-		"sync control csn %s\n",
-		op->o_log_prefix, srs->sr_state.ctxcsn[0].bv_val );
 	for ( se=sl->sl_head; se; se=se->se_next ) {
 		char uuidstr[40] = {};
 		int k;
 
-		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-			if ( !BER_BVISEMPTY( &se->se_uuid ) ) {
-				lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
-					uuidstr, 40 );
-			}
-			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-				"log entry tag=%lu uuid=%s cookie=%s\n",
-				op->o_log_prefix, se->se_tag, uuidstr, se->se_csn.bv_val );
-		}
 
 		ndel = 1;
 		for ( k=0; k<srs->sr_state.numcsns; k++ ) {
 			if ( se->se_sid == srs->sr_state.sids[k] ) {
 				ndel = ber_bvcmp( &se->se_csn, &srs->sr_state.ctxcsn[k] );
+				if ( !sidchks[k] || ndel > 0 ) {
+					if ( LogTest( LDAP_DEBUG_SYNC ) ) {
+						if ( !sidchks[k] ) {
+							Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
+								"sync control csn %s\n",
+								op->o_log_prefix, srs->sr_state.ctxcsn[k].bv_val );
+						}
+						if ( !BER_BVISEMPTY( &se->se_uuid ) ) {
+							lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
+								uuidstr, 40 );
+						}
+						Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
+							"log entry tag=%lu uuid=%s cookie=%s\n",
+							op->o_log_prefix, se->se_tag, uuidstr, se->se_csn.bv_val );
+					}
+				}
 				break;
 			}
 		}
 		if ( ndel <= 0 ) {
-			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-				"cmp %d, csn %s too old, skipping\n",
-				op->o_log_prefix, ndel, se->se_csn.bv_val );
+			if ( !sidchks[k] ) {
+				Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
+					"cmp %d, csn %s too old, skipping\n",
+					op->o_log_prefix, ndel, se->se_csn.bv_val );
+				sidchks[k] = 1;
+			}
 			continue;
 		}
+		sidchks[k] = 1;
 		ndel = 0;
 		for ( k=0; k<numcsns; k++ ) {
 			if ( se->se_sid == sids[k] ) {
@@ -2079,6 +2089,8 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 	sl->sl_playing--;
 	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+
+	op->o_tmpfree( sidchks, op->o_tmpmemctx );
 
 	ndel = i;
 
