@@ -2078,12 +2078,14 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		csns[j].bv_val = csns[0].bv_val + (j * LDAP_PVT_CSNSTR_BUFSIZE);
 		AC_MEMCPY(csns[j].bv_val, se->se_csn.bv_val, se->se_csn.bv_len);
 		csns[j].bv_len = se->se_csn.bv_len;
+		/* We're printing it */
+		csns[j].bv_val[csns[j].bv_len] = '\0';
 
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"picking a %s entry uuid=%s cookie=%s\n",
 				op->o_log_prefix, se->se_tag == LDAP_REQ_DELETE ? "deleted" : "modified",
-				uuidstr, csns[j].bv_len ? csns[j].bv_val : "(null)" );
+				uuidstr, csns[j].bv_val );
 		}
 	}
 	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
