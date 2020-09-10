@@ -2226,6 +2226,20 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 	if ( !mod )
 		return SLAP_CB_CONTINUE;
 
+	{
+		int sid = slap_parse_csn_sid( &mod->sml_nvalues[0] );
+		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+		rc = check_csn_age( si, &op->o_req_dn, &mod->sml_nvalues[0],
+			sid, (cookie_vals *)&si->si_cookieState->cs_vals, NULL );
+		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+		if ( rc == CV_CSN_OLD ) {
+			slap_graduate_commit_csn( op );
+			/* tell accesslog this was a failure */
+			rs->sr_err = LDAP_TYPE_OR_VALUE_EXISTS;
+			return LDAP_SUCCESS;
+		}
+	}
+
 	rc = overlay_entry_get_ov( op, &op->o_req_ndn, NULL, NULL, 0, &e, on );
 	if ( rc == 0 ) {
 		Attribute *a;
@@ -2413,14 +2427,12 @@ syncrepl_message_to_op(
 	const char	*text;
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
-	char csnbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 
 	struct berval	bdn, dn = BER_BVNULL, ndn;
 	struct berval	bv, bv2, *bvals = NULL;
 	struct berval	rdn = BER_BVNULL, sup = BER_BVNULL,
 		prdn = BER_BVNULL, nrdn = BER_BVNULL,
 		psup = BER_BVNULL, nsup = BER_BVNULL;
-	struct berval	csn = {0, csnbuf};
 	int		rc, deleteOldRdn = 0, freeReqDn = 0;
 	int		do_graduate = 0, do_unlock = 0;
 
@@ -2523,13 +2535,8 @@ syncrepl_message_to_op(
 		} else if ( !ber_bvstrcasecmp( &bv,
 			&slap_schema.si_ad_entryCSN->ad_cname ) )
 		{
-			int len = bvals->bv_len;
-			if ( bvals->bv_len >= sizeof(csnbuf) )
-				csn.bv_len = sizeof(csnbuf) - 1;
-			else
-				csn.bv_len = bvals->bv_len;
-			AC_MEMCPY( csn.bv_val, bvals->bv_val, csn.bv_len );
-			csn.bv_val[csn.bv_len] = '\0';
+			slap_queue_csn( op, bvals );
+			do_graduate = 1;
 		}
 		ch_free( bvals );
 	}
@@ -2544,19 +2551,6 @@ syncrepl_message_to_op(
 		if (( rc = get_pmutex( si )))
 			goto done;
 		do_unlock = 1;
-	}
-	if ( csn.bv_len ) {
-		int i, sid = slap_parse_csn_sid( &csn );
-		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
-		i = check_csn_age( si, &bdn, &csn, sid, (cookie_vals *)&si->si_cookieState->cs_vals, NULL );
-		ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
-		if ( i == CV_CSN_OLD ) {
-			/* skip this op */
-			rc = -1;
-			goto done;
-		}
-		slap_queue_csn( op, &csn );
-		do_graduate = 1;
 	}
 
 	op->o_callback = &cb;
