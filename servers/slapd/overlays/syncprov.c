@@ -1705,7 +1705,7 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	slog_entry *se;
-	int i, j, ndel, num, nmods, mmods, *sidchks;
+	int i, j, ndel, num, nmods, mmods;
 	char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	BerVarray uuids;
 	struct berval delcsn[2];
@@ -1721,7 +1721,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	sl->sl_playing++;
 	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
 
-	sidchks = op->o_tmpcalloc( srs->sr_state.numcsns + 1, sizeof(int), op->o_tmpmemctx );
 	uuids = op->o_tmpalloc( (num+1) * sizeof( struct berval ) +
 		num * UUID_LEN, op->o_tmpmemctx );
 	uuids[0].bv_val = (char *)(uuids + num + 1);
@@ -1741,38 +1740,12 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		for ( k=0; k<srs->sr_state.numcsns; k++ ) {
 			if ( se->se_sid == srs->sr_state.sids[k] ) {
 				ndel = ber_bvcmp( &se->se_csn, &srs->sr_state.ctxcsn[k] );
-				if ( !sidchks[k] || ndel > 0 ) {
-					if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-						char uuidstr[40], *uuidp;
-						if ( se->se_uuid.bv_len ) {
-							lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
-								uuidstr, 40 );
-							uuidp = uuidstr;
-						} else {
-							uuidp = "";
-						}
-						if ( !sidchks[k] ) {
-							Log2( LDAP_DEBUG_SYNC, ldap_syslog_level, "%s syncprov_playlog: "
-								"srs csn %s\n",
-								op->o_log_prefix, srs->sr_state.ctxcsn[k].bv_val );
-						}
-						Log4( LDAP_DEBUG_SYNC, ldap_syslog_level, "%s syncprov_playlog: "
-							"log entry tag=%lu uuid=%s cookie=%s\n",
-							op->o_log_prefix, se->se_tag, uuidp, se->se_csn.bv_val );
-					}
-				}
 				break;
 			}
 		}
 		if ( ndel <= 0 ) {
-			if ( !sidchks[k] ) {
-				Debug( LDAP_DEBUG_SYNC, "%s syncprov_playlog: "
-					"cmp %d, too old\n", op->o_log_prefix, ndel, 0 );
-				sidchks[k] = 1;
-			}
 			continue;
 		}
-		sidchks[k] = 1;
 		ndel = 0;
 		for ( k=0; k<numcsns; k++ ) {
 			if ( se->se_sid == sids[k] ) {
@@ -1814,8 +1787,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
 	sl->sl_playing--;
 	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
-
-	op->o_tmpfree( sidchks, op->o_tmpmemctx );
 
 	ndel = i;
 
