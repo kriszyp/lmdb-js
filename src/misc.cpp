@@ -371,18 +371,22 @@ void writeValueToEntry(const Local<Value> &value, MDB_val *val) {
             (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
         char *data = new char[byteLength];
         int utfWritten = 0;
-        #if NODE_VERSION_AT_LEAST(10,0,0)
+#if NODE_VERSION_AT_LEAST(11,0,0)
         int bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+#else
+        int bytes = str->WriteUtf8(data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+#endif        
         if (utfWritten < strLength) {
             // we didn't allocate enough memory, need to expand
             delete[] data;
             byteLength = strLength * 3;
             data = new char[byteLength];
+#if NODE_VERSION_AT_LEAST(11,0,0)
             bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+#else
+            bytes = str->WriteUtf8(data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+#endif        
         }
-        #else
-        str->Write(data, 0);
-        #endif
         val->mv_data = data;
         val->mv_size = bytes;
         //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);

@@ -23,7 +23,11 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
     if (jsKey->IsString()) {
         int utfWritten = 0;
         Local<String> string = Local<String>::Cast(jsKey);
+        #if NODE_VERSION_AT_LEAST(11,0,0)
         bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes, remainingBytes, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        #else
+        bytesWritten = string->WriteUtf8((char*) targetBytes, remainingBytes, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        #endif
         if (utfWritten < string->Length()) {
             if (throwErrors)
                 Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
@@ -42,10 +46,15 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         return bytesWritten;
     }
 
-    if (jsKey->IsNumber() || jsKey->IsBigInt()) {
+    if (jsKey->IsNumber()
+#if NODE_VERSION_AT_LEAST(12,0,0)
+        || jsKey->IsBigInt()
+#endif
+        ) {
         double number;
         if (jsKey->IsNumber())
             number = Local<Number>::Cast(jsKey)->Value();
+#if NODE_VERSION_AT_LEAST(12,0,0)
         else {
             bool lossless = true;
             number = (double) Local<BigInt>::Cast(jsKey)->Int64Value(&lossless);
@@ -55,6 +64,7 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
                 return 0;
             }
         }
+#endif
         uint64_t asInt = *((uint64_t*) &number);
         if (number < 0) {
             asInt = asInt ^ 0x7fffffffffffffff;
@@ -107,7 +117,7 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
             remainingBytes -= size;
         }
         return bytesWritten;
-    } else if (jsKey->IsNullOrUndefined()) {
+    } else if (jsKey->IsNull()) {
         targetBytes[0] = 0;
         return 1;
     } else if (jsKey->IsBoolean()) {
@@ -126,7 +136,11 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         int utfWritten;
         Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Name());
         targetBytes[0] = 2;
+#if NODE_VERSION_AT_LEAST(11,0,0)
         bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
+#else
+        bytesWritten = string->WriteUtf8((char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
+#endif
         if (utfWritten < string->Length()) {
             Nan::ThrowError("Symbol name is too long to fit in a key with a maximum of 511 bytes");
             return 0;

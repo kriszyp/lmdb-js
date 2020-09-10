@@ -256,7 +256,7 @@ NAN_METHOD(TxnWrap::getRange) {
         // argToKey already threw an error
         return;
     }
-    bool hasEnd = argCount > 2 && !info[2]->IsNullOrUndefined();
+    bool hasEnd = argCount > 2 && !info[2]->IsUndefined();
     auto freeKeyEnd = hasEnd ? argToKey(info[2], endKey, NodeLmdbKeyType::StringKey, keyIsValid) : nullptr;
     if (!keyIsValid) {
         // argToKey already threw an error
