@@ -162,10 +162,11 @@ typedef struct syncinfo_s {
 	int		si_monitorInited;
 	time_t	si_lastconnect;
 	time_t	si_lastcontact;
-	struct berval	*si_connaddr;
+	struct berval	si_connaddr;
 	struct berval	si_lastCookieRcvd;
 	struct berval	si_lastCookieSent;
 	struct berval	si_monitor_ndn;
+	char	si_connaddrbuf[SLAP_ADDRLEN];
 
 	ldap_pvt_thread_mutex_t	si_monitor_mutex;
 	ldap_pvt_thread_mutex_t	si_mutex;
@@ -732,7 +733,7 @@ merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
 	newcsns = ch_malloc( sizeof(struct berval) * ( i + 1 ));
 
 	for ( i=0, j=0, k=0; i < ei || j < ej ; ) {
-		if ( sc1->sids[i] == -1 ) {
+		if ( i < ei && sc1->sids[i] == -1 ) {
 			i++;
 			continue;
 		}
@@ -2045,12 +2046,14 @@ reload:
 	if ( rc == LDAP_SUCCESS ) {
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
-		if ( si->si_connaddr ) {
+		if ( !BER_BVISEMPTY( &si->si_monitor_ndn ))
+		{
 			Sockaddr addr;
 			socklen_t len = sizeof( addr );
 			if ( !getsockname( s, &addr.sa_addr, &len )) {
-				si->si_connaddr->bv_len = SLAP_ADDRLEN;
-				slap_sockaddrstr( &addr, si->si_connaddr );
+				si->si_connaddr.bv_val = si->si_connaddrbuf;
+				si->si_connaddr.bv_len = sizeof( si->si_connaddrbuf );
+				slap_sockaddrstr( &addr, &si->si_connaddr );
 			}
 		}
 
@@ -6711,6 +6714,10 @@ syncrepl_monitor_update(
 	if ( !a )
 		return SLAP_CB_CONTINUE;
 	if ( si->si_ld ) {
+		if (!bvmatch( &a->a_vals[0], &si->si_connaddr )) {
+			AC_MEMCPY( a->a_vals[0].bv_val, si->si_connaddr.bv_val, si->si_connaddr.bv_len );
+			a->a_vals[0].bv_len = si->si_connaddr.bv_len;
+		}
 		isConnected = 1;
 	} else {
 		a->a_vals[0].bv_val[0] = '\0';
@@ -6857,10 +6864,10 @@ syncrepl_monitor_add(
 		&si->si_bindconf.sb_uri, NULL );
 
 	{
-		char addrbuf[SLAP_ADDRLEN];
-		struct berval bv = BER_BVC(addrbuf);
-		addrbuf[0] = '\0';
-		attr_merge_normalize_one( e, ad_olmConnection, &bv, NULL );
+		si->si_connaddr.bv_val = si->si_connaddrbuf;
+		si->si_connaddr.bv_len = sizeof( si->si_connaddrbuf );
+		si->si_connaddrbuf[0] = '\0';
+		attr_merge_normalize_one( e, ad_olmConnection, &si->si_connaddr, NULL );
 	}
 	{
 		struct berval bv = BER_BVC("Refresh");
@@ -6881,15 +6888,6 @@ syncrepl_monitor_add(
 		cb->mc_update = syncrepl_monitor_update;
 		cb->mc_private = si;
 		rc = mbe->register_entry( e, cb, NULL, 0 );
-	}
-
-	p = mbe->entry_get_unlocked( &e->e_nname );
-	if ( p ) {
-		Attribute *a = attr_find( p->e_attrs, ad_olmConnection );
-		if ( a ) {
-			si->si_connaddr = &a->a_vals[0];
-			a->a_vals[0].bv_len = 0;
-		}
 	}
 
 	si->si_monitor_ndn = e->e_nname;
