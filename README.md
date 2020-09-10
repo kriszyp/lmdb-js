@@ -1,14 +1,14 @@
-`lmdb-store` is an extremely fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, ACID-compliant, database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+`lmdb-store` is an incredibly fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, ACID-compliant, database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary data
-* Queueing asynchronous write operations with promise-based API
+* Queueing asynchronous off-thread write operations with promise-based API
 * Automated database size handling
-* Transaction management
+* Simpe transaction management
 * Iterable queries/cursors
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression
-* And super fast:
+* And ridiculously fast and efficient:
 
-Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using a JS number as a key, retrieving data from the database, and decoding the data into a 10-property structured object can be done in about one microsecond, or a little over a 1,000,000/sec on a single thread. This is faster than a single native JSON.parse call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 3,000,000 operations/sec on the same 4/8 core computer by running across multiple threads. By running writes on a separate transactional thread, these are extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second.
+Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a 10-property structured object can be done in less than one microsecond, or a little over a 1,200,000/sec on a single thread. This is almost twice as fast as a single native JSON.parse call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 4,500,000 operations/sec on the same 4/8 core computer by running across multiple threads. By running writes on a separate transactional thread, these are extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
 ## Design
 
