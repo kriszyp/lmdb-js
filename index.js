@@ -225,8 +225,11 @@ function open(path, options) {
 				if (version == null) {
 					if (version === null)
 						version = -4.2434325325532E-199 // NO_EXIST_VERSION
-					else // if undefined, just do callback without any condition being added
+					else {// if undefined, just do callback without any condition being added
 						callback()
+						// TODO: if we are inside another ifVersion, use that promise, or use ANY_VERSION
+						return pendingBatch ? pendingBatch.unconditionalResults : Promise.resolve(true) // be consistent in returning a promise, indicate success
+					}
 				} else {
 					throw new Error('Version must be a number or null')
 				}
@@ -748,12 +751,12 @@ function open(path, options) {
 			return retry()
 		}
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
-			const newSize = Math.ceil(env.info().mapSize * 1.3 / 0x200000 + 1) * 0x200000
+			const newSize = env.info().mapSize * 2
 			for (const store of stores) {
 				store.emit('remap')
 			}
 
-			console.log('Resizing database', name, 'to', newSize, 'process', process.pid)
+			console.debug('Resizing database', name, 'to', newSize)
 			env.resize(newSize)
 			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)
