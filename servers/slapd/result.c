@@ -43,7 +43,7 @@
 	char timestr[64]; \
 	(void) gettimeofday( &now, NULL ); \
 	now.tv_sec -= op->o_time; \
-	now.tv_usec -= op->o_tincr; \
+	now.tv_usec -= op->o_tusec; \
 	if ( now.tv_usec < 0 ) { \
 		--now.tv_sec; now.tv_usec += 1000000; \
 	} \
