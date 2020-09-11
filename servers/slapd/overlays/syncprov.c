@@ -1169,7 +1169,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	}
 	Debug( LDAP_DEBUG_SYNC, "%s syncprov_qresp: "
 		"set up a new syncres mode=%d csn=%s\n",
-		so->s_op->o_log_prefix, mode, csn.bv_val );
+		so->s_op->o_log_prefix, mode, csn.bv_val ? csn.bv_val : "" );
 	ldap_pvt_thread_mutex_unlock( &ri->ri_mutex );
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
