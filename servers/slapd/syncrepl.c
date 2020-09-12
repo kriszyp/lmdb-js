@@ -1067,12 +1067,8 @@ do_syncrep1(
 			}
 			ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 		}
+		}
 
-		ch_free( si->si_syncCookie.octet_str.bv_val );
-		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-			si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-			si->si_syncCookie.sid, NULL );
-	} else {
 		/* ITS#6367: recreate the cookie so it has our SID, not our peer's */
 		ch_free( si->si_syncCookie.octet_str.bv_val );
 		BER_BVZERO( &si->si_syncCookie.octet_str );
@@ -1082,8 +1078,6 @@ do_syncrep1(
 			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
 				si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
 				si->si_syncCookie.sid, NULL );
-	}
-
 	}
 
 	Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s starting refresh (sending cookie=%s)\n",
