@@ -43,7 +43,7 @@ if test -n "${openssl}"; then
 		"${openssl}" dgst "-$TLS_PEERKEY_HASHALG" -binary 2>/dev/null | \
 		"${openssl}" enc -base64 2>/dev/null`"
 
-	TLS_PEERKEY_HASHED_FAIL="$TLS_PEERKEY_HASHALG:`echo "a fake key to hash" | \
+	TLS_PEERKEY_HASHED_FAIL="$TLS_PEERKEY_HASHALG:`echo \"a fake key to hash\" | \
 		"${openssl}" dgst "-$TLS_PEERKEY_HASHALG" -binary 2>/dev/null | \
 		"${openssl}" enc -base64 2>/dev/null`"
 elif test -n "${certtool}" && test -n "${base64}"; then
