@@ -54,6 +54,17 @@ describe('Node.js LMDB Bindings', function() {
     env.info.should.be.a('function');
     env.close();
   });
+  it.skip('will open multiple environments and begin transactions', function() {
+    this.timeout(10000);
+    for (let i =0; i < 12; i++) {
+      var env = new lmdb.Env();
+      env.open({
+        path: testDirPath + '/data' + i + '.mdb',
+        noSubdir: true
+      });
+      env.beginTxn();
+    }
+  });
   describe('Basics', function() {
     this.timeout(10000);
     var env;
