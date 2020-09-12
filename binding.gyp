@@ -57,6 +57,7 @@
           ]
         }],
         ["OS=='mac'", {
+          "defines": ["MDB_USE_POSIX_SEM"],
           "xcode_settings": {
             "OTHER_CPLUSPLUSFLAGS" : ["-std=c++11"],
             "MACOSX_DEPLOYMENT_TARGET": "10.7",
