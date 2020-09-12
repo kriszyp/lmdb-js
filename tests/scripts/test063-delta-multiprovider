@@ -25,7 +25,7 @@ if test $ACCESSLOG = accesslogno; then
 	exit 0
 fi
 
-MPR=2
+MPR=${MPR-4}
 
 XDIR=$TESTDIR/srv
 TMP=$TESTDIR/tmp
@@ -76,14 +76,20 @@ CFDIR=${XDIR}$n/slapd.d
 
 mkdir -p ${XDIR}$n $DBDIR.1 $DBDIR.2 $CFDIR
 
-o=`expr 3 - $n`
 cat > $TMP <<EOF
 dn: cn=config
 objectClass: olcGlobal
 cn: config
-olcServerID: $n
-
 EOF
+
+o=1
+while [ $o -le $MPR ]; do
+PORT=`expr $BASEPORT + $o`
+URI="ldap://${LOCALHOST}:$PORT/"
+echo "olcServerID: $o $URI" >> $TMP
+o=`expr $o + 1`
+done
+echo "" >> $TMP
 
 if [ "$SYNCPROV" = syncprovmod -o "$ACCESSLOG" = accesslogmod ]; then
   cat <<EOF >> $TMP
@@ -175,11 +181,23 @@ olcSuffix: $BASEDN
 ${nullExclude}olcDbDirectory: ${DBDIR}.2
 olcRootDN: $MANAGERDN
 olcRootPW: $PASSWD
-olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
+EOF
+
+o=1
+while [ $o -le $MPR ]; do
+PORT=`expr $BASEPORT + $o`
+URI="ldap://${LOCALHOST}:$PORT/"
+cat >>$TMP <<EOF
+olcSyncRepl: rid=00$o provider=$URI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
   syncdata=accesslog
+EOF
+o=`expr $o + 1`
+done
+
+cat >> $TMP <<EOF
 olcMultiProvider: TRUE
 $INDEX2
 
@@ -222,6 +240,7 @@ KILLPIDS="$PID $KILLPIDS"
 cd $TESTWD
 
 echo "Using ldapsearch to check that server $n is running..."
+sleep 1
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "" -H $MYURI \
 		'objectclass=*' > /dev/null 2>&1
@@ -364,22 +383,14 @@ done
 
 echo "Breaking replication between server 1 and 2..."
 n=1
-while [ $n -le $MPR ]; do
-o=`expr 3 - $n`
+while [ $n -le 2 ]; do
 MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URI'$o`
+o=`expr $n - 1`
 $LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
-replace: olcSyncRepl
-olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
-  credentials=InvalidPw searchbase="$BASEDN" $SYNCTYPE
-  retry="3 +" timeout=3 logbase="cn=log"
-  logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
-  syncdata=accesslog
+delete: olcSyncRepl
 -
-replace: olcMultiProvider
-olcMultiProvider: TRUE
 
 EOF
 RC=$?
@@ -512,25 +523,33 @@ if test $RC != 0 ; then
 fi
 
 echo "Restoring replication between server 1 and 2..."
-n=1
-while [ $n -le $MPR ]; do
-o=`expr 3 - $n`
-MYURI=`eval echo '$URI'$n`
-PROVIDERURI=`eval echo '$URI'$o`
-$LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <<EOF
+cat > $TMP <<EOF
 dn: olcDatabase={2}$BACKEND,cn=config
 changetype: modify
-replace: olcSyncRepl
-olcSyncRepl: rid=001 provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
+add: olcSyncRepl
+EOF
+n=1
+while [ $n -le $MPR ]; do
+MYURI=`eval echo '$URI'$n`
+PROVIDERURI=`eval echo '$URI'$n`
+cat >> $TMP <<EOF
+olcSyncRepl: rid=00$n provider=$PROVIDERURI binddn="$MANAGERDN" bindmethod=simple
   credentials=$PASSWD searchbase="$BASEDN" $SYNCTYPE
   retry="3 +" timeout=3 logbase="cn=log"
   logfilter="(&(objectclass=auditWriteObject)(reqresult=0))"
   syncdata=accesslog
+EOF
+n=`expr $n + 1`
+done
+cat >> $TMP <<EOF
 -
 replace: olcMultiProvider
 olcMultiProvider: TRUE
-
 EOF
+n=1
+while [ $n -le 2 ]; do
+MYURI=`eval echo '$URI'$n`
+$LDAPMODIFY -D cn=config -H $MYURI -y $CONFIGPWF > $TESTOUT 2>&1 <$TMP
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapmodify failed for server $n config ($RC)!"
