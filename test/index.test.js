@@ -9,6 +9,7 @@ let expect = chai.expect;
 let spawn = require('child_process').spawn;
 
 let { open, getLastVersion } = require('..');
+import('./module.test.mjs')
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata.mdb');
