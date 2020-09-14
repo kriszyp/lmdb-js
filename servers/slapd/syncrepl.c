@@ -1069,15 +1069,17 @@ do_syncrep1(
 		}
 		}
 
-		/* ITS#6367: recreate the cookie so it has our SID, not our peer's */
-		ch_free( si->si_syncCookie.octet_str.bv_val );
-		BER_BVZERO( &si->si_syncCookie.octet_str );
-		/* Look for contextCSN from syncprov overlay. */
-		check_syncprov( op, si );
-		if ( BER_BVISNULL( &si->si_syncCookie.octet_str ))
-			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-				si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
-				si->si_syncCookie.sid, NULL );
+		if ( !cmdline_cookie_found ) {
+			/* ITS#6367: recreate the cookie so it has our SID, not our peer's */
+			ch_free( si->si_syncCookie.octet_str.bv_val );
+			BER_BVZERO( &si->si_syncCookie.octet_str );
+			/* Look for contextCSN from syncprov overlay. */
+			check_syncprov( op, si );
+			if ( BER_BVISNULL( &si->si_syncCookie.octet_str ))
+				slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+					si->si_syncCookie.ctxcsn, si->si_syncCookie.rid,
+					si->si_syncCookie.sid, NULL );
+		}
 	}
 
 	Debug( LDAP_DEBUG_SYNC, "do_syncrep1: %s starting refresh (sending cookie=%s)\n",
