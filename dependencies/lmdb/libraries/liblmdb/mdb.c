@@ -394,6 +394,8 @@ mdb_sem_wait(sem_t *sem)
 {
    int rc;
    while ((rc = sem_wait(sem)) && (rc = errno) == EINTR) ;
+   if (rc == EINVAL)
+	fprintf(stderr, "Bad posix semaphore wait!\n");
    return rc;
 }
 
@@ -426,9 +428,8 @@ mdb_sem_wait(mdb_mutexref_t sem)
 			break;
 		}
 	} while ((rc = errno) == EINTR);
-	if (rc == EINVAL) {
-		fprintf(stderr, "Bad lock!\n");
-	}
+	if (rc == EINVAL)
+		fprintf(stderr, "Bad sysv semaphore operation!\n");
 	return rc;
 }
 
