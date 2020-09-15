@@ -5357,6 +5357,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	}
 	if (*excl > 0) {
 #ifdef _WIN32
+fprintf(stderr, "Using Windows Mutexes\n");
+
 		BY_HANDLE_FILE_INFORMATION stbuf;
 		struct {
 			DWORD volume;
@@ -5384,6 +5386,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_wmutex = CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
+fprintf(stderr, "Using Posix Semaphores\n");
 		struct stat stbuf;
 		struct {
 			dev_t dev;
@@ -5416,6 +5419,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
+fprintf(stderr, "Using SysV Semaphores\n");
 		unsigned short vals[2] = {1, 1};
 		key_t key = ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
 		if (key == -1)
@@ -5430,6 +5434,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_txns->mti_rlocked = 0;
 		env->me_txns->mti_wlocked = 0;
 #else	/* MDB_USE_POSIX_MUTEX: */
+fprintf(stderr, "Using Posix mutex\n");
 		pthread_mutexattr_t mattr;
 
 		/* Solaris needs this before initing a robust mutex.  Otherwise
@@ -5443,6 +5448,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 			goto fail;
 		rc = pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
 #ifdef MDB_ROBUST_SUPPORTED
+fprintf(stderr, "Using robust Posix mutex\n");
 		if (!rc) rc = pthread_mutexattr_setrobust(&mattr, PTHREAD_MUTEX_ROBUST);
 #endif
 		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_rmutex, &mattr);
@@ -5483,12 +5489,14 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_wmutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
+fprintf(stderr, "Opening Posix semaphores\n");
 		mdb_env_mname_init(env);
 		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), 0);
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), 0);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
+fprintf(stderr, "Opening SysV semaphores\n");
 		semid = env->me_txns->mti_semid;
 		semu.buf = &buf;
 		/* check for read access */
