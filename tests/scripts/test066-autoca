@@ -246,77 +246,81 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-# note - the attrs are being saved in raw DER form.
-# they need to be base64 encoded into PEM for most programs to use them
-# so we ignore those files for now.
-echo "Using ldapsearch to generate user cert..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
-	-T $TESTDIR -t 'objectclass=*' 'userCertificate;binary' 'userPrivateKey;binary'  >> $TESTOUT 2>&1
-RC=$?
+if test $WITH_SASL = no ; then
+	echo "SASL support not available, skipping client cert authentication"
+else
+	# note - the attrs are being saved in raw DER form.
+	# they need to be base64 encoded into PEM for most programs to use them
+	# so we ignore those files for now.
+	echo "Using ldapsearch to generate user cert..."
+	$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
+		-T $TESTDIR -t 'objectclass=*' 'userCertificate;binary' 'userPrivateKey;binary'  >> $TESTOUT 2>&1
+	RC=$?
 
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-echo "Using ldapsearch to retrieve user cert..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
-	'objectclass=*' 'userCertificate;binary' > $SEARCHOUT 2>&1
-RC=$?
+	echo "Using ldapsearch to retrieve user cert..."
+	$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
+		'objectclass=*' 'userCertificate;binary' > $SEARCHOUT 2>&1
+	RC=$?
 
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-echo "Setting up user cert..."
-echo "-----BEGIN CERTIFICATE-----" > $TESTDIR/usercert.pem
-sed -e "/^dn:/d" -e "/^ dc=com/d" -e "s/userCertificate;binary:://" -e "/^$/d" $SEARCHOUT >> $TESTDIR/usercert.pem
-echo "-----END CERTIFICATE-----" >> $TESTDIR/usercert.pem
+	echo "Setting up user cert..."
+	echo "-----BEGIN CERTIFICATE-----" > $TESTDIR/usercert.pem
+	sed -e "/^dn:/d" -e "/^ dc=com/d" -e "s/userCertificate;binary:://" -e "/^$/d" $SEARCHOUT >> $TESTDIR/usercert.pem
+	echo "-----END CERTIFICATE-----" >> $TESTDIR/usercert.pem
 
-echo "Using ldapsearch to retrieve user key..."
-$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
-	'objectclass=*' 'userPrivateKey;binary' > $SEARCHOUT 2>&1
-RC=$?
+	echo "Using ldapsearch to retrieve user key..."
+	$LDAPSEARCH -b "$BABSDN" -D $MANAGERDN -H $URIP1 -w $PASSWD -s base -ZZ \
+		'objectclass=*' 'userPrivateKey;binary' > $SEARCHOUT 2>&1
+	RC=$?
 
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	if test $RC != 0 ; then
+		echo "ldapsearch failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-echo "Setting up user key..."
-echo "-----BEGIN PRIVATE KEY-----" > $TESTDIR/userkey.pem
-sed -e "/^dn:/d" -e "/^ dc=com/d" -e "s/userPrivateKey;binary:://" -e "/^$/d" $SEARCHOUT >> $TESTDIR/userkey.pem
-echo "-----END PRIVATE KEY-----" >> $TESTDIR/userkey.pem
+	echo "Setting up user key..."
+	echo "-----BEGIN PRIVATE KEY-----" > $TESTDIR/userkey.pem
+	sed -e "/^dn:/d" -e "/^ dc=com/d" -e "s/userPrivateKey;binary:://" -e "/^$/d" $SEARCHOUT >> $TESTDIR/userkey.pem
+	echo "-----END PRIVATE KEY-----" >> $TESTDIR/userkey.pem
 
-LDAPTLS_CERT=$TESTDIR/usercert.pem
-LDAPTLS_KEY=$TESTDIR/userkey.pem
-export LDAPTLS_CERT
-export LDAPTLS_KEY
+	LDAPTLS_CERT=$TESTDIR/usercert.pem
+	LDAPTLS_KEY=$TESTDIR/userkey.pem
+	export LDAPTLS_CERT
+	export LDAPTLS_KEY
 
-echo "Setting TLSVerifyClient to try..."
-$LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
+	echo "Setting TLSVerifyClient to try..."
+	$LDAPMODIFY -D cn=config -H $URIP1 -y $CONFIGPWF <<EOF >> $TESTOUT 2>&1
 dn: cn=config
 changetype: modify
 replace: olcTLSVerifyClient
 olcTLSVerifyClient: try
 EOF
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapmodify failed for autoca config ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+	RC=$?
+	if test $RC != 0 ; then
+		echo "ldapmodify failed for autoca config ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 
-$CLIENTDIR/ldapwhoami -Y EXTERNAL -H $URIP1 -ZZ
+	$CLIENTDIR/ldapwhoami -Y EXTERNAL -H $URIP1 -ZZ
 
-if test $RC != 0 ; then
-	echo "ldapwhoami failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	if test $RC != 0 ; then
+		echo "ldapwhoami failed ($RC)!"
+		test $KILLSERVERS != no && kill -HUP $KILLPIDS
+		exit $RC
+	fi
 fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

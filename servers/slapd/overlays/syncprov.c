@@ -1169,7 +1169,7 @@ syncprov_qresp( opcookie *opc, syncops *so, int mode )
 	}
 	Debug( LDAP_DEBUG_SYNC, "%s syncprov_qresp: "
 		"set up a new syncres mode=%d csn=%s\n",
-		so->s_op->o_log_prefix, mode, csn.bv_val );
+		so->s_op->o_log_prefix, mode, csn.bv_val ? csn.bv_val : "" );
 	ldap_pvt_thread_mutex_unlock( &ri->ri_mutex );
 
 	ldap_pvt_thread_mutex_lock( &so->s_mutex );
@@ -2009,22 +2009,10 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	 * and everything else at the end. Do this first so we can
 	 * unlock the list mutex.
 	 */
-	Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-		"sync control csn %s\n",
-		op->o_log_prefix, srs->sr_state.ctxcsn[0].bv_val );
 	for ( se=sl->sl_head; se; se=se->se_next ) {
 		char uuidstr[40] = {};
 		int k;
 
-		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-			if ( !BER_BVISEMPTY( &se->se_uuid ) ) {
-				lutil_uuidstr_from_normalized( se->se_uuid.bv_val, se->se_uuid.bv_len,
-					uuidstr, 40 );
-			}
-			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-				"log entry tag=%lu uuid=%s cookie=%s\n",
-				op->o_log_prefix, se->se_tag, uuidstr, se->se_csn.bv_val );
-		}
 
 		ndel = 1;
 		for ( k=0; k<srs->sr_state.numcsns; k++ ) {
@@ -2034,9 +2022,6 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 			}
 		}
 		if ( ndel <= 0 ) {
-			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
-				"cmp %d, csn %s too old, skipping\n",
-				op->o_log_prefix, ndel, se->se_csn.bv_val );
 			continue;
 		}
 		ndel = 0;
@@ -2068,12 +2053,14 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		csns[j].bv_val = csns[0].bv_val + (j * LDAP_PVT_CSNSTR_BUFSIZE);
 		AC_MEMCPY(csns[j].bv_val, se->se_csn.bv_val, se->se_csn.bv_len);
 		csns[j].bv_len = se->se_csn.bv_len;
+		/* We're printing it */
+		csns[j].bv_val[csns[j].bv_len] = '\0';
 
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"picking a %s entry uuid=%s cookie=%s\n",
 				op->o_log_prefix, se->se_tag == LDAP_REQ_DELETE ? "deleted" : "modified",
-				uuidstr, csns[j].bv_len ? csns[j].bv_val : "(null)" );
+				uuidstr, csns[j].bv_val );
 		}
 	}
 	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
@@ -3708,6 +3695,49 @@ syncprov_db_otask(
 	return NULL;
 }
 
+static int
+syncprov_db_ocallback(
+	Operation *op,
+	SlapReply *rs
+)
+{
+	if ( rs->sr_type == REP_SEARCH && rs->sr_err == LDAP_SUCCESS ) {
+		if ( rs->sr_entry->e_name.bv_len )
+			op->o_callback->sc_private = (void *)1;
+	}
+	return LDAP_SUCCESS;
+}
+
+/* ITS#9015 see if the DB is really empty */
+static void *
+syncprov_db_otask2(
+	void *ptr
+)
+{
+	Operation *op = ptr;
+	SlapReply rs = {REP_RESULT};
+	slap_callback cb = {0};
+	int rc;
+
+	cb.sc_response = syncprov_db_ocallback;
+
+	op->o_managedsait = SLAP_CONTROL_CRITICAL;
+	op->o_callback = &cb;
+	op->o_tag = LDAP_REQ_SEARCH;
+	op->ors_scope = LDAP_SCOPE_SUBTREE;
+	op->ors_limit = NULL;
+	op->ors_slimit = 1;
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_attrs = slap_anlist_no_attrs;
+	op->ors_attrsonly = 1;
+	op->ors_deref = LDAP_DEREF_NEVER;
+	op->ors_filter = &generic_filter;
+	op->ors_filterstr = generic_filterstr;
+	rc = op->o_bd->be_search( op, &rs );
+	if ( rc == LDAP_SIZELIMIT_EXCEEDED || cb.sc_private )
+		op->ors_slimit = 2;
+	return NULL;
+}
 
 /* Read any existing contextCSN from the underlying db.
  * Then search for any entries newer than that. If no value exists,
@@ -3800,6 +3830,20 @@ syncprov_db_open(
 			/* If the DB is genuinely empty, don't generate one either. */
 			goto out;
 		}
+		if ( !si->si_contextdn.bv_len ) {
+			ldap_pvt_thread_t tid;
+			/* a glue entry here with no contextCSN might mean an empty DB.
+			 * we need to search for children, to be sure.
+			 */
+			op->o_req_dn = be->be_suffix[0];
+			op->o_req_ndn = be->be_nsuffix[0];
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			ldap_pvt_thread_create( &tid, 0, syncprov_db_otask2, op );
+			ldap_pvt_thread_join( tid, NULL );
+			if ( op->ors_slimit == 1 )
+				goto out;
+		}
+
 		csn.bv_val = csnbuf;
 		csn.bv_len = sizeof( csnbuf );
 		slap_get_csn( op, &csn, 0 );

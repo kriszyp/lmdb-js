@@ -2039,6 +2039,34 @@ int connection_write(ber_socket_t s)
 	return 0;
 }
 
+int connection_write_resume( Connection *c )
+{
+	Operation *op;
+
+	ldap_pvt_thread_mutex_lock( &c->c_mutex );
+	/* If there are ops pending because of a writewaiter,
+	 * start one up.
+	 */
+	while ((op = LDAP_STAILQ_FIRST( &c->c_pending_ops )) != NULL) {
+		if ( c->c_n_ops_executing > connection_pool_max/2 ) break;
+
+		LDAP_STAILQ_REMOVE_HEAD( &c->c_pending_ops, o_next );
+		LDAP_STAILQ_NEXT(op, o_next) = NULL;
+
+		/* pending operations should not be marked for abandonment */
+		assert(!op->o_abandon);
+
+		c->c_n_ops_pending--;
+		c->c_n_ops_executing++;
+
+		connection_op_activate( op );
+
+		break;
+	}
+
+	connection_return( c );
+}
+
 #ifdef LDAP_SLAPI
 typedef struct conn_fake_extblock {
 	void *eb_conn;

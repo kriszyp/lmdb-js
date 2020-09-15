@@ -43,7 +43,7 @@
 	char timestr[64]; \
 	(void) gettimeofday( &now, NULL ); \
 	now.tv_sec -= op->o_time; \
-	now.tv_usec -= op->o_tincr; \
+	now.tv_usec -= op->o_tusec; \
 	if ( now.tv_usec < 0 ) { \
 		--now.tv_sec; now.tv_usec += 1000000; \
 	} \
@@ -339,6 +339,7 @@ static long send_ldap_ber(
 	ber_len_t bytes;
 	long ret = 0;
 	char *close_reason;
+	int do_resume = 0;
 
 	ber_get_option( ber, LBER_OPT_BER_BYTES_TO_WRITE, &bytes );
 
@@ -404,11 +405,13 @@ fail:
 		}
 
 		/* wait for socket to be write-ready */
+		do_resume = 1;
 		conn->c_writewaiter = 1;
 		ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
 		ldap_pvt_thread_pool_idle( &connection_pool );
 		slap_writewait_play( op );
 		err = slapd_wait_writer( conn->c_sd );
+		conn->c_writewaiter = 0;
 		ldap_pvt_thread_pool_unidle( &connection_pool );
 		ldap_pvt_thread_mutex_lock( &conn->c_write1_mutex );
 		/* 0 is timeout, so we close it.
@@ -419,13 +422,8 @@ fail:
 				close_reason = "writetimeout";
 			else
 				close_reason = "connection lost on writewait";
-			conn->c_writewaiter = 0;
 			goto fail;
 		}
-
-		/* Resched connection if there are pending ops */
-		connection_write( conn->c_sd );
-		conn->c_writewaiter = 0;
 
 		if ( conn->c_writers < 0 ) {
 			ret = 0;
@@ -435,14 +433,23 @@ fail:
 
 	conn->c_writing = 0;
 	if ( conn->c_writers < 0 ) {
+		/* shutting down, don't resume any ops */
+		do_resume = 0;
 		conn->c_writers++;
 		if ( !conn->c_writers )
 			ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
 	} else {
 		conn->c_writers--;
+		/* other writers are waiting, don't resume any ops */
+		if ( conn->c_writers )
+			do_resume = 0;
 		ldap_pvt_thread_cond_signal( &conn->c_write1_cv );
 	}
 	ldap_pvt_thread_mutex_unlock( &conn->c_write1_mutex );
+
+	/* If there are no more writers, release a pending op */
+	if ( do_resume )
+		connection_write_resume( conn );
 
 	return ret;
 }

@@ -219,7 +219,7 @@ monitor_subsys_conn_update(
 	dnRdn( &e->e_nname, &rdn );
 	
 	if ( dn_match( &rdn, &total_bv ) ) {
-		n = connections_nextid();
+		n = connections_nextid() - SLAPD_SYNC_SYNCCONN_OFFSET;
 
 	} else if ( dn_match( &rdn, &current_bv ) ) {
 		Connection	*c;
@@ -229,7 +229,9 @@ monitor_subsys_conn_update(
 				c != NULL;
 				n++, c = connection_next( c, &connindex ) )
 		{
-			/* No Op */ ;
+			/* Ignore outbound connections */
+			if ( c->c_conn_state == SLAP_C_CLIENT )
+				n--;
 		}
 		connection_done( c );
 	}
@@ -455,6 +457,10 @@ monitor_subsys_conn_create(
 				c = connection_next( c, &connindex ) )
 		{
 			monitor_entry_t 	*mp;
+
+			/* ignore outbound for now, nothing to show */
+			if ( c->c_conn_state == SLAP_C_CLIENT )
+				continue;
 
 			if ( conn_create( mi, c, &e, ms ) != SLAP_CB_CONTINUE
 					|| e == NULL )
