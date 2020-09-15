@@ -426,6 +426,9 @@ mdb_sem_wait(mdb_mutexref_t sem)
 			break;
 		}
 	} while ((rc = errno) == EINTR);
+	if (rc == EINVAL) {
+		fprintf(stderr, "Bad lock!\n");
+	}
 	return rc;
 }
 
