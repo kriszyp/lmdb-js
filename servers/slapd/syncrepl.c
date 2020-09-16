@@ -1005,68 +1005,68 @@ do_syncrep1(
 	} else
 	{
 
-	/* We've just started up, or the remote server hasn't sent us
-	 * any meaningful state.
-	 */
-	if ( !si->si_syncCookie.ctxcsn ) {
-		int i;
+		/* We've just started up, or the remote server hasn't sent us
+		 * any meaningful state.
+		 */
+		if ( !si->si_syncCookie.ctxcsn ) {
+			int i;
 
-		LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
-			if ( si->si_rid == sc->rid ) {
-				cmdline_cookie_found = 1;
-				break;
-			}
-		}
-
-		if ( cmdline_cookie_found ) {
-			/* cookie is supplied in the command line */
-
-			LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
-
-			slap_sync_cookie_free( &si->si_syncCookie, 0 );
-			si->si_syncCookie.octet_str = sc->octet_str;
-			ch_free( sc );
-			/* ctxcsn wasn't parsed yet, do it now */
-			slap_parse_sync_cookie( &si->si_syncCookie, NULL );
-		} else {
-			ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
-			if ( !si->si_cookieState->cs_num ) {
-				/* get contextCSN shadow replica from database */
-				BerVarray csn = NULL;
-				void *ctx = op->o_tmpmemctx;
-
-				op->o_req_ndn = si->si_contextdn;
-				op->o_req_dn = op->o_req_ndn;
-
-				/* try to read stored contextCSN */
-				op->o_tmpmemctx = NULL;
-				backend_attribute( op, NULL, &op->o_req_ndn,
-					slap_schema.si_ad_contextCSN, &csn, ACL_READ );
-				op->o_tmpmemctx = ctx;
-				if ( csn ) {
-					si->si_cookieState->cs_vals = csn;
-					for (i=0; !BER_BVISNULL( &csn[i] ); i++);
-					si->si_cookieState->cs_num = i;
-					si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i, NULL );
-					slap_sort_csn_sids( csn, si->si_cookieState->cs_sids, i, NULL );
+			LDAP_STAILQ_FOREACH( sc, &slap_sync_cookie, sc_next ) {
+				if ( si->si_rid == sc->rid ) {
+					cmdline_cookie_found = 1;
+					break;
 				}
 			}
-			if ( si->si_cookieState->cs_num ) {
-				ber_bvarray_free( si->si_syncCookie.ctxcsn );
-				if ( ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
-					si->si_cookieState->cs_vals, NULL )) {
-					rc = LDAP_NO_MEMORY;
-					ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
-					goto done;
+
+			if ( cmdline_cookie_found ) {
+				/* cookie is supplied in the command line */
+
+				LDAP_STAILQ_REMOVE( &slap_sync_cookie, sc, sync_cookie, sc_next );
+
+				slap_sync_cookie_free( &si->si_syncCookie, 0 );
+				si->si_syncCookie.octet_str = sc->octet_str;
+				ch_free( sc );
+				/* ctxcsn wasn't parsed yet, do it now */
+				slap_parse_sync_cookie( &si->si_syncCookie, NULL );
+			} else {
+				ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+				if ( !si->si_cookieState->cs_num ) {
+					/* get contextCSN shadow replica from database */
+					BerVarray csn = NULL;
+					void *ctx = op->o_tmpmemctx;
+
+					op->o_req_ndn = si->si_contextdn;
+					op->o_req_dn = op->o_req_ndn;
+
+					/* try to read stored contextCSN */
+					op->o_tmpmemctx = NULL;
+					backend_attribute( op, NULL, &op->o_req_ndn,
+						slap_schema.si_ad_contextCSN, &csn, ACL_READ );
+					op->o_tmpmemctx = ctx;
+					if ( csn ) {
+						si->si_cookieState->cs_vals = csn;
+						for (i=0; !BER_BVISNULL( &csn[i] ); i++);
+						si->si_cookieState->cs_num = i;
+						si->si_cookieState->cs_sids = slap_parse_csn_sids( csn, i, NULL );
+						slap_sort_csn_sids( csn, si->si_cookieState->cs_sids, i, NULL );
+					}
 				}
-				si->si_syncCookie.numcsns = si->si_cookieState->cs_num;
-				si->si_syncCookie.sids = ch_malloc( si->si_cookieState->cs_num *
-					sizeof(int) );
-				for ( i=0; i<si->si_syncCookie.numcsns; i++ )
-					si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
+				if ( si->si_cookieState->cs_num ) {
+					ber_bvarray_free( si->si_syncCookie.ctxcsn );
+					if ( ber_bvarray_dup_x( &si->si_syncCookie.ctxcsn,
+						si->si_cookieState->cs_vals, NULL )) {
+						rc = LDAP_NO_MEMORY;
+						ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+						goto done;
+					}
+					si->si_syncCookie.numcsns = si->si_cookieState->cs_num;
+					si->si_syncCookie.sids = ch_malloc( si->si_cookieState->cs_num *
+						sizeof(int) );
+					for ( i=0; i<si->si_syncCookie.numcsns; i++ )
+						si->si_syncCookie.sids[i] = si->si_cookieState->cs_sids[i];
+				}
+				ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
 			}
-			ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
-		}
 		}
 
 		if ( !cmdline_cookie_found ) {
@@ -1457,7 +1457,7 @@ logerr:
 						break;
 					default:
 						break;
-				}
+					}
 			} else if ( ( rc = syncrepl_message_to_entry( si, op, msg,
 				&modlist, &entry, syncstate, syncUUID ) ) == LDAP_SUCCESS )
 			{
