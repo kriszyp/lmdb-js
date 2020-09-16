@@ -2994,8 +2994,8 @@ syncrepl_message_to_op(
 	op->o_callback = &cb;
 	slap_op_time( &op->o_time, &op->o_tincr );
 
-	Debug( LDAP_DEBUG_SYNC, "syncrepl_message_to_op: %s tid %x\n",
-		si->si_ridtxt, op->o_tid );
+	Debug( LDAP_DEBUG_SYNC, "syncrepl_message_to_op: %s tid %p\n",
+		si->si_ridtxt, (void *)op->o_tid );
 
 	switch( op->o_tag ) {
 	case LDAP_REQ_ADD:
@@ -3884,8 +3884,8 @@ syncrepl_entry(
 	int	freecsn = 1;
 
 	Debug( LDAP_DEBUG_SYNC,
-		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) csn=%s tid %x\n",
-		si->si_ridtxt, syncrepl_state2str( syncstate ), syncCSN ? syncCSN->bv_val : "(none)", op->o_tid );
+		"syncrepl_entry: %s LDAP_RES_SEARCH_ENTRY(LDAP_SYNC_%s) csn=%s tid %p\n",
+		si->si_ridtxt, syncrepl_state2str( syncstate ), syncCSN ? syncCSN->bv_val : "(none)", (void *)op->o_tid );
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ) ) {
 		if ( !si->si_refreshPresent && !si->si_refreshDone ) {

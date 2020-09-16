@@ -107,7 +107,7 @@ static int emfile;
 static volatile int waking;
 #define WAKE_LISTENER(l,w)	do { \
 	if (w) { \
-		tcp_write( SLAP_FD2SOCK(wake_sds[l][1]), "0", 1 ); \
+		(void)!tcp_write( SLAP_FD2SOCK(wake_sds[l][1]), "0", 1 ); \
 	} \
 } while (0)
 
@@ -2137,7 +2137,7 @@ slap_sockaddrstr( Sockaddr *sa, struct berval *addrbuf )
 		strcpy(addrbuf->bv_val, "IP=");
 		if ( IN6_IS_ADDR_V4MAPPED(&sa->sa_in6_addr.sin6_addr) ) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
-			addr = inet_ntop( AF_INET,
+			addr = (char *)inet_ntop( AF_INET,
 			   ((struct in_addr *)&sa->sa_in6_addr.sin6_addr.s6_addr[12]),
 			   addrbuf->bv_val+3, addrbuf->bv_len-3 );
 #else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
@@ -2154,7 +2154,7 @@ slap_sockaddrstr( Sockaddr *sa, struct berval *addrbuf )
 				 (unsigned) ntohs( sa->sa_in6_addr.sin6_port ) ) + len + 3;
 			}
 		} else {
-			addr = inet_ntop( AF_INET6,
+			addr = (char *)inet_ntop( AF_INET6,
 				      &sa->sa_in6_addr.sin6_addr,
 				      addrbuf->bv_val+4, addrbuf->bv_len-4 );
 			if ( !addr ) addr = SLAP_STRING_UNKNOWN;
@@ -2173,7 +2173,7 @@ slap_sockaddrstr( Sockaddr *sa, struct berval *addrbuf )
 	case AF_INET:
 		strcpy(addrbuf->bv_val, "IP=");
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
-		addr = inet_ntop( AF_INET, &sa->sa_in_addr.sin_addr,
+		addr = (char *)inet_ntop( AF_INET, &sa->sa_in_addr.sin_addr,
 			   addrbuf->bv_val+3, addrbuf->bv_len-3 );
 #else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
 		addr = inet_ntoa( sa->sa_in_addr.sin_addr );
@@ -3130,7 +3130,7 @@ loop:
 				if ( fd == wake_sds[tid][0] ) {
 					char c[BUFSIZ];
 					waking = 0;
-					tcp_read( SLAP_FD2SOCK(wake_sds[tid][0]), c, sizeof(c) );
+					(void)!tcp_read( SLAP_FD2SOCK(wake_sds[tid][0]), c, sizeof(c) );
 					continue;
 				}
 
