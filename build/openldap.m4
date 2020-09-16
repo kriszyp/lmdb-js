@@ -530,29 +530,32 @@ dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
 AC_DEFUN([OL_SYS_ERRLIST],
-[AC_CACHE_CHECK([declaration of sys_errlist],ol_cv_dcl_sys_errlist,[
-	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+[AC_CACHE_CHECK([existence of sys_errlist],ol_cv_have_sys_errlist,[
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <errno.h>]], [[char *c = (char *) *sys_errlist]])],[ol_cv_have_sys_errlist=yes],[ol_cv_have_sys_errlist=no])])
+if test $ol_cv_have_sys_errlist = yes ; then
+	AC_DEFINE(HAVE_SYS_ERRLIST,1,
+		[define if you actually have sys_errlist in your libs])
+	AC_CACHE_CHECK([declaration of sys_errlist],ol_cv_dcl_sys_errlist,[
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h>
 #ifdef _WIN32
 #include <stdlib.h>
-#endif ]], [[char *c = (char *) *sys_errlist]])],[ol_cv_dcl_sys_errlist=yes
-	ol_cv_have_sys_errlist=yes],[ol_cv_dcl_sys_errlist=no])])
+#endif ]], [[char *c = (char *) *sys_errlist]])],[ol_cv_dcl_sys_errlist=yes],
+	[ol_cv_dcl_sys_errlist=no])])
 #
-# It's possible (for near-UNIX clones) that sys_errlist doesn't exist
-if test $ol_cv_dcl_sys_errlist = no ; then
-	AC_DEFINE(DECL_SYS_ERRLIST,1,
-		[define if sys_errlist is not declared in stdio.h or errno.h])
-
-	AC_CACHE_CHECK([existence of sys_errlist],ol_cv_have_sys_errlist,[
-		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <errno.h>]], [[char *c = (char *) *sys_errlist]])],[ol_cv_have_sys_errlist=yes],[ol_cv_have_sys_errlist=no])])
-fi
-if test $ol_cv_have_sys_errlist = yes ; then
-	AC_DEFINE(HAVE_SYS_ERRLIST,1,
-		[define if you actually have sys_errlist in your libs])
+	# It's possible (for near-UNIX clones) that sys_errlist doesn't exist
+	if test $ol_cv_dcl_sys_errlist = no ; then
+		AC_DEFINE(DECL_SYS_ERRLIST,1,
+			[define if sys_errlist is not declared in stdio.h or errno.h])
+	fi
 fi
 ])dnl
+dnl
+dnl ====================================================================
+dnl glibc supplies a non-standard strerror_r if _GNU_SOURCE is defined.
+dnl It's actually preferable to the POSIX version, if available.
 AC_DEFUN([OL_NONPOSIX_STRERROR_R],
 [AC_CACHE_CHECK([non-posix strerror_r],ol_cv_nonposix_strerror_r,[
 	AC_EGREP_CPP(strerror_r,[#include <string.h>],
@@ -572,7 +575,7 @@ AC_DEFUN([OL_NONPOSIX_STRERROR_R],
 				strerror_r( 1, buf, sizeof buf );
 				exit( buf[0] == 0 );
 			}
-			]])],[ol_cv_nonposix_strerror_r=yes],[ol_cv_nonposix_strerror=no],[ol_cv_nonposix_strerror=no])
+			]])],[ol_cv_nonposix_strerror_r=yes],[ol_cv_nonposix_strerror_r=no],[ol_cv_nonposix_strerror_r=no])
 	fi
 	])
 if test $ol_cv_nonposix_strerror_r = yes ; then
@@ -582,8 +585,7 @@ fi
 ])dnl
 dnl
 AC_DEFUN([OL_STRERROR],
-[OL_SYS_ERRLIST dnl TEMPORARY
-AC_CHECK_FUNCS(strerror strerror_r)
+[AC_CHECK_FUNCS(strerror strerror_r)
 ol_cv_func_strerror_r=no
 if test "${ac_cv_func_strerror_r}" = yes ; then
 	OL_NONPOSIX_STRERROR_R
