@@ -449,19 +449,35 @@ do_del:
 			a2 = attr_find( e->e_attrs, ap->a_desc );
 			if ( a2 ) {
 				/* need to detect which values were deleted */
-				int i, j;
+				int i, j, k;
 				/* let add know there were deletes */
 				if ( a2->a_flags & SLAP_ATTR_IXADD )
 					a2->a_flags |= SLAP_ATTR_IXDEL;
 				vals = op->o_tmpalloc( (ap->a_numvals + 1) *
 					sizeof(struct berval), op->o_tmpmemctx );
 				j = 0;
-				for ( i=0; i < ap->a_numvals; i++ ) {
-					rc = attr_valfind( a2, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-						&ap->a_nvals[i], NULL, op->o_tmpmemctx );
-					/* Save deleted values */
-					if ( rc == LDAP_NO_SUCH_ATTRIBUTE )
-						vals[j++] = ap->a_nvals[i];
+				for ( i=k=0; i < ap->a_numvals; i++ ) {
+					char found = 0;
+					BerValue* current = &ap->a_nvals[i];
+					int k2 = k;
+					for (k2 = k ; k2 < a2->a_numvals; k2 ++) {
+						int match = -1, rc;
+						const char *text;
+
+						rc = ordered_value_match( &match, a2->a_desc,
+								ap->a_desc->ad_type->sat_equality, 0,
+							&a2->a_nvals[k2], current, &text );
+						if ( rc == LDAP_SUCCESS && match == 0 ) {
+							found = 1;
+							break;
+						}
+					}
+
+					if (!found) {
+						vals[j++] = *current;
+					} else {
+						k = k2 + 1;
+					}
 				}
 				BER_BVZERO(vals+j);
 			} else {
