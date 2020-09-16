@@ -4,6 +4,8 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapd delta-syncrepl to ignore delete ops on deleted entry (ITS#9342)
 	Fixed slapd delta-syncrepl to be fully serialized (ITS#9330)
 	Fixed slapd syncrepl to be fully serialized (ITS#8102)
+	Fixed slapd syncrepl to call check_syncprov on fresh consumer (ITS#9345)
+	Fixed slapo-syncprov contextCSN generation with empty suffix (ITS#9015)
 
 OpenLDAP 2.4.53 (2020/09/07)
 	Added slapd syncrepl additional SYNC logging (ITS#9043)
