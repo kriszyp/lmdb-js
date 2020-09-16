@@ -1598,10 +1598,11 @@ connection_input( Connection *conn , conn_readinfo *cri )
 		int err = sock_errno();
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
+			char ebuf[128];
 			/* log, close and send error */
 			Debug( LDAP_DEBUG_TRACE,
 				"ber_get_next on fd %d failed errno=%d (%s)\n",
-			conn->c_sd, err, sock_errstr(err) );
+			conn->c_sd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			ber_free( conn->c_currentber, 1 );
 			conn->c_currentber = NULL;
 
