@@ -7069,6 +7069,7 @@ add_syncrepl(
 		si->si_cookieState->cs_ref++;
 
 		si->si_next = NULL;
+		syncrepl_monitor_init();
 
 		return 0;
 	}

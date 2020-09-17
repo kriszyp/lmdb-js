@@ -116,8 +116,10 @@ int backend_init(void)
 
 		LDAP_STAILQ_INSERT_TAIL(&backendInfo, bi, bi_next);
 	}
+#if defined(SLAPD_MONITOR) && SLAPD_MONITOR == SLAPD_MOD_STATIC
 	/* HACK: need schema defined in deterministic order */
 	syncrepl_monitor_init();
+#endif
 
 
 	if ( nBackendInfo > 0) {
