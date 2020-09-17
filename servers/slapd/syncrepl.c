@@ -2242,10 +2242,15 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 		Attribute *a;
 		const char *text;
 		a = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
-		value_match( &match, slap_schema.si_ad_entryCSN,
-			slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
-			SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-			&mod->sml_nvalues[0], &a->a_nvals[0], &text );
+		if ( a ) {
+			value_match( &match, slap_schema.si_ad_entryCSN,
+				slap_schema.si_ad_entryCSN->ad_type->sat_ordering,
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+				&mod->sml_nvalues[0], &a->a_nvals[0], &text );
+		} else {
+			/* no entryCSN? shouldn't happen. assume mod is newer. */
+			match = 1;
+		}
 		overlay_entry_release_ov( op, e, 0, on );
 	}
 	/* equal? Should never happen */
