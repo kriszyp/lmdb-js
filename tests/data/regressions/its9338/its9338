@@ -41,7 +41,7 @@ echo ""
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
+. $CONFFILTER $BACKEND < $SRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then

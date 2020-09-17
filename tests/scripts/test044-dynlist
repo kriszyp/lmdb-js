@@ -31,14 +31,10 @@ mkdir -p $TESTDIR $DBDIR1
 $SLAPPASSWD -g -n >$CONFIGPWF
 echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
 
-if test $MONITORDB != no ; then
-	DBIX=2
-else
-	DBIX=1
-fi
+DBIX=2
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $DYNLISTCONF > $CONF1
+. $CONFFILTER $BACKEND < $DYNLISTCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then

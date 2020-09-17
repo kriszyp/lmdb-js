@@ -79,7 +79,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $DIRSYNC1CONF | . $CONFDIRSYNC > $CONF2
+. $CONFFILTER $BACKEND < $DIRSYNC1CONF | . $CONFDIRSYNC > $CONF2
 $SLAPADD -f $CONF2 <<EOMODS
 dn: $MSAD_SUFFIX
 dc: $DC

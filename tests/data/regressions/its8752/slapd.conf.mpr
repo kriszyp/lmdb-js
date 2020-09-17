@@ -27,8 +27,6 @@ argsfile	@TESTDIR@/slapd.MPR.args
 serverid	MPR
 #mod#modulepath ../servers/slapd/back-@BACKEND@/:../servers/slapd/overlays
 #mod#moduleload back_@BACKEND@.la
-#monitormod#modulepath ../servers/slapd/back-monitor/
-#monitormod#moduleload back_monitor.la
 #syncprovmod#modulepath ../servers/slapd/overlays/
 #syncprovmod#moduleload syncprov.la
 #accesslogmod#modulepath ../servers/slapd/overlays/
@@ -141,4 +139,4 @@ overlay syncprov
 syncprov-reloadhint true
 syncprov-nopresent true
 
-#monitor#database   monitor
+database   monitor

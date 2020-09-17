@@ -17,7 +17,7 @@ echo "running defines.sh"
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
-. $CONFFILTER $BACKEND $MONITORDB < $EMPTYDNCONF > $CONF1
+. $CONFFILTER $BACKEND < $EMPTYDNCONF > $CONF1
 
 echo "Running slapadd to build \"dc=example,dc=com\" slapd database..."
 $SLAPADD -f $CONF1 -n 1 -l $LDIFEMPTYDN1

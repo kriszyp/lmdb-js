@@ -19,7 +19,7 @@ echo "running defines.sh"
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C
 
 echo "Running slapadd to build glued slapd databases..."
-. $CONFFILTER $BACKEND $MONITORDB < $GLUECONF > $CONF1
+. $CONFFILTER $BACKEND < $GLUECONF > $CONF1
 $SLAPADD -d $LVL -f $CONF1 -l $LDIFORDERED > $SLAPADDLOG1 2>&1
 RC=$?
 if test $RC != 0 ; then

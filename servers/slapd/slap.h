@@ -2551,10 +2551,8 @@ typedef struct slap_counters_t {
 
 	ldap_pvt_mp_t		sc_ops_completed;
 	ldap_pvt_mp_t		sc_ops_initiated;
-#ifdef SLAPD_MONITOR
 	ldap_pvt_mp_t		sc_ops_completed_[SLAP_OP_LAST];
 	ldap_pvt_mp_t		sc_ops_initiated_[SLAP_OP_LAST];
-#endif /* SLAPD_MONITOR */
 } slap_counters_t;
 
 /*

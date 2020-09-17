@@ -20,7 +20,7 @@ LVL=acl
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $VALREGEXCONF > $CONF1
+. $CONFFILTER $BACKEND < $VALREGEXCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then

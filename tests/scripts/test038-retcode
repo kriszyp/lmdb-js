@@ -24,7 +24,7 @@ fi
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $MCONF > $ADDCONF
+. $CONFFILTER $BACKEND < $MCONF > $ADDCONF
 $SLAPADD -f $ADDCONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
@@ -33,7 +33,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running slapindex to index slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $RETCODECONF > $CONF1
+. $CONFFILTER $BACKEND < $RETCODECONF > $CONF1
 $SLAPINDEX -f $CONF1
 RC=$?
 if test $RC != 0 ; then

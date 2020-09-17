@@ -27,7 +27,7 @@ $SLAPPASSWD -g -n >$CONFIGPWF
 echo "rootpw `$SLAPPASSWD -T $CONFIGPWF`" >$TESTDIR/configpw.conf
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $VALSORTCONF > $CONF1
+. $CONFFILTER $BACKEND < $VALSORTCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFVALSORT
 RC=$?
 if test $RC != 0 ; then

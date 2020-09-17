@@ -48,7 +48,7 @@ while [ $n -le $MMR ]; do
 	CFDIR=${XDIR}$n/slapd.d
 
 	mkdir -p ${XDIR}$n $DBDIR.1 $DBDIR.2 $CFDIR
-	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/config.ldif > $TESTDIR/config${n}.ldif
+	. $CONFFILTER $BACKEND < $ITSDIR/config.ldif > $TESTDIR/config${n}.ldif
 	if [ $n = 1 ]; then
 		MYURI=`eval echo '$URI2'`
 	else

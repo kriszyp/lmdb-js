@@ -33,11 +33,6 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-if test $MONITORDB = no; then 
-	echo "Monitor backend not available, test skipped"
-	exit 0
-fi 
-
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 #
@@ -51,7 +46,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
+. $CONFFILTER $BACKEND < $SRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
@@ -91,7 +86,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF > $CONF2
+. $CONFFILTER $BACKEND < $RCONSUMERCONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then
@@ -121,7 +116,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting proxy slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND $MONITORDB < $PLSRCONSUMERCONF > $CONF3
+. $CONFFILTER $BACKEND < $PLSRCONSUMERCONF > $CONF3
 $SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then

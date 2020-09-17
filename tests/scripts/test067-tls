@@ -58,7 +58,7 @@ else
 fi
 
 echo "Starting ldap:/// slapd on TCP/IP port $PORT1 and ldaps:/// slapd on $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $TLSCONF > $CONF1
+. $CONFFILTER $BACKEND < $TLSCONF > $CONF1
 $SLAPD -f $CONF1 -h "$URI1 $SURI2" -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then

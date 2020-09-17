@@ -68,7 +68,7 @@ done
 KILLPIDS=
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF1
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -170,7 +170,7 @@ while [ $n -le $MPR ]; do
 	MYLOG=`eval echo '$LOG'$n`
 	MYCONF=`eval echo '$CONF'$n`
 	echo "Starting provider slapd on TCP/IP URI $MYURI"
-	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
+	. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
 	sed -e "s/MPR/$n/g" -e "s/wronglog/log/" -e "s/@MAPSIZE@/$MAPSIZE/" $TESTDIR/slapd.conf > $MYCONF
 	j=1
 	while [ $j -le $MPR ]; do
@@ -388,7 +388,7 @@ while [ $n -le $MPR ]; do
     MYLOG=`eval echo '$LOG'$n`
     MYCONF=`eval echo '$CONF'$n`
     echo "Starting provider slapd on TCP/IP URI $MYURI"
-    . $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
+    . $CONFFILTER $BACKEND < $ITSDIR/slapd.conf.mpr > $TESTDIR/slapd.conf
     sed -e "s/MPR/$n/g" -e "s/@MAPSIZE@/$MAPSIZE/" $TESTDIR/slapd.conf > $MYCONF
     j=1
     while [ $j -le $MPR ]; do

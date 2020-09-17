@@ -26,7 +26,7 @@ rm -rf $TESTDIR
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF1 > $ADDCONF
+. $CONFFILTER $BACKEND < $CHAINCONF1 > $ADDCONF
 . $CONFFILTER < $LDIFCHAIN1 > $SEARCHOUT
 $SLAPADD -f $ADDCONF -l $SEARCHOUT
 RC=$?
@@ -35,7 +35,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-. $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF2 > $ADDCONF
+. $CONFFILTER $BACKEND < $CHAINCONF2 > $ADDCONF
 . $CONFFILTER < $LDIFCHAIN2 > $SEARCHOUT
 $SLAPADD -f $ADDCONF -l $SEARCHOUT
 RC=$?
@@ -45,7 +45,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting first slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF1 > $CONF1
+. $CONFFILTER $BACKEND < $CHAINCONF1 > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID1=$!
 if test $WAIT != 0 ; then
@@ -55,7 +55,7 @@ fi
 KILLPIDS="$PID1"
 
 echo "Starting second slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $CHAINCONF2 > $CONF2
+. $CONFFILTER $BACKEND < $CHAINCONF2 > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID2=$!
 if test $WAIT != 0 ; then

@@ -24,7 +24,7 @@ USER="uid=user1,ou=People,dc=example,dc=com"
 PASS="abc"
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF1
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf > $CONF1
 $SLAPADD -f $CONF1 -l $ITSDIR/adds.ldif
 RC=$?
 if test $RC != 0 ; then

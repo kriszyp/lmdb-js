@@ -18,7 +18,6 @@ umask 077
 TESTWD=`pwd`
 
 # backends
-MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
 BACKMETA=${AC_meta-metano}
 BACKASYNCMETA=${AC_asyncmeta-asyncmetano}

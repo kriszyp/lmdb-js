@@ -41,7 +41,7 @@ ITS=8427
 ITSDIR=$DATADIR/regressions/its$ITS
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $TLSCONF > $CONF1
+. $CONFFILTER $BACKEND < $TLSCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
@@ -85,7 +85,7 @@ echo "database config" >> $CONF2
 echo "include $TESTDIR/configpw.conf" >> $CONF2
 
 echo "Starting proxy slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf > $CONF2
 $SLAPD -f $CONF2 -h $URI3 -d $LVL > $LOG2 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then

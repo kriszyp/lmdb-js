@@ -297,12 +297,10 @@ void slap_counters_init( slap_counters_t *sc )
 	ldap_pvt_mp_init( sc->sc_ops_initiated );
 	ldap_pvt_mp_init( sc->sc_ops_completed );
 
-#ifdef SLAPD_MONITOR
 	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 		ldap_pvt_mp_init( sc->sc_ops_initiated_[ i ] );
 		ldap_pvt_mp_init( sc->sc_ops_completed_[ i ] );
 	}
-#endif /* SLAPD_MONITOR */
 }
 
 void slap_counters_destroy( slap_counters_t *sc )
@@ -318,11 +316,9 @@ void slap_counters_destroy( slap_counters_t *sc )
 	ldap_pvt_mp_clear( sc->sc_ops_initiated );
 	ldap_pvt_mp_clear( sc->sc_ops_completed );
 
-#ifdef SLAPD_MONITOR
 	for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 		ldap_pvt_mp_clear( sc->sc_ops_initiated_[ i ] );
 		ldap_pvt_mp_clear( sc->sc_ops_completed_[ i ] );
 	}
-#endif /* SLAPD_MONITOR */
 }
 

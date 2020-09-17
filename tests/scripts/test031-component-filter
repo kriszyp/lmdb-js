@@ -31,7 +31,7 @@ mkdir -p $TESTDIR $DBDIR1
 ## moduleload path/to/component/library/compmatch.la
 ## otherwise it fails to execute slapd
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $COMPCONF > $ADDCONF
+. $CONFFILTER $BACKEND < $COMPCONF > $ADDCONF
 $SLAPADD -f $ADDCONF -l $LDIFCOMPMATCH
 RC=$?
 if test $RC != 0 ; then
@@ -43,7 +43,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running slapindex to index slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+. $CONFFILTER $BACKEND < $CONF > $CONF1
 $SLAPINDEX -f $CONF1
 RC=$?
 if test $RC != 0 ; then

@@ -24,15 +24,9 @@ include: file://@TESTWD@/@SCHEMADIR@/dyngroup.ldif
 #mod#olcModulePath: @TESTWD@/../servers/slapd/back-@BACKEND@/
 #mod#olcModuleLoad: {0}back_@BACKEND@.la
 
-#monitormod#dn: cn=module{1},cn=config
-#monitormod#objectClass: olcModuleList
-#monitormod#cn: module{1}
-#monitormod#olcModulePath: @TESTWD@/../servers/slapd/back-monitor/
-#monitormod#olcModuleLoad: {0}back_monitor.la
-
-#memberofmod#dn: cn=module{2},cn=config
+#memberofmod#dn: cn=module{1},cn=config
 #memberofmod#objectClass: olcModuleList
-#memberofmod#cn: module{2}
+#memberofmod#cn: module{1}
 #memberofmod#olcModulePath: @TESTWD@/../servers/slapd/overlays/
 #memberofmod#olcModuleLoad: {0}memberof.la
 #dynlistmod#olcModuleLoad: {1}dynlist.la

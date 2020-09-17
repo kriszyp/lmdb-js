@@ -50,7 +50,7 @@ fi
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $IDASSERTCONF > $ADDCONF
+. $CONFFILTER $BACKEND < $IDASSERTCONF > $ADDCONF
 $SLAPADD -f $ADDCONF -l $LDIFIDASSERT1 -n 1
 RC=$?
 if test $RC != 0 ; then
@@ -65,7 +65,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $IDASSERTCONF > $CONF1
+. $CONFFILTER $BACKEND < $IDASSERTCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then

@@ -937,7 +937,6 @@ The following example is for a self-contained push-based replication solution:
 >	modulepath  /usr/local/libexec/openldap
 >	moduleload  back_mdb.la
 >	moduleload  syncprov.la
->	moduleload  back_monitor.la
 >	moduleload  back_ldap.la
 >	
 >	pidfile     /usr/local/var/slapd.pid
@@ -1021,7 +1020,6 @@ A replica configuration for this type of setup could be:
 >	modulepath  /usr/local/libexec/openldap
 >	moduleload  back_mdb.la
 >	moduleload  syncprov.la
->	moduleload  back_monitor.la
 >	moduleload  back_ldap.la
 >	
 >	pidfile     /usr/local/var/slapd.pid

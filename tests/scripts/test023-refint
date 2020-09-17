@@ -24,7 +24,7 @@ fi
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $REFINTCONF > $CONF1
+. $CONFFILTER $BACKEND < $REFINTCONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFREFINT
 RC=$?
 if test $RC != 0 ; then
