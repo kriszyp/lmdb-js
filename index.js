@@ -6,6 +6,8 @@ const EventEmitter = require('events')
 const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
+//const { CachingStore, setGetLastVersion } = require('./cache')
+//setGetLastVersion(getLastVersion)
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -138,7 +140,9 @@ function open(path, options) {
 		}
 		openDB(dbName, dbOptions) {
 			try {
-				return new LMDBStore(dbName, dbOptions)
+				return options.cache ?
+					new (CachingStore(LMDBStore))(dbName, dbOptions) :
+					new LMDBStore(dbName, dbOptions)
 			} catch(error) {
 				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
 					error.message += ' (increase your maxDbs option)'
@@ -207,11 +211,29 @@ function open(path, options) {
 				if (this.encoding == 'binary')
 					return txn.getBinary(this.db, id)
 				result = txn.getUtf8(this.db, id)
-				if (this.encoding == 'json' && result)
+				if (this.encoding == 'json' && result) {
+					lastSize = result.length
 					return JSON.parse(result)
+				}
 				return result
 			} catch(error) {
 				return handleError(error, this, txn, () => this.get(id))
+			}
+		}
+		getEntry(id) {
+			let value = this.get(id)
+			if (value !== undefined) {
+				if (this.useVersions)
+					return {
+						value,
+						version: getLastVersion(),
+						//size: lastSize
+					}
+				else
+					return {
+						value,
+						//size: lastSize
+					}
 			}
 		}
 		resetReadTxn() {
@@ -601,7 +623,7 @@ function open(path, options) {
 							resolve([])
 						}
 					}
-					let timeout = (this.commitDelay > 0 ? setTimeout : setImmediate)(() => {
+					let timeout = setTimeout(() => {
 						when(currentCommit, () => whenCommitted && runNextBatch())
 					}, this.commitDelay)
 				})
@@ -619,7 +641,7 @@ function open(path, options) {
 					return batch
 				} else if (!runNextBatch.immediate) {
 					let thisNextBatch = runNextBatch
-					runNextBatch.immediate = setImmediate(() => when(currentCommit, () => thisNextBatch()))
+					runNextBatch.immediate = setTimeout(() => when(currentCommit, () => thisNextBatch()), 0)
 				}
 			}
 			return pendingBatch
@@ -714,7 +736,9 @@ function open(path, options) {
 			this.packr.structures = []
 		}
 	}
-	return new LMDBStore(options.name || null, options)
+	return options.cache ?
+		new (CachingStore(LMDBStore))(options.name || null, options) :
+		new LMDBStore(options.name || null, options)
 	function handleError(error, store, txn, retry) {
 		if (error === SHARED_STRUCTURE_CHANGE) {
 			store.packr.structures = unpack(txn.getBinary(store.db, store.sharedStructuresKey))
