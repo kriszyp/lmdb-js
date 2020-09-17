@@ -5554,7 +5554,7 @@ pcache_monitor_db_open( BackendDB *be )
 		static int warning = 0;
 
 		if ( warning++ == 0 ) {
-			Debug( LDAP_DEBUG_ANY, "pcache_monitor_db_open: "
+			Debug( LDAP_DEBUG_CONFIG, "pcache_monitor_db_open: "
 				"monitoring disabled; "
 				"configure monitor database to enable\n" );
 		}
