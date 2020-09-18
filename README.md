@@ -177,7 +177,7 @@ let myStore = open('my-store', {
 	}
 })
 ```
-Compression is recommended for large databases that may be larger than available RAM, to improving caching and reduce page faults.
+Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults.
 
 ### Store Options
 The open method can be used to create the main database/environment with the following signature:
