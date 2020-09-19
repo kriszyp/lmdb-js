@@ -87,5 +87,6 @@ extern void tester_config_finish( struct tester_conn_args *config );
 extern void tester_init_ld( LDAP **ldp, struct tester_conn_args *conf, int flags );
 
 extern pid_t		pid;
+extern int			debug;
 
 #endif /* SLAPD_COMMON_H */
