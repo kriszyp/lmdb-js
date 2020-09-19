@@ -430,8 +430,11 @@ static int
 syncprov_sessionlog_cmp( const void *l, const void *r )
 {
 	const slog_entry *left = l, *right = r;
+	int ret = ber_bvcmp( &left->se_csn, &right->se_csn );
+	if ( !ret )
+		ret = ber_bvcmp( &left->se_uuid, &right->se_uuid );
 
-	return ber_bvcmp( &left->se_csn, &right->se_csn );
+	return ret;
 }
 
 static int
@@ -1701,7 +1704,7 @@ syncprov_add_slog( Operation *op )
 		sl->sl_num++;
 		if ( !sl->sl_playing && sl->sl_num > sl->sl_size ) {
 			TAvlnode *edge = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
-			while ( --sl->sl_num > sl->sl_size ) {
+			while ( sl->sl_num > sl->sl_size ) {
 				int i;
 				TAvlnode *next = tavl_next( edge, TAVL_DIR_RIGHT );
 				se = edge->avl_data;
@@ -1723,8 +1726,10 @@ syncprov_add_slog( Operation *op )
 						op->o_log_prefix, se->se_sid, sl->sl_mincsn[i].bv_val, se->se_csn.bv_val );
 					ber_bvreplace( &sl->sl_mincsn[i], &se->se_csn );
 				}
-				tavl_delete( &sl->sl_entries, edge, syncprov_sessionlog_cmp );
+				tavl_delete( &sl->sl_entries, se, syncprov_sessionlog_cmp );
+				ch_free( se );
 				edge = next;
+				sl->sl_num--;
 			}
 		}
 		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
@@ -2014,7 +2019,19 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	 * unlock the list mutex.
 	 */
 	assert( sl->sl_entries );
-	entry = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
+
+	/* Find first relevant log entry. If greater than mincsn, backtrack one entry */
+	{
+		slog_entry te = {0};
+		te.se_csn = *mincsn;
+		entry = tavl_find3( sl->sl_entries, &te, syncprov_sessionlog_cmp, &ndel );
+	}
+	if ( ndel > 0 && entry )
+		entry = tavl_next( entry, TAVL_DIR_LEFT );
+	/* if none, just start at beginning */
+	if ( !entry )
+		entry = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
+
 	do {
 		char uuidstr[40] = {};
 		slog_entry *se = entry->avl_data;
@@ -2063,6 +2080,8 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		csns[j].bv_val[csns[j].bv_len] = '\0';
 
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
+			lutil_uuidstr_from_normalized( uuids[j].bv_val, uuids[j].bv_len,
+					uuidstr, 40 );
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"picking a %s entry uuid=%s cookie=%s\n",
 				op->o_log_prefix, se->se_tag == LDAP_REQ_DELETE ? "deleted" : "modified",
