@@ -72,6 +72,7 @@ typedef struct monitor_entry_t {
 /* NOTE: flags with 0xF0000000U mask are reserved for subsystem internals */
 
 	struct monitor_callback_t	*mp_cb;		/* callback sequence */
+	void		*mp_private;
 } monitor_entry_t;
 
 struct entry_limbo_t;			/* in init.c */

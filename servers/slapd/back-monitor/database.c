@@ -345,6 +345,7 @@ monitor_subsys_database_init_one(
 	mp->mp_info = ms;
 	mp->mp_flags = ms->mss_flags
 		| MONITOR_F_SUB;
+	mp->mp_private = be;
 
 	if ( monitor_cache_add( mi, e ) ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -446,31 +447,13 @@ monitor_back_register_database_and_overlay(
 
 	mp = ( monitor_entry_t * )e_database->e_private;
 	for ( i = -1, ep = &mp->mp_children; *ep; i++ ) {
-		Attribute	*a;
-
-		a = attr_find( (*ep)->e_attrs, slap_schema.si_ad_namingContexts );
-		if ( a ) {
-			int		j, k;
-
-			/* FIXME: RFC 4512 defines namingContexts without an
-			 *        equality matching rule, making comparisons
-			 *        like this one tricky.  We use a_vals and
-			 *        be_suffix instead for now.
-			 */
-			for ( j = 0; !BER_BVISNULL( &a->a_vals[ j ] ); j++ ) {
-				for ( k = 0; !BER_BVISNULL( &be->be_suffix[ k ] ); k++ ) {
-					if ( dn_match( &a->a_vals[ j ],
-					               &be->be_suffix[ k ] ) ) {
-						rc = 0;
-						goto done;
-					}
-				}
-			}
-		}
-
 		mp = ( monitor_entry_t * )(*ep)->e_private;
 
 		assert( mp != NULL );
+		if ( mp->mp_private == be->bd_self ) {
+			rc = 0;
+			goto done;
+		}
 		ep = &mp->mp_next;
 	}
 
