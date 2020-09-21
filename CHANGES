@@ -6,6 +6,7 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapd delta-syncrepl MOD on zero-length context entry (ITS#9352)
 	Fixed slapd syncrepl to be fully serialized (ITS#8102)
 	Fixed slapd syncrepl to call check_syncprov on fresh consumer (ITS#9345)
+	Fixed slapd-monitor fix monitor_back_register_database for empty suffix DB (ITS#9353)
 	Fixed slapo-syncprov contextCSN generation with empty suffix (ITS#9015)
 
 OpenLDAP 2.4.53 (2020/09/07)
