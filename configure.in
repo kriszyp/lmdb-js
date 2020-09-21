@@ -294,7 +294,6 @@ Backends="dnssrv \
 	mdb \
 	meta \
 	asyncmeta \
-	monitor \
 	ndb \
 	null \
 	passwd \
@@ -319,8 +318,6 @@ OL_ARG_ENABLE(meta, [AS_HELP_STRING([--enable-meta], [enable metadirectory backe
 	no, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(asyncmeta, [AS_HELP_STRING([--enable-asyncmeta], [enable asynchronous metadirectory backend])],
 	no, [no yes mod], ol_enable_backends)dnl
-OL_ARG_ENABLE(monitor, [AS_HELP_STRING([--enable-monitor], [enable monitor backend])],
-	yes, [no yes mod], ol_enable_backends)dnl
 OL_ARG_ENABLE(ndb, [AS_HELP_STRING([--enable-ndb], [enable MySQL NDB Cluster backend])],
 	no, [no yes mod])dnl
 OL_ARG_ENABLE(null, [AS_HELP_STRING([--enable-null], [enable null backend])],
@@ -522,7 +519,6 @@ BUILD_LDAP=no
 BUILD_MDB=no
 BUILD_META=no
 BUILD_ASYNCMETA=no
-BUILD_MONITOR=no
 BUILD_NDB=no
 BUILD_NULL=no
 BUILD_PASSWD=no
@@ -562,7 +558,7 @@ SLAPD_DYNAMIC_OVERLAYS=
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
 
-SLAPD_STATIC_BACKENDS=back-ldif
+SLAPD_STATIC_BACKENDS="back-ldif back-monitor"
 SLAPD_DYNAMIC_BACKENDS=
 
 SLAPD_PERL_LDFLAGS=
@@ -2490,20 +2486,6 @@ fi
 AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])
 AC_DEFINE(SLAPD_MOD_DYNAMIC,2,[dynamically linked module])
 
-dnl back-monitor goes first (well, after back-config)
-if test "$ol_enable_monitor" != no ; then
-	BUILD_SLAPD=yes
-	BUILD_MONITOR=$ol_enable_monitor
-	if test "$ol_enable_monitor" = mod ; then
-		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_DYNAMIC
-	else
-		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
-		MFLAG=SLAPD_MOD_STATIC
-	fi
-	AC_DEFINE_UNQUOTED(SLAPD_MONITOR,$MFLAG,[define to support cn=Monitor backend])
-fi
-
 if test "$ol_enable_dnssrv" != no ; then
 	BUILD_SLAPD=yes
 	BUILD_DNSSRV=$ol_enable_dnssrv
@@ -2968,7 +2950,6 @@ dnl backends
   AC_SUBST(BUILD_MDB)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_ASYNCMETA)
-  AC_SUBST(BUILD_MONITOR)
   AC_SUBST(BUILD_NDB)
   AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)

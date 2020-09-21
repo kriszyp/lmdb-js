@@ -36,7 +36,7 @@ ITS=8667
 ITSDIR=$DATADIR/regressions/its$ITS
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.ldif > $CONFLDIF
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.ldif > $CONFLDIF
 $SLAPADD -F $CFPRO -n 0 -l $CONFLDIF
 
 echo "Populating root database..."

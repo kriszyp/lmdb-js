@@ -23,11 +23,7 @@
 # include <sys/errno.h>
 #endif
 
-#ifndef HAVE_SYS_ERRLIST
-	/* no sys_errlist */
-#	define		sys_nerr	0
-#	define		sys_errlist	((char **)0)
-#elif defined( DECL_SYS_ERRLIST )
+#if defined( HAVE_SYS_ERRLIST ) && defined( DECL_SYS_ERRLIST )
 	/* have sys_errlist but need declaration */
 	LDAP_LIBC_V(int)      sys_nerr;
 	LDAP_LIBC_V(char)    *sys_errlist[];

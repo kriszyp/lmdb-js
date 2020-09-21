@@ -35,6 +35,7 @@
 
 /* global vars */
 pid_t pid;
+int debug;
 
 /* static vars */
 static char progname[ BUFSIZ ];
@@ -311,7 +312,6 @@ tester_config_opt( struct tester_conn_args *config, char opt, char *optarg )
 
 		case 'd':
 			{
-				int debug;
 				if ( lutil_atoi( &debug, optarg ) != 0 ) {
 					return -1;
 				}

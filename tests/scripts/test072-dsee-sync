@@ -70,7 +70,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $DSEESYNC1CONF > $CONF2
+. $CONFFILTER $BACKEND < $DSEESYNC1CONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then

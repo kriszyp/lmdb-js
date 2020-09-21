@@ -24,7 +24,7 @@ ITSDIR=$DATADIR/regressions/its$ITS
 ITSCONF=$ITSDIR/slapd-glue.conf
 
 echo "Running multi-threaded slapadd in quick mode to build glued slapd databases..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSCONF > $CONF1
+. $CONFFILTER $BACKEND < $ITSCONF > $CONF1
 $SLAPADD -q -d $LVL -f $CONF1 -l $LDIFORDERED > $SLAPADDLOG1 2>&1
 RC=$?
 if test $RC != 0 ; then

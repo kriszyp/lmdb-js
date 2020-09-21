@@ -119,7 +119,6 @@ int backend_init(void)
 	/* HACK: need schema defined in deterministic order */
 	syncrepl_monitor_init();
 
-
 	if ( nBackendInfo > 0) {
 		return 0;
 	}

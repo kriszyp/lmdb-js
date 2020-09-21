@@ -23,7 +23,7 @@ fi
 mkdir -p $TESTDIR $DBDIR1
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $CONF > $CONF1
+. $CONFFILTER $BACKEND < $CONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFORDERED -d -1 2> $SLAPADDLOG1
 RC=$?
 if test $RC != 0 ; then
@@ -56,7 +56,7 @@ done
 
 # fix test data to include back-monitor, if available
 # NOTE: copies do_* files from $DATADIR to $TESTDIR
-$MONITORDATA "$MONITORDB" "$DATADIR" "$TESTDIR"
+$MONITORDATA "$DATADIR" "$TESTDIR"
 
 echo "Using tester for concurrent server access..."
 $SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -l $TESTLOOPS

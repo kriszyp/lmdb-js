@@ -34,7 +34,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR4
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $SRPROVIDERCONF > $CONF1
+. $CONFFILTER $BACKEND < $SRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -74,7 +74,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting consumer slapd on TCP/IP port $PORT4..."
-. $CONFFILTER $BACKEND $MONITORDB < $P1SRCONSUMERCONF > $CONF4
+. $CONFFILTER $BACKEND < $P1SRCONSUMERCONF > $CONF4
 $SLAPD -f $CONF4 -h $URI4 -d $LVL > $LOG4 2>&1 &
 CONSUMERPID=$!
 if test $WAIT != 0 ; then

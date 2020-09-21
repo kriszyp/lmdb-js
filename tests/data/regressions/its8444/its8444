@@ -59,7 +59,7 @@ while [ $n -le $MPR ]; do
 	CFDIR=${XDIR}$n/slapd.d
 
 	mkdir -p ${XDIR}$n $DBDIR.1 $DBDIR.2 $CFDIR
-	. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd-provider${n}.ldif > $CONFLDIF
+	. $CONFFILTER $BACKEND < $ITSDIR/slapd-provider${n}.ldif > $CONFLDIF
 	$SLAPADD -F $CFDIR -n 0 -l $CONFLDIF
 	n=`expr $n + 1`
 done

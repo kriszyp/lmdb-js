@@ -19,7 +19,7 @@ echo "running defines.sh"
 mkdir -p $TESTDIR $DBDIR1A $DBDIR1B $DBDIR1C
 
 echo "Starting slapd on TCP/IP port $PORT..."
-. $CONFFILTER $BACKEND $MONITORDB < $GLUECONF > $CONF1
+. $CONFFILTER $BACKEND < $GLUECONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then

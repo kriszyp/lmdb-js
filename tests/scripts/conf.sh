@@ -12,15 +12,6 @@
 ## A copy of this license is available in the file LICENSE in the
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
-MONMOD=nomod
-if [ x"$MONITORDB" = xyes -o x"$MONITORDB" = xmod ] ; then
-	MON=monitor
-	if [ $MONITORDB = mod ] ; then
-		MONMOD=monitormod
-	fi
-else
-	MON=nomonitor
-fi
 if [ x"$WITH_SASL" = x"yes" -a x"$USE_SASL" != x"no" ] ; then
 	SASL="sasl"
 	if [ x"$USE_SASL" = x"yes" ] ; then
@@ -60,8 +51,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_valsort}#//"			\
 	-e "s/^#${INDEXDB}#//"				\
 	-e "s/^#${MAINDB}#//"				\
-	-e "s/^#${MON}#//"				\
-	-e "s/^#${MONMOD}#//"				\
 	-e "s/^#${SASL}#//"				\
 	-e "s/^#${ACI}#//"				\
 	-e "s;@URI1@;${URI1};"				\

@@ -306,12 +306,7 @@ static Connection* connection_get( ber_socket_t s )
 		assert( c->c_conn_state != SLAP_C_INVALID );
 		assert( c->c_sd != AC_SOCKET_INVALID );
 
-#ifndef SLAPD_MONITOR
-		if ( global_idletimeout > 0 )
-#endif /* ! SLAPD_MONITOR */
-		{
-			c->c_activitytime = slap_get_time();
-		}
+		c->c_activitytime = slap_get_time();
 	}
 
 	return c;
@@ -463,12 +458,7 @@ Connection * connection_init(
 	/* set to zero until bind, implies LDAP_VERSION3 */
 	c->c_protocol = 0;
 
-#ifndef SLAPD_MONITOR
-	if ( global_idletimeout > 0 )
-#endif /* ! SLAPD_MONITOR */
-	{
-		c->c_activitytime = c->c_starttime = slap_get_time();
-	}
+	c->c_activitytime = c->c_starttime = slap_get_time();
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
@@ -960,7 +950,6 @@ void connection_done( Connection *c )
  * calls the appropriate stub to handle it.
  */
 
-#ifdef SLAPD_MONITOR
 /* FIXME: returns 0 in case of failure */
 #define INCR_OP_INITIATED(index) \
 	do { \
@@ -975,15 +964,6 @@ void connection_done( Connection *c )
 		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed_[(index)], 1); \
 		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
 	} while (0)
-#else /* !SLAPD_MONITOR */
-#define INCR_OP_INITIATED(index) do { } while (0)
-#define INCR_OP_COMPLETED(index) \
-	do { \
-		ldap_pvt_thread_mutex_lock( &op->o_counters->sc_mutex ); \
-		ldap_pvt_mp_add_ulong(op->o_counters->sc_ops_completed, 1); \
-		ldap_pvt_thread_mutex_unlock( &op->o_counters->sc_mutex ); \
-	} while (0)
-#endif /* !SLAPD_MONITOR */
 
 /*
  * NOTE: keep in sync with enum in slapd.h
@@ -1023,12 +1003,10 @@ conn_counter_destroy( void *key, void *data )
 			ldap_pvt_mp_add( slap_counters.sc_refs, sc->sc_refs );
 			ldap_pvt_mp_add( slap_counters.sc_ops_initiated, sc->sc_ops_initiated );
 			ldap_pvt_mp_add( slap_counters.sc_ops_completed, sc->sc_ops_completed );
-#ifdef SLAPD_MONITOR
 			for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_initiated_[ i ] );
 				ldap_pvt_mp_add( slap_counters.sc_ops_initiated_[ i ], sc->sc_ops_completed_[ i ] );
 			}
-#endif /* SLAPD_MONITOR */
 			slap_counters_destroy( sc );
 			ber_memfree_x( data, NULL );
 			break;

@@ -23,15 +23,9 @@ include: file://@TESTWD@/@SCHEMADIR@/nis.ldif
 #mod#olcModulePath: @TESTWD@/../servers/slapd/back-@BACKEND@/
 #mod#olcModuleLoad: {0}back_@BACKEND@.la
 
-#monitormod#dn: cn=module{1},cn=config
-#monitormod#objectClass: olcModuleList
-#monitormod#cn: module{1}
-#monitormod#olcModulePath: @TESTWD@/../servers/slapd/back-monitor/
-#monitormod#olcModuleLoad: {0}back_monitor.la
-
-#syncprovmod#dn: cn=module{2},cn=config
+#syncprovmod#dn: cn=module{1},cn=config
 #syncprovmod#objectClass: olcModuleList
-#syncprovmod#cn: module{2}
+#syncprovmod#cn: module{1}
 #syncprovmod#olcModulePath: @TESTWD@/../servers/slapd/overlays/
 #syncprovmod#olcModuleLoad: {0}syncprov.la
 #accesslogmod#olcModuleLoad: {1}accesslog.la

@@ -41,7 +41,7 @@ rm -rf $TESTDIR
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 echo "Starting slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $METACONF1 > $CONF1
+. $CONFFILTER $BACKEND < $METACONF1 > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -80,7 +80,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $METACONF2 > $CONF2
+. $CONFFILTER $BACKEND < $METACONF2 > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -119,7 +119,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND $MONITORDB < $METACONF > $CONF3
+. $CONFFILTER $BACKEND < $METACONF > $CONF3
 $SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
@@ -177,9 +177,8 @@ for f in $TESTDIR/$DATADIR/do_bind.* ; do
 	echo "" >> $f
 done
 
-# fix test data to include back-monitor, if available
 # NOTE: copies do_* files from $TESTDIR/$DATADIR to $TESTDIR
-$MONITORDATA "$MONITORDB" "$TESTDIR/$DATADIR" "$TESTDIR"
+$MONITORDATA "$TESTDIR/$DATADIR" "$TESTDIR"
 
 BINDDN="cn=Manager,o=Local"
 PASSWD="secret"

@@ -936,9 +936,6 @@
 /* statically linked module */
 #undef SLAPD_MOD_STATIC
 
-/* define to support cn=Monitor backend */
-#undef SLAPD_MONITOR
-
 /* define to support NDB backend */
 #undef SLAPD_NDB
 

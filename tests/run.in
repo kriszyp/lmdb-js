@@ -32,7 +32,6 @@ AC_null=@BUILD_NULL@
 AC_ldap=ldap@BUILD_LDAP@
 AC_meta=meta@BUILD_META@
 AC_asyncmeta=asyncmeta@BUILD_ASYNCMETA@
-AC_monitor=@BUILD_MONITOR@
 AC_perl=perl@BUILD_PERL@
 AC_relay=relay@BUILD_RELAY@
 AC_sql=sql@BUILD_SQL@

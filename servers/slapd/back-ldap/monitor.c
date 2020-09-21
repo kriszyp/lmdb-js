@@ -844,8 +844,7 @@ ldap_back_monitor_initialize( void )
 	/* set to 0 when successfully initialized; otherwise, remember failure */
 	static int	ldap_back_monitor_initialized_failure = 1;
 
-	/* register schema here; if compiled as dynamic object,
-	 * must be loaded __after__ back_monitor.la */
+	/* register schema here */
 
 	if ( ldap_back_monitor_initialized++ ) {
 		return ldap_back_monitor_initialized_failure;
@@ -962,7 +961,7 @@ ldap_back_monitor_db_open( BackendDB *be )
 		static int warning = 0;
 
 		if ( warning++ == 0 ) {
-			Debug( LDAP_DEBUG_ANY, "ldap_back_monitor_db_open: "
+			Debug( LDAP_DEBUG_CONFIG, "ldap_back_monitor_db_open: "
 				"monitoring disabled; "
 				"configure monitor database to enable\n" );
 		}

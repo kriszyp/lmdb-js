@@ -427,7 +427,7 @@ mdb_monitor_db_open( BackendDB *be )
 		static int warning = 0;
 
 		if ( warning++ == 0 ) {
-			Debug( LDAP_DEBUG_ANY, LDAP_XSTRING(mdb_monitor_db_open)
+			Debug( LDAP_DEBUG_CONFIG, LDAP_XSTRING(mdb_monitor_db_open)
 				": monitoring disabled; "
 				"configure monitor database to enable\n" );
 		}

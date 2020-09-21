@@ -55,7 +55,7 @@ esac
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $DYNAMICCONF > $CONFLDIF
+. $CONFFILTER $BACKEND < $DYNAMICCONF > $CONFLDIF
 $SLAPADD -F $CFPRO -n 0 -l $CONFLDIF
 $SLAPD -F $CFPRO -h $URI1 -d $LVL > $LOG1 2>&1 &
 PID=$!

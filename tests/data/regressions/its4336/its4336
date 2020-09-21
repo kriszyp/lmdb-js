@@ -37,7 +37,7 @@ ITS=4336
 ITSDIR=$DATADIR/regressions/its$ITS
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND $MONITORDB < $RETCODECONF > $CONF1
+. $CONFFILTER $BACKEND < $RETCODECONF > $CONF1
 $SLAPADD -f $CONF1 -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
@@ -75,7 +75,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting chain slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $ITSDIR/slapd.conf > $CONF2
+. $CONFFILTER $BACKEND < $ITSDIR/slapd.conf > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 PROXYPID=$!
 if test $WAIT != 0 ; then

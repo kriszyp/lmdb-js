@@ -26,11 +26,6 @@ if test $SYNCPROV = syncprovno; then
 	exit 0
 fi 
 
-if test $MONITORDB = no; then 
-	echo "Monitor backend not available, test skipped"
-	exit 0
-fi 
-
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 
 #
@@ -44,7 +39,7 @@ mkdir -p $TESTDIR $DBDIR1 $DBDIR2 $DBDIR3
 #
 
 echo "Starting provider slapd on TCP/IP port $PORT1..."
-. $CONFFILTER $BACKEND $MONITORDB < $PLSRPROVIDERCONF > $CONF1
+. $CONFFILTER $BACKEND < $PLSRPROVIDERCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL > $LOG1 2>&1 &
 PROVIDERPID=$!
 if test $WAIT != 0 ; then
@@ -84,7 +79,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting P1 consumer slapd on TCP/IP port $PORT2..."
-. $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF > $CONF2
+. $CONFFILTER $BACKEND < $RCONSUMERCONF > $CONF2
 $SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
 P1CONSUMERPID=$!
 if test $WAIT != 0 ; then
@@ -114,7 +109,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting R1 consumer slapd on TCP/IP port $PORT3..."
-. $CONFFILTER $BACKEND $MONITORDB < $RCONSUMERCONF | sed -e 's;\.2\.\([^/]*\)$;.3.\1;' > $CONF3
+. $CONFFILTER $BACKEND < $RCONSUMERCONF | sed -e 's;\.2\.\([^/]*\)$;.3.\1;' > $CONF3
 $SLAPD -f $CONF3 -h $URI3 -d $LVL > $LOG3 2>&1 &
 R1CONSUMERPID=$!
 if test $WAIT != 0 ; then

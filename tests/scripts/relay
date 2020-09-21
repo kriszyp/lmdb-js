@@ -18,7 +18,7 @@ echo ""
 
 echo "Starting slapd on TCP/IP port $PORT1..."
 echo "======== Starting slapd with $RELAY backend ========" >> $LOG1
-. $CONFFILTER $BACKEND $MONITORDB < $RELAYCONF > $CONF1
+. $CONFFILTER $BACKEND < $RELAYCONF > $CONF1
 $SLAPD -f $CONF1 -h $URI1 -d $LVL >> $LOG1 2>&1 &
 PID=$!
 if test $WAIT != 0 ; then
