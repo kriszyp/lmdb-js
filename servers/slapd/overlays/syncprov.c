@@ -132,7 +132,7 @@ typedef struct sessionlog {
 	int		sl_size;
 	int		sl_playing;
 	TAvlnode *sl_entries;
-	ldap_pvt_thread_mutex_t sl_mutex;
+	ldap_pvt_thread_rdwr_t sl_mutex;
 } sessionlog;
 
 /* Accesslog callback data */
@@ -1651,14 +1651,14 @@ syncprov_add_slog( Operation *op )
 			 * state with respect to such operations, so we ignore them and
 			 * wipe out anything in the log if we see them.
 			 */
-			ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
+			ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 			/* can only do this if no one else is reading the log at the moment */
 			if ( !sl->sl_playing ) {
 				tavl_free( sl->sl_entries, (AVL_FREE)ch_free );
 				sl->sl_num = 0;
 				sl->sl_entries = NULL;
 			}
-			ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 			return;
 		}
 
@@ -1677,7 +1677,7 @@ syncprov_add_slog( Operation *op )
 		se->se_csn.bv_len = op->o_csn.bv_len;
 		se->se_sid = slap_parse_csn_sid( &se->se_csn );
 
-		ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
+		ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
 			char uuidstr[40] = {};
 			if ( !BER_BVISEMPTY( &opc->suuid ) ) {
@@ -1732,7 +1732,7 @@ syncprov_add_slog( Operation *op )
 				sl->sl_num--;
 			}
 		}
-		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 	}
 }
 
@@ -1968,12 +1968,12 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	struct berval delcsn[2];
 
-	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
+	ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 	/* Are there any log entries, and is the consumer state
 	 * present in the session log?
 	 */
 	if ( !sl->sl_num ) {
-		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 		return rc;
 	}
 	assert( sl->sl_num > 0 );
@@ -1997,7 +1997,7 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		do_play = 1;
 
 	if ( !do_play ) {
-		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 		return rc;
 	}
 
@@ -2005,7 +2005,7 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	i = 0;
 	nmods = 0;
 	sl->sl_playing++;
-	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 
 	uuids = op->o_tmpalloc( (num) * sizeof( struct berval ) +
 			num * UUID_LEN, op->o_tmpmemctx );
@@ -2014,9 +2014,10 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 			num * LDAP_PVT_CSNSTR_BUFSIZE, op->o_tmpmemctx );
 	csns[0].bv_val = (char *)(csns + num);
 
+	ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
 	/* Make a copy of the relevant UUIDs. Put the Deletes up front
 	 * and everything else at the end. Do this first so we can
-	 * unlock the list mutex.
+	 * let the write side manage the sessionlog again.
 	 */
 	assert( sl->sl_entries );
 
@@ -2037,6 +2038,8 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 		slog_entry *se = entry->avl_data;
 		int k;
 
+		/* Make sure writes can still make progress */
+		ldap_pvt_thread_rdwr_runlock( &sl->sl_mutex );
 		ndel = 1;
 		for ( k=0; k<srs->sr_state.numcsns; k++ ) {
 			if ( se->se_sid == srs->sr_state.sids[k] ) {
@@ -2045,6 +2048,7 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 			}
 		}
 		if ( ndel <= 0 ) {
+			ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
 			continue;
 		}
 		ndel = 0;
@@ -2058,14 +2062,17 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_play_sessionlog: "
 				"cmp %d, csn %s too new, we're finished\n",
 				op->o_log_prefix, ndel, se->se_csn.bv_val );
+			ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
 			break;
 		}
 		if ( se->se_tag == LDAP_REQ_DELETE ) {
 			j = i;
 			i++;
 		} else {
-			if ( se->se_tag == LDAP_REQ_ADD )
+			if ( se->se_tag == LDAP_REQ_ADD ) {
+				ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
 				continue;
+			}
 			nmods++;
 			j = num - nmods;
 		}
@@ -2087,10 +2094,12 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 				op->o_log_prefix, se->se_tag == LDAP_REQ_DELETE ? "deleted" : "modified",
 				uuidstr, csns[j].bv_val );
 		}
+		ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
 	} while ( (entry = tavl_next( entry, TAVL_DIR_RIGHT )) != NULL );
-	ldap_pvt_thread_mutex_lock( &sl->sl_mutex );
+	ldap_pvt_thread_rdwr_runlock( &sl->sl_mutex );
+	ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 	sl->sl_playing--;
-	ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 
 	ndel = i;
 
@@ -3670,7 +3679,7 @@ sp_cf_gen(ConfigArgs *c)
 		if ( !sl ) {
 			if ( !size ) break;
 			sl = ch_calloc( 1, sizeof( sessionlog ));
-			ldap_pvt_thread_mutex_init( &sl->sl_mutex );
+			ldap_pvt_thread_rdwr_init( &sl->sl_mutex );
 			si->si_logs = sl;
 		}
 		sl->sl_size = size;
@@ -4016,7 +4025,7 @@ syncprov_db_destroy(
 			if ( sl->sl_sids )
 				ch_free( sl->sl_sids );
 
-			ldap_pvt_thread_mutex_destroy(&si->si_logs->sl_mutex);
+			ldap_pvt_thread_rdwr_destroy(&si->si_logs->sl_mutex);
 			ch_free( si->si_logs );
 		}
 		if ( si->si_ctxcsn )
