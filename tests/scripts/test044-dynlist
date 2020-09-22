@@ -56,7 +56,7 @@ sleep 1
 
 echo "Testing slapd searching..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'(objectclass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -76,7 +76,7 @@ cat /dev/null > $SEARCHOUT
 
 LISTDN="ou=Dynamic Lists,$BASEDN"
 echo "Adding a dynamic list..."
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: $LISTDN
 objectClass: organizationalUnit
@@ -90,7 +90,7 @@ EOMODS
 
 echo "Testing list search of all attrs..."
 echo "# Testing list search of all attrs..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -102,7 +102,7 @@ fi
 
 echo "Testing list search of a listed attr..."
 echo "# Testing list search of a listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' mail \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -114,7 +114,7 @@ fi
 
 echo "Testing list search of a non-listed attr..."
 echo "# Testing list search of a non-listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' objectClass \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -126,7 +126,7 @@ fi
 
 echo "Testing list search with (critical) manageDSAit..."
 echo "# Testing list search with (critical) manageDSAit..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 -MM \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 -MM \
 	'(cn=Dynamic List)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -138,7 +138,7 @@ fi
 
 echo "Testing filtered search with all attrs..."
 echo "# Testing filtered search with all attrs..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(mail=jdoe@woof.net)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -150,7 +150,7 @@ fi
 
 echo "Testing filtered search of a listed attr..."
 echo "# Testing filtered search of a listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(mail=jdoe@woof.net)' mail \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -162,7 +162,7 @@ fi
 
 echo "Testing filtered search of a non-listed attr..."
 echo "# Testing filtered search of a non-listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(mail=jdoe@woof.net)' objectClass \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -174,7 +174,7 @@ fi
 
 echo "Testing filtered search of a non-present attr..."
 echo "# Testing filtered search of a non-present attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(mail=nobody@nowhere)' objectClass \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -186,7 +186,7 @@ fi
 
 echo "Testing list compare..."
 echo "# Testing list compare..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List,$LISTDN" "cn:Bjorn Jensen" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -214,7 +214,7 @@ echo "" >> $SEARCHOUT
 
 echo "Testing list compare (should return FALSE)..."
 echo "# Testing list compare (should return FALSE)..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List,$LISTDN" "cn:FALSE" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -242,7 +242,7 @@ echo "" >> $SEARCHOUT
 
 echo "Testing list compare (should return UNDEFINED)..."
 echo "# Testing list compare (should return UNDEFINED)..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List,$LISTDN" "dc:UNDEFINED" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -273,7 +273,7 @@ echo "" >> $SEARCHOUT
 
 echo "Testing list compare with manageDSAit..."
 echo "# Testing list compare with manageDSAit..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 -MM \
+$LDAPCOMPARE -H $URI1 -MM \
 	"cn=Dynamic List,$LISTDN" "cn:Bjorn Jensen" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -300,7 +300,7 @@ esac
 echo "" >> $SEARCHOUT
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -326,7 +326,7 @@ echo "Testing attribute mapping"
 
 echo "Testing list search of all (mapped) attrs..."
 echo "# Testing list search of all (mapped) attrs..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -338,7 +338,7 @@ fi
 
 echo "Testing list search of a (mapped) listed attr..."
 echo "# Testing list search of a (mapped) listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' sn \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -350,7 +350,7 @@ fi
 
 echo "Testing list search of a (n unmapped) listed attr..."
 echo "# Testing list search of a (n unmapped) listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List)' mail \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -362,7 +362,7 @@ fi
 
 echo "Testing list compare (mapped attrs) ..."
 echo "# Testing list compare (mapped attrs) ..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List,$LISTDN" "sn:Bjorn Jensen" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -390,7 +390,7 @@ echo "" >> $SEARCHOUT
 
 echo "Testing list compare (mapped attrs; should return FALSE)..."
 echo "# Testing list compare (mapped attrs; should return FALSE)..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List,$LISTDN" "sn:FALSE" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -417,7 +417,7 @@ esac
 echo "" >> $SEARCHOUT
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -440,7 +440,7 @@ fi
 echo "==========================================================" >> $LOG1
 
 echo "Adding a dynamic list..."
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=Dynamic List of Members,$LISTDN
 objectClass: groupOfURLs
@@ -450,7 +450,7 @@ EOMODS
 
 echo "Testing list search of all attrs..."
 echo "# Testing list search of all attrs..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -462,7 +462,7 @@ fi
 
 echo "Testing list search of a listed attr..."
 echo "# Testing list search of a listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' member \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -474,7 +474,7 @@ fi
 
 echo "Testing list search of a non-listed attr..."
 echo "# Testing list search of a non-listed attr..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' objectClass \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -486,7 +486,7 @@ fi
 
 echo "Testing list search with (critical) manageDSAit..."
 echo "# Testing list search with (critical) manageDSAit..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 -MM \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 -MM \
 	'(&(cn=Dynamic List of Members)(objectClass=groupOfURLs))' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -499,7 +499,7 @@ fi
 CMPDN="$BJORNSDN"
 echo "Testing list compare..."
 echo "# Testing list compare..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List of Members,$LISTDN" "member:$CMPDN" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -528,7 +528,7 @@ echo "" >> $SEARCHOUT
 CMPDN="$BADBJORNSDN"
 echo "Testing list compare (should return FALSE)..."
 echo "# Testing list compare... (should return FALSE)" >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List of Members,$LISTDN" "member:$CMPDN" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -557,7 +557,7 @@ echo "" >> $SEARCHOUT
 CMPDN="$BJORNSDN"
 echo "Testing list compare (should return FALSE)..."
 echo "# Testing list compare (should return FALSE)..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 \
+$LDAPCOMPARE -H $URI1 \
 	"cn=Dynamic List of Members,$LISTDN" "member:cn=Foo Bar" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -585,7 +585,7 @@ echo "" >> $SEARCHOUT
 
 echo "Testing list compare with manageDSAit (should return UNDEFINED)..."
 echo "# Testing list compare with manageDSAit (should return UNDEFINED)..." >> $SEARCHOUT
-$LDAPCOMPARE -h $LOCALHOST -p $PORT1 -MM \
+$LDAPCOMPARE -H $URI1 -MM \
 	"cn=Dynamic List,$LISTDN" "member:$CMPDN" \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -621,7 +621,7 @@ echo "==========================================================" >> $LOG1
 echo "Testing dgIdentity..."
 
 # Set ACL, require authentication to get list contents
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcDatabase={$DBIX}$BACKEND,cn=config
@@ -640,7 +640,7 @@ fi
 
 echo "Testing list search without dgIdentity..."
 echo "# Testing list search without dgIdentity..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -650,7 +650,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=Dynamic List of Members,$LISTDN
 changetype: modify
@@ -670,7 +670,7 @@ fi
 
 echo "Testing list search with dgIdentity..."
 echo "# Testing list search with dgIdentity..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -683,7 +683,7 @@ fi
 echo "Testing dgAuthz..."
 
 CMPDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN"
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=Dynamic List of Members,$LISTDN
 changetype: modify
@@ -700,7 +700,7 @@ fi
 
 echo "Testing list search with dgIdentity and dgAuthz anonymously..."
 echo "# Testing list search with dgIdentity and dgAuthz anonymously..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	'(cn=Dynamic List of Members)' '*' \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -712,7 +712,7 @@ fi
 
 echo "Testing list search with dgIdentity and dgAuthz as the authorized identity..."
 echo "# Testing list search with dgIdentity and dgAuthz as the authorized identity..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(cn=Dynamic List of Members)' '*' \
 	>> $SEARCHOUT 2>&1
@@ -724,7 +724,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -748,7 +748,7 @@ echo "==========================================================" >> $LOG1
 
 echo "Testing memberOf functionality..."
 echo "# Testing memberOf functionality..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(cn=Mark Elliot)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -761,7 +761,7 @@ fi
 
 echo "Testing filtered memberOf functionality..."
 echo "# Testing filtered memberOf functionality..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(&(memberOf=cn=Dynamic List of Members,ou=Dynamic Lists,dc=example,dc=com)(cn=Mark Elliot))' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -773,7 +773,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -797,7 +797,7 @@ echo "==========================================================" >> $LOG1
 
 echo "Testing static group memberOf functionality..."
 echo "# Testing static group memberOf functionality..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(cn=Mark Elliot)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -809,7 +809,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -832,7 +832,7 @@ fi
 echo "==========================================================" >> $LOG1
 
 echo "Adding a couple dynamic groups..."
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=The Smiths,$LISTDN
 objectClass: groupOfURLs
@@ -855,7 +855,7 @@ fi
 
 echo "Testing nested dynamic group functionality..."
 echo "# Testing nested dynamic group functionality..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$LISTDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$LISTDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(objectclass=*)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -866,7 +866,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(cn=Mark Elliot)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -878,7 +878,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Reconfiguring slapd..."
-$LDAPMODIFY -x -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF > \
+$LDAPMODIFY -x -D cn=config -H $URI1 -y $CONFIGPWF > \
 	$TESTOUT 2>&1 << EOMODS
 version: 1
 dn: olcOverlay={0}dynlist,olcDatabase={$DBIX}$BACKEND,cn=config
@@ -902,7 +902,7 @@ fi
 echo "==========================================================" >> $LOG1
 
 echo "Adding a couple static groups..."
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=The Jensens,ou=Groups,$BASEDN
 objectClass: groupOfnames
@@ -927,7 +927,7 @@ fi
 
 echo "Testing nested static group functionality..."
 echo "# Testing nested static group functionality..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(sn=Jensen)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -939,7 +939,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding another nested group..."
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	> $TESTOUT 2>&1 << EOMODS
 dn: cn=Bonus Group,ou=Groups,$BASEDN
 objectClass: groupOfnames
@@ -948,7 +948,7 @@ member: cn=Ursula Hampster,ou=Alumni Association,ou=People,$BASEDN
 member: cn=Meta Group,$LISTDN
 EOMODS
 
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(sn=Hampster)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -959,7 +959,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(sn=Doe)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -970,7 +970,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "ou=People,$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	'(sn=Smith)' '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -984,7 +984,7 @@ fi
 echo "Testing filtered nested memberOf functionality..."
 echo "# Testing filtered nested memberOf functionality..." >> $SEARCHOUT
 
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	"(memberOf=cn=bonus group,ou=groups,$BASEDN)" '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1
@@ -998,7 +998,7 @@ fi
 echo "Testing filtered nested member functionality..."
 echo "# Testing filtered nested member functionality..." >> $SEARCHOUT
 
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-D "$BABSDN" -w bjensen \
 	"(member=cn=Jennifer Smith,ou=Alumni Association,ou=People,$BASEDN)" '*' 'memberOf' \
 	>> $SEARCHOUT 2>&1

@@ -32,7 +32,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -43,7 +43,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using ldapadd to populate the glued database..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDERED > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -53,7 +53,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -b "$BASEDN" -H $URI1 \
 	'objectclass=*' > $SEARCHOUT 2>&1
 RC=$?
 

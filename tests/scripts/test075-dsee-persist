@@ -56,7 +56,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$BASEDN" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -86,7 +86,7 @@ sleep 1
 
 echo "Using ldapsearch to check that consumer slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT4 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI4 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -104,7 +104,7 @@ fi
 
 # using LDIFDIRSYNCNOCP to avoid custom OpenLDAP schema
 echo "Using ldapadd to populate the provider directory..."
-$LDAPADD -D "$DSEEDN" -h $LOCALHOST -p $PORT1 -w $DSEEPW < \
+$LDAPADD -D "$DSEEDN" -H $URI1 -w $DSEEPW < \
 	$LDIFDIRSYNCNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -117,7 +117,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-D "$DSEEDN" -w "$DSEEPW" \
 	'(objectclass=*)' '*' $OPATTRS > $PROVIDEROUT 2>&1
 RC=$?
@@ -129,7 +129,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI4 \
 	'(objectclass=*)' '*' $OPATTRS > $CONSUMEROUT 2>&1
 RC=$?
 
@@ -170,7 +170,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$BASEDN" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -195,7 +195,7 @@ echo "Using ldapmodify to modify provider directory..."
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$DSEEDN" -h $LOCALHOST -p $PORT1 -w $DSEEPW > \
+$LDAPMODIFY -v -D "$DSEEDN" -H $URI1 -w $DSEEPW > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 changetype: modify
@@ -319,7 +319,7 @@ kill -HUP $CONSUMERPID
 wait $CONSUMERPID
 
 echo "Modifying more entries on the provider..."
-$LDAPMODIFY -v -D "$DSEEDN" -h $LOCALHOST -p $PORT1 -w $DSEEPW >> \
+$LDAPMODIFY -v -D "$DSEEDN" -H $URI1 -w $DSEEPW >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Rosco P. Coltrane, ou=Retired, ou=People, dc=example,dc=com
 changetype: delete
@@ -376,7 +376,7 @@ echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
 echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-D "$DSEEDN" -w "$DSEEPW" \
 	'(objectclass=*)' '*' $OPATTRS > $PROVIDEROUT 2>&1
 RC=$?
@@ -388,7 +388,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI4 \
 	'(objectclass=*)' '*' $OPATTRS > $CONSUMEROUT 2>&1
 RC=$?
 

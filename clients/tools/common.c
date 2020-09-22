@@ -71,8 +71,6 @@ char		*prog = NULL;
 
 /* connection */
 char		*ldapuri = NULL;
-char		*ldaphost = NULL;
-int  		ldapport = 0;
 int		use_tls = 0;
 int		protocol = -1;
 int		version = 0;
@@ -350,7 +348,6 @@ N_("             [!]sessiontracking[=<username>]\n")
 N_("             abandon, cancel, ignore (SIGINT sends abandon/cancel,\n"
    "             or ignores response; if critical, doesn't wait for SIGINT.\n"
    "             not really controls)\n")
-N_("  -h host    LDAP server\n"),
 N_("  -H URI     LDAP Uniform Resource Identifier(s)\n"),
 N_("  -I         use SASL Interactive mode\n"),
 N_("  -n         show what would be done but don't actually do it\n"),
@@ -359,7 +356,6 @@ N_("  -O props   SASL security properties\n"),
 N_("  -o <opt>[=<optparam>] any libldap ldap.conf options, plus\n"),
 N_("             ldif_wrap=<width> (in columns, or \"no\" for no wrapping)\n"),
 N_("             nettimeout=<timeout> (in seconds, or \"none\" or \"max\")\n"),
-N_("  -p port    port on LDAP server\n"),
 N_("  -Q         use SASL Quiet mode\n"),
 N_("  -R realm   SASL realm\n"),
 N_("  -U authcid SASL authentication identity\n"),
@@ -778,13 +774,6 @@ tool_args( int argc, char **argv )
 			}
 			infile = optarg;
 			break;
-		case 'h':	/* ldap host */
-			if( ldaphost != NULL ) {
-				fprintf( stderr, "%s: -h previously specified\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			ldaphost = optarg;
-			break;
 		case 'H':	/* ldap URI */
 			if( ldapuri != NULL ) {
 				fprintf( stderr, "%s: -H previously specified\n", prog );
@@ -897,18 +886,6 @@ tool_args( int argc, char **argv )
 			fprintf( stderr, "%s: not compiled with SASL support\n", prog );
 			exit( EXIT_FAILURE );
 #endif
-			break;
-		case 'p':
-			if( ldapport ) {
-				fprintf( stderr, "%s: -p previously specified\n", prog );
-				exit( EXIT_FAILURE );
-			}
-			ival = strtol( optarg, &next, 10 );
-			if ( next == NULL || next[0] != '\0' ) {
-				fprintf( stderr, "%s: unable to parse port number \"%s\"\n", prog, optarg );
-				exit( EXIT_FAILURE );
-			}
-			ldapport = ival;
 			break;
 		case 'P':
 			ival = strtol( optarg, &next, 10 );
@@ -1144,22 +1121,6 @@ tool_args( int argc, char **argv )
 #endif
 	}
 
-	if( ldapuri == NULL ) {
-		if( ldapport && ( ldaphost == NULL )) {
-			fprintf( stderr, "%s: -p without -h is invalid.\n", prog );
-			exit( EXIT_FAILURE );
-		}
-	} else {
-		if( ldaphost != NULL ) {
-			fprintf( stderr, "%s: -H incompatible with -h\n", prog );
-			exit( EXIT_FAILURE );
-		}
-		if( ldapport ) {
-			fprintf( stderr, "%s: -H incompatible with -p\n", prog );
-			exit( EXIT_FAILURE );
-		}
-	}
-
 	if( protocol == LDAP_VERSION2 ) {
 		if( assertctl || authzid || manageDIT || manageDSAit ||
 #ifdef LDAP_CONTROL_OBSOLETE_PROXY_AUTHZ
@@ -1230,19 +1191,7 @@ tool_conn_setup( int dont, void (*private_setup)( LDAP * ) )
 	if ( !dont ) {
 		int rc;
 
-		if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
-			/* construct URL */
-			LDAPURLDesc url;
-			memset( &url, 0, sizeof(url));
-
-			url.lud_scheme = "ldap";
-			url.lud_host = ldaphost;
-			url.lud_port = ldapport;
-			url.lud_scope = LDAP_SCOPE_DEFAULT;
-
-			ldapuri = ldap_url_desc2str( &url );
-
-		} else if ( ldapuri != NULL ) {
+		if ( ldapuri != NULL ) {
 			LDAPURLDesc	*ludlist, **ludp;
 			char		**urls = NULL;
 			int		nurls = 0;

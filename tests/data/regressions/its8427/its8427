@@ -295,7 +295,7 @@ fi
 echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 sleep $SLEEP1
 
-$LDAPWHOAMI -h $LOCALHOST -p $PORT2 \
+$LDAPWHOAMI -H $URI2 \
     -D "cn=Babs,ou=Information Technology DivisioN,ou=People,$BASEDN" \
     -w bjensen
 RC=$?

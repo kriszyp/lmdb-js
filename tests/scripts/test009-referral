@@ -54,7 +54,7 @@ sleep 1
 
 echo "Testing for provider slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -72,7 +72,7 @@ fi
 
 echo "Testing for consumer slapd..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -85,7 +85,7 @@ done
 cat /dev/null > $SEARCHOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -H $URI2 \
 	'sn=jensen' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -95,7 +95,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing approximate searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -H $URI2 \
 	'(sn=jENSEN)' name >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -105,7 +105,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing OR searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -H $URI2 \
 	'(|(objectclass=groupofnames)(objectClass=groupofuniquenames)(sn=jones))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -115,7 +115,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing AND matching and ends-with searching..."
-$LDAPSEARCH -C -S "" -b "ou=groups,$BASEDN" -s one -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "ou=groups,$BASEDN" -s one -H $URI2 \
 	'(&(objectclass=groupofnames)(cn=A*))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -125,7 +125,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing NOT searching..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -H $URI2 \
 	'(!(objectclass=pilotPerson))' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -135,7 +135,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing objectClass/attributeType inheritance ..."
-$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -M -a never -S "" -b "$BASEDN" -H $URI1 \
 	'(&(objectClass=inetorgperson)(userid=uham))' \
 	"2.5.4.0" "userid" >> $SEARCHOUT 2>&1
 RC=$?
@@ -146,7 +146,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing dontUseCopy control..."
-$LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -C -S "" -b "$BASEDN" -H $URI2 \
 	-E \!dontUseCopy \
 	'sn=jensen' >> $SEARCHOUT
 RC=$?

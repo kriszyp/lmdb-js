@@ -41,7 +41,7 @@ sleep 1
 
 echo "Testing attribute value regex substitution..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -61,7 +61,7 @@ cat /dev/null > $SEARCHOUT
 
 echo "# Try an attribute vale regex that match, but substitute does not"
 echo "# this should fail"
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -H $URI1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: modify
@@ -89,7 +89,7 @@ esac
 
 echo "# Try an attribute vale regex that match and substitute does"
 echo "# this should succeed"
-$LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT1 -w jaj >> \
+$LDAPMODIFY -D "$JAJDN" -H $URI1 -w jaj >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: modify

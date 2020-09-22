@@ -54,7 +54,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -70,7 +70,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDERED > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -93,7 +93,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -109,7 +109,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$METAMANAGERDN" -h $LOCALHOST -p $PORT2 -w $PASSWD < \
+$LDAPADD -D "$METAMANAGERDN" -H $URI2 -w $PASSWD < \
 	$LDIFMETA >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -132,7 +132,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI3 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -184,7 +184,7 @@ $MONITORDATA "$TESTDIR/$DATADIR" "$TESTDIR"
 BINDDN="cn=Manager,o=Local"
 PASSWD="secret"
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -h $LOCALHOST -p $PORT3 \
+$SLAPDTESTER -P "$PROGDIR" -d "$TESTDIR" -H $URI3 \
 	-D "$BINDDN" -w $PASSWD -l $TESTLOOPS -j $TESTCHILDREN \
 	-r 20 -i '!REFERRAL' -i '*INVALID_CREDENTIALS' -SS
 RC=$?
@@ -196,7 +196,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$METABASEDN" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -S "" -b "$METABASEDN" -H $URI3 \
 			'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 

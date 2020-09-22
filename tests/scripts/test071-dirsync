@@ -100,7 +100,7 @@ sleep 1
 
 echo "Using ldapsearch to check that consumer slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -119,7 +119,7 @@ fi
 
 echo "Using ldapsearch to check that consumer received context entry..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$BASEDN" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -338,7 +338,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 -o ldif_wrap=120 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 -o ldif_wrap=120 \
 	'(objectclass=*)' > $CONSUMEROUT 2>&1
 RC=$?
 

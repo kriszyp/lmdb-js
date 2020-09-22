@@ -53,7 +53,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -83,7 +83,7 @@ sleep 1
 
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -100,7 +100,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -110,7 +110,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Re-searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -127,7 +127,7 @@ sleep $SLEEP
 KILLPIDS="$PROXYPID"
 
 echo "Searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 case $RC in
@@ -147,7 +147,7 @@ case $RC in
 esac
 
 echo "Re-searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 case $RC in
@@ -179,7 +179,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -196,7 +196,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -206,7 +206,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Re-searching the proxy..."
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then

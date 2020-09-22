@@ -59,7 +59,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -76,7 +76,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to create the context prefix entry in the provider..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -99,7 +99,7 @@ sleep 1
 
 echo "Using ldapsearch to check that consumer slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -129,7 +129,7 @@ sleep 1
 
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI3 \
 		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 || test $RC = 53 ; then
@@ -156,7 +156,7 @@ esac
 
 CHECK=1
 echo "$CHECK > Using ldapadd to populate the provider directory..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDNOCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -166,7 +166,7 @@ if test $RC != 0 ; then
 fi
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -178,7 +178,7 @@ fi
 # check consumer contextCSN
 sleep 1
 for i in 1 2 3; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -199,7 +199,7 @@ for i in 1 2 3; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -210,7 +210,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -253,7 +253,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'(objectClass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -275,7 +275,7 @@ echo "Using ldapmodify to modify provider directory..."
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 changetype: modify
@@ -357,7 +357,7 @@ if test $RC != 0 ; then
 fi
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -371,7 +371,7 @@ for i in 1 2 3; do
 	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 	sleep $SLEEP1
 
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -389,7 +389,7 @@ for i in 1 2 3; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -400,7 +400,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -430,7 +430,7 @@ kill -HUP $PROXYPID
 wait $PROXYPID
 
 echo "Modifying more entries on the provider..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: modify
@@ -464,7 +464,7 @@ fi
 KILLPIDS="$PROVIDERPID $CONSUMERPID $PROXYPID"
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -478,7 +478,7 @@ for i in 1 2 3 4 5; do
 	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 	sleep $SLEEP1
 
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -496,7 +496,7 @@ for i in 1 2 3 4 5; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -507,7 +507,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -533,7 +533,7 @@ fi
 
 CHECK=`expr $CHECK + 1`
 echo "$CHECK > Try updating the consumer slapd..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT2 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI2 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com
 changetype: modify
@@ -551,7 +551,7 @@ if test $RC != 0 ; then
 fi
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -564,7 +564,7 @@ fi
 sleep 1
 
 for i in 1 2 3; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -585,7 +585,7 @@ for i in 1 2 3; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -596,7 +596,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 '(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -626,7 +626,7 @@ kill -HUP $CONSUMERPID
 wait $CONSUMERPID
 
 echo "Modifying more entries on the provider..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
 changetype: modify
@@ -649,7 +649,7 @@ fi
 KILLPIDS="$PROVIDERPID $CONSUMERPID $PROXYPID"
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -664,7 +664,7 @@ for i in 1 2 3 4 5; do
 	echo "Waiting $SLEEP1 seconds for syncrepl to receive changes..."
 	sleep $SLEEP1
 
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -682,7 +682,7 @@ for i in 1 2 3 4 5; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -693,7 +693,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -738,7 +738,7 @@ if test $? != 0 ; then
 	sleep $SLEEP2
 
 	#echo "Using ldapsearch to read all the entries from the consumer..."
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		'(objectClass=*)' > "${CONSUMEROUT}.5.1" 2>&1
 	RC=$?
 
@@ -766,7 +766,7 @@ fi
 #
 CHECK=`expr $CHECK + 1`
 echo "$CHECK > Performing modifications that were formerly known to fail..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 # First, back out previous change
 dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, dc=example,dc=com
@@ -789,7 +789,7 @@ if test $RC != 0 ; then
 fi
 
 # get provider contextCSN
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	-s base '(objectClass=*)' contextCSN > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -801,7 +801,7 @@ fi
 # check consumer contextCSN
 sleep 1
 for i in 1 2 3; do
-	$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 		-s base '(objectClass=*)' contextCSN > "${CONSUMEROUT}.$CHECK" 2>&1
 	RC=$?
 
@@ -822,7 +822,7 @@ for i in 1 2 3; do
 done
 
 #echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' > "${PROVIDEROUT}.$CHECK" 2>&1
 RC=$?
 
@@ -833,7 +833,7 @@ if test $RC != 0 ; then
 fi
 
 #echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	'(objectClass=*)' > "${CONSUMEROUT}.$CHECK" 2>&1
 RC=$?
 

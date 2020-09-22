@@ -40,7 +40,7 @@ sleep 1
 
 echo "Testing slapd modify operations..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -57,7 +57,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing modify, add, and delete..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT -f $LDIFMODIFY
 RC=$?
 if test $RC != 0 ; then
@@ -67,7 +67,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapmodify to add an empty entry (should fail with protocolError)..."
-$LDAPMODIFY -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	 >> $TESTOUT 2>&1 << EOMODS
 dn: cn=Foo Bar,dc=example,dc=com
 changetype: add
@@ -92,7 +92,7 @@ case $RC in
 esac
 
 echo "Using ldapsearch to retrieve all the entries..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
 test $KILLSERVERS != no && kill -HUP $KILLPIDS

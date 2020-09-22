@@ -47,7 +47,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -64,7 +64,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to create the context prefix entry in the provider..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDCP > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -87,7 +87,7 @@ sleep 1
 
 echo "Using ldapsearch to check that consumer slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT4 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI4 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -112,10 +112,10 @@ sed -e 's/[Oo][Uu]=/ou=More /g' -e 's/^[Oo][Uu]: /ou: More /' \
 	$LDIFORDEREDNOCP > $MORELDIF
 
 echo "Using ldapadd to populate the provider directory..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDEREDNOCP > $TESTOUT1 2>&1  &
 C1PID=$!
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$MORELDIF > $TESTOUT2 2>&1 &
 C2PID=$!
 wait $C1PID $C2PID
@@ -140,7 +140,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -165,7 +165,7 @@ echo "Using ldapmodify to modify provider directory..."
 # Do some modifications
 #
 
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example,dc=com
 changetype: modify
@@ -246,7 +246,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldappasswd to change some passwords..."
-$LDAPPASSWD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPPASSWD -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	'cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com' \
 	> $TESTOUT 2>&1
 RC=$?
@@ -264,7 +264,7 @@ kill -HUP $CONSUMERPID
 wait $CONSUMERPID
 
 echo "Modifying more entries on the provider..."
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD >> \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD >> \
 	$TESTOUT 2>&1 << EOMODS
 dn: cn=Rosco P. Coltrane, ou=Retired, ou=People, dc=example,dc=com
 changetype: delete
@@ -298,7 +298,7 @@ sleep $SLEEP1
 
 if test ! $BACKLDAP = "ldapno" ; then
 	echo "Try updating the consumer slapd..."
-	$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT4 -w $PASSWD > \
+	$LDAPMODIFY -v -D "$MANAGERDN" -H $URI4 -w $PASSWD > \
 		$TESTOUT 2>&1 << EOMODS
 dn: cn=James A Jones 1, ou=Alumni Association, ou=People, dc=example, dc=com
 changetype: modify
@@ -317,7 +317,7 @@ EOMODS
 
 	# ITS#4964
 	echo "Trying to change some passwords on the consumer..."
-	$LDAPPASSWD -D "$MANAGERDN" -h $LOCALHOST -p $PORT4 -w $PASSWD \
+	$LDAPPASSWD -D "$MANAGERDN" -H $URI4 -w $PASSWD \
 		'cn=Barbara Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com' \
 		> $TESTOUT 2>&1
 	RC=$?
@@ -334,7 +334,7 @@ fi
 OPATTRS="entryUUID creatorsName createTimestamp modifiersName modifyTimestamp"
 
 echo "Using ldapsearch to read all the entries from the provider..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectclass=*)' '*' $OPATTRS > $PROVIDEROUT 2>&1
 RC=$?
 
@@ -345,7 +345,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapsearch to read all the entries from the consumer..."
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT4 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI4 \
 	'(objectclass=*)' '*' $OPATTRS > $CONSUMEROUT 2>&1
 RC=$?
 

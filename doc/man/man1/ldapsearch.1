@@ -57,10 +57,6 @@ ldapsearch \- LDAP search tool
 [\c
 .BI \-H \ ldapuri\fR]
 [\c
-.BI \-h \ ldaphost\fR]
-[\c
-.BI \-p \ ldapport\fR]
-[\c
 .BR \-P \ { 2 \||\| 3 }]
 [\c
 .BR \-e \ [ ! ] \fIext\fP [ =\fIextparam\fP ]]
@@ -278,14 +274,6 @@ the DN is used to look up the corresponding host(s) using the
 DNS SRV records, according to RFC 2782.  The DN must be a non-empty
 sequence of AVAs whose attribute type is "dc" (domain component),
 and must be escaped according to RFC 2396.
-.TP
-.BI \-h \ ldaphost
-Specify an alternate host on which the ldap server is running.
-Deprecated in favor of \fB\-H\fP.
-.TP
-.BI \-p \ ldapport
-Specify an alternate TCP port where the ldap server is listening.
-Deprecated in favor of \fB\-H\fP.
 .TP
 .BR \-P \ { 2 \||\| 3 }
 Specify the LDAP protocol version to use.

@@ -32,7 +32,7 @@ sleep 1
 
 echo "Testing slapd DN parsing..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -49,14 +49,14 @@ if test $RC != 0 ; then
 fi
 
 echo "Loading database..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD -c -f $LDIFDN > \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD -c -f $LDIFDN > \
 	$TESTOUT 2>&1
 
 cat /dev/null > $SEARCHOUT
 
 echo "Searching database..."
 echo "# Searching database..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 >> $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -68,7 +68,7 @@ fi
 DN="OU=Sales+CN=J. Smith,DC=example,DC=net"
 echo "Searching database for DN=\"$DN\"..."
 echo "# Searching database for DN=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(member=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -81,7 +81,7 @@ fi
 DN="testUUID=597ae2f6-16a6-1027-98f4-ABCDEFabcdef,DC=Example"
 echo "Searching database for entryUUID-named DN=\"$DN\"..."
 echo "# Searching database for entryUUID-named DN=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(member=$DN)" \
 	>> $SEARCHOUT 2>&1
 
@@ -95,7 +95,7 @@ fi
 DN="dc=example,dc=com"
 echo "Searching database for nameAndOptionalUID=\"$DN\"..."
 echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -108,7 +108,7 @@ fi
 DN="dc=example,dc=com#'001000'B"
 echo "Searching database for nameAndOptionalUID=\"$DN\"..."
 echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -121,7 +121,7 @@ fi
 DN="dc=example,dc=com#'1000'B"
 echo "Searching database for nameAndOptionalUID=\"$DN\"..."
 echo "# Searching database for nameAndOptionalUID=\"$DN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(uniqueMember=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -134,7 +134,7 @@ fi
 DN="dc=example,dc=com"
 echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
 echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(uniqueMember~=)" >> $SEARCHOUT 2>&1
 
 RC=$?
@@ -147,7 +147,7 @@ fi
 DN="dc=example,dc=com#'1000'B"
 echo "Searching database for uniqueMember~=\"$DN\" (approx)..."
 echo "# Searching database for uniqueMember~=\"$DN\" (approx)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	"(uniqueMember~=$DN)" >> $SEARCHOUT 2>&1
 
 RC=$?

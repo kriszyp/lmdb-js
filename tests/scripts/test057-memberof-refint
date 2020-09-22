@@ -44,7 +44,7 @@ KILLPIDS="$PID"
 
 sleep 1
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -87,7 +87,7 @@ EOF
 fi
 
 echo "Running ldapadd to build slapd config database..."
-$LDAPADD -h $LOCALHOST -p $PORT1 -D 'cn=config' -w `cat $CONFIGPWF` \
+$LDAPADD -H $URI1 -D 'cn=config' -w `cat $CONFIGPWF` \
 	>> $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={1}$BACKEND,cn=config
 objectClass: olcDatabaseConfig
@@ -130,7 +130,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running ldapadd to build slapd database..."
-$LDAPADD -h $LOCALHOST -p $PORT1 \
+$LDAPADD -H $URI1 \
 	-D "cn=Manager,$BASEDN" -w secret \
 	>> $TESTOUT 2>&1 << EOF
 dn: $BASEDN
@@ -172,7 +172,7 @@ fi
 
 echo "Search the entire database..."
 echo "# Search the entire database..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' '*' memberOf >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -182,7 +182,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running ldapmodify to rename subtree..."
-$LDAPMODIFY -h $LOCALHOST -p $PORT1 \
+$LDAPMODIFY -H $URI1 \
 	-D "cn=Manager,$BASEDN" -w secret \
 	>> $TESTOUT 2>&1 << EOF
 dn: ou=People,$BASEDN
@@ -198,7 +198,7 @@ sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' '*' memberOf >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -208,7 +208,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running ldapmodify to rename subtree..."
-$LDAPMODIFY -h $LOCALHOST -p $PORT1 \
+$LDAPMODIFY -H $URI1 \
 	-D "cn=Manager,$BASEDN" -w secret \
 	>> $TESTOUT 2>&1 << EOF
 dn: ou=Groups,$BASEDN
@@ -222,7 +222,7 @@ sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' '*' memberOf >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -232,7 +232,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Running ldapdelete to remove a member..."
-$LDAPMODIFY -h $LOCALHOST -p $PORT1 \
+$LDAPMODIFY -H $URI1 \
 	-D "cn=Manager,$BASEDN" -w secret \
 	>> $TESTOUT 2>&1 << EOF
 dn: cn=Baby Herman,ou=Toons,$BASEDN
@@ -243,7 +243,7 @@ sleep $SLEEP0
 
 echo "Re-search the entire database..."
 echo "# Re-search the entire database..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' '*' memberOf >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
