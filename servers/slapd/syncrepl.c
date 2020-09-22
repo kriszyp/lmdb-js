@@ -124,6 +124,7 @@ typedef struct syncinfo_s {
 	int			si_got;
 	int			si_strict_refresh;	/* stop listening during fallback refresh */
 	int			si_too_old;
+	int			si_is_configdb;
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -974,12 +975,18 @@ get_pmutex(
 	syncinfo_t *si
 )
 {
-	while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
-		if ( slapd_shutdown )
-			return SYNC_SHUTDOWN;
-		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
-			ldap_pvt_thread_yield();
+	if ( !si->si_is_configdb ) {
+		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_pmutex );
+	} else {
+		/* avoid deadlock when replicating cn=config */
+		while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
+			if ( slapd_shutdown )
+				return SYNC_SHUTDOWN;
+			if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+				ldap_pvt_thread_yield();
+		}
 	}
+
 	return 0;
 }
 
@@ -5640,6 +5647,8 @@ add_syncrepl(
 	si->si_presentlist = NULL;
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
 	ldap_pvt_thread_mutex_init( &si->si_mutex );
+
+	si->si_is_configdb = strcmp( c->be->be_suffix[0].bv_val, "cn=config" ) == 0;
 
 	rc = parse_syncrepl_line( c, si );
 
