@@ -2686,7 +2686,10 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 			match = 1;
 		}
 		overlay_entry_release_ov( op, e, 0, on );
+	} else {
+		return SLAP_CB_CONTINUE;
 	}
+
 	/* equal? Should never happen */
 	if ( match == 0 ) {
 		slap_graduate_commit_csn( op );
