@@ -201,10 +201,11 @@ ldap_int_prepare_socket(LDAP *ld, int s, int proto )
 #undef TRACE
 #define TRACE do { \
 	char ebuf[128]; \
+	int saved_errno = errno; \
 	Debug3(LDAP_DEBUG_TRACE, "ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
-		errno, \
-		sock_errstr(errno, ebuf, sizeof(ebuf)) ); \
+		saved_errno, \
+		sock_errstr(saved_errno, ebuf, sizeof(ebuf)) ); \
 } while( 0 )
 
 /*
@@ -372,7 +373,7 @@ ldap_int_poll(
 			ldap_pvt_set_errno( so_errno );
 			Debug3(LDAP_DEBUG_TRACE,
 			       "ldap_int_poll: error on socket %d: "
-			       "errno: %d (%s)\n", s, errno, sock_errstr( errno, dummy, dummy ));
+			       "errno: %d (%s)\n", s, so_errno, sock_errstr( so_errno, dummy, dummy ));
 			return -1;
 		}
 #endif

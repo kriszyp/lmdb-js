@@ -4570,9 +4570,10 @@ read_config(const char *fname, const char *dir) {
 			struct stat st;
 
 			if ( stat( dir, &st ) < 0 ) {
+				int saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,
 					"invalid config directory %s, error %d\n",
-						dir, errno );
+						dir, saved_errno );
 				return 1;
 			}
 			cfdir = dir;

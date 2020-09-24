@@ -104,10 +104,11 @@ mdb_db_open( BackendDB *be, ConfigReply *cr )
 	/* Check existence of dbenv_home. Any error means trouble */
 	rc = stat( mdb->mi_dbenv_home, &stat1 );
 	if( rc != 0 ) {
+		int saved_errno = errno;
 		Debug( LDAP_DEBUG_ANY,
 			LDAP_XSTRING(mdb_db_open) ": database \"%s\": "
 			"cannot access database directory \"%s\" (%d).\n",
-			be->be_suffix[0].bv_val, mdb->mi_dbenv_home, errno );
+			be->be_suffix[0].bv_val, mdb->mi_dbenv_home, saved_errno );
 		return -1;
 	}
 

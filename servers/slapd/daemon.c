@@ -242,7 +242,8 @@ static slap_daemon_st *slap_daemon;
     } \
     slap_daemon[t].sd_kq = kqueue(); \
     if (slap_daemon[t].sd_kq < 0) { \
-        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", errno); \
+        int saved_errno = errno; \
+        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", saved_errno); \
         slapd_shutdown = 2; \
     } \
 } while (0)
@@ -466,9 +467,10 @@ static slap_daemon_st *slap_daemon;
 	if ( rc == 0 ) { \
 		slap_daemon[t].sd_nfds++; \
 	} else { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, \
 			"daemon: epoll_ctl(ADD,fd=%d) failed, errno=%d, shutting down\n", \
-			s, errno ); \
+			s, saved_errno ); \
 		slapd_shutdown = 2; \
 	} \
 } while (0)
@@ -573,9 +575,10 @@ static slap_daemon_st *slap_daemon;
 	/* FIXME: use pwrite? */ \
 	rc = write( slap_daemon[t].sd_dpfd, (pfd), size ); \
 	if ( rc != size ) { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"%s fd=%d failed errno=%d\n", \
-			(what), (s), errno ); \
+			(what), (s), saved_errno ); \
 		if ( (shdn) ) { \
 			slapd_shutdown = 2; \
 		} \
@@ -691,9 +694,10 @@ static slap_daemon_st *slap_daemon;
 	slap_daemon[t].sd_l = (Listener **)&slap_daemon[t].sd_index[ dtblsize ]; \
 	slap_daemon[t].sd_dpfd = open( SLAP_EVENT_FNAME, O_RDWR ); \
 	if ( slap_daemon[t].sd_dpfd == -1 ) { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"open(\"" SLAP_EVENT_FNAME "\") failed errno=%d\n", \
-			errno ); \
+			saved_errno ); \
 		SLAP_SOCK_DESTROY(t); \
 		return -1; \
 	} \

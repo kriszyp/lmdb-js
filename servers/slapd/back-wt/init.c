@@ -71,10 +71,11 @@ wt_db_open( BackendDB *be, ConfigReply *cr )
 	/* Check existence of home. Any error means trouble */
 	rc = stat( wi->wi_dbenv_home, &st );
 	if( rc ) {
+		int saved_errno = errno;
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_db_open) ": database \"%s\": "
 			   "cannot access database directory \"%s\" (%d).\n",
-			   be->be_suffix[0].bv_val, wi->wi_dbenv_home, errno );
+			   be->be_suffix[0].bv_val, wi->wi_dbenv_home, saved_errno );
 		return -1;
 	}
 
@@ -82,10 +83,11 @@ wt_db_open( BackendDB *be, ConfigReply *cr )
 	rc = wiredtiger_open(wi->wi_dbenv_home, NULL,
 						 wi->wi_dbenv_config, &conn);
 	if( rc ) {
+		int saved_errno = errno;
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_db_open) ": database \"%s\": "
 			   "cannot open database \"%s\" (%d).\n",
-			   be->be_suffix[0].bv_val, wi->wi_dbenv_home, errno );
+			   be->be_suffix[0].bv_val, wi->wi_dbenv_home, saved_errno );
 		return -1;
 	}
 
@@ -178,10 +180,11 @@ wt_db_close( BackendDB *be, ConfigReply *cr )
 
 	rc = wi->wi_conn->close(wi->wi_conn, NULL);
 	if( rc ) {
+		int saved_errno = errno;
 		Debug( LDAP_DEBUG_ANY,
 			   LDAP_XSTRING(wt_db_close)
 			   ": cannot close database (%d).\n",
-			   errno );
+			   saved_errno );
 		return -1;
 	}
 
