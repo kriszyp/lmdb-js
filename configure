@@ -16136,80 +16136,7 @@ fi
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking declaration of sys_errlist" >&5
-$as_echo_n "checking declaration of sys_errlist... " >&6; }
-if ${ol_cv_dcl_sys_errlist+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-
-	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
-#ifdef _WIN32
-#include <stdlib.h>
-#endif
-int
-main ()
-{
-char *c = (char *) *sys_errlist
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ol_cv_dcl_sys_errlist=yes
-	ol_cv_have_sys_errlist=yes
-else
-  ol_cv_dcl_sys_errlist=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_dcl_sys_errlist" >&5
-$as_echo "$ol_cv_dcl_sys_errlist" >&6; }
-#
-# It's possible (for near-UNIX clones) that sys_errlist doesn't exist
-if test $ol_cv_dcl_sys_errlist = no ; then
-
-$as_echo "#define DECL_SYS_ERRLIST 1" >>confdefs.h
-
-
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking existence of sys_errlist" >&5
-$as_echo_n "checking existence of sys_errlist... " >&6; }
-if ${ol_cv_have_sys_errlist+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-
-		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <errno.h>
-int
-main ()
-{
-char *c = (char *) *sys_errlist
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ol_cv_have_sys_errlist=yes
-else
-  ol_cv_have_sys_errlist=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_have_sys_errlist" >&5
-$as_echo "$ol_cv_have_sys_errlist" >&6; }
-fi
-if test $ol_cv_have_sys_errlist = yes ; then
-
-$as_echo "#define HAVE_SYS_ERRLIST 1" >>confdefs.h
-
-fi
- for ac_func in strerror strerror_r
+for ac_func in strerror strerror_r
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16265,7 +16192,7 @@ fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 	else
 		if test "$cross_compiling" = yes; then :
-  ol_cv_nonposix_strerror=no
+  ol_cv_nonposix_strerror_r=no
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -16281,7 +16208,7 @@ _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   ol_cv_nonposix_strerror_r=yes
 else
-  ol_cv_nonposix_strerror=no
+  ol_cv_nonposix_strerror_r=no
 fi
 rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
@@ -16299,53 +16226,13 @@ $as_echo "#define HAVE_NONPOSIX_STRERROR_R 1" >>confdefs.h
 fi
 
 elif test "${ac_cv_func_strerror}" = no ; then
-	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking declaration of sys_errlist" >&5
-$as_echo_n "checking declaration of sys_errlist... " >&6; }
-if ${ol_cv_dcl_sys_errlist+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-
-	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <errno.h>
-#ifdef _WIN32
-#include <stdlib.h>
-#endif
-int
-main ()
-{
-char *c = (char *) *sys_errlist
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ol_cv_dcl_sys_errlist=yes
-	ol_cv_have_sys_errlist=yes
-else
-  ol_cv_dcl_sys_errlist=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_dcl_sys_errlist" >&5
-$as_echo "$ol_cv_dcl_sys_errlist" >&6; }
-#
-# It's possible (for near-UNIX clones) that sys_errlist doesn't exist
-if test $ol_cv_dcl_sys_errlist = no ; then
-
-$as_echo "#define DECL_SYS_ERRLIST 1" >>confdefs.h
-
-
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking existence of sys_errlist" >&5
 $as_echo_n "checking existence of sys_errlist... " >&6; }
 if ${ol_cv_have_sys_errlist+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
-		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+	cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <errno.h>
 int
@@ -16366,11 +16253,49 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_have_sys_errlist" >&5
 $as_echo "$ol_cv_have_sys_errlist" >&6; }
-fi
 if test $ol_cv_have_sys_errlist = yes ; then
 
 $as_echo "#define HAVE_SYS_ERRLIST 1" >>confdefs.h
 
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking declaration of sys_errlist" >&5
+$as_echo_n "checking declaration of sys_errlist... " >&6; }
+if ${ol_cv_dcl_sys_errlist+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+
+		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <errno.h>
+#ifdef _WIN32
+#include <stdlib.h>
+#endif
+int
+main ()
+{
+char *c = (char *) *sys_errlist
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ol_cv_dcl_sys_errlist=yes
+else
+  ol_cv_dcl_sys_errlist=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ol_cv_dcl_sys_errlist" >&5
+$as_echo "$ol_cv_dcl_sys_errlist" >&6; }
+#
+	# It's possible (for near-UNIX clones) that sys_errlist doesn't exist
+	if test $ol_cv_dcl_sys_errlist = no ; then
+
+$as_echo "#define DECL_SYS_ERRLIST 1" >>confdefs.h
+
+	fi
 fi
 
 fi
