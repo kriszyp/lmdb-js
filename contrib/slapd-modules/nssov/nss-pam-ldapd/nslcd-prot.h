@@ -86,8 +86,10 @@ static void debug_dump(const void *ptr, size_t size)
   DEBUG_DUMP(ptr, size);                                                    \
   if (tio_write(fp, ptr, (size_t)size))                                     \
   {                                                                         \
+    char ebuf[128];                                                         \
+    int saved_errno = errno;                                                \
     DEBUG_PRINT("WRITE       : var="__STRING(ptr)" error: %s",              \
-                strerror(errno));                                           \
+                AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)));            \
     ERROR_OUT_WRITEERROR(fp);                                               \
   }
 
@@ -161,8 +163,10 @@ static void debug_dump(const void *ptr, size_t size)
 #define READ(fp, ptr, size)                                                 \
   if (tio_read(fp, ptr, (size_t)size))                                      \
   {                                                                         \
+    char ebuf[128];                                                         \
+    int saved_errno = errno;                                                \
     DEBUG_PRINT("READ       : var="__STRING(ptr)" error: %s",               \
-                strerror(errno));                                           \
+                AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)));            \
     ERROR_OUT_READERROR(fp);                                                \
   }                                                                         \
   DEBUG_PRINT("READ       : var="__STRING(ptr)" size=%d", (int)(size));     \
@@ -301,7 +305,10 @@ static void debug_dump(const void *ptr, size_t size)
   /* read (skip) the specified number of bytes */                           \
   if (tio_skip(fp, sz))                                                     \
   {                                                                         \
-    DEBUG_PRINT("READ       : skip error: %s", strerror(errno));            \
+    char ebuf[128];                                                         \
+    int saved_errno = errno;                                                \
+    DEBUG_PRINT("READ       : skip error: %s",                              \
+                AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)));            \
     ERROR_OUT_READERROR(fp);                                                \
   }
 
@@ -350,7 +357,10 @@ TFILE *nslcd_client_open(void)
   /* flush the stream */                                                    \
   if (tio_flush(fp) < 0)                                                    \
   {                                                                         \
-    DEBUG_PRINT("WRITE_FLUSH : error: %s", strerror(errno));                \
+    char ebuf[128];                                                         \
+    int saved_errno = errno;                                                \
+    DEBUG_PRINT("WRITE_FLUSH : error: %s",                                  \
+                AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)));            \
     ERROR_OUT_WRITEERROR(fp);                                               \
   }                                                                         \
   /* read and check response version number */                              \

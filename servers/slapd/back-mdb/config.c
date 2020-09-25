@@ -700,8 +700,10 @@ mdb_cf_gen( ConfigArgs *c )
 		}
 		ch_free( testpath );
 		if ( !f ) {
+			char ebuf[128];
+			int saved_errno = errno;
 			snprintf( c->cr_msg, sizeof( c->cr_msg ), "%s: invalid path: %s",
-				c->log, strerror( errno ));
+				c->log, AC_STRERROR_R( saved_errno, ebuf, sizeof(ebuf) ) );
 			Debug( LDAP_DEBUG_ANY, "%s\n", c->cr_msg );
 			return -1;
 		}
