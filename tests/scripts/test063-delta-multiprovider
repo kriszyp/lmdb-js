@@ -390,6 +390,8 @@ $LDAPMODIFY -D "$MANAGERDN" -H $URI2 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOF
 dn: $THEDN
 changetype: modify
+replace: employeetype
+-
 add: description
 description: Stupendous
 
