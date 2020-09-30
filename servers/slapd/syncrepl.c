@@ -2598,11 +2598,30 @@ syncrepl_message_to_op(
 				"mods2entry (%s)\n",
 					si->si_ridtxt, text, 0 );
 			} else {
-				rc = op->o_bd->be_add( op, &rs );
-				Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_message_to_op: %s be_add %s (%d)\n", 
-					si->si_ridtxt, op->o_req_dn.bv_val, rc );
-				do_graduate = 0;
+				rc = CV_CSN_OK;
+				if ( do_lock ) {
+					/* do_lock is only true because we didn't get a cookieCSN and
+					 * therefore didn't already lock the pending list. See if the
+					 * entryCSN is fresh enough. Ignore this op if too old.
+					 */
+					Attribute *a = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
+					if ( a ) {
+						int sid = slap_parse_csn_sid( &a->a_nvals[0] );
+						ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_mutex );
+						rc = check_csn_age( si, &op->o_req_dn, &a->a_nvals[0],
+							sid, (cookie_vals *)&si->si_cookieState->cs_vals, NULL );
+						ldap_pvt_thread_mutex_unlock( &si->si_cookieState->cs_mutex );
+					}
+				}
+				if ( rc == CV_CSN_OLD ) {
+					rc = LDAP_SUCCESS;
+				} else {
+					rc = op->o_bd->be_add( op, &rs );
+					Debug( LDAP_DEBUG_SYNC,
+						"syncrepl_message_to_op: %s be_add %s (%d)\n",
+						si->si_ridtxt, op->o_req_dn.bv_val, rc );
+					do_graduate = 0;
+				}
 			}
 			if ( e == op->ora_e )
 				be_entry_release_w( op, op->ora_e );
