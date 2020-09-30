@@ -1956,8 +1956,6 @@ syncrepl_accesslog_mods(
 
 		if ( !mod || ad != mod->sml_desc || op != mod->sml_op ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			if ( op == LDAP_MOD_ADD && is_at_single_value( ad->ad_type ))
-				op = LDAP_MOD_REPLACE;
 			mod->sml_flags = 0;
 			mod->sml_op = op;
 			mod->sml_next = NULL;
@@ -1966,6 +1964,10 @@ syncrepl_accesslog_mods(
 			mod->sml_values = NULL;
 			mod->sml_nvalues = NULL;
 			mod->sml_numvals = 0;
+
+			/* Keep 'op' to reflect what we read out from accesslog */
+			if ( op == LDAP_MOD_ADD && is_at_single_value( ad->ad_type ))
+				mod->sml_op = LDAP_MOD_REPLACE;
 
 			*modtail = mod;
 			modtail = &mod->sml_next;
