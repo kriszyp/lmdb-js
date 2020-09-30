@@ -27,7 +27,6 @@
 #include "slap.h"
 #include "config.h"
 #include "ldap_rq.h"
-#include "kbtree.h"
 
 #ifdef LDAP_DEVEL
 #define	CHECK_CSN	1
@@ -125,14 +124,6 @@ typedef struct slog_entry {
 	ber_tag_t	se_tag;
 } slog_entry;
 
-static int syncprov_sessionlog_cmp( const void *l, const void *r );
-
-#ifndef SLOG_BTSIZE
-#define SLOG_BTSIZE	1024
-#endif
-
-KBTREE_INIT(slog, slog_entry*, syncprov_sessionlog_cmp)
-
 typedef struct sessionlog {
 	BerVarray	sl_mincsn;
 	int		*sl_sids;
@@ -140,7 +131,7 @@ typedef struct sessionlog {
 	int		sl_num;
 	int		sl_size;
 	int		sl_playing;
-	kbtree_t(slog) *sl_entries;
+	TAvlnode *sl_entries;
 	ldap_pvt_thread_rdwr_t sl_mutex;
 } sessionlog;
 
@@ -1637,21 +1628,6 @@ syncprov_checkpoint( Operation *op, slap_overinst *on )
 }
 
 static void
-syncprov_free_slog( kbtree_t(slog) *bt )
-{
-	kbitr_t itr;
-	slog_entry *se;
-
-	for ( kb_itr_first( slog, bt, &itr );
-		kb_itr_valid( &itr );
-		kb_itr_next( slog, bt, &itr )) {
-		se = kb_itr_key( slog_entry*, &itr );
-		ch_free( se );
-	}
-	kb_destroy( slog, bt );
-}
-
-static void
 syncprov_add_slog( Operation *op )
 {
 	opcookie *opc = op->o_callback->sc_private;
@@ -1672,7 +1648,7 @@ syncprov_add_slog( Operation *op )
 			ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 			/* can only do this if no one else is reading the log at the moment */
 			if ( !sl->sl_playing ) {
-				syncprov_free_slog( sl->sl_entries );
+				tavl_free( sl->sl_entries, (AVL_FREE)ch_free );
 				sl->sl_num = 0;
 				sl->sl_entries = NULL;
 			}
@@ -1717,14 +1693,15 @@ syncprov_add_slog( Operation *op )
 				BER_BVZERO( &sl->sl_mincsn[1] );
 			}
 		}
-		kb_putp( slog, sl->sl_entries, (const slog_entry **)&se );
+		rc = tavl_insert( &sl->sl_entries, se, syncprov_sessionlog_cmp, avl_dup_error );
+		assert( rc == LDAP_SUCCESS );
 		sl->sl_num++;
 		if ( !sl->sl_playing && sl->sl_num > sl->sl_size ) {
-			kbitr_t itr;
-			kb_itr_first( slog, sl->sl_entries, &itr );
+			TAvlnode *edge = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
 			while ( sl->sl_num > sl->sl_size ) {
 				int i;
-				se = kb_itr_key( slog_entry *, &itr );
+				TAvlnode *next = tavl_next( edge, TAVL_DIR_RIGHT );
+				se = edge->avl_data;
 				Debug( LDAP_DEBUG_SYNC, "%s syncprov_add_slog: "
 					"expiring csn=%s from sessionlog (sessionlog size=%d)\n",
 					op->o_log_prefix, se->se_csn.bv_val, sl->sl_num );
@@ -1743,9 +1720,9 @@ syncprov_add_slog( Operation *op )
 						op->o_log_prefix, se->se_sid, sl->sl_mincsn[i].bv_val, se->se_csn.bv_val );
 					ber_bvreplace( &sl->sl_mincsn[i], &se->se_csn );
 				}
-				kb_itr_next( slog, sl->sl_entries, &itr );
-				kb_delp( slog, sl->sl_entries, (const slog_entry **)&se );
+				tavl_delete( &sl->sl_entries, se, syncprov_sessionlog_cmp );
 				ch_free( se );
+				edge = next;
 				sl->sl_num--;
 			}
 		}
@@ -1981,9 +1958,9 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	BerVarray uuids, csns;
 	struct berval uuid[2] = {}, csn[2] = {};
 	slog_entry *se;
+	TAvlnode *entry;
 	char cbuf[LDAP_PVT_CSNSTR_BUFSIZE];
 	struct berval delcsn[2];
-	kbitr_t itr;
 
 	ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 	/* Are there any log entries, and is the consumer state
@@ -2038,28 +2015,21 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 	 */
 	assert( sl->sl_entries );
 
-	/* Find first relevant log entry. If none, just start at beginning. */
+	/* Find first relevant log entry. If greater than mincsn, backtrack one entry */
 	{
-		slog_entry **lo, **hi, te = {0};
+		slog_entry te = {0};
 		te.se_csn = *mincsn;
-		/* If an exact match is found, both lo and hi will
-		 * point to the same record, otherwise lo and hi
-		 * will straddle the desired value.
-		 */
-		kb_interval( slog, sl->sl_entries, &te, &lo, &hi );
-		if ( lo )
-			/* Odd note: kb_itr_get never returns exactly
-			 * the specified value, it seems to return a few
-			 * records prior, even when an exact match exists.
-			 */
-			kb_itr_get( slog, sl->sl_entries, (const slog_entry **)lo, &itr );
-		else
-			kb_itr_first( slog, sl->sl_entries, &itr );
+		entry = tavl_find3( sl->sl_entries, &te, syncprov_sessionlog_cmp, &ndel );
 	}
+	if ( ndel > 0 && entry )
+		entry = tavl_next( entry, TAVL_DIR_LEFT );
+	/* if none, just start at beginning */
+	if ( !entry )
+		entry = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
 
 	do {
 		char uuidstr[40] = {};
-		slog_entry *se = kb_itr_key( slog_entry*, &itr );
+		slog_entry *se = entry->avl_data;
 		int k;
 
 		/* Make sure writes can still make progress */
@@ -2119,7 +2089,7 @@ syncprov_play_sessionlog( Operation *op, SlapReply *rs, sync_control *srs,
 				uuidstr, csns[j].bv_val );
 		}
 		ldap_pvt_thread_rdwr_rlock( &sl->sl_mutex );
-	} while ( kb_itr_next( slog, sl->sl_entries, &itr ));
+	} while ( (entry = tavl_next( entry, TAVL_DIR_RIGHT )) != NULL );
 	ldap_pvt_thread_rdwr_runlock( &sl->sl_mutex );
 	ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 	sl->sl_playing--;
@@ -3704,7 +3674,6 @@ sp_cf_gen(ConfigArgs *c)
 			if ( !size ) break;
 			sl = ch_calloc( 1, sizeof( sessionlog ));
 			ldap_pvt_thread_rdwr_init( &sl->sl_mutex );
-			sl->sl_entries = kb_init( slog, SLOG_BTSIZE );
 			si->si_logs = sl;
 		}
 		sl->sl_size = size;
@@ -4044,7 +4013,7 @@ syncprov_db_destroy(
 		if ( si->si_logs ) {
 			sessionlog *sl = si->si_logs;
 
-			syncprov_free_slog( sl->sl_entries );
+			tavl_free( sl->sl_entries, (AVL_FREE)ch_free );
 			if ( sl->sl_mincsn )
 				ber_bvarray_free( sl->sl_mincsn );
 			if ( sl->sl_sids )
