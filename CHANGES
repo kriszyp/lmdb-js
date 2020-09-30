@@ -7,6 +7,7 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapd syncrepl to be fully serialized (ITS#8102)
 	Fixed slapd syncrepl to call check_syncprov on fresh consumer (ITS#9345)
 	Fixed slapd syncrepl to propagate errors from overlay_entry_get_ov (ITS#9355)
+	Fixed slapd syncrepl to not create empty ADD ops (ITS#9359)
 	Fixed slapd-monitor fix monitor_back_register_database for empty suffix DB (ITS#9353)
 	Fixed slapo-accesslog normalizer for reqStart (ITS#9358)
 	Fixed slapo-syncprov contextCSN generation with empty suffix (ITS#9015)
