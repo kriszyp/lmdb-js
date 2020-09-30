@@ -2438,7 +2438,10 @@ static Modifications *mods_dup( Operation *op, Modifications *modlist, int match
 				modlist->sml_desc == slap_schema.si_ad_modifyTimestamp ||
 				modlist->sml_desc == slap_schema.si_ad_entryCSN )
 				continue;
-			if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
+			if ( modlist->sml_values == NULL && modlist->sml_op == LDAP_MOD_REPLACE ) {
+				/* ITS#9359 This adds no values, just change to a delete op */
+				modlist->sml_op = LDAP_MOD_DELETE;
+			} else if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
 				mod = op->o_tmpalloc( sizeof(Modifications), op->o_tmpmemctx );
 				mod->sml_desc = modlist->sml_desc;
 				mod->sml_values = NULL;
