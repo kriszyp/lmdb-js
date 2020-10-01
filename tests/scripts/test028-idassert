@@ -78,7 +78,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -89,7 +89,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Testing ldapwhoami as proxy US..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy
+$LDAPWHOAMI -H $URI1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -99,7 +99,7 @@ fi
 
 AUTHZID="u:it/jaj"
 echo "Testing ldapwhoami as proxy US, $AUTHZID..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 0 && test $BACKEND != null ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -109,7 +109,7 @@ fi
 
 AUTHZID="u:bjorn"
 echo "Testing ldapwhoami as proxy US, $AUTHZID... (should fail)"
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
 	echo "ldapwhoami should have failed ($RC)!"
@@ -119,7 +119,7 @@ fi
 
 AUTHZID="u:bjensen"
 echo "Testing ldapwhoami as proxy US, $AUTHZID... (should fail)"
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy US,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
 	echo "ldapwhoami should have failed ($RC)!"
@@ -128,7 +128,7 @@ if test $RC != 1 ; then
 fi
 
 echo "Testing ldapwhoami as proxy IT..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy
+$LDAPWHOAMI -H $URI1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -138,7 +138,7 @@ fi
 
 AUTHZID="u:it/jaj"
 echo "Testing ldapwhoami as proxy IT, $AUTHZID... (should fail)"
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
 	echo "ldapwhoami should have failed ($RC)!"
@@ -148,7 +148,7 @@ fi
 
 AUTHZID="u:bjorn"
 echo "Testing ldapwhoami as proxy IT, $AUTHZID... (should fail)"
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 1 ; then
 	echo "ldapwhoami should have failed ($RC)!"
@@ -158,7 +158,7 @@ fi
 
 AUTHZID="dn:cn=Sandbox,ou=Admin,dc=example,dc=com"
 echo "Testing ldapwhoami as proxy IT, $AUTHZID..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "cn=proxy IT,ou=Admin,dc=example,dc=com" -w proxy -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 0 && test $BACKEND != null ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -168,7 +168,7 @@ fi
 
 AUTHZID="dn:uid=bjorn,ou=People,o=Example,c=US"
 echo "Testing ldapwhoami as bjorn, $AUTHZID..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "uid=bjorn,ou=people,dc=example,dc=com" -w bjorn -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "uid=bjorn,ou=people,dc=example,dc=com" -w bjorn -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -178,7 +178,7 @@ fi
 
 AUTHZID="dn:uid=bjorn,ou=People,o=Esempio,c=IT"
 echo "Testing ldapwhoami as bjorn, $AUTHZID..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "uid=bjorn,ou=people,dc=example,dc=com" -w bjorn -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "uid=bjorn,ou=people,dc=example,dc=com" -w bjorn -e\!"authzid=$AUTHZID"
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapwhoami failed ($RC)!"
@@ -188,7 +188,7 @@ fi
 
 AUTHZID="u:it/jaj"
 echo "Checking another DB's rootdn can't assert identity from another DB..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$MANAGERDN" -w $PASSWD -e\!"authzid=$AUTHZID"
+$LDAPWHOAMI -H $URI1 -D "$MANAGERDN" -w $PASSWD -e\!"authzid=$AUTHZID"
 
 RC=$?
 if test $RC != 1 ; then
@@ -200,7 +200,7 @@ fi
 ID="uid=jaj,ou=People,dc=example,dc=it"
 BASE="o=Example,c=US"
 echo "Testing ldapsearch as $ID for \"$BASE\"..."
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
+$LDAPSEARCH -H $URI1 -b "$BASE" \
 	-D "$ID" -w jaj > $SEARCHOUT 2>&1
 
 RC=$?
@@ -227,7 +227,7 @@ if test $USE_SASL != "no" ; then
 	ID="it/jaj"
 	BASE="o=Example,c=US"
 	echo "Testing ldapsearch as $ID for \"$BASE\" with SASL bind and identity assertion..."
-	$LDAPSASLSEARCH -h $LOCALHOST -p $PORT1 -b "$BASE" \
+	$LDAPSASLSEARCH -H $URI1 -b "$BASE" \
 		-Q -U "$ID" -w jaj -Y $MECH > $SEARCHOUT 2>&1
 
 	RC=$?
@@ -240,7 +240,7 @@ if test $USE_SASL != "no" ; then
 	ID="manager"
 	AUTHZID="u:it/jaj"
 	echo "Checking another DB's rootdn can't assert in another (with SASL bind this time)..."
-	$LDAPSASLWHOAMI -h $LOCALHOST -p $PORT1 \
+	$LDAPSASLWHOAMI -H $URI1 \
 		-Q -U "$ID" -w $PASSWD -Y $MECH -X $AUTHZID
 
 	RC=$?

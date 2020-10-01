@@ -49,7 +49,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd 1 is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'(objectclass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -73,7 +73,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd 2 is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'(objectclass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -87,7 +87,7 @@ SUBTREE1="ou=Information Technology Division,ou=People,dc=example,dc=com"
 SUBTREE2="ou=Groups,dc=example,dc=com"
 
 echo "Using ldapadd to populate subtree=\"${SUBTREE1}\" on port $PORT1..."
-$LDAPADD -D "cn=Manager 1,$BASEDN" -w $PASSWD -h $LOCALHOST -p $PORT1 \
+$LDAPADD -D "cn=Manager 1,$BASEDN" -w $PASSWD -H $URI1 \
 	-f $LDIFORDERED -c \
 	> /dev/null 2>&1
 RC=$?
@@ -108,7 +108,7 @@ case $RC in
 esac
 
 echo "Using ldapadd to populate subtree=\"${SUBTREE2}\" on port $PORT2..."
-$LDAPADD -D "cn=Manager 2,$BASEDN" -w $PASSWD -h $LOCALHOST -p $PORT2 \
+$LDAPADD -D "cn=Manager 2,$BASEDN" -w $PASSWD -H $URI2 \
 	-f $LDIFORDERED -c \
 	> /dev/null 2>&1
 RC=$?
@@ -134,10 +134,11 @@ sleep $SLEEP1
 echo "Filtering original ldif used to create database..."
 $LDIFFILTER < $GLUESYNCOUT > $LDIFFLT
 
-for P in $PORT1 $PORT2 ; do
-	echo "Using ldapsearch to read all the entries from port $P..."
-	$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $P \
-		-S "" '(objectclass=*)' > "${SEARCHOUT}.${P}" 2>&1
+for n in 1 2 ; do
+	URI=`eval echo '$URI'$n`
+	echo "Using ldapsearch to read all the entries from server $n..."
+	$LDAPSEARCH -b "$BASEDN" -H $URI \
+		-S "" '(objectclass=*)' > "${SEARCHOUT}.${n}" 2>&1
 	RC=$?
 
 	if test $RC != 0 ; then
@@ -147,7 +148,7 @@ for P in $PORT1 $PORT2 ; do
 	fi
 
 	echo "Filtering ldapsearch results..."
-	$LDIFFILTER < "${SEARCHOUT}.${P}" > $SEARCHFLT
+	$LDIFFILTER < "${SEARCHOUT}.${n}" > $SEARCHFLT
 	echo "Comparing filter output..."
 	$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 

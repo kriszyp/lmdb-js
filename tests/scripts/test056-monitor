@@ -32,7 +32,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -43,7 +43,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Using ldapsearch to read connection monitor entries..."
-$LDAPSEARCH -S "" -b "$CONNECTIONSMONITORDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$CONNECTIONSMONITORDN" -H $URI1 \
 	'objectclass=*' \
 	structuralObjectClass entryDN \
 	monitorConnectionProtocol monitorConnectionOpsReceived \
@@ -77,7 +77,7 @@ if test $? != 0 ; then
 fi
 
 echo "Using ldapsearch to read database monitor entries..."
-$LDAPSEARCH -S "" -b "$DATABASESMONITORDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$DATABASESMONITORDN" -H $URI1 \
 	'objectclass=*' \
 	structuralObjectClass entryDN namingContexts readOnly \
 	monitorIsShadow monitorContext \
@@ -103,7 +103,7 @@ if test $? != 0 ; then
 fi
 
 echo "Using ldapsearch to read statistics monitor entries..."
-$LDAPSEARCH -S "" -b "$STATISTICSMONITORDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$STATISTICSMONITORDN" -H $URI1 \
 	'(|(cn=Entries)(cn=PDU)(cn=Referrals))' \
 	structuralObjectClass monitorCounter entryDN \
 	> $SEARCHOUT 2>&1
@@ -128,7 +128,7 @@ if test $? != 0 ; then
 fi
 
 echo "Using ldapsearch to read operation monitor entries..."
-$LDAPSEARCH -S "" -b "$OPERATIONSMONITORDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$OPERATIONSMONITORDN" -H $URI1 \
 	'objectclass=*' \
 	structuralObjectClass monitorOpInitiated monitorOpCompleted entryDN \
 	> $SEARCHOUT 2>&1

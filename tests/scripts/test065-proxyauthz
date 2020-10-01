@@ -69,7 +69,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		-D "cn=Manager,dc=example,dc=com" -w secret 'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -86,7 +86,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the provider directory..."
-$LDAPADD -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -x -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -118,7 +118,7 @@ sleep 1
 
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		-D "cn=Manager,dc=example,dc=com" -w secret 'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -146,7 +146,7 @@ UPASSWD="jaj"
 echo "Query $CNT: $USERDN"
 echo "# Query $CNT: $USERDN" >> $SEARCHOUT
 
-$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" "(sn=je*)" sn >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 
@@ -172,7 +172,7 @@ UPASSWD="jaj"
 echo "Query $CNT: (Bind should be cached)"
 echo "# Query $CNT: (Bind should be cached)" >> $SEARCHOUT
 
-$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" "(sn=je*)" sn >> $SEARCHOUT 2>> $TESTOUT
 
 RC=$?
@@ -195,7 +195,7 @@ USERDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 
 echo "Query $CNT: (Bind should be cached)"
 echo "# Query $CNT: (Bind should be cached)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" "(sn=je*)" sn >> $SEARCHOUT 2>> $TESTOUT
 
 RC=$?
@@ -215,7 +215,7 @@ fi
 echo "=== New search on (sn=jo*)"
 cat /dev/null > $SEARCHOUT
 echo "# Query $CNT: (Bind should be cached)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "dc=example,dc=com" -s SUB -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" "(sn=jo*)" sn >> $SEARCHOUT 2>> $TESTOUT
 
 RC=$?

@@ -65,7 +65,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-    $LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+    $LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
         'objectclass=*' > /dev/null 2>&1
     RC=$?
     if test $RC = 0 ; then
@@ -98,7 +98,7 @@ sleep 1
 
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
-    $LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+    $LDAPSEARCH -s base -b "$MONITOR" -H $URI3 \
         'objectclass=*' > /dev/null 2>&1
     RC=$?
     if test $RC = 0 ; then
@@ -115,7 +115,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Configuring proxy..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT3 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI3 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}ldap,cn=config
 changetype: add
@@ -133,7 +133,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Privileged WhoAmI (proxy uses plain ldap://)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$MANAGERDN" -w $PASSWD
+$LDAPWHOAMI -H $URI3 -D "$MANAGERDN" -w $PASSWD
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -142,7 +142,7 @@ if test $RC != 0 ; then
 fi
 
 echo "WhoAmI (proxy uses plain ldap://)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$BABSDN" -w bjensen
+$LDAPWHOAMI -H $URI3 -D "$BABSDN" -w bjensen
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -152,7 +152,7 @@ fi
 
 echo "Searching (proxy uses plain ldap://)..."
 echo "# Searching (proxy uses plain ldap://)..." > $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -b "$BASEDN" -H $URI3 \
     -D "$BABSDN" -w bjensen \
     '(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
@@ -177,7 +177,7 @@ if test $? != 0 ; then
 fi
 
 echo "Reconfiguring database to only allow TLS binds..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -193,7 +193,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Re-configuring proxy to use ldaps:// on privileged connections only..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT3 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI3 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}ldap,cn=config
 changetype: delete
@@ -215,7 +215,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Privileged WhoAmI (proxy uses ldaps://)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$MANAGERDN" -w $PASSWD
+$LDAPWHOAMI -H $URI3 -D "$MANAGERDN" -w $PASSWD
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -224,7 +224,7 @@ if test $RC != 0 ; then
 fi
 
 echo "WhoAmI (proxy uses ldaps://), which should fail..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$BABSDN" -w bjensen
+$LDAPWHOAMI -H $URI3 -D "$BABSDN" -w bjensen
 RC=$?
 case $RC in
 52)
@@ -243,7 +243,7 @@ esac
 
 # FIXME: just adding olcDbStartTLS to the DB doesn't have an effect, why?
 echo "Re-configuring proxy to use ldaps:// everywhere..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT3 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI3 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}ldap,cn=config
 changetype: modify
@@ -258,7 +258,7 @@ if test $RC != 0 ; then
 fi
 
 echo "WhoAmI again (proxy uses ldaps://)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$BABSDN" -w bjensen
+$LDAPWHOAMI -H $URI3 -D "$BABSDN" -w bjensen
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -268,7 +268,7 @@ fi
 
 echo "Searching (proxy uses ldaps://)..."
 echo "# Searching (proxy uses ldaps://)..." > $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -b "$BASEDN" -H $URI3 \
     -D "$BABSDN" -w bjensen \
     '(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
@@ -290,7 +290,7 @@ if test $? != 0 ; then
 fi
 
 echo "Re-configuring proxy to use LDAP+StartTLS correctly on privileged connections..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT3 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI3 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}ldap,cn=config
 changetype: delete
@@ -312,7 +312,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Privileged WhoAmI (proxy requests StartTLS)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$MANAGERDN" -w $PASSWD
+$LDAPWHOAMI -H $URI3 -D "$MANAGERDN" -w $PASSWD
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -321,7 +321,7 @@ if test $RC != 0 ; then
 fi
 
 echo "WhoAmI (proxy requests StartTLS), which should fail..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$BABSDN" -w bjensen
+$LDAPWHOAMI -H $URI3 -D "$BABSDN" -w bjensen
 RC=$?
 case $RC in
 49|52) # ACL forbids plaintext binds against userPassword
@@ -340,7 +340,7 @@ esac
 
 # FIXME: just adding olcDbStartTLS to the DB doesn't have an effect, why?
 echo "Re-configuring proxy to use ldaps:// everywhere..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT3 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI3 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcDatabase={2}ldap,cn=config
 changetype: modify
@@ -355,7 +355,7 @@ if test $RC != 0 ; then
 fi
 
 echo "WhoAmI (proxy requests StartTLS)..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 -D "$BABSDN" -w bjensen
+$LDAPWHOAMI -H $URI3 -D "$BABSDN" -w bjensen
 RC=$?
 if test $RC != 0 ; then
     echo "ldapwhoami failed ($RC)!"
@@ -365,7 +365,7 @@ fi
 
 echo "Searching (proxy requests StartTLS)..."
 echo "# Searching (proxy requests StartTLS)..." > $SEARCHOUT
-$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -b "$BASEDN" -H $URI3 \
     -D "$BABSDN" -w bjensen \
     '(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?

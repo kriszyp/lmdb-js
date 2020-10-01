@@ -159,8 +159,6 @@ main( int argc, char **argv )
 {
 	int		i;
 	char		*uri = NULL;
-	char		*host = "localhost";
-	int		port = -1;
 	char		*manager = NULL;
 	struct berval	passwd = { 0, NULL };
 	char		outstr[BUFSIZ];

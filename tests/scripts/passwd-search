@@ -43,7 +43,7 @@ KILLPIDS="$PID"
 
 echo "Testing slapd searching..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -L -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -L -b "$BASEDN" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 1 ; then
@@ -61,7 +61,7 @@ fi
 cat /dev/null > $TESTOUT
 
 echo "Testing base suffix searching..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -s base -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -L -S "" -b "$BASEDN" -s base -H $URI1 \
 	'(objectclass=*)' >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -73,7 +73,7 @@ fi
 echo " ------------ " >> $TESTOUT
 
 echo "Testing user searching..."
-$LDAPSEARCH -L -S "" -b "uid=root,$BASEDN" -s base -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -L -S "" -b "uid=root,$BASEDN" -s base -H $URI1 \
 	'(objectclass=*)' >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -85,7 +85,7 @@ fi
 echo " ------------ " >> $TESTOUT
 
 echo "Testing exact searching..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -L -S "" -b "$BASEDN" -H $URI1 \
 	'(uid=root)' >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -97,7 +97,7 @@ fi
 echo " ------------ " >> $TESTOUT
 
 echo "Testing OR searching..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -L -S "" -b "$BASEDN" -H $URI1 \
 	'(|(objectclass=person)(cn=root))' >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -109,7 +109,7 @@ fi
 echo " ------------ " >> $TESTOUT
 
 echo "Testing AND searching..."
-$LDAPSEARCH -L -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -L -S "" -b "$BASEDN" -H $URI1 \
 	'(&(objectclass=person)(cn=root))' >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then

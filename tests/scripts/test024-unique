@@ -53,7 +53,7 @@ sleep 1
 
 echo "Testing slapd attribute uniqueness operations..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -70,7 +70,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a unique record..."
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -D "$UNIQUEDN" -H $URI1 -w $PASSWD \
 	> /dev/null << EOTUNIQ1
 dn: uid=dave,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -97,7 +97,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a non-unique record..."
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -121,7 +121,7 @@ fi
 
 # ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
-$LDAPADD -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -e \!relax -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -144,7 +144,7 @@ if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
 fi
 
 echo "Trying to bypass uniqueness as a normal user with ManageDSAIt..."
-$LDAPADD -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -M -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -167,7 +167,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo "Bypassing uniqueness as an admin user..."
-$LDAPADD -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -e \!relax -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -190,7 +190,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Cleaning up"
-$LDAPDELETE -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPDELETE -D "$UNIQUEDN" -H $URI1 -w $PASSWD \
     "uid=bill,ou=users,o=unique" > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0; then
@@ -200,7 +200,7 @@ if test $RC != 0; then
 fi
 
 echo Dynamically retrieving initial configuration...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/initial-config.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/initial-config.ldif
 cat <<EOF >$TESTDIR/initial-reference.ldif
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -220,7 +220,7 @@ if test $RC != 0 ; then
 fi
 
 echo Dynamically trying to add a URI with legacy attrs present...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -235,7 +235,7 @@ if test $RC != 80 ; then
 fi
 
 echo Dynamically trying to add legacy ignored attrs with legacy attrs present...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -250,7 +250,7 @@ if test $RC != 80 ; then
 fi
 
 echo Verifying initial configuration intact...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/initial-config-recheck.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/initial-config-recheck.ldif
 diff $TESTDIR/initial-config-recheck.ldif $TESTDIR/initial-reference.ldif > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -260,7 +260,7 @@ if test $RC != 0 ; then
 fi
 
 echo Dynamically removing legacy base...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -274,7 +274,7 @@ if test $RC != 0 ; then
 fi
 
 echo Verifying base removal...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/baseremoval-config.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/baseremoval-config.ldif
 cat >$TESTDIR/baseremoval-reference.ldif <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -293,7 +293,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a non-unique record..."
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -316,7 +316,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo Trying a legacy base outside of the backend...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -331,7 +331,7 @@ if test $RC != 80 ; then
 fi
 
 echo "Adding and removing attrs..."
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -350,7 +350,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Verifying we removed the right attr..."
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -373,7 +373,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo Removing legacy config and adding URIs...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -391,7 +391,7 @@ if test $RC != 0 ; then
 fi
 
 echo Dynamically retrieving second configuration...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/second-config.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/second-config.ldif
 cat >$TESTDIR/second-reference.ldif <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -410,7 +410,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a non-unique record..."
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOTUNIQ2
 dn: uid=bill,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -433,7 +433,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo Dynamically trying to add legacy base
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -448,7 +448,7 @@ if test $RC != 80 ; then
 fi
 
 echo Dynamically trying to add legacy attrs
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -463,7 +463,7 @@ if test $RC != 80 ; then
 fi
 
 echo Dynamically trying to add legacy strictness
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -479,7 +479,7 @@ fi
 
 #echo ----------------------
 echo Dynamically trying a bad filter...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -494,7 +494,7 @@ if test $RC != 80 ; then
 fi
 
 echo Verifying second configuration intact...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/second-config-recheck.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/second-config-recheck.ldif
 diff $TESTDIR/second-config-recheck.ldif $TESTDIR/second-reference.ldif > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -505,7 +505,7 @@ fi
 
 #echo ----------------------
 echo Dynamically reconfiguring to use different URIs...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -524,7 +524,7 @@ if test $RC != 0 ; then
 fi
 
 echo Dynamically retrieving third configuration...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/third-config.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/third-config.ldif
 cat >$TESTDIR/third-reference.ldif <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -545,7 +545,7 @@ fi
 
 echo "Adding a record unique in both domains if filtered..."
 
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=edgar,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -562,7 +562,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Adding a record unique in all domains because of filter conditions "
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -580,7 +580,7 @@ fi
 
 echo "Sending an empty modification"
 
-$LDAPMODIFY -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -594,7 +594,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Making a record non-unique"
-$LDAPMODIFY -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -611,7 +611,7 @@ fi
 
 # ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
-$LDAPMODIFY -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -e \!relax -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -627,7 +627,7 @@ if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
 fi
 
 echo "Trying to bypass uniqueness as a normal user with ManageDSAIt..."
-$LDAPMODIFY -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -M -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -643,7 +643,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo "Bypassing uniqueness as an admin user..."
-$LDAPMODIFY -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -e \!relax -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -659,7 +659,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Cleaning up"
-$LDAPMODIFY -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
     $TESTOUT 2>&1 << EOF
 dn: uid=empty,ou=users,o=unique
 changetype: modify
@@ -675,7 +675,7 @@ if test $RC != 0; then
 fi
 
 echo "Adding another unique record..."
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=not edgar,uid=edgar,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -692,7 +692,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Making the record non-unique with modrdn..."
-$LDAPMODRDN -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODRDN -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
 RC=$?
@@ -704,7 +704,7 @@ fi
 
 # ITS#6641/8057/8245
 echo "Trying to bypass uniqueness as a normal user..."
-$LDAPMODRDN -e \!relax -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODRDN -e \!relax -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
 RC=$?
@@ -715,7 +715,7 @@ if test $RC != $RCODEnorelax && test $RC != $RCODEconstraint ; then
 fi
 
 echo "Trying to bypass uniqueness as a normal user with a ManageDSAIt control..."
-$LDAPMODRDN -M -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODRDN -M -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
 RC=$?
@@ -726,7 +726,7 @@ if test $RC != $RCODEconstraint ; then
 fi
 
 echo "Bypassing uniqueness as an admin user..."
-$LDAPMODRDN -e \!relax -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODRDN -e \!relax -D "$UNIQUEDN" -H $URI1 -w $PASSWD \
 	"uid=not edgar,uid=edgar,ou=users,o=unique" "uid=edgar" > $TESTOUT 2>&1
 
 RC=$?
@@ -737,7 +737,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Cleaning up"
-$LDAPDELETE -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPDELETE -D "$UNIQUEDN" -H $URI1 -w $PASSWD \
     "uid=edgar,uid=edgar,ou=users,o=unique" > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0; then
@@ -748,7 +748,7 @@ fi
 
 echo "Adding a record unique in one domain, non-unique in the filtered domain..."
 
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=elvis,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -766,7 +766,7 @@ fi
 
 #echo ----------------------
 echo Dynamically reconfiguring to use attribute-ignore URIs...
-$LDAPMODIFY -D cn=config -h $LOCALHOST -p $PORT1 -y $CONFIGPWF \
+$LDAPMODIFY -D cn=config -H $URI1 -y $CONFIGPWF \
     > $TESTOUT 2>&1 <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 changetype: modify
@@ -781,7 +781,7 @@ if test $RC != 0 ; then
 fi
 
 echo Dynamically retrieving fourth configuration...
-$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -h $LOCALHOST -p $PORT1 -LLL | tr -d \\r >$TESTDIR/fourth-config.ldif
+$LDAPSEARCH -S "" -b olcOverlay='{0}'unique,olcDatabase='{1}'$BACKEND,cn=config -D cn=config -y $CONFIGPWF -H $URI1 -LLL | tr -d \\r >$TESTDIR/fourth-config.ldif
 cat >$TESTDIR/fourth-reference.ldif <<EOF
 dn: olcOverlay={0}unique,olcDatabase={1}$BACKEND,cn=config
 objectClass: olcOverlayConfig
@@ -800,7 +800,7 @@ fi
 
 echo "Adding a record unique in the ignore-domain..."
 
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "$UNIQUEDN" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=elvis,ou=users,o=unique
 objectClass: inetOrgPerson
@@ -819,7 +819,7 @@ fi
 
 echo "Adding a record non-unique in the ignore-domain..."
 
-$LDAPADD -D "uid=dave,ou=users,o=unique" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "uid=dave,ou=users,o=unique" -H $URI1 -w $PASSWD > \
 	 $TESTOUT 2>&1 << EOF
 dn: uid=harry,ou=users,o=unique
 objectClass: inetOrgPerson

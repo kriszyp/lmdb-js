@@ -32,7 +32,7 @@ typedef enum {
 } tester_t;
 
 extern struct tester_conn_args * tester_init( const char *pname, tester_t ptype );
-extern char * tester_uri( char *uri, char *host, int port );
+extern char * tester_uri( char *uri );
 extern void tester_error( const char *msg );
 extern void tester_perror( const char *fname, const char *msg );
 extern void tester_ldap_error( LDAP *ld, const char *fname, const char *msg );
@@ -40,8 +40,7 @@ extern int tester_ignore_str2errlist( const char *err );
 extern int tester_ignore_err( int err );
 
 struct tester_conn_args {
-	char *uri, *host;
-	int port;
+	char *uri;
 
 	int outerloops;
 	int loops;
@@ -67,12 +66,12 @@ struct tester_conn_args {
 
 #define TESTER_INIT_ONLY (1 << 0)
 #define TESTER_INIT_NOEXIT (1 << 1)
-#define TESTER_COMMON_OPTS "CD:d:H:h:L:l:i:O:p:R:U:X:Y:r:t:w:x"
+#define TESTER_COMMON_OPTS "CD:d:H:L:l:i:O:R:U:X:Y:r:t:w:x"
 #define TESTER_COMMON_HELP \
 	"[-C] " \
 	"[-D <dn> [-w <passwd>]] " \
 	"[-d <level>] " \
-	"[-H uri | -h <host> [-p port]] " \
+	"[-H <uri>]" \
 	"[-i <ignore>] " \
 	"[-l <loops>] " \
 	"[-L <outerloops>] " \

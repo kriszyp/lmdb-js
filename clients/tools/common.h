@@ -61,8 +61,6 @@ extern char		*prog;
 
 /* connection */
 extern char		*ldapuri;
-extern char		*ldaphost;
-extern int		ldapport;
 extern int		use_tls;
 extern int		protocol;
 extern int		version;

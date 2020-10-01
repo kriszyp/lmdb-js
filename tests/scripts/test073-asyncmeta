@@ -46,7 +46,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -62,7 +62,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDERED > $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -85,7 +85,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -101,7 +101,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the database..."
-$LDAPADD -D "$METAMANAGERDN" -h $LOCALHOST -p $PORT2 -w $PASSWD < \
+$LDAPADD -D "$METAMANAGERDN" -H $URI2 -w $PASSWD < \
 	$LDIFMETA >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -124,7 +124,7 @@ sleep 1
 
 echo "Using ldapsearch to check that slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI3 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -144,7 +144,7 @@ cat /dev/null > $SEARCHOUT
 BASEDN="o=Example,c=US"
 echo "Searching base=\"$BASEDN\"..."
 echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
 #	echo "Search failed ($RC)!"
@@ -171,7 +171,7 @@ esac
 BASEDN="ou=Meta,o=Example,c=US"
 echo "Searching base=\"$BASEDN\"..."
 echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
 #	echo "Search failed ($RC)!"
@@ -199,7 +199,7 @@ esac
 
 BASEDN="o=Example,c=US"
 echo "Modifying database \"$BASEDN\"..."
-$LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT3 -w $PASSWD \
+$LDAPMODIFY -v -D "cn=Manager,$BASEDN" -H $URI3 -w $PASSWD \
 	-M >> $TESTOUT 2>&1 << EOMODS
 # These operations (updates with objectClass mapping) triggered ITS#3499
 dn: cn=Added Group,ou=Groups,$BASEDN
@@ -305,7 +305,7 @@ esac
 
 echo "Searching base=\"$BASEDN\"..."
 echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" >> $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
 #	echo "Search failed ($RC)!"
@@ -330,7 +330,7 @@ esac
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" -M "$FILTER" '*' ref \
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" -M "$FILTER" '*' ref \
 	>> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
@@ -361,7 +361,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"seeAlso\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" seeAlso \
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" "$FILTER" seeAlso \
 	>> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
@@ -391,7 +391,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"uid\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" uid \
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" "$FILTER" uid \
 	>> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
@@ -421,7 +421,7 @@ echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"member\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -b "$BASEDN" "$FILTER" member \
+$LDAPSEARCH -S "" -H $URI3 -b "$BASEDN" "$FILTER" member \
 	>> $SEARCHOUT 2>&1
 RC=$?
 #if test $RC != 0 ; then
@@ -452,7 +452,7 @@ echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
 echo "# 	attrs=\"member\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"" >> $SEARCHOUT
 echo "# 	with a timed out connection..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 -D "cn=Manager,$BASEDN" -w $PASSWD \
+$LDAPSEARCH -S "" -H $URI3 -D "cn=Manager,$BASEDN" -w $PASSWD \
 	-b "$BASEDN" "$FILTER" member \
 	>> $SEARCHOUT 2>&1
 RC=$?
@@ -480,7 +480,7 @@ esac
 # are not predictable...
 echo "Checking server-enforced size limit..."
 echo "# Checking server-enforced size limit..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -S "" -H $URI3 \
 	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
 	-b "$BASEDN" "(objectClass=*)" 1.1 \
 	>> $TESTOUT 2>&1
@@ -504,7 +504,7 @@ esac
 # are not predictable...
 echo "Checking client-requested size limit..."
 echo "# Checking client-requested size limit..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -h $LOCALHOST -p $PORT3 \
+$LDAPSEARCH -S "" -H $URI3 \
 	-D "cn=Bjorn Jensen,ou=Information Technology Division,ou=People,$BASEDN" -w bjorn \
 	-b "$BASEDN" -z 2 "(objectClass=*)" 1.1 \
 	>> $TESTOUT 2>&1
@@ -538,7 +538,7 @@ if test $? != 0 ; then
 fi
 
 echo "Binding as newly added user to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
+$LDAPWHOAMI -H $URI3 \
 	-D "cn=Added User,ou=Same as above,ou=Meta,$BASEDN" \
 	-w $PASSWD >> $TESTOUT 2>&1
 RC=$?
@@ -562,7 +562,7 @@ esac
 
 
 echo "Binding with incorrect password to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
+$LDAPWHOAMI -H $URI3 \
 	-D "cn=Added User,ou=Same as above,ou=Meta,$BASEDN" \
 	-w bogus >> $TESTOUT 2>&1
 RC=$?
@@ -587,7 +587,7 @@ case $RC,$BACKEND in
 esac
 
 echo "Binding with non-existing user to database \"$BASEDN\"..."
-$LDAPWHOAMI -h $LOCALHOST -p $PORT3 \
+$LDAPWHOAMI -H $URI3 \
 	-D "cn=Non-existing User,ou=Same as above,ou=Meta,$BASEDN" \
 	-w bogus >> $TESTOUT 2>&1
 RC=$?

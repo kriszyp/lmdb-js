@@ -65,7 +65,7 @@ sleep 1
 
 echo "Using ldapsearch to check that provider slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -82,7 +82,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Using ldapadd to populate the provider directory..."
-$LDAPADD -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+$LDAPADD -x -D "$MANAGERDN" -H $URI1 -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -114,7 +114,7 @@ sleep 1
 
 echo "Using ldapsearch to check that proxy slapd is running..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI2 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -139,7 +139,7 @@ CNT=`expr $CNT + 1`
 FILTER="(sn=Jon)"
 echo "Query $CNT: filter:$FILTER attrs:all (expect nothing)" 
 echo "# Query $CNT: filter:$FILTER attrs:all (expect nothing)" >> $SEARCHOUT
-$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -x -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -162,7 +162,7 @@ FILTER="(|(cn=*Jon*)(sn=Jon*))"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -x -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -176,7 +176,7 @@ FILTER="(sn=Smith*)"
 ATTRS="cn sn uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -190,7 +190,7 @@ FILTER="(sn=Doe*)"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -204,7 +204,7 @@ FILTER="(uid=johnd)"
 ATTRS="mail postaladdress telephonenumber cn uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -218,7 +218,7 @@ FILTER="(mail=*@mail.alumni.example.com)"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -232,7 +232,7 @@ FILTER="(mail=*)"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -248,7 +248,7 @@ USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,
 UPASSWD="bjorn"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
@@ -275,7 +275,7 @@ USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,
 UPASSWD="bjorn"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
@@ -300,7 +300,7 @@ FILTER="(|(cn=All Staff)(sn=All Staff))"
 ATTRS="sn cn title uid undefinedAttr"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -341,7 +341,7 @@ FILTER="(|(cn=*Jones)(sn=Jones))"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -x -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -355,7 +355,7 @@ FILTER="(sn=Smith)"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -369,7 +369,7 @@ FILTER="(uid=bjorn)"
 ATTRS="mail postaladdress telephonenumber cn uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -383,7 +383,7 @@ FILTER="(mail=jaj@mail.alumni.example.com)"
 ATTRS="cn sn title uid"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 
@@ -400,7 +400,7 @@ USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,
 UPASSWD="bjorn"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
@@ -427,7 +427,7 @@ USERDN="cn=Bjorn Jensen,ou=Information Technology Division,ou=People,dc=example,
 UPASSWD="bjorn"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
@@ -452,7 +452,7 @@ FILTER="(|(cn=All Staff)(sn=All Staff))"
 ATTRS="sn cn title uid undefinedAttr"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS"  
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -512,7 +512,7 @@ FILTER="(&(objectclass=person)(uid=dots))"
 ATTRS="cn mail telephonenumber"
 echo "Query $CNT: filter:$FILTER attrs:$ATTRS" 
 echo "# Query $CNT: filter:$FILTER attrs:$ATTRS" >> $SEARCHOUT
-$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -x -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -521,7 +521,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD <<EOF \
+$LDAPMODIFY -x -D "$MANAGERDN" -H $URI1 -w $PASSWD <<EOF \
 	> /dev/null 2>&1
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,dc=example,dc=com
 changetype: modify
@@ -543,7 +543,7 @@ echo "Waiting $SLEEP seconds for cache to refresh"
 sleep $SLEEP
 
 echo "Checking entry again"
-$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -x -S "" -b "$BASEDN" -H $URI2 \
 	"$FILTER" $ATTRS >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -568,7 +568,7 @@ USERDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 UPASSWD="jaj"
 echo "Query $CNT: $USERDN"
 echo "# Query $CNT: $USERDN" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "" -s base -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "" -s base -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -590,7 +590,7 @@ USERDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 UPASSWD="jaj"
 echo "Query $CNT: (Bind should be cached)"
 echo "# Query $CNT: (Bind should be cached)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "" -s base -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "" -s base -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then
@@ -609,7 +609,7 @@ fi
 
 echo ""
 echo "Testing pwdModify"
-$LDAPPASSWD -h $LOCALHOST -p $PORT2 \
+$LDAPPASSWD -H $URI2 \
 	-D "$MANAGERDN" -w "$PASSWD" -s newpw "$USERDN" >> $TESTOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -630,7 +630,7 @@ USERDN="cn=James A Jones 1,ou=Alumni Association,ou=People,dc=example,dc=com"
 UPASSWD=newpw
 echo "Query $CNT: (Bind should be cached)"
 echo "# Query $CNT: (Bind should be cached)" >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "" -s base -h $LOCALHOST -p $PORT2 \
+$LDAPSEARCH -S "" -b "" -s base -H $URI2 \
 	-D "$USERDN" -w "$UPASSWD" >> $SEARCHOUT 2>> $TESTOUT
 RC=$?
 if test $RC != 0 ; then

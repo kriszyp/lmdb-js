@@ -45,7 +45,7 @@ sleep 1
 
 echo "Testing slapd referential integrity operations..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -63,7 +63,7 @@ fi
 
 echo "Searching unmodified database..."
 
-$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "o=refint" -H $URI1 > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
@@ -75,9 +75,9 @@ $EGREP_CMD "(manager|secretary):" $SEARCHOUT | sed "s/george/foster/g" | \
 	sort > $TESTOUT 2>&1
 
 echo "Testing modrdn..."
-$LDAPMODRDN -D "$REFINTDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODRDN -D "$REFINTDN" -r -H $URI1 -w $PASSWD > \
 	/dev/null 2>&1 'uid=george,ou=users,o=refint' 'uid=foster'
-#$LDAPMODRDN -D "$REFINTDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD  \
+#$LDAPMODRDN -D "$REFINTDN" -r -H $URI1 -w $PASSWD  \
 #	'uid=george,ou=users,o=refint' 'uid=foster'
 
 RC=$?
@@ -91,7 +91,7 @@ sleep 1;
 
 echo "Using ldapsearch to check dependents new rdn..."
 
-$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "o=refint" -H $URI1 > $SEARCHOUT 2>&1
 
 RC=$?
 	if test $RC != 0 ; then
@@ -112,7 +112,7 @@ if test $? != 0 ; then
 fi
 
 echo "Testing delete..."
-$LDAPMODIFY -v -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$REFINTDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EDEL
 version: 1
 dn: uid=foster,ou=users,o=refint
@@ -129,7 +129,7 @@ fi
 sleep 1;
 
 echo "Using ldapsearch to verify dependents have been deleted..."
-$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 > $SEARCHOUT 2>&1
+$LDAPSEARCH -S "" -b "o=refint" -H $URI1 > $SEARCHOUT 2>&1
 
 RC=$?
 if test $RC != 0 ; then
@@ -149,7 +149,7 @@ fi
 
 echo "Additional test records..."
 
-$LDAPADD -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPADD -D "$REFINTDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << ETEST
 dn: uid=special,ou=users,o=refint
 objectClass: inetOrgPerson
@@ -175,7 +175,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Testing delete when referential attribute is a MUST..."
-$LDAPMODIFY -v -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$REFINTDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EDEL
 version: 1
 dn: uid=alice,ou=users,o=refint
@@ -189,7 +189,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-$LDAPMODIFY -v -D "$REFINTDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODIFY -v -D "$REFINTDN" -H $URI1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EDEL
 version: 1
 dn: cn=group,o=refint
@@ -213,7 +213,7 @@ fi
 
 sleep 1;
 
-$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "o=refint" -H $URI1 \
 	manager member secretary > $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -227,7 +227,7 @@ $EGREP_CMD "(manager|member|secretary):" $SEARCHOUT \
 	sort > $TESTOUT 2>&1
 
 echo "testing subtree rename"
-$LDAPMODRDN -D "$REFINTDN" -r -h $LOCALHOST -p $PORT1 -w $PASSWD > \
+$LDAPMODRDN -D "$REFINTDN" -r -H $URI1 -w $PASSWD > \
 	/dev/null 2>&1 'ou=users,o=refint' 'ou=people'
 RC=$?
 if test $RC != 0 ; then
@@ -240,7 +240,7 @@ sleep 1;
 
 echo "Using ldapsearch to check dependents new rdn..."
 
-$LDAPSEARCH -S "" -b "o=refint" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "o=refint" -H $URI1 \
 	manager member secretary > $SEARCHOUT 2>&1
 
 RC=$?

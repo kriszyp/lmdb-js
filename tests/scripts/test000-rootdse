@@ -32,7 +32,7 @@ sleep 1
 
 echo "Using ldapsearch to retrieve the root DSE..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -b "" -s base -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -b "" -s base -H $URI1 \
 		'@extensibleObject' > $SEARCHOUT 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -44,7 +44,7 @@ done
 
 if test $RC = 0 ; then
 	echo "Using ldapsearch to retrieve the cn=Subschema..."
-	$LDAPSEARCH -b "cn=Subschema" -s base -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -b "cn=Subschema" -s base -H $URI1 \
 		'(&(objectClasses=top)(objectClasses=2.5.6.0))' cn objectClass \
 		>> $SEARCHOUT  2>&1
 	RC=$?
@@ -53,7 +53,7 @@ fi
 
 if test $RC = 0 ; then
 	echo "Using ldapsearch to retrieve the cn=Monitor..."
-	$LDAPSEARCH -b "cn=Monitor" -s base -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -b "cn=Monitor" -s base -H $URI1 \
 		'@monitor' >> $SEARCHOUT 2>&1
 	RC=$?
 fi

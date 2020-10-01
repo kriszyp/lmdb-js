@@ -32,7 +32,7 @@ sleep 1
 
 echo "Testing slapd searching..."
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+	$LDAPSEARCH -s base -b "$MONITOR" -H $URI1 \
 		'(objectclass=*)' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
@@ -54,7 +54,7 @@ cat /dev/null > $SEARCHOUT
 # Add
 echo "Populating the database..."
 echo "# Populating the database..." >> $TESTOUT
-$LDAPADD -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPADD -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOMODS0
 dn: dc=example,dc=com
 objectClass: organization
@@ -87,7 +87,7 @@ fi
 
 echo "Searching all database..."
 echo "# Searching all database (after add)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -99,7 +99,7 @@ fi
 # Rename (PASS1)
 echo "Renaming (PASS1)..."
 echo "# Renaming (PASS1)..." >> $TESTOUT
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOMODS1
 dn: ou=Child,ou=Parent,dc=example,dc=com
 changetype: modrdn
@@ -115,7 +115,7 @@ fi
 
 echo "Searching all database..."
 echo "# Searching all database (after PASS1)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -127,7 +127,7 @@ fi
 # Rename (PASS2)
 echo "Renaming (PASS2)..."
 echo "# Renaming (PASS2)..." >> $TESTOUT
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOMODS2
 dn: ou=Parent,dc=example,dc=com
 changetype: modrdn
@@ -143,7 +143,7 @@ fi
 
 echo "Searching all database..."
 echo "# Searching all database (after PASS2)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -155,7 +155,7 @@ fi
 # Rename (PASS3)
 echo "Renaming (PASS3)..."
 echo "# Renaming (PASS3)..." >> $TESTOUT
-$LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+$LDAPMODIFY -v -D "$MANAGERDN" -H $URI1 -w $PASSWD \
 	>> $TESTOUT 2>&1 << EOMODS3
 dn: ou=Renamed child,ou=Renamed parent,dc=example,dc=com
 changetype: modrdn
@@ -172,7 +172,7 @@ fi
 
 echo "Searching all database..."
 echo "# Searching all database (after PASS3)..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+$LDAPSEARCH -S "" -b "$BASEDN" -H $URI1 \
 	'(objectClass=*)' >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
