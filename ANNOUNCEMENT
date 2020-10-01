@@ -26,6 +26,7 @@ A N N O U N C E M E N T -- OpenLDAP 2.5
         * Backend updates
             - back-ldap: CANCHAINOPS
             - back-meta META_CLIENT_PR
+            - back-monitor is always built as a part of slapd
         * Retired backends
             - back-bdb
             - back-hdb
