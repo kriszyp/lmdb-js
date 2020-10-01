@@ -1,8 +1,8 @@
 # lmdb-store
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb-store.svg?style=flat-square)](https://www.npmjs.org/package/lmdb-store)
-[![get](https://img.shields.io/badge/get-4.5Mop%2Fs-yellow)](README.md)
-[![put](https://img.shields.io/badge/put-1.7Mop%2Fs-yellow)](README.md)
+[![get](https://img.shields.io/badge/get-4.5%20MOPS-yellow)](README.md)
+[![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
 `lmdb-store` is an ultra-fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, ACID-compliant, database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to properly leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
@@ -18,7 +18,7 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 
 ## Design
 
-`lmdb-store` is designed to handle translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for remarkable performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
+`lmdb-store` is handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for remarkable performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
 
 `lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, read operations do not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, write operations do involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of batch operation are performed in a separate thread. Consequently, `lmdb-store` is designed for writes to go through this asynchronous batching process and return a simple promise that resolves once the write is completed and flushed to disk.
 
