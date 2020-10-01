@@ -25,7 +25,7 @@ dnl ================================================================
 dnl Configure.in for OpenLDAP
 AC_COPYRIGHT([[Copyright 1998-2020 The OpenLDAP Foundation. All rights reserved.
 Restrictions apply, see COPYRIGHT and LICENSE files.]])
-AC_REVISION([$Id$])
+AC_REVISION([$Id: 43923a51f8a8e37b897c4c7fa207edfbf55040ef $])
 AC_INIT([OpenLDAP],,[https://bugs.openldap.org],,[https://www.openldap.org])
 AC_CONFIG_SRCDIR(build/version.sh)dnl
 dnl ----------------------------------------------------------------
