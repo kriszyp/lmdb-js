@@ -242,7 +242,8 @@ static slap_daemon_st *slap_daemon;
     } \
     slap_daemon[t].sd_kq = kqueue(); \
     if (slap_daemon[t].sd_kq < 0) { \
-        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", errno); \
+        int saved_errno = errno; \
+        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", saved_errno); \
         slapd_shutdown = 2; \
     } \
 } while (0)
@@ -466,9 +467,10 @@ static slap_daemon_st *slap_daemon;
 	if ( rc == 0 ) { \
 		slap_daemon[t].sd_nfds++; \
 	} else { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, \
 			"daemon: epoll_ctl(ADD,fd=%d) failed, errno=%d, shutting down\n", \
-			s, errno ); \
+			s, saved_errno ); \
 		slapd_shutdown = 2; \
 	} \
 } while (0)
@@ -573,9 +575,10 @@ static slap_daemon_st *slap_daemon;
 	/* FIXME: use pwrite? */ \
 	rc = write( slap_daemon[t].sd_dpfd, (pfd), size ); \
 	if ( rc != size ) { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"%s fd=%d failed errno=%d\n", \
-			(what), (s), errno ); \
+			(what), (s), saved_errno ); \
 		if ( (shdn) ) { \
 			slapd_shutdown = 2; \
 		} \
@@ -691,9 +694,10 @@ static slap_daemon_st *slap_daemon;
 	slap_daemon[t].sd_l = (Listener **)&slap_daemon[t].sd_index[ dtblsize ]; \
 	slap_daemon[t].sd_dpfd = open( SLAP_EVENT_FNAME, O_RDWR ); \
 	if ( slap_daemon[t].sd_dpfd == -1 ) { \
+		int saved_errno = errno; \
 		Debug( LDAP_DEBUG_ANY, "daemon: " SLAP_EVENT_FNAME ": " \
 			"open(\"" SLAP_EVENT_FNAME "\") failed errno=%d\n", \
-			errno ); \
+			saved_errno ); \
 		SLAP_SOCK_DESTROY(t); \
 		return -1; \
 	} \
@@ -1560,6 +1564,7 @@ slap_open_listener(
 	struct sockaddr **sal = NULL, **psal;
 	int socktype = SOCK_STREAM;	/* default to COTS */
 	ber_socket_t s;
+	char ebuf[128];
 
 #if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 	/*
@@ -1690,7 +1695,7 @@ slap_open_listener(
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: %s socket() failed errno=%d (%s)\n",
-				af, err, sock_errstr(err) );
+				af, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			sal++;
 			continue;
 		}
@@ -1720,7 +1725,7 @@ slap_open_listener(
 				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY, "slapd(%ld): "
 					"setsockopt(SO_REUSEADDR) failed errno=%d (%s)\n",
-					(long) l.sl_sd, err, sock_errstr(err) );
+					(long) l.sl_sd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			}
 #endif /* SO_REUSEADDR */
 		}
@@ -1740,7 +1745,7 @@ slap_open_listener(
 				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY, "slapd(%ld): "
 					"setsockopt(IPV6_V6ONLY) failed errno=%d (%s)\n",
-					(long) l.sl_sd, err, sock_errstr(err) );
+					(long) l.sl_sd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			}
 #endif /* IPV6_V6ONLY */
 			addrlen = sizeof(struct sockaddr_in6);
@@ -1787,7 +1792,7 @@ slap_open_listener(
 			err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: bind(%ld) failed errno=%d (%s)\n",
-				(long)l.sl_sd, err, sock_errstr( err ) );
+				(long)l.sl_sd, err, sock_errstr( err, ebuf, sizeof(ebuf) ) );
 			tcp_close( s );
 			sal++;
 			continue;
@@ -2219,6 +2224,7 @@ slap_listener(
 #endif
 	int cflag;
 	int tid;
+	char ebuf[128];
 
 	Debug( LDAP_DEBUG_TRACE,
 		">>> slap_listener(%s)\n",
@@ -2270,7 +2276,7 @@ slap_listener(
 
 		Debug( LDAP_DEBUG_ANY,
 			"daemon: accept(%ld) failed errno=%d (%s)\n",
-			(long) sl->sl_sd, err, sock_errstr(err) );
+			(long) sl->sl_sd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 		ldap_pvt_thread_yield();
 		return 0;
 	}
@@ -2312,7 +2318,7 @@ slap_listener(
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
-				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err) );
+				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			slapd_close(sfd);
 			return 0;
 		}
@@ -2326,7 +2332,7 @@ slap_listener(
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"slapd(%ld): setsockopt(TCP_NODELAY) failed "
-				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err) );
+				"errno=%d (%s)\n", (long) sfd, err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 			slapd_close(sfd);
 			return 0;
 		}
@@ -2503,6 +2509,7 @@ slapd_daemon_task(
 	int ebadf = 0;
 	int tid = (slap_daemon_st *) ptr - slap_daemon;
 	int old_threads = slapd_daemon_threads;
+	char ebuf[128];
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
@@ -2551,7 +2558,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				optlen = sizeof( size );
@@ -2565,7 +2572,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: setsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				optlen = sizeof( realsize );
@@ -2579,7 +2586,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: getsockopt(SO_RCVBUF) failed errno=%d (%s)\n",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				Debug(LDAP_DEBUG_ANY,
@@ -2607,7 +2614,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				optlen = sizeof( size );
@@ -2621,7 +2628,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: setsockopt(SO_SNDBUF) failed errno=%d (%s)",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				optlen = sizeof( realsize );
@@ -2635,7 +2642,7 @@ slapd_daemon_task(
 					int err = sock_errno();
 					Debug( LDAP_DEBUG_ANY,
 						"slapd_daemon_task: getsockopt(SO_SNDBUF) failed errno=%d (%s)\n",
-						err, sock_errstr(err) );
+						err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 				}
 
 				Debug(LDAP_DEBUG_ANY,
@@ -2686,7 +2693,7 @@ slapd_daemon_task(
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
 					slap_listeners[l]->sl_url.bv_val, err,
-					sock_errstr(err) );
+					sock_errstr(err, ebuf, sizeof(ebuf)) );
 			return (void*)-1;
 		}
 
@@ -2916,7 +2923,7 @@ loop:
 							" failed count %d "
 							"err (%d): %s\n",
 							ebadf, err,
-							sock_errstr( err ) );
+							sock_errstr( err, ebuf, sizeof(ebuf) ) );
 					}
 					if ( ebadf >= SLAPD_EBADF_LIMIT ) {
 						slapd_shutdown = 2;

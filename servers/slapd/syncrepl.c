@@ -145,6 +145,7 @@ typedef struct syncinfo_s {
 	int			si_got;
 	int			si_strict_refresh;	/* stop listening during fallback refresh */
 	int			si_too_old;
+	int			si_is_configdb;
 	ber_int_t	si_msgid;
 	Avlnode			*si_presentlist;
 	LDAP			*si_ld;
@@ -1194,12 +1195,18 @@ get_pmutex(
 	syncinfo_t *si
 )
 {
-	while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
-		if ( slapd_shutdown )
-			return SYNC_SHUTDOWN;
-		if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
-			ldap_pvt_thread_yield();
+	if ( !si->si_is_configdb ) {
+		ldap_pvt_thread_mutex_lock( &si->si_cookieState->cs_pmutex );
+	} else {
+		/* avoid deadlock when replicating cn=config */
+		while ( ldap_pvt_thread_mutex_trylock( &si->si_cookieState->cs_pmutex )) {
+			if ( slapd_shutdown )
+				return SYNC_SHUTDOWN;
+			if ( !ldap_pvt_thread_pool_pausecheck( &connection_pool ))
+				ldap_pvt_thread_yield();
+		}
 	}
+
 	return 0;
 }
 
@@ -2280,8 +2287,6 @@ syncrepl_accesslog_mods(
 
 		if ( !mod || ad != mod->sml_desc || op != mod->sml_op ) {
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-			if ( op == LDAP_MOD_ADD && is_at_single_value( ad->ad_type ))
-				op = LDAP_MOD_REPLACE;
 			mod->sml_flags = 0;
 			mod->sml_op = op;
 			mod->sml_next = NULL;
@@ -2290,6 +2295,10 @@ syncrepl_accesslog_mods(
 			mod->sml_values = NULL;
 			mod->sml_nvalues = NULL;
 			mod->sml_numvals = 0;
+
+			/* Keep 'op' to reflect what we read out from accesslog */
+			if ( op == LDAP_MOD_ADD && is_at_single_value( ad->ad_type ))
+				mod->sml_op = LDAP_MOD_REPLACE;
 
 			*modtail = mod;
 			modtail = &mod->sml_next;
@@ -2431,7 +2440,10 @@ static Modifications *mods_dup( Operation *op, Modifications *modlist, int match
 				modlist->sml_desc == slap_schema.si_ad_modifyTimestamp ||
 				modlist->sml_desc == slap_schema.si_ad_entryCSN )
 				continue;
-			if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
+			if ( modlist->sml_values == NULL && modlist->sml_op == LDAP_MOD_REPLACE ) {
+				/* ITS#9359 This adds no values, just change to a delete op */
+				modlist->sml_op = LDAP_MOD_DELETE;
+			} else if ( modlist->sml_op == LDAP_MOD_REPLACE ) {
 				mod = op->o_tmpalloc( sizeof(Modifications), op->o_tmpmemctx );
 				mod->sml_desc = modlist->sml_desc;
 				mod->sml_values = NULL;
@@ -2679,7 +2691,10 @@ syncrepl_op_modify( Operation *op, SlapReply *rs )
 			match = 1;
 		}
 		overlay_entry_release_ov( op, e, 0, on );
+	} else {
+		return SLAP_CB_CONTINUE;
 	}
+
 	/* equal? Should never happen */
 	if ( match == 0 ) {
 		slap_graduate_commit_csn( op );
@@ -3031,9 +3046,19 @@ syncrepl_message_to_op(
 			} else {
 				rc = op->o_bd->be_add( op, &rs );
 				Debug( LDAP_DEBUG_SYNC,
-					"syncrepl_message_to_op: %s be_add %s (%d)\n", 
+					"syncrepl_message_to_op: %s be_add %s (%d)\n",
 					si->si_ridtxt, op->o_req_dn.bv_val, rc );
 				do_graduate = 0;
+				if ( rc == LDAP_ALREADY_EXISTS ) {
+					Attribute *a = attr_find( e->e_attrs, slap_schema.si_ad_entryCSN );
+					struct berval *vals;
+					if ( a && backend_attribute( op, NULL, &op->o_req_ndn,
+						slap_schema.si_ad_entryCSN, &vals, ACL_READ ) == LDAP_SUCCESS ) {
+						if ( ber_bvcmp( &vals[0], &a->a_vals[0] ) >= 0 )
+							rc = LDAP_SUCCESS;
+						ber_bvarray_free_x( vals, op->o_tmpmemctx );
+ 					}
+				}
 			}
 			if ( e == op->ora_e )
 				be_entry_release_w( op, op->ora_e );
@@ -6968,6 +6993,8 @@ add_syncrepl(
 	LDAP_LIST_INIT( &si->si_nonpresentlist );
 	ldap_pvt_thread_mutex_init( &si->si_monitor_mutex );
 	ldap_pvt_thread_mutex_init( &si->si_mutex );
+
+	si->si_is_configdb = strcmp( c->be->be_suffix[0].bv_val, "cn=config" ) == 0;
 
 	rc = parse_syncrepl_line( c, si );
 

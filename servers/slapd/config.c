@@ -787,10 +787,12 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 	init_config_argv( c );
 
 	if ( stat( fname, &s ) != 0 ) {
+		char ebuf[128];
+		int saved_errno = errno;
 		ldap_syslog = 1;
 		Debug(LDAP_DEBUG_ANY,
 		    "could not stat config file \"%s\": %s (%d)\n",
-		    fname, strerror(errno), errno);
+		    fname, AC_STRERROR_R( saved_errno, ebuf, sizeof(ebuf) ), saved_errno);
 		ch_free( c->argv );
 		ch_free( c );
 		return(1);
@@ -808,10 +810,12 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf, ConfigTable *cft)
 
 	fp = fopen( fname, "r" );
 	if ( fp == NULL ) {
+		char ebuf[128];
+		int saved_errno = errno;
 		ldap_syslog = 1;
 		Debug(LDAP_DEBUG_ANY,
 		    "could not open config file \"%s\": %s (%d)\n",
-		    fname, strerror(errno), errno);
+		    fname, AC_STRERROR_R( saved_errno, ebuf, sizeof(ebuf) ), saved_errno);
 		ch_free( c->argv );
 		ch_free( c );
 		return(1);

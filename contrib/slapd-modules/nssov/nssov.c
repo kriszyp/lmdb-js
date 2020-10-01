@@ -298,11 +298,15 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
   struct berval peerbv = { sizeof(peerbuf), peerbuf };
 
   /* log connection */
-  if (LUTIL_GETPEEREID(sock,&uid,&gid,&peerbv))
-    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",strerror(errno) );
-  else
+  if (LUTIL_GETPEEREID(sock,&uid,&gid,&peerbv)) {
+    char ebuf[128];
+    int saved_errno = errno;
+    Debug( LDAP_DEBUG_TRACE,"nssov: connection from unknown client: %s\n",
+                      AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+  } else {
     Debug( LDAP_DEBUG_TRACE,"nssov: connection from uid=%d gid=%d\n",
                       (int)uid,(int)gid );
+  }
 
   /* Should do authid mapping too */
   op->o_dn.bv_len = sprintf(authid,"gidNumber=%d+uidNumber=%d,cn=peercred,cn=external,cn=auth",
@@ -322,7 +326,10 @@ static void handleconnection(nssov_info *ni,int sock,Operation *op)
                      READBUFFER_MINSIZE,READBUFFER_MAXSIZE,
                      WRITEBUFFER_MINSIZE,WRITEBUFFER_MAXSIZE))==NULL)
   {
-    Debug( LDAP_DEBUG_ANY,"nssov: cannot create stream for writing: %s",strerror(errno) );
+    char ebuf[128];
+    int saved_errno = errno;
+    Debug( LDAP_DEBUG_ANY,"nssov: cannot create stream for writing: %s",
+                      AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
     (void)close(sock);
     return;
   }
@@ -403,27 +410,43 @@ static void *acceptconn(void *ctx, void *arg)
 		connection_client_enable(ni->ni_conn);
 		if (csock<0)
 		{
+			char ebuf[128];
+			int saved_errno = errno;
 			if ((errno==EINTR)||(errno==EAGAIN)||(errno==EWOULDBLOCK))
 			{
-				Debug( LDAP_DEBUG_TRACE,"nssov: accept() failed (ignored): %s",strerror(errno) );
+				Debug( LDAP_DEBUG_TRACE,"nssov: accept() failed (ignored): %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 				return NULL;
 			}
-			Debug( LDAP_DEBUG_ANY,"nssov: accept() failed: %s",strerror(errno) );
+			Debug( LDAP_DEBUG_ANY,"nssov: accept() failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			return NULL;
 		}
 		/* make sure O_NONBLOCK is not inherited */
 		if ((j=fcntl(csock,F_GETFL,0))<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_GETFL) failed: %s",strerror(errno) );
-			if (close(csock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+			char ebuf[128];
+			int saved_errno = errno;
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_GETFL) failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(csock)) {
+				saved_errno = errno;
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return NULL;
 		}
 		if (fcntl(csock,F_SETFL,j&~O_NONBLOCK)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,~O_NONBLOCK) failed: %s",strerror(errno) );
-			if (close(csock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+			char ebuf[128];
+			int saved_errno = errno;
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,~O_NONBLOCK) failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(csock)) {
+				saved_errno = errno;
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return NULL;
 		}
 	}
@@ -868,10 +891,12 @@ nssov_db_open(
 		}
 	}
 	if ( slapMode & SLAP_SERVER_MODE ) {
+		char ebuf[128];
 		/* make sure /var/run/nslcd exists */
 		if (mkdir(NSLCD_PATH, (mode_t) 0555)) {
+			int saved_errno = errno;
 			Debug(LDAP_DEBUG_TRACE,"nssov: mkdir(%s) failed (ignored): %s\n",
-					NSLCD_PATH,strerror(errno) );
+					NSLCD_PATH, AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 		} else {
 			Debug(LDAP_DEBUG_TRACE,"nssov: created %s\n",NSLCD_PATH );
 		}
@@ -879,14 +904,17 @@ nssov_db_open(
 		/* create a socket */
 		if ( (sock=socket(PF_UNIX,SOCK_STREAM,0))<0 )
 		{
-			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",strerror(errno) );
+			int saved_errno = errno;
+			Debug(LDAP_DEBUG_ANY,"nssov: cannot create socket: %s\n",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			return -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
+			int saved_errno = errno;
 			Debug( LDAP_DEBUG_TRACE,"nssov: unlink() of "NSLCD_SOCKET" failed (ignored): %s\n",
-							strerror(errno) );
+							AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 		}
 		/* create socket address structure */
 		memset(&addr,0,sizeof(struct sockaddr_un));
@@ -896,18 +924,27 @@ nssov_db_open(
 		/* bind to the named socket */
 		if (bind(sock,(struct sockaddr *)&addr,sizeof(struct sockaddr_un)))
 		{
+			int saved_errno = errno;
 			Debug( LDAP_DEBUG_ANY,"nssov: bind() to "NSLCD_SOCKET" failed: %s",
-							strerror(errno) );
-			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(sock)) {
+				saved_errno = errno
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return -1;
 		}
 		/* close the file descriptor on exit */
 		if (fcntl(sock,F_SETFD,FD_CLOEXEC)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",strerror(errno) );
-			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+			int saved_errno = errno;
+			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(sock)) {
+				saved_errno = errno
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return -1;
 		}
 		/* set permissions of socket so anybody can do requests */
@@ -917,17 +954,27 @@ nssov_db_open(
 			 http://lkml.org/lkml/2005/5/16/11 */
 		if (chmod(NSLCD_SOCKET,(mode_t)0666))
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",strerror(errno) );
-			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+			int saved_errno = errno;
+			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(sock)) {
+				saved_errno = errno
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return -1;
 		}
 		/* start listening for connections */
 		if (listen(sock,SOMAXCONN)<0)
 		{
-			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",strerror(errno) );
-			if (close(sock))
-				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",strerror(errno) );
+			int saved_errno = errno;
+			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			if (close(sock)) {
+				saved_errno = errno
+				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			return -1;
 		}
 		ni->ni_socket = sock;
@@ -946,18 +993,23 @@ nssov_db_close(
 	nssov_info *ni = on->on_bi.bi_private;
 
 	if ( slapMode & SLAP_SERVER_MODE ) {
+		char ebuf[128];
 		/* close socket if it's still in use */
 		if (ni->ni_socket >= 0)
 		{
-			if (close(ni->ni_socket))
-				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",strerror(errno) );
+			if (close(ni->ni_socket)) {
+				int saved_errno = errno;
+				Debug( LDAP_DEBUG_ANY,"problem closing server socket (ignored): %s",
+					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
+			}
 			ni->ni_socket = -1;
 		}
 		/* remove existing named socket */
 		if (unlink(NSLCD_SOCKET)<0)
 		{
+			int saved_errno = errno;
 			Debug( LDAP_DEBUG_TRACE,"unlink() of "NSLCD_SOCKET" failed (ignored): %s",
-				strerror(errno) );
+				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 		}
 	}
 	return 0;

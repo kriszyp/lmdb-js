@@ -40,14 +40,21 @@
 
 #include "slapd-common.h"
 
+#define SLAP_SYNC_SID_MAX	4095
+
 #define	HAS_MONITOR	1
 #define	HAS_BASE	2
 #define	HAS_ENTRIES	4
 #define	HAS_SREPL	8
+#define HAS_ALL (HAS_MONITOR|HAS_BASE|HAS_ENTRIES|HAS_SREPL)
+
+
+#define WAS_LATE	0x100
+#define WAS_DOWN	0x200
 
 #define	MONFILTER	"(objectClass=monitorOperation)"
 
-#define SLAP_SYNC_SID_MAX	4095
+static const char *default_monfilter = MONFILTER;
 
 typedef enum {
     SLAP_OP_BIND = 0,
@@ -87,8 +94,6 @@ typedef struct counters {
 } counters;
 
 typedef struct csns {
-	int num;
-	int *sids;
 	struct berval *vals;
 	struct timeval *tvs;
 } csns;
@@ -107,6 +112,8 @@ typedef struct server {
 	int sid;
 	struct berval monitorbase;
 	char *monitorfilter;
+	time_t late;
+	time_t down;
 	counters c_prev;
 	counters c_curr;
 	csns csn_prev;
@@ -166,6 +173,26 @@ void deltat(time_t *tt)
 
 static char *clearscreen = "\033[H\033[2J";
 
+void rotate_stats( server *sv )
+{
+	if ( sv->flags & HAS_MONITOR )
+		sv->c_prev = sv->c_curr;
+	if ( sv->flags & HAS_BASE ) {
+		int i;
+
+		for (i=0; i<numservers; i++) {
+			if ( sv->csn_curr.vals[i].bv_len ) {
+				ber_bvreplace(&sv->csn_prev.vals[i],
+					&sv->csn_curr.vals[i]);
+				sv->csn_prev.tvs[i] = sv->csn_curr.tvs[i];
+			} else {
+				if ( sv->csn_prev.vals[i].bv_val )
+					sv->csn_prev.vals[i].bv_val[0] = '\0';
+			}
+		}
+	}
+}
+
 void display()
 {
 	int i, j;
@@ -180,9 +207,19 @@ void display()
 	printf("\n");
 
 	for (i=0; i<numservers; i++) {
-		printf("%s\n", servers[i].url );
+		printf("\n%s", servers[i].url );
+		if ( servers[i].flags & WAS_DOWN ) {
+			printf(", down@");
+			timestamp( &servers[i].down );
+		}
+		if ( servers[i].flags & WAS_LATE ) {
+			printf(", late@");
+			timestamp( &servers[i].late );
+		}
+		printf("\n");
 		if ( servers[i].flags & HAS_MONITOR ) {
-			double rate;
+			struct timeval tv;
+			double rate, duration;
 			printf("      ");
 			if ( servers[i].flags & HAS_ENTRIES )
 				printf("  Entries  ");
@@ -196,28 +233,32 @@ void display()
 				printf("%10lu ", servers[i].c_curr.ops[j]);
 			printf("\n");
 			printf("Num/s ");
+			tv.tv_usec = now.tv_usec - servers[i].c_prev.time.tv_usec;
+			tv.tv_sec = now.tv_sec - servers[i].c_prev.time.tv_sec;
+			if ( tv.tv_usec < 0 ) {
+				tv.tv_usec += 1000000;
+				tv.tv_sec--;
+			}
+			duration = tv.tv_sec + (tv.tv_usec / (double)1000000);
 			if ( servers[i].flags & HAS_ENTRIES ) {
-				rate = (servers[i].c_curr.entries - servers[i].c_prev.entries) / (double)interval;
+				rate = (servers[i].c_curr.entries - servers[i].c_prev.entries) / duration;
 				printf("%10.2f ", rate);
 			}
 			for ( j = 0; j<SLAP_OP_LAST; j++ ) {
-				rate = (servers[i].c_curr.ops[j] - servers[i].c_prev.ops[j]) / (double)interval;
+				rate = (servers[i].c_curr.ops[j] - servers[i].c_prev.ops[j]) / duration;
 				printf("%10.2f ", rate);
 			}
 			printf("\n");
-			servers[i].c_prev = servers[i].c_curr;
 		}
 		if ( servers[i].flags & HAS_BASE ) {
-			int k;
-			for (j=0; j<servers[i].csn_curr.num; j++) {
-				int sid = servers[i].csn_curr.sids[j];
+			for (j=0; j<numservers; j++) {
+				/* skip empty CSNs */
+				if (!servers[i].csn_curr.vals[j].bv_len ||
+					!servers[i].csn_curr.vals[j].bv_val[0])
+					continue;
 				printf("contextCSN: %s", servers[i].csn_curr.vals[j].bv_val );
-				for (k=0; k<servers[i].csn_prev.num; k++)
-					if (servers[i].csn_prev.sids[k] == sid)
-						break;
-				if (k == servers[i].csn_prev.num ||
-					ber_bvcmp(&servers[i].csn_curr.vals[j],
-							&servers[i].csn_prev.vals[k])) {
+				if (ber_bvcmp(&servers[i].csn_curr.vals[j],
+							&servers[i].csn_prev.vals[j])) {
 					/* a difference */
 					if (servers[i].times[j].idle) {
 						servers[i].times[j].idle = 0;
@@ -225,13 +266,13 @@ void display()
 						servers[i].times[j].maxlag = 0;
 						servers[i].times[j].lag = 0;
 					}
+active:
 					if (!servers[i].times[j].active)
 						servers[i].times[j].active = now_t;
 					printf(" actv@");
 					timestamp(&servers[i].times[j].active);
-				} else if ( servers[i].times[j].lag ) {
-					printf(" actv@");
-					timestamp(&servers[i].times[j].active);
+				} else if ( servers[i].times[j].lag || ( servers[i].flags & WAS_LATE )) {
+					goto active;
 				} else {
 					if (servers[i].times[j].active && !servers[i].times[j].idle)
 						servers[i].times[j].idle = now_t;
@@ -244,71 +285,47 @@ void display()
 						printf(" idle");
 					}
 				}
-				if (sid != servers[i].sid) {
-					int l;
-					for (k=0; k<numservers; k++) {
-						if (servers[k].sid == sid) {
-							for (l=0; l<servers[k].csn_curr.num; l++) {
-								if (servers[k].csn_curr.sids[l] == sid ) {
-									if (ber_bvcmp(&servers[i].csn_curr.vals[j],
-										&servers[k].csn_curr.vals[l])) {
-										struct timeval delta;
-										int ahead = 0;
-										time_t deltatt;
-										delta.tv_sec = servers[k].csn_curr.tvs[l].tv_sec -
-											servers[i].csn_curr.tvs[j].tv_sec;
-										delta.tv_usec = servers[k].csn_curr.tvs[l].tv_usec -
-											servers[i].csn_curr.tvs[j].tv_usec;
-										if (delta.tv_usec < 0) {
-											delta.tv_usec += 1000000;
-											delta.tv_sec--;
-										}
-										if (delta.tv_sec < 0) {
-											delta.tv_sec = -delta.tv_sec;
-											ahead = 1;
-										}
-										deltatt = delta.tv_sec;
-										if (ahead)
-											printf(", ahead ");
-										else
-											printf(", behind ");
-										deltat( &deltatt );
-										servers[i].times[j].lag = deltatt;
-										if (deltatt > servers[i].times[j].maxlag)
-											servers[i].times[j].maxlag = deltatt;
-									} else {
-										servers[i].times[j].lag = 0;
-										printf(", sync'd");
-									}
-									if (servers[i].times[j].maxlag) {
-										printf(", max delta ");
-										deltat( &servers[i].times[j].maxlag );
-									}
-								}
-							}
+				if (i != j) {
+					if (ber_bvcmp(&servers[i].csn_curr.vals[j],
+						&servers[j].csn_curr.vals[j])) {
+						struct timeval delta;
+						int ahead = 0;
+						time_t deltatt;
+						delta.tv_sec = servers[j].csn_curr.tvs[j].tv_sec -
+							servers[i].csn_curr.tvs[j].tv_sec;
+						delta.tv_usec = servers[j].csn_curr.tvs[j].tv_usec -
+							servers[i].csn_curr.tvs[j].tv_usec;
+						if (delta.tv_usec < 0) {
+							delta.tv_usec += 1000000;
+							delta.tv_sec--;
 						}
+						if (delta.tv_sec < 0) {
+							delta.tv_sec = -delta.tv_sec;
+							ahead = 1;
+						}
+						deltatt = delta.tv_sec;
+						if (ahead)
+							printf(", ahead ");
+						else
+							printf(", behind ");
+						deltat( &deltatt );
+						servers[i].times[j].lag = deltatt;
+						if (deltatt > servers[i].times[j].maxlag)
+							servers[i].times[j].maxlag = deltatt;
+					} else {
+						servers[i].times[j].lag = 0;
+						printf(", sync'd");
+					}
+					if (servers[i].times[j].maxlag) {
+						printf(", max delta ");
+						deltat( &servers[i].times[j].maxlag );
 					}
 				}
 				printf("\n");
 			}
-			if ( servers[i].csn_prev.num != servers[i].csn_curr.num ) {
-				servers[i].csn_prev.sids = realloc(servers[i].csn_prev.sids,
-					servers[i].csn_curr.num * sizeof(int));
-				servers[i].csn_prev.vals = realloc(servers[i].csn_prev.vals,
-					servers[i].csn_curr.num * sizeof(struct berval));
-				servers[i].csn_prev.tvs = realloc(servers[i].csn_prev.tvs,
-					servers[i].csn_curr.num * sizeof(struct timeval));
-				for (j=servers[i].csn_prev.num; j < servers[i].csn_curr.num; j++) {
-					BER_BVZERO( &servers[i].csn_prev.vals[j] );
-				}
-				servers[i].csn_prev.num = servers[i].csn_curr.num;
-				for (j=0; j<servers[i].csn_curr.num; j++)
-					servers[i].csn_prev.sids[j] = servers[i].csn_curr.sids[j];
-			}
-			for (j=0; j<servers[i].csn_curr.num; j++)
-				ber_bvreplace(&servers[i].csn_prev.vals[j],
-					&servers[i].csn_curr.vals[j]);
 		}
+		if ( !( servers[i].flags & WAS_LATE ))
+			rotate_stats( &servers[i] );
 	}
 }
 
@@ -389,29 +406,156 @@ void get_csns(
 	struct berval *bvs
 )
 {
-	int i;
+	int i, j;
 
-	for (i=0; bvs[i].bv_val; i++) ;
-	if ( c->num != i ) {
-		int j;
-		c->vals = realloc( c->vals, i*sizeof(struct berval));
-		c->sids = realloc( c->sids, i*sizeof(int));
-		c->tvs = realloc( c->tvs, i*sizeof(struct timeval));
-		for (j=c->num; j<i; j++) {
-			BER_BVZERO( &c->vals[j] );
-		}
-	}
-	c->num = i;
-	for (i=0; i<c->num; i++) {
+	/* clear old values if any */
+	for (i=0; i<numservers; i++)
+		if ( c->vals[i].bv_val )
+			c->vals[i].bv_val[0] = '\0';
+
+	for (i=0; bvs[i].bv_val; i++) {
 		struct lutil_tm tm;
 		struct lutil_timet tt;
-		ber_bvreplace( &c->vals[i], &bvs[i] );
-		c->sids[i] = slap_parse_csn_sid( &bvs[i] );
-		lutil_parsetime(c->vals[i].bv_val, &tm);
-		c->tvs[i].tv_usec = tm.tm_usec;
-		lutil_tm2time( &tm, &tt );
-		c->tvs[i].tv_sec = tt.tt_sec;
+		int sid = slap_parse_csn_sid( &bvs[i] );
+		for (j=0; j<numservers; j++)
+			if (sid == servers[j].sid) break;
+		if (j < numservers) {
+			ber_bvreplace( &c->vals[j], &bvs[i] );
+			lutil_parsetime(bvs[i].bv_val, &tm);
+			c->tvs[j].tv_usec = tm.tm_usec;
+			lutil_tm2time( &tm, &tt );
+			c->tvs[j].tv_sec = tt.tt_sec;
+		}
 	}
+}
+
+int
+setup_server( struct tester_conn_args *config, server *sv, int first )
+{
+	config->uri = sv->url;
+	tester_init_ld( &sv->ld, config, first ? 0 : TESTER_INIT_NOEXIT );
+	if ( !sv->ld )
+		return -1;
+
+	sv->flags &= ~HAS_ALL;
+	{
+		char *attrs[] = { at_namingContexts.bv_val, at_monitorOpCompleted.bv_val,
+			at_olmMDBEntries.bv_val, NULL };
+		LDAPMessage *res = NULL, *e = NULL;
+		BerElement *ber = NULL;
+		LDAP *ld = sv->ld;
+		struct berval dn, bv, *bvals, **bvp = &bvals;
+		int j, rc;
+
+		rc = ldap_search_ext_s( ld, "cn=monitor", LDAP_SCOPE_SUBTREE, monfilter,
+			attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
+		switch(rc) {
+		case LDAP_SIZELIMIT_EXCEEDED:
+		case LDAP_TIMELIMIT_EXCEEDED:
+		case LDAP_SUCCESS:
+			gettimeofday( &sv->c_curr.time, 0 );
+			sv->flags |= HAS_MONITOR;
+			for ( e = ldap_first_entry( ld, res ); e; e = ldap_next_entry( ld, e )) {
+				ldap_get_dn_ber( ld, e, &ber, &dn );
+				if ( !strncasecmp( dn.bv_val, "cn=Database", sizeof("cn=Database")-1 ) ||
+					!strncasecmp( dn.bv_val, "cn=Frontend", sizeof("cn=Frontend")-1 )) {
+					int matched = 0;
+					for ( rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp );
+						rc == LDAP_SUCCESS;
+						rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp )) {
+						if ( bv.bv_val == NULL ) break;
+						if (!ber_bvcmp( &bv, &at_namingContexts ) && bvals ) {
+							for (j=0; bvals[j].bv_val; j++) {
+								if ( !ber_bvstrcasecmp( &base, &bvals[j] )) {
+									matched = 1;
+									break;
+								}
+							}
+							if (!matched) {
+								ber_memfree( bvals );
+								bvals = NULL;
+								break;
+							}
+						}
+						if (!ber_bvcmp( &bv, &at_olmMDBEntries )) {
+							ber_bvreplace( &sv->monitorbase, &dn );
+							sv->flags |= HAS_ENTRIES;
+							sv->c_curr.entries = strtoul( bvals[0].bv_val, NULL, 0 );
+						}
+						ber_memfree( bvals );
+						bvals = NULL;
+					}
+				} else if (!strncasecmp( dn.bv_val, opnames[0].rdn.bv_val,
+					opnames[0].rdn.bv_len )) {
+					get_counters( ld, e, ber, &sv->c_curr );
+					break;
+				}
+				if ( ber )
+					ber_free( ber, 0 );
+			}
+			break;
+
+		case LDAP_NO_SUCH_OBJECT:
+			/* no cn=monitor */
+			break;
+
+		default:
+			tester_ldap_error( ld, "ldap_search_ext_s(cn=Monitor)", sv->url );
+			if ( first )
+				exit( EXIT_FAILURE );
+		}
+		ldap_msgfree( res );
+
+		if ( base.bv_val ) {
+			char *attr2[] = { at_contextCSN.bv_val, NULL };
+			rc = ldap_search_ext_s( ld, base.bv_val, LDAP_SCOPE_BASE, "(objectClass=*)",
+				attr2, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
+			switch(rc) {
+			case LDAP_SUCCESS:
+				e = ldap_first_entry( ld, res );
+				if ( e ) {
+					sv->flags |= HAS_BASE;
+					ldap_get_dn_ber( ld, e, &ber, &dn );
+					for ( rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp );
+						rc == LDAP_SUCCESS;
+						rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp )) {
+						int done = 0;
+						if ( bv.bv_val == NULL ) break;
+						if ( bvals ) {
+							if ( !ber_bvcmp( &bv, &at_contextCSN )) {
+								get_csns( &sv->csn_curr, bvals );
+								done = 1;
+							}
+							ber_memfree( bvals );
+							bvals = NULL;
+							if ( done )
+								break;
+						}
+					}
+				}
+				ldap_msgfree( res );
+				break;
+
+			default:
+				tester_ldap_error( ld, "ldap_search_ext_s(baseDN)", sv->url );
+				if ( first )
+					exit( EXIT_FAILURE );
+			}
+		}
+	}
+
+	if ( sv->monitorfilter != default_monfilter )
+		free( sv->monitorfilter );
+	if ( sv->flags & HAS_ENTRIES ) {
+		int len = sv->monitorbase.bv_len + sizeof("(|(entryDN=)" MONFILTER ")");
+		char *ptr = malloc(len);
+		sprintf(ptr, "(|(entryDN=%s)" MONFILTER ")", sv->monitorbase.bv_val );
+		sv->monitorfilter = ptr;
+	} else if ( sv->flags & HAS_MONITOR ) {
+		sv->monitorfilter = (char *)default_monfilter;
+	}
+	if ( first )
+		rotate_stats( sv );
 }
 
 int
@@ -420,6 +564,7 @@ main( int argc, char **argv )
 	int		i, rc, *msg1, *msg2;
 	char **sids = NULL;
 	struct tester_conn_args *config;
+	int first = 1;
 
 	config = tester_init( "slapd-watcher", TESTER_TESTER );
 	config->authmethod = LDAP_AUTH_SIMPLE;
@@ -485,183 +630,107 @@ main( int argc, char **argv )
 	}
 
 	for ( i = 0; i < numservers; i++ ) {
-		int version = LDAP_VERSION3;
 		servers[i].url = argv[i];
-		config->uri = argv[i];
-		tester_init_ld( &servers[i].ld, config, 0 );
-		servers[i].flags = 0;
-		{
-			char *attrs[] = { at_namingContexts.bv_val, at_monitorOpCompleted.bv_val,
-				at_olmMDBEntries.bv_val, NULL };
-			LDAPMessage *res = NULL, *e = NULL;
-			BerElement *ber = NULL;
-			LDAP *ld = servers[i].ld;
-			struct berval dn, bv, *bvals, **bvp = &bvals;
-			int j;
-
-			rc = ldap_search_ext_s( ld, "cn=monitor", LDAP_SCOPE_SUBTREE, monfilter,
-				attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
-			switch(rc) {
-			case LDAP_SIZELIMIT_EXCEEDED:
-			case LDAP_TIMELIMIT_EXCEEDED:
-			case LDAP_SUCCESS:
-				gettimeofday( &servers[i].c_curr.time, 0 );
-				servers[i].flags |= HAS_MONITOR;
-				for ( e = ldap_first_entry( ld, res ); e; e = ldap_next_entry( ld, e )) {
-					ldap_get_dn_ber( ld, e, &ber, &dn );
-					if ( !strncasecmp( dn.bv_val, "cn=Database", sizeof("cn=Database")-1 ) ||
-						!strncasecmp( dn.bv_val, "cn=Frontend", sizeof("cn=Frontend")-1 )) {
-						int matched = 0;
-						for ( rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp );
-							rc == LDAP_SUCCESS;
-							rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp )) {
-							if ( bv.bv_val == NULL ) break;
-							if (!ber_bvcmp( &bv, &at_namingContexts ) && bvals ) {
-								for (j=0; bvals[j].bv_val; j++) {
-									if ( !ber_bvstrcasecmp( &base, &bvals[j] )) {
-										matched = 1;
-										break;
-									}
-								}
-								if (!matched) {
-									ber_memfree( bvals );
-									bvals = NULL;
-									break;
-								}
-							}
-							if (!ber_bvcmp( &bv, &at_olmMDBEntries )) {
-								ber_dupbv( &servers[i].monitorbase, &dn );
-								servers[i].flags |= HAS_ENTRIES;
-								servers[i].c_curr.entries = strtoul( bvals[0].bv_val, NULL, 0 );
-							}
-							ber_memfree( bvals );
-							bvals = NULL;
-						}
-					} else if (!strncasecmp( dn.bv_val, opnames[0].rdn.bv_val,
-						opnames[0].rdn.bv_len )) {
-						get_counters( ld, e, ber, &servers[i].c_curr );
-						break;
-					}
-					if ( ber )
-						ber_free( ber, 0 );
-				}
-				break;
-
-			case LDAP_NO_SUCH_OBJECT:
-				/* no cn=monitor */
-				break;
-
-			default:
-				tester_ldap_error( ld, "ldap_search_ext_s(cn=Monitor)", NULL );
-				exit( EXIT_FAILURE );
-			}
-			ldap_msgfree( res );
-			if ( base.bv_val ) {
-				char *attr2[] = { at_contextCSN.bv_val, NULL };
-				rc = ldap_search_ext_s( ld, base.bv_val, LDAP_SCOPE_BASE, "(objectClass=*)",
-					attr2, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &res );
-				switch(rc) {
-				case LDAP_SUCCESS:
-					e = ldap_first_entry( ld, res );
-					if ( e ) {
-						servers[i].flags |= HAS_BASE;
-						ldap_get_dn_ber( ld, e, &ber, &dn );
-						for ( rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp );
-							rc == LDAP_SUCCESS;
-							rc = ldap_get_attribute_ber( ld, e, ber, &bv, bvp )) {
-							int done = 0;
-							if ( bv.bv_val == NULL ) break;
-							if ( bvals ) {
-								if ( !ber_bvcmp( &bv, &at_contextCSN )) {
-									get_csns( &servers[i].csn_curr, bvals );
-									done = 1;
-								}
-								ber_memfree( bvals );
-								bvals = NULL;
-								if ( done )
-									break;
-							}
-						}
-					}
-					ldap_msgfree( res );
-					break;
-
-				default:
-					tester_ldap_error( ld, "ldap_search_ext_s(baseDN)", NULL );
-					exit( EXIT_FAILURE );
-				}
-			}
-		}
-	}
-
-	for (i=0; i<numservers; i++) {
-		int j;
-		if ( servers[i].flags & HAS_ENTRIES ) {
-			int len = servers[i].monitorbase.bv_len + sizeof("(|(entryDN=)" MONFILTER ")");
-			char *ptr = malloc(len);
-			sprintf(ptr, "(|(entryDN=%s)" MONFILTER ")", servers[i].monitorbase.bv_val );
-			servers[i].monitorfilter = ptr;
-		} else if ( servers[i].flags & HAS_MONITOR ) {
-			servers[i].monitorfilter = MONFILTER;
-		}
-		servers[i].c_prev = servers[i].c_curr;
-		servers[i].csn_prev.num = servers[i].csn_curr.num;
-		servers[i].csn_prev.sids = malloc(servers[i].csn_curr.num * sizeof(int));
-		servers[i].csn_prev.vals = malloc(servers[i].csn_curr.num * sizeof(struct berval));
-		for (j=0; j<servers[i].csn_curr.num; j++) {
-			servers[i].csn_prev.sids[j] = servers[i].csn_curr.sids[j];
-			ber_dupbv(&servers[i].csn_prev.vals[j],
-				&servers[i].csn_curr.vals[j]);
-		}
 		servers[i].times = calloc( numservers, sizeof(activity));
+		servers[i].csn_curr.vals = calloc( numservers, sizeof(struct berval));
+		servers[i].csn_prev.vals = calloc( numservers, sizeof(struct berval));
+		servers[i].csn_curr.tvs = calloc( numservers, sizeof(struct timeval));
+		servers[i].csn_prev.tvs = calloc( numservers, sizeof(struct timeval));
 	}
 
 	msg1 = malloc( numservers * 2 * sizeof(int));
 	msg2 = msg1 + numservers;
 
-	display();
-
 	for (;;) {
 		LDAPMessage *res = NULL, *e = NULL;
 		BerElement *ber = NULL;
 		struct berval dn, bv, *bvals, **bvp = &bvals;
+		struct timeval tv;
 		LDAP *ld;
 
-		sleep(interval);
 		for (i=0; i<numservers; i++) {
-			ld = servers[i].ld;
-			if ( servers[i].flags & HAS_MONITOR ) {
-				char *attrs[3] = { at_monitorOpCompleted.bv_val };
-				if ( servers[i].flags & HAS_ENTRIES )
-					attrs[1] = at_olmMDBEntries.bv_val;
-				rc = ldap_search_ext( ld, "cn=monitor",
-					LDAP_SCOPE_SUBTREE, servers[i].monitorfilter,
-					attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msg1[i] );
-				if ( rc != LDAP_SUCCESS ) {
-					tester_ldap_error( ld, "ldap_search_ext(cn=Monitor)", NULL );
-					exit( EXIT_FAILURE );
-				}
+			if ( !servers[i].ld || !(servers[i].flags & WAS_LATE )) {
+				msg1[i] = 0;
+				msg2[i] = 0;
 			}
-			if ( servers[i].flags & HAS_BASE ) {
-				char *attrs[2] = { at_contextCSN.bv_val };
-				rc = ldap_search_ext( ld, base.bv_val,
-					LDAP_SCOPE_BASE, "(objectClass=*)",
-					attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msg2[i] );
-				if ( rc != LDAP_SUCCESS ) {
-					tester_ldap_error( ld, "ldap_search_ext(baseDN)", NULL );
-					exit( EXIT_FAILURE );
+			if ( !servers[i].ld ) {
+				setup_server( config, &servers[i], first );
+			} else {
+				ld = servers[i].ld;
+				rc = -1;
+				if ( servers[i].flags & WAS_DOWN )
+					servers[i].flags ^= WAS_DOWN;
+				if (( servers[i].flags & HAS_MONITOR ) && !msg1[i] ) {
+					char *attrs[3] = { at_monitorOpCompleted.bv_val };
+					if ( servers[i].flags & HAS_ENTRIES )
+						attrs[1] = at_olmMDBEntries.bv_val;
+					rc = ldap_search_ext( ld, "cn=monitor",
+						LDAP_SCOPE_SUBTREE, servers[i].monitorfilter,
+						attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msg1[i] );
+					if ( rc != LDAP_SUCCESS ) {
+						tester_ldap_error( ld, "ldap_search_ext(cn=Monitor)", servers[i].url );
+						if ( first )
+							exit( EXIT_FAILURE );
+						else {
+server_down1:
+							ldap_unbind_ext( ld, NULL, NULL );
+							servers[i].flags |= WAS_DOWN;
+							servers[i].ld = NULL;
+							gettimeofday( &tv, NULL );
+							servers[i].down = tv.tv_sec;
+							msg1[i] = 0;
+							msg2[i] = 0;
+							continue;
+						}
+					}
 				}
+				if (( servers[i].flags & HAS_BASE ) && !msg2[i] ) {
+					char *attrs[2] = { at_contextCSN.bv_val };
+					rc = ldap_search_ext( ld, base.bv_val,
+						LDAP_SCOPE_BASE, "(objectClass=*)",
+						attrs, 0, NULL, NULL, NULL, LDAP_NO_LIMIT, &msg2[i] );
+					if ( rc != LDAP_SUCCESS ) {
+						tester_ldap_error( ld, "ldap_search_ext(baseDN)", servers[i].url );
+						if ( first )
+							exit( EXIT_FAILURE );
+						else
+							goto server_down1;
+					}
+				}
+				if ( rc != -1 );
+					gettimeofday( &servers[i].c_curr.time, 0 );
 			}
 		}
+
 		for (i=0; i<numservers; i++) {
 			ld = servers[i].ld;
-			if ( servers[i].flags & HAS_MONITOR ) {
-				gettimeofday( &servers[i].c_curr.time, 0 );
-				rc = ldap_result( ld, msg1[i], LDAP_MSG_ALL, NULL, &res );
+			if ( msg1[i] ) {
+				tv.tv_sec = 0;
+				tv.tv_usec = 250000;
+				rc = ldap_result( ld, msg1[i], LDAP_MSG_ALL, &tv, &res );
 				if ( rc < 0 ) {
-					tester_ldap_error( ld, "ldap_result(cn=Monitor)", NULL );
-					exit( EXIT_FAILURE );
+					tester_ldap_error( ld, "ldap_result(cn=Monitor)", servers[i].url );
+					if ( first )
+						exit( EXIT_FAILURE );
+					else {
+server_down2:
+						ldap_unbind_ext( ld, NULL, NULL );
+						servers[i].flags |= WAS_DOWN;
+						servers[i].ld = NULL;
+						servers[i].down = servers[i].c_curr.time.tv_sec;
+						msg1[i] = 0;
+						msg2[i] = 0;
+						continue;
+					}
 				}
+				if ( rc == 0 ) {
+					if ( !( servers[i].flags & WAS_LATE ))
+						servers[i].late = servers[i].c_curr.time.tv_sec;
+					servers[i].flags |= WAS_LATE;
+					continue;
+				}
+				if ( servers[i].flags & WAS_LATE )
+					servers[i].flags ^= WAS_LATE;
 				for ( e = ldap_first_entry( ld, res ); e; e = ldap_next_entry( ld, e )) {
 					ldap_get_dn_ber( ld, e, &ber, &dn );
 					if ( !strncasecmp( dn.bv_val, "cn=Database", sizeof("cn=Database")-1 ) ||
@@ -688,12 +757,25 @@ main( int argc, char **argv )
 				}
 				ldap_msgfree( res );
 			}
-			if ( servers[i].flags & HAS_BASE ) {
-				rc = ldap_result( ld, msg2[i], LDAP_MSG_ALL, NULL, &res );
+			if ( msg2[i] ) {
+				tv.tv_sec = 0;
+				tv.tv_usec = 250000;
+				rc = ldap_result( ld, msg2[i], LDAP_MSG_ALL, &tv, &res );
 				if ( rc < 0 ) {
-					tester_ldap_error( ld, "ldap_result(baseDN)", NULL );
-					exit( EXIT_FAILURE );
+					tester_ldap_error( ld, "ldap_result(baseDN)", servers[i].url );
+					if ( first )
+						exit( EXIT_FAILURE );
+					else
+						goto server_down2;
 				}
+				if ( rc == 0 ) {
+					if ( !( servers[i].flags & WAS_LATE ))
+						servers[i].late = servers[i].c_curr.time.tv_sec;
+					servers[i].flags |= WAS_LATE;
+					continue;
+				}
+				if ( servers[i].flags & WAS_LATE )
+					servers[i].flags ^= WAS_LATE;
 				e = ldap_first_entry( ld, res );
 				if ( e ) {
 					ldap_get_dn_ber( ld, e, &ber, &dn );
@@ -718,6 +800,8 @@ main( int argc, char **argv )
 			}
 		}
 		display();
+		sleep(interval);
+		first = 0;
 	}
 
 	exit( EXIT_SUCCESS );

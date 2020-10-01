@@ -46,6 +46,7 @@ static int
 test_file( const char *fname, const char *ftype )
 {
 	struct stat	st;
+	char ebuf[128];
 	int		save_errno;
 
 	switch ( stat( fname, &st ) ) {
@@ -70,7 +71,7 @@ test_file( const char *fname, const char *ftype )
 				Debug( LDAP_DEBUG_ANY, "unable to open file "
 					"\"%s\": %d (%s)\n",
 					fname,
-					save_errno, strerror( save_errno ) );
+					save_errno, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 
 				return -1;
 			}
@@ -82,7 +83,7 @@ test_file( const char *fname, const char *ftype )
 		Debug( LDAP_DEBUG_ANY, "unable to stat file "
 			"\"%s\": %d (%s)\n",
 			slapd_pid_file,
-			save_errno, strerror( save_errno ) );
+			save_errno, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 		return -1;
 	}
 

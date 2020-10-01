@@ -480,12 +480,13 @@ ldif_read_file( const char *path, char **datap )
 		Debug( LDAP_DEBUG_TRACE, "ldif_read_file: %s: \"%s\"\n", msg, path );
 #endif /* LDAP_DEBUG */
 	} else {
+		char ebuf[128];
 		if ( res < 0 && errno == ENOENT ) {
 			Debug( LDAP_DEBUG_TRACE, "ldif_read_file: "
 				"no entry file \"%s\"\n", path );
 			rc = LDAP_NO_SUCH_OBJECT;
 		} else {
-			msg = res < 0 ? STRERROR( errno ) : "bad stat() size";
+			msg = res < 0 ? AC_STRERROR_R( errno, ebuf, sizeof(ebuf) ) : "bad stat() size";
 			Debug( LDAP_DEBUG_ANY, "ldif_read_file: %s for \"%s\"\n",
 				msg, path );
 			rc = LDAP_OTHER;
@@ -543,6 +544,7 @@ ldif_write_entry(
 	int rc = LDAP_OTHER, res, save_errno = 0;
 	int fd, entry_length;
 	char *entry_as_string, *tmpfname;
+	char ebuf[128];
 
 	if ( op->o_abandon )
 		return SLAPD_ABANDON;
@@ -551,7 +553,7 @@ ldif_write_entry(
 		save_errno = errno;
 		Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s \"%s\": %s\n",
 			"cannot create parent directory",
-			parentdir, STRERROR( save_errno ) );
+			parentdir, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 		*text = "internal error (cannot create parent directory)";
 		return rc;
 	}
@@ -561,7 +563,7 @@ ldif_write_entry(
 	if ( fd < 0 ) {
 		save_errno = errno;
 		Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s for \"%s\": %s\n",
-			"cannot create file", e->e_dn, STRERROR( save_errno ) );
+			"cannot create file", e->e_dn, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 		*text = "internal error (cannot create file)";
 
 	} else {
@@ -602,12 +604,12 @@ ldif_write_entry(
 				save_errno = errno;
 				Debug( LDAP_DEBUG_ANY, "ldif_write_entry: "
 					"could not put entry file for \"%s\" in place: %s\n",
-					e->e_name.bv_val, STRERROR( save_errno ) );
+					e->e_name.bv_val, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 				*text = "internal error (could not put entry file in place)";
 			}
 		} else if ( res == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ldif_write_entry: %s \"%s\": %s\n",
-				"write error to", tmpfname, STRERROR( save_errno ) );
+				"write error to", tmpfname, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 			*text = "internal error (write error to entry file)";
 		}
 
@@ -807,6 +809,7 @@ ldif_readdir(
 {
 	int rc = LDAP_SUCCESS;
 	DIR *dir_of_path;
+	char ebuf[128];
 
 	*listp = NULL;
 	*fname_maxlenp = 0;
@@ -821,7 +824,7 @@ ldif_readdir(
 		if ( is_rootDSE || save_errno != ENOENT ) {
 			Debug( LDAP_DEBUG_ANY,
 				"=> ldif_search_entry: failed to opendir \"%s\": %s\n",
-				path->bv_val, STRERROR( save_errno ) );
+				path->bv_val, AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 			rc = LDAP_OTHER;
 			if ( rs != NULL )
 				rs->sr_text =
@@ -894,7 +897,7 @@ ldif_readdir(
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "ldif_search_entry: %s \"%s\": %s\n",
 				"error reading directory", path->bv_val,
-				STRERROR( save_errno ) );
+				AC_STRERROR_R( save_errno, ebuf, sizeof(ebuf) ) );
 		}
 	}
 
@@ -1052,6 +1055,7 @@ ldif_prepare_create(
 	struct stat st;
 	Entry *parent = NULL;
 	int rc;
+	char ebuf[128];
 
 	if ( op->o_abandon )
 		return SLAPD_ABANDON;
@@ -1067,7 +1071,7 @@ ldif_prepare_create(
 	} else if ( errno != ENOENT ) {
 		Debug( LDAP_DEBUG_ANY,
 			"ldif_prepare_create: cannot stat \"%s\": %s\n",
-			dnpath->bv_val, STRERROR( errno ) );
+			dnpath->bv_val, AC_STRERROR_R( errno, ebuf, sizeof(ebuf) ) );
 		rc = LDAP_OTHER;
 		*text = "internal error (cannot check entry file)";
 
@@ -1120,7 +1124,7 @@ ldif_prepare_create(
 		case LDAP_OTHER:
 			Debug( LDAP_DEBUG_ANY,
 				"ldif_prepare_create: cannot stat \"%s\" parent dir: %s\n",
-				ndn->bv_val, STRERROR( errno ) );
+				ndn->bv_val, AC_STRERROR_R( errno, ebuf, sizeof(ebuf) ) );
 			*text = "internal error (cannot stat parent dir)";
 			break;
 		}
@@ -1473,6 +1477,7 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 	struct ldif_info *li = (struct ldif_info *) op->o_bd->be_private;
 	struct berval path;
 	int rc = LDAP_SUCCESS;
+	char ebuf[128];
 
 	if ( BER_BVISEMPTY( &op->o_csn )) {
 		struct berval csn;
@@ -1525,7 +1530,7 @@ ldif_back_delete( Operation *op, SlapReply *rs )
 
 	if ( rc == LDAP_OTHER ) {
 		Debug( LDAP_DEBUG_ANY, "ldif_back_delete: %s \"%s\": %s\n",
-			"cannot delete", path.bv_val, STRERROR( errno ) );
+			"cannot delete", path.bv_val, AC_STRERROR_R( errno, ebuf, sizeof(ebuf) ) );
 	}
 
 	SLAP_FREE( path.bv_val );
@@ -1551,6 +1556,7 @@ ldif_move_entry(
 	struct berval newpath;
 	char *parentdir = NULL, *trash;
 	int rc, rename_res;
+	char ebuf[128];
 
 	if ( same_ndn ) {
 		rc = LDAP_SUCCESS;
@@ -1606,7 +1612,7 @@ ldif_move_entry(
 			if ( rc != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ANY,
 				      "ldif_move_entry: %s (%s): \"%s\" -> \"%s\"\n",
-				      *text, STRERROR(errno),
+				      *text, AC_STRERROR_R(errno, ebuf, sizeof(ebuf)),
 				      op->o_req_dn.bv_val, entry->e_dn );
 			}
 		}

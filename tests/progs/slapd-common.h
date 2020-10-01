@@ -66,6 +66,7 @@ struct tester_conn_args {
 };
 
 #define TESTER_INIT_ONLY (1 << 0)
+#define TESTER_INIT_NOEXIT (1 << 1)
 #define TESTER_COMMON_OPTS "CD:d:H:h:L:l:i:O:p:R:U:X:Y:r:t:w:x"
 #define TESTER_COMMON_HELP \
 	"[-C] " \

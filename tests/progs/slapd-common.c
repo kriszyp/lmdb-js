@@ -554,7 +554,9 @@ retry:;
 					}
 			}
 			ldap_unbind_ext( ld, NULL, NULL );
-			exit( EXIT_FAILURE );
+			ld = NULL;
+			if ( !( flags & TESTER_INIT_NOEXIT ))
+				exit( EXIT_FAILURE );
 		}
 	}
 

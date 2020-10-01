@@ -375,6 +375,7 @@ static long send_ldap_ber(
 	/* write the pdu */
 	while( 1 ) {
 		int err;
+		char ebuf[128];
 
 		if ( ber_flush2( conn->c_sb, ber, LBER_FLUSH_FREE_NEVER ) == 0 ) {
 			ret = bytes;
@@ -390,7 +391,7 @@ static long send_ldap_ber(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush2 failed errno=%d reason=\"%s\"\n",
-		    err, sock_errstr(err) );
+		    err, sock_errstr(err, ebuf, sizeof(ebuf)) );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			close_reason = "connection lost on write";

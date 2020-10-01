@@ -168,8 +168,10 @@ static int dsaschema_read_config(const char *fname, int depth)
 
 	fp = fopen(fname, "r");
 	if (fp == NULL) {
+		char ebuf[128];
+		int saved_errno = errno;
 		fprintf(stderr, "could not open config file \"%s\": %s (%d)\n",
-			fname, strerror(errno), errno);
+			fname, AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)), saved_errno);
 		return 1;
 	}
 	fp_getline_init(&lineno);

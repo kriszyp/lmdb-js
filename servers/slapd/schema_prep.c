@@ -633,6 +633,7 @@ static struct slap_schema_ad_map {
 	{ "namingContexts", "( 1.3.6.1.4.1.1466.101.120.5 "
 			"NAME 'namingContexts' "
 			"DESC 'RFC4512: naming contexts' "
+			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 USAGE dSAOperation )",
 		rootDseAttribute, 0,
 		NULL, NULL,
