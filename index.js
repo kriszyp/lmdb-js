@@ -6,8 +6,8 @@ const EventEmitter = require('events')
 const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
-//const { CachingStore, setGetLastVersion } = require('./cache')
-//setGetLastVersion(getLastVersion)
+const { CachingStore, setGetLastVersion } = require('./cache')
+setGetLastVersion(getLastVersion)
 
 const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -131,9 +131,10 @@ function open(path, options) {
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, options, dbOptions)
 			if (!this.encoding || this.encoding == 'msgpack') {
-				this.packr = new Packr(Object.assign({}, options, dbOptions))
-				if (this.sharedStructuresKey)
-					this.setupSharedStructures()
+				this.packr = new Packr(Object.assign(this.sharedStructuresKey ?
+					this.setupSharedStructures() : {
+						copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers
+					}, options, dbOptions))
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -597,10 +598,16 @@ function open(path, options) {
 											handleError(error, this, null, writeBatch)
 										} catch(error) {
 											currentCommit = null
+											for (const store of stores) {
+												store.emit('aftercommit', { operations })
+											}
 											reject(error)
 										}
 									} else {
 										currentCommit = null
+										for (const store of stores) {
+											store.emit('aftercommit', { operations, results })
+										}
 										resolve(results)
 									}
 								}
@@ -715,25 +722,27 @@ function open(path, options) {
 
 		}
 		setupSharedStructures() {
-			this.packr.saveStructures = (structures, previousLength) => {
-				return this.transaction(() => {
-					let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
-					let existingStructures = existingStructuresBuffer ? unpack(existingStructuresBuffer) : []
-					if (existingStructures.length != previousLength)
-						return false // it changed, we need to indicate that we couldn't update
-					writeTxn.putBinary(this.db, this.sharedStructuresKey, pack(structures))
-				})
+			return {
+				saveStructures: (structures, previousLength) => {
+					return this.transaction(() => {
+						let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
+						let existingStructures = existingStructuresBuffer ? unpack(existingStructuresBuffer) : []
+						if (existingStructures.length != previousLength)
+							return false // it changed, we need to indicate that we couldn't update
+						writeTxn.putBinary(this.db, this.sharedStructuresKey, pack(structures))
+					})
+				},
+				getStructures: () => {
+					let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
+					if (this.useVersions)
+						lastVersion = getLastVersion()
+					let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+					if (this.useVersions)
+						setLastVersion(lastVersion)
+					return buffer ? unpack(buffer) : []
+				},
+				copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers
 			}
-			this.packr.getStructures = () => {
-				let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
-				if (this.useVersions)
-					lastVersion = getLastVersion()
-				let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
-				if (this.useVersions)
-					setLastVersion(lastVersion)
-				return unpack(buffer)
-			}
-			this.packr.structures = []
 		}
 	}
 	return options.cache ?
@@ -775,12 +784,13 @@ function open(path, options) {
 			return retry()
 		}
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
-			const newSize = env.info().mapSize * 2
+			const oldSize = env.info().mapSize
+			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
 			for (const store of stores) {
 				store.emit('remap')
 			}
 
-			console.debug('Resizing database', name, 'to', newSize)
+			console.log('Resizing database', name, 'to', newSize)
 			env.resize(newSize)
 			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)
