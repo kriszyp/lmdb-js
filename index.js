@@ -790,7 +790,6 @@ function open(path, options) {
 				store.emit('remap')
 			}
 
-			console.log('Resizing database', name, 'to', newSize)
 			env.resize(newSize)
 			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)
