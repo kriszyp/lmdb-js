@@ -716,6 +716,7 @@ accesslog_purge( void *ctx, void *arg )
 
 		op->o_callback = &nullsc;
 		op->o_dont_replicate = 1;
+		op->o_csn = slap_empty_bv;
 
 		if ( pd.mincsn_updated ) {
 			Modifications mod;
