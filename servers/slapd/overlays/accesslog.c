@@ -691,6 +691,7 @@ accesslog_purge( void *ctx, void *arg )
 		op->o_callback = &nullsc;
 		op->o_csn = pd.csn;
 		op->o_dont_replicate = 1;
+		op->o_csn = slap_empty_bv;
 
 		for (i=0; i<pd.used; i++) {
 			op->o_req_dn = pd.dn[i];
