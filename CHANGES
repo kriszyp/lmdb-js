@@ -4,6 +4,7 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapd delta-syncrepl to ignore delete ops on deleted entry (ITS#9342)
 	Fixed slapd delta-syncrepl to be fully serialized (ITS#9330)
 	Fixed slapd delta-syncrepl MOD on zero-length context entry (ITS#9352)
+	Fixed slapd sessionlog to use a TAVL tree (ITS#8486)
 	Fixed slapd syncrepl to be fully serialized (ITS#8102)
 	Fixed slapd syncrepl to call check_syncprov on fresh consumer (ITS#9345)
 	Fixed slapd syncrepl to propagate errors from overlay_entry_get_ov (ITS#9355)
@@ -11,6 +12,7 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapd syncrepl replace usage on single valued attrs (ITS#9295)
 	Fixed slapd-monitor fix monitor_back_register_database for empty suffix DB (ITS#9353)
 	Fixed slapo-accesslog normalizer for reqStart (ITS#9358)
+	Fixed slapo-accesslog to not generate new contextCSN on purge (ITS#9361)
 	Fixed slapo-syncprov contextCSN generation with empty suffix (ITS#9015)
 
 OpenLDAP 2.4.53 (2020/09/07)
