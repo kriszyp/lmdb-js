@@ -240,7 +240,7 @@ function open(path, options) {
 		resetReadTxn() {
 			resetReadTxn()
 		}
-		ifNoExists(key, version, callback) {
+		ifNoExists(key, callback) {
 			return ifVersion(key, null, callback)
 		}
 		ifVersion(key, version, callback) {
@@ -272,12 +272,6 @@ function open(path, options) {
 				})
 			} finally {
 				scheduledOperations.push(false) // reset condition
-			}
-		}
-		getWithVersion(key) {
-			return {
-				value: get(key),
-				version: getLastVersion(),
 			}
 		}
 		getScheduledOperations() {

@@ -20,7 +20,7 @@
     "import": "./index.mjs",
     "require": "./index.js"
   },
-  "typings": "./index.d.ts",
+  "types": "./index.d.ts",
   "scripts": {
     "install": "node-gyp-build",
     "recompile": "node-gyp build",
@@ -38,6 +38,7 @@
     "weak-lru-cache": "^0.2.0"
   },
   "devDependencies": {
+    "@types/node": "latest",
     "benchmark": "^2.1.4",
     "chai": "^4.2.0",
     "mkdirp": "^1.0.4",

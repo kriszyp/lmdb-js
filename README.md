@@ -99,7 +99,10 @@ This will set the provided value at the specified key, but will do so synchronou
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion.
 
 ### `store.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
-This will define conditionally writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition of an entry with the provided key having the provided version.
+This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry to have the provided version.
+
+### `store.ifNoExists(key, callback): Promise<boolean>`
+This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry does not exist yet.
 
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
@@ -190,7 +193,7 @@ The open method can be used to create the main database/environment with the fol
 `open(path, options)` or `open(options)`
 Additional databases can be opened within the main database environment with:
 `store.openDB(name, options)` or `store.openDB(options)`
-If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `nam`e if not otherwise specified):
+If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
 * `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'string'`, or `'binary'`.
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
