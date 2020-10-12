@@ -303,7 +303,7 @@ retry:;
 					 * using it instead of the
 					 * configured URI? */
 					if ( rs->sr_err == LDAP_SUCCESS ) {
-						ldap_install_tls( msc->msc_ld );
+						rs->sr_err = ldap_install_tls( msc->msc_ld );
 
 					} else if ( rs->sr_err == LDAP_REFERRAL ) {
 						/* FIXME: LDAP_OPERATIONS_ERROR? */
@@ -352,6 +352,8 @@ retry:;
 				(void *)msc->msc_ld );
 #endif /* DEBUG_205 */
 
+			/* need to trash a failed Start TLS */
+			asyncmeta_clear_one_msc( op, mc, candidate, 1, __FUNCTION__ );
 			goto error_return;
 		}
 	}
