@@ -22,7 +22,7 @@
         "src/dbi.cpp",
         "src/cursor.cpp"
       ],
-      "defines": ["MDB_FIXEDSIZE"],
+      "defines": ["MDB_FIXEDSIZE", "MDB_PARANOID"],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
         "dependencies/lmdb/libraries/liblmdb",

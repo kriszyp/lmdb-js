@@ -2454,6 +2454,9 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_cursor_op op;
 	MDB_cursor m2;
 	int found_old = 0;
+	if (retry > Max_retries) {
+		retry = Max_retries;
+	}
 
 	/* If there are any loose pages, just use them */
 	if (num == 1 && txn->mt_loose_pgs) {
