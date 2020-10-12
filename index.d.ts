@@ -2,7 +2,6 @@ declare module 'lmdb-store' {
 	export function open(path: string, options: RootDatabaseOptions): RootDatabase
 	export function open(options: RootDatabaseOptionsWithPath): RootDatabase
 
-	}
 	class Database extends NodeJS.EventEmitter {
 		get(id: Key): any
 		put(id: Key, value: any): Promise<boolean>
