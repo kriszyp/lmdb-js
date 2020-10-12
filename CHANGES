@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.54 Engineering
+OpenLDAP 2.4.54 Release (2020/10/12)
 	Fixed slapd delta-syncrepl to ignore delete ops on deleted entry (ITS#9342)
 	Fixed slapd delta-syncrepl to be fully serialized (ITS#9330)
 	Fixed slapd delta-syncrepl MOD on zero-length context entry (ITS#9352)
@@ -15,7 +15,7 @@ OpenLDAP 2.4.54 Engineering
 	Fixed slapo-accesslog to not generate new contextCSN on purge (ITS#9361)
 	Fixed slapo-syncprov contextCSN generation with empty suffix (ITS#9015)
 
-OpenLDAP 2.4.53 (2020/09/07)
+OpenLDAP 2.4.53 Release (2020/09/07)
 	Added slapd syncrepl additional SYNC logging (ITS#9043)
 	Fixed slapd syncrepl segfault on NULL cookie on REFRESH (ITS#9282)
 	Fixed slapd syncrepl to use fresh connection on REFRESH fallback (ITS#9338)
@@ -24,7 +24,7 @@ OpenLDAP 2.4.53 (2020/09/07)
 		Require OpenSSL 1.0.2 or later (ITS#9323)
 		Fixed libldap compilation issue with broken C compilers (ITS#9332)
 
-OpenLDAP 2.4.52 (2020/08/28)
+OpenLDAP 2.4.52 Release (2020/08/28)
 	Added libldap LDAP_OPT_X_TLS_REQUIRE_SAN option (ITS#9318)
 	Added libldap OpenSSL support for multiple EECDH curves (ITS#9054)
 	Added slapd OpenSSL support for multiple EECDH curves (ITS#9054)
