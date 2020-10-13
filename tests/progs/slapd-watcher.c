@@ -220,6 +220,7 @@ void display()
 		if ( servers[i].flags & HAS_MONITOR ) {
 			struct timeval tv;
 			double rate, duration;
+			long delta;
 			printf("      ");
 			if ( servers[i].flags & HAS_ENTRIES )
 				printf("  Entries  ");
@@ -241,11 +242,13 @@ void display()
 			}
 			duration = tv.tv_sec + (tv.tv_usec / (double)1000000);
 			if ( servers[i].flags & HAS_ENTRIES ) {
-				rate = (servers[i].c_curr.entries - servers[i].c_prev.entries) / duration;
+				delta = servers[i].c_curr.entries - servers[i].c_prev.entries;
+				rate = delta / duration;
 				printf("%10.2f ", rate);
 			}
 			for ( j = 0; j<SLAP_OP_LAST; j++ ) {
-				rate = (servers[i].c_curr.ops[j] - servers[i].c_prev.ops[j]) / duration;
+				delta = servers[i].c_curr.ops[j] - servers[i].c_prev.ops[j];
+				rate = delta / duration;
 				printf("%10.2f ", rate);
 			}
 			printf("\n");
@@ -594,6 +597,7 @@ main( int argc, char **argv )
 	}
 
 	tester_config_finish( config );
+	signal(SIGPIPE, SIG_IGN);
 
 	/* don't clear the screen if debug is enabled */
 	if (debug)
