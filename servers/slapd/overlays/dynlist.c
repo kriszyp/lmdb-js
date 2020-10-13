@@ -1715,27 +1715,30 @@ dynlist_search( Operation *op, SlapReply *rs )
 
 					/* if attribute is not requested, skip it */
 					if ( op->ors_attrs == NULL ) {
-						if ( !dlm->dlm_memberOf_oper )
+						if ( !dlm->dlm_memberOf_oper ) {
 							want |= WANT_MEMBEROF;
-						if ( dlm->dlm_memberOf_nested && !dlm->dlm_member_oper )
-							want |= WANT_MEMBER;
+							if ( dlm->dlm_memberOf_nested && !dlm->dlm_member_oper )
+								want |= WANT_MEMBER;
+						}
 					} else {
-						if ( ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs ))
+						if ( ad_inlist( dlm->dlm_memberOf_ad, op->ors_attrs )) {
 							want |= WANT_MEMBEROF;
-						if ( dlm->dlm_memberOf_nested && ad_inlist( dlm->dlm_member_ad, op->ors_attrs )) {
-							want |= WANT_MEMBER;
+							if ( dlm->dlm_memberOf_nested && ad_inlist( dlm->dlm_member_ad, op->ors_attrs ))
+								want |= WANT_MEMBER;
 						} else {
 							if ( opattrs ) {
-								if ( dlm->dlm_memberOf_oper )
+								if ( dlm->dlm_memberOf_oper ) {
 									want |= WANT_MEMBEROF;
-								if ( dlm->dlm_memberOf_nested && dlm->dlm_member_oper )
-									want |= WANT_MEMBER;
+									if ( dlm->dlm_memberOf_nested && dlm->dlm_member_oper )
+										want |= WANT_MEMBER;
+								}
 							}
 							if ( userattrs ) {
-								if ( !dlm->dlm_memberOf_oper )
+								if ( !dlm->dlm_memberOf_oper ) {
 									want |= WANT_MEMBEROF;
-								if ( dlm->dlm_memberOf_nested && !dlm->dlm_member_oper )
-									want |= WANT_MEMBER;
+									if ( dlm->dlm_memberOf_nested && !dlm->dlm_member_oper )
+										want |= WANT_MEMBER;
+								}
 							}
 						}
 					}
