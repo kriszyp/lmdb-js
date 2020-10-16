@@ -1,6 +1,8 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.55 Engineering
+	Contrib
+		Fixed nssov misplaced semicolon (ITS#8731, ITS#9368)
 
 OpenLDAP 2.4.54 Release (2020/10/12)
 	Fixed slapd delta-syncrepl to ignore delete ops on deleted entry (ITS#9342)
