@@ -2,7 +2,8 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_vl32%": "false",
-      "use_fixed_size%": "false"
+      "use_fixed_size%": "false",
+      "use_posix_semaphores%": "false"
   },
   "targets": [
     {
@@ -57,7 +58,11 @@
           ]
         }],
         ["OS=='mac'", {
-          "defines": ["MDB_USE_POSIX_SEM"],
+          "conditions": [
+            ["use_posix_semaphores=='true'", {
+              "defines": ["MDB_USE_POSIX_SEM"]
+            }]
+          ],
           "xcode_settings": {
             "OTHER_CPLUSPLUSFLAGS" : ["-std=c++11"],
             "MACOSX_DEPLOYMENT_TARGET": "10.7",

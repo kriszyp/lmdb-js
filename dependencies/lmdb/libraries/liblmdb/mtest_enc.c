@@ -1,25 +1,31 @@
-/* mtest.c - memory-mapped database tester/toy */
+/* mtest_enc.c - memory-mapped database tester/toy with encryption */
 /*
- * Copyright 2011-2020 Howard Chu, Symas Corp.
+ * Copyright 2011-2017 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * modification, are permitted only as authorized by the Symas
+ * Dual-Use License.
  *
  * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
+ * source distribution.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "lmdb.h"
+#include "chacha8.h"
 
 #define E(expr) CHECK((rc = (expr)) == MDB_SUCCESS, #expr)
 #define RES(err, expr) ((rc = expr) == (err) || (CHECK(!rc, #expr), 0))
 #define CHECK(test, msg) ((test) ? (void)0 : ((void)fprintf(stderr, \
 	"%s:%d: %s: %s\n", __FILE__, __LINE__, msg, mdb_strerror(rc)), abort()))
+
+static int encfunc(const MDB_val *src, MDB_val *dst, const MDB_val *key, int encdec)
+{
+	chacha8(src->mv_data, src->mv_size, key[0].mv_data, key[1].mv_data, dst->mv_data);
+	return 0;
+}
 
 int main(int argc,char * argv[])
 {
@@ -31,9 +37,12 @@ int main(int argc,char * argv[])
 	MDB_stat mst;
 	MDB_cursor *cursor, *cur2;
 	MDB_cursor_op op;
+	MDB_val enckey;
 	int count;
 	int *values;
 	char sval[32] = "";
+	char ekey[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
 
 	srand(time(NULL));
 
@@ -44,11 +53,14 @@ int main(int argc,char * argv[])
 			values[i] = rand()%1024;
 	    }
     
+		enckey.mv_data = ekey;
+		enckey.mv_size = sizeof(ekey);
+
 		E(mdb_env_create(&env));
 		E(mdb_env_set_maxreaders(env, 1));
 		E(mdb_env_set_mapsize(env, 10485760));
-		E(mdb_env_set_pagesize(env, 1024));
-		E(mdb_env_open(env, "./testdb", MDB_FIXEDMAP /*|MDB_NOSYNC*/, 0664));
+		E(mdb_env_set_encrypt(env, encfunc, &enckey, 0));
+		E(mdb_env_open(env, "./testdb", 0 /*|MDB_NOSYNC*/, 0664));
 
 		E(mdb_txn_begin(env, NULL, 0, &txn));
 		E(mdb_dbi_open(txn, NULL, 0, &dbi));

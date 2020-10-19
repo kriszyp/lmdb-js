@@ -187,6 +187,11 @@ typedef	mode_t	mdb_mode_t;
 # define MDB_FMT_Z	"z"			/**< printf/scanf format modifier for size_t */
 #endif
 
+#if !defined(MDB_RPAGE_CACHE) || (defined(MDB_VL32) && !(MDB_RPAGE_CACHE))
+/** Support #MDB_REMAP_CHUNKS. Implied by MDB_VL32. Define as 0 to disable. */
+#define MDB_RPAGE_CACHE	1
+#endif
+
 #ifndef MDB_VL32
 /** Unsigned type used for mapsize, entry counts and page/transaction IDs.
  *
@@ -219,7 +224,7 @@ typedef int mdb_filehandle_t;
 
 /** @defgroup mdb LMDB API
  *	@{
- *	@brief OpenLDAP Lightning Memory-Mapped Database Manager
+ *	@brief Symas Lightning Memory-Mapped Database Manager
  */
 /** @defgroup Version Version Macros
  *	@{
@@ -229,7 +234,7 @@ typedef int mdb_filehandle_t;
 /** Library minor version */
 #define MDB_VERSION_MINOR	9
 /** Library patch version */
-#define MDB_VERSION_PATCH	70
+#define MDB_VERSION_PATCH	90
 
 /** Combine args a,b,c into a single integer for easy version comparisons */
 #define MDB_VERINT(a,b,c)	(((a) << 24) | ((b) << 16) | (c))
@@ -239,7 +244,7 @@ typedef int mdb_filehandle_t;
 	MDB_VERINT(MDB_VERSION_MAJOR,MDB_VERSION_MINOR,MDB_VERSION_PATCH)
 
 /** The release date of this library version */
-#define MDB_VERSION_DATE	"December 19, 2015"
+#define MDB_VERSION_DATE	"May 1, 2017"
 
 /** A stringifier for the version info */
 #define MDB_VERSTR(a,b,c,d)	"LMDB " #a "." #b "." #c ": (" d ")"
@@ -307,11 +312,40 @@ typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
  */
 typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *relctx);
 
+#if MDB_RPAGE_CACHE
+/** @brief A callback function used to encrypt/decrypt pages in the env.
+ *
+ * Encrypt or decrypt the data in src and store the result in dst using the
+ * provided key. The result must be the same number of bytes as the input.
+ * @param[in] src The input data to be transformed.
+ * @param[out] dst Storage for the result.
+ * @param[in] key An array of three values: key[0] is the encryption key,
+ * key[1] is the initialization vector, and key[2] is the authentication
+ * data, if any.
+ * @param[in] encdec 1 to encrypt, 0 to decrypt.
+ * @return A non-zero error value on failure and 0 on success.
+ */
+typedef int (MDB_enc_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key, int encdec);
+
+/** @brief A callback function used to checksum pages in the env.
+ *
+ * Compute the checksum of the data in src and store the result in dst,
+ * An optional key may be used with keyed hash algorithms.
+ * @param[in] src The input data to be transformed.
+ * @param[out] dst Storage for the result.
+ * @param[in] key An encryption key, if encryption was configured. This
+ * parameter will be NULL if there is no key.
+ */
+typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key);
+#endif
+
 /** @defgroup	mdb_env	Environment Flags
  *	@{
  */
 	/** mmap at a fixed address (experimental) */
 #define MDB_FIXEDMAP	0x01
+	/** encrypted DB - read-only flag, set by #mdb_env_set_encrypt() */
+#define MDB_ENCRYPT		0x2000U
 	/** no environment directory */
 #define MDB_NOSUBDIR	0x4000
 	/** don't fsync after commit */
@@ -334,6 +368,8 @@ typedef void (MDB_rel_func)(MDB_val *item, void *oldptr, void *newptr, void *rel
 #define MDB_NOMEMINIT	0x1000000
 	/** use the previous snapshot rather than the latest one */
 #define MDB_PREVSNAPSHOT	0x2000000
+	/** don't use a single mmap, remap individual chunks (needs MDB_RPAGE_CACHE) */
+#define MDB_REMAP_CHUNKS	0x4000000
 /** @} */
 
 /**	@defgroup	mdb_dbi_open	Database Flags
@@ -482,8 +518,14 @@ typedef enum MDB_cursor_op {
 #define MDB_BAD_DBI		(-30780)
 	/** Unexpected problem - txn should abort */
 #define MDB_PROBLEM		(-30779)
+	/** Page checksum incorrect */
+#define MDB_BAD_CHECKSUM	(-30778)
+	/** Encryption/decryption failed */
+#define MDB_CRYPTO_FAIL		(-30777)
+	/** Environment encryption mismatch */
+#define MDB_ENV_ENCRYPTION	(-30776)
 	/** The last defined error code */
-#define MDB_LAST_ERRCODE	MDB_PROBLEM
+#define MDB_LAST_ERRCODE	MDB_ENV_ENCRYPTION
 /** @} */
 
 /** @brief Statistics for a database in the environment */
@@ -884,6 +926,16 @@ int  mdb_env_get_fd(MDB_env *env, mdb_filehandle_t *fd);
 	 */
 int  mdb_env_set_mapsize(MDB_env *env, mdb_size_t size);
 
+
+	/** @brief Set the size of DB pages in bytes.
+	 *
+	 * The size defaults to the OS page size. Smaller or larger values may be
+	 * desired depending on the size of keys and values being used. Also, an
+	 * explicit size may need to be set when using filesystems like ZFS which
+	 * don't use the OS page size.
+	 */
+int  mdb_env_set_pagesize(MDB_env *env, int size);
+
 	/** @brief Set the maximum number of threads/reader slots for the environment.
 	 *
 	 * This defines the number of slots in the lock table that is used to track readers in the
@@ -975,6 +1027,31 @@ typedef void MDB_assert_func(MDB_env *env, const char *msg);
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
+
+#if MDB_RPAGE_CACHE
+	/** @brief Set encryption on an environment.
+	 *
+	 * This must be called before #mdb_env_open().
+	 * It implicitly sets #MDB_REMAP_CHUNKS on the env.
+	 * @param[in] env An environment handle returned by #mdb_env_create().
+	 * @param[in] func An #MDB_enc_func function.
+	 * @param[in] key The encryption key.
+	 * @param[in] size The size of authentication data in bytes, if any.
+	 * Set this to zero for unauthenticated encryption mechanisms.
+	 * @return A non-zero error value on failure and 0 on success.
+	 */
+int mdb_env_set_encrypt(MDB_env *env, MDB_enc_func *func, const MDB_val *key, unsigned int size);
+
+	/** @brief Set checksums on an environment.
+	 *
+	 * This must be called before #mdb_env_open().
+	 * @param[in] env An environment handle returned by #mdb_env_create().
+	 * @param[in] func An #MDB_sum_func function.
+	 * @param[in] size The size of computed checksum values, in bytes.
+	 * @return A non-zero error value on failure and 0 on success.
+	 */
+int mdb_env_set_checksum(MDB_env *env, MDB_sum_func *func, unsigned int size);
+#endif
 
 	/** @brief Create a transaction for use with the environment.
 	 *
@@ -1123,6 +1200,8 @@ int  mdb_txn_renew(MDB_txn *txn);
 	 * To use named databases (with name != NULL), #mdb_env_set_maxdbs()
 	 * must be called before opening the environment.  Database names are
 	 * keys in the unnamed database, and may be read but not written.
+	 * @note Names are C strings and stored with their NUL terminator included.
+	 * In LMDB 0.9 the NUL terminator was omitted.
 	 *
 	 * @param[in] txn A transaction handle returned by #mdb_txn_begin()
 	 * @param[in] name The name of the database to open. If only a single
@@ -1468,6 +1547,13 @@ MDB_txn *mdb_cursor_txn(MDB_cursor *cursor);
 	 */
 MDB_dbi mdb_cursor_dbi(MDB_cursor *cursor);
 
+	/** @brief Check if the cursor is pointing to a named database record.
+	 *
+	 * @param[in] cursor A cursor handle returned by #mdb_cursor_open()
+	 * @return 1 if current record is a named database, 0 otherwise.
+	 */
+int mdb_cursor_is_db(MDB_cursor *cursor);
+
 	/** @brief Retrieve by cursor.
 	 *
 	 * This function retrieves key/data pairs from the database. The address and length
@@ -1638,6 +1724,31 @@ int	mdb_reader_list(MDB_env *env, MDB_msg_func *func, void *ctx);
 	 */
 int	mdb_reader_check(MDB_env *env, int *dead);
 /**	@} */
+
+/** @defgroup crypto LMDB Encryption Helper API
+ *	@{
+ *	@brief Helpers for setting up encryption
+ */
+
+	/** @brief A function for converting a string into an encryption key.
+	 *
+	 * @param[in] passwd The string to be converted.
+	 * @param[in,out] key The resulting key. The caller must
+	 * provide the space for the key.
+	 * @return 0 on success, non-zero on failure.
+	 */
+typedef int (MDB_str2key_func)(const char *passwd, MDB_val *key);
+
+typedef struct MDB_crypto_funcs {
+	MDB_str2key_func *mcf_str2key;
+	MDB_enc_func *mcf_encfunc;
+	MDB_sum_func *mcf_sumfunc;
+	int mcf_keysize;
+	int mcf_esumsize;
+	int mcf_sumsize;
+} MDB_crypto_funcs;
+
+typedef MDB_crypto_funcs *(MDB_crypto_hooks)();
 
 #ifdef __cplusplus
 }

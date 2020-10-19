@@ -1,20 +1,20 @@
-/* mtest.c - memory-mapped database tester/toy */
+/* mtest_remap.c - memory-mapped database tester/toy with page remapping */
 /*
- * Copyright 2011-2020 Howard Chu, Symas Corp.
+ * Copyright 2011-2017 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * modification, are permitted only as authorized by the Symas
+ * Dual-Use License.
  *
  * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
+ * source distribution.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "lmdb.h"
+#include "chacha8.h"
 
 #define E(expr) CHECK((rc = (expr)) == MDB_SUCCESS, #expr)
 #define RES(err, expr) ((rc = expr) == (err) || (CHECK(!rc, #expr), 0))
@@ -47,8 +47,7 @@ int main(int argc,char * argv[])
 		E(mdb_env_create(&env));
 		E(mdb_env_set_maxreaders(env, 1));
 		E(mdb_env_set_mapsize(env, 10485760));
-		E(mdb_env_set_pagesize(env, 1024));
-		E(mdb_env_open(env, "./testdb", MDB_FIXEDMAP /*|MDB_NOSYNC*/, 0664));
+		E(mdb_env_open(env, "./testdb", MDB_REMAP_CHUNKS /*|MDB_NOSYNC*/, 0664));
 
 		E(mdb_txn_begin(env, NULL, 0, &txn));
 		E(mdb_dbi_open(txn, NULL, 0, &dbi));

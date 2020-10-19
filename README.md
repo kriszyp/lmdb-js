@@ -230,6 +230,13 @@ The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/do
 
 `beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
 
+##### Build Options
+A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
+`npm install --use_vl32=true`: This will enable LMDB's VL32 mode, when running on 32-bit architecture, which adds support for large (multi-GB) databases on 32-bit architecture.
+`npm install --use_fixed_size=true`: This will enable LMDB's fixed-size option, when running on Windows, which causes Windows to allocate the full file size needed for the memory-mapped allocation size. The default behavior of dynamically growing file size as the allocated memory map, while convenient, uses a non-standard Windows API and can cause significant performance degradation, but using the fixed size option ensures much more stable/better performance on Windows (consider using [lmdb-store](https://github.com/DoctorEvidence/lmdb-store) on top of node-lmdb for automated memory-map growth).
+
+On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 db environments with a write transaction). If you need more concurrent write transactions, you can increase your  maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Or you can build with POSIX semaphores, using `npm install --use_posix_semaphores=true`. However POSIX semaphores are not robust semaphores, which means that if you are running multiple processes and one crashes in the midst of transaction, it may block other processes from starting a transaction on that environment. Or try to minimize overlapping transactions and/or reduce the number of db environments (and use more databases within each environment).
+
 ## License
 
 `lmdb-store` is licensed under the terms of the MIT license.

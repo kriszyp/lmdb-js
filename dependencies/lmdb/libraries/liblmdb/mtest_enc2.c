@@ -1,15 +1,14 @@
-/* mtest.c - memory-mapped database tester/toy */
+/* mtest_enc.c - memory-mapped database tester/toy with encryption */
 /*
- * Copyright 2011-2020 Howard Chu, Symas Corp.
+ * Copyright 2011-2017 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
- * Public License.
+ * modification, are permitted only as authorized by the Symas
+ * Dual-Use License.
  *
  * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
+ * source distribution.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +20,9 @@
 #define CHECK(test, msg) ((test) ? (void)0 : ((void)fprintf(stderr, \
 	"%s:%d: %s: %s\n", __FILE__, __LINE__, msg, mdb_strerror(rc)), abort()))
 
+extern MDB_crypto_hooks MDB_crypto;
+MDB_crypto_funcs *cf;
+
 int main(int argc,char * argv[])
 {
 	int i = 0, j = 0, rc;
@@ -31,9 +33,12 @@ int main(int argc,char * argv[])
 	MDB_stat mst;
 	MDB_cursor *cursor, *cur2;
 	MDB_cursor_op op;
+	MDB_val enckey;
 	int count;
 	int *values;
 	char sval[32] = "";
+	char password[] = "This is my passphrase for now";
+	char ekey[32];
 
 	srand(time(NULL));
 
@@ -44,11 +49,16 @@ int main(int argc,char * argv[])
 			values[i] = rand()%1024;
 	    }
     
+		cf = MDB_crypto();
+		enckey.mv_data = ekey;
+		enckey.mv_size = sizeof(ekey);
+		cf->mcf_str2key(password, &enckey);
+
 		E(mdb_env_create(&env));
 		E(mdb_env_set_maxreaders(env, 1));
 		E(mdb_env_set_mapsize(env, 10485760));
-		E(mdb_env_set_pagesize(env, 1024));
-		E(mdb_env_open(env, "./testdb", MDB_FIXEDMAP /*|MDB_NOSYNC*/, 0664));
+		E(mdb_env_set_encrypt(env, cf->mcf_encfunc, &enckey, cf->mcf_esumsize));
+		E(mdb_env_open(env, "./testdb", 0 /*|MDB_NOSYNC*/, 0664));
 
 		E(mdb_txn_begin(env, NULL, 0, &txn));
 		E(mdb_dbi_open(txn, NULL, 0, &dbi));

@@ -79,6 +79,9 @@ NAN_METHOD(TxnWrap::ctor) {
     MDB_txn *txn;
     int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
     if (rc != 0) {
+        if (rc == EINVAL) {
+            return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see node-lmdb docs for more info)");
+        }
         return throwLmdbError(rc);
     }
 
