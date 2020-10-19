@@ -499,6 +499,16 @@ slap_modrdn2mods(
 					old_rdn[d_cnt]->la_attr.bv_val );
 				goto done;		
 			}
+			if ( !desc->ad_type->sat_equality ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"%s slap_modrdn2mods: %s: %s (old)\n",
+					op->o_log_prefix,
+					rs->sr_text,
+					old_rdn[ d_cnt ]->la_attr.bv_val );
+				rs->sr_text = "naming attribute has no equality matching rule";
+				rs->sr_err = LDAP_NAMING_VIOLATION;
+				goto done;
+			}
 
 			/* Apply modification */
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
