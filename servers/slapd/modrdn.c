@@ -499,16 +499,6 @@ slap_modrdn2mods(
 					old_rdn[d_cnt]->la_attr.bv_val );
 				goto done;		
 			}
-			if ( !desc->ad_type->sat_equality ) {
-				Debug( LDAP_DEBUG_TRACE,
-					"%s slap_modrdn2mods: %s: %s (old)\n",
-					op->o_log_prefix,
-					rs->sr_text,
-					old_rdn[ d_cnt ]->la_attr.bv_val );
-				rs->sr_text = "naming attribute has no equality matching rule";
-				rs->sr_err = LDAP_NAMING_VIOLATION;
-				goto done;
-			}
 
 			/* Apply modification */
 			mod_tmp = ( Modifications * )ch_malloc( sizeof( Modifications ) );
@@ -518,7 +508,7 @@ slap_modrdn2mods(
 			mod_tmp->sml_values = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod_tmp->sml_values[0], &old_rdn[d_cnt]->la_value );
 			mod_tmp->sml_values[1].bv_val = NULL;
-			if( desc->ad_type->sat_equality->smr_normalize) {
+			if( desc->ad_type->sat_equality && desc->ad_type->sat_equality->smr_normalize) {
 				mod_tmp->sml_nvalues = ( BerVarray )ch_malloc( 2 * sizeof( struct berval ) );
 				(void) (*desc->ad_type->sat_equality->smr_normalize)(
 					SLAP_MR_EQUALITY|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
