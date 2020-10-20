@@ -187,8 +187,8 @@ int mdb_mid2l_need( MDB_ID2L *idp, unsigned num );
 #if MDB_RPAGE_CACHE
 typedef struct MDB_ID3 {
 	MDB_ID mid;		/**< The ID */
-	char *mptr;		/**< The pointer */
-	char *menc;		/**< Decrypted pointer */
+	void *mptr;		/**< The pointer */
+	void *menc;		/**< Decrypted pointer */
 	unsigned int mcnt;		/**< Number of pages */
 	unsigned short mref;	/**< Refcounter */
 	unsigned short muse;	/**< Bitmap of used pages */

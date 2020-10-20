@@ -2,8 +2,7 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_vl32%": "false",
-      "use_fixed_size%": "false",
-      "use_posix_semaphores%": "false"
+      "use_robust%": "false"
   },
   "targets": [
     {
@@ -58,11 +57,6 @@
           ]
         }],
         ["OS=='mac'", {
-          "conditions": [
-            ["use_posix_semaphores=='true'", {
-              "defines": ["MDB_USE_POSIX_SEM"]
-            }]
-          ],
           "xcode_settings": {
             "OTHER_CPLUSPLUSFLAGS" : ["-std=c++11"],
             "MACOSX_DEPLOYMENT_TARGET": "10.7",
@@ -73,10 +67,13 @@
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
         }],
+        ["use_robust=='true'", {
+          "defines": ["MDB_FIXEDSIZE", "MDB_PARANOID", "MDB_USE_ROBUST"],
+        }],
         ["use_vl32=='true'", {
           "conditions": [
             ["target_arch=='ia32'", {
-                "defines": ["MDB_VL32"]
+                "defines": ["MDB_FIXEDSIZE", "MDB_PARANOID", "MDB_VL32"]
               }]
             ]
         }],

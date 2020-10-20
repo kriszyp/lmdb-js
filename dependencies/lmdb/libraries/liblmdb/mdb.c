@@ -164,6 +164,8 @@ typedef SSIZE_T	ssize_t;
 #if defined(__FreeBSD__) && defined(__FreeBSD_version) && __FreeBSD_version >= 1100110
 # define MDB_USE_POSIX_MUTEX	1
 # define MDB_USE_ROBUST	1
+#elif defined(__APPLE__) && !defined(MDB_USE_ROBUST)
+# define MDB_USE_POSIX_SEM	1
 #elif defined(__APPLE__) || defined (BSD) || defined(__FreeBSD_kernel__)
 # if !(defined(MDB_USE_POSIX_MUTEX) || defined(MDB_USE_POSIX_SEM))
 # define MDB_USE_SYSV_SEM	1
@@ -2610,9 +2612,6 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_cursor_op op;
 	MDB_cursor m2;
 	int found_old = 0;
-	if (retry > Max_retries) {
-		retry = Max_retries;
-	}
 
 #if OVERFLOW_NOTYET
 	MDB_dovpage *dph = NULL;
@@ -4937,8 +4936,7 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-		// Don't unmap, too hard to know if another thread might still be using the old address
-		// munmap(env->me_map, env->me_mapsize);
+		munmap(env->me_map, env->me_mapsize);
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
@@ -6568,7 +6566,7 @@ mdb_rpage_encsum(MDB_env *env, MDB_ID3 *id3, unsigned rem, int numpgs)
 		unsigned short muse = id3->muse;
 		rc = mdb_rpage_decrypt(env, id3, rem, numpgs);
 		if (!rc && env->me_sumfunc && muse != id3->muse) {
-			MDB_page *p = (MDB_page *)(id3->menc + rem * env->me_psize);
+			MDB_page *p = (MDB_page *)((char *)id3->menc + rem * env->me_psize);
 			rc = mdb_page_chk_checksum(env, p, numpgs * env->me_psize);
 		}
 	} else {
@@ -6582,7 +6580,7 @@ mdb_rpage_encsum(MDB_env *env, MDB_ID3 *id3, unsigned rem, int numpgs)
 				bit = 1;
 
 			id3->muse |= (bit << rem);
-			p = (MDB_page *)(id3->mptr + rem * env->me_psize);
+			p = (MDB_page *)((char *)id3->mptr + rem * env->me_psize);
 			rc = mdb_page_chk_checksum(env, p, numpgs * env->me_psize);
 		}
 	}
@@ -6944,7 +6942,7 @@ static int mdb_page_encrypt(MDB_env *env, MDB_page *dp, MDB_page *encp, size_t s
 		in.mv_size -= env->me_esumsize;
 		out.mv_size -= env->me_esumsize;
 		enckeys[2].mv_size = env->me_esumsize;
-		enckeys[2].mv_data = (char*)out.mv_data + out.mv_size;
+		enckeys[2].mv_data = (char *)out.mv_data + out.mv_size;
 	} else {
 		enckeys[2].mv_size = 0;
 		enckeys[2].mv_data = 0;
@@ -6976,11 +6974,11 @@ static int mdb_rpage_decrypt(MDB_env *env, MDB_ID3 *id3, int rem, int numpgs)
 		in.mv_data = (char *)id3->mptr + rem * env->me_psize + xsize;
 		enckeys[0] = env->me_enckey;
 		enckeys[1].mv_size = xsize;
-		enckeys[1].mv_data = (char*)in.mv_data - xsize;
+		enckeys[1].mv_data = (char *)in.mv_data - xsize;
 		if (env->me_esumsize) {
 			in.mv_size -= env->me_esumsize;
 			enckeys[2].mv_size = env->me_esumsize;
-			enckeys[2].mv_data = (char*) in.mv_data + in.mv_size;
+			enckeys[2].mv_data = (char *)in.mv_data + in.mv_size;
 		} else {
 			enckeys[2].mv_size = 0;
 			enckeys[2].mv_data = 0;
@@ -6992,7 +6990,7 @@ static int mdb_rpage_decrypt(MDB_env *env, MDB_ID3 *id3, int rem, int numpgs)
 		else {
 			MDB_page *penc, *pclr;
 			penc = (MDB_page *)enckeys[1].mv_data;
-			pclr = (MDB_page *)((char*) out.mv_data - xsize);
+			pclr = (MDB_page *)((char *)out.mv_data - xsize);
 			pclr->mp_pgno = penc->mp_pgno;
 			pclr->mp_txnid = penc->mp_txnid;
 		}
@@ -7024,7 +7022,7 @@ static void mdb_page_set_checksum(MDB_env *env, MDB_page *mp, size_t size)
 	src.mv_size = size - env->me_sumsize;
 	src.mv_data = mp;
 	dst.mv_size = env->me_sumsize;
-	dst.mv_data = (char*) src.mv_data + src.mv_size;
+	dst.mv_data = (char *)src.mv_data + src.mv_size;
 	if (env->me_encfunc)
 		key = &env->me_enckey;
 	else
@@ -7039,7 +7037,7 @@ static int mdb_page_chk_checksum(MDB_env *env, MDB_page *mp, size_t size)
 	src.mv_size = size - env->me_sumsize;
 	src.mv_data = mp;
 	chk.mv_size = env->me_sumsize;
-	chk.mv_data = (char*) src.mv_data + src.mv_size;
+	chk.mv_data = (char *)src.mv_data + src.mv_size;
 	dst.mv_size = env->me_sumsize;
 	dst.mv_data = sumbuf;
 	if (env->me_encfunc)
