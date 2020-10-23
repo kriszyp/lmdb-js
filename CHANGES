@@ -2,6 +2,7 @@ OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.55 Engineering
 	Fixed slapd normalization handling with modrdn (ITS#9370)
+	Fixed slapd-meta to check ldap_install_tls return code (ITS#9366)
 	Contrib
 		Fixed nssov misplaced semicolon (ITS#8731, ITS#9368)
 
