@@ -6,7 +6,7 @@ const EventEmitter = require('events')
 const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
-const { CachingStore, setGetLastVersion } = require('./cache')
+const { CachingStore, setGetLastVersion } = require('./caching')
 setGetLastVersion(getLastVersion)
 
 const RANGE_BATCH_SIZE = 100

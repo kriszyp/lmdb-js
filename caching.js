@@ -10,14 +10,14 @@ exports.CachingStore = Store => class extends Store {
 				let activeCache
 				for (let i = 0, l = operations.length; i < l; i++) {
 					let operation = operations[i]
-					if (typeof operations[1] === 'object') {
+					if (typeof operation[1] === 'object') {
 						if (activeCache) {
 							if (results[i] === 0)
 								activeCache.get(operation[0]) // this will enter it into the LRFU
 							else
-								activeCache,delete(operation[0]) // just delete it from the map
+								activeCache.delete(operation[0]) // just delete it from the map
 						}
-					} else if (operations.length === undefined) {
+					} else if (operation && operation.length === undefined) {
 						activeCache = operation.cachingDb && operation.cachingDb.cache
 					}
 				}
@@ -41,7 +41,7 @@ exports.CachingStore = Store => class extends Store {
 			return value
 		value = super.get(id)
 		if (value !== undefined) {
-			this.cache.set(id, makeEntry(value, this.useVersions & getLastVersion()), value)
+			this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
 			return value
 		}
 	}
@@ -51,7 +51,7 @@ exports.CachingStore = Store => class extends Store {
 			return entry
 		let value = super.get(id)
 		if (value !== undefined) {
-			entry = makeEntry(value, this.useVersions & getLastVersion())
+			entry = makeEntry(value, this.useVersions && getLastVersion())
 			this.cache.set(id, entry, value)
 			return entry
 		}
@@ -71,7 +71,7 @@ exports.CachingStore = Store => class extends Store {
 			this.cache.setManually(id, entry) // set manually so we can keep it pinned in memory until it is committed
 		else // sync operation, immediately add to cache
 			this.cache.set(id, entry)
-
+		return result
 	}
 	putSync(id, value, version, ifVersion) {
 		this.cache.set(id, makeEntry(value, version))
