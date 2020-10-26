@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.56 Engineering
+
 OpenLDAP 2.4.55 Release (2020/10/26)
 	Fixed slapd normalization handling with modrdn (ITS#9370)
 	Fixed slapd-meta to check ldap_install_tls return code (ITS#9366)
