@@ -35,24 +35,26 @@ exports.CachingStore = Store => class extends Store {
 			}
 		}
 	}
-	get(id) {
+	get(id, cacheMode) {
 		let value = this.cache.getValue(id)
 		if (value !== undefined)
 			return value
 		value = super.get(id)
 		if (value !== undefined) {
-			this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
+			if (!cacheMode)
+				this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
 			return value
 		}
 	}
-	getEntry(id) {
+	getEntry(id, cacheMode) {
 		let entry = this.cache.get(id)
 		if (entry)
 			return entry
 		let value = super.get(id)
 		if (value !== undefined) {
 			entry = makeEntry(value, this.useVersions && getLastVersion())
-			this.cache.set(id, entry, value)
+			if (!cacheMode)
+				this.cache.set(id, entry, value)
 			return entry
 		}
 	}
