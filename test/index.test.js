@@ -1,4 +1,6 @@
 'use strict';
+var inspector = require('inspector')
+//inspector.open(9330, null, true)
 
 let path = require('path');
 let mkdirp = require('mkdirp');
@@ -33,25 +35,30 @@ describe('lmdb-store', function() {
       done();
     });
   });
-  describe('Basic use', function() {
+  describe('Basic use', basicTests({ compression: false }));
+  describe('Basic use with compression', basicTests({}));
+  describe('Basic use with caching', basicTests({ cache: true }));
+  function basicTests(options) { return function() {
     this.timeout(10000);
     let db, db2;
     before(function() {
-      db = open(testDirPath, {
+      db = open(testDirPath, Object.assign({
         name: 'mydb3',
         create: true,
         useVersions: true,
         compression: {
           threshold: 256,
         },
-      });
-      db2 = db.openDB({
+      }, options));
+      db.clear();
+      db2 = db.openDB(Object.assign({
         name: 'mydb4',
         create: true,
         compression: {
           threshold: 256,
         },
-      });
+      }, options));
+      db2.clear();
     });
     it('query of keys', async function() {
       let keys = [
@@ -70,7 +77,7 @@ describe('lmdb-store', function() {
         'z'
       ]
       for (let key of keys)
-        await db.put(key,  3);
+        await db.put(key, 3);
       let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: Symbol.for('A')
@@ -89,29 +96,28 @@ describe('lmdb-store', function() {
     });
     it('string with version', async function() {
       await db.put('key1', 'Hello world!', 53252);
-      let data = db.get('key1');
-      data.should.equal('Hello world!');
-      getLastVersion().should.equal(53252);
+      let entry = db.getEntry('key1');
+      entry.value.should.equal('Hello world!');
+      entry.version.should.equal(53252);
       (await db.remove('key1', 33)).should.equal(false);
-      data = db.get('key1');
-      data.should.equal('Hello world!');
-      getLastVersion().should.equal(53252);
+      entry = db.getEntry('key1');
+      entry.value.should.equal('Hello world!');
+      entry.version.should.equal(53252);
       (await db.remove('key1', 53252)).should.equal(true);
-      data = db.get('key1');
-      should.equal(getLastVersion(), null);
-      should.equal(data, undefined);
+      entry = db.getEntry('key1');
+      should.equal(entry, undefined);
     });
     it('string with version branching', async function() {
       await db.put('key1', 'Hello world!', 53252);
-      let data = db.get('key1');
-      data.should.equal('Hello world!');
-      getLastVersion().should.equal(53252);
+      let entry = db.getEntry('key1');
+      entry.value.should.equal('Hello world!');
+      entry.version.should.equal(53252);
       (await db.ifVersion('key1', 777, () => {
         db.put('newKey', 'test', 6);
         db2.put('keyB', 'test', 6);
       })).should.equal(false);
-      should.equal(db.get('newKey'), undefined)
-      should.equal(db2.get('keyB'), undefined)
+      should.equal(db.get('newKey'), undefined);
+      should.equal(db2.get('keyB'), undefined);
       let result = (await db.ifVersion('key1', 53252, () => {
         db.put('newKey', 'test', 6);
         db2.put('keyB', 'test', 6);
@@ -123,11 +129,11 @@ describe('lmdb-store', function() {
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
       await db.put('key1', str, 53252);
-      let data = db.get('key1');
-      data.should.equal(str);
-      getLastVersion().should.equal(53252);
+      let entry = db.getEntry('key1');
+      entry.value.should.equal(str);
+      entry.version.should.equal(53252);
       (await db.remove('key1', 33)).should.equal(false);
-      data = db.get('key1');
+      let data = db.get('key1');
       data.should.equal(str);
       (await db.remove('key1', 53252)).should.equal(true);
       data = db.get('key1');
@@ -170,7 +176,7 @@ describe('lmdb-store', function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
-  });
+  }}
   describe('uint32 keys', function() {
     this.timeout(10000);
     let db, db2;
