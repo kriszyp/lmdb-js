@@ -760,6 +760,12 @@ public:
     static NAN_METHOD(getCurrentBoolean);
 
     /*
+    Is the current cursor a database
+    (Wrapper for `mdb_cursor_is_db`)
+    */
+    static NAN_METHOD(getCurrentIsDatabase);
+
+    /*
         Asks the cursor to go to the first key-data pair in the database.
         (Wrapper for `mdb_cursor_get`)
     */

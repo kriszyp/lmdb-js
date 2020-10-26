@@ -261,6 +261,13 @@ NAN_METHOD(CursorWrap::getCurrentBoolean) {
     return getCommon(info, MDB_GET_CURRENT, nullptr, nullptr, nullptr, valToBoolean);
 }
 
+NAN_METHOD(CursorWrap::getCurrentIsDatabase) {
+    int al = info.Length();
+    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
+    int isDatabase = mdb_cursor_is_db(cw->cursor);
+    return info.GetReturnValue().Set(Nan::New<Boolean>(isDatabase));
+}
+
 #define MAKE_GET_FUNC(name, op) NAN_METHOD(CursorWrap::name) { return getCommon(info, op); }
 
 MAKE_GET_FUNC(goToFirst, MDB_FIRST);
@@ -370,6 +377,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBinaryUnsafe").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBinaryUnsafe));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentNumber").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentNumber));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentBoolean").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentBoolean));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentIsDatabase").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentIsDatabase));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToFirst").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToFirst));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToLast").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToLast));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToNext").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToNext));
