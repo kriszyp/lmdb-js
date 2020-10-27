@@ -1468,6 +1468,8 @@ MDB_txn *mdb_cursor_txn(MDB_cursor *cursor);
 	 */
 MDB_dbi mdb_cursor_dbi(MDB_cursor *cursor);
 
+int mdb_cursor_is_db(MDB_cursor *cursor);
+
 	/** @brief Retrieve by cursor.
 	 *
 	 * This function retrieves key/data pairs from the database. The address and length
