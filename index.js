@@ -71,7 +71,16 @@ function open(path, options) {
 		fs.removeSync(path)
 		console.info('Removed', path)
 	}
-	env.open(options)
+	try {
+		env.open(options)
+	} catch(error) {
+		if (error.message.startsWith('MDB_INVALID')) {
+			require('./util/upgrade-lmdb').upgrade(path, options, open)
+			env = new Env()
+			env.open(options)
+		} else
+			throw error
+	}
 	readTxn = env.beginTxn(READING_TNX)
 	readTxn.reset()
 	function renewReadTxn() {
@@ -140,6 +149,7 @@ function open(path, options) {
 			stores.push(this)
 		}
 		openDB(dbName, dbOptions) {
+			dbOptions = dbOptions || {}
 			try {
 				return options.cache ?
 					new (CachingStore(LMDBStore))(dbName, dbOptions) :
