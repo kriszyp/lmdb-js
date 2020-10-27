@@ -40,7 +40,7 @@ exports.CachingStore = Store => class extends Store {
 		if (value !== undefined)
 			return value
 		value = super.get(id)
-		if (value !== undefined) {
+		if (value !== undefined && typeof id !== 'object') {
 			if (!cacheMode)
 				this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
 			return value
@@ -51,15 +51,17 @@ exports.CachingStore = Store => class extends Store {
 		if (entry)
 			return entry
 		let value = super.get(id)
-		if (value !== undefined) {
+		if (value !== undefined && typeof id !== 'object') {
 			entry = makeEntry(value, this.useVersions && getLastVersion())
 			if (!cacheMode)
 				this.cache.set(id, entry, value)
 			return entry
 		}
 	}
-	putEntry(entry, ifVersion) {
+	putEntry(id, entry, ifVersion) {
 		let result = super.put(id, entry.value, entry.version, ifVersion)
+		if (typeof id === 'object')
+			return result
 		if (result && result.then)
 			this.cache.setManually(id, entry) // set manually so we can keep it pinned in memory until it is committed
 		else // sync operation, immediately add to cache
@@ -69,6 +71,8 @@ exports.CachingStore = Store => class extends Store {
 		// if (this.cache.get(id)) // if there is a cache entry, remove it from scheduledEntries and 
 		let entry = makeEntry(value, version)
 		let result = super.put(id, value, version, ifVersion)
+		if (typeof id === 'object')
+			return result
 		if (result && result.then)
 			this.cache.setManually(id, entry) // set manually so we can keep it pinned in memory until it is committed
 		else // sync operation, immediately add to cache
@@ -76,7 +80,8 @@ exports.CachingStore = Store => class extends Store {
 		return result
 	}
 	putSync(id, value, version, ifVersion) {
-		this.cache.set(id, makeEntry(value, version))
+		if (typeof id !== 'object')
+			this.cache.set(id, makeEntry(value, version))
 		return super.putSync(id, value, version, ifVersion)
 	}
 	remove(id, ifVersion) {
