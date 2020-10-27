@@ -1,5 +1,5 @@
 {
-  "name": "lmdb-store",
+  "name": "lmdb-store-0.9",
   "author": "Kris Zyp",
   "version": "0.7.1",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
