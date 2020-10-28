@@ -1648,6 +1648,14 @@ slap_open_listener(
 	}
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
+	if ( lud->lud_dn && lud->lud_dn[0] ) {
+		sprintf( (char *)url, "%s://%s/", lud->lud_scheme, lud->lud_host );
+		Debug( LDAP_DEBUG_ANY, "daemon: listener URL %s<junk> DN must be absent (%s)\n",
+			url, lud->lud_dn );
+		ldap_free_urldesc( lud );
+		return -1;
+	}
+
 	ldap_free_urldesc( lud );
 	if ( err ) {
 		slap_free_listener_addresses(sal);
