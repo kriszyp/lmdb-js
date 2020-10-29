@@ -102,7 +102,7 @@ rewrite_param_get(
 	ldap_pvt_thread_rdwr_runlock( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
-	return REWRITE_SUCCESS;
+	return rc;
 }
 
 static void
@@ -129,15 +129,13 @@ rewrite_param_destroy(
 		struct rewrite_info *info
 )
 {
-	int count;
-
 	assert( info != NULL );
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wlock( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	
-	count = avl_free( info->li_params, rewrite_param_free );
+	avl_free( info->li_params, rewrite_param_free );
 	info->li_params = NULL;
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
