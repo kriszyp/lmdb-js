@@ -2461,7 +2461,6 @@ slapd_daemon_task(
 	time_t last_idle_check = 0;
 	int ebadf = 0;
 	int tid = (slap_daemon_st *) ptr - slap_daemon;
-	int old_threads = slapd_daemon_threads;
 	char ebuf[128];
 
 #define SLAPD_IDLE_CHECK_LIMIT 4

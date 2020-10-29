@@ -210,7 +210,7 @@ int connections_shutdown(void)
  */
 int connections_timeout_idle(time_t now)
 {
-	int i = 0, writers = 0;
+	int i = 0;
 	ber_socket_t connindex;
 	Connection* c;
 
