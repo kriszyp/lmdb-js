@@ -2018,7 +2018,7 @@ int connection_write(ber_socket_t s)
 	return 0;
 }
 
-int connection_write_resume( Connection *c )
+void connection_write_resume( Connection *c )
 {
 	Operation *op;
 

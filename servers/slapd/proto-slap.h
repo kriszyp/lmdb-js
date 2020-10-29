@@ -809,7 +809,7 @@ LDAP_SLAPD_F (const char *) connection_state2str LDAP_P(( int state ))
 
 LDAP_SLAPD_F (int) connection_read_activate LDAP_P((ber_socket_t s));
 LDAP_SLAPD_F (int) connection_write LDAP_P((ber_socket_t s));
-LDAP_SLAPD_F (int) connection_write_resume LDAP_P((Connection *c));
+LDAP_SLAPD_F (void) connection_write_resume LDAP_P((Connection *c));
 
 LDAP_SLAPD_F (void) connection_op_finish LDAP_P((
 	Operation *op ));
