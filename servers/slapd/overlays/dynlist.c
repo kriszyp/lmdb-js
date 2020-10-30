@@ -1312,8 +1312,6 @@ dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, dynlist_
 
 	case LDAP_FILTER_SUBSTRINGS:
 		n->f_choice = f->f_choice;
-		n->f_sub_initial = f->f_sub_initial;
-		n->f_sub_final = f->f_sub_final;
 		n->f_sub = f->f_sub;
 		break;
 
