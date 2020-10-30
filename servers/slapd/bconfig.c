@@ -1417,7 +1417,6 @@ config_generic(ConfigArgs *c) {
 		case CFG_THREADQS:
 		case CFG_TTHREADS:
 		case CFG_LTHREADS:
-		case CFG_RO:
 		case CFG_AZPOLICY:
 		case CFG_DEPTH:
 		case CFG_LASTMOD:
@@ -1428,6 +1427,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_SSTR_IF_MIN:
 		case CFG_ACL_ADD:
 		case CFG_SYNC_SUBENTRY:
+			break;
+
+		case CFG_RO:
+			c->be->be_restrictops &= ~SLAP_RESTRICT_READONLY;
 			break;
 
 #ifdef LDAP_SLAPI
