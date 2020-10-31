@@ -40,23 +40,21 @@ exports.CachingStore = Store => class extends Store {
 		if (value !== undefined)
 			return value
 		value = super.get(id)
-		if (value !== undefined && typeof id !== 'object') {
-			if (!cacheMode)
-				this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
-			return value
-		}
+		if (value !== undefined && typeof id !== 'object' && !cacheMode)
+			this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
+		return value
 	}
 	getEntry(id, cacheMode) {
 		let entry = this.cache.get(id)
 		if (entry)
 			return entry
 		let value = super.get(id)
-		if (value !== undefined && typeof id !== 'object') {
+		if (value !== undefined) {
 			entry = makeEntry(value, this.useVersions && getLastVersion())
-			if (!cacheMode)
+			if (!cacheMode && typeof id !== 'object')
 				this.cache.set(id, entry, value)
-			return entry
 		}
+		return entry
 	}
 	putEntry(id, entry, ifVersion) {
 		let result = super.put(id, entry.value, entry.version, ifVersion)
@@ -91,6 +89,10 @@ exports.CachingStore = Store => class extends Store {
 	removeSync(id, ifVersion) {
 		this.cache.delete(id)
 		return super.removeSync(id, ifVersion)
+	}
+	clear() {
+		this.cache.clear()
+		super.clear()
 	}
 }
 exports.setGetLastVersion = (get) => {
