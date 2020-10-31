@@ -2612,6 +2612,9 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_cursor_op op;
 	MDB_cursor m2;
 	int found_old = 0;
+	if (retry > Max_retries) {
+		retry = Max_retries;
+	}
 
 #if OVERFLOW_NOTYET
 	MDB_dovpage *dph = NULL;
