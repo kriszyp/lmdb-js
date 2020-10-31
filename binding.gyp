@@ -11,6 +11,7 @@
       "sources": [
         "dependencies/lmdb/libraries/liblmdb/mdb.c",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
+        "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
         "dependencies/lz4/lib/lz4.c",
         "src/node-lmdb.cpp",

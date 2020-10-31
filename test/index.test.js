@@ -14,7 +14,7 @@ let { open, getLastVersion } = require('..');
 import('./module.test.mjs')
 
 describe('lmdb-store', function() {
-  let testDirPath = path.resolve(__dirname, './testdata.mdb');
+  let testDirPath = path.resolve(__dirname, './testdata-ls');
 
   // just to make a reasonable sized chunk of data...
   function expand(str) {
@@ -35,14 +35,18 @@ describe('lmdb-store', function() {
       done();
     });
   });
+  let testIteration = 1
   describe('Basic use', basicTests({ compression: false }));
+  describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt' }));
+//  describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe('Basic use with compression', basicTests({}));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(10000);
     let db, db2;
     before(function() {
-      db = open(testDirPath, Object.assign({
+      console.log({testDirPath})
+      db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
         create: true,
         useVersions: true,
@@ -50,7 +54,9 @@ describe('lmdb-store', function() {
           threshold: 256,
         },
       }, options));
-      db.clear();
+      testIteration++;
+      if (!options.checkLast)
+        db.clear();
       db2 = db.openDB(Object.assign({
         name: 'mydb4',
         create: true,
@@ -58,8 +64,17 @@ describe('lmdb-store', function() {
           threshold: 256,
         },
       }, options));
-      db2.clear();
+      if (!options.checkLast)
+        db2.clear();
     });
+    if (options.checkLast) {
+      it('encrypted data can not be accessed', function() {
+        let data  = db.get('key1');
+        console.log({data})
+        data.should.deep.equal({foo: 1, bar: true})
+      })
+      return
+    }
     it('query of keys', async function() {
       let keys = [
         Symbol.for('test'),

@@ -350,7 +350,11 @@ class BatchWorker : public Nan::AsyncWorker {
     friend class DbiWrap;
 };
 
-
+static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
+{
+    chacha8(src->mv_data, src->mv_size, (uint8_t*) key[0].mv_data, (uint8_t*) key[1].mv_data, (char*)dst->mv_data);
+    return 0;
+}
 
 NAN_METHOD(EnvWrap::open) {
     Nan::HandleScope scope;
@@ -402,6 +406,19 @@ NAN_METHOD(EnvWrap::open) {
     if (compressionOption->IsObject()) {
         ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
         ew->compression->Ref();
+    }
+
+    Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
+    if (!encryptionKey->IsUndefined()) {
+        MDB_val enckey;
+        KeySpace* keySpace = new KeySpace(false);
+        rc = valueToMDBKey(encryptionKey, enckey, *keySpace);
+        if (!rc)
+            return Nan::ThrowError("Bad encryption key");
+        rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
+        if (rc != 0) {
+            return throwLmdbError(rc);
+        }
     }
 
     // Parse the maxReaders option
