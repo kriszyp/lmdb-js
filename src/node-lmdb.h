@@ -32,6 +32,7 @@
 #include <nan.h>
 #include <uv.h>
 #include "lmdb.h"
+#include "chacha8.h"
 #include "lz4.h"
 
 using namespace v8;

@@ -151,7 +151,7 @@ function open(path, options) {
 		openDB(dbName, dbOptions) {
 			dbOptions = dbOptions || {}
 			try {
-				return options.cache ?
+				return dbOptions.cache ?
 					new (CachingStore(LMDBStore))(dbName, dbOptions) :
 					new LMDBStore(dbName, dbOptions)
 			} catch(error) {

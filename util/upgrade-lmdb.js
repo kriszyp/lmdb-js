@@ -32,6 +32,9 @@ exports.upgrade =  function(path, options, open) {
 	sourceStore.close()
 	targetStore.close()
 	unlinkSync(filePath)
+	try {
+		unlinkSync(filePath + '-lock')
+	} catch (error) {}
 	renameSync(tempPath, filePath)
 	console.log('Finished upgrading', filePath)
 }
