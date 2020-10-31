@@ -88,10 +88,10 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    /*suite.add('put', {
+    suite.add('put', {
       defer: true,
       fn: setData
-    });*/
+    });
     suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
