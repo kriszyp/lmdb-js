@@ -16,6 +16,10 @@
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties, can be done in less than one microsecond, or a little over a 1,200,000/sec on a single thread. This is almost twice as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 4,500,000 operations/sec on the same 4/8 core computer by running across multiple threads. By running writes on a separate transactional thread, these are extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
+## Upgrade Note
+
+LMDB 1.0 has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format.
+
 ## Design
 
 `lmdb-store` is handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for remarkable performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
