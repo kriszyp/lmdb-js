@@ -1,8 +1,8 @@
 {
   "name": "lmdb-store-0.9",
   "author": "Kris Zyp",
-  "version": "0.7.1",
-  "description": "Simple, efficient, scalable data store wrapper for LMDB",
+  "version": "0.7.2",
+  "description": "Only for upgrading older versions of LMDB",
   "license": "MIT",
   "repository": {
     "type": "git",
