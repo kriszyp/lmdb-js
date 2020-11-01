@@ -173,6 +173,9 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
     int consumed = 0;
     uint8_t* keyBytes = (uint8_t*) val.mv_data;
     int size = val.mv_size;
+    if (size < 1) {
+        return Nan::Null();
+    }
     uint8_t controlByte = keyBytes[0];
     if (controlByte < 24) {
         if (controlByte < 8) {
