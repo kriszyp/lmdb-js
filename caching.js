@@ -1,5 +1,6 @@
 const { WeakLRUCache } = require('weak-lru-cache')
 let getLastVersion
+const mapGet = Map.prototype.get
 exports.CachingStore = Store => class extends Store {
 	constructor(dbName, options) {
 		super(dbName, options)
@@ -12,9 +13,12 @@ exports.CachingStore = Store => class extends Store {
 					let operation = operations[i]
 					if (typeof operation[1] === 'object') {
 						if (activeCache) {
-							if (results[i] === 0)
-								activeCache.get(operation[0]) // this will enter it into the LRFU
-							else
+							if (results[i] === 0) {
+								let expirationPriority = ((operation[1] || 0).length || 0) >> 12
+								let entry = mapGet.call(activeCache, operation[0])
+								if (entry)
+									activeCache.used(entry, expirationPriority) // this will enter it into the LRFU
+							} else
 								activeCache.delete(operation[0]) // just delete it from the map
 						}
 					} else if (operation && operation.length === undefined) {
@@ -40,8 +44,12 @@ exports.CachingStore = Store => class extends Store {
 		if (value !== undefined)
 			return value
 		value = super.get(id)
-		if (value && typeof value === 'object' && typeof id !== 'object' && !cacheMode)
-			this.cache.set(id, makeEntry(value, this.useVersions && getLastVersion()), value)
+		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
+			let entry = this.cache.setValue(id, value)
+			if (this.useVersions) {
+				entry.version = getLastVersion()
+			}
+		}
 		return value
 	}
 	getEntry(id, cacheMode) {
@@ -51,9 +59,14 @@ exports.CachingStore = Store => class extends Store {
 		let value = super.get(id)
 		if (value === undefined)
 			return
-		entry = makeEntry(value, this.useVersions && getLastVersion())
-		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object')
-			this.cache.set(id, entry, value)
+		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
+			entry = this.cache.setValue(id, value)
+		} else {
+			entry = { value }
+		}
+		if (this.useVersions) {
+			entry.version = getLastVersion()
+		}
 		return entry
 	}
 	putEntry(id, entry, ifVersion) {
@@ -69,17 +82,19 @@ exports.CachingStore = Store => class extends Store {
 		// if (this.cache.get(id)) // if there is a cache entry, remove it from scheduledEntries and 
 		let result = super.put(id, value, version, ifVersion)
 		if (value && typeof value === 'object' && id !== 'object') {
-			let entry = makeEntry(value, version)
-			if (result && result.then)
-				this.cache.setManually(id, entry) // set manually so we can keep it pinned in memory until it is committed
-			else // sync operation, immediately add to cache
-				this.cache.set(id, entry)
+			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
+			let entry = this.cache.setValue(id, value, result.isSync ? 0 : -1)
+			if (version !== undefined)
+				entry.version = version
 		}
 		return result
 	}
 	putSync(id, value, version, ifVersion) {
-		if (value && typeof value === 'object' && id !== 'object')
-			this.cache.set(id, makeEntry(value, version))
+		if (value && typeof value === 'object' && id !== 'object') {
+			let entry = this.cache.setValue(id, value)
+			if (version !== undefined)
+				entry.version = version
+		}
 		return super.putSync(id, value, version, ifVersion)
 	}
 	remove(id, ifVersion) {
@@ -97,15 +112,4 @@ exports.CachingStore = Store => class extends Store {
 }
 exports.setGetLastVersion = (get) => {
 	getLastVersion = get
-}
-function makeEntry(value, version) {
-	let entry
-	if (value && typeof value === 'object') {
-		entry = new WeakRef(value)
-		entry.value = value
-	} else
-		entry = { value }
-	if (typeof version === 'number')
-		entry.version = version
-	return entry
 }

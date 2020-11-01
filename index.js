@@ -24,6 +24,10 @@ function genericErrorHandler(err) {
 		console.error(err)
 	}
 }
+const SYNC_PROMISE_RESULT = Promise.resolve(true)
+const SYNC_PROMISE_FAIL = Promise.resolve(false)
+SYNC_PROMISE_RESULT.isSync = true
+SYNC_PROMISE_FAIL.isSync = true
 const LAST_KEY = String.fromCharCode(0xffff)
 const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
 const FIRST_BUFFER_KEY = Buffer.from([0])
@@ -306,11 +310,11 @@ function open(path, options) {
 					this.get(id)
 					let previousVersion = this.get(id) ? getLastVersion() : null
 					if (!matches(previousVersion, ifVersion)) {
-						return Promise.resolve(false)
+						return SYNC_PROMISE_FAIL
 					}
 				}
 				this.putSync(id, value, version)
-				return Promise.resolve(true)
+				return SYNC_PROMISE_RESULT
 			}
 			if (this.packr)
 				value = this.packr.pack(value)
@@ -399,10 +403,11 @@ function open(path, options) {
 				if (ifVersion !== undefined) {
 					let previousVersion = this.get(id) ? getLastVersion() : null
 					if (!matches(previousVersion, ifVersion)) {
-						return Promise.resolve(false)
+						return SYNC_PROMISE_FAIL
 					}
 				}
-				return Promise.resolve(this.removeSync(id))
+				this.removeSync(id)
+				return SYNC_PROMISE_RESULT
 			}
 			let scheduledOperations = this.getScheduledOperations()
 			let index = scheduledOperations.push(typeof ifVersion == 'number' ?
