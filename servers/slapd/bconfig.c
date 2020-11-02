@@ -424,11 +424,13 @@ static ConfigTable config_back_cf_table[] = {
 	{ "index_substr_any_len", "len", 2, 2, 0, ARG_UINT|ARG_NONZERO,
 		&index_substr_any_len, "( OLcfgGlAt:22 NAME 'olcIndexSubstrAnyLen' "
 			"EQUALITY integerMatch "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+			{ .v_uint = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT } },
 	{ "index_substr_any_step", "step", 2, 2, 0, ARG_UINT|ARG_NONZERO,
 		&index_substr_any_step, "( OLcfgGlAt:23 NAME 'olcIndexSubstrAnyStep' "
 			"EQUALITY integerMatch "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+			{ .v_uint = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT } },
 	{ "index_intlen", "len", 2, 2, 0, ARG_UINT|ARG_MAGIC|CFG_IX_INTLEN,
 		&config_generic, "( OLcfgGlAt:84 NAME 'olcIndexIntLen' "
 			"EQUALITY integerMatch "
@@ -461,7 +463,8 @@ static ConfigTable config_back_cf_table[] = {
 	{ "localSSF", "ssf", 2, 2, 0, ARG_INT,
 		&local_ssf, "( OLcfgGlAt:26 NAME 'olcLocalSSF' "
 			"EQUALITY integerMatch "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+			{ .v_int = LDAP_PVT_SASL_LOCAL_SSF } },
 	{ "logfile", "file", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_LOGFILE,
 		&config_generic, "( OLcfgGlAt:27 NAME 'olcLogFile' "
 			"EQUALITY caseExactMatch "
@@ -686,11 +689,13 @@ static ConfigTable config_back_cf_table[] = {
 	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming, "( OLcfgGlAt:61 NAME 'olcSockbufMaxIncoming' "
 			"EQUALITY integerMatch "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+			{ .v_ber_t = SLAP_SB_MAX_INCOMING_DEFAULT } },
 	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_BER_LEN_T,
 		&sockbuf_max_incoming_auth, "( OLcfgGlAt:62 NAME 'olcSockbufMaxIncomingAuth' "
 			"EQUALITY integerMatch "
-			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+			"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+			{ .v_ber_t = SLAP_SB_MAX_INCOMING_AUTH } },
 	{ "sortvals", "attr", 2, 0, 0, ARG_MAGIC|CFG_SORTVALS,
 		&config_generic, "( OLcfgGlAt:83 NAME 'olcSortVals' "
 			"DESC 'Attributes whose values will always be sorted' "
