@@ -72,19 +72,26 @@ exports.CachingStore = Store => class extends Store {
 	put(id, value, version, ifVersion) {
 		// if (this.cache.get(id)) // if there is a cache entry, remove it from scheduledEntries and 
 		let result = super.put(id, value, version, ifVersion)
-		if (value && typeof value === 'object' && id !== 'object') {
+		if (id !== 'object') {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
-			let entry = this.cache.setValue(id, value, result.isSync ? 0 : -1)
-			if (version !== undefined)
-				entry.version = version
+			if (value && typeof value === 'object') {
+				let entry = this.cache.setValue(id, value, result.isSync ? 0 : -1)
+				if (version !== undefined)
+					entry.version = version
+			} else // it is possible that  a value used to exist here
+				this.cache.delete(id)
 		}
 		return result
 	}
 	putSync(id, value, version, ifVersion) {
-		if (value && typeof value === 'object' && id !== 'object') {
-			let entry = this.cache.setValue(id, value)
-			if (version !== undefined)
-				entry.version = version
+		if (id !== 'object') {
+			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
+			if (value && typeof value === 'object') {
+				let entry = this.cache.setValue(id, value)
+				if (version !== undefined)
+					entry.version = version
+			} else // it is possible that  a value used to exist here
+				this.cache.delete(id)
 		}
 		return super.putSync(id, value, version, ifVersion)
 	}
