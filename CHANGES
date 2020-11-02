@@ -1,6 +1,9 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.56 Engineering
+	Fixed slapd to remove assert in certificateListValidate (ITS#9383)
+	Fixed slapd to remove assert in csnNormalize23 (ITS#9384)
+	Fixed slapd to better parse ldapi listener URIs (ITS#9379)
 
 OpenLDAP 2.4.55 Release (2020/10/26)
 	Fixed slapd normalization handling with modrdn (ITS#9370)
