@@ -5327,8 +5327,8 @@ csnNormalize23(
 	}
 	*ptr = '\0';
 
-	assert( ptr == &bv.bv_val[bv.bv_len] );
-	if ( csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
+	if ( ptr != &bv.bv_val[bv.bv_len] ||
+		csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
