@@ -29,15 +29,6 @@ exports.CachingStore = Store => class extends Store {
 		}
 		this.db.cachingDb = this
 		this.cache = new WeakLRUCache()
-		this.cache.loadValue = (id) => {
-			let value = super.get(id)
-			if (value !== undefined) {
-				let entry = new WeakRef(value)
-				if (this.useVersions)
-					entry.version = getLastVersion()
-				return entry
-			}
-		}
 	}
 	get(id, cacheMode) {
 		let value = this.cache.getValue(id)
