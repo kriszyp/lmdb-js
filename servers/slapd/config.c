@@ -482,22 +482,30 @@ config_del_vals(ConfigTable *cf, ConfigArgs *c)
 	if ( cf->arg_type & ARGS_TYPES )
 		switch ( cf->arg_type & ARGS_TYPES ) {
 			case ARG_ON_OFF:
-			case ARG_INT:		*(int *)ptr = 0;	break;
-			case ARG_UINT:		*(unsigned *)ptr = 0;	break;
-			case ARG_LONG:		*(long *)ptr = 0;	break;
-			case ARG_ULONG:		*(size_t *)ptr = 0;	break;
-			case ARG_BER_LEN_T:	*(ber_len_t *)ptr = 0;	break;
+			case ARG_INT:		*(int *)ptr = cf->arg_default.v_int;		break;
+			case ARG_UINT:		*(unsigned *)ptr = cf->arg_default.v_uint;	break;
+			case ARG_LONG:		*(long *)ptr = cf->arg_default.v_long;		break;
+			case ARG_ULONG:		*(size_t *)ptr = cf->arg_default.v_ulong;	break;
+			case ARG_BER_LEN_T:	*(ber_len_t *)ptr = cf->arg_default.v_ber_t;	break;
 			case ARG_STRING:
 				ch_free( *(char**)ptr );
-				*(char **)ptr = NULL;
+				if ( cf->arg_default.v_string ) {
+					*(char **)ptr = ch_strdup( cf->arg_default.v_string );
+				} else {
+					*(char **)ptr = NULL;
+				}
 				break;
 			case ARG_BERVAL:
 			case ARG_BINARY:
 				ch_free( ((struct berval *)ptr)->bv_val );
-				BER_BVZERO( (struct berval *)ptr );
+				if ( !BER_BVISNULL( &cf->arg_default.v_bv ) ) {
+					ber_dupbv( (struct berval *)ptr, &cf->arg_default.v_bv );
+				} else {
+					BER_BVZERO( (struct berval *)ptr );
+				}
 				break;
 			case ARG_ATDESC:
-				*(AttributeDescription **)ptr = NULL;
+				*(AttributeDescription **)ptr = cf->arg_default.v_ad;
 				break;
 		}
 	return rc;
