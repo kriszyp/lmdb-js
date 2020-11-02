@@ -47,13 +47,13 @@ function open(path, options) {
 	}
 	let extension = extname(path)
 	let name = basename(path, extension)
-	if (!fs.existsSync(extension ? dirname(path) : path))
-	    	fs.ensureDirSync(extension ? dirname(path) : path)
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
 		maxDbs: 12,
 	}, options)
+	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
+	    	fs.ensureDirSync(options.noSubdir ? dirname(path) : path)
 	if (options.compression) {
 		let setDefault
 		if (options.compression == true) {
