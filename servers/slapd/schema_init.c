@@ -371,8 +371,7 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	/* Optional version */
 	if ( tag == LBER_INTEGER ) {
 		tag = ber_get_int( ber, &version );
-		assert( tag == LBER_INTEGER );
-		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		if ( tag != LBER_INTEGER || version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
 	}
 	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
