@@ -1426,7 +1426,7 @@ slap_open_listener(
 	if ( lud->lud_dn && lud->lud_dn[0] ) {
 		sprintf( (char *)url, "%s://%s/", lud->lud_scheme, lud->lud_host );
 		Debug( LDAP_DEBUG_ANY, "daemon: listener URL %s<junk> DN must be absent (%s)\n",
-			url, lud->lud_dn );
+			url, lud->lud_dn, 0 );
 		ldap_free_urldesc( lud );
 		return -1;
 	}
