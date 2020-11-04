@@ -14,7 +14,7 @@ exports.CachingStore = Store => class extends Store {
 					if (typeof operation[1] === 'object') {
 						if (activeCache) {
 							if (results[i] === 0) {
-								let expirationPriority = ((operation[1] || 0).length || 0) >> 12
+								let expirationPriority = ((operation[1] || 0).length || 0) >> 10
 								let entry = mapGet.call(activeCache, operation[0])
 								if (entry)
 									activeCache.used(entry, expirationPriority) // this will enter it into the LRFU
