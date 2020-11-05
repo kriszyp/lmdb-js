@@ -220,15 +220,19 @@ function open(path, options) {
 				}
 				let result
 				if (this.packr) {
-					lastSize = result = txn.getBinaryUnsafe(this.db, id)
+					this.lastSize = result = txn.getBinaryUnsafe(this.db, id)
 					return result && this.packr.unpack(this.db.unsafeBuffer, result)
 				}
-				if (this.encoding == 'binary')
-					return txn.getBinary(this.db, id)
+				if (this.encoding == 'binary') {
+					result = txn.getBinary(this.db, id)
+					this.lastSize = result
+					return result
+				}
 				result = txn.getUtf8(this.db, id)
-				if (this.encoding == 'json' && result) {
-					lastSize = result.length
-					return JSON.parse(result)
+				if (result) {
+					this.lastSize = result.length
+					if (this.encoding == 'json')
+						return JSON.parse(result)
 				}
 				return result
 			} catch(error) {
@@ -805,7 +809,7 @@ function open(path, options) {
 			readTxn.reset()
 			let result = retry()
 			return result
-		} else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
+		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
 			// the noSync setting means that we can have partial corruption and we need to be able to recover
 			for (const store of stores) {
 				store.emit('remap')
@@ -819,7 +823,7 @@ function open(path, options) {
 			env.open(options)
 			openDB()
 			return retry()
-		}
+		}*/
 		try {
 			readTxnRenewed = null
 			readTxn = env.beginTxn(READING_TNX)

@@ -36,7 +36,7 @@ exports.CachingStore = Store => class extends Store {
 			return value
 		value = super.get(id)
 		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
-			let entry = this.cache.setValue(id, value)
+			let entry = this.cache.setValue(id, value, this.lastSize >> 10)
 			if (this.useVersions) {
 				entry.version = getLastVersion()
 			}
@@ -51,7 +51,7 @@ exports.CachingStore = Store => class extends Store {
 		if (value === undefined)
 			return
 		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
-			entry = this.cache.setValue(id, value)
+			entry = this.cache.setValue(id, value, this.lastSize >> 10)
 		} else {
 			entry = { value }
 		}
