@@ -415,6 +415,9 @@ NAN_METHOD(EnvWrap::open) {
         rc = valueToMDBKey(encryptionKey, enckey, *keySpace);
         if (!rc)
             return Nan::ThrowError("Bad encryption key");
+        if (enckey.mv_size != 32) {
+            return Nan::ThrowError("Encryption key must be 32 bytes long");
+        }
         rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
         if (rc != 0) {
             return throwLmdbError(rc);

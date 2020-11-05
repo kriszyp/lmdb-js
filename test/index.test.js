@@ -37,8 +37,8 @@ describe('lmdb-store', function() {
   });
   let testIteration = 1
   describe('Basic use', basicTests({ compression: false }));
-  describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt' }));
-//  describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
+  describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
+  //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe('Basic use with compression', basicTests({}));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
