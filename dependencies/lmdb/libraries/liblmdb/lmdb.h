@@ -186,7 +186,6 @@ typedef	mode_t	mdb_mode_t;
 #else
 # define MDB_FMT_Z	"z"			/**< printf/scanf format modifier for size_t */
 #endif
-void chacha8(const void* data, size_t length, const uint8_t* key, const uint8_t* iv, char* cipher);
 
 #if !defined(MDB_RPAGE_CACHE) || (defined(MDB_VL32) && !(MDB_RPAGE_CACHE))
 /** Support #MDB_REMAP_CHUNKS. Implied by MDB_VL32. Define as 0 to disable. */
