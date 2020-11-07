@@ -40,6 +40,7 @@
  */
 
 #define REGEX_STR "regex"
+#define NEG_REGEX_STR "negregex"
 #define URI_STR "uri"
 #define SET_STR "set"
 #define SIZE_STR "size"
@@ -79,6 +80,7 @@ enum {
 	CONSTRAINT_COUNT,
 	CONSTRAINT_SIZE,
 	CONSTRAINT_REGEX,
+	CONSTRAINT_NEG_REGEX,
 	CONSTRAINT_SET,
 	CONSTRAINT_URI,
 };
@@ -86,7 +88,7 @@ enum {
 static ConfigDriver constraint_cf_gen;
 
 static ConfigTable constraintcfg[] = {
-	{ "constraint_attribute", "attribute[list]> (regex|uri|set|size|count) <value> [<restrict URI>]",
+	{ "constraint_attribute", "attribute[list]> (regex|negregex|uri|set|size|count) <value> [<restrict URI>]",
 	  4, 0, 0, ARG_MAGIC | CONSTRAINT_ATTRIBUTE, constraint_cf_gen,
 	  "( OLcfgOvAt:13.1 NAME 'olcConstraintAttribute' "
 	  "DESC 'constraint for list of attributes' "
@@ -175,6 +177,10 @@ constraint_cf_gen( ConfigArgs *c )
 						break;
 					case CONSTRAINT_REGEX:
 						tstr = REGEX_STR;
+						quotes = 1;
+						break;
+					case CONSTRAINT_NEG_REGEX:
+						tstr = NEG_REGEX_STR;
 						quotes = 1;
 						break;
 					case CONSTRAINT_SET:
@@ -296,10 +302,12 @@ constraint_cf_gen( ConfigArgs *c )
 				}
 			}
 
-			if ( strcasecmp( c->argv[2], REGEX_STR ) == 0) {
+			int is_regex = strcasecmp( c->argv[2], REGEX_STR ) == 0;
+			int is_neg_regex = strcasecmp( c->argv[2], NEG_REGEX_STR ) == 0;
+			if ( is_regex || is_neg_regex ) {
 				int err;
 			
-				ap.type = CONSTRAINT_REGEX;
+				ap.type = is_regex ? CONSTRAINT_REGEX : CONSTRAINT_NEG_REGEX;
 				ap.re = ch_malloc( sizeof(regex_t) );
 				if ((err = regcomp( ap.re,
 					c->argv[3], REG_EXTENDED )) != 0) {
@@ -596,6 +604,10 @@ constraint_violation( constraint *c, struct berval *bv, Operation *op )
 			break;
 		case CONSTRAINT_REGEX:
 			if (regexec(c->re, bv->bv_val, 0, NULL, 0) == REG_NOMATCH)
+				return LDAP_CONSTRAINT_VIOLATION; /* regular expression violation */
+			break;
+		case CONSTRAINT_NEG_REGEX:
+			if (regexec(c->re, bv->bv_val, 0, NULL, 0) != REG_NOMATCH)
 				return LDAP_CONSTRAINT_VIOLATION; /* regular expression violation */
 			break;
 		case CONSTRAINT_URI: {
