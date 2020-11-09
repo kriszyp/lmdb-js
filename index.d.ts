@@ -57,8 +57,9 @@ declare module 'lmdb-store' {
 		start?: Key
 		end?: Key
 		reverse?: boolean
-		includeValues?: boolean
-		includeVersions?: boolean
+		values?: boolean
+		versions?: boolean
+		limit?: number
 	}
 	class ArrayLikeIterable<T> implements Iterable<T> {
 		map<U>(callback: (entry: T) => U): ArrayLikeIterable<U>
