@@ -1760,6 +1760,11 @@ locked:
 			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		}
 		rc = op2.o_bd->be_modify( &op2, &r2 );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "%s ppolicy_bind_response: "
+					"ppolicy state change failed with rc=%d text=%s\n",
+					op->o_log_prefix, rc, r2.sr_text );
+		}
 	}
 	if ( mod ) {
 		slap_mods_free( mod, 1 );
