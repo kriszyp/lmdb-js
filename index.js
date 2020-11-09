@@ -60,14 +60,15 @@ function open(path, options) {
 			if (defaultCompression)
 				options.compression = defaultCompression
 			else
-				setDefault = true
-		}
-		options.compression = new Compression(Object.assign({
-			threshold: 1000,
-			dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-		}), options.compression)
-		if (setDefault)
-			defaultCompression = options.compression
+				defaultCompression = options.compression = new Compression({
+					threshold: 1000,
+					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+				})
+		} else
+			options.compression = new Compression(Object.assign({
+				threshold: 1000,
+				dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+			}), options.compression)
 	}
 
 	if (options && options.clearOnStart) {
