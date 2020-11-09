@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2014 Timur Kristóf
+This project contains is based on the code from the node-lmdb project ([Copyright (c) 2014 Timur Kristóf](https://github.com/venemo/node-lmdb/)) and LMDB, which has a specific [OpenLDAP license](dependencies/lmdb/libraries/liblmdb/LICENSE),
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
