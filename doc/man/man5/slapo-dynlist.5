@@ -143,6 +143,9 @@ to expand the group.
 Values of the 
 .B dgAuthz
 attribute must conform to the (experimental) \fIOpenLDAP authz\fP syntax.
+When using dynamic memberOf in search filters, search access to the
+.B entryDN
+pseudo-attribute is required.
 
 .SH EXAMPLE
 This example collects all the email addresses of a database into a single
@@ -221,7 +224,7 @@ attribute to all the members of a dynamic group:
 
 
 This example extends the dynamic memberOf feature to add the
-.B dgMemberOf
+.B memberOf
 attribute to all the members of both static and dynamic groups:
 .LP
 .nf
@@ -232,7 +235,7 @@ attribute to all the members of both static and dynamic groups:
     # ...
 
     overlay dynlist
-    dynlist\-attrset groupOfURLs memberURL member+dgMemberOf@groupOfNames
+    dynlist\-attrset groupOfURLs memberURL member+memberOf@groupOfNames
 .fi
 .LP
 This dynamic memberOf feature can fully replace the functionality of the
