@@ -424,6 +424,15 @@ NAN_METHOD(EnvWrap::open) {
         }
     }
 
+    /*Local<Value> encryptionFunction = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encrypt").ToLocalChecked()).ToLocalChecked();
+    if (!encryptionFunction->IsUndefined()) {
+        std::bind()
+        rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
+        if (rc != 0) {
+            return throwLmdbError(rc);
+        }
+    }*/
+
     // Parse the maxReaders option
     // NOTE: mdb.c defines DEFAULT_READERS as 126
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");

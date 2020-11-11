@@ -603,13 +603,14 @@ public:
 class Compression : public Nan::ObjectWrap {
 public:
     char* dictionary;
+    char* decompressBlock;
     char* decompressTarget;
     unsigned int decompressSize;
     unsigned int compressionThreshold;
     Persistent<Object> unsafeBuffer;
     // compression acceleration (defaults to 1)
     int acceleration;
-    LZ4_stream_t* stream;
+    static thread_local LZ4_stream_t* stream;
     void decompress(MDB_val& data, bool &isValid);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     void makeUnsafeBuffer();

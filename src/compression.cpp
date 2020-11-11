@@ -4,9 +4,8 @@
 using namespace v8;
 using namespace node;
 
+thread_local LZ4_stream_t* Compression::stream;
 Compression::Compression() {
-    stream = LZ4_createStream();
-    
 }
 Compression::~Compression() {
     delete dictionary;
@@ -54,7 +53,7 @@ void Compression::makeUnsafeBuffer() {
         decompressSize,
         [](char*, void* data) {
             // free the data once it is not used
-            delete data;
+            //delete data;
         },
         dictionary
     ).ToLocalChecked();
@@ -121,6 +120,8 @@ argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t fr
     int maxCompressedSize = LZ4_COMPRESSBOUND(dataLength);
     char* compressed = new char[maxCompressedSize + prefixSize];
     //fprintf(stdout, "compressing %u\n", dataLength);
+    if (!stream)
+        stream = LZ4_createStream();
     LZ4_loadDict(stream, dictionary, decompressTarget - dictionary);
     int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
     if (compressedSize > 0) {
