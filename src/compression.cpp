@@ -4,7 +4,7 @@
 using namespace v8;
 using namespace node;
 
-thread_local LZ4_stream_t* Compression::stream;
+thread_local LZ4_stream_t* Compression::stream = nullptr;
 Compression::Compression() {
 }
 Compression::~Compression() {
