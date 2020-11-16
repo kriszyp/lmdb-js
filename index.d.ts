@@ -1,6 +1,6 @@
 declare module 'lmdb-store' {
-	export function open<K extends Key = Key, V = any>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
-	export function open<K extends Key = Key, V = any>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
+	export function open<V = any, K extends Key = Key>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
+	export function open<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
 
 	class Database<V = any, K extends Key = Key> extends NodeJS.EventEmitter {
 		get(id: K): V | undefined
