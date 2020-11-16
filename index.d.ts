@@ -11,12 +11,13 @@ declare module 'lmdb-store' {
 		putSync(id: Key, value: any): void
 		putSync(id: Key, value: any, version: number): void
 		removeSync(id: Key): void
-		getRange(options: RangeOptions): ArrayLikeIterable<{ key: Key, value: any, version: number }>
+		getRange(options?: RangeOptions): ArrayLikeIterable<{ key: Key, value: any, version: number }>
 		transaction<T>(action: () => T, abort?: boolean): T
 		ifVersion(id: Key, ifVersion: number, action: () => any): Promise<boolean>
 		ifNoExists(id: Key, action: () => any): Promise<boolean>
 	}
 	class RootDatabase extends Database {
+		openDB(options: DatabaseOptions & { name: string }): Database
 		openDB(dbName: string, dbOptions: DatabaseOptions): Database
 	}
 	type Key = string | symbol | number | boolean | Buffer
@@ -45,6 +46,7 @@ declare module 'lmdb-store' {
 		noMetaSync?: boolean
 		readOnly?: boolean
 		mapAsync?: boolean
+		maxReaders?: number
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
 		path: string
