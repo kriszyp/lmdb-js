@@ -1,23 +1,24 @@
 declare module 'lmdb-store' {
-	export function open(path: string, options: RootDatabaseOptions): RootDatabase
-	export function open(options: RootDatabaseOptionsWithPath): RootDatabase
+	export function open<K extends Key = Key, V = any>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
+	export function open<K extends Key = Key, V = any>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
 
-	class Database extends NodeJS.EventEmitter {
-		get(id: Key): any
-		put(id: Key, value: any): Promise<boolean>
-		put(id: Key, value: any, version: number, ifVersion?: number): Promise<boolean>
-		remove(id: Key): Promise<boolean>
-		remove(id: Key, ifVersion: number): Promise<boolean>
-		putSync(id: Key, value: any): void
-		putSync(id: Key, value: any, version: number): void
-		removeSync(id: Key): void
-		getRange(options: RangeOptions): ArrayLikeIterable<{ key: Key, value: any, version: number }>
+	class Database<V = any, K extends Key = Key> extends NodeJS.EventEmitter {
+		get(id: K): V | undefined
+		put(id: K, value: V): Promise<boolean>
+		put(id: K, value: V, version: number, ifVersion?: number): Promise<boolean>
+		remove(id: K): Promise<boolean>
+		remove(id: K, ifVersion: number): Promise<boolean>
+		putSync(id: K, value: V): void
+		putSync(id: K, value: V, version: number): void
+		removeSync(id: K): void
+		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version: number }>
 		transaction<T>(action: () => T, abort?: boolean): T
-		ifVersion(id: Key, ifVersion: number, action: () => any): Promise<boolean>
-		ifNoExists(id: Key, action: () => any): Promise<boolean>
+		ifVersion(id: K, ifVersion: number, action: () => any): Promise<boolean>
+		ifNoExists(id: K, action: () => any): Promise<boolean>
 	}
-	class RootDatabase extends Database {
-		openDB(dbName: string, dbOptions: DatabaseOptions): Database
+	class RootDatabase<V = any, K extends Key = Key> extends Database<V, K> {
+		openDB(options: DatabaseOptions & { name: string }): Database<V, K>
+		openDB(dbName: string, dbOptions: DatabaseOptions): Database<V, K>
 	}
 	type Key = string | symbol | number | boolean | Buffer
 	interface DatabaseOptions {
