@@ -1635,6 +1635,7 @@ syncprov_add_slog( Operation *op )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 	sessionlog *sl;
 	slog_entry *se;
+	char uuidstr[40];
 	int rc;
 
 	sl = si->si_logs;
@@ -1673,12 +1674,11 @@ syncprov_add_slog( Operation *op )
 
 		ldap_pvt_thread_rdwr_wlock( &sl->sl_mutex );
 		if ( LogTest( LDAP_DEBUG_SYNC ) ) {
-			char uuidstr[40] = {};
+			uuidstr[0] = 0;
 			if ( !BER_BVISEMPTY( &opc->suuid ) ) {
 				lutil_uuidstr_from_normalized( opc->suuid.bv_val, opc->suuid.bv_len,
 					uuidstr, 40 );
 			}
-
 			Debug( LDAP_DEBUG_SYNC, "%s syncprov_add_slog: "
 				"adding csn=%s to sessionlog, uuid=%s\n",
 				op->o_log_prefix, se->se_csn.bv_val, uuidstr );
@@ -1694,7 +1694,13 @@ syncprov_add_slog( Operation *op )
 			}
 		}
 		rc = tavl_insert( &sl->sl_entries, se, syncprov_sessionlog_cmp, avl_dup_error );
-		assert( rc == LDAP_SUCCESS );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_SYNC, "%s syncprov_add_slog: "
+				"duplicate sessionlog entry ignored: csn=%s, uuid=%s\n",
+				op->o_log_prefix, se->se_csn.bv_val, uuidstr );
+			ch_free( se );
+			goto leave;
+		}
 		sl->sl_num++;
 		if ( !sl->sl_playing && sl->sl_num > sl->sl_size ) {
 			TAvlnode *edge = tavl_end( sl->sl_entries, TAVL_DIR_LEFT );
@@ -1726,6 +1732,7 @@ syncprov_add_slog( Operation *op )
 				sl->sl_num--;
 			}
 		}
+leave:
 		ldap_pvt_thread_rdwr_wunlock( &sl->sl_mutex );
 	}
 }
