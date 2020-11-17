@@ -4,6 +4,10 @@ declare module 'lmdb-store' {
 
 	class Database<V = any, K extends Key = Key> extends NodeJS.EventEmitter {
 		get(id: K): V | undefined
+		getEntry(id: K): {
+			value: V | undefined
+			version?: number
+		}
 		put(id: K, value: V): Promise<boolean>
 		put(id: K, value: V, version: number, ifVersion?: number): Promise<boolean>
 		remove(id: K): Promise<boolean>
