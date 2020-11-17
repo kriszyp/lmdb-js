@@ -23,6 +23,9 @@ EGREP_CMD="@EGREP@"
 
 export SRCDIR TOPSRCDIR LN_S EGREP_CMD
 
+# Load balancer
+AC_lloadd=lloadd@BUILD_BALANCER@
+
 # backends known to ./run -b <backend> (used to deduce $BACKENDTYPE)
 AC_ldif=yes
 AC_mdb=@BUILD_MDB@
@@ -75,6 +78,7 @@ export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_perl AC_relay A
 	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
 	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
+	AC_lloadd \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \
 	AC_LIBS_DYNAMIC AC_WITH_TLS AC_TLS_TYPE
 

@@ -1,0 +1,69 @@
+# Makefile.in for Load Balancer
+# $OpenLDAP$
+## This work is part of OpenLDAP Software <http://www.openldap.org/>.
+##
+## Copyright 1998-2020 The OpenLDAP Foundation.
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms, with or without
+## modification, are permitted only as authorized by the OpenLDAP
+## Public License.
+##
+## A copy of this license is available in the file LICENSE in the
+## top-level directory of the distribution or, alternatively, at
+## <http://www.OpenLDAP.org/license.html>.
+
+PROGRAMS = lloadd
+XPROGRAMS = slloadd
+
+XSRCS	= version.c
+
+NT_SRCS = ../slapd/nt_svc.c
+NT_OBJS = ../slapd/nt_svc.o ../../libraries/liblutil/slapdmsg.res
+
+SRCS	+= main.c value.c \
+		  ../slapd/ch_malloc.c ../slapd/sl_malloc.c ../slapd/user.c
+
+OBJS	= $(patsubst %.c,%.o,$(SRCS)) $(@PLAT@_OBJS)
+
+BUILD_OPT = "--enable-balancer"
+BUILD_SRV = @BUILD_BALANCER@
+
+all-local-srv: 	$(PROGRAMS)
+
+# $(LTHREAD_LIBS) must be last!
+XLIBS = $(LLOADD_L)
+XXLIBS = $(LLOADD_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
+XXXLIBS = $(LTHREAD_LIBS)
+
+NT_DEPENDS = slapd.exp
+NT_OBJECTS = slapd.exp symdummy.o $(LLOADD_OBJS) version.o
+
+UNIX_DEPENDS = version.o $(LLOADD_L)
+UNIX_OBJECTS = $(OBJS) version.o
+
+LLOADD_DEPENDS = $(@PLAT@_DEPENDS)
+LLOADD_OBJECTS = $(@PLAT@_OBJECTS)
+
+
+lloadd:	$(LLOADD_DEPENDS) version.o
+	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+
+slloadd:	version.o
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+
+version.c: Makefile
+	@-$(RM) $@
+	$(MKVERSION) -s -n Versionstr lloadd > $@
+
+version.o: version.c $(OBJS) $(LLOADD_L)
+
+install-local-srv: FORCE
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-lloadd
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)

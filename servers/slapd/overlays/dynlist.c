@@ -1312,8 +1312,6 @@ dynlist_filter_dup( Operation *op, Filter *f, AttributeDescription *ad, dynlist_
 
 	case LDAP_FILTER_SUBSTRINGS:
 		n->f_choice = f->f_choice;
-		n->f_sub_initial = f->f_sub_initial;
-		n->f_sub_final = f->f_sub_final;
 		n->f_sub = f->f_sub;
 		break;
 
@@ -1701,16 +1699,19 @@ dynlist_search( Operation *op, SlapReply *rs )
 				if ( dlm->dlm_memberOf_ad ) {
 					int want = 0;
 
-					/* with nesting, filter attributes also require nestlink */
-					if ( dlm->dlm_memberOf_nested ) {
+					/* is attribute in filter? */
+					if ( ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter )) {
+						want |= WANT_MEMBEROF;
+						/* with nesting, filter attributes also require nestlink */
+						if ( dlm->dlm_memberOf_nested ) {
 						/* WANT_ flags have inverted meaning here:
 						 * to satisfy (memberOf=) filter, we need to also
 						 * find all subordinate groups. No special
 						 * treatment is needed for (member=) since we
 						 * already search all group entries.
 						 */
-						if ( ad_infilter( dlm->dlm_memberOf_ad, op->ors_filter ))
 							want |= WANT_MEMBER;
+						}
 					}
 
 					/* if attribute is not requested, skip it */

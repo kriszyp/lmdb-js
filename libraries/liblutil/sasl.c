@@ -216,8 +216,6 @@ int lutil_sasl_interact(
 {
 	sasl_interact_t *interact = in;
 
-	if( ld == NULL ) return LDAP_PARAM_ERROR;
-
 	if( flags == LDAP_SASL_INTERACTIVE ) {
 		fputs( _("SASL Interaction\n"), stderr );
 	}

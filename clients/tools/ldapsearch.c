@@ -479,7 +479,7 @@ handle_private_option( int i )
 			pagedResults = 1 + crit;
 
 		} else if ( strcasecmp( control, "ps" ) == 0 ) {
-			int num, tmp;
+			int num;
 			/* PersistentSearch control */
 			if ( psearch != 0 ) {
 				fprintf( stderr,
@@ -785,7 +785,6 @@ handle_private_option( int i )
 
 #ifdef LDAP_CONTROL_X_SHOW_DELETED
 		} else if ( strcasecmp( control, "showDeleted" ) == 0 ) {
-			int num, tmp;
 			if( showDeleted ) {
 				fprintf( stderr,
 					_("showDeleted control previously specified\n"));
@@ -802,7 +801,6 @@ handle_private_option( int i )
 
 #ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
 		} else if ( strcasecmp( control, "serverNotif" ) == 0 ) {
-			int num, tmp;
 			if( serverNotif ) {
 				fprintf( stderr,
 					_("serverNotif control previously specified\n"));

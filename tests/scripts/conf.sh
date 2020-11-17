@@ -49,6 +49,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_translucent}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${AC_valsort}#//"			\
+	-e "s/^#${AC_lloadd}#//"			\
 	-e "s/^#${INDEXDB}#//"				\
 	-e "s/^#${MAINDB}#//"				\
 	-e "s/^#${SASL}#//"				\

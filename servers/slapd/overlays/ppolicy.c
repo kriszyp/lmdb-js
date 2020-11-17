@@ -865,7 +865,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	pp_info *pi = on->on_bi.bi_private;
 	Attribute *a;
 	BerVarray vals;
-	int rc;
+	int rc = LDAP_SUCCESS;
 	Entry *pe = NULL;
 #if 0
 	const char *text;
@@ -1760,6 +1760,11 @@ locked:
 			op2.o_bd->bd_info = (BackendInfo *)on->on_info;
 		}
 		rc = op2.o_bd->be_modify( &op2, &r2 );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "%s ppolicy_bind_response: "
+					"ppolicy state change failed with rc=%d text=%s\n",
+					op->o_log_prefix, rc, r2.sr_text );
+		}
 	}
 	if ( mod ) {
 		slap_mods_free( mod, 1 );
@@ -1998,7 +2003,6 @@ ppolicy_account_usability_entry_cb( Operation *op, SlapReply *rs )
 				lockoutEnd = then + pp.pwdLockoutDuration;
 		}
 
-		a = attr_find( e->e_attrs, ad_pwdAccountLockedTime );
 		if ( (a = attr_find( e->e_attrs, ad_pwdAccountTmpLockoutEnd )) != NULL ) {
 			then = parse_time( a->a_vals[0].bv_val );
 			if ( lockoutEnd != -1 && then > lockoutEnd )
@@ -2272,7 +2276,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info			*pi = on->on_bi.bi_private;
-	int			i, rc, mod_pw_only, pwmod, pwmop = -1, deladd,
+	int			i, rc, mod_pw_only, pwmod = 0, pwmop = -1, deladd,
 				hsize = 0, hskip;
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail = NULL,

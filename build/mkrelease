@@ -44,6 +44,7 @@ shift
 #MD="md5"
 #OpenSSL
 SHA="openssl sha1"
+SHA3="openssl sha3-512"
 MD="openssl md5"
 
 if test -e $RELNAME ; then
@@ -87,6 +88,7 @@ tar cf $RELNAME.tar $RELNAME
 gzip -9 -c $RELNAME.tar > $RELNAME.tgz
 ${MD} $RELNAME.tgz > $RELNAME.md5
 ${SHA} $RELNAME.tgz > $RELNAME.sha1
+${SHA3} $RELNAME.tgz > $RELNAME.sha3-512
 rm -f $RELNAME.tar
 
 ls -l $RELNAME.*

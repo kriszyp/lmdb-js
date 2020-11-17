@@ -257,6 +257,7 @@ static OidRec OidMacros[] = {
  * OLcfg{Bk|Db}{Oc|At}:10		-> back-shell (removed)
  * OLcfg{Bk|Db}{Oc|At}:11		-> back-perl
  * OLcfg{Bk|Db}{Oc|At}:12		-> back-mdb
+ * OLcfg{Bk|Db}{Oc|At}:13		-> lloadd
  */
 
 /*
@@ -4857,7 +4858,6 @@ config_rename_one( Operation *op, SlapReply *rs, Entry *e,
 	CfEntryInfo *parent, Attribute *a, struct berval *newrdn,
 	struct berval *nnewrdn, int use_ldif )
 {
-	char *ptr1;
 	int cnt, rc = 0;
 	struct berval odn, ondn;
 	const char *text = "";
@@ -6508,7 +6508,7 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 		}
 		op->oq_modrdn = modr;
 	} else {
-		CfEntryInfo *ce2, *cebase, **cprev, **cbprev, *ceold;
+		CfEntryInfo *ce2, **cprev, **cbprev, *ceold;
 		req_modrdn_s modr = op->oq_modrdn;
 		int i;
 
@@ -6523,7 +6523,6 @@ config_back_modrdn( Operation *op, SlapReply *rs )
 			cprev = &ce2->ce_sibs;
 			ce2 = ce2->ce_sibs;
 		}
-		cebase = ce2;
 		cbprev = cprev;
 
 		/* Remove from old slot */
@@ -6880,11 +6879,8 @@ config_build_entry( Operation *op, SlapReply *rs, CfEntryInfo *parent,
 {
 	Entry *e = entry_alloc();
 	CfEntryInfo *ce = ch_calloc( 1, sizeof(CfEntryInfo) );
-	struct berval val;
-	struct berval ad_name;
 	AttributeDescription *ad = NULL;
 	int cnt, rc;
-	char *ptr;
 	const char *text = "";
 	Attribute *oc_at;
 	struct berval pdn;
@@ -7201,7 +7197,7 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 {
 	CfBackInfo *cfb = be->be_private;
 	struct berval rdn;
-	Entry *e, *parent;
+	Entry *e;
 	CfEntryInfo *ce, *ceparent;
 	int i, unsupp = 0;
 	BackendInfo *bi;
@@ -7261,7 +7257,6 @@ config_back_db_open( BackendDB *be, ConfigReply *cr )
 	ce = e->e_private;
 	cfb->cb_root = ce;
 
-	parent = e;
 	ceparent = ce;
 
 #ifdef SLAPD_MODULES
@@ -7648,7 +7643,7 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 	int rc;
-	struct berval rdn, vals[ 2 ];
+	struct berval rdn;
 	ConfigArgs ca;
 	OperationBuffer opbuf;
 	Entry *ce;
@@ -7668,8 +7663,6 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					strncmp( e->e_nname.bv_val + 
 					STRLENOF( "olcDatabase" ), "=frontend",
 					STRLENOF( "=frontend" ))) {
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
 				memset( &ca, 0, sizeof(ConfigArgs));
 				ca.be = frontendDB;
 				ca.bi = frontendDB->bd_info;
@@ -7746,8 +7739,6 @@ config_tool_entry_put( BackendDB *be, Entry *e, struct berval *text )
 					strncmp( e->e_nname.bv_val +
 					STRLENOF( "olcDatabase" ), "=config",
 					STRLENOF( "=config" )) ) {
-				vals[1].bv_len = 0;
-				vals[1].bv_val = NULL;
 				memset( &ca, 0, sizeof(ConfigArgs));
 				ca.be = LDAP_STAILQ_FIRST( &backendDB );
 				ca.bi = ca.be->bd_info;
@@ -7800,7 +7791,6 @@ config_tool_entry_modify( BackendDB *be, Entry *e, struct berval *text )
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 	CfEntryInfo *ce, *last;
-	ConfigArgs ca = {0};
 
 	ce = config_find_base( cfb->cb_root, &e->e_nname, &last );
 
@@ -7816,7 +7806,6 @@ config_tool_entry_delete( BackendDB *be, struct berval *ndn, struct berval *text
 	CfBackInfo *cfb = be->be_private;
 	BackendInfo *bi = cfb->cb_db.bd_info;
 	CfEntryInfo *ce, *last;
-	ConfigArgs ca = {0};
 
 	ce = config_find_base( cfb->cb_root, ndn, &last );
 

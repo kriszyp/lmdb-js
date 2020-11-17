@@ -196,12 +196,6 @@ static slap_daemon_st *slap_daemon;
 # define SLAP_EVENT_INIT(t) do {\
     if (!events) { \
         events = ch_malloc(sizeof(*events) * SLAP_EVENT_MAX(t)); \
-        if (!events) { \
-            Debug(LDAP_DEBUG_ANY, \
-                "daemon: SLAP_EVENT_INIT: ch_malloc of events failed, wanted %d bytes\n", \
-                sizeof(*events) * SLAP_EVENT_MAX(t)); \
-                slapd_shutdown = 2; \
-        } \
     } \
 } while (0)
 
@@ -217,35 +211,12 @@ static slap_daemon_st *slap_daemon;
         kqc->sd_maxchanges = 256; /* will grow as needed */ \
         kq_nbytes = sizeof(*kqc->sd_changes) * kqc->sd_maxchanges; \
         kqc->sd_changes = ch_calloc(1, kq_nbytes); \
-        if (!kqc->sd_changes) { \
-            Debug(LDAP_DEBUG_ANY, \
-                  "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_changes[%d] failed, wanted %d bytes, shutting down\n", \
-                  kq_i, kq_nbytes); \
-                  slapd_shutdown = 2; \
-        } \
     } \
     kq_nbytes = sizeof(*slap_daemon[t].sd_fdmodes) * dtblsize; \
     slap_daemon[t].sd_fdmodes = ch_calloc(1, kq_nbytes); \
-    if (!slap_daemon[t].sd_fdmodes) { \
-        Debug(LDAP_DEBUG_ANY, \
-            "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_fdmodes failed, wanted %d bytes, shutting down\n", \
-            kq_nbytes); \
-        slapd_shutdown = 2; \
-    } \
     kq_nbytes = sizeof(*slap_daemon[t].sd_l) * dtblsize; \
     slap_daemon[t].sd_l = ch_calloc(1, kq_nbytes); \
-    if (!slap_daemon[t].sd_l) { \
-        Debug(LDAP_DEBUG_ANY, \
-            "daemon: SLAP_SOCK_INIT: ch_calloc of slap_daemon.sd_l failed, wanted %d bytes, shutting down\n", \
-            kq_nbytes); \
-        slapd_shutdown = 2; \
-    } \
     slap_daemon[t].sd_kq = kqueue(); \
-    if (slap_daemon[t].sd_kq < 0) { \
-        int saved_errno = errno; \
-        Debug(LDAP_DEBUG_ANY, "daemon: SLAP_SOCK_INIT: kqueue() failed, errno=%d, shutting down\n", saved_errno); \
-        slapd_shutdown = 2; \
-    } \
 } while (0)
 
 /* a kqueue fd obtained before a fork can't be used in child process.
@@ -311,13 +282,6 @@ static slap_daemon_st *slap_daemon;
         kqc->sd_maxchanges += kqc->sd_maxchanges; \
         kq_nbytes = sizeof(*kqc->sd_changes) * kqc->sd_maxchanges; \
         kqc->sd_changes = ch_realloc(kqc->sd_changes, kq_nbytes); \
-        if (!kqc->sd_changes) { \
-            Debug(LDAP_DEBUG_ANY, \
-                "daemon: SLAP_KQUEUE_CHANGE: ch_realloc of slap_daemon.sd_kqc[%d].sd_changes failed, wanted %d bytes, shutting down\n", \
-                slap_daemon[t].sd_changeidx, kq_nbytes); \
-            slapd_shutdown = 2; \
-            break; /* Don't want to do the EV_SET if sd_changes is NULL */ \
-        } \
     } \
     EV_SET(&kqc->sd_changes[kqc->sd_nchanges++], \
            (s), (filter), (flag), 0, 0, slap_daemon[t].sd_l[(s)]); \
@@ -1412,12 +1376,9 @@ slap_get_listener_addresses(
 
 #ifdef LDAP_PF_LOCAL
 	if ( port == 0 ) {
-		*sal = ch_malloc(2 * sizeof(void *));
-		if (*sal == NULL) return -1;
+		sap = *sal = ch_malloc(2 * sizeof(void *));
 
-		sap = *sal;
 		*sap = ch_malloc(sizeof(struct sockaddr_un));
-		if (*sap == NULL) goto errexit;
 		sap[1] = NULL;
 
 		if ( strlen(host) >
@@ -1456,10 +1417,7 @@ slap_get_listener_addresses(
 		for (n=2; (sai = sai->ai_next) != NULL; n++) {
 			/* EMPTY */ ;
 		}
-		*sal = ch_calloc(n, sizeof(void *));
-		if (*sal == NULL) return -1;
-
-		sap = *sal;
+		sap = *sal = ch_calloc(n, sizeof(void *));
 		*sap = NULL;
 
 		for ( sai=res; sai; sai=sai->ai_next ) {
@@ -1474,20 +1432,12 @@ slap_get_listener_addresses(
 #  ifdef LDAP_PF_INET6
 			case AF_INET6:
 				*sap = ch_malloc(sizeof(struct sockaddr_in6));
-				if (*sap == NULL) {
-					freeaddrinfo(res);
-					goto errexit;
-				}
 				*(struct sockaddr_in6 *)*sap =
 					*((struct sockaddr_in6 *)sai->ai_addr);
 				break;
 #  endif /* LDAP_PF_INET6 */
 			case AF_INET:
 				*sap = ch_malloc(sizeof(struct sockaddr_in));
-				if (*sap == NULL) {
-					freeaddrinfo(res);
-					goto errexit;
-				}
 				*(struct sockaddr_in *)*sap =
 					*((struct sockaddr_in *)sai->ai_addr);
 				break;
@@ -1523,15 +1473,10 @@ slap_get_listener_addresses(
 			for (n = 0; he->h_addr_list[n]; n++) /* empty */;
 		}
 
-		*sal = ch_malloc((n+1) * sizeof(void *));
-		if (*sal == NULL) return -1;
+		sap = *sal = ch_malloc((n+1) * sizeof(void *));
 
-		sap = *sal;
 		for ( i = 0; i<n; i++ ) {
-			sap[i] = ch_malloc(sizeof(struct sockaddr_in));
-			if (*sap == NULL) goto errexit;
-
-			(void)memset( (void *)sap[i], '\0', sizeof(struct sockaddr_in) );
+			sap[i] = ch_calloc(sizeof(struct sockaddr_in));
 			sap[i]->sa_family = AF_INET;
 			((struct sockaddr_in *)sap[i])->sin_port = htons(port);
 			AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr,
@@ -1647,6 +1592,14 @@ slap_open_listener(
 		l.sl_perms = S_IRWXU | S_IRWXO;
 	}
 #endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
+
+	if ( lud->lud_dn && lud->lud_dn[0] ) {
+		sprintf( (char *)url, "%s://%s/", lud->lud_scheme, lud->lud_host );
+		Debug( LDAP_DEBUG_ANY, "daemon: listener URL %s<junk> DN must be absent (%s)\n",
+			url, lud->lud_dn );
+		ldap_free_urldesc( lud );
+		return -1;
+	}
 
 	ldap_free_urldesc( lud );
 	if ( err ) {
@@ -1803,7 +1756,7 @@ slap_open_listener(
 		case AF_LOCAL: {
 			char *path = ((struct sockaddr_un *)*sal)->sun_path;
 			l.sl_name.bv_len = strlen(path) + STRLENOF("PATH=");
-			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len + 1 );
+			l.sl_name.bv_val = ch_malloc( l.sl_name.bv_len + 1 );
 			snprintf( l.sl_name.bv_val, l.sl_name.bv_len + 1, 
 				"PATH=%s", path );
 		} break;
@@ -1821,7 +1774,7 @@ slap_open_listener(
 			if (!s) s = SLAP_STRING_UNKNOWN;
 			port = ntohs( ((struct sockaddr_in *)*sal) ->sin_port );
 			l.sl_name.bv_val =
-				ber_memalloc( sizeof("IP=255.255.255.255:65535") );
+				ch_malloc( sizeof("IP=255.255.255.255:65535") );
 			snprintf( l.sl_name.bv_val, sizeof("IP=255.255.255.255:65535"),
 				"IP=%s:%d", s, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
@@ -1836,7 +1789,7 @@ slap_open_listener(
 			if (!s) s = SLAP_STRING_UNKNOWN;
 			port = ntohs( ((struct sockaddr_in6 *)*sal)->sin6_port );
 			l.sl_name.bv_len = strlen(s) + sizeof("IP=[]:65535");
-			l.sl_name.bv_val = ber_memalloc( l.sl_name.bv_len );
+			l.sl_name.bv_val = ch_malloc( l.sl_name.bv_len );
 			snprintf( l.sl_name.bv_val, l.sl_name.bv_len, "IP=[%s]:%d", 
 				s, port );
 			l.sl_name.bv_len = strlen( l.sl_name.bv_val );
@@ -2508,7 +2461,6 @@ slapd_daemon_task(
 	time_t last_idle_check = 0;
 	int ebadf = 0;
 	int tid = (slap_daemon_st *) ptr - slap_daemon;
-	int old_threads = slapd_daemon_threads;
 	char ebuf[128];
 
 #define SLAPD_IDLE_CHECK_LIMIT 4

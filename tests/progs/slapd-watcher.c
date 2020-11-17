@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 
+#include "ac/signal.h"
 #include "ac/stdlib.h"
 #include "ac/time.h"
 
@@ -597,7 +598,9 @@ main( int argc, char **argv )
 	}
 
 	tester_config_finish( config );
-	signal(SIGPIPE, SIG_IGN);
+#ifdef SIGPIPE
+	(void) SIGNAL(SIGPIPE, SIG_IGN);
+#endif
 
 	/* don't clear the screen if debug is enabled */
 	if (debug)

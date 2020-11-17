@@ -416,8 +416,7 @@ certificateListValidate( Syntax *syntax, struct berval *in )
 	/* Optional version */
 	if ( tag == LBER_INTEGER ) {
 		tag = ber_get_int( ber, &version );
-		assert( tag == LBER_INTEGER );
-		if ( version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
+		if ( tag != LBER_INTEGER || version != SLAP_X509_V2 ) return LDAP_INVALID_SYNTAX;
 	}
 	tag = ber_skip_tag( ber, &len );	/* Signature Algorithm */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
@@ -3016,12 +3015,14 @@ UUIDNormalize(
 
 	if ( SLAP_MR_IS_DENORMALIZE( usage ) ) {
 		/* NOTE: must be a normalized UUID */
-		assert( val->bv_len == 16 );
+		if( val->bv_len != 16 )
+			return LDAP_INVALID_SYNTAX;
 
 		normalized->bv_val = slap_sl_malloc( LDAP_LUTIL_UUIDSTR_BUFSIZE, ctx );
 		normalized->bv_len = lutil_uuidstr_from_normalized( val->bv_val,
 			val->bv_len, normalized->bv_val, LDAP_LUTIL_UUIDSTR_BUFSIZE );
-		assert( normalized->bv_len == STRLENOF( "BADBADBA-DBAD-0123-4567-BADBADBADBAD" ) );
+		if( normalized->bv_len != STRLENOF( "BADBADBA-DBAD-0123-4567-BADBADBADBAD" ) )
+			return LDAP_INVALID_SYNTAX;
 
 		return LDAP_SUCCESS;
 	}
@@ -5402,8 +5403,8 @@ csnNormalize23(
 	}
 	*ptr = '\0';
 
-	assert( ptr == &bv.bv_val[bv.bv_len] );
-	if ( csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
+	if ( ptr != &bv.bv_val[bv.bv_len] ||
+		csnValidate( syntax, &bv ) != LDAP_SUCCESS ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 

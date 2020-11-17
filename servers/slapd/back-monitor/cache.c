@@ -82,13 +82,10 @@ monitor_cache_add(
 	Entry		*e )
 {
 	monitor_cache_t	*mc;
-	monitor_entry_t	*mp;
 	int		rc;
 
 	assert( mi != NULL );
 	assert( e != NULL );
-
-	mp = ( monitor_entry_t *)e->e_private;
 
 	mc = ( monitor_cache_t * )ch_malloc( sizeof( monitor_cache_t ) );
 	mc->mc_ndn = e->e_nname;

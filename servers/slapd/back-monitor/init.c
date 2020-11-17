@@ -1963,6 +1963,7 @@ monitor_back_initialize(
 		{ "olmGenericAttributes",		"olmSubSystemAttributes:0" },
 		{ "olmDatabaseAttributes",		"olmSubSystemAttributes:1" },
 		{ "olmOverlayAttributes",		"olmSubSystemAttributes:2" },
+		{ "olmModuleAttributes",		"olmSubSystemAttributes:3" },
 
 		/* for example, back-mdb specific attrs
 		 * are in "olmDatabaseAttributes:12"
@@ -1975,6 +1976,7 @@ monitor_back_initialize(
 		{ "olmGenericObjectClasses",		"olmSubSystemObjectClasses:0" },
 		{ "olmDatabaseObjectClasses",		"olmSubSystemObjectClasses:1" },
 		{ "olmOverlayObjectClasses",		"olmSubSystemObjectClasses:2" },
+		{ "olmModuleObjectClasses",			"olmSubSystemObjectClasses:3" },
 
 		/* for example, back-mdb specific objectClasses
 		 * are in "olmDatabaseObjectClasses:12"
