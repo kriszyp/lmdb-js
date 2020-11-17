@@ -192,6 +192,11 @@ let myStore = open('my-store', {
 ```
 Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults.
 
+## Caching
+lmdb-store supports caching of entries from stores, and use a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. This weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
+
+While caching can improve performance, LMDB itself is extremely fast, and for small objects with sporadic access, caching may not improve performance. Caching tends to provide the most benefits for larger objects that may have more significant deserialization costs.
+
 ### Store Options
 The open method can be used to create the main database/environment with the following signature:
 `open(path, options)` or `open(options)`
@@ -202,6 +207,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'string'`, or `'binary'`.
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
+* `cache` - Setting this to true enables caching.
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
