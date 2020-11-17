@@ -878,8 +878,13 @@ function compareKey(a, b) {
 		if (arrayComparison == 0 && a.length > 1)
 			return 1
 		return arrayComparison
-	} else if (typeof a == typeof b)
+	} else if (typeof a == typeof b) {
+		if (typeof a === 'symbol') {
+			a = Symbol.keyFor(a)
+			b = Symbol.keyFor(b)
+		}
 		return a < b ? -1 : a === b ? 0 : 1
+	}
 	else if (typeof b == 'object') {
 		if (b instanceof Array)
 			return -compareKey(b, a)

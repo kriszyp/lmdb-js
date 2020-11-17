@@ -134,7 +134,7 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         return bytesWritten;
     } else if (jsKey->IsSymbol()) {
         int utfWritten;
-        Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Name());
+        Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Description());
         targetBytes[0] = 2;
 #if NODE_VERSION_AT_LEAST(11,0,0)
         bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
@@ -188,7 +188,14 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
                 value = Nan::Null();
             } else if (controlByte == 2) {
                 consumed = size;
-                value = Symbol::For(Isolate::GetCurrent(), Nan::New<v8::String>((char*) keyBytes + 1, size - 1).ToLocalChecked());
+                uint8_t* separatorPosition = (uint8_t*) memchr((char*) keyBytes + 1, 0, size - 1);
+                if (separatorPosition) {
+                    value = Symbol::For(Isolate::GetCurrent(), Nan::New<v8::String>((char*) keyBytes + 1, separatorPosition - keyBytes - 1).ToLocalChecked());
+                    consumed = separatorPosition - keyBytes;
+                } else {
+                    value = Symbol::For(Isolate::GetCurrent(), Nan::New<v8::String>((char*) keyBytes + 1, size - 1).ToLocalChecked());
+                    consumed = size;
+                }
             } else {
                 return Nan::CopyBuffer(
                     (char*)val.mv_data,
@@ -240,14 +247,15 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
             value = Nan::New<v8::String>((char*) val.mv_data, consumed).ToLocalChecked();
     }
     if (consumed < size) {
+        Local<Value> nextValue;
         if (keyBytes[consumed] != 0 && keyBytes[consumed] != 30) {
-            Nan::ThrowError("Invalid separator byte");
-            return Nan::Undefined();
+            nextValue = Nan::New<v8::String>("Invalid separator byte").ToLocalChecked();
+        } else {
+            MDB_val nextPart;
+            nextPart.mv_size = size - consumed - 1;
+            nextPart.mv_data = &keyBytes[consumed + 1];
+            nextValue = MDBKeyToValue(nextPart);
         }
-        MDB_val nextPart;
-        nextPart.mv_size = size - consumed - 1;
-        nextPart.mv_data = &keyBytes[consumed + 1];
-        Local<Value> nextValue = MDBKeyToValue(nextPart);
         v8::Local<v8::Array> resultsArray;
         Local<Context> context = Nan::GetCurrentContext();
         if (nextValue->IsArray()) {
