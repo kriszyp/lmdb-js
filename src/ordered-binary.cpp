@@ -134,7 +134,12 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
         return bytesWritten;
     } else if (jsKey->IsSymbol()) {
         int utfWritten;
+#if NODE_VERSION_AT_LEAST(14,0,0)
         Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Description());
+#else
+        Local<String> string = Local<String>::Cast(Local<Symbol>::Cast(jsKey)->Name());
+#endif
+
         targetBytes[0] = 2;
 #if NODE_VERSION_AT_LEAST(11,0,0)
         bytesWritten = string->WriteUtf8(Isolate::GetCurrent(), (char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
