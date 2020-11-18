@@ -148,7 +148,7 @@ groupsStore.put('some-group', { groupData: moreData });
 Both these puts will be batched and after 1ms be committed in the same transaction.
 
 ### getLastVersion(): number
-This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database).
+This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
 
 ## Concurrency and Versioning
 LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning is the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
