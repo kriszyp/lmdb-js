@@ -2,7 +2,8 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_vl32%": "false",
-      "use_robust%": "false"
+      "use_robust%": "false",
+      "build_v8_with_gn": "false"
   },
   "targets": [
     {
