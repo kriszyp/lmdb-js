@@ -27,6 +27,7 @@ declare module 'lmdb-store' {
 	type Key = string | symbol | number | boolean | Buffer
 	interface DatabaseOptions {
 		name?: string
+		cache?: boolean
 		compression?: boolean | CompressionOptions
 		encoding?: 'msgpack' | 'json' | 'string' | 'binary'
 		sharedStructuresKey?: Key
@@ -72,5 +73,6 @@ declare module 'lmdb-store' {
 		filter(callback: (entry: T) => any): ArrayLikeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
+		asArray: T[]
 	}
 }

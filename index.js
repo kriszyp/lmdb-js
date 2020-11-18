@@ -9,7 +9,6 @@ const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 setGetLastVersion(getLastVersion)
 
-const RANGE_BATCH_SIZE = 100
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
 const DEFAULT_COMMIT_DELAY = 1
@@ -451,11 +450,10 @@ function open(path, options) {
 						this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
-				const goToDirection = reverse ? 'goToPrev' : 'goToNext'
 				let cursor
 				let txn
 				try {
-					txn = readTxnRenewed ? readTxn : renewReadTxn()
+					txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
 					txn.cursorCount = (txn.cursorCount || 0) + 1
 					cursor = new Cursor(txn, db)
 					if (reverse) {
@@ -489,7 +487,7 @@ function open(path, options) {
 					next() {
 						try {
 							if (count > 0)
-								currentKey = cursor[goToDirection]()
+								currentKey = reverse ? cursor.goToPrev() : cursor.goToNext()
 							if (currentKey === undefined ||
 									(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 									(count++ >= options.limit)) {
