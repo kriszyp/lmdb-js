@@ -29,6 +29,7 @@ declare namespace lmdb {
 	type Key = string | symbol | number | boolean | Buffer
 	interface DatabaseOptions {
 		name?: string
+		cache?: boolean
 		compression?: boolean | CompressionOptions
 		encoding?: 'msgpack' | 'json' | 'string' | 'binary'
 		sharedStructuresKey?: Key
@@ -74,6 +75,7 @@ declare namespace lmdb {
 		filter(callback: (entry: T) => any): ArrayLikeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
+		asArray: T[]
 	}
 	export function getLastVersion(): number
 	export function compareKey(a: Key, b: Key): number

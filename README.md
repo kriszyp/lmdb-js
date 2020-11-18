@@ -131,6 +131,8 @@ db.getRange({ start, end })
 ```
 Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create async iterable if the callback functions execute asynchronously (return a promise).
 
+If you want to get a true array from the range results, the `asArray` property will return the results as an array.
+
 ### openDB(database: string|{name:string,...})
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
