@@ -86,17 +86,23 @@ function open(path, options) {
 		} else
 			throw error
 	}
-	readTxn = env.beginTxn(READING_TNX)
-	readTxn.reset()
 	function renewReadTxn() {
 		readTxnRenewed = setImmediate(resetReadTxn)
-		readTxn.renew()
+		if (readTxn)
+			readTxn.renew()
+		else
+			readTxn = env.beginTxn(READING_TNX)
 		return readTxn
 	}
 	function resetReadTxn() {
 		if (readTxnRenewed) {
 			readTxnRenewed = null
-			readTxn.reset()
+			if (readTxn.cursorCount > 0) {
+				readTxn.onlyCursor = true
+				readTxn = null
+			}
+			else
+				readTxn.reset()
 		}
 	}
 	let stores = []
@@ -446,130 +452,106 @@ function open(path, options) {
 				const reverse = options.reverse
 				let count = 0
 				const goToDirection = reverse ? 'goToPrev' : 'goToNext'
-				const getNextBlock = () => {
-					array = []
-					let cursor
-					let txn
-					try {
-						if (writeTxn) {
-							txn = writeTxn
-						} else {
-							txn = readTxnRenewed ? readTxn : renewReadTxn()
-						}
-						cursor = new Cursor(txn, db)
-						if (reverse) {
-							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
-							let nextKey = cursor.goToRange(currentKey)
-							if (nextKey) {
-								if (compareKey(nextKey, currentKey)) {
-									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
-									currentKey = cursor.goToPrev()
-								} else
-									currentKey = nextKey // they match, we are good, and currentKey is already correct
-							} else {
-								// likewise, we have been position beyond the end of the index, need to go to last
-								currentKey = cursor.goToLast()
-							}
-						} else {
-							// for forward retrieval, goToRange does what we want
-							currentKey = cursor.goToRange(currentKey)
-						}
-						let i = 0
-						// TODO: Make a makeCompare(endKey)
-						while (!(finished = currentKey === undefined ||
-								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0)) &&
-							i++ < RANGE_BATCH_SIZE) {
-							if (includeValues) {
-								let value
-								if (this.packr) {
-									lastSize = value = cursor.getCurrentBinaryUnsafe()
-									if (value)
-										value = this.packr.unpack(this.db.unsafeBuffer, value)
-								} else if (this.encoding == 'binary')
-									value = cursor.getCurrentBinary()
-								else {
-									value = cursor.getCurrentUtf8()
-									if (this.encoding == 'json' && value)
-										value = JSON.parse(value)
-								}
-								if (includeVersions)
-									array.push(currentKey, value, getLastVersion())
-								else
-									array.push(currentKey, value)
-							} else if (includeVersions) {
-								cursor.getCurrentBinaryUnsafe()
-								array.push(currentKey, getLastVersion())
+				let cursor
+				let txn
+				try {
+					txn = readTxnRenewed ? readTxn : renewReadTxn()
+					txn.cursorCount = (txn.cursorCount || 0) + 1
+					cursor = new Cursor(txn, db)
+					if (reverse) {
+						// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
+						let nextKey = cursor.goToRange(currentKey)
+						if (nextKey) {
+							if (compareKey(nextKey, currentKey)) {
+								// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
+								currentKey = cursor.goToPrev()
 							} else
-								array.push(currentKey)
-							if (++count >= options.limit) {
-								finished = true
-								break
-							}
-							currentKey = cursor[goToDirection]()
+								currentKey = nextKey // they match, we are good, and currentKey is already correct
+						} else {
+							// likewise, we have been position beyond the end of the index, need to go to last
+							currentKey = cursor.goToLast()
 						}
-						cursor.close()
-					} catch(error) {
-						if (cursor) {
-							try {
-								cursor.close()
-							} catch(error) { }
-						}
-						return handleError(error, this, txn, getNextBlock)
+					} else {
+						// for forward retrieval, goToRange does what we want
+						currentKey = cursor.goToRange(currentKey)
 					}
+					// TODO: Make a makeCompare(endKey)
+				} catch(error) {
+					if (cursor) {
+						try {
+							cursor.close()
+						} catch(error) { }
+					}
+					return handleError(error, this, txn, () => iterable[Symbol.iterator]())
 				}
-				let array
-				let i = 0
-				let finished
-				getNextBlock()
 				let store = this
 				return {
 					next() {
-						let length = array.length
-						if (i === length) {
-							if (finished) {
+						try {
+							if (count > 0)
+								currentKey = cursor[goToDirection]()
+							if (currentKey === undefined ||
+									(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
+									(count++ >= options.limit)) {
+								cursor.close()
+								if (--txn.cursorCount <= 0 && txn.onlyCursor)
+									txn.abort() // this is no longer main read txn, abort it now that we are done
 								return { done: true }
-							} else {
-								getNextBlock()
-								i = 0
-								return this.next()
 							}
-						}
-						if (includeValues) {
-							let key = array[i++]
-							let value = array[i++]
-							store.bytesRead += value && value.length || 0
-							if (includeVersions) {
-								let version = array[i++]
+							if (includeValues) {
+								let value
+								if (store.packr) {
+									lastSize = value = cursor.getCurrentBinaryUnsafe()
+									if (value)
+										value = store.packr.unpack(store.db.unsafeBuffer, value)
+								} else if (store.encoding == 'binary')
+									value = cursor.getCurrentBinary()
+								else {
+									value = cursor.getCurrentUtf8()
+									if (store.encoding == 'json' && value)
+										value = JSON.parse(value)
+								}
+								if (includeVersions)
+									return {
+										value: {
+											key: currentKey,
+											value,
+											version: getLastVersion()
+										}
+									}
+								else
+									return {
+										value: {
+											key: currentKey,
+											value,
+										}
+									}
+							} else if (includeVersions) {
+								cursor.getCurrentBinaryUnsafe()
 								return {
 									value: {
-										key, value, version
+										key: currentKey,
+										version: getLastVersion()
 									}
 								}
-
-							}
-							return {
-								value: {
-									key, value
-								}
-							}
-						} else {
-							if (includeVersions) {
+							} else
 								return {
-									value: {
-										key: array[i++],
-										version: array[i++]
-									}
+									value: currentKey
 								}
-							}
-							return {
-								value: array[i++]
-							}
+						} catch(error) {
+							return handleError(error, store, txn, () => this.next())
 						}
 					},
 					return() {
+						cursor.close()
+						if (--txn.cursorCount <= 0 && txn.onlyCursor)
+							txn.abort() // this is no longer main read txn, abort it now that we are done
 						return { done: true }
 					},
 					throw() {
+						cursor.close()
+						if (--txn.cursorCount <= 0 && txn.onlyCursor)
+							txn.abort() // this is no longer main read txn, abort it now that we are done
 						console.log('throw called on iterator', this.ended)
 						return { done: true }
 					}
@@ -806,8 +788,7 @@ function open(path, options) {
 
 			env.resize(newSize)
 			readTxnRenewed = null
-			readTxn = env.beginTxn(READING_TNX)
-			readTxn.reset()
+			readTxn = null
 			let result = retry()
 			return result
 		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
@@ -827,8 +808,7 @@ function open(path, options) {
 		}*/
 		try {
 			readTxnRenewed = null
-			readTxn = env.beginTxn(READING_TNX)
-			readTxn.reset()
+			readTxn = null
 		} catch(error) {
 			console.error(error.toString());
 		}
