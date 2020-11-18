@@ -2,7 +2,13 @@ const { renameSync, unlinkSync } = require('fs')
 const { extname } = require('path')
 
 exports.upgrade =  function(path, options, open) {
-	let { open: legacyOpen, Cursor: legacyCursor } = require('lmdb-store-0.9')
+	let upgradeModule
+	try {
+		upgradeModule = require('lmdb-store-0.9')
+	} catch (error) {
+		throw new Error('And invalid file format was encountered in the database, if you have an older database, you need to install package lmdb-store-0.9 to upgrade')
+	}
+	let { open: legacyOpen, Cursor: legacyCursor } = upgradeModule
 	let filePath = extname(path) ? path : path + '/data.mdb'
 	console.log('Upgrading', filePath, 'to LMDB 1.0 format')
 	let tempPath = filePath.replace(/([^\\\/]+)$/, 'temp-$1')
@@ -22,7 +28,7 @@ exports.upgrade =  function(path, options, open) {
 					copyDB(sourceStore.openDB(currentKey, {}), targetStore.openDB(currentKey))
 				} else {
 					targetStore.putSync(currentKey, sourceDb.unsafeBuffer.slice(0, size))
-				}
+				}mmm
 				currentKey = cursor.goToNext()
 			}
 			cursor.close()
