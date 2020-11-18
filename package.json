@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store-0.9",
   "author": "Kris Zyp",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Only for upgrading older versions of LMDB",
   "license": "MIT",
   "repository": {
@@ -35,7 +35,7 @@
     "msgpackr": "^0.5.3",
     "nan": "^2.14.1",
     "node-gyp-build": "^4.2.3",
-    "weak-lru-cache": "^0.2.0"
+    "weak-lru-cache": "^0.3.9"
   },
   "devDependencies": {
     "@types/node": "latest",
