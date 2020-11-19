@@ -96,7 +96,7 @@ function open(path, options) {
 	function resetReadTxn() {
 		if (readTxnRenewed) {
 			readTxnRenewed = null
-			if (readTxn.cursors && readTxn.cursors.length > 0) {
+			if (readTxn.cursorCount > 0) {
 				readTxn.onlyCursor = true
 				cursorTxns.push(readTxn)
 				readTxn = null
@@ -457,9 +457,7 @@ function open(path, options) {
 					try {
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
 						cursor = new Cursor(txn, db)
-						if (!txn.cursors)
-							txn.cursors = []
-						txn.cursors.push(cursor)
+						txn.cursorCount = (txn.cursorCount || 0) + 1
 						if (reverse) {
 							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
 							let nextKey = cursor.goToRange(currentKey)
@@ -491,8 +489,7 @@ function open(path, options) {
 				let store = this
 				function finishCursor() {
 					cursor.close()
-					txn.cursors.splice(txn.cursors.indexOf(cursor), 1)
-					if (txn.cursors.length == 0 && txn.onlyCursor) {
+					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
 						let index = cursorTxns.indexOf(txn)
 						if (index > -1)
 							cursorTxns.splice(index, 1)
@@ -756,26 +753,14 @@ function open(path, options) {
 			if (writeTxn)
 				writeTxn.abort()
 		} catch(error) {}
-		/*for (let txnToAbort of [readTxn, writeTxn, txn && txn !== readTxn && txn !== writeTxn && txn, ...cursorTxns]) {
-			try {
-				if (txnToAbort) {
-					if (txnToAbort.cursors) {
-						for (let cursor of txnToAbort.cursors) {
-							cursor.close()
-						}
-					}
-					txnToAbort.abort()
-					txnToAbort.isAborted = true
-				}
-			} catch(error) {
-			//	console.warn('txn already aborted')
-			}
-		}
-		cursorTxns = []*/
 
 		if (writeTxn)
 			writeTxn = null
 		if (error.message == 'The transaction is already closed.') {
+			try {
+				if (readTxn)
+					readTxn.abort()
+			} catch(error) {}
 			try {
 				readTxn = env.beginTxn(READING_TNX)
 			} catch(error) {
@@ -785,14 +770,13 @@ function open(path, options) {
 		}
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const oldSize = env.info().mapSize
-			const newSize = oldSize + 0x4000 //Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
+			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
 			for (const store of stores) {
 				store.emit('remap')
 			}
-console.log('resize',newSize,store.name)
 			env.resize(newSize)
-			readTxnRenewed = null
-			readTxn = null
+			//readTxnRenewed = null
+			//readTxn = null
 			let result = retry()
 			return result
 		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
@@ -810,12 +794,6 @@ console.log('resize',newSize,store.name)
 			openDB()
 			return retry()
 		}*/
-		try {
-			readTxnRenewed = null
-			readTxn = null
-		} catch(error) {
-			console.error(error.toString());
-		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
 	}
