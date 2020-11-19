@@ -488,7 +488,7 @@ NAN_METHOD(EnvWrap::resize) {
     }
 
     // Since this function may only be called if no transactions are active in this process, check this condition.
-    if (ew->currentWriteTxn || ew->readTxns.size()) {
+    if (ew->currentWriteTxn/* || ew->readTxns.size()*/) {
         return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
     }
 

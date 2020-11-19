@@ -4941,7 +4941,7 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-		munmap(env->me_map, env->me_mapsize);
+		//munmap(env->me_map, env->me_mapsize);
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);

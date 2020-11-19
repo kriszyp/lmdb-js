@@ -39,7 +39,7 @@ function open(path, options) {
 	let committingWrites
 	let scheduledWrites
 	let scheduledOperations
-	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed
+	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed, cursorTxns = []
 	if (typeof path == 'object' && !options) {
 		options = path
 		path = options.path
@@ -96,8 +96,9 @@ function open(path, options) {
 	function resetReadTxn() {
 		if (readTxnRenewed) {
 			readTxnRenewed = null
-			if (readTxn.cursorCount > 0) {
+			if (readTxn.cursors && readTxn.cursors.length > 0) {
 				readTxn.onlyCursor = true
+				cursorTxns.push(readTxn)
 				readTxn = null
 			}
 			else
@@ -452,106 +453,110 @@ function open(path, options) {
 				let count = 0
 				let cursor
 				let txn
-				try {
-					txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
-					txn.cursorCount = (txn.cursorCount || 0) + 1
-					cursor = new Cursor(txn, db)
-					if (reverse) {
-						// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
-						let nextKey = cursor.goToRange(currentKey)
-						if (nextKey) {
-							if (compareKey(nextKey, currentKey)) {
-								// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
-								currentKey = cursor.goToPrev()
-							} else
-								currentKey = nextKey // they match, we are good, and currentKey is already correct
+				function resetCursor() {
+					try {
+						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
+						cursor = new Cursor(txn, db)
+						if (!txn.cursors)
+							txn.cursors = []
+						txn.cursors.push(cursor)
+						if (reverse) {
+							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
+							let nextKey = cursor.goToRange(currentKey)
+							if (nextKey) {
+								if (compareKey(nextKey, currentKey)) {
+									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
+									currentKey = cursor.goToPrev()
+								} else
+									currentKey = nextKey // they match, we are good, and currentKey is already correct
+							} else {
+								// likewise, we have been position beyond the end of the index, need to go to last
+								currentKey = cursor.goToLast()
+							}
 						} else {
-							// likewise, we have been position beyond the end of the index, need to go to last
-							currentKey = cursor.goToLast()
+							// for forward retrieval, goToRange does what we want
+							currentKey = cursor.goToRange(currentKey)
 						}
-					} else {
-						// for forward retrieval, goToRange does what we want
-						currentKey = cursor.goToRange(currentKey)
+						// TODO: Make a makeCompare(endKey)
+					} catch(error) {
+						if (cursor) {
+							try {
+								cursor.close()
+							} catch(error) { }
+						}
+						return handleError(error, this, txn, () => iterable[Symbol.iterator]())
 					}
-					// TODO: Make a makeCompare(endKey)
-				} catch(error) {
-					if (cursor) {
-						try {
-							cursor.close()
-						} catch(error) { }
-					}
-					return handleError(error, this, txn, () => iterable[Symbol.iterator]())
 				}
+				resetCursor()
 				let store = this
+				function finishCursor() {
+					cursor.close()
+					txn.cursors.splice(txn.cursors.indexOf(cursor), 1)
+					if (txn.cursors.length == 0 && txn.onlyCursor) {
+						let index = cursorTxns.indexOf(txn)
+						if (index > -1)
+							cursorTxns.splice(index, 1)
+						txn.abort() // this is no longer main read txn, abort it now that we are done
+					}
+					return { done: true }
+				}
 				return {
 					next() {
-						try {
-							if (count > 0)
-								currentKey = reverse ? cursor.goToPrev() : cursor.goToNext()
-							if (currentKey === undefined ||
-									(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
-									(count++ >= options.limit)) {
-								cursor.close()
-								if (--txn.cursorCount <= 0 && txn.onlyCursor)
-									txn.abort() // this is no longer main read txn, abort it now that we are done
-								return { done: true }
+						if (txn.isAborted)
+							resetCursor()
+						if (count > 0)
+							currentKey = reverse ? cursor.goToPrev() : cursor.goToNext()
+						if (currentKey === undefined ||
+								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
+								(count++ >= options.limit)) {
+							return finishCursor()
+						}
+						if (includeValues) {
+							let value
+							if (store.packr) {
+								lastSize = value = cursor.getCurrentBinaryUnsafe()
+								if (value)
+									value = store.packr.unpack(store.db.unsafeBuffer, value)
+							} else if (store.encoding == 'binary')
+								value = cursor.getCurrentBinary()
+							else {
+								value = cursor.getCurrentUtf8()
+								if (store.encoding == 'json' && value)
+									value = JSON.parse(value)
 							}
-							if (includeValues) {
-								let value
-								if (store.packr) {
-									lastSize = value = cursor.getCurrentBinaryUnsafe()
-									if (value)
-										value = store.packr.unpack(store.db.unsafeBuffer, value)
-								} else if (store.encoding == 'binary')
-									value = cursor.getCurrentBinary()
-								else {
-									value = cursor.getCurrentUtf8()
-									if (store.encoding == 'json' && value)
-										value = JSON.parse(value)
-								}
-								if (includeVersions)
-									return {
-										value: {
-											key: currentKey,
-											value,
-											version: getLastVersion()
-										}
-									}
-								else
-									return {
-										value: {
-											key: currentKey,
-											value,
-										}
-									}
-							} else if (includeVersions) {
-								cursor.getCurrentBinaryUnsafe()
+							if (includeVersions)
 								return {
 									value: {
 										key: currentKey,
+										value,
 										version: getLastVersion()
 									}
 								}
-							} else
+							else
 								return {
-									value: currentKey
+									value: {
+										key: currentKey,
+										value,
+									}
 								}
-						} catch(error) {
-							return handleError(error, store, txn, () => this.next())
-						}
+						} else if (includeVersions) {
+							cursor.getCurrentBinaryUnsafe()
+							return {
+								value: {
+									key: currentKey,
+									version: getLastVersion()
+								}
+							}
+						} else
+							return {
+								value: currentKey
+							}
 					},
 					return() {
-						cursor.close()
-						if (--txn.cursorCount <= 0 && txn.onlyCursor)
-							txn.abort() // this is no longer main read txn, abort it now that we are done
-						return { done: true }
+						return finishCursor()
 					},
 					throw() {
-						cursor.close()
-						if (--txn.cursorCount <= 0 && txn.onlyCursor)
-							txn.abort() // this is no longer main read txn, abort it now that we are done
-						console.log('throw called on iterator', this.ended)
-						return { done: true }
+						return finishCursor()
 					}
 				}
 			}
@@ -748,24 +753,25 @@ function open(path, options) {
 			return retry()
 		}
 		try {
-			if (readTxn) {
-				readTxn.abort()
-			}
-		} catch(error) {
-		//	console.warn('txn already aborted')
-		}
-		try {
 			if (writeTxn)
 				writeTxn.abort()
-		} catch(error) {
-		//	console.warn('txn already aborted')
+		} catch(error) {}
+		/*for (let txnToAbort of [readTxn, writeTxn, txn && txn !== readTxn && txn !== writeTxn && txn, ...cursorTxns]) {
+			try {
+				if (txnToAbort) {
+					if (txnToAbort.cursors) {
+						for (let cursor of txnToAbort.cursors) {
+							cursor.close()
+						}
+					}
+					txnToAbort.abort()
+					txnToAbort.isAborted = true
+				}
+			} catch(error) {
+			//	console.warn('txn already aborted')
+			}
 		}
-		try {
-			if (txn && txn !== readTxn && txn !== writeTxn)
-				txn.abort()
-		} catch(error) {
-		//	console.warn('txn already aborted')
-		}
+		cursorTxns = []*/
 
 		if (writeTxn)
 			writeTxn = null
@@ -779,11 +785,11 @@ function open(path, options) {
 		}
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const oldSize = env.info().mapSize
-			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
+			const newSize = oldSize + 0x4000 //Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
 			for (const store of stores) {
 				store.emit('remap')
 			}
-
+console.log('resize',newSize,store.name)
 			env.resize(newSize)
 			readTxnRenewed = null
 			readTxn = null
