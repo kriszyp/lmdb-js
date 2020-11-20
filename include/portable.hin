@@ -1,4 +1,4 @@
-/* include/portable.hin.  Generated from configure.in by autoheader.  */
+/* include/portable.hin.  Generated from configure.ac by autoheader.  */
 
 
 /* begin of portable.h.pre */
@@ -273,6 +273,9 @@
 
 /* define if your system supports kqueue */
 #undef HAVE_KQUEUE
+
+/* define if you have -levent */
+#undef HAVE_LIBEVENT
 
 /* Define to 1 if you have the `gen' library (-lgen). */
 #undef HAVE_LIBGEN
