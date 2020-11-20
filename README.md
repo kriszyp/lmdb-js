@@ -249,7 +249,7 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 #### msgpackr options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
 * `structuredClone` -  This enables the structured cloning extensions that will encode object/cyclic references and additional built-in types/classes.
-* `useTimestamp32` -  Encode JS Dates in 32-bit format when possible. This causes the milliseconds to be dropped, but is a much more efficient encoding of dates.
+* `useFloat32: 4` -  Encode floating point numbers in 32-bit format when possible.
 
 ## Events
 
