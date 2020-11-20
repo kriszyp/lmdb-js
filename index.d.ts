@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 
-declare module 'lmdb-store' {
+declare namespace lmdb {
 	export function open<V = any, K extends Key = Key>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
 	export function open<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
 
@@ -75,4 +75,7 @@ declare module 'lmdb-store' {
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
 	}
+	export function getLastVersion(): number
+	export function compareKey(a: Key, b: Key): number
 }
+export = lmdb
