@@ -198,9 +198,17 @@ let myStore = open('my-store', {
 Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults.
 
 ## Caching
-lmdb-store supports caching of entries from stores, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. This weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
+lmdb-store supports caching of entries from stores, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster.
 
-While caching can improve performance, LMDB itself is extremely fast, and for small objects with sporadic access, caching may not improve performance. Caching tends to provide the most benefits for larger objects that may have more significant deserialization costs. Caching does not apply to `getRange` queries. Also note that this requires Node 14.10 or higher (or Node v13.0 with `--harmony-weak-ref` flag).
+The weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, and `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
+
+Because asynchronous `put` operations immediately go in the cache (and are pinned in the cache until committed), the caching enabled, `put` values can be retrieved via `get`, immediately and synchronously after the `put` call. Without caching enabled, you need wait for the `put` promise to resolve (indicating it has been committed) before you can access the stored value, but the cache enables the value to be immediately without waiting for the commit to finish:
+```
+store.put('hi', 'there');
+store.get('hi'); // can immediately access value without having to await the promise
+```
+
+While caching can improve performance, LMDB itself is extremely fast, and for small objects with sporadic access, caching may not improve performance. Caching tends to provide the most performance benefits for larger objects that may have more significant deserialization costs. Caching does not apply to `getRange` queries. Also note that this requires Node 14.10 or higher (or Node v13.0 with `--harmony-weak-ref` flag).
 
 If you are using caching with a database that has versions enabled, you should use the `getEntry` method to get the `value` and `version`, as `getLastVersion` will not be reliable (only returns the version when the data is accessed from the database).
 
