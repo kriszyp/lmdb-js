@@ -1,8 +1,10 @@
+import { EventEmitter } from 'events'
+
 declare module 'lmdb-store' {
 	export function open<V = any, K extends Key = Key>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
 	export function open<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
 
-	class Database<V = any, K extends Key = Key> extends NodeJS.EventEmitter {
+	class Database<V = any, K extends Key = Key> extends EventEmitter {
 		get(id: K): V | undefined
 		getEntry(id: K): {
 			value: V | undefined

@@ -21,11 +21,15 @@
     "require": "./index.js"
   },
   "types": "./index.d.ts",
+  "tsd": {
+    "directory": "test/types"
+  },
   "scripts": {
     "install": "node-gyp-build",
     "recompile": "node-gyp build",
-    "test": "./node_modules/.bin/mocha test/**.test.js --recursive",
+    "test": "./node_modules/.bin/mocha test/**.test.js --recursive && npm run test:types",
     "test2": "./node_modules/.bin/mocha tests -u tdd",
+    "test:types": "tsd",
     "benchmark": "node ./benchmark/index.js",
     "benchmark-ll": "node ./benchmark/low-level.js"
   },
@@ -46,6 +50,7 @@
     "mkdirp": "^1.0.4",
     "mocha": "^8.1.3",
     "node-gyp": "^7.1.0",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "tsd": "^0.13.1"
   }
 }
