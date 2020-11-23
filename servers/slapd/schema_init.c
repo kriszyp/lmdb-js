@@ -3193,7 +3193,7 @@ serialNumberAndIssuerCheck(
 
 	if( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
-	if( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+	if( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) {
 		/* Parse old format */
 		is->bv_val = ber_bvchr( in, '$' );
 		if( BER_BVISNULL( is ) ) return LDAP_INVALID_SYNTAX;
@@ -3224,7 +3224,7 @@ serialNumberAndIssuerCheck(
 			HAVE_ALL = ( HAVE_ISSUER | HAVE_SN )
 		} have = HAVE_NONE;
 
-		int numdquotes = 0;
+		int numdquotes = 0, gotquote;
 		struct berval x = *in;
 		struct berval ni;
 		x.bv_val++;
@@ -3266,11 +3266,12 @@ serialNumberAndIssuerCheck(
 				is->bv_val = x.bv_val;
 				is->bv_len = 0;
 
-				for ( ; is->bv_len < x.bv_len; ) {
+				for ( gotquote=0; is->bv_len < x.bv_len; ) {
 					if ( is->bv_val[is->bv_len] != '"' ) {
 						is->bv_len++;
 						continue;
 					}
+					gotquote = 1;
 					if ( is->bv_val[is->bv_len+1] == '"' ) {
 						/* double dquote */
 						numdquotes++;
@@ -3279,6 +3280,8 @@ serialNumberAndIssuerCheck(
 					}
 					break;
 				}
+				if ( !gotquote ) return LDAP_INVALID_SYNTAX;
+
 				x.bv_val += is->bv_len + 1;
 				x.bv_len -= is->bv_len + 1;
 
