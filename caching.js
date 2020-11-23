@@ -28,7 +28,7 @@ exports.CachingStore = Store => class extends Store {
 			})
 		}
 		this.db.cachingDb = this
-		this.cache = new WeakLRUCache()
+		this.cache = new WeakLRUCache(options.cache)
 	}
 	get(id, cacheMode) {
 		let value = this.cache.getValue(id)
