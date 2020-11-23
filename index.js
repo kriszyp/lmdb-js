@@ -775,8 +775,8 @@ function open(path, options) {
 				store.emit('remap')
 			}
 			env.resize(newSize)
-			//readTxnRenewed = null
-			//readTxn = null
+			readTxnRenewed = null
+			readTxn = null
 			let result = retry()
 			return result
 		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
