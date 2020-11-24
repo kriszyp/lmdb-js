@@ -2102,7 +2102,7 @@ ldap_back_is_proxy_authz( Operation *op, SlapReply *rs, ldap_back_send_t sendok,
 	}
 
 	if ( !( li->li_idassert_flags & LDAP_BACK_AUTH_OVERRIDE )) {
-		if ( op->o_tag == LDAP_REQ_BIND && ( sendok & LDAP_BACK_SENDOK )) {
+		if ( op->o_tag == LDAP_REQ_BIND && ( sendok & LDAP_BACK_SENDERR )) {
 			if ( !BER_BVISEMPTY( &ndn )) {
 				dobind = 0;
 				goto done;
