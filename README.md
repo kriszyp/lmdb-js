@@ -114,7 +114,7 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
-### `getRange(options: { start?, end?, reverse?: boolean, limit?: number, values?: boolean, versions?: boolean}): Iterable<{ key, value: Buffer }>`
+### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, values?: boolean, versions?: boolean}): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
@@ -133,7 +133,10 @@ Note that `map` and `filter` are also lazy, they will only be executed once thei
 
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
-### openDB(database: string|{name:string,...})
+### `store.getValues(key): Iterable<any>`
+When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database.
+
+### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
 const { open } = require('lmdb-store');
@@ -227,6 +230,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 * `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
+* `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
 
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.

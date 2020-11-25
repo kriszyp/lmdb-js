@@ -60,6 +60,7 @@ describe('lmdb-store', function() {
       db2 = db.openDB(Object.assign({
         name: 'mydb4',
         create: true,
+        dupSort: true,
         compression: {
           threshold: 256,
         },
@@ -185,6 +186,25 @@ describe('lmdb-store', function() {
         }
       }
       if (count != 2)
+        throw new Error('Not enough entries')
+    });
+    it('should iterate over dupsort query', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      let data3 = {foo: 3, bar: true}
+      db2.put('key1',  data1);
+      db2.put('key1',  data2);
+      await db2.put('key1',  data3);
+      let count = 0
+      for (let value of db2.getValues('key1')) {
+        count++
+        switch(count) {
+          case 1: data1.should.deep.equal(value); break;
+          case 2: data2.should.deep.equal(value); break;
+          case 3: data3.should.deep.equal(value); break;
+        }
+      }
+      if (count != 3)
         throw new Error('Not enough entries')
     });
     it('invalid key', async function() {

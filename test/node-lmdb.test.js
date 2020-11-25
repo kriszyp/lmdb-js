@@ -233,17 +233,6 @@ describe('Node.js LMDB Bindings', function() {
       txn.abort();
       info = env.info();
       should.equal(info.mapSize, MAX_DB_SIZE);
-
-      // Open readOnly transaction
-      txn = env.beginTxn({ readOnly: true });
-      try {
-          env.resize(info.mapSize * 2);
-      } catch (err) {
-          err.should.be.an.instanceof(Error);
-      }
-      txn.abort();
-      info = env.info();
-      should.equal(info.mapSize, MAX_DB_SIZE);
       dbi.close();
     });
     it('will resize the mapSize', function() {

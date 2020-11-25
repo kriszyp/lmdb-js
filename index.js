@@ -109,10 +109,6 @@ function open(path, options) {
 	class LMDBStore extends EventEmitter {
 		constructor(dbName, dbOptions) {
 			super()
-			if (typeof dbName == 'object' && !dbOptions) {
-				dbOptions = dbName
-				dbName = options.name
-			}
 			if (dbName === undefined)
 				throw new Error('Database name must be supplied in name property (may be null for root database)')
 
@@ -160,7 +156,11 @@ function open(path, options) {
 			stores.push(this)
 		}
 		openDB(dbName, dbOptions) {
-			dbOptions = dbOptions || {}
+			if (typeof dbName == 'object' && !dbOptions) {
+				dbOptions = dbName
+				dbName = options.name
+			} else
+				dbOptions = dbOptions || {}
 			try {
 				return dbOptions.cache ?
 					new (CachingStore(LMDBStore))(dbName, dbOptions) :
@@ -435,12 +435,19 @@ function open(path, options) {
 					return false
 				})
 		}
+		getValues(key) {
+			return this.getRange({
+				start: key,
+				dupValues: true
+			})
+		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
 			if (!options)
 				options = {}
 			let includeValues = options.values !== false
 			let includeVersions = options.versions
+			let dupValues = options.dupValues
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start !== undefined ? options.start :
@@ -502,7 +509,7 @@ function open(path, options) {
 						if (txn.isAborted)
 							resetCursor()
 						if (count > 0)
-							currentKey = reverse ? cursor.goToPrev() : cursor.goToNext()
+							currentKey = reverse ? cursor.goToPrev() : dupValues ? cursor.goToNextDup() : cursor.goToNext()
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= options.limit)) {
@@ -529,6 +536,10 @@ function open(path, options) {
 										version: getLastVersion()
 									}
 								}
+ 							else if (dupValues)
+								return {
+									value
+								}
 							else
 								return {
 									value: {
@@ -544,10 +555,11 @@ function open(path, options) {
 									version: getLastVersion()
 								}
 							}
-						} else
+						} else {
 							return {
 								value: currentKey
 							}
+						}
 					},
 					return() {
 						return finishCursor()
