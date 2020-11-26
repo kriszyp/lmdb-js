@@ -14,10 +14,14 @@ declare namespace lmdb {
 		put(id: K, value: V, version: number, ifVersion?: number): Promise<boolean>
 		remove(id: K): Promise<boolean>
 		remove(id: K, ifVersion: number): Promise<boolean>
+		remove(id: K, valueToRemove: V): Promise<boolean>
 		putSync(id: K, value: V): void
 		putSync(id: K, value: V, version: number): void
-		removeSync(id: K): void
-		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version: number }>
+		removeSync(id: K): boolean
+		removeSync(id: K, valueToRemove: V): boolean
+		getValues(key: K, options?: RangeOptions): ArrayLikeIterable<V>
+		getKeys(options: RangeOptions): ArrayLikeIterable<K>
+		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
 		transaction<T>(action: () => T, abort?: boolean): T
 		ifVersion(id: K, ifVersion: number, action: () => any): Promise<boolean>
 		ifNoExists(id: K, action: () => any): Promise<boolean>
@@ -66,7 +70,6 @@ declare namespace lmdb {
 		start?: Key
 		end?: Key
 		reverse?: boolean
-		values?: boolean
 		versions?: boolean
 		limit?: number
 	}

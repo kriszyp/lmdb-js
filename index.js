@@ -407,21 +407,17 @@ function open(path, options) {
 					}
 				}
 				this.writes++
+				let result
 				if (deleteValue)
-					txn.del(this.db, id, deleteValue)
+					result = txn.del(this.db, id, deleteValue)
 				else
-					txn.del(this.db, id)
+					result = txn.del(this.db, id)
 				if (!writeTxn) {
 					txn.commit()
 					resetReadTxn()
 				}
-				return true // object found and deleted
+				return result // object found and deleted
 			} catch(error) {
-				if (error.message.startsWith('MDB_NOTFOUND')) {
-					if (!writeTxn)
-						txn.abort()
-					return false // calling remove on non-existent property is fine, but we will indicate its lack of existence with the return value
-				}
 				if (writeTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
 				return handleError(error, this, txn, () => this.removeSync(id))
@@ -464,11 +460,18 @@ function open(path, options) {
 					return false
 				})
 		}
-		getValues(key) {
-			return this.getRange({
+		getValues(key, options) {
+			let defaultOptions = {
 				start: key,
 				valuesForKey: true
-			})
+			}
+			return this.getRange(options ? Object.assign(defaultOptions, options) : defaultOptions)
+		}
+		getKeys(options) {
+			if (!options)
+				options = {}
+			options.values = false
+			return this.getRange(options)
 		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
@@ -495,21 +498,31 @@ function open(path, options) {
 						cursor = new Cursor(txn, db)
 						txn.cursorCount = (txn.cursorCount || 0) + 1
 						if (reverse) {
-							// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
-							let nextKey = cursor.goToRange(currentKey)
-							if (nextKey) {
-								if (compareKey(nextKey, currentKey)) {
-									// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
-									currentKey = cursor.goToPrev()
-								} else
-									currentKey = nextKey // they match, we are good, and currentKey is already correct
+							if (valuesForKey) {
+								// position at key
+								currentKey = cursor.goToKey(currentKey)
+								// now move to next key and then previous entry to get to last value
+								if (currentKey) {
+									cursor.goToNextNoDup()
+									cursor.goToPrev()
+								}
 							} else {
-								// likewise, we have been position beyond the end of the index, need to go to last
-								currentKey = cursor.goToLast()
+								// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
+								let nextKey = cursor.goToRange(currentKey)
+								if (nextKey) {
+									if (compareKey(nextKey, currentKey)) {
+										// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
+										currentKey = cursor.goToPrev()
+									} else
+										currentKey = nextKey // they match, we are good, and currentKey is already correct
+								} else {
+									// likewise, we have been position beyond the end of the index, need to go to last
+									currentKey = cursor.goToLast()
+								}
 							}
 						} else {
 							// for forward retrieval, goToRange does what we want
-							currentKey = cursor.goToRange(currentKey)
+							currentKey = valuesForKey ? cursor.goToKey(currentKey) : cursor.goToRange(currentKey)
 						}
 						// TODO: Make a makeCompare(endKey)
 					} catch(error) {
@@ -538,7 +551,11 @@ function open(path, options) {
 						if (txn.isAborted)
 							resetCursor()
 						if (count > 0)
-							currentKey = reverse ? cursor.goToPrev() : valuesForKey ? cursor.goToNextDup() : cursor.goToNext()
+							currentKey = reverse ?
+								valuesForKey ? cursor.goToPrevDup() :
+									includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
+								valuesForKey ? cursor.goToNextDup() :
+									includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= options.limit)) {

@@ -828,6 +828,18 @@ public:
     static NAN_METHOD(goToPrevDup);
 
     /*
+        Go to the entry for next key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static NAN_METHOD(goToNextNoDup);
+
+    /*
+        Go to the entry for previous key.
+        (Wrapper for `mdb_cursor_get`)
+    */
+    static NAN_METHOD(goToPrevNoDup);
+
+    /*
         For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
         (Wrapper for `mdb_cursor_get`)
     */

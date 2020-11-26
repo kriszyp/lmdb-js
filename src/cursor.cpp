@@ -286,6 +286,10 @@ MAKE_GET_FUNC(goToNextDup, MDB_NEXT_DUP);
 
 MAKE_GET_FUNC(goToPrevDup, MDB_PREV_DUP);
 
+MAKE_GET_FUNC(goToNextNoDup, MDB_NEXT_NODUP);
+
+MAKE_GET_FUNC(goToPrevNoDup, MDB_PREV_NODUP);
+
 static void fillDataFromArg1(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &data) {
     if (info[1]->IsString()) {
         CustomExternalStringResource::writeTo(Local<String>::Cast(info[1]), &data);
@@ -388,6 +392,8 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToLastDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToLastDup));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToNextDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToNextDup));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToPrevDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToPrevDup));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToNextNoDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToNextNoDup));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToPrevNoDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToPrevNoDup));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToDup").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToDup));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("goToDupRange").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::goToDupRange));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));

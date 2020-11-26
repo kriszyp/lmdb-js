@@ -103,7 +103,7 @@ Again, if this is performed inside a transation, the removal will be included in
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, this put will be added to the current transaction. If not, a transaction will be started, the put will be executed, and the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds).
 
 ### `store.removeSync(key, valueOrIfVersion?: number): boolean`
-This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`.
+This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`. This returns `true` if there was an existing entry deleted, `false` if there was no matching entry.
 
 ### `store.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry to have the provided version.
@@ -114,7 +114,7 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
-### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, values?: boolean, versions?: boolean}): Iterable<{ key, value: Buffer }>`
+### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, versions?: boolean}): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
@@ -133,7 +133,7 @@ Note that `map` and `filter` are also lazy, they will only be executed once thei
 
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
-### `store.getValues(key): Iterable<any>`
+### `store.getValues(key, options?): Iterable<any>`
 When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
 ```
 let db = store.openDB('my-index', {
@@ -149,6 +149,10 @@ for (let value of db.getValues('key1')) {
 	// just iterate value 'value1'
 }
 ```
+You can optionally provide a second argument with the same `options` that `getRange` handles.
+
+### `store.getKeys(options: { start?, end?, reverse?: boolean, limit?: number, versions?: boolean }): Iterable<any>`
+This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
 
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:

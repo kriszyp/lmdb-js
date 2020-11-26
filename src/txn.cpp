@@ -560,6 +560,10 @@ NAN_METHOD(TxnWrap::del) {
     }
 
     if (rc != 0) {
+        if (rc == MDB_NOTFOUND) {
+            return info.GetReturnValue().Set(Nan::False());
+        }
         return throwLmdbError(rc);
     }
+    return info.GetReturnValue().Set(Nan::True());
 }
