@@ -61,10 +61,7 @@ describe('lmdb-store', function() {
         name: 'mydb4',
         create: true,
         dupSort: true,
-        compression: {
-          threshold: 256,
-        },
-      }, options));
+      }));
       if (!options.checkLast)
         db2.clear();
     });
@@ -161,7 +158,7 @@ describe('lmdb-store', function() {
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
     });
-    it('trigger sync commit', async function() {
+    it.skip('trigger sync commit', async function() {
       let dataIn = {foo: 4, bar: false}
       db.immediateBatchThreshold = 1
       db.syncBatchThreshold = 1
@@ -194,7 +191,8 @@ describe('lmdb-store', function() {
       let data3 = {foo: 3, bar: true}
       db2.put('key1',  data1);
       db2.put('key1',  data2);
-      await db2.put('key1',  data3);
+      db2.put('key1',  data3);
+      await db2.put('key2',  data3);
       let count = 0
       for (let value of db2.getValues('key1')) {
         count++
@@ -205,6 +203,22 @@ describe('lmdb-store', function() {
         }
       }
       if (count != 3)
+        throw new Error('Not enough entries')
+    });
+    it('should remove dupsort value and query', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      let data3 = {foo: 3, bar: true}
+      await db2.remove('key1',  data2);
+      let count = 0
+      for (let value of db2.getValues('key1')) {
+        count++
+        switch(count) {
+          case 1: data1.should.deep.equal(value); break;
+          case 2: data3.should.deep.equal(value); break;
+        }
+      }
+      if (count != 2)
         throw new Error('Not enough entries')
     });
     it('invalid key', async function() {

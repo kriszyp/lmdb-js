@@ -167,7 +167,6 @@ struct condition_t {
     argtokey_callback_t freeKey;
 };
 
-int DELETE_VALUE; // pointer to this as the value represents a delete
 struct action_t {
     int actionType;
     MDB_val key;
@@ -194,6 +193,16 @@ struct action_t {
     argtokey_callback_t freeValue;
 };*/
 
+const int CHANGE_DB = 8;
+const int RESET_CONDITION = 9;
+const int CONDITION = 1;
+const int WRITE_WITH_VALUE = 2;
+const int DELETE_OPERATION = 4;
+
+const int FAILED_CONDITION = 1;
+const int SUCCESSFUL_OPERATION = 0;
+const int BAD_KEY = 3;
+const int NOT_FOUND = 2;
 
 class BatchWorker : public Nan::AsyncWorker {
   public:
@@ -222,9 +231,9 @@ class BatchWorker : public Nan::AsyncWorker {
         for (int i = 0; i < actionCount; i++) {
             action_t* action = &actions[i];
             int actionType = action->actionType;
-            if (actionType == 8)
+            if (actionType == CHANGE_DB)
                 dw = action->dw;
-            else if ((actionType & 2) == 2) {
+            else if (actionType & WRITE_WITH_VALUE) {
                 Compression* compression = dw->compression;
                 if (compression) {
                     action->freeValue = compression->compress(&action->data, action->freeValue);
@@ -242,29 +251,29 @@ class BatchWorker : public Nan::AsyncWorker {
             action_t* action = &actions[i];
             int actionType = action->actionType;
             if (actionType >= 8) {
-                if (actionType == 8) {
+                if (actionType == CHANGE_DB) {
                     // reset target db
                     dw = action->dw;
-                } else {
+                } else { // actionType == CHANGE_DB
                     // reset last condition
                     conditionDepth--;
                     if (validatedDepth > conditionDepth)
                         validatedDepth--;
                 }
-                results[i++] = 0;
+                results[i++] = SUCCESSFUL_OPERATION;
                 continue;
             }
             bool validated;
             if (validatedDepth < conditionDepth) {
                 // we are in an invalidated branch, just need to track depth
-                results[i] = 1;
+                results[i] = FAILED_CONDITION;
                 validated = false;
-            } else if ((actionType & 1) == 1) { // has precondition
+            } else if (actionType & CONDITION) { // has precondition
                 MDB_val value;
                 // TODO: Use a cursor
                 rc = mdb_get(txn, dw->dbi, &action->key, &value);
                 if (rc == MDB_BAD_VALSIZE) {
-                    results[i] = 3;
+                    results[i] = BAD_KEY;
                     validated = false;
                 } else {
                     if (action->ifVersion == NO_EXIST_VERSION) {
@@ -276,20 +285,20 @@ class BatchWorker : public Nan::AsyncWorker {
                         else
                             validated = action->ifVersion == *((double*)value.mv_data);
                     }
-                    results[i] = validated ? 0 : 1;
+                    results[i] = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
                 }
                 rc = 0;
             } else {
                 validated = true;
-                results[i] = 0;
+                results[i] = SUCCESSFUL_OPERATION;
             }
-            if ((actionType & 2) == 2) { // has write operation to perform
+            if (actionType & (WRITE_WITH_VALUE | DELETE_OPERATION)) { // has write operation to perform
                 if (validated) {
-                    if (action->data.mv_data == &DELETE_VALUE) {
-                        rc = mdb_del(txn, dw->dbi, &action->key, nullptr);
+                    if (actionType & DELETE_OPERATION) {
+                        rc = mdb_del(txn, dw->dbi, &action->key, (actionType & WRITE_WITH_VALUE) ? &action->data : nullptr);
                         if (rc == MDB_NOTFOUND) {
                             rc = 0; // ignore not_found errors
-                            results[i] = 2;
+                            results[i] = NOT_FOUND;
                         }
                     } else {
                         if (dw->hasVersions)
@@ -299,7 +308,7 @@ class BatchWorker : public Nan::AsyncWorker {
                     }
                     if (rc != 0) {
                         if (rc == MDB_BAD_VALSIZE) {
-                            results[i] = 3;
+                            results[i] = BAD_KEY;
                             rc = 0;
                         } else {
                             mdb_txn_abort(txn);
@@ -756,10 +765,10 @@ NAN_METHOD(EnvWrap::batchWrite) {
             // change target db
             if (operationValue->IsObject()) {
                 dw = action->dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(operationValue));
-                action->actionType = 8;
+                action->actionType = CHANGE_DB;
             } else {
                 // reset condition
-                action->actionType = 9;
+                action->actionType = RESET_CONDITION;
             }
             continue;
             // worker->SaveToPersistent(persistedIndex++, currentDb); // this is coordinated to always be referenced on the JS side
@@ -789,11 +798,11 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
         if (dw->hasVersions) {
             if (value->IsNumber()) {
-                action->actionType = 1; // checking version action type
+                action->actionType = CONDITION; // checking version action type
                 action->ifVersion = Nan::To<v8::Number>(value).ToLocalChecked()->Value();
                 continue;
             }
-            action->actionType = 3; // conditional save value
+            action->actionType = CONDITION | WRITE_WITH_VALUE; // conditional save value
             // TODO: Check length before continuing?
             double version = 0;
             Local<v8::Value> versionValue = operation->Get(context, 2).ToLocalChecked();
@@ -807,14 +816,19 @@ NAN_METHOD(EnvWrap::batchWrite) {
             else if (versionValue->IsNull())
                 version = NO_EXIST_VERSION;
             else
-                action->actionType = 2;
+                action->actionType = WRITE_WITH_VALUE;
             action->ifVersion = version;
-        } else
-            action->actionType = 2;
+        } else {
+            Local<v8::Value> deleteValue = operation->Get(context, 2).ToLocalChecked();
+            if (deleteValue->IsTrue()) // useful for dupsort so we can specify a specfic value to delete
+                action->actionType = DELETE_OPERATION | WRITE_WITH_VALUE;
+            else
+                action->actionType = WRITE_WITH_VALUE;
+        }
 
         if (value->IsNull() || value->IsUndefined()) {
-            action->data.mv_data = &DELETE_VALUE;
-            action->data.mv_size = 0;
+            // standard delete (no regard for value)
+            action->actionType = DELETE_OPERATION | (action->actionType & CONDITION); // only DELETE_OPERATION, no WRITE_WITH_VALUE
             action->freeValue = nullptr;
         } else if (value->IsArrayBufferView()) {
             action->data.mv_size = node::Buffer::Length(value);

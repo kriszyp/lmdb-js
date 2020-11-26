@@ -134,6 +134,9 @@ function open(path, options) {
 					}), dbOptions.compression)
 			}
 
+			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
+				throw new Error('The dupSort flag can not be combined with versions or caching')
+			}
 			openDB()
 			resetReadTxn() // a read transaction becomes invalid after opening another db
 			this.name = dbName
@@ -145,7 +148,10 @@ function open(path, options) {
 			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
 			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
 			this.commitDelay = DEFAULT_COMMIT_DELAY
-			Object.assign(this, options, dbOptions)
+			Object.assign(this, { // these are the options that are inherited
+				path: options.path,
+				encoding: options.encoding,
+			}, dbOptions)
 			if (!this.encoding || this.encoding == 'msgpack') {
 				this.packr = new Packr(Object.assign(this.sharedStructuresKey ?
 					this.setupSharedStructures() : {
@@ -380,15 +386,31 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.putSync(id, value, version))
 			}
 		}
-		removeSync(id) {
+		removeSync(id, ifVersionOrValue) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			let txn
 			try {
 				txn = writeTxn || env.beginTxn()
+				let deleteValue
+				if (ifVersionOrValue !== undefined) {
+					if (this.useVersions) {
+						let previousVersion = this.get(id) ? getLastVersion() : null
+						if (!matches(previousVersion, ifVersionOrValue))
+							return false
+					} else {
+						if (this.packr)
+							deleteValue = this.packr.pack(ifVersionOrValue)
+						else if (this.encoding == 'json')
+							deleteValue = JSON.stringify(ifVersionOrValue)
+					}
+				}
 				this.writes++
-				txn.del(this.db, id)
+				if (deleteValue)
+					txn.del(this.db, id, deleteValue)
+				else
+					txn.del(this.db, id)
 				if (!writeTxn) {
 					txn.commit()
 					resetReadTxn()
@@ -405,27 +427,34 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.removeSync(id))
 			}
 		}
-		remove(id, ifVersion) {
+		remove(id, ifVersionOrValue) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
 			this.writes++
 			if (writeTxn) {
-				if (ifVersion !== undefined) {
-					let previousVersion = this.get(id) ? getLastVersion() : null
-					if (!matches(previousVersion, ifVersion)) {
-						return SYNC_PROMISE_FAIL
-					}
-				}
-				this.removeSync(id)
+				if (this.removeSync(id, ifVersionOrValue) === false)
+					return SYNC_PROMISE_FAIL
 				return SYNC_PROMISE_RESULT
 			}
 			let scheduledOperations = this.getScheduledOperations()
-			let index = scheduledOperations.push(typeof ifVersion == 'number' ?
-				[id, undefined, undefined, ifVersion] : [id]) - 1
+			let operation
+			if (ifVersionOrValue === undefined)
+				operation = [id]
+			else if (this.useVersions)
+				operation = [id, undefined, undefined, ifVersionOrValue] // version condition
+			else {
+				if (this.packr)
+					operation = [id, this.packr.pack(ifVersionOrValue), true]
+				else if (this.encoding == 'json')
+					operation = [id, JSON.stringify(ifVersionOrValue), true]
+				else
+					operation = [id, ifVersionOrValue, true]
+			}
+			let index = scheduledOperations.push(operation) - 1 // remove specific values
 			scheduledOperations.bytes += (id.length || 6) + 100
 			let commit = this.scheduleCommit()
-			return ifVersion === undefined ? commit.unconditionalResults :
+			return ifVersionOrValue === undefined ? commit.unconditionalResults :
 				commit.results.then((writeResults) => {
 					if (writeResults[index] === 0)
 						return true
@@ -438,7 +467,7 @@ function open(path, options) {
 		getValues(key) {
 			return this.getRange({
 				start: key,
-				dupValues: true
+				valuesForKey: true
 			})
 		}
 		getRange(options) {
@@ -447,7 +476,7 @@ function open(path, options) {
 				options = {}
 			let includeValues = options.values !== false
 			let includeVersions = options.versions
-			let dupValues = options.dupValues
+			let valuesForKey = options.valuesForKey
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start !== undefined ? options.start :
@@ -509,7 +538,7 @@ function open(path, options) {
 						if (txn.isAborted)
 							resetCursor()
 						if (count > 0)
-							currentKey = reverse ? cursor.goToPrev() : dupValues ? cursor.goToNextDup() : cursor.goToNext()
+							currentKey = reverse ? cursor.goToPrev() : valuesForKey ? cursor.goToNextDup() : cursor.goToNext()
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= options.limit)) {
@@ -536,7 +565,7 @@ function open(path, options) {
 										version: getLastVersion()
 									}
 								}
- 							else if (dupValues)
+ 							else if (valuesForKey)
 								return {
 									value
 								}

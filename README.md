@@ -94,16 +94,16 @@ This operation will be enqueued to be written in a batch transaction. Any other 
 
 If this is performed inside a transation, the put will be included in the current transaction (synchronously).
 
-### `store.remove(key, ifVersion?: number): Promise<boolean>`
-This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation.
+### `store.remove(key, valueOrIfVersion?: number): Promise<boolean>`
+This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
 
 Again, if this is performed inside a transation, the removal will be included in the current transaction (synchronously).
 
 ### `store.putSync(key, value: Buffer, ifVersion?: number): boolean`
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, this put will be added to the current transaction. If not, a transaction will be started, the put will be executed, and the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds).
 
-### `store.removeSync(key, ifVersion?: number): boolean`
-This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion.
+### `store.removeSync(key, valueOrIfVersion?: number): boolean`
+This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`.
 
 ### `store.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry to have the provided version.
@@ -134,7 +134,21 @@ Note that `map` and `filter` are also lazy, they will only be executed once thei
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
 ### `store.getValues(key): Iterable<any>`
-When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database.
+When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
+```
+let db = store.openDB('my-index', {
+	dupSort: true
+})
+await db.put('key1', 'value1')
+await db.put('key1', 'value2')
+for (let value of db.getValues('key1')) {
+	// iterate values 'value1', 'value2'
+}
+await db.remove('key', 'value1') // only remove the second value under key1
+for (let value of db.getValues('key1')) {
+	// just iterate value 'value1'
+}
+```
 
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:

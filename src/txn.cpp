@@ -479,7 +479,7 @@ NAN_METHOD(TxnWrap::del) {
         dataHandle = info[2];
     }
     else if (argCount == 3) {
-        if (info[2]->IsObject()) {
+        if (info[2]->IsObject() && !node::Buffer::HasInstance(info[2])) {
             options = info[2];
             dataHandle = Nan::Undefined();
         }
@@ -511,7 +511,7 @@ NAN_METHOD(TxnWrap::del) {
     
     if ((dw->flags & MDB_DUPSORT) && !(dataHandle->IsUndefined())) {
         if (dataHandle->IsString()) {
-            CustomExternalStringResource::writeTo(Local<String>::Cast(dataHandle), &data);
+            writeValueToEntry(dataHandle, &data);
             freeData = true;
         }
         else if (node::Buffer::HasInstance(dataHandle)) {
