@@ -180,14 +180,16 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	}
 
 	if ( !BER_BVISNULL( mech ) ) {
-		assert( mech->bv_val == id->bv_val + 2 );
+		if ( mech->bv_val != id->bv_val + 2 )
+			return LDAP_PROTOCOL_ERROR;
 
 		AC_MEMCPY( mech->bv_val - 2, mech->bv_val, mech->bv_len + 1 );
 		mech->bv_val -= 2;
 	}
 
 	if ( !BER_BVISNULL( realm ) ) {
-		assert( realm->bv_val >= id->bv_val + 2 );
+		if ( realm->bv_val < id->bv_val + 2 )
+			return LDAP_PROTOCOL_ERROR;
 
 		AC_MEMCPY( realm->bv_val - 2, realm->bv_val, realm->bv_len + 1 );
 		realm->bv_val -= 2;
@@ -449,9 +451,12 @@ is_dn:		bv.bv_len = in->bv_len - ( bv.bv_val - in->bv_val );
 	}
 
 	/* Grab the searchbase */
-	assert( ludp->lud_dn != NULL );
-	ber_str2bv( ludp->lud_dn, 0, 0, &bv );
-	rc = dnValidate( NULL, &bv );
+	if ( ludp->lud_dn != NULL ) {
+		ber_str2bv( ludp->lud_dn, 0, 0, &bv );
+		rc = dnValidate( NULL, &bv );
+	} else {
+		rc = LDAP_INVALID_SYNTAX;
+	}
 
 done:
 	ldap_free_urldesc( ludp );
@@ -813,7 +818,6 @@ is_dn:		bv.bv_len = val->bv_len - ( bv.bv_val - val->bv_val );
 	}
 
 	/* Grab the searchbase */
-	assert( ludp->lud_dn != NULL );
 	if ( ludp->lud_dn ) {
 		struct berval	out = BER_BVNULL;
 
@@ -831,6 +835,9 @@ is_dn:		bv.bv_len = val->bv_len - ( bv.bv_val - val->bv_val );
 		}
 
 		ludp->lud_dn = out.bv_val;
+	} else {
+		rc = LDAP_INVALID_SYNTAX;
+		goto done;
 	}
 
 	ludp->lud_port = 0;
