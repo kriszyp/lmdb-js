@@ -488,6 +488,7 @@ authzPrettyNormal(
 
 	assert( val != NULL );
 	assert( !BER_BVISNULL( val ) );
+	BER_BVZERO( normalized );
 
 	/*
 	 * 2) dn[.{exact|children|subtree|onelevel}]:{*|<DN>}
@@ -906,7 +907,7 @@ authzPretty(
 	rc = authzPrettyNormal( val, out, ctx, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<<< authzPretty: <%s> (%d)\n",
-		out->bv_val, rc, 0 );
+		out->bv_val ? out->bv_val : "(null)" , rc, 0 );
 
 	return rc;
 }
