@@ -18,11 +18,6 @@ const READING_TNX = {
 const SHARED_STRUCTURE_CHANGE = { name: 'SharedStructureChange' }
 
 const allDbs = exports.allDbs = new Map()
-function genericErrorHandler(err) {
-	if (err) {
-		console.error(err)
-	}
-}
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 SYNC_PROMISE_RESULT.isSync = true
