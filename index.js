@@ -81,11 +81,11 @@ function open(path, options) {
 			throw error
 	}
 	function renewReadTxn() {
-		readTxnRenewed = setImmediate(resetReadTxn)
 		if (readTxn)
 			readTxn.renew()
 		else
 			readTxn = env.beginTxn(READING_TNX)
+		readTxnRenewed = setImmediate(resetReadTxn)
 		return readTxn
 	}
 	function resetReadTxn() {
@@ -827,9 +827,14 @@ function open(path, options) {
 			for (const store of stores) {
 				store.emit('remap')
 			}
-			env.resize(newSize)
+			resetReadTxn() // separate out cursor-based read txns
+			try {
+				if (readTxn)
+					readTxn.abort()
+			} catch(error) {}
 			readTxnRenewed = null
 			readTxn = null
+			env.resize(newSize)
 			let result = retry()
 			return result
 		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
