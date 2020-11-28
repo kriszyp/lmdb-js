@@ -1,4 +1,5 @@
-const fs = require('fs-extra')
+const { sync: mkdirpSync } = require('mkdirp')
+const fs = require('fs')
 const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
@@ -47,7 +48,7 @@ function open(path, options) {
 		maxDbs: 12,
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
-	    	fs.ensureDirSync(options.noSubdir ? dirname(path) : path)
+		mkdirpSync(options.noSubdir ? dirname(path) : path)
 	if (options.compression) {
 		let setDefault
 		if (options.compression == true) {
