@@ -860,7 +860,7 @@ done:
 
 	if ( lud_dn ) {
 		if ( ludp->lud_dn != lud_dn ) {
-			ber_memfree( ludp->lud_dn );
+			ch_free( ludp->lud_dn );
 		}
 		ludp->lud_dn = lud_dn;
 	}
