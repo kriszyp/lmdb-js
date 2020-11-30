@@ -860,7 +860,7 @@ done:
 
 	if ( lud_dn ) {
 		if ( ludp->lud_dn != lud_dn ) {
-			ch_free( ludp->lud_dn );
+			slap_sl_free( ludp->lud_dn, ctx );
 		}
 		ludp->lud_dn = lud_dn;
 	}
