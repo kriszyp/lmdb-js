@@ -5144,9 +5144,8 @@ csnValidate(
 	int		rc;
 
 	assert( in != NULL );
-	assert( !BER_BVISNULL( in ) );
 
-	if ( BER_BVISEMPTY( in ) ) {
+	if ( BER_BVISNULL( in ) || BER_BVISEMPTY( in ) ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
