@@ -74,7 +74,8 @@ You can override the default encoding of keys, and cause keys to be returned as 
 ### Values
 You can store a wide variety of JavaScript values and data structures in lmdb-store, including objects (with arbitray complexity), arrays, buffers, strings, numbers, etc. in your database. Values are stored and retrieved according the database encoding, which can be set using the `encoding` property on the database options. By default, data is stored using MessagePack, but there are four supported encodings:
 
-* `msgpack` (default) - All values are stored by serializing the value as MessagePack (using the msgpackr package). Values are decoded and parsed on retrieval, so `get` and `getRange` will return the object, array, or other value that you have stored. The msgpackr package is extremely fast (faster than native JSON), and provides the most flexibility in storing different value types. See the Shared Structures section for how to achieve maximum efficiency with this.
+* `msgpack` (default) - All values are stored by serializing the value as MessagePack (using the [msgpackr](https://github.com/kriszyp/msgpackr) package). Values are decoded and parsed on retrieval, so `get` and `getRange` will return the object, array, or other value that you have stored. The msgpackr package is extremely fast (faster than native JSON), and provides the most flexibility in storing different value types. See the Shared Structures section for how to achieve maximum efficiency with this.
+* `cbor` - This specifies all values use the CBOR format, which requires that the [cbor-x](https://github.com/kriszyp/cbor-x) package be installed. This package is based on [msgpackr](https://github.com/kriszyp/msgpackr) and supports all the same options.
 * `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
 * `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
@@ -195,7 +196,7 @@ myStore.ifVersion('key1', 4, () => {
 ```
 
 ## Shared Structures
-Shared structures are mechanism for storing the structural information about objects stored in database in dedicated entry, outside of individual entries, for reuse across all of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack encoding, using the msgpackr package). This is highly recommended when storing structured objects with similiar object structures (including inside of array) in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. You can use a symbol as a metadata key, as symbols are outside of the range of the standard JS primitive values:
+Shared structures are mechanism for storing the structural information about objects stored in database in dedicated entry, outside of individual entries, for reuse across all of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack or CBOR encoding, using the msgpackr or cbor-x package). This is highly recommended when storing structured objects with similiar object structures (including inside of array) in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. You can use a symbol as a metadata key, as symbols are outside of the range of the standard JS primitive values:
 ```
 let myStore = open('my-store', {
 	sharedStructuresKey: Symbol.for('structures')
@@ -240,7 +241,7 @@ Additional databases can be opened within the main database environment with:
 `store.openDB(name, options)` or `store.openDB(options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
-* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'string'`, or `'binary'`.
+* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, or `'binary'`.
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)).
@@ -268,10 +269,12 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `readOnly` - Self-descriptive.
 * `mapAsync` - Not recommended, lmdb-store provides the means to ensure commits are performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
-#### msgpackr options
+#### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
 * `structuredClone` -  This enables the structured cloning extensions that will encode object/cyclic references and additional built-in types/classes.
 * `useFloat32: 4` -  Encode floating point numbers in 32-bit format when possible.
+
+You can also use the CBOR format by specifying the encoding of `'cbor'` and installing the [cbor-x](https://github.com/kriszyp/cbor-x) package, which supports the same options.
 
 ## Events
 

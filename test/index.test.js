@@ -39,7 +39,7 @@ describe('lmdb-store', function() {
   describe('Basic use', basicTests({ compression: false }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
-  describe('Basic use with compression', basicTests({}));
+  describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(10000);

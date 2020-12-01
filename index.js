@@ -4,7 +4,6 @@ const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
-const { Packr, pack, unpack } = require('msgpackr')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
@@ -148,11 +147,16 @@ function open(path, options) {
 				path: options.path,
 				encoding: options.encoding,
 			}, dbOptions)
-			if (!this.encoding || this.encoding == 'msgpack') {
-				this.packr = new Packr(Object.assign(this.sharedStructuresKey ?
+			if (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor') {
+				this.encoder = this.decoder = new (this.encoding == 'cbor' ? require('cbor-x').Encoder : require('msgpackr').Encoder)
+					(Object.assign(this.sharedStructuresKey ?
 					this.setupSharedStructures() : {
 						copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers
 					}, options, dbOptions))
+			} else if (this.encoding == 'json') {
+				this.encoder = {
+					encode: JSON.stringify,
+				}
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -228,9 +232,9 @@ function open(path, options) {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
 				let result
-				if (this.packr) {
+				if (this.decoder) {
 					this.lastSize = result = txn.getBinaryUnsafe(this.db, id)
-					return result && this.packr.unpack(this.db.unsafeBuffer, result)
+					return result && this.decoder.decode(this.db.unsafeBuffer, result)
 				}
 				if (this.encoding == 'binary') {
 					result = txn.getBinary(this.db, id)
@@ -329,10 +333,8 @@ function open(path, options) {
 				this.putSync(id, value, version)
 				return SYNC_PROMISE_RESULT
 			}
-			if (this.packr)
-				value = this.packr.pack(value)
-			else if (this.encoding == 'json')
-				value = JSON.stringify(value)
+			if (this.encoder)
+				value = this.encoder.encode(value)
 			else if (typeof value != 'string' && !(value && value.readUInt16BE))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 			let operations = this.getScheduledOperations()
@@ -359,10 +361,8 @@ function open(path, options) {
 				this.writes++
 				if (!writeTxn)
 					localTxn = writeTxn = env.beginTxn()
-				if (this.packr)
-					value = this.packr.pack(value)
-				else if (this.encoding == 'json')
-					value = JSON.stringify(value)
+				if (this.encoder)
+					value = this.encoder.encode(value)
 				if (typeof value == 'string') {
 					writeTxn.putUtf8(this.db, id, value, version)
 				} else {
@@ -395,12 +395,8 @@ function open(path, options) {
 						let previousVersion = this.get(id) ? getLastVersion() : null
 						if (!matches(previousVersion, ifVersionOrValue))
 							return false
-					} else {
-						if (this.packr)
-							deleteValue = this.packr.pack(ifVersionOrValue)
-						else if (this.encoding == 'json')
-							deleteValue = JSON.stringify(ifVersionOrValue)
-					}
+					} else if (this.encoder)
+						deleteValue = this.encoder.encode(ifVersionOrValue)
 				}
 				this.writes++
 				let result
@@ -436,10 +432,8 @@ function open(path, options) {
 			else if (this.useVersions)
 				operation = [id, undefined, undefined, ifVersionOrValue] // version condition
 			else {
-				if (this.packr)
-					operation = [id, this.packr.pack(ifVersionOrValue), true]
-				else if (this.encoding == 'json')
-					operation = [id, JSON.stringify(ifVersionOrValue), true]
+				if (this.encoder)
+					operation = [id, this.encoder.encode(ifVersionOrValue), true]
 				else
 					operation = [id, ifVersionOrValue, true]
 			}
@@ -559,10 +553,10 @@ function open(path, options) {
 						}
 						if (includeValues) {
 							let value
-							if (store.packr) {
+							if (store.decoder) {
 								lastSize = value = cursor.getCurrentBinaryUnsafe()
 								if (value)
-									value = store.packr.unpack(store.db.unsafeBuffer, value)
+									value = store.decoder.decode(store.db.unsafeBuffer, value)
 							} else if (store.encoding == 'binary')
 								value = cursor.getCurrentBinary()
 							else {
@@ -767,8 +761,8 @@ function open(path, options) {
 			} catch(error) {
 				handleError(error, this, null, () => this.clear())
 			}
-			if (this.packr && this.packr.structures)
-				this.packr.structures = []
+			if (this.encoder && this.encoder.structures)
+				this.encoder.structures = []
 
 		}
 		setupSharedStructures() {
@@ -776,10 +770,10 @@ function open(path, options) {
 				saveStructures: (structures, previousLength) => {
 					return this.transaction(() => {
 						let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
-						let existingStructures = existingStructuresBuffer ? unpack(existingStructuresBuffer) : []
+						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
-						writeTxn.putBinary(this.db, this.sharedStructuresKey, pack(structures))
+						writeTxn.putBinary(this.db, this.sharedStructuresKey, this.encoder.encode(structures))
 					})
 				},
 				getStructures: () => {
@@ -789,7 +783,7 @@ function open(path, options) {
 					let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
 					if (this.useVersions)
 						setLastVersion(lastVersion)
-					return buffer ? unpack(buffer) : []
+					return buffer ? this.encoder.decode(buffer) : []
 				},
 				copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers
 			}
@@ -800,7 +794,7 @@ function open(path, options) {
 		new LMDBStore(options.name || null, options)
 	function handleError(error, store, txn, retry) {
 		if (error === SHARED_STRUCTURE_CHANGE) {
-			store.packr.structures = unpack(txn.getBinary(store.db, store.sharedStructuresKey))
+			store.encoder.structures = store.encoder.decode(txn.getBinary(store.db, store.sharedStructuresKey))
 			return retry()
 		}
 		try {
