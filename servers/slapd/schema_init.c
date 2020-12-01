@@ -3885,7 +3885,7 @@ issuerAndThisUpdateCheck(
 				/* empty */;
 			}
 
-			if ( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			if ( !x.bv_len || x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
 			x.bv_val++;
 			x.bv_len--;
 
