@@ -156,10 +156,9 @@ int slap_parse_user( struct berval *id, struct berval *user,
 	user->bv_val++;
 	user->bv_len = id->bv_len - ( user->bv_val - id->bv_val );
 
-	mech->bv_val = ber_bvchr( id, '.' );
-	if ( !BER_BVISNULL( mech ) ) {
-		mech->bv_val[ 0 ] = '\0';
-		mech->bv_val++;
+	if ( id->bv_val[1] == '.' ) {
+		id->bv_val[1] = '\0';
+		mech->bv_val = id->bv_val + 2;
 		mech->bv_len = user->bv_val - mech->bv_val - 1;
 
 		realm->bv_val = ber_bvchr( mech, '/' );
@@ -172,6 +171,7 @@ int slap_parse_user( struct berval *id, struct berval *user,
 		}
 
 	} else {
+		BER_BVZERO( mech );
 		BER_BVZERO( realm );
 	}
 
