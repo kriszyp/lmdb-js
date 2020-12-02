@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.57 Engineering
+	Fixed slapd to remove asserts in UUIDNormalize (ITS#9391)
 
 OpenLDAP 2.4.56 Release (2020/11/10)
 	Fixed slapd to remove assert in certificateListValidate (ITS#9383)
