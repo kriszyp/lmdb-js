@@ -138,6 +138,16 @@ describe('lmdb-store', function() {
       should.equal(db.get('newKey'), 'test')
       should.equal(db2.get('keyB'), 'test')
       should.equal(result, true);
+      result = await db.ifNoExists('key1', () => {
+        db.put('newKey', 'changed', 7);
+      })
+      should.equal(db.get('newKey'), 'test');
+      should.equal(result, false);
+      result = await db.ifNoExists('key-no-exist', () => {
+        db.put('newKey', 'changed', 7);
+      })
+      should.equal(db.get('newKey'), 'changed')
+      should.equal(result, true);
     });
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
