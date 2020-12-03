@@ -18,7 +18,7 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 
 ## Upgrade Note
 
-LMDB 1.0 has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format.
+LMDB 1.0RC (reported as 0.9.90) has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format.
 
 ## Design
 
