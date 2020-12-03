@@ -905,31 +905,37 @@ strip_cav_str( ComponentAssertionValue* cav, char* str)
 static ber_tag_t
 strip_cav_tag( ComponentAssertionValue* cav )
 {
+	int rc;
 
 	eat_whsp( cav );
 	if ( cav_cur_len( cav ) >= 8 && strncmp( cav->cav_ptr, "item", 4 ) == 0 ) {
-		strip_cav_str( cav , "item:" );
+		if ( strip_cav_str( cav , "item:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_ITEM;
 
 	} else if ( cav_cur_len( cav ) >= 7 &&
 		strncmp( cav->cav_ptr, "and", 3 ) == 0 )
 	{
-		strip_cav_str( cav , "and:" );
+		if ( strip_cav_str( cav , "and:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_AND;
 
 	} else if ( cav_cur_len( cav ) >= 6 &&
 		strncmp( cav->cav_ptr, "or" , 2 ) == 0 )
 	{
-		strip_cav_str( cav , "or:" );
+		if ( strip_cav_str( cav , "or:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_OR;
 
 	} else if ( cav_cur_len( cav ) >= 7 &&
 		strncmp( cav->cav_ptr, "not", 3 ) == 0 )
 	{
-		strip_cav_str( cav , "not:" );
+		if ( strip_cav_str( cav , "not:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_NOT;
 	}
 
+fail:
 	return LBER_ERROR;
 }
 
