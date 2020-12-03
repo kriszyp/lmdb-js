@@ -28,7 +28,7 @@ exports.upgrade =  function(path, options, open) {
 					copyDB(sourceStore.openDB(currentKey, {}), targetStore.openDB(currentKey))
 				} else {
 					targetStore.putSync(currentKey, sourceDb.unsafeBuffer.slice(0, size))
-				}mmm
+				}
 				currentKey = cursor.goToNext()
 			}
 			cursor.close()
