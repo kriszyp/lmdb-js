@@ -272,7 +272,7 @@ function open(path, options) {
 			resetReadTxn()
 		}
 		ifNoExists(key, callback) {
-			return ifVersion(key, null, callback)
+			return this.ifVersion(key, null, callback)
 		}
 		ifVersion(key, version, callback) {
 			if (typeof version != 'number') {
