@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store-0.9",
   "author": "Kris Zyp",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Only for upgrading older versions of LMDB",
   "license": "MIT",
   "repository": {
