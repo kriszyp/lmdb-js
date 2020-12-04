@@ -351,5 +351,5 @@ skip:
 	/* disconnect from server */
 	if ( res )
 		ldap_msgfree( res );
-	tool_exit( ld, code == LDAP_SUCCESS ? EXIT_SUCCESS : EXIT_FAILURE );
+	tool_exit( ld, rc );
 }
