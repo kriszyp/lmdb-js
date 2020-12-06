@@ -469,6 +469,7 @@ struct LloadListener {
 #ifdef HAVE_TLS
     int sl_is_tls;
 #endif
+    int sl_is_proxied;
     struct event_base *base;
     struct evconnlistener *listener;
     int sl_mute; /* Listener is temporarily disabled due to emfile */

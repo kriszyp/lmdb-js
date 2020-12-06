@@ -1557,6 +1557,11 @@ LDAP_SLAPD_F (void) slap_passwd_init (void);
 LDAP_SLAPD_F (char *) phonetic LDAP_P(( char *s ));
 
 /*
+ * proxyp.c
+ */
+LDAP_SLAPD_F (int) proxyp LDAP_P((ber_socket_t sfd, Sockaddr *from));
+
+/*
  * referral.c
  */
 LDAP_SLAPD_F (int) validate_global_referral LDAP_P((

@@ -1549,6 +1549,8 @@ slap_open_listener(
 	}
 #endif /* HAVE_TLS */
 
+	l.sl_is_proxied = ldap_pvt_url_scheme2proxied( lud->lud_scheme );
+
 #ifdef LDAP_TCP_BUFFER
 	l.sl_tcp_rmem = 0;
 	l.sl_tcp_wmem = 0;
@@ -2270,6 +2272,13 @@ slap_listener(
 	case AF_INET6:
 #  endif /* LDAP_PF_INET6 */
 	case AF_INET:
+		if ( sl->sl_is_proxied ) {
+			if ( !proxyp( sfd, &from ) ) {
+				Debug( LDAP_DEBUG_ANY, "slapd(%ld): proxyp failed\n", (long)sfd );
+				slapd_close( sfd );
+				return 0;
+			}
+		}
 		lutil_sockaddrstr( &from, &peerbv );
 		break;
 

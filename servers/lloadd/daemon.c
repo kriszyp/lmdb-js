@@ -404,6 +404,8 @@ lload_open_listener(
     l.sl_is_tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
 #endif /* HAVE_TLS */
 
+    l.sl_is_proxied = ldap_pvt_url_scheme2proxied( lud->lud_scheme );
+
 #ifdef LDAP_TCP_BUFFER
     l.sl_tcp_rmem = 0;
     l.sl_tcp_wmem = 0;
@@ -889,6 +891,16 @@ lload_listener(
     }
 #endif /* SO_KEEPALIVE || TCP_NODELAY */
 
+    if ( sl->sl_is_proxied ) {
+        if ( !proxyp( s, from ) ) {
+            Debug( LDAP_DEBUG_ANY, "lload_listener: "
+                    "proxyp(%ld) failed\n",
+                    (long)s );
+            lloadd_close( s );
+            return;
+        }
+    }
+
     cflag = 0;
     switch ( from->sa_addr.sa_family ) {
 #ifdef LDAP_PF_LOCAL
@@ -1118,8 +1130,9 @@ lload_listener_activate( void )
 
         lload_listeners[l]->sl_busy = 1;
         listener = evconnlistener_new( listener_base, lload_listener,
-                lload_listeners[l], LEV_OPT_THREADSAFE, SLAPD_LISTEN_BACKLOG,
-                lload_listeners[l]->sl_sd );
+                lload_listeners[l],
+                LEV_OPT_THREADSAFE|LEV_OPT_DEFERRED_ACCEPT,
+                SLAPD_LISTEN_BACKLOG, lload_listeners[l]->sl_sd );
         if ( !listener ) {
             int err = sock_errno();
 

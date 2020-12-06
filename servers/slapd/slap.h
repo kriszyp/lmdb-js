@@ -3003,6 +3003,7 @@ struct Listener {
 #ifdef LDAP_CONNECTIONLESS
 	int	sl_is_udp;		/* UDP listener is also data port */
 #endif
+	int	sl_is_proxied;
 	int	sl_mute;	/* Listener is temporarily disabled due to emfile */
 	int	sl_busy;	/* Listener is busy (accept thread activated) */
 	ber_socket_t sl_sd;
