@@ -1,3 +1,9 @@
+workflow:
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "OPENLDAP_REL_ENG_2_4" && $CI_PROJECT_NAMESPACE != "openldap"'
+      when: never
+    - when: always
+
 stages:
   - build
 
