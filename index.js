@@ -401,9 +401,9 @@ function open(path, options) {
 				this.writes++
 				let result
 				if (deleteValue)
-					result = localTxn.del(this.db, id, deleteValue)
+					result = writeTxn.del(this.db, id, deleteValue)
 				else
-					result = localTxn.del(this.db, id)
+					result = writeTxn.del(this.db, id)
 				if (localTxn) {
 					writeTxn = null
 					localTxn.commit()
