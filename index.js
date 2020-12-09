@@ -15,7 +15,6 @@ const DEFAULT_COMMIT_DELAY = 1
 const READING_TNX = {
 	readOnly: true
 }
-const SHARED_STRUCTURE_CHANGE = { name: 'SharedStructureChange' }
 
 const allDbs = exports.allDbs = new Map()
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
@@ -377,18 +376,19 @@ function open(path, options) {
 					resetReadTxn()
 				}
 			} catch(error) {
-				if (writeTxn)
+				if (!localTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
-				return handleError(error, this, txn, () => this.putSync(id, value, version))
+				return handleError(error, this, localTxn, () => this.putSync(id, value, version))
 			}
 		}
 		removeSync(id, ifVersionOrValue) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
-			let txn
+			let localTxn
 			try {
-				txn = writeTxn || env.beginTxn()
+				if (!writeTxn)
+					localTxn = writeTxn = env.beginTxn()
 				let deleteValue
 				if (ifVersionOrValue !== undefined) {
 					if (this.useVersions) {
@@ -401,18 +401,19 @@ function open(path, options) {
 				this.writes++
 				let result
 				if (deleteValue)
-					result = txn.del(this.db, id, deleteValue)
+					result = localTxn.del(this.db, id, deleteValue)
 				else
-					result = txn.del(this.db, id)
-				if (!writeTxn) {
-					txn.commit()
+					result = localTxn.del(this.db, id)
+				if (localTxn) {
+					writeTxn = null
+					localTxn.commit()
 					resetReadTxn()
 				}
 				return result // object found and deleted
 			} catch(error) {
-				if (writeTxn)
+				if (!localTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
-				return handleError(error, this, txn, () => this.removeSync(id))
+				return handleError(error, this, localTxn, () => this.removeSync(id))
 			}
 		}
 		remove(id, ifVersionOrValue) {
@@ -793,10 +794,6 @@ function open(path, options) {
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
 	function handleError(error, store, txn, retry) {
-		if (error === SHARED_STRUCTURE_CHANGE) {
-			store.encoder.structures = store.encoder.decode(txn.getBinary(store.db, store.sharedStructuresKey))
-			return retry()
-		}
 		try {
 			if (writeTxn)
 				writeTxn.abort()
