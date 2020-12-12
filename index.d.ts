@@ -25,6 +25,7 @@ declare namespace lmdb {
 		transaction<T>(action: () => T, abort?: boolean): T
 		ifVersion(id: K, ifVersion: number, action: () => any): Promise<boolean>
 		ifNoExists(id: K, action: () => any): Promise<boolean>
+		close(): void
 	}
 	class RootDatabase<V = any, K extends Key = Key> extends Database<V, K> {
 		openDB(options: DatabaseOptions & { name: string }): Database<V, K>

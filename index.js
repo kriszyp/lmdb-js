@@ -43,6 +43,7 @@ function open(path, options) {
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
+		isRoot: true,
 		maxDbs: 12,
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
@@ -723,7 +724,8 @@ function open(path, options) {
 		}
 		close() {
 			this.db.close()
-			env.close()
+			if (this.isRoot)
+				env.close()
 		}
 		getStats() {
 			try {

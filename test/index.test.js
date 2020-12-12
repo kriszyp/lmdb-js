@@ -1,5 +1,5 @@
 'use strict';
-var inspector = require('inspector')
+//var inspector = require('inspector')
 //inspector.open(9330, null, true)
 
 let path = require('path');
@@ -45,7 +45,6 @@ describe('lmdb-store', function() {
     this.timeout(10000);
     let db, db2;
     before(function() {
-      console.log({testDirPath})
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
         create: true,
@@ -252,6 +251,10 @@ describe('lmdb-store', function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
+    after(function() {
+      db2.close();
+      db.close();
+    });
   }}
   describe('uint32 keys', function() {
     this.timeout(10000);
@@ -281,6 +284,9 @@ describe('lmdb-store', function() {
         value.should.equal('value' + i);
         i++;
       }
+    });
+    after(function() {
+      db.close();
     });
   });
 });
