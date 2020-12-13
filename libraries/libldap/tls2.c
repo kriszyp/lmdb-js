@@ -1505,6 +1505,12 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 		}
 	}
 
+	/* Rewind and prepare to extract */
+	ber_rewind( ber );
+	tag = ber_first_element( ber, &len, &dn_end );
+	if ( tag == LBER_DEFAULT )
+		return LDAP_DECODING_ERROR;
+
 	/* Allocate the DN/RDN/AVA stuff as a single block */    
 	dnsize = sizeof(LDAPRDN) * (nrdns+1);
 	dnsize += sizeof(LDAPAVA *) * (navas+nrdns);
@@ -1516,16 +1522,12 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 	} else {
 		newDN = (LDAPDN)(char *)ptrs;
 	}
-	
+
 	newDN[nrdns] = NULL;
 	newRDN = (LDAPRDN)(newDN + nrdns+1);
 	newAVA = (LDAPAVA *)(newRDN + navas + nrdns);
 	baseAVA = newAVA;
 
-	/* Rewind and start extracting */
-	ber_rewind( ber );
-
-	tag = ber_first_element( ber, &len, &dn_end );
 	for ( i = nrdns - 1; i >= 0; i-- ) {
 		newDN[i] = newRDN;
 
