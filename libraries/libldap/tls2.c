@@ -1248,6 +1248,8 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 		for ( tag = ber_first_element( ber, &len, &rdn_end );
 			tag == LBER_SEQUENCE;
 			tag = ber_next_element( ber, &len, rdn_end )) {
+			if ( rdn_end > dn_end )
+				return LDAP_DECODING_ERROR;
 			tag = ber_skip_tag( ber, &len );
 			ber_skip_data( ber, len );
 			navas++;
@@ -1257,7 +1259,7 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 	/* Rewind and prepare to extract */
 	ber_rewind( ber );
 	tag = ber_first_element( ber, &len, &dn_end );
-	if ( tag == LBER_DEFAULT )
+	if ( tag != LBER_SET )
 		return LDAP_DECODING_ERROR;
 
 	/* Allocate the DN/RDN/AVA stuff as a single block */    
@@ -1370,6 +1372,10 @@ allocd:
 				/* X.690 bitString value converted to RFC4517 Bit String */
 				rc = der_to_ldap_BitString( &Val, &newAVA->la_value );
 				goto allocd;
+			case LBER_DEFAULT:
+				/* decode error */
+				rc = LDAP_DECODING_ERROR;
+				goto nomem;
 			default:
 				/* Not a string type at all */
 				newAVA->la_flags = 0;
