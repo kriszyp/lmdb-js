@@ -4302,7 +4302,7 @@ serialNumberAndIssuerSerialCheck(
 	if ( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	/* no old format */
-	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
+	if ( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
 
 	x.bv_val++;
 	x.bv_len -= 2;
