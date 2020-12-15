@@ -350,6 +350,7 @@ dynlist_urlmembers( Operation *op, dynlist_name_t *dyn, slap_callback *sc )
 	o.ors_tlimit = SLAP_NO_LIMIT;
 	o.ors_slimit = SLAP_NO_LIMIT;
 	o.ors_attrs = NULL;
+	memset( o.o_ctrlflag, 0, sizeof( o.o_ctrlflag ));
 	o.o_callback = sc;
 
 	for (i=0; i<dyn->dy_numuris; i++) {
@@ -547,6 +548,7 @@ dynlist_prepare_entry( Operation *op, SlapReply *rs, dynlist_info_t *dli, dynlis
 	o.ors_limit = NULL;
 	o.ors_tlimit = SLAP_NO_LIMIT;
 	o.ors_slimit = SLAP_NO_LIMIT;
+	memset( o.o_ctrlflag, 0, sizeof( o.o_ctrlflag ));
 
 	for ( url = a->a_nvals; !BER_BVISNULL( url ); url++ ) {
 		LDAPURLDesc	*lud = NULL;
@@ -1534,6 +1536,9 @@ dynlist_search2resp( Operation *op, SlapReply *rs )
 		SlapReply r = *rs;
 		Filter *f = ds->ds_origfilter ? ds->ds_origfilter : op->ors_filter;
 
+		if ( get_pagedresults( op ) > SLAP_CONTROL_IGNORED )
+			return SLAP_CB_CONTINUE;
+
 		/* Check for any unexpanded dynamic group entries that weren't picked up
 		 * by the original search filter.
 		 */
@@ -1677,6 +1682,7 @@ dynlist_search( Operation *op, SlapReply *rs )
 	sc->sc_private = (void *)(sc+1);
 	ds = sc->sc_private;
 
+	memset( o.o_ctrlflag, 0, sizeof( o.o_ctrlflag ));
 	o.o_managedsait = SLAP_CONTROL_CRITICAL;
 
 	/* Are we using memberOf, and does it affect this request? */
