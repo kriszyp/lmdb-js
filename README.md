@@ -265,6 +265,7 @@ The following additional option properties are only available when creating the 
 #### LMDB Flags
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a> (only `noMemInit` is recommended, but others are available for boosting performance):
 * `noMemInit` - This provides a small performance boost (when not using useWritemap) for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database.
+* `noReadAhead` - This disables read-ahead caching. Turning it off may help random read performance when the DB is larger than RAM and system RAM is full. However, this is not supported by all OSes, including Windows.
 * `useWritemap` - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data.
 * `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * `noSync` - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and lmdb-store mitigates performance issues associated with disk syncs by batching.
