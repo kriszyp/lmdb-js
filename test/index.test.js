@@ -36,7 +36,7 @@ describe('lmdb-store', function() {
     });
   });
   let testIteration = 1
-  describe('Basic use', basicTests({ compression: false }));
+  describe.only('Basic use', basicTests({ compression: false }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
@@ -251,9 +251,16 @@ describe('lmdb-store', function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
-    after(function() {
-      db2.close();
-      db.close();
+    after(function(done) {
+      db.get('key1');
+      let iterator = db.getRange({})[Symbol.iterator]()
+      setTimeout(() => {
+        db.get('key1');
+        // should have open read and cursor transactions
+        db2.close();
+        db.close();
+        done()
+      },10);
     });
   }}
   describe('uint32 keys', function() {

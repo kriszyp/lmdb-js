@@ -724,8 +724,10 @@ function open(path, options) {
 		}
 		close() {
 			this.db.close()
-			if (this.isRoot)
+			if (this.isRoot) {
+				readTxnRenewed = null
 				env.close()
+			}
 		}
 		getStats() {
 			try {
