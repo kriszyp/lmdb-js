@@ -263,6 +263,11 @@ The
 .BR slapo\-dynlist (5)
 overlay supports dynamic configuration via
 .BR back-config .
+
+.SH BUGS
+Filtering on dynamic groups may return incomplete results if the
+search operation uses the \fIpagedResults\fP control.
+
 .SH ACKNOWLEDGEMENTS
 .P
 This module was written in 2004 by Pierangelo Masarati for SysNet s.n.c.

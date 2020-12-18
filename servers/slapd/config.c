@@ -453,14 +453,61 @@ int
 config_del_vals(ConfigTable *cf, ConfigArgs *c)
 {
 	int rc = 0;
+	void *ptr;
 
-	/* If there is no handler, just ignore it */
 	if ( cf->arg_type & ARG_MAGIC ) {
 		c->argv[0] = cf->ad->ad_cname.bv_val;
 		c->op = LDAP_MOD_DELETE;
 		c->type = cf->arg_type & ARGS_USERLAND;
 		rc = (*((ConfigDriver*)cf->arg_item))(c);
+		return rc;
 	}
+	/* If there is no handler, just zero it */
+	if ( cf->arg_type & ARG_OFFSET ) {
+		if ( c->be && c->table == Cft_Database )
+			ptr = c->be->be_private;
+		else if ( c->bi )
+			ptr = c->bi->bi_private;
+		else {
+			snprintf( c->cr_msg, sizeof( c->cr_msg ), "<%s> offset is missing base pointer",
+				c->argv[0] );
+			Debug( LDAP_DEBUG_CONFIG, "%s: %s!\n",
+				c->log, c->cr_msg );
+			return ARG_BAD_CONF;
+		}
+		ptr = (void *)((char *)ptr + (long)cf->arg_item);
+	} else if ( cf->arg_type & ARGS_TYPES ) {
+		ptr = cf->arg_item;
+	}
+	if ( cf->arg_type & ARGS_TYPES )
+		switch ( cf->arg_type & ARGS_TYPES ) {
+			case ARG_ON_OFF:
+			case ARG_INT:		*(int *)ptr = cf->arg_default.v_int;		break;
+			case ARG_UINT:		*(unsigned *)ptr = cf->arg_default.v_uint;	break;
+			case ARG_LONG:		*(long *)ptr = cf->arg_default.v_long;		break;
+			case ARG_ULONG:		*(size_t *)ptr = cf->arg_default.v_ulong;	break;
+			case ARG_BER_LEN_T:	*(ber_len_t *)ptr = cf->arg_default.v_ber_t;	break;
+			case ARG_STRING:
+				ch_free( *(char**)ptr );
+				if ( cf->arg_default.v_string ) {
+					*(char **)ptr = ch_strdup( cf->arg_default.v_string );
+				} else {
+					*(char **)ptr = NULL;
+				}
+				break;
+			case ARG_BERVAL:
+			case ARG_BINARY:
+				ch_free( ((struct berval *)ptr)->bv_val );
+				if ( !BER_BVISNULL( &cf->arg_default.v_bv ) ) {
+					ber_dupbv( (struct berval *)ptr, &cf->arg_default.v_bv );
+				} else {
+					BER_BVZERO( (struct berval *)ptr );
+				}
+				break;
+			case ARG_ATDESC:
+				*(AttributeDescription **)ptr = cf->arg_default.v_ad;
+				break;
+		}
 	return rc;
 }
 

@@ -347,7 +347,7 @@ get_comp_filter( Operation* op, struct berval* bv,
 		return rc;
 	}
 	rc = parse_comp_filter( op, &cav, filt, text );
-	bv->bv_val = cav.cav_ptr;
+	/* bv->bv_val = cav.cav_ptr; */
 
 	return rc;
 }
@@ -905,31 +905,37 @@ strip_cav_str( ComponentAssertionValue* cav, char* str)
 static ber_tag_t
 strip_cav_tag( ComponentAssertionValue* cav )
 {
+	int rc;
 
 	eat_whsp( cav );
 	if ( cav_cur_len( cav ) >= 8 && strncmp( cav->cav_ptr, "item", 4 ) == 0 ) {
-		strip_cav_str( cav , "item:" );
+		if ( strip_cav_str( cav , "item:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_ITEM;
 
 	} else if ( cav_cur_len( cav ) >= 7 &&
 		strncmp( cav->cav_ptr, "and", 3 ) == 0 )
 	{
-		strip_cav_str( cav , "and:" );
+		if ( strip_cav_str( cav , "and:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_AND;
 
 	} else if ( cav_cur_len( cav ) >= 6 &&
 		strncmp( cav->cav_ptr, "or" , 2 ) == 0 )
 	{
-		strip_cav_str( cav , "or:" );
+		if ( strip_cav_str( cav , "or:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_OR;
 
 	} else if ( cav_cur_len( cav ) >= 7 &&
 		strncmp( cav->cav_ptr, "not", 3 ) == 0 )
 	{
-		strip_cav_str( cav , "not:" );
+		if ( strip_cav_str( cav , "not:" ))
+			goto fail;
 		return LDAP_COMP_FILTER_NOT;
 	}
 
+fail:
 	return LBER_ERROR;
 }
 
@@ -1067,7 +1073,7 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 	 */
 
 	ber_tag_t	tag;
-	int		err;
+	int		err = LDAP_SUCCESS;
 	ComponentFilter	f;
 	/* TAG : item, and, or, not in RFC 4515 */
 	tag = strip_cav_tag( cav );
@@ -1077,10 +1083,11 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( tag != LDAP_COMP_FILTER_NOT )
-		strip_cav_str( cav, "{");
-
-	err = LDAP_SUCCESS;
+	if ( tag != LDAP_COMP_FILTER_NOT ) {
+		err = strip_cav_str( cav, "{");
+		if ( err )
+			goto invalid;
+	}
 
 	f.cf_next = NULL;
 	f.cf_choice = tag; 
@@ -1154,13 +1161,14 @@ parse_comp_filter( Operation* op, ComponentAssertionValue* cav,
 		break;
 	}
 
+invalid:
 	if ( err != LDAP_SUCCESS && err != SLAPD_DISCONNECT ) {
 		*text = "Component Filter Syntax Error";
 		return err;
 	}
 
 	if ( tag != LDAP_COMP_FILTER_NOT )
-		strip_cav_str( cav, "}");
+		err = strip_cav_str( cav, "}");
 
 	if ( err == LDAP_SUCCESS ) {
 		if ( op ) {

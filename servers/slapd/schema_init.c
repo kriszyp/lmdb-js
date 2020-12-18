@@ -327,6 +327,9 @@ certificateValidate( Syntax *syntax, struct berval *in )
 	ber_len_t len;
 	ber_int_t version = SLAP_X509_V1;
 
+	if ( BER_BVISNULL( in ) || BER_BVISEMPTY( in ))
+		return LDAP_INVALID_SYNTAX;
+
 	ber_init2( ber, in, LBER_USE_DER );
 	tag = ber_skip_tag( ber, &len );	/* Signed wrapper */
 	if ( tag != LBER_SEQUENCE ) return LDAP_INVALID_SYNTAX;
@@ -3881,7 +3884,7 @@ issuerAndThisUpdateCheck(
 
 	if ( in->bv_len < STRLENOF( "{issuer \"\",thisUpdate \"YYMMDDhhmmssZ\"}" ) ) return LDAP_INVALID_SYNTAX;
 
-	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) {
+	if ( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -3960,7 +3963,7 @@ issuerAndThisUpdateCheck(
 				/* empty */;
 			}
 
-			if ( x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
+			if ( !x.bv_len || x.bv_val[0] != '"' ) return LDAP_INVALID_SYNTAX;
 			x.bv_val++;
 			x.bv_len--;
 
@@ -4374,7 +4377,7 @@ serialNumberAndIssuerSerialCheck(
 	if ( in->bv_len < 3 ) return LDAP_INVALID_SYNTAX;
 
 	/* no old format */
-	if ( in->bv_val[0] != '{' && in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
+	if ( in->bv_val[0] != '{' || in->bv_val[in->bv_len-1] != '}' ) return LDAP_INVALID_SYNTAX;
 
 	x.bv_val++;
 	x.bv_len -= 2;

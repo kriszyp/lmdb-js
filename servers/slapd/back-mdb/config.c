@@ -110,7 +110,8 @@ static ConfigTable mdbcfg[] = {
 		"( OLcfgDbAt:12.5 NAME 'olcDbRtxnSize' "
 		"DESC 'Number of entries to process in one read transaction' "
 		"EQUALITY integerMatch "
-		"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
+		"SYNTAX OMsInteger SINGLE-VALUE )", NULL,
+		{ .v_uint = DEFAULT_RTXN_SIZE } },
 	{ "searchstack", "depth", 2, 2, 0, ARG_INT|ARG_MAGIC|MDB_SSTACK,
 		mdb_cf_gen, "( OLcfgDbAt:1.9 NAME 'olcDbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "

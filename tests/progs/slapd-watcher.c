@@ -704,7 +704,7 @@ server_down1:
 							goto server_down1;
 					}
 				}
-				if ( rc != -1 );
+				if ( rc != -1 )
 					gettimeofday( &servers[i].c_curr.time, 0 );
 			}
 		}

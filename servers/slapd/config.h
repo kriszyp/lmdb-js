@@ -21,6 +21,23 @@
 
 LDAP_BEGIN_DECL
 
+typedef union config_values_u {
+	/* Drop-in to make existing "notify" initialisers quietly work */
+	void *dummy;
+	int v_int;
+	unsigned v_uint;
+	long v_long;
+	size_t v_ulong;
+	ber_len_t v_ber_t;
+	char *v_string;
+	struct berval v_bv;
+	struct {
+		struct berval vdn_dn;
+		struct berval vdn_ndn;
+	} v_dn;
+	AttributeDescription *v_ad;
+} ConfigValues;
+
 typedef struct ConfigTable {
 	const char *name;
 	const char *what;
@@ -31,7 +48,7 @@ typedef struct ConfigTable {
 	void *arg_item;
 	const char *attribute;
 	AttributeDescription *ad;
-	void *notify;
+	ConfigValues arg_default;
 } ConfigTable;
 
 /* search entries are returned according to this order */
@@ -142,20 +159,7 @@ typedef struct config_args_s {
 	int depth;
 	int valx;	/* multi-valued value index */
 	/* parsed first val for simple cases */
-	union {
-		int v_int;
-		unsigned v_uint;
-		long v_long;
-		size_t v_ulong;
-		ber_len_t v_ber_t;
-		char *v_string;
-		struct berval v_bv;
-		struct {
-			struct berval vdn_dn;
-			struct berval vdn_ndn;
-		} v_dn;
-		AttributeDescription *v_ad;
-	} values;
+	ConfigValues values;
 	/* return values for emit mode */
 	BerVarray rvalue_vals;
 	BerVarray rvalue_nvals;
