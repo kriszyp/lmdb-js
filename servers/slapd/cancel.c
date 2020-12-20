@@ -65,6 +65,11 @@ int cancel_extop( Operation *op, SlapReply *rs )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( opid == op->o_msgid ) {
+		op->o_cancel = SLAP_CANCEL_DONE;
+		return LDAP_SUCCESS;
+	}
+
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 
 	if ( op->o_abandon ) {
