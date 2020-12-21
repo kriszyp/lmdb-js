@@ -13,6 +13,7 @@ OpenLDAP 2.4.57 Engineering
 	Fixed slapd saslauthz SEGV in slap_parse_user (ITS#9413)
 	Fixed slapd modrdn memory leak (ITS#9420)
 	Fixed slapd double-free in vrfilter (ITS#9408)
+	Fixed slapd cancel operation to correctly terminate (ITS#9428)
 	Fixed slapd-ldap fix binds on retry with closed connection (ITS#9400)
 	Fixed slapo-syncprov to ignore duplicate sessionlog entries (ITS#9394)
 
