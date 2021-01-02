@@ -35,14 +35,13 @@
   },
   "gypfile": true,
   "dependencies": {
-    "lmdb-store-0.9": "0.7.4",
     "mkdirp": "^1.0.4",
     "nan": "^2.14.2",
     "node-gyp-build": "^4.2.3",
-    "weak-lru-cache": "^0.4.0"
+    "weak-lru-cache": "^0.4.1"
   },
   "optionalDependencies": {
-    "msgpackr": "^1.0.1"
+    "msgpackr": "^1.0.2"
   },
   "devDependencies": {
     "@types/node": "latest",
