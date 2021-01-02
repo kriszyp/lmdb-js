@@ -1,6 +1,7 @@
 
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -35,12 +36,12 @@ void setupExportMisc(Local<Object> exports) {
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
     Local<Context> context = Nan::GetCurrentContext();
-    versionObj->Set(context, Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
-    versionObj->Set(context, Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
-    versionObj->Set(context, Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
-    versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
+    (void)versionObj->Set(context, Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
+    (void)versionObj->Set(context, Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
+    (void)versionObj->Set(context, Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
+    (void)versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
 
-    exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
+    (void)exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
     Nan::SetMethod(exports, "getLastVersion", getLastVersion);
     Nan::SetMethod(exports, "setLastVersion", setLastVersion);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
@@ -57,7 +58,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     if (opt->IsBoolean() ? opt->BooleanValue(Isolate::GetCurrent()) : defaultValue) {
     #else
     if (opt->IsBoolean() ? opt->BooleanValue(context).FromJust() : defaultValue) {
-    #endif;
+    #endif
         *flags |= flag;
     }
 }
@@ -333,7 +334,7 @@ NAN_METHOD(setLastVersion) {
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));
-    err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
+    (void)err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
     return Nan::ThrowError(err);
 }
 
