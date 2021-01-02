@@ -219,9 +219,6 @@ class BatchWorker : public Nan::AsyncWorker {
     }
 
     ~BatchWorker() {
-        for (int i = 0; i < actionCount; i++) {
-            action_t* action = &actions[i];
-        }
         delete[] actions;
         delete keySpace;
     }
@@ -750,9 +747,6 @@ NAN_METHOD(EnvWrap::batchWrite) {
     BatchWorker* worker = new BatchWorker(
         ew->env, actions, length, putFlags, keySpace, results, callback
     );
-    // `persistedIndex` seems to be part of an
-    // implementation that is currently not implemented:
-    // int persistedIndex = 0;
     bool keyIsValid = false;
     NodeLmdbKeyType keyType;
     DbiWrap* dw;
@@ -775,7 +769,8 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 action->actionType = RESET_CONDITION;
             }
             continue;
-            // worker->SaveToPersistent(persistedIndex++, currentDb); // this is coordinated to always be referenced on the JS side
+            // if we did not coordinate to always reference the object on the JS side, we would need this (but it is expensive):
+            // worker->SaveToPersistent(persistedIndex++, currentDb);
         }
         Local<Object> operation = Local<Object>::Cast(operationValue);
         Local<v8::Value> key = operation->Get(context, 0).ToLocalChecked();
@@ -795,9 +790,9 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 return;
             }
         }
-        // persist the reference until we are done with the operation
+        // if we did not coordinate to always reference the object on the JS side, we would need this (but it is expensive):
         //if (!action->freeKey)
-          //  worker->SaveToPersistent(persistedIndex++, key);// this is coordinated to always be referenced on the JS side
+          //  worker->SaveToPersistent(persistedIndex++, key);
         Local<v8::Value> value = operation->Get(context, 1).ToLocalChecked();
 
         if (dw->hasVersions) {
@@ -838,7 +833,6 @@ NAN_METHOD(EnvWrap::batchWrite) {
             action->data.mv_size = node::Buffer::Length(value);
             action->data.mv_data = node::Buffer::Data(value);
             action->freeValue = nullptr; // don't free, belongs to node
-            // persist value so it says in memory
             //worker->SaveToPersistent(persistedIndex++, value); // this is coordinated to always be referenced on the JS side
         } else {
             writeValueToEntry(Nan::To<v8::String>(value).ToLocalChecked(), &action->data);
