@@ -1,6 +1,7 @@
 
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -130,7 +131,7 @@ class SyncWorker : public Nan::AsyncWorker {
 class CopyWorker : public Nan::AsyncWorker {
   public:
     CopyWorker(MDB_env* env, char* inPath, int flags, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), env(env), flags(flags), path(strdup(inPath)) {
+      : Nan::AsyncWorker(callback), env(env), path(strdup(inPath)), flags(flags) {
       }
     ~CopyWorker() {
         free(path);
@@ -208,12 +209,13 @@ class BatchWorker : public Nan::AsyncWorker {
   public:
     BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, uint8_t* results, Nan::Callback *callback)
       : Nan::AsyncWorker(callback, "node-lmdb:Batch"),
-      actions(actions),
-      actionCount(actionCount),
-      putFlags(putFlags),
       env(env),
-      keySpace(keySpace),
-      results(results) {
+      actionCount(actionCount),
+      results(results),
+      actions(actions),
+      putFlags(putFlags),
+      keySpace(keySpace)
+       {
     }
 
     ~BatchWorker() {
@@ -465,7 +467,7 @@ NAN_METHOD(EnvWrap::open) {
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
     #else
     rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
-    #endif;
+    #endif
 
     if (rc != 0) {
         mdb_env_close(ew->env);
@@ -565,11 +567,11 @@ NAN_METHOD(EnvWrap::stat) {
 
     Local<Context> context = Nan::GetCurrentContext();
     Local<Object> obj = Nan::New<Object>();
-    obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
-    obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
-    obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
-    obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
-    obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
+    (void)obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
+    (void)obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
+    (void)obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
+    (void)obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
+    (void)obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
 
     info.GetReturnValue().Set(obj);
 }
@@ -593,12 +595,12 @@ NAN_METHOD(EnvWrap::info) {
 
     Local<Context> context = Nan::GetCurrentContext();
     Local<Object> obj = Nan::New<Object>();
-    obj->Set(context, Nan::New<String>("mapAddress").ToLocalChecked(), Nan::New<Number>((uint64_t) envinfo.me_mapaddr));
-    obj->Set(context, Nan::New<String>("mapSize").ToLocalChecked(), Nan::New<Number>(envinfo.me_mapsize));
-    obj->Set(context, Nan::New<String>("lastPageNumber").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_pgno));
-    obj->Set(context, Nan::New<String>("lastTxnId").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_txnid));
-    obj->Set(context, Nan::New<String>("maxReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_maxreaders));
-    obj->Set(context, Nan::New<String>("numReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_numreaders));
+    (void)obj->Set(context, Nan::New<String>("mapAddress").ToLocalChecked(), Nan::New<Number>((uint64_t) envinfo.me_mapaddr));
+    (void)obj->Set(context, Nan::New<String>("mapSize").ToLocalChecked(), Nan::New<Number>(envinfo.me_mapsize));
+    (void)obj->Set(context, Nan::New<String>("lastPageNumber").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_pgno));
+    (void)obj->Set(context, Nan::New<String>("lastTxnId").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_txnid));
+    (void)obj->Set(context, Nan::New<String>("maxReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_maxreaders));
+    (void)obj->Set(context, Nan::New<String>("numReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_numreaders));
 
     info.GetReturnValue().Set(obj);
 }
@@ -748,7 +750,9 @@ NAN_METHOD(EnvWrap::batchWrite) {
     BatchWorker* worker = new BatchWorker(
         ew->env, actions, length, putFlags, keySpace, results, callback
     );
-    int persistedIndex = 0;
+    // `persistedIndex` seems to be part of an
+    // implementation that is currently not implemented:
+    // int persistedIndex = 0;
     bool keyIsValid = false;
     NodeLmdbKeyType keyType;
     DbiWrap* dw;
@@ -920,8 +924,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     Local<FunctionTemplate> compressionTpl = Nan::New<FunctionTemplate>(Compression::ctor);
     compressionTpl->SetClassName(Nan::New<String>("Compression").ToLocalChecked());
     compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
-    exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Compression").ToLocalChecked(), compressionTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Compression").ToLocalChecked(), compressionTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 
     // Set exports
-    exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }

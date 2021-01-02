@@ -18,8 +18,8 @@ control character types:
 * Convert arbitrary scalar values to buffer bytes with type preservation and type-appropriate ordering
 */
 
-int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingBytes, bool inArray, bool throwErrors) {
-    int bytesWritten;
+size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remainingBytes, bool inArray, bool throwErrors) {
+    size_t bytesWritten;
     if (jsKey->IsString()) {
         int utfWritten = 0;
         Local<String> string = Local<String>::Cast(jsKey);
@@ -109,7 +109,7 @@ int valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, int remainingByt
                 bytesWritten++;
                 remainingBytes--;
             }
-            int size = valueToKey(array->Get(context, i).ToLocalChecked(), targetBytes, remainingBytes, true, throwErrors);
+            size_t size = valueToKey(array->Get(context, i).ToLocalChecked(), targetBytes, remainingBytes, true, throwErrors);
             if (!size)
                 return 0;
             targetBytes += size;
@@ -166,7 +166,7 @@ bool valueToMDBKey(const Local<Value>& jsKey, MDB_val& mdbKey, KeySpace& keySpac
         return true;
     }
     uint8_t* targetBytes = keySpace.getTarget();
-    int size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false, keySpace.fixedSize);
+    size_t size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false, keySpace.fixedSize);
     mdbKey.mv_data = targetBytes;
     if (!keySpace.fixedSize)
         keySpace.position += size;
@@ -268,13 +268,13 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
             resultsArray = Local<Array>::Cast(nextValue);
             int length = resultsArray->Length();
             for (int i = 0; i < length; i++) {
-                resultsArray->Set(context, i + 1, resultsArray->Get(context, i).ToLocalChecked());
+                (void)resultsArray->Set(context, i + 1, resultsArray->Get(context, i).ToLocalChecked());
             }
         } else {
             resultsArray = Nan::New<v8::Array>(2);
-            resultsArray->Set(context, 1, nextValue);
+            (void)resultsArray->Set(context, 1, nextValue);
         }
-        resultsArray->Set(context, 0, value);
+        (void)resultsArray->Set(context, 0, value);
         value = resultsArray;
     }
     return value;
@@ -291,9 +291,8 @@ NAN_METHOD(bufferToKeyValue) {
     info.GetReturnValue().Set(MDBKeyToValue(key));
 }
 NAN_METHOD(keyValueToBuffer) {
-    bool isValid = true;
     uint8_t* targetBytes = fixedKeySpace->getTarget();
-    int size = valueToKey(info[0], targetBytes, 511, false, true);
+    size_t size = valueToKey(info[0], targetBytes, 511, false, true);
     if (!size) {
         return;
     }

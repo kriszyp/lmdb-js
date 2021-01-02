@@ -1,6 +1,7 @@
 
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -61,7 +62,7 @@ DbiWrap::~DbiWrap() {
 
 void DbiWrap::setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer) {
     if (lastUnsafePtr != unsafePtr) {
-        handle()->Set(Nan::GetCurrentContext(), Nan::New<String>("unsafeBuffer").ToLocalChecked(),
+        (void)handle()->Set(Nan::GetCurrentContext(), Nan::New<String>("unsafeBuffer").ToLocalChecked(),
             unsafeBuffer.Get(Isolate::GetCurrent()));
         lastUnsafePtr = unsafePtr;
     }
@@ -125,7 +126,7 @@ NAN_METHOD(DbiWrap::ctor) {
         if (create->IsBoolean() ? !create->BooleanValue(Isolate::GetCurrent()) : true) {
         #else
         if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).FromJust() : true) {
-        #endif;
+        #endif
             txnFlags |= MDB_RDONLY;
         }
         Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
@@ -232,7 +233,7 @@ NAN_METHOD(DbiWrap::drop) {
         del = opt->IsBoolean() ? !(opt->BooleanValue(Isolate::GetCurrent())) : 1;
         #else
         del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).FromJust()) : 1;
-        #endif;
+        #endif
         
         // User-supplied txn
         auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
@@ -292,12 +293,12 @@ NAN_METHOD(DbiWrap::stat) {
 
     Local<Context> context = Nan::GetCurrentContext();
     Local<Object> obj = Nan::New<Object>();
-    obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
-    obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
-    obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
-    obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
-    obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
-    obj->Set(context, Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
+    (void)obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
+    (void)obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
+    (void)obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
+    (void)obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
+    (void)obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
+    (void)obj->Set(context, Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
 
     info.GetReturnValue().Set(obj);
 }

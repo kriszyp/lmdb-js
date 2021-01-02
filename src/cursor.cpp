@@ -1,6 +1,7 @@
 
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -262,7 +263,6 @@ NAN_METHOD(CursorWrap::getCurrentBoolean) {
 }
 
 NAN_METHOD(CursorWrap::getCurrentIsDatabase) {
-    int al = info.Length();
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
     int isDatabase = mdb_cursor_is_db(cw->cursor);
     return info.GetReturnValue().Set(Nan::New<Boolean>(isDatabase));
@@ -399,5 +399,5 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     // Set exports
-    exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }

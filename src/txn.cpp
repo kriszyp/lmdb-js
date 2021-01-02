@@ -1,6 +1,7 @@
 
 // This file is part of node-lmdb, the Node.js binding for lmdb
 // Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -298,10 +299,10 @@ NAN_METHOD(TxnWrap::getRange) {
                 mdb_cmp(tw->txn, dw->dbi, &key, &endKey) <= 0 :
                 mdb_cmp(tw->txn, dw->dbi, &key, &endKey) >= 0)))) {
         if (getKeys) {
-            resultsArray->Set(context, resultsIndex++, valToUtf8(key));
+            (void)resultsArray->Set(context, resultsIndex++, valToUtf8(key));
         }
         if (getValues) {
-            resultsArray->Set(context, resultsIndex++, valToUtf8(data));
+            (void)resultsArray->Set(context, resultsIndex++, valToUtf8(data));
         }
         if (retrieved++ >= limit)
             break;

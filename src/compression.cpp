@@ -1,3 +1,27 @@
+
+// This file is part of node-lmdb, the Node.js binding for lmdb
+// Copyright (c) 2013-2017 Timur Kristóf
+// Copyright (c) 2021 Kristopher Tate
+// Licensed to you under the terms of the MIT license
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 #include "lz4.h"
 #include "node-lmdb.h"
 
@@ -89,7 +113,7 @@ void Compression::decompress(MDB_val& data, bool &isValid) {
         dictionary, decompressTarget - dictionary);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
-        fprintf(stderr, "Failed to decompress data %u %u %u %u\n", charData[0], data.mv_size, compressionHeaderSize, uncompressedLength);
+        //fprintf(stderr, "Failed to decompress data %u %u %u %u\n", charData[0], data.mv_size, compressionHeaderSize, uncompressedLength);
         Nan::ThrowError("Failed to decompress data");
         isValid = false;
         return;
@@ -111,7 +135,7 @@ void Compression::expand(unsigned int size) {
 }
 
 argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t freeValue) {
-    int dataLength = value->mv_size;
+    size_t dataLength = value->mv_size;
     char* data = (char*)value->mv_data;
     if (value->mv_size < compressionThreshold && !(value->mv_size > 0 && ((uint8_t*)data)[0] >= 250))
         return freeValue; // don't compress if less than threshold (but we must compress if the first byte is the compression indicator)
