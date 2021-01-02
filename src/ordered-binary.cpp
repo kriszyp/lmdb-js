@@ -264,11 +264,11 @@ Local<Value> MDBKeyToValue(MDB_val &val) {
         v8::Local<v8::Array> resultsArray;
         Local<Context> context = Nan::GetCurrentContext();
         if (nextValue->IsArray()) {
-            // unshift
-            resultsArray = Local<Array>::Cast(nextValue);
-            int length = resultsArray->Length();
+            v8::Local<v8::Array> nextArray = Local<Array>::Cast(nextValue);
+            int length = nextArray->Length();
+            resultsArray = Nan::New<v8::Array>(1 + length);
             for (int i = 0; i < length; i++) {
-                (void)resultsArray->Set(context, i + 1, resultsArray->Get(context, i).ToLocalChecked());
+                (void)resultsArray->Set(context, i + 1, nextArray->Get(context, i).ToLocalChecked());
             }
         } else {
             resultsArray = Nan::New<v8::Array>(2);
