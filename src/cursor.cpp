@@ -92,6 +92,9 @@ NAN_METHOD(CursorWrap::close) {
     Nan::HandleScope scope;
 
     CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
+    if (!cw->cursor) {
+      return Nan::ThrowError("cursor.close: Attempt to close a closed cursor!");
+    }
     mdb_cursor_close(cw->cursor);
     cw->dw->Unref();
     cw->tw->Unref();
