@@ -155,6 +155,7 @@ dds_expire( void *ctx, dds_info_t *di )
 	op->ors_tlimit = DDS_INTERVAL( di )/2 + 1;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_attrs = slap_anlist_no_attrs;
+	op->o_do_not_cache = 1;
 
 	expire = slap_get_time() - di->di_tolerance;
 	ts.bv_val = tsbuf;
@@ -1722,6 +1723,7 @@ dds_count( void *ctx, BackendDB *be )
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_attrs = slap_anlist_no_attrs;
+	op->o_do_not_cache = 1;
 
 	op->ors_filterstr.bv_len = STRLENOF( "(objectClass=" ")" )
 		+ slap_schema.si_oc_dynamicObject->soc_cname.bv_len;
