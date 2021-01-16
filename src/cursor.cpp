@@ -38,7 +38,8 @@ CursorWrap::~CursorWrap() {
     if (this->cursor) {
         this->dw->Unref();
         this->tw->Unref();
-        mdb_cursor_close(this->cursor);
+        // Don't close cursor here, it is possible that the environment may already be closed, which causes it to crash
+        //mdb_cursor_close(this->cursor);
     }
     if (this->freeKey) {
         this->freeKey(this->key);
