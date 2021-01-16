@@ -115,14 +115,14 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
-### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, versions?: boolean}): Iterable<{ key, value: Buffer }>`
+### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, offset?: number, versions?: boolean}): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
 	// for each key-value pair in the given range
 }
 ```
-Or we can use the provided methods:
+Or we can use the provided iterative methods on the returned results:
 ```
 db.getRange({ start, end })
 	.filter(({ key, value }) => test(key))
@@ -131,6 +131,11 @@ db.getRange({ start, end })
 	})
 ```
 Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create async iterable if the callback functions execute asynchronously (return a promise).
+
+We can also query with offset to skip a certain number of entries, and limit the number of entries to iterate through:
+```
+db.getRange({ start, end, offset: 10, limit: 10 }) // skip first 10 and get next 10
+```
 
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
@@ -152,7 +157,7 @@ for (let value of db.getValues('key1')) {
 ```
 You can optionally provide a second argument with the same `options` that `getRange` handles.
 
-### `store.getKeys(options: { start?, end?, reverse?: boolean, limit?: number, versions?: boolean }): Iterable<any>`
+### `store.getKeys(options: { start?, end?, reverse?: boolean, limit?: number, offset?: number, versions?: boolean }): Iterable<any>`
 This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
 
 ### `store.openDB(database: string|{name:string,...})`

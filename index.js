@@ -527,6 +527,15 @@ function open(path, options) {
 					}
 				}
 				resetCursor()
+				let offset = options.offset
+				while(offset-- > 0 && currentKey !== undefined) {
+					currentKey = reverse ?
+						valuesForKey ? cursor.goToPrevDup() :
+							includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
+						valuesForKey ? cursor.goToNextDup() :
+							includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+				}
+
 				let store = this
 				function finishCursor() {
 					cursor.close()

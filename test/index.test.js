@@ -193,8 +193,39 @@ describe('lmdb-store', function() {
           case 'key2': data2.should.deep.equal(value); break;
         }
       }
-      if (count != 2)
-        throw new Error('Not enough entries')
+      count.should.equal(2)
+    });
+    it('should iterate over query with offset/limit', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      let data3 = {foo: 3, bar: false}
+      db.put('key1',  data1);
+      db.put('key2',  data2);
+      await db.put('key3',  data3);
+      let count = 0
+      for (let { key, value } of db.getRange({start:'key', end:'keyz', offset: 1, limit: 1})) {
+        count++
+        switch(key) {
+          case 'key2': data2.should.deep.equal(value); break;
+        }
+      }
+      count.should.equal(1)
+      count = 0
+      for (let { key, value } of db.getRange({start:'key', end:'keyz', offset: 3, limit: 3})) {
+        count++
+      }
+      count.should.equal(0)
+      for (let { key, value } of db.getRange({start:'key', end:'keyz', offset: 10, limit: 3})) {
+        count++
+      }
+      count.should.equal(0)
+      for (let { key, value } of db.getRange({start:'key', end:'keyz', offset: 2, limit: 3})) {
+        count++
+        switch(key) {
+          case 'key3': data3.should.deep.equal(value); break;
+        }
+      }
+      count.should.equal(1)
     });
     it('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
