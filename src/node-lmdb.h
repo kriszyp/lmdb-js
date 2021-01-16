@@ -206,6 +206,11 @@ public:
         Gets statistics about the database environment.
     */
     static NAN_METHOD(stat);
+
+    /*
+        Gets statistics about the free space database
+    */
+    static NAN_METHOD(freeStat);
     
     /*
         Detaches a buffer from the backing store
