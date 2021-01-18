@@ -1,5 +1,7 @@
 OpenLDAP 2.4 Change Log
 
+OpenLDAP 2.4.58 Engineering
+
 OpenLDAP 2.4.57 Release (2021/01/18)
 	Fixed ldapexop to use correct return code (ITS#9417)
 	Fixed slapd to remove asserts in UUIDNormalize (ITS#9391)
