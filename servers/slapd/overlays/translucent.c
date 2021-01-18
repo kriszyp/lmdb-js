@@ -992,9 +992,16 @@ trans_filter_dup(Operation *op, Filter *f, AttributeName *an)
 	case LDAP_FILTER_SUBSTRINGS:
 	case LDAP_FILTER_EXT:
 		if ( !f->f_av_desc || ad_inlist( f->f_av_desc, an )) {
+			AttributeAssertion *nava;
+
 			n = op->o_tmpalloc( sizeof(Filter), op->o_tmpmemctx );
 			n->f_choice = f->f_choice;
-			n->f_ava = f->f_ava;
+
+			nava = op->o_tmpalloc( sizeof(AttributeAssertion), op->o_tmpmemctx );
+			*nava = *f->f_ava;
+			n->f_ava = nava;
+
+			ber_dupbv_x( &n->f_av_value, &f->f_av_value, op->o_tmpmemctx );
 			n->f_next = NULL;
 		}
 		break;
@@ -1055,10 +1062,28 @@ trans_filter_free( Operation *op, Filter *f )
 			trans_filter_free( op, p );
 		}
 		break;
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_GE:
+	case LDAP_FILTER_LE:
+	case LDAP_FILTER_APPROX:
+	case LDAP_FILTER_SUBSTRINGS:
+	case LDAP_FILTER_EXT:
+		op->o_tmpfree( f->f_av_value.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( f->f_ava, op->o_tmpmemctx );
+		break;
 	default:
 		break;
 	}
 	op->o_tmpfree( f, op->o_tmpmemctx );
+}
+
+static int
+translucent_search_cleanup( Operation *op, SlapReply *rs )
+{
+	trans_ctx *tc = op->o_callback->sc_private;
+
+	op->ors_filter = tc->orig;
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -1092,8 +1117,8 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	fr = ov->remote ? trans_filter_dup( op, op->ors_filter, ov->remote ) : NULL;
 	fl = ov->local ? trans_filter_dup( op, op->ors_filter, ov->local ) : NULL;
 	cb.sc_response = (slap_response *) translucent_search_cb;
+	cb.sc_cleanup = (slap_response *) translucent_search_cleanup;
 	cb.sc_private = &tc;
-	cb.sc_next = op->o_callback;
 
 	ov->db.be_acl = op->o_bd->be_acl;
 	tc.db = op->o_bd;
@@ -1105,27 +1130,39 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 	tc.attrs = NULL;
 	fbv = op->ors_filterstr;
 
-	op->o_callback = &cb;
-
 	if ( fr || !fl ) {
+		Operation op2;
+		Opheader oh;
+
+		op2 = *op;
+		oh = *op->o_hdr;
+		oh.oh_conn = op->o_conn;
+		oh.oh_connid = op->o_connid;
+		op2.o_bd = &ov->db;
+		op2.o_hdr = &oh;
+		op2.o_extra = op->o_extra;
+		op2.o_callback = &cb;
+
 		tc.attrs = op->ors_attrs;
 		op->ors_slimit = SLAP_NO_LIMIT;
 		op->ors_attrs = slap_anlist_all_attributes;
-		op->o_bd = &ov->db;
 		tc.step |= RMT_SIDE;
 		if ( fl ) {
 			tc.step |= USE_LIST;
 			op->ors_filter = fr;
-			filter2bv_x( op, fr, &op->ors_filterstr );
+			filter2bv_x( op, fr, &op2.ors_filterstr );
 		}
-		rc = ov->db.bd_info->bi_op_search(op, rs);
+		rc = ov->db.bd_info->bi_op_search( &op2, rs );
 		if ( op->ors_attrs == slap_anlist_all_attributes )
 			op->ors_attrs = tc.attrs;
-		op->o_bd = tc.db;
 		if ( fl ) {
-			op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( op2.ors_filterstr.bv_val, op2.o_tmpmemctx );
 		}
 	}
+
+	cb.sc_next = op->o_callback;
+	op->o_callback = &cb;
+
 	if ( fl && !rc ) {
 		tc.step |= LCL_SIDE;
 		op->ors_filter = fl;
@@ -1134,7 +1171,6 @@ static int translucent_search(Operation *op, SlapReply *rs) {
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
 	}
 	op->ors_filterstr = fbv;
-	op->ors_filter = tc.orig;
 	op->o_callback = cb.sc_next;
 	rs->sr_attrs = op->ors_attrs;
 	rs->sr_attr_flags = slap_attr_flags( rs->sr_attrs );
