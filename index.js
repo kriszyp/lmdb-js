@@ -685,9 +685,16 @@ function open(path, options) {
 							resolve([])
 						}
 					}
-					let timeout = setTimeout(() => {
-						when(currentCommit, () => whenCommitted && runNextBatch())
-					}, this.commitDelay)
+					let timeout
+					if (this.commitDelay > 0) {
+						timeout = setTimeout(() => {
+							when(currentCommit, () => whenCommitted && runNextBatch())
+						}, this.commitDelay)
+					} else {
+						timeout = runNextBatch.immediate = setImmediate(() => {
+							when(currentCommit, () => whenCommitted && runNextBatch())
+						})
+					}
 				})
 				pendingBatch = {
 					results: whenCommitted,
@@ -703,7 +710,7 @@ function open(path, options) {
 					return batch
 				} else if (!runNextBatch.immediate) {
 					let thisNextBatch = runNextBatch
-					runNextBatch.immediate = setTimeout(() => when(currentCommit, () => thisNextBatch()), 0)
+					runNextBatch.immediate = setImmediate(() => when(currentCommit, () => thisNextBatch()))
 				}
 			}
 			return pendingBatch
