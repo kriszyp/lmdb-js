@@ -91,7 +91,7 @@ This will retrieve the the entry at the specified key. The `key` must be a JS va
 ### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
 
-This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (1ms by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit.
+This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit.
 
 If this is performed inside a transation, the put will be included in the current transaction (synchronously).
 
@@ -174,7 +174,7 @@ Each of the opened/returned stores has the same API as the default store for the
 usersStore.put('some-user', { data: userInfo });
 groupsStore.put('some-group', { groupData: moreData });
 ```
-Both these puts will be batched and after 1ms be committed in the same transaction.
+Both these puts will be batched and committed in the same transaction in the next event turn.
 
 ### getLastVersion(): number
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
@@ -263,7 +263,7 @@ The following additional option properties are only available when creating the 
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
-* `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 1ms. A delay of 0 means more immediate commits, but a longer delay can be more efficient at collecting more writes into a single transaction and reducing I/O load.
+* `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
 * `immediateBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
 * `syncBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
 
