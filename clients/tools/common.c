@@ -730,8 +730,6 @@ tool_args( int argc, char **argv )
 				}
 				unknown_ctrls = tmpctrls;
 				ctrl.ldctl_oid = control;
-				/* don't free it */
-				control = NULL;
 				ctrl.ldctl_value.bv_val = NULL;
 				ctrl.ldctl_value.bv_len = 0;
 				ctrl.ldctl_iscritical = crit;
@@ -758,6 +756,8 @@ tool_args( int argc, char **argv )
 					ctrl.ldctl_value = bv;
 				}
 
+				/* don't free it */
+				control = NULL;
 				unknown_ctrls[ unknown_ctrls_num ] = ctrl;
 				unknown_ctrls_num++;
 
