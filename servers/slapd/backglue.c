@@ -1327,7 +1327,7 @@ glue_db_destroy (
 	glueinfo		*gi = (glueinfo *)on->on_bi.bi_private;
 
 	free (gi);
-	return SLAP_CB_CONTINUE;
+	return 0;
 }
 
 static int

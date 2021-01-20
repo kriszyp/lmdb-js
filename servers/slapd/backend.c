@@ -226,6 +226,7 @@ int backend_startup_one(Backend *be, ConfigReply *cr)
 		rc = be->bd_info->bi_db_open( be, cr );
 		if ( rc == 0 ) {
 			(void)backend_set_controls( be );
+			be->be_flags |= SLAP_DBFLAG_OPEN;
 
 		} else {
 			char *type = be->bd_info->bi_type;
@@ -291,6 +292,7 @@ int backend_startup(Backend *be)
 				rc );
 			return rc;
 		}
+		frontendDB->be_flags |= SLAP_DBFLAG_OPEN;
 	}
 
 	/* open each backend type */
@@ -365,6 +367,7 @@ int backend_shutdown( Backend *be )
 
 		if ( be->bd_info->bi_db_close ) {
 			rc = be->bd_info->bi_db_close( be, NULL );
+			be->be_flags &= ~SLAP_DBFLAG_OPEN;
 			if ( rc ) return rc;
 		}
 
@@ -382,6 +385,7 @@ int backend_shutdown( Backend *be )
 			continue;
 		if ( be->bd_info->bi_db_close ) {
 			be->bd_info->bi_db_close( be, NULL );
+			be->be_flags &= ~SLAP_DBFLAG_OPEN;
 		}
 
 		if(rc != 0) {
@@ -406,6 +410,7 @@ int backend_shutdown( Backend *be )
 	/* close frontend, if required */
 	if ( frontendDB->bd_info->bi_db_close ) {
 		rc = frontendDB->bd_info->bi_db_close ( frontendDB, NULL );
+		frontendDB->be_flags &= ~SLAP_DBFLAG_OPEN;
 		if ( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_startup: bi_db_close(frontend) failed! (%d)\n",
@@ -655,6 +660,7 @@ be_db_close( void )
 	LDAP_STAILQ_FOREACH( be, &backendDB, be_next ) {
 		if ( be->bd_info->bi_db_close ) {
 			be->bd_info->bi_db_close( be, NULL );
+			be->be_flags &= ~SLAP_DBFLAG_OPEN;
 		}
 	}
 

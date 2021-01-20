@@ -1501,6 +1501,10 @@ static int accesslog_response(Operation *op, SlapReply *rs) {
 	if ( rs->sr_type != REP_RESULT && rs->sr_type != REP_EXTENDED )
 		return SLAP_CB_CONTINUE;
 
+	/* can't do anything if logDB isn't open */
+	if ( !SLAP_DBOPEN( li->li_db ))
+		return SLAP_CB_CONTINUE;
+
 	logop = accesslog_op2logop( op );
 	lo = logops+logop+EN_OFFSET;
 	if ( !( li->li_ops & lo->mask )) {
@@ -1999,6 +2003,10 @@ accesslog_op_mod( Operation *op, SlapReply *rs )
 	if ( op->o_dont_replicate )
 		return SLAP_CB_CONTINUE;
 
+	/* can't do anything if logDB isn't open */
+	if ( !SLAP_DBOPEN( li->li_db ))
+		return SLAP_CB_CONTINUE;
+	
 	logop = accesslog_op2logop( op );
 	lo = logops+logop+EN_OFFSET;
 

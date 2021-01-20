@@ -517,7 +517,7 @@ rwm_int_filter_map_rewrite(
 	struct berval		*fstr )
 {
 	int		i;
-	Filter		*p;
+	Filter		*p, ftmp;
 	AttributeDescription *ad;
 	struct berval	atmp,
 			vtmp,
@@ -769,7 +769,7 @@ rwm_int_filter_map_rewrite(
 
 	case -1:
 computed:;
-		filter_free_x( op, f, 0 );
+		f = &ftmp;
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
 		/* fallthru */
