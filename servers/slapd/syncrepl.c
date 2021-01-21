@@ -5358,6 +5358,33 @@ void syncrepl_diff_entry( Operation *op, Attribute *old, Attribute *new,
 		new = new->a_next;
 		old = old->a_next;
 	}
+
+	/* These are all missing from provider */
+	while ( old ) {
+		Modifications *mod = ch_malloc( sizeof( Modifications ) );
+
+		mod = ch_malloc( sizeof( Modifications ) );
+		mod->sml_op = LDAP_MOD_DELETE;
+		mod->sml_flags = 0;
+		mod->sml_desc = old->a_desc;
+		mod->sml_type = mod->sml_desc->ad_cname;
+		mod->sml_numvals = 0;
+		mod->sml_values = NULL;
+		mod->sml_nvalues = NULL;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
+
+		old = old->a_next;
+	}
+
+	/* Newly added attributes */
+	while ( new ) {
+		attr_cmp( op, NULL, new, &modtail, &ml );
+
+		new = new->a_next;
+	}
+
 	*modtail = *ml;
 	*ml = NULL;
 }
