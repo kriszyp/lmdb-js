@@ -501,6 +501,8 @@ tlso_ctx_init( struct ldapoptions *lo, struct ldaptls *lt, int is_server )
 					X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL  );
 		}
 	}
+	/* Explicitly honor the server side cipher suite preference */
+	SSL_CTX_set_options( ctx, SSL_OP_CIPHER_SERVER_PREFERENCE );
 	return 0;
 }
 
