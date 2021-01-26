@@ -275,6 +275,7 @@ XED|XML Enabled Directory
 XER|XML Encoding Rules
 XML|Extensible Markup Language
 syncrepl|LDAP Sync-based Replication
+lloadd|LDAP Load Balancer
 !endblock
 
 !block references; data; sort=Reference; style=grid
