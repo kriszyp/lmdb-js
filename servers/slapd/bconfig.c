@@ -283,6 +283,8 @@ static OidRec OidMacros[] = {
  * OLcfgOv{Oc|At}:19			-> collect
  * OLcfgOv{Oc|At}:20			-> retcode
  * OLcfgOv{Oc|At}:21			-> sssvlv
+ * OLcfgOv{Oc|At}:22			-> autoca
+ * OLcfgOv{Oc|At}:24			-> remoteauth
  */
 
 /* alphabetical ordering */

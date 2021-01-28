@@ -37,6 +37,7 @@ MEMBEROF=${AC_memberof-memberofno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
+REMOTEAUTH=${AC_remoteauth-remoteauthno}
 RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
 SYNCPROV=${AC_syncprov-syncprovno}

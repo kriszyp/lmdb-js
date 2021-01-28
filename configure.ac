@@ -353,6 +353,7 @@ Overlays="accesslog \
 	ppolicy \
 	proxycache \
 	refint \
+	remoteauth \
 	retcode \
 	rwm \
 	seqmod \
@@ -392,6 +393,8 @@ OL_ARG_ENABLE(ppolicy, [AS_HELP_STRING([--enable-ppolicy], [Password Policy over
 OL_ARG_ENABLE(proxycache, [AS_HELP_STRING([--enable-proxycache], [Proxy Cache overlay])],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(refint, [AS_HELP_STRING([--enable-refint], [Referential Integrity overlay])],
+	no, [no yes mod], ol_enable_overlays)
+OL_ARG_ENABLE(remoteauth, [AS_HELP_STRING([--enable-remoteauth], [Deferred Authentication overlay])],
 	no, [no yes mod], ol_enable_overlays)
 OL_ARG_ENABLE(retcode, [AS_HELP_STRING([--enable-retcode], [Return Code testing overlay])],
 	no, [no yes mod], ol_enable_overlays)
@@ -569,6 +572,7 @@ BUILD_MEMBEROF=no
 BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
 BUILD_REFINT=no
+BUILD_REMOTEAUTH=no
 BUILD_RETCODE=no
 BUILD_RWM=no
 BUILD_SEQMOD=no
@@ -2861,6 +2865,18 @@ if test "$ol_enable_refint" != no ; then
 	AC_DEFINE_UNQUOTED(SLAPD_OVER_REFINT,$MFLAG,[define for Referential Integrity overlay])
 fi
 
+if test "$ol_enable_remoteauth" != no ; then
+	BUILD_REMOTEAUTH=$ol_enable_remoteauth
+	if test "$ol_enable_remoteauth" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS remoteauth.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS remoteauth.o"
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_REMOTEAUTH,$MFLAG,[define for Deferred Authentication overlay])
+fi
+
 if test "$ol_enable_retcode" != no ; then
 	BUILD_RETCODE=$ol_enable_retcode
 	if test "$ol_enable_retcode" = mod ; then
@@ -3033,6 +3049,7 @@ dnl overlays
   AC_SUBST(BUILD_PPOLICY)
   AC_SUBST(BUILD_PROXYCACHE)
   AC_SUBST(BUILD_REFINT)
+  AC_SUBST(BUILD_REMOTEAUTH)
   AC_SUBST(BUILD_RETCODE)
   AC_SUBST(BUILD_RWM)
   AC_SUBST(BUILD_SEQMOD)

@@ -43,6 +43,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
 	-e "s/^#${AC_retcode}#//"			\
+	-e "s/^#${AC_remoteauth}#//"			\
 	-e "s/^#${AC_rwm}#//"				\
 	-e "s/^#${AC_syncprov}#//"			\
 	-e "s/^#${AC_translucent}#//"			\
