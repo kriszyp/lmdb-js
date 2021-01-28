@@ -20,7 +20,7 @@
  */
 
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 /* Find the ad, return -1 if not found,
  * set point for insertion if ins is non-NULL

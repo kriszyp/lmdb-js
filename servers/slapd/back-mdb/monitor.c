@@ -27,7 +27,7 @@
 
 #include "../back-monitor/back-monitor.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 static ObjectClass		*oc_olmMDBDatabase;
 

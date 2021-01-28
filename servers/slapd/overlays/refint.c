@@ -38,7 +38,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "ldap_rq.h"
 
 static slap_overinst refint;

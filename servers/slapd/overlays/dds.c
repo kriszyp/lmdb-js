@@ -31,7 +31,7 @@
 #include "lutil.h"
 #include "ldap_rq.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 #define	DDS_RF2589_MAX_TTL		(31557600)	/* 1 year + 6 hours */
 #define	DDS_RF2589_DEFAULT_TTL		(86400)		/* 1 day */

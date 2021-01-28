@@ -20,7 +20,7 @@
  */
 
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 wt_ctx *
 wt_ctx_init(struct wt_info *wi)

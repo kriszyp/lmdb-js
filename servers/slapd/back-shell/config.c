@@ -37,7 +37,7 @@
 
 #include "slap.h"
 #include "shell.h"
-#include "config.h"
+#include "slap-config.h"
 
 static ConfigDriver shell_cf;
 

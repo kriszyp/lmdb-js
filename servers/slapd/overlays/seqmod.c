@@ -22,7 +22,7 @@
 #ifdef SLAPD_OVER_SEQMOD
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 /* This overlay serializes concurrent attempts to modify a single entry */
 

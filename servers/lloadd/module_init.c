@@ -33,7 +33,7 @@
 #include <ac/time.h>
 
 #include "../servers/slapd/slap.h"
-#include "../servers/slapd/config.h"
+#include "../servers/slapd/slap-config.h"
 
 #include "lload.h"
 #include "lber_pvt.h"

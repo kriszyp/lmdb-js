@@ -30,7 +30,7 @@
 
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>

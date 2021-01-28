@@ -36,7 +36,7 @@
 
 #include "slap.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 #include "shell.h"
 

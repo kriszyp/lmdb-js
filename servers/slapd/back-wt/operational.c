@@ -25,7 +25,7 @@
 #include <ac/string.h>
 
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 int
 wt_hasSubordinates(

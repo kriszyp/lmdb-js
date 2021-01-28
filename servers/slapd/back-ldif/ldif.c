@@ -29,7 +29,7 @@
 #include <ac/unistd.h>
 #include "slap.h"
 #include "lutil.h"
-#include "config.h"
+#include "slap-config.h"
 
 struct ldif_tool {
 	Entry	**entries;			/* collected by bi_tool_entry_first() */

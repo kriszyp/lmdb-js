@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 int
 wt_add( Operation *op, SlapReply *rs )

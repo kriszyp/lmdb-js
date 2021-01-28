@@ -16,7 +16,7 @@
  */
 
 #include "perl_back.h"
-#include "../config.h"
+#include "../slap-config.h"
 
 #ifdef PERL_SYS_INIT3
 #include <ac/unistd.h>		/* maybe get environ */

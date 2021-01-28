@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include "back-ndb.h"
 #include <lutil.h>
-#include "config.h"
+#include "slap-config.h"
 
 extern "C" {
 	static BI_db_init ndb_db_init;

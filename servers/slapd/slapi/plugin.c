@@ -23,7 +23,7 @@
 #include "portable.h"
 #include "ldap_pvt_thread.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "slapi.h"
 #include "lutil.h"
 

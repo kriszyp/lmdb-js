@@ -1,4 +1,4 @@
-/* config.h - configuration abstraction structure */
+/* slap-config.h - configuration abstraction structure */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *

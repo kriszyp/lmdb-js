@@ -45,7 +45,7 @@
 #include "lload.h"
 #include "lutil.h"
 #include "lutil_ldap.h"
-#include "config.h"
+#include "lload-config.h"
 
 #ifdef _WIN32
 #define LUTIL_ATOULX lutil_atoullx

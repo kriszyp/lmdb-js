@@ -28,7 +28,7 @@
 #include "slap.h"
 
 #include "lutil.h"
-#include "config.h"
+#include "slap-config.h"
 
 #define SASLREGEX_REPLACE 10
 

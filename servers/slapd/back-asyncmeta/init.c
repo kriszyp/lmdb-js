@@ -28,7 +28,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-asyncmeta.h"
 

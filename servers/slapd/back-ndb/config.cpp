@@ -23,7 +23,7 @@
 
 #include "back-ndb.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 extern "C" {
 	static ConfigDriver ndb_cf_gen;

@@ -25,7 +25,7 @@
 #include <ac/string.h>
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "ldap_rq.h"
 
 #ifdef LDAP_DEVEL

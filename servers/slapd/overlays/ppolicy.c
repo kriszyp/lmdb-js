@@ -39,7 +39,7 @@
 #include <ac/time.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
-#include "config.h"
+#include "slap-config.h"
 
 #ifndef MODULE_NAME_SZ
 #define MODULE_NAME_SZ 256

@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lutil.h"
 #include "lber_pvt.h"
 

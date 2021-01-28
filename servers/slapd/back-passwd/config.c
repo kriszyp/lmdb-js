@@ -38,7 +38,7 @@
 
 #include "slap.h"
 #include "back-passwd.h"
-#include "config.h"
+#include "slap-config.h"
 
 static ConfigTable passwdcfg[] = {
 	{ "file", "filename", 2, 2, 0,

@@ -31,8 +31,8 @@
 
 LDAP_BEGIN_DECL
 
-struct config_args_s;	/* config.h */
-struct config_reply_s;	/* config.h */
+struct config_args_s;	/* slap-config.h */
+struct config_reply_s;	/* slap-config.h */
 
 /*
  * aci.c

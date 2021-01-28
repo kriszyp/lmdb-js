@@ -30,7 +30,7 @@
 
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 /* This overlay extends the Compare operation to detect members of a
  * dynamic group. It has no effect on any other operations. It must

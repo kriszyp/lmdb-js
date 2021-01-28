@@ -25,7 +25,7 @@
 
 #define SLAPD_TOOLS
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 static slap_overinst *overlays;
 

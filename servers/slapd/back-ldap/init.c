@@ -29,7 +29,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "back-ldap.h"
 
 static const ldap_extra_t ldap_extra = {
