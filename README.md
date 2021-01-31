@@ -16,10 +16,6 @@
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in less than one microsecond, or a little over a 1,200,000/sec on a single thread. This is almost twice as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 4,500,000 operations/sec on the same 4/8 core computer by running across multiple threads. By running writes on a separate transactional thread, these are extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-## Upgrade Note
-
-LMDB 1.0RC (reported as 0.9.90) has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format. To use the automatic upgrade script, you must install the [lmdb-store-0.9](https://www.npmjs.com/package/lmdb-store-0.9) package.
-
 ## Design
 
 `lmdb-store` handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for remarkable performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
@@ -53,6 +49,10 @@ myStore.get('greeting').someText // 'Hello, World!'
 (see store options below for more options)
 
 Once you have created a store, you can store and retrieve values using keys:
+
+## Upgrade Note
+
+LMDB 1.0RC (reported as 0.9.90) has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format. To use the automatic upgrade script, you must install the [lmdb-store-0.9](https://www.npmjs.com/package/lmdb-store-0.9) package.
 
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. These primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
