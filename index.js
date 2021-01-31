@@ -356,7 +356,7 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
-			let localTxn
+			let localTxn, hadWriteTxn = writeTxn
 			try {
 				this.writes++
 				if (!writeTxn)
@@ -372,12 +372,12 @@ function open(path, options) {
 					writeTxn.putBinary(this.db, id, value, version)
 				}
 				if (localTxn) {
+					writeTxn.commit()
 					writeTxn = null
-					localTxn.commit()
 					resetReadTxn()
 				}
 			} catch(error) {
-				if (!localTxn)
+				if (hadWriteTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
 				return handleError(error, this, localTxn, () => this.putSync(id, value, version))
 			}
@@ -386,7 +386,7 @@ function open(path, options) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')
 			}
-			let localTxn
+			let localTxn, hadWriteTxn = writeTxn
 			try {
 				if (!writeTxn)
 					localTxn = writeTxn = env.beginTxn()
@@ -406,13 +406,13 @@ function open(path, options) {
 				else
 					result = writeTxn.del(this.db, id)
 				if (localTxn) {
+					writeTxn.commit()
 					writeTxn = null
-					localTxn.commit()
 					resetReadTxn()
 				}
 				return result // object found and deleted
 			} catch(error) {
-				if (!localTxn)
+				if (hadWriteTxn)
 					throw error // if we are in a transaction, the whole transaction probably needs to restart
 				return handleError(error, this, localTxn, () => this.removeSync(id))
 			}
@@ -833,12 +833,7 @@ function open(path, options) {
 			}
 			return retry()
 		}
-		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
-			const oldSize = env.info().mapSize
-			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
-			for (const store of stores) {
-				store.emit('remap')
-			}
+		if (error.message.startsWith('MDB_') && !(error.message.startsWith('MDB_KEYEXIST') || error.message.startsWith('MDB_NOTFOUND'))) {
 			resetReadTxn() // separate out cursor-based read txns
 			try {
 				if (readTxn)
@@ -846,6 +841,13 @@ function open(path, options) {
 			} catch(error) {}
 			readTxnRenewed = null
 			readTxn = null
+		}
+		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
+			const oldSize = env.info().mapSize
+			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
+			for (const store of stores) {
+				store.emit('remap')
+			}
 			env.resize(newSize)
 			let result = retry()
 			return result
