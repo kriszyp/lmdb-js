@@ -3958,10 +3958,12 @@ syncprov_db_close(
 		for ( so=si->si_ops, sonext=so;  so; so=sonext  ) {
 			SlapReply rs = {REP_RESULT};
 			rs.sr_err = LDAP_UNAVAILABLE;
+			ldap_pvt_thread_mutex_lock( &so->s_mutex );
 			send_ldap_result( so->s_op, &rs );
 			sonext=so->s_next;
 			if ( so->s_flags & PS_TASK_QUEUED )
 				ldap_pvt_thread_pool_retract( so->s_pool_cookie );
+			ldap_pvt_thread_mutex_unlock( &so->s_mutex );
 			if ( !syncprov_drop_psearch( so, 0 ))
 				so->s_si = NULL;
 		}
