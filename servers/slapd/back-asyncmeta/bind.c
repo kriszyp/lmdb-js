@@ -1258,7 +1258,7 @@ asyncmeta_controls_add( Operation *op,
 	LDAPControl		**ctrls = NULL;
 	/* set to the maximum number of controls this backend can add */
 	LDAPControl		c[ 2 ] = {{ 0 }};
-	int			n = 0, i, j1 = 0, j2 = 0;
+	int			n = 0, i, j1 = 0, j2 = 0, skipped = 0;
 
 	*pctrls = NULL;
 
@@ -1344,12 +1344,21 @@ asyncmeta_controls_add( Operation *op,
 
 	i = 0;
 	if ( op->o_ctrls ) {
+		LDAPControl *proxyauthz = ldap_control_find(
+				LDAP_CONTROL_PROXY_AUTHZ, op->o_ctrls, NULL );
+
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-			ctrls[ i + j1 ] = op->o_ctrls[ i ];
+			if ( proxyauthz && proxyauthz == op->o_ctrls[ i ] ) {
+				/* Frontend has already checked only one is present */
+				assert( skipped == 0 );
+				skipped++;
+				continue;
+			}
+			ctrls[ i + j1 - skipped ] = op->o_ctrls[ i ];
 		}
 	}
 
-	n += j1;
+	n += j1 - skipped;
 	if ( j2 ) {
 		ctrls[ n ] = (LDAPControl *)&ctrls[ n + j2 + 1 ] + j1;
 		*ctrls[ n ] = c[ j1 ];
