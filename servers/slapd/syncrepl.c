@@ -5363,7 +5363,6 @@ void syncrepl_diff_entry( Operation *op, Attribute *old, Attribute *new,
 	while ( old ) {
 		Modifications *mod = ch_malloc( sizeof( Modifications ) );
 
-		mod = ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = LDAP_MOD_DELETE;
 		mod->sml_flags = 0;
 		mod->sml_desc = old->a_desc;
