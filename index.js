@@ -688,11 +688,11 @@ function open(path, options) {
 					let timeout
 					if (this.commitDelay > 0) {
 						timeout = setTimeout(() => {
-							when(currentCommit, () => whenCommitted && runNextBatch())
+							when(currentCommit, () => whenCommitted && runNextBatch(), () => whenCommitted && runNextBatch())
 						}, this.commitDelay)
 					} else {
 						timeout = runNextBatch.immediate = setImmediate(() => {
-							when(currentCommit, () => whenCommitted && runNextBatch())
+							when(currentCommit, () => whenCommitted && runNextBatch(), () => whenCommitted && runNextBatch())
 						})
 					}
 				})
