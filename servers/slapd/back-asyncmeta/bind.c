@@ -1348,7 +1348,8 @@ asyncmeta_controls_add( Operation *op,
 				LDAP_CONTROL_PROXY_AUTHZ, op->o_ctrls, NULL );
 
 		for ( i = 0; op->o_ctrls[ i ]; i++ ) {
-			if ( proxyauthz && proxyauthz == op->o_ctrls[ i ] ) {
+			/* Only replace it if we generated one */
+			if ( j1 && proxyauthz && proxyauthz == op->o_ctrls[ i ] ) {
 				/* Frontend has already checked only one is present */
 				assert( skipped == 0 );
 				skipped++;
