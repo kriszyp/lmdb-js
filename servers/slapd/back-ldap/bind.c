@@ -2548,10 +2548,6 @@ ldap_back_proxy_authz_ctrl(
 
 	if ( op->o_tag == LDAP_REQ_BIND ) {
 		ndn = op->o_req_ndn;
-
-	} else if ( !BER_BVISNULL( &op->o_conn->c_ndn ) ) {
-		ndn = op->o_conn->c_ndn;
-
 	} else {
 		ndn = op->o_ndn;
 	}
