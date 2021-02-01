@@ -394,13 +394,7 @@ referralDN           all ops (only if applicable; defaults
 .LP
 .SH "Basic Configuration Syntax"
 All rewrite/remap directives start with the prefix
-.BR rwm\- ;
-for backwards compatibility with the historical
-.BR slapd\-ldap (5)
-and
-.BR slapd\-meta (5)
-builtin rewrite/remap capabilities, the prefix may be omitted, 
-but this practice is strongly discouraged.
+.BR rwm\-
 .TP
 .B rwm\-rewriteEngine { on | off }
 If `on', the requested rewriting is performed; if `off', no

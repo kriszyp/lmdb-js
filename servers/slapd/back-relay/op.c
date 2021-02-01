@@ -212,6 +212,8 @@ relay_back_op( Operation *op, SlapReply *rs, int which )
 			rc = (&bi->bi_op_bind)[which]( op, rs );
 		});
 		relay_back_remove_cb( &rcb, op );
+		if ( which == op_bind && rc == LDAP_SUCCESS )
+			op->o_bd = bd;
 
 	} else if ( fail_mode & RB_OPERR ) {
 		rs->sr_err = rc;

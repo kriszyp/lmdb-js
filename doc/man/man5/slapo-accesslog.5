@@ -25,7 +25,9 @@ directive.
 .TP
 .B logdb <suffix>
 Specify the suffix of a database to be used for storing the log records.
-The specified database must be defined elsewhere in the configuration.
+The specified database must be defined elsewhere in the configuration and
+must support an ordered return of results such as
+.BR slapd\-mdb (5)
 The access controls
 on the log database should prevent general access. The suffix entry
 of the log database will be created automatically by this overlay. The log
