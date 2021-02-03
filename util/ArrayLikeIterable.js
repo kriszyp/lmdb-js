@@ -71,6 +71,32 @@ class ArrayLikeIterable {
 			callback(result.value)
 		}
 	}
+	concat(secondIterable) {
+		let concatIterable = new ArrayLikeIterable()
+		concatIterable[Symbol.iterator] = (async) => {
+			let iterator = this[Symbol.iterator]()
+			let isFirst = true
+			let concatIterator = {
+				next() {
+					let result = iterator.next()
+					if (isFirst && result.done) {
+						isFirst = false
+						iterator = secondIterable[Symbol.iterator](async)
+						return iterator.next()
+					}
+					return result
+				},
+				return() {
+					return iterator.return()
+				},
+				throw() {
+					return iterator.throw()
+				}
+			}
+			return concatIterator
+		}
+		return concatIterable
+	}
 	toJSON() {
 		if (this.asArray && this.asArray.forEach) {
 			return this.asArray
@@ -106,4 +132,5 @@ class ArrayLikeIterable {
 		return this.asArray
 	}
 }
+
 exports.ArrayLikeIterable = ArrayLikeIterable

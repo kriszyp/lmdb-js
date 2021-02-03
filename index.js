@@ -705,7 +705,7 @@ function open(path, options) {
 				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
 					// past a certain threshold, run it immediately and synchronously
 					let batch = pendingBatch
-					console.warn('Performing synchronous commit because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
+					console.warn('Performing synchronous commit in database ' + this.name + ' because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
 					runNextBatch(true)
 					return batch
 				} else if (!runNextBatch.immediate) {

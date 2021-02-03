@@ -1,6 +1,5 @@
 'use strict';
-//var inspector = require('inspector')
-//inspector.open(9330, null, true)
+//var inspector = require('inspector'); inspector.open(9330, null, true)
 
 let path = require('path');
 let mkdirp = require('mkdirp');
@@ -11,7 +10,7 @@ let expect = chai.expect;
 let spawn = require('child_process').spawn;
 
 let { open, getLastVersion } = require('..');
-import('./module.test.mjs')
+const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -291,7 +290,7 @@ describe('lmdb-store', function() {
         // should have open read and cursor transactions
         db2.close();
         db.close();
-        done()
+        done();
       },10);
     });
   }}
@@ -326,6 +325,17 @@ describe('lmdb-store', function() {
     });
     after(function() {
       db.close();
+    });
+  });
+  describe('ArrayLikeIterable', function() {
+    it('concat and iterate', async function() {
+      let a = new ArrayLikeIterable([1, 2, 3])
+      let b = new ArrayLikeIterable([4, 5, 6])
+      let all = []
+      for (let v of a.concat(b)) {
+        all.push(v)
+      }
+      all.should.deep.equal([1, 2, 3, 4, 5, 6])
     });
   });
 });
