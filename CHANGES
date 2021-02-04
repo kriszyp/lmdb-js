@@ -1,6 +1,7 @@
 OpenLDAP 2.4 Change Log
 
 OpenLDAP 2.4.58 Engineering
+	Fixed slapd-bdb lockdetect config (ITS#9449)
 
 OpenLDAP 2.4.57 Release (2021/01/18)
 	Fixed ldapexop to use correct return code (ITS#9417)
