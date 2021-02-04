@@ -28,7 +28,8 @@ if test $WITH_SASL = "yes" ; then
     fi
     echo "Using SASL authc[/authz] with mech=$MECH; unset SLAPD_USE_SASL to disable"
 else
-    echo "SASL not available; using proxyAuthz with simple authc..."
+    echo "SASL support not available, test skipped"
+    exit 0
 fi
 
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
