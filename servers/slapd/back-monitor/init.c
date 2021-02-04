@@ -26,11 +26,11 @@
 
 #include <lutil.h>
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lber_pvt.h"
 #include "back-monitor.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 #undef INTEGRATE_CORE_SCHEMA
 

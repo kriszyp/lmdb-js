@@ -1,4 +1,4 @@
-/* config.h - configuration abstraction structure */
+/* lload-config.h - configuration abstraction structure */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
@@ -18,7 +18,7 @@
 #define LLOAD_CONFIG_H
 
 #include <ac/string.h>
-#include "../slapd/config.h"
+#include "../slapd/slap-config.h"
 
 LDAP_BEGIN_DECL
 

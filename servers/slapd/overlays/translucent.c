@@ -31,7 +31,7 @@
 #include "slap.h"
 #include "lutil.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 /* config block */
 typedef struct translucent_info {

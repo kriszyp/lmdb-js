@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 static char presence_keyval[] = {0,0};
 static struct berval presence_key = BER_BVC(presence_keyval);

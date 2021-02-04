@@ -123,6 +123,7 @@ LDAP_SLAPD_V (struct evdns_base *) dnsbase;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
 LDAP_SLAPD_V (volatile sig_atomic_t) slapd_gentle_shutdown;
 LDAP_SLAPD_V (int) lloadd_inited;
+LDAP_SLAPD_V (struct LloadChange) lload_change;
 
 LDAP_SLAPD_V (struct event *) lload_timeout_event;
 

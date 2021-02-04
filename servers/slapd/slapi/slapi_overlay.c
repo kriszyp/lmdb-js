@@ -27,7 +27,7 @@
 
 #include "slap.h"
 #include "slapi.h"
-#include "config.h"
+#include "slap-config.h"
 
 #ifdef LDAP_SLAPI
 

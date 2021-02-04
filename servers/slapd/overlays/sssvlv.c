@@ -33,7 +33,7 @@
 
 #include "slap.h"
 #include "lutil.h"
-#include "config.h"
+#include "slap-config.h"
 
 #include "../../../libraries/liblber/lber-int.h"	/* ber_rewind */
 

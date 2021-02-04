@@ -25,7 +25,7 @@
 #include "back-mdb.h"
 #include <lutil.h>
 #include <ldap_rq.h>
-#include "config.h"
+#include "slap-config.h"
 
 static const struct berval mdmi_databases[] = {
 	BER_BVC("ad2i"),

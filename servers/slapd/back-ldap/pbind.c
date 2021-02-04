@@ -29,7 +29,7 @@
 #include "lutil.h"
 #include "slap.h"
 #include "back-ldap.h"
-#include "config.h"
+#include "slap-config.h"
 
 static BackendInfo	*lback;
 

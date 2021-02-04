@@ -29,7 +29,7 @@
 
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 /*
  * This overlay limits the values which can be placed into an

@@ -33,7 +33,7 @@
 
 #include "back-ldap.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 /*
  * From <draft-sermersheim-ldap-distproc>

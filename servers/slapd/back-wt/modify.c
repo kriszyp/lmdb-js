@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 static struct berval scbva[] = {
 	BER_BVC("glue"),

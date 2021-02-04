@@ -31,7 +31,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 #define UNIQUE_DEFAULT_URI ("ldap:///??sub")
 

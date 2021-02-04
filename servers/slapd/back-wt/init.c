@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 static int
 wt_db_init( BackendDB *be, ConfigReply *cr )

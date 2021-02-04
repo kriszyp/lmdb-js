@@ -24,7 +24,7 @@
 
 #include "slap.h"
 #include "lutil.h"
-#include "config.h"
+#include "slap-config.h"
 
 static LDAP_STAILQ_HEAD(OidMacroList, OidMacro) om_list
 	= LDAP_STAILQ_HEAD_INITIALIZER(om_list);

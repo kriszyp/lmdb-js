@@ -35,7 +35,7 @@
 
 #include "../back-monitor/back-monitor.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 /*
  * Control that allows to access the private DB

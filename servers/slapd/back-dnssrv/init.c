@@ -28,7 +28,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "proto-dnssrv.h"
 
 int

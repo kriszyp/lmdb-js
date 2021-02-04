@@ -25,7 +25,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "back-relay.h"
 
 static ConfigDriver relay_back_cf;

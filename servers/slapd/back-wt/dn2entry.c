@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 
 /*
  * dn2entry - look up dn in the db and return the corresponding entry.

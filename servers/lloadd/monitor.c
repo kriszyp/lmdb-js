@@ -36,7 +36,7 @@
 #include "lber_pvt.h"
 
 #include "ldap_rq.h"
-#include "config.h"
+#include "lload-config.h"
 #include "../slapd/back-monitor/back-monitor.h"
 
 #define LLOAD_MONITOR_BALANCER_NAME "Load Balancer"

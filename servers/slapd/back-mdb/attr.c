@@ -23,7 +23,7 @@
 
 #include "slap.h"
 #include "back-mdb.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lutil.h"
 
 /* Find the ad, return -1 if not found,

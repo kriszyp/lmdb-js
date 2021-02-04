@@ -27,7 +27,7 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 #include "ldap_rq.h"
 

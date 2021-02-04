@@ -28,7 +28,7 @@
 #include <sys/types.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "ldif.h"
 #include "lutil.h"
 #include "proto-sql.h"

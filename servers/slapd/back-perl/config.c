@@ -16,7 +16,7 @@
  */
 
 #include "perl_back.h"
-#include "../config.h"
+#include "../slap-config.h"
 
 static ConfigDriver perl_cf;
 

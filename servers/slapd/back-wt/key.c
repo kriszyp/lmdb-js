@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 #include "back-wt.h"
-#include "config.h"
+#include "slap-config.h"
 #include "idl.h"
 
 /* read a key */

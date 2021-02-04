@@ -26,7 +26,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "back-sock.h"
 
 static ConfigDriver bs_cf_gen;

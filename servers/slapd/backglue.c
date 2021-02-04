@@ -36,7 +36,7 @@
 #define SLAPD_TOOLS
 #include "slap.h"
 #include "lutil.h"
-#include "config.h"
+#include "slap-config.h"
 
 typedef struct gluenode {
 	BackendDB *gn_be;

@@ -24,7 +24,7 @@
 
 #include "slap.h"
 #include "ldap_schema.h"
-#include "config.h"
+#include "slap-config.h"
 
 static void		oc_usage(void); 
 static void		at_usage(void);

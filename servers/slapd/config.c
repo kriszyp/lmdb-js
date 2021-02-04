@@ -49,7 +49,7 @@
 #include "lutil.h"
 #include "lutil_ldap.h"
 #include "ldif.h"
-#include "config.h"
+#include "slap-config.h"
 
 #ifdef _WIN32
 #define	LUTIL_ATOULX	lutil_atoullx

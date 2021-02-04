@@ -32,7 +32,7 @@
 #include "lutil.h"
 #include "back-ldap.h"
 
-#include "config.h"
+#include "slap-config.h"
 
 static ObjectClass		*oc_olmLDAPDatabase;
 static ObjectClass		*oc_olmLDAPConnection;

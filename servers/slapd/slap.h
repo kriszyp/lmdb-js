@@ -1786,7 +1786,7 @@ LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
 #define	SLAP_MAX_CIDS	32	/* Maximum number of supported controls */
 #endif
 
-struct ConfigOCs;	/* config.h */
+struct ConfigOCs;	/* slap-config.h */
 
 struct BackendDB {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
@@ -2007,7 +2007,7 @@ typedef int (BI_config) LDAP_P((BackendInfo *bi,
 	const char *fname, int lineno,
 	int argc, char **argv));
 
-typedef struct config_reply_s ConfigReply; /* config.h */
+typedef struct config_reply_s ConfigReply; /* slap-config.h */
 typedef int (BI_db_func) LDAP_P((Backend *bd, ConfigReply *cr));
 typedef BI_db_func BI_db_init;
 typedef BI_db_func BI_db_open;

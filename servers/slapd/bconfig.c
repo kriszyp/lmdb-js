@@ -36,7 +36,7 @@
 #include <ldif.h>
 #include <lutil.h>
 
-#include "config.h"
+#include "slap-config.h"
 
 #define	CONFIG_RDN	"cn=config"
 #define	SCHEMA_RDN	"cn=schema"
