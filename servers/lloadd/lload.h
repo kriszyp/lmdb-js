@@ -167,7 +167,7 @@ struct LloadChange {
         enum lcf_backend backend;
     } flags;
     void *target;
-} lload_change;
+};
 
 typedef enum {
 #ifdef LDAP_API_FEATURE_VERIFY_CREDENTIALS
