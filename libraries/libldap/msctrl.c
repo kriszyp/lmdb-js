@@ -264,7 +264,7 @@ ldap_create_extended_dn_control(
 #ifdef LDAP_CONTROL_X_SERVER_NOTIFICATION
 
 int
-ldap_create_sever_notification_control( LDAP *ld,
+ldap_create_server_notification_control( LDAP *ld,
                                     LDAPControl **ctrlp )
 {
 	assert( ld != NULL );
