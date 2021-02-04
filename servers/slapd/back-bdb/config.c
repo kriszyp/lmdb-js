@@ -899,7 +899,7 @@ bdb_cf_gen( ConfigArgs *c )
 				c->log, c->argv[1] );
 			return 1;
 		}
-		bdb->bi_lock_detect = (u_int32_t)rc;
+		bdb->bi_lock_detect = bdb_lockd[rc].mask;
 		break;
 
 	case BDB_SSTACK:
