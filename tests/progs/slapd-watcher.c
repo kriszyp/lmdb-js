@@ -198,7 +198,6 @@ void display()
 {
 	int i, j;
 	struct timeval now;
-	struct tm *tm;
 	time_t now_t;
 
 	gettimeofday(&now, NULL);
@@ -339,7 +338,7 @@ void get_counters(
 	BerElement *ber,
 	counters *c )
 {
-	int i, rc;
+	int rc;
 	slap_op_t op = SLAP_OP_BIND;
 	struct berval dn, bv, *bvals, **bvp = &bvals;
 
@@ -560,6 +559,7 @@ setup_server( struct tester_conn_args *config, server *sv, int first )
 	}
 	if ( first )
 		rotate_stats( sv );
+	return 0;
 }
 
 int
