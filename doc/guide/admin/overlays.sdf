@@ -1288,7 +1288,7 @@ we can also search for that to return the completely fabricated entry:
 
 >       ldapsearch -x -H ldap://127.0.0.1:9001 (carLicense=LIVID)
 
-This is an extremely feature because you can then extend a remote directory server
+This is an extremely useful feature because you can then extend a remote directory server
 locally and also search against the local entries.
 
 Note: Because the translucent overlay does not perform any DN rewrites, the local
