@@ -1013,13 +1013,13 @@ asyncmeta_handle_search_msg(LDAPMessage *res, a_metaconn_t *mc, bm_context_t *bc
 
 			if ( candidates[ i ].sr_err == LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE, "%s asyncmeta_search_result[%d] "
-				       "match=\"%s\" err=%ld",
+				       "match=\"%s\" err=%ld\n",
 				       op->o_log_prefix, i,
 				       candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
 				       (long) candidates[ i ].sr_err );
 			} else {
 					Debug( LDAP_DEBUG_ANY,  "%s asyncmeta_search_result[%d] "
-				       "match=\"%s\" err=%ld (%s)",
+				       "match=\"%s\" err=%ld (%s)\n",
 				       op->o_log_prefix, i,
 				       candidates[ i ].sr_matched ? candidates[ i ].sr_matched : "",
 					       (long) candidates[ i ].sr_err, ldap_err2string( candidates[ i ].sr_err ) );
@@ -1382,8 +1382,8 @@ asyncmeta_op_read_error(a_metaconn_t *mc, int candidate, int error, void* ctx)
 	SlapReply *candidates;
 	/* no outstanding ops, nothing to do but log */
 	Debug( LDAP_DEBUG_TRACE,
-	       "asyncmeta_op_read_error: ldr=%p\n",
-	       mc->mc_conns[candidate].msc_ldr );
+	       "asyncmeta_op_read_error: ldr=%p, err=%d\n",
+	       mc->mc_conns[candidate].msc_ldr, error );
 
 	ldap_pvt_thread_mutex_lock( &mc->mc_om_mutex );
 	/*someone may be trying to write */
