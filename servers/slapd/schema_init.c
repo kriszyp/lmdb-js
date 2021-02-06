@@ -3900,6 +3900,8 @@ issuerAndThisUpdateCheck(
 					break;
 				}
 			}
+			if ( tu->bv_len < STRLENOF("YYYYmmddHHmmssZ") ) return LDAP_INVALID_SYNTAX;
+
 			x.bv_val += tu->bv_len + 1;
 			x.bv_len -= tu->bv_len + 1;
 
