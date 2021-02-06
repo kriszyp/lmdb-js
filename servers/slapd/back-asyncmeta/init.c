@@ -267,7 +267,7 @@ asyncmeta_back_db_open(
 	}
 	mi->mi_suffix = be->be_suffix[0];
 	ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
-	mi->mi_task = ldap_pvt_runqueue_insert( &slapd_rq, 0,
+	mi->mi_task = ldap_pvt_runqueue_insert( &slapd_rq, 1,
 		asyncmeta_timeout_loop, mi, "asyncmeta_timeout_loop", mi->mi_suffix.bv_val );
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 	return 0;

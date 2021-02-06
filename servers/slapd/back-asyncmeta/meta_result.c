@@ -1809,11 +1809,7 @@ void* asyncmeta_timeout_loop(void *ctx, void *arg)
 	if ( ldap_pvt_runqueue_isrunning( &slapd_rq, rtask )) {
 		ldap_pvt_runqueue_stoptask( &slapd_rq, rtask );
 	}
-	rtask->interval.tv_sec = 1;
-	rtask->interval.tv_usec = 0;
-	ldap_pvt_runqueue_resched(&slapd_rq, rtask, 0);
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
-	slap_wake_listener();
 	return NULL;
 }
 
