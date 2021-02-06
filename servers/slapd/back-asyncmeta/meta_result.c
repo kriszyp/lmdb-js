@@ -1813,6 +1813,7 @@ void* asyncmeta_timeout_loop(void *ctx, void *arg)
 	rtask->interval.tv_usec = 0;
 	ldap_pvt_runqueue_resched(&slapd_rq, rtask, 0);
 	ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
+	slap_wake_listener();
 	return NULL;
 }
 
