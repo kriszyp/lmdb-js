@@ -167,7 +167,5 @@ lload_libevent_init( void )
 void
 lload_libevent_destroy( void )
 {
-#if ( EVENT__NUMERIC_VERSION >= 0x02010000 )
     libevent_global_shutdown();
-#endif
 }

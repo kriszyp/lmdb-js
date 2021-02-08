@@ -2146,11 +2146,12 @@ if test $ol_enable_balancer != no ; then
 			[have_libevent=yes
 			LEVENT_LIBS="$LEVENT_LIBS -levent"],
 			[have_libevent=no])])
+	AC_CHECK_LIB(event, libevent_global_shutdown, [], [have_libevent=no])
 
 	if test $have_libevent = yes ; then
 		AC_DEFINE(HAVE_LIBEVENT, 1, [define if you have -levent])
 	else
-		AC_MSG_ERROR([You need libevent 2.0 or later with DNS support to build the load balancer])
+		AC_MSG_ERROR([You need libevent 2.1 or later with DNS support to build the load balancer])
 	fi
 fi
 

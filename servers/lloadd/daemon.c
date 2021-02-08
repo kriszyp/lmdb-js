@@ -1266,10 +1266,6 @@ lloadd_daemon( struct event_base *daemon_base )
 
     assert( daemon_base != NULL );
 
-#ifndef EVDNS_BASE_INITIALIZE_NAMESERVERS /* libevent 2.0 support */
-#define EVDNS_BASE_INITIALIZE_NAMESERVERS 1
-#endif /* !EVDNS_BASE_INITIALIZE_NAMESERVERS */
-
     dnsbase = evdns_base_new( daemon_base, EVDNS_BASE_INITIALIZE_NAMESERVERS );
     if ( !dnsbase ) {
         Debug( LDAP_DEBUG_ANY, "lloadd startup: "
@@ -1326,7 +1322,7 @@ lloadd_daemon( struct event_base *daemon_base )
         }
     }
 
-    event = evtimer_new( daemon_base, operations_timeout, NULL );
+    event = evtimer_new( daemon_base, operations_timeout, event_self_cbarg() );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "lloadd: "
                 "failed to allocate timeout event\n" );
