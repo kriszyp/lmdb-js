@@ -36,7 +36,7 @@
 #include <ac/time.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
-#include "config.h"
+#include "slap-config.h"
 
 /* Per-instance configuration information */
 typedef struct lastbind_info {

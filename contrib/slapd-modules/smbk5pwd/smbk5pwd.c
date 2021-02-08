@@ -32,7 +32,7 @@
 #include <ac/errno.h>
 #include <ac/string.h>
 
-#include "config.h"
+#include "slap-config.h"
 
 #ifdef DO_KRB5
 #include <lber.h>

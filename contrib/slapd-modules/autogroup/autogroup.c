@@ -31,7 +31,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lutil.h"
 
 #ifndef SLAPD_MEMBEROF_ATTR

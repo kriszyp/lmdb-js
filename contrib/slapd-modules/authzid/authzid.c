@@ -27,7 +27,7 @@
 #include "portable.h"
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 #include "lutil.h"
 #include "ac/string.h"
 

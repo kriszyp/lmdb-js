@@ -28,7 +28,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 /* This overlay intercepts write operations and adds a Microsoft-style
  * USN to the target entry.

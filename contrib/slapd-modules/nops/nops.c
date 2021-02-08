@@ -29,7 +29,7 @@
 
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 static ConfigDriver nops_cf_gen;
 
