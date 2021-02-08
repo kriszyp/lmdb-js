@@ -520,7 +520,12 @@ Connection * connection_init(
 		BER_BVZERO( &c->c_peer_name );
 
 		ber_sockbuf_free( c->c_sb );
-		c->c_sb = NULL;
+		c->c_sb = ber_sockbuf_alloc( );
+		{
+			ber_len_t max = sockbuf_max_incoming;
+			ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+		}
+
 		c->c_sd = AC_SOCKET_INVALID;
 		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
