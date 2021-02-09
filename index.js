@@ -45,6 +45,7 @@ function open(path, options) {
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
+		mapSize: 0x40000, // default map size of 256KB
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
@@ -844,7 +845,9 @@ function open(path, options) {
 		}
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const oldSize = env.info().mapSize
-			const newSize = Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x200000) * 0x200000 // increase size, more rapidly at first, and round to nearest 2 MB
+			const newSize = error.message.startsWith('MDB_MAP_FULL') ?
+				Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x100000) * 0x100000 : // increase size, more rapidly at first, and round to nearest 1 MB
+				0 // for resized notifications, we simply want to match the existing size of other processes
 			for (const store of stores) {
 				store.emit('remap')
 			}
