@@ -1184,22 +1184,14 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 	if test $ac_cv_header_openssl_ssl_h = yes ; then
 			AC_PREPROC_IFELSE([AC_LANG_SOURCE(
 				[[#include <openssl/opensslv.h>]
-[#if OPENSSL_VERSION_NUMBER < 0x1000200fL]
+[#if OPENSSL_VERSION_NUMBER < 0x1010100fL]
 [#error "OpenSSL is too old"]
 [#endif]])],
-					, [AC_MSG_FAILURE([OpenSSL 1.0.2a or newer required])])
+					, [AC_MSG_FAILURE([OpenSSL 1.1.1 or newer required])])
 
-		AC_CHECK_LIB(ssl, SSL_CTX_set_msg_callback,
-			[have_openssl=yes
-			need_rsaref=no], [have_openssl=no],
+		AC_CHECK_LIB(ssl, SSL_export_keying_material_early,
+			[have_openssl=yes], [have_openssl=no],
 			[-lcrypto])
-
-		if test $have_openssl = no ; then
-			AC_CHECK_LIB(ssl, ssl3_accept, 
-				[have_openssl=yes
-				need_rsaref=yes], [have_openssl=no],
-				[-lcrypto -lRSAglue -lrsaref])
-		fi
 
 		if test $have_openssl = yes ; then
 			ol_with_tls=openssl
@@ -1209,14 +1201,7 @@ if test $ol_with_tls = openssl || test $ol_with_tls = auto ; then
 			AC_DEFINE(HAVE_OPENSSL, 1, 
 				[define if you have OpenSSL])
 
-			if test $need_rsaref = yes; then
-				AC_DEFINE(HAVE_RSAREF, 1, 
-					[define if OpenSSL needs RSAref])
-
-				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
-			else
-				TLS_LIBS="-lssl -lcrypto"
-			fi
+			TLS_LIBS="-lssl -lcrypto"
 		fi
 	fi
 fi
