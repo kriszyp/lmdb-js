@@ -34,12 +34,10 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_asyncmeta}#//"			\
 	-e "s/^#${AC_relay}#//"				\
 	-e "s/^#${AC_sql}#//"				\
-		-e "s/^#${RDBMS}#//"			\
+	-e "s/^#${RDBMS}#//"			\
 	-e "s/^#${AC_accesslog}#//"			\
-	-e "s/^#${AC_autoca}#//"			\
 	-e "s/^#${AC_dds}#//"				\
 	-e "s/^#${AC_dynlist}#//"			\
-	-e "s/^#${AC_memberof}#//"			\
 	-e "s/^#${AC_pcache}#//"			\
 	-e "s/^#${AC_ppolicy}#//"			\
 	-e "s/^#${AC_refint}#//"			\
@@ -49,7 +47,6 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/^#${AC_translucent}#//"			\
 	-e "s/^#${AC_unique}#//"			\
 	-e "s/^#${AC_valsort}#//"			\
-	-e "s/^#${AC_lloadd}#//"			\
 	-e "s/^#${INDEXDB}#//"				\
 	-e "s/^#${MAINDB}#//"				\
 	-e "s/^#${SASL}#//"				\
