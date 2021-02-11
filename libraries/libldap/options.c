@@ -110,8 +110,6 @@ ldap_get_option(
 	}
 
 	if(ld != NULL) {
-		assert( LDAP_VALID( ld ) );
-
 		if( !LDAP_VALID( ld ) ) {
 			return LDAP_OPT_ERROR;
 		}
