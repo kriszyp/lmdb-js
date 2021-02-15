@@ -647,6 +647,18 @@ In fact, if no olcLogLevel (or a 0 level) is defined, no logging occurs,
 so at least the 
 .B none
 level is required to have high priority messages logged.
+
+Note that the
+.BR packets ,
+.BR BER ,
+and
+.B parse
+levels are only available as debug output on stderr, and are not
+sent to syslog.
+
+This setting defaults to \fBstats\fP.
+This level should usually also be included when using other loglevels, to
+help analyze the logs.
 .RE
 .TP
 .B olcPasswordCryptSaltFormat: <format>
