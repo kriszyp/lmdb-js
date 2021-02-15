@@ -1327,16 +1327,18 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
 .B olcSizeLimit: {<integer>|unlimited}
 .TP
-.B olcSizeLimit: size[.{soft|hard|unchecked}]=<integer> [...]
+.B olcSizeLimit: size[.{soft|hard}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 Use
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the size limits.
-Extra args can be added in the same value. See
+If no special qualifiers are specified, both soft and hard limits are set.
+Extra args can be added in the same value.
+Additional qualifiers are available. See
 .BR olcLimits
-for an explanation of the different flags.
+for an explanation of all of the different flags.
 .TP
 .B olcSortVals: <attr> [...]
 Specify a list of multi-valued attributes whose values will always

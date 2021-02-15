@@ -979,17 +979,18 @@ Example:
 .TP
 .B sizelimit {<integer>|unlimited}
 .TP
-.B sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
+.B sizelimit size[.{soft|hard}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 Use
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the size limits.
+If no special qualifiers are specified, both soft and hard limits are set.
 Extra args can be added on the same line.
-See
+Additional qualifiers are available; see
 .BR limits
-for an explanation of the different flags.
+for an explanation of all of the different flags.
 .TP
 .B sockbuf_max_incoming <integer>
 Specify the maximum incoming LDAP PDU size for anonymous sessions.
