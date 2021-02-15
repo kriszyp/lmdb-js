@@ -806,7 +806,8 @@ We still have to replicate the actual data, not just the config, so add to the p
 >     olcDbDirectory: ./db
 >     olcRootDN: $MANAGERDN
 >     olcRootPW: $PASSWD
->     olcLimits: dn.exact="$MANAGERDN" time.soft=unlimited time.hard=unlimited size.soft=unlimited size.hard=unlimited
+>     olcLimits: dn.exact="$MANAGERDN" time.soft=unlimited time.hard=unlimited
+>       size.soft=unlimited size.hard=unlimited
 >     olcSyncRepl: rid=004 provider=$URI1 binddn="$MANAGERDN" bindmethod=simple
 >       credentials=$PASSWD searchbase="$BASEDN" type=refreshOnly
 >       interval=00:00:00:10 retry="5 5 300 5" timeout=1
