@@ -742,7 +742,8 @@ This sets up the config database:
 >     olcDatabase: {0}config
 >     olcRootPW: secret
 
-second and third servers will have a different olcServerID obviously:
+Each server must have a unique server ID ({{EX:SID}}), so
+second and third servers will have a different {{EX:olcServerID}} obviously:
 
 >     dn: cn=config
 >     objectClass: olcGlobal
@@ -831,6 +832,17 @@ Note: As stated in {{slapd-config}}(5), URLs specified in {{olcSyncRepl}}
 directives are the URLs of the servers from which to replicate. These
 must exactly match the URLs {{slapd}} listens on ({{-h}} in {{SECT:Command-Line Options}}).
 Otherwise slapd may attempt to replicate from itself, causing a loop.
+
+Note: The {{entryCSN}} and {{contextCSN}} attributes are used
+to track changes to an entry and naming context, respectively. The
+{{EX:SID}} which must be unique for each replication provider is a
+component of these CSNs. If you're using {{slapadd}} to load a
+database and there are no entryCSNs already present in the input
+LDIF, {{slapadd}} will generate them with a {{SID}} of {{EX:000}}. This
+is not a valid {{SID}} for multi-provider replication, and you
+should use the {{EX:-S}} option of {{slapadd}} (8) to specify
+a valid {{SID}} for these generated CSNs. If there are existing
+entryCSNs in the input LDIF, {{slapadd}} will not change them.
 
 H3: Mirror mode
 
