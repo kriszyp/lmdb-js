@@ -977,7 +977,7 @@ ldap_attributetype2bv(  LDAPAttributeType * at, struct berval *bv )
  *
  * Each of them is written as a recursive-descent parser, except that
  * none of them is really recursive.  But the idea is kept: there
- * is one routine per non-terminal that eithers gobbles lexical tokens
+ * is one routine per non-terminal that either gobbles lexical tokens
  * or calls lower-level routines, etc.
  *
  * The scanner is implemented in the routine get_token.  Actually,

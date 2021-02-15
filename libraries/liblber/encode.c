@@ -349,7 +349,7 @@ ber_put_boolean(
 typedef struct seqorset_header {
 	char xtagbuf[TAGBUF_SIZE + 1];	/* room for tag + len(tag or len) */
 	union {
-		ber_elem_size_t offset;		/* enclosing seqence/set */
+		ber_elem_size_t offset;		/* enclosing sequence/set */
 		char padding[SOS_LENLEN-1];	/* for final length encoding */
 	} next_sos;
 #	define SOS_TAG_END(header) ((unsigned char *) &(header).next_sos - 1)

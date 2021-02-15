@@ -328,7 +328,7 @@ down:;
 	default:
 other:;
 		/* convert rc to the correct LDAP error and send it back to the client:
-		   assing the error to rs, so we can use it as argument to slap_map_api2result
+		   assign the error to rs, so we can use it as argument to slap_map_api2result
 		   and then assign the output back to rs->sr_err */
 		rs->sr_err = rc;
 		rs->sr_err = slap_map_api2result( rs );

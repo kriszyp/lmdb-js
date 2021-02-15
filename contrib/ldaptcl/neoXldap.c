@@ -178,7 +178,7 @@ LDAP_ErrorStringToCode(Tcl_Interp *interp, char *s)
  *   o evalCodeObj -       Tcl_Obj pointer to code to eval against this result.
  * Returns:
  *   o TCL_OK if processing succeeded..
- *   o TCL_ERROR if an error occured, with error message in interp.
+ *   o TCL_ERROR if an error occurred, with error message in interp.
  *-----------------------------------------------------------------------------
  */
 int
@@ -282,7 +282,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
  *   o evalCodeObj -       Tcl_Obj pointer to code to eval against this result.
  * Returns:
  *   o TCL_OK if processing succeeded..
- *   o TCL_ERROR if an error occured, with error message in interp.
+ *   o TCL_ERROR if an error occurred, with error message in interp.
  *-----------------------------------------------------------------------------
  */
 int 

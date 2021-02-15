@@ -149,7 +149,7 @@ LBER_F( char * ) ber_pvt_wsa_err2string LDAP_P((int));
 #ifdef HAVE_PIPE
 /*
  * Only use pipe() on systems where file and socket descriptors
- * are interchangable
+ * are interchangeable
  */
 #	define USE_PIPE HAVE_PIPE
 #endif

@@ -241,8 +241,8 @@ static void *start_status_routine( void *ptr )
 				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				break;
 			case WAIT_FAILED:
-				/* theres been some problem with WaitForSingleObject so tell the Service
-				 * Control Manager to wait 30 seconds before deploying its assasin and 
+				/* there's been some problem with WaitForSingleObject so tell the Service
+				 * Control Manager to wait 30 seconds before deploying its assassin and 
 				 * then leave the thread. */
 				lutil_ServiceStatus.dwCheckPoint++;
 				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
@@ -283,8 +283,8 @@ static void *stop_status_routine( void *ptr )
 				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				break;
 			case WAIT_FAILED:
-				/* theres been some problem with WaitForSingleObject so tell the Service
-				 * Control Manager to wait 30 seconds before deploying its assasin and 
+				/* there's been some problem with WaitForSingleObject so tell the Service
+				 * Control Manager to wait 30 seconds before deploying its assassin and 
 				 * then leave the thread. */
 				lutil_ServiceStatus.dwCheckPoint++;
 				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
@@ -332,7 +332,7 @@ static void WINAPI lutil_ServiceCtrlHandler( IN DWORD Opcode)
 				/* failed to create the thread that tells the Service Control Manager that the
 				 * service stopping is proceeding. 
 				 * tell the Service Control Manager to wait another 30 seconds before deploying its
-				 * assasin.  */
+				 * assassin.  */
 				lutil_ServiceStatus.dwCheckPoint++;
 				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
 				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
@@ -444,7 +444,7 @@ void lutil_CommenceStartupProcessing( char *lpszServiceName,
 	{
 		/* failed to create the event to determine when the startup process is complete so
 		 * tell the Service Control Manager to wait another 30 seconds before deploying its
-		 * assasin  */
+		 * assassin  */
 		lutil_ServiceStatus.dwCheckPoint++;
 		lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
 		SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
@@ -461,7 +461,7 @@ void lutil_CommenceStartupProcessing( char *lpszServiceName,
 			/* failed to create the thread that tells the Service Control Manager that the
 			 * service startup is proceeding. 
 			 * tell the Service Control Manager to wait another 30 seconds before deploying its
-			 * assasin.  */
+			 * assassin.  */
 			lutil_ServiceStatus.dwCheckPoint++;
 			lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
 			SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);

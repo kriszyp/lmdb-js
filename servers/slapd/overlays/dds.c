@@ -63,7 +63,7 @@ typedef struct dds_info_t {
 	int			di_num_dynamicObjects;
 	int			di_max_dynamicObjects;
 
-	/* used to advertize the dynamicSubtrees in the root DSE,
+	/* used to advertise the dynamicSubtrees in the root DSE,
 	 * and to select the database in the expiration task */
 	BerVarray		di_suffix;
 	BerVarray		di_nsuffix;

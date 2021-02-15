@@ -48,7 +48,7 @@ static ExtendedOp *pGExtendedOps = NULL;
  * Input:              type - type of the plugin, such as SASL, database, etc.
  *                     path - the loadpath to load the module in
  *                     initfunc - name of the plugin function to execute first
- *                     argc - number of arguements
+ *                     argc - number of arguments
  *                     argv[] - an array of char pointers point to
  *                              the arguments passed in via
  *                              the configuration file.

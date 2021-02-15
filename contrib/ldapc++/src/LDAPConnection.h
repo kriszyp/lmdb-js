@@ -14,7 +14,7 @@
 /** Main class for synchronous LDAP-Communication
  *
  * The class represent a LDAP-Connection to perform synchronous
- * LDAP-Operations. This provides methodes for the different
+ * LDAP-Operations. This provides methods for the different
  * LDAP-Operations. All the methods for the LDAP-operations block until
  * all results for the operation are received or until an error occurs
  */

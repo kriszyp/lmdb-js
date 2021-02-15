@@ -200,7 +200,7 @@ at_delete_from_list(
 		list[i] = list[j];
 	}
 	list[i] = NULL;
-	/* Tell the runtime this can be shrinked */
+	/* Tell the runtime this can be shrunk */
 	list1 = ch_realloc(list, (i+1)*sizeof(AttributeType **));
 	if ( !list1 ) {
 		return -1;

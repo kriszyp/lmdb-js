@@ -158,7 +158,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* failure, log but write simple invalid address
 			 (otherwise the address list is messed up) */
 		/* TODO: have error message in correct format */
-		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val );
+		Debug(LDAP_DEBUG_ANY,"nssov: unparsable address: %s\n",addr->bv_val );
 		/* write an illegal address type */
 		WRITE_INT32(fp,-1);
 		/* write an empty address */

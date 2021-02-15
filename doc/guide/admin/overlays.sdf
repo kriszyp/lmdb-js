@@ -365,7 +365,7 @@ Configuration via {{slapd.conf}}(5) would look like:
 >        ldap:///dc=catalog,dc=example,dc=com?title?sub?(objectClass=titleCatalog)
 
 A specification like the above would reject any {{mail}} attribute which did not
-look like {{<alpha-numeric string>@mydomain.com}}.
+look like {{<alphanumeric string>@mydomain.com}}.
 
 It would also reject any title attribute whose values were not listed in the 
 title attribute of any {{titleCatalog}} entries in the given scope.   

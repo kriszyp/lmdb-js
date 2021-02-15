@@ -1176,7 +1176,7 @@ static Sockbuf_IO tlsg_sbio =
 	tlsg_sb_close		/* sbi_close */
 };
 
-/* Certs are not automatically varified during the handshake */
+/* Certs are not automatically verified during the handshake */
 static int
 tlsg_cert_verify( tlsg_session *ssl )
 {

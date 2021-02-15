@@ -122,7 +122,7 @@ client_bind_as_vc(
 
 /*
  * The client connection can be in the following states:
- * 1) there are betwee zero and many non-bind operations pending
+ * 1) there are between zero and many non-bind operations pending
  *    client->c_state == LLOAD_C_READY && client->c_pin_id == 0
  * 2) there is one bind operation pending (waiting on an upstream response)
  *    a) It is a simple bind
@@ -163,7 +163,7 @@ client_bind_as_vc(
  * As usual, we have to make any changes to the target connection before we've
  * sent the PDU over it - while we are in charge of the read side and nothing
  * happens there without our ceding control, the other read side could wake up
- * at any time and pre-empt us.
+ * at any time and preempt us.
  *
  * On a response (in handle_bind_response):
  * - to a simple bind, clear c_auth on a failure otherwise keep it while we
@@ -222,7 +222,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
             pinned_op->o_request = op->o_request;
             pinned_op->o_ctrls = op->o_ctrls;
 
-            /* Noone has seen this operation yet, plant the pin back in its stead */
+            /* No one has seen this operation yet, plant the pin back in its stead */
             client->c_n_ops_executing--;
             op->o_res = LLOAD_OP_COMPLETED;
             tavl_delete( &client->c_ops, op, operation_client_cmp );
@@ -233,7 +233,7 @@ request_bind( LloadConnection *client, LloadOperation *op )
                     avl_dup_error );
             assert( rc == LDAP_SUCCESS );
 
-            /* Noone has seen this operation yet */
+            /* No one has seen this operation yet */
             op->o_refcnt--;
             operation_destroy( op );
 

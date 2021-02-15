@@ -849,7 +849,7 @@ done:
 
 /*
 ** When adding a group, we first strip any existing members,
-** and add all which match the filters ourselfs.
+** and add all which match the filters ourselves.
 */
 static int
 autogroup_add_entry( Operation *op, SlapReply *rs)
@@ -1385,7 +1385,7 @@ autogroup_response( Operation *op, SlapReply *rs )
 
 			/* When modifying any of the attributes of an entry, we must
 			   check if the entry is in any of our groups, and if
-			   the modified entry maches any of the filters of that group.
+			   the modified entry matches any of the filters of that group.
 
 			   If the entry exists in a group, but the modified attributes do
 				not match any of the group's filters, we delete the entry from that group.

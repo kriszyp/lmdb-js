@@ -1077,7 +1077,7 @@ asyncmeta_back_proxy_authz_ctrl(Operation *op,
 		 * option (2) will likely break the idassert
 		 * assumptions, so we cannot accept it;
 		 * option (1) means that we are contradicting
-		 * the client's reques.
+		 * the client's request.
 		 *
 		 * I think (4) is the only correct choice.
 		 */

@@ -18,7 +18,7 @@
 // * the Restart-Option ???
 // * default Server(s)
 
-//* Class for representating the various protocol options
+//* Class for representing the various protocol options
 /** This class represents some options that can be set for a LDAPConnection
  *  operation. Namely these are time and size limits. Options for referral
  *  chasing and a default set of client of server controls to be used with

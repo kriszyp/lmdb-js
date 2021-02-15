@@ -79,7 +79,7 @@ unsigned wt_idl_search( ID *ids, ID id )
 	/*
 	 * binary search of id in ids
 	 * if found, returns position of id
-	 * if not found, returns first postion greater than id
+	 * if not found, returns first position greater than id
 	 */
 	unsigned base = 0;
 	unsigned cursor = 1;
@@ -755,7 +755,7 @@ wt_idl_sort( ID *ids, ID *tmp )
         np = num;
         for ( i = BUCKETS; i > 0; --i ) *np++ = 0;
 
-		/* count occurences of every byte value */
+		/* count occurrences of every byte value */
 		bp = source_start;
         for ( i = size; i > 0; --i, bp += sizeof(ID) )
 				num[*bp]++;

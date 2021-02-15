@@ -687,7 +687,7 @@ comp_test_components( void* attr_nm, void* assert_nm, ComponentSyntaxInfo* csi_a
 				rc = comp_test_components( attr_nm, assert_nm, contained_comp, ca );
 		}
 		else {
-			/* Ivalid Component reference */
+			/* Invalid Component reference */
 			rc = LDAP_PROTOCOL_ERROR;
 		}
 		break;

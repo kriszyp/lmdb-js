@@ -57,7 +57,7 @@ support browsing and searching.
 
 While some consider the Internet {{TERM[expand]DNS}} (DNS) is an
 example of a globally distributed directory service, DNS is not
-browseable nor searchable.  It is more properly described as a
+browsable nor searchable.  It is more properly described as a
 globally distributed {{lookup}} service.
 
 

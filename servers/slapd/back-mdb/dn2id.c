@@ -32,7 +32,7 @@
  * the same key. Also, the first item under the key contains the entry's own
  * rdn and the ID of the node's parent, to allow bottom-up tree traversal as
  * well as top-down. To keep this info first in the list, the high bit of all
- * subsequent nrdnlen's is always set. This means we can only accomodate
+ * subsequent nrdnlen's is always set. This means we can only accommodate
  * RDNs up to length 32767, but that's fine since full DNs are already
  * restricted to 8192.
  *
