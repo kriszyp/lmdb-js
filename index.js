@@ -770,7 +770,7 @@ function open(path, options) {
 					txn: writeTxn,
 				})
 			} catch(error) {
-				handleError(error, this, null, () => this.clear())
+				handleError(error, this, null, () => this.deleteDB())
 			}
 		}
 		clear() {
@@ -788,6 +788,19 @@ function open(path, options) {
 
 		}
 		setupSharedStructures() {
+			const getStructures = () => {
+				let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
+				if (this.useVersions)
+					lastVersion = getLastVersion()
+				try {
+					let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+					if (this.useVersions)
+						setLastVersion(lastVersion)
+					return buffer ? this.encoder.decode(buffer) : []
+				} catch(error) {
+					return handleError(error, this, null, getStructures)
+				}
+			}
 			return {
 				saveStructures: (structures, previousLength) => {
 					return this.transaction(() => {
@@ -798,22 +811,7 @@ function open(path, options) {
 						writeTxn.putBinary(this.db, this.sharedStructuresKey, this.encoder.encode(structures))
 					})
 				},
-				getStructures: () => {
-					let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
-					if (this.useVersions)
-						lastVersion = getLastVersion()
-					let buffer
-					const getBuffer = () =>
-						buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
-					try {
-						getBuffer()
-					} catch(error) {
-						return handleError(error, this, null, getBuffer)
-					}
-					if (this.useVersions)
-						setLastVersion(lastVersion)
-					return buffer ? this.encoder.decode(buffer) : []
-				},
+				getStructures,
 				copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers
 			}
 		}
