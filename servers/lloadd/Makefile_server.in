@@ -63,7 +63,7 @@ install-local-srv: FORCE
 	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-lloadd
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP_OPTS) -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)
