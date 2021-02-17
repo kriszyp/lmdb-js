@@ -250,7 +250,9 @@ returns in case of no activity.
 must be a 
 .BR "struct timeval **"
 (the caller has to free
-.BR *outvalue ) ,
+.BR *outvalue
+using
+.BR ldap_memfree (3)),
 and
 .B invalue
 must be a 
@@ -392,7 +394,9 @@ Sets/gets a timeout value for the synchronous API calls.
 must be a 
 .BR "struct timeval **"
 (the caller has to free
-.BR *outvalue ) ,
+.BR *outvalue
+using
+.BR ldap_memfree (3)),
 and
 .B invalue
 must be a 
