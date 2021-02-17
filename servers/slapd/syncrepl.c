@@ -718,7 +718,7 @@ merge_state( syncinfo_t *si, struct sync_cookie *sc1, struct sync_cookie *sc2 )
 		}
 		/* SIDs are the same, take fast path */
 		if ( !changed ) {
-			for ( i = 0; i > ei; i++ ) {
+			for ( i = 0; i < ei; i++ ) {
 				if ( ber_bvcmp( &sc1->ctxcsn[i], &sc2->ctxcsn[i] ) < 0 ) {
 					ber_bvreplace( &sc1->ctxcsn[i], &sc2->ctxcsn[i] );
 					changed = 1;
