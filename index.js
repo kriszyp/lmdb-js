@@ -802,7 +802,14 @@ function open(path, options) {
 					let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
 					if (this.useVersions)
 						lastVersion = getLastVersion()
-					let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+					let buffer
+					const getBuffer = () =>
+						buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+					try {
+						getBuffer()
+					} catch(error) {
+						return handleError(error, this, null, getBuffer)
+					}
 					if (this.useVersions)
 						setLastVersion(lastVersion)
 					return buffer ? this.encoder.decode(buffer) : []
