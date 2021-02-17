@@ -909,9 +909,8 @@ property specifies the minimum acceptable
 .I security strength factor
 as an integer approximate to effective key length used for
 encryption.  0 (zero) implies no protection, 1 implies integrity
-protection only, 56 allows DES or other weak ciphers, 112
-allows triple DES and other strong ciphers, 128 allows RC4,
-Blowfish and other modern strong ciphers.  The default is 0.
+protection only, 128 allows RC4, Blowfish and other similar ciphers,
+256 will require modern ciphers.  The default is 0.
 The
 .B maxssf=<factor> 
 property specifies the maximum acceptable
