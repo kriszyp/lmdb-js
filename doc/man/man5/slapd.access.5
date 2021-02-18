@@ -796,7 +796,11 @@ and
 .BR manage .
 Each access level implies all the preceding ones, thus 
 .B manage
-grants all access including administrative access.
+grants all access including administrative access. This access
+allows some modifications which would otherwise be prohibited by the
+LDAP data model or the directory schema, e.g. changing the
+structural objectclass of an entry, or modifying an operational
+attribute that is defined as not user modifiable.
 The 
 .BR write
 access is actually the combination of
