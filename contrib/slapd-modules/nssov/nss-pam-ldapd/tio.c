@@ -184,7 +184,7 @@ static int tio_wait(int fd, short events, int timeout,
       return -1;
     }
     else if ((errno != EINTR) && (errno != EAGAIN))
-      /* some error ocurred */
+      /* some error occurred */
       return -1;
     /* we just try again on EINTR or EAGAIN */
   }

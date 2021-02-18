@@ -160,7 +160,7 @@ initializer I;
 )
 }
 
-// the rest identifies and removes a (newly-)reduntant LogTest check
+// the rest identifies and removes a (newly-)redundant LogTest check
 @if_guard@
 position p;
 statement s;
