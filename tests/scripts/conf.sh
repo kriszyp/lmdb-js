@@ -29,6 +29,7 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s/@RELAY@/${RELAY}/"			\
 	-e "s/^#relay-${RELAY}#//"			\
 	-e "s/^#${BACKENDTYPE}#//"			\
+	-e "s/^#${AC_TLS_TYPE}#//"			\
 	-e "s/^#${AC_ldap}#//"				\
 	-e "s/^#${AC_meta}#//"				\
 	-e "s/^#${AC_asyncmeta}#//"			\
