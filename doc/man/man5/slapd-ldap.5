@@ -595,8 +595,12 @@ is used.
 .RS
 Specify TLS settings for regular connections.
 
-The first parameter only applies to \fBldap://\fP connections and so
-at the moment, \fBnone\fP and \fBldaps\fP are equivalent.
+If the first parameter is not "none" then this configures the TLS
+settings to be used for regular connections.
+The StartTLS extended operation will be used when establishing the
+connection unless the URI directive protocol scheme is \fBldaps://\fP.
+In that case this keyword may only be set to "ldaps" and the StartTLS
+operation will not be used.
 
 With \fBpropagate\fP, the proxy issues StartTLS operation only if
 the original connection has a TLS layer set up.

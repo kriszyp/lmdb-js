@@ -722,15 +722,43 @@ In case the timeout is exceeded during a bind operation, the connection
 is destroyed, according to RFC4511.
 
 .TP
-.B tls {[try\-]start|[try\-]propagate}
-execute the StartTLS extended operation when the connection is initialized;
-only works if the URI directive protocol scheme is not \fBldaps://\fP.
+.B tls {none|[try\-]start|[try\-]propagate|ldaps}
+.B [starttls=no]
+.B [tls_cert=<file>]
+.B [tls_key=<file>]
+.B [tls_cacert=<file>]
+.B [tls_cacertdir=<path>]
+.B [tls_reqcert=never|allow|try|demand]
+.B [tls_reqsan=never|allow|try|demand]
+.B [tls_cipher_suite=<ciphers>]
+.B [tls_ecname=<names>]
+.B [tls_crlcheck=none|peer|all]
+.RS
+Specify TLS settings regular connections.
+
+If the first parameter is not "none" then this configures the TLS
+settings to be used for regular connections.
+The StartTLS extended operation will be used when establishing the
+connection unless the URI directive protocol scheme is \fBldaps://\fP.
+In that case this keyword may only be set to "ldaps" and the StartTLS
+operation will not be used.
+
 \fBpropagate\fP issues the StartTLS operation only if the original
 connection did.
 The \fBtry\-\fP prefix instructs the proxy to continue operations
 if the StartTLS operation failed; its use is highly deprecated.
+The TLS settings default to the same as the main slapd TLS settings,
+except for
+.B tls_reqcert
+which defaults to "demand",
+.B tls_reqsan
+which defaults to "allow", and
+.B starttls
+which is overshadowed by the first keyword and thus ignored.
+
 If set before any target specification, it affects all targets, unless
 overridden by any per-target directive.
+.RE
 
 .SH SCENARIOS
 A powerful (and in some sense dangerous) rewrite engine has been added
