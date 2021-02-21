@@ -74,6 +74,7 @@ declare namespace lmdb {
 		versions?: boolean
 		limit?: number
 		offset?: number
+		snapshot?: boolean
 	}
 	class ArrayLikeIterable<T> implements Iterable<T> {
 		map<U>(callback: (entry: T) => U): ArrayLikeIterable<U>

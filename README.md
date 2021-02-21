@@ -115,7 +115,7 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.transaction(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
-### `store.getRange(options: { start?, end?, reverse?: boolean, limit?: number, offset?: number, versions?: boolean}): Iterable<{ key, value: Buffer }>`
+### `store.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
@@ -139,7 +139,10 @@ db.getRange({ start, end, offset: 10, limit: 10 }) // skip first 10 and get next
 
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
-### `store.getValues(key, options?): Iterable<any>`
+#### Snapshots
+By default a range iterator will use a database snapshot, using a single read transaction that remains open and gives a consistent view of the database at the time it was started, for the duration of iterating through the range. However, if the iteration will take place over a long period of time, keeping a read transaction open for a long time can interfere with LMDB's free space collection and reuse and increase the database size. If you will be using a long duration iterator, you can specify `snapshot: false` flag in the range options to indicate that it snapshotting is not necessary, and it can reset and renew read transactions while iterating, to allow LMDB to collect any space that was freed during iteration.
+
+### `store.getValues(key, options?: RangeOptions): Iterable<any>`
 When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
 ```
 let db = store.openDB('my-index', {
@@ -157,8 +160,18 @@ for (let value of db.getValues('key1')) {
 ```
 You can optionally provide a second argument with the same `options` that `getRange` handles.
 
-### `store.getKeys(options: { start?, end?, reverse?: boolean, limit?: number, offset?: number, versions?: boolean }): Iterable<any>`
+### `store.getKeys(options: RangeOptions): Iterable<any>`
 This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
+
+### RangeOptions
+Here are the options that can be provided to the range methods (all are optional):
+* `start`: Starting key (will start beginning of db, if not provided), can be any valid key type (primitive or array of primitives).
+* `end`: Ending key (will finish at end of db, if not provided), can be any valid key type (primitive or array of primitives).
+* `reverse`: Boolean key indicating reverse traversal through keys (does not do reverse by default).
+* `limit`: Number indicating maximum number of entries to read (no limit by default).
+* `offset`: Number indicating number of entries to skip before starting iteration (starts at 0 by default).
+* `versions`: Boolean indicating if versions should be included in returned entries (not by default).
+* `snapshot`: Boolean indicating if a database snapshot is used for iteration (true by default).
 
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:

@@ -476,7 +476,6 @@ function open(path, options) {
 			let includeVersions = options.versions
 			let valuesForKey = options.valuesForKey
 			let limit = options.limit
-			let snapshot = options.snapshot
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start !== undefined ? options.start :
@@ -494,10 +493,11 @@ function open(path, options) {
 						if (cursor)
 							cursor.close()
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
-						cursorRenewId = renewId
 						cursor = new Cursor(txn, db)
-						if (snapshot !== false)
-							txn.cursorCount = (txn.cursorCount || 0) + 1
+						if (options.snapshot === false)
+							cursorRenewId = renewId // use shared read transaction
+						else
+							txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
 						if (reverse) {
 							if (valuesForKey) {
 								// position at key
@@ -548,17 +548,19 @@ function open(path, options) {
 				let store = this
 				function finishCursor() {
 					cursor.close()
-					if (snapshot !== false && --txn.cursorCount <= 0 && txn.onlyCursor) {
-						let index = cursorTxns.indexOf(txn)
-						if (index > -1)
-							cursorTxns.splice(index, 1)
-						txn.abort() // this is no longer main read txn, abort it now that we are done
+					if (!cursorRenewId) {
+						if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+							let index = cursorTxns.indexOf(txn)
+							if (index > -1)
+								cursorTxns.splice(index, 1)
+							txn.abort() // this is no longer main read txn, abort it now that we are done
+						}
 					}
 					return { done: true }
 				}
 				return {
 					next() {
-						if (cursorRenewId != renewId)
+						if (cursorRenewId && cursorRenewId != renewId)
 							resetCursor()
 						if (count > 0)
 							currentKey = reverse ?
