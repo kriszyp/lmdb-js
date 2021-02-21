@@ -34,6 +34,7 @@ function open(path, options) {
 	let scheduledWrites
 	let scheduledOperations
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed, cursorTxns = []
+	let renewId = 1
 	if (typeof path == 'object' && !options) {
 		options = path
 		path = options.path
@@ -91,6 +92,7 @@ function open(path, options) {
 	}
 	function resetReadTxn() {
 		if (readTxnRenewed) {
+			renewId++
 			readTxnRenewed = null
 			if (readTxn.cursorCount > 0) {
 				readTxn.onlyCursor = true
@@ -473,6 +475,8 @@ function open(path, options) {
 			let includeValues = options.values !== false
 			let includeVersions = options.versions
 			let valuesForKey = options.valuesForKey
+			let limit = options.limit
+			let snapshot = options.snapshot
 			let db = this.db
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start !== undefined ? options.start :
@@ -483,13 +487,17 @@ function open(path, options) {
 						this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
-				let cursor
+				let cursor, cursorRenewId
 				let txn
 				function resetCursor() {
 					try {
+						if (cursor)
+							cursor.close()
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
+						cursorRenewId = renewId
 						cursor = new Cursor(txn, db)
-						txn.cursorCount = (txn.cursorCount || 0) + 1
+						if (snapshot !== false)
+							txn.cursorCount = (txn.cursorCount || 0) + 1
 						if (reverse) {
 							if (valuesForKey) {
 								// position at key
@@ -540,7 +548,7 @@ function open(path, options) {
 				let store = this
 				function finishCursor() {
 					cursor.close()
-					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+					if (snapshot !== false && --txn.cursorCount <= 0 && txn.onlyCursor) {
 						let index = cursorTxns.indexOf(txn)
 						if (index > -1)
 							cursorTxns.splice(index, 1)
@@ -550,7 +558,7 @@ function open(path, options) {
 				}
 				return {
 					next() {
-						if (txn.isAborted)
+						if (cursorRenewId != renewId)
 							resetCursor()
 						if (count > 0)
 							currentKey = reverse ?
@@ -560,9 +568,8 @@ function open(path, options) {
 									includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
-								(count++ >= options.limit)) {
+								(count++ >= limit))
 							return finishCursor()
-						}
 						if (includeValues) {
 							let value
 							if (store.decoder) {
