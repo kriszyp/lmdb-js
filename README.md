@@ -165,7 +165,7 @@ This behaves like `getRange`, but only returns the keys. If this is duplicate ke
 
 ### RangeOptions
 Here are the options that can be provided to the range methods (all are optional):
-* `start`: Starting key (will start beginning of db, if not provided), can be any valid key type (primitive or array of primitives).
+* `start`: Starting key (will start at beginning of db, if not provided), can be any valid key type (primitive or array of primitives).
 * `end`: Ending key (will finish at end of db, if not provided), can be any valid key type (primitive or array of primitives).
 * `reverse`: Boolean key indicating reverse traversal through keys (does not do reverse by default).
 * `limit`: Number indicating maximum number of entries to read (no limit by default).
