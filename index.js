@@ -94,7 +94,7 @@ function open(path, options) {
 		if (readTxnRenewed) {
 			renewId++
 			readTxnRenewed = null
-			if (readTxn.cursorCount > 0) {
+			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true
 				cursorTxns.push(readTxn)
 				readTxn = null
@@ -491,13 +491,15 @@ function open(path, options) {
 				function resetCursor() {
 					try {
 						if (cursor)
-							cursor.close()
+							finishCursor()
+
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
 						cursor = new Cursor(txn, db)
-						if (options.snapshot === false)
+						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
+						if (options.snapshot === false) {
 							cursorRenewId = renewId // use shared read transaction
-						else
-							txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
+							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1 // need to know how many are renewing cursors
+						}
 						if (reverse) {
 							if (valuesForKey) {
 								// position at key
@@ -547,16 +549,18 @@ function open(path, options) {
 
 				let store = this
 				function finishCursor() {
+					if (txn.isAborted)
+						return
 					cursor.close()
-					if (!cursorRenewId) {
-						if (--txn.cursorCount <= 0 && txn.onlyCursor) {
-							let index = cursorTxns.indexOf(txn)
-							if (index > -1)
-								cursorTxns.splice(index, 1)
-							txn.abort() // this is no longer main read txn, abort it now that we are done
-						}
+					if (cursorRenewId)
+						txn.renewingCursorCount--
+					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+						let index = cursorTxns.indexOf(txn)
+						if (index > -1)
+							cursorTxns.splice(index, 1)
+						txn.abort() // this is no longer main read txn, abort it now that we are done
+						txn.isAborted = true
 					}
-					return { done: true }
 				}
 				return {
 					next() {
@@ -570,8 +574,10 @@ function open(path, options) {
 									includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
-								(count++ >= limit))
-							return finishCursor()
+								(count++ >= limit)) {
+							finishCursor()
+							return { done: true }
+						}
 						if (includeValues) {
 							let value
 							if (store.decoder) {
@@ -833,30 +839,25 @@ function open(path, options) {
 			if (writeTxn)
 				writeTxn.abort()
 		} catch(error) {}
-
 		if (writeTxn)
 			writeTxn = null
-		if (error.message == 'The transaction is already closed.') {
-			try {
-				if (readTxn)
-					readTxn.abort()
-			} catch(error) {}
-			try {
-				readTxn = env.beginTxn(READING_TNX)
-			} catch(error) {
-				return handleError(error, store, null, retry)
-			}
-			return retry()
-		}
-		if (error.message.startsWith('MDB_') && !(error.message.startsWith('MDB_KEYEXIST') || error.message.startsWith('MDB_NOTFOUND'))) {
+
+		if (error.message.startsWith('MDB_') &&
+				!(error.message.startsWith('MDB_KEYEXIST') || error.message.startsWith('MDB_NOTFOUND')) ||
+				error.message == 'The transaction is already closed.') {
 			resetReadTxn() // separate out cursor-based read txns
 			try {
-				if (readTxn)
+				if (readTxn) {
 					readTxn.abort()
+					readTxn.isAborted = true
+				}
 			} catch(error) {}
-			readTxnRenewed = null
 			readTxn = null
 		}
+		if (error.message.startsWith('MDB_PROBLEM'))
+			console.error(error)
+		//if (error.message == 'The transaction is already closed.')
+		//	return handleError(error, store, null, retry)
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const oldSize = env.info().mapSize
 			const newSize = error.message.startsWith('MDB_MAP_FULL') ?
@@ -866,23 +867,9 @@ function open(path, options) {
 				store.emit('remap')
 			}
 			env.resize(newSize)
-			let result = retry()
-			return result
-		}/* else if (error.message.startsWith('MDB_PAGE_NOTFOUND') || error.message.startsWith('MDB_CURSOR_FULL') || error.message.startsWith('MDB_CORRUPTED') || error.message.startsWith('MDB_INVALID')) {
-			// the noSync setting means that we can have partial corruption and we need to be able to recover
-			for (const store of stores) {
-				store.emit('remap')
-			}
-			try {
-				env.close()
-			} catch (error) {}
-			console.warn('Corrupted database,', path, 'attempting to delete the store file and restart', error)
-			fs.removeSync(path + '.mdb')
-			env = new Env()
-			env.open(options)
-			openDB()
 			return retry()
-		}*/
+			return result
+		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
 	}
