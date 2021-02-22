@@ -833,24 +833,8 @@ lload_listener(
     LloadListener *sl = arg;
     LloadConnection *c;
     Sockaddr *from = (Sockaddr *)a;
-#ifdef SLAPD_RLOOKUPS
-    char hbuf[NI_MAXHOST];
-#endif /* SLAPD_RLOOKUPS */
-
-    const char *peeraddr = NULL;
-    /* we assume INET6_ADDRSTRLEN > INET_ADDRSTRLEN */
-    char addr[INET6_ADDRSTRLEN];
-#ifdef LDAP_PF_LOCAL
-    char peername[MAXPATHLEN + sizeof("PATH=")];
-#ifdef LDAP_PF_LOCAL_SENDMSG
-    char peerbuf[8];
-    struct berval peerbv = BER_BVNULL;
-#endif
-#elif defined(LDAP_PF_INET6)
-    char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
-#else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
-    char peername[sizeof("IP=255.255.255.255:65336")];
-#endif /* LDAP_PF_LOCAL */
+    char peername[LUTIL_ADDRLEN];
+    struct berval peerbv = BER_BVC(peername);
     int cflag;
     int tid;
     char ebuf[128];
@@ -918,40 +902,10 @@ lload_listener(
 
 #ifdef LDAP_PF_INET6
         case AF_INET6:
-            if ( IN6_IS_ADDR_V4MAPPED( &from->sa_in6_addr.sin6_addr ) ) {
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_INET_NTOP)
-                peeraddr = inet_ntop( AF_INET,
-                        ( (struct in_addr *)&from->sa_in6_addr.sin6_addr
-                                        .s6_addr[12] ),
-                        addr, sizeof(addr) );
-#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-                peeraddr = inet_ntoa( *( (struct in_addr *)&from->sa_in6_addr
-                                                 .sin6_addr.s6_addr[12] ) );
-#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-                if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-                sprintf( peername, "IP=%s:%d", peeraddr,
-                        (unsigned)ntohs( from->sa_in6_addr.sin6_port ) );
-            } else {
-                peeraddr = inet_ntop( AF_INET6, &from->sa_in6_addr.sin6_addr,
-                        addr, sizeof(addr) );
-                if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-                sprintf( peername, "IP=[%s]:%d", peeraddr,
-                        (unsigned)ntohs( from->sa_in6_addr.sin6_port ) );
-            }
-            break;
 #endif /* LDAP_PF_INET6 */
-
-        case AF_INET: {
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_INET_NTOP)
-            peeraddr = inet_ntop(
-                    AF_INET, &from->sa_in_addr.sin_addr, addr, sizeof(addr) );
-#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-            peeraddr = inet_ntoa( from->sa_in_addr.sin_addr );
-#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-            if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-            sprintf( peername, "IP=%s:%d", peeraddr,
-                    (unsigned)ntohs( from->sa_in_addr.sin_port ) );
-        } break;
+        case AF_INET:
+            lutil_sockaddrstr( from, &peerbv );
+            break;
 
         default:
             lloadd_close( s );

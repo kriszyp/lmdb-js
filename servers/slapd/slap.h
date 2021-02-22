@@ -56,6 +56,8 @@
 #include "ldap_pvt_thread.h"
 #include "ldap_queue.h"
 
+#include "lutil.h"
+
 LDAP_BEGIN_DECL
 
 #ifdef LDAP_DEVEL
@@ -369,18 +371,6 @@ typedef struct Connection Connection;
 typedef struct Operation Operation;
 typedef struct SlapReply SlapReply;
 /* end of forward declarations */
-
-typedef union Sockaddr {
-	struct sockaddr sa_addr;
-	struct sockaddr_in sa_in_addr;
-#ifdef LDAP_PF_INET6
-	struct sockaddr_storage sa_storage;
-	struct sockaddr_in6 sa_in6_addr;
-#endif
-#ifdef LDAP_PF_LOCAL
-	struct sockaddr_un sa_un_addr;
-#endif
-} Sockaddr;
 
 #ifdef LDAP_PF_INET6
 extern int slap_inet4or6;
@@ -2857,14 +2847,6 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 	((op)->o_conn->c_send_ldap_intermediate)( op, rs )
 
 typedef struct Listener Listener;
-
-#ifdef LDAP_PF_LOCAL
-#define SLAP_ADDRLEN	(MAXPATHLEN + sizeof("PATH="))
-#elif defined(LDAP_PF_INET6)
-#define SLAP_ADDRLEN	sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")
-#else
-#define SLAP_ADDRLEN	sizeof("IP=255.255.255.255:65336")
-#endif
 
 /*
  * represents a connection from an ldap client
