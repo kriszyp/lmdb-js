@@ -1678,8 +1678,8 @@ grace:
 		m->sml_numvals = 1;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
-		ber_dupbv( &m->sml_values[0], &timestamp );
-		ber_dupbv( &m->sml_nvalues[0], &timestamp );
+		ber_dupbv( &m->sml_values[0], &timestamp_usec );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp_usec );
 		m->sml_next = mod;
 		mod = m;
 
