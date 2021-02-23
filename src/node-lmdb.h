@@ -221,6 +221,14 @@ public:
         Gets information about the database environment.
     */
     static NAN_METHOD(info);
+    /*
+        Check for stale readers
+    */
+    static NAN_METHOD(readerCheck);
+    /*
+        Print a list of readers
+    */
+    static NAN_METHOD(readerList);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.

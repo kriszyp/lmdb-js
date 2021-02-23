@@ -82,6 +82,7 @@ function open(path, options) {
 		} else
 			throw error
 	}
+	env.readerCheck() // clear out any stale entries
 	function renewReadTxn() {
 		if (readTxn)
 			readTxn.renew()
@@ -757,6 +758,11 @@ function open(path, options) {
 		close() {
 			this.db.close()
 			if (this.isRoot) {
+				if (readTxn) {
+					try {
+						readTxn.abort()
+					} catch(error)
+				}
 				readTxnRenewed = null
 				env.close()
 			}
@@ -801,6 +807,12 @@ function open(path, options) {
 			if (this.encoder && this.encoder.structures)
 				this.encoder.structures = []
 
+		}
+		readerCheck() {
+			return env.readerCheck()
+		}
+		readerList() {
+			return env.readerList().join('')
 		}
 		setupSharedStructures() {
 			const getStructures = () => {

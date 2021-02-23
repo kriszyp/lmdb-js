@@ -638,6 +638,49 @@ NAN_METHOD(EnvWrap::info) {
     info.GetReturnValue().Set(obj);
 }
 
+NAN_METHOD(EnvWrap::readerCheck) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    int rc, dead;
+    rc = mdb_reader_check(ew->env, &dead);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+
+    info.GetReturnValue().Set(Nan::New<Number>(dead));
+}
+
+Local<Array> readerStrings;
+MDB_msg_func* printReaders = ([](const char* message, void* ctx) -> int {
+    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), Nan::New<String>(message).ToLocalChecked());
+    return 0;
+});
+
+NAN_METHOD(EnvWrap::readerList) {
+    Nan::HandleScope scope;
+
+    // Get the wrapper
+    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+
+    readerStrings = Nan::New<Array>(0);
+    int rc;
+    rc = mdb_reader_list(ew->env, printReaders, nullptr);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+    info.GetReturnValue().Set(readerStrings);
+}
+
+
 NAN_METHOD(EnvWrap::copy) {
     Nan::HandleScope scope;
 
@@ -907,6 +950,8 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
+    envTpl->PrototypeTemplate()->Set(isolate, "readerCheck", Nan::New<FunctionTemplate>(EnvWrap::readerCheck));
+    envTpl->PrototypeTemplate()->Set(isolate, "readerList", Nan::New<FunctionTemplate>(EnvWrap::readerList));
     envTpl->PrototypeTemplate()->Set(isolate, "resize", Nan::New<FunctionTemplate>(EnvWrap::resize));
     envTpl->PrototypeTemplate()->Set(isolate, "copy", Nan::New<FunctionTemplate>(EnvWrap::copy));
     envTpl->PrototypeTemplate()->Set(isolate, "detachBuffer", Nan::New<FunctionTemplate>(EnvWrap::detachBuffer));
