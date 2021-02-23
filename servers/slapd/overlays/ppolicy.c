@@ -703,7 +703,7 @@ create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyErr
 		}
 		ber_printf( ber, "tO", PPOLICY_WARNING, &bv );
 		ch_free( bv.bv_val );
-	} else if ( grace > 0 ) {
+	} else if ( grace >= 0 ) {
 		ber_init2( b2, NULL, LBER_USE_DER );
 		ber_printf( b2, "ti", PPOLICY_GRACE, grace );
 		rc = ber_flatten2( b2, &bv, 1 );
@@ -1658,8 +1658,10 @@ grace:
 		Debug( LDAP_DEBUG_ANY,
 			"ppolicy_bind: Entry %s has an expired password: %d grace logins\n",
 			e->e_name.bv_val, ngut );
-		
-		if (ngut < 1) {
+
+		ngut--;
+
+		if (ngut < 0) {
 			ppb->pErr = PP_passwordExpired;
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
