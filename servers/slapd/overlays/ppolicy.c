@@ -863,6 +863,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
+	BackendDB *bd, *bd_orig = op->o_bd;
 	Attribute *a;
 	BerVarray vals;
 	int rc = LDAP_SUCCESS;
@@ -889,9 +890,14 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		}
 	}
 
-	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	op->o_bd = bd = select_backend( vals, 0 );
+	if ( op->o_bd == NULL ) {
+		op->o_bd = bd_orig;
+		goto defaultpol;
+	}
+
 	rc = be_entry_get_rw( op, vals, NULL, NULL, 0, &pe );
-	op->o_bd->bd_info = (BackendInfo *)on;
+	op->o_bd = bd_orig;
 
 	if ( rc ) goto defaultpol;
 
@@ -1010,17 +1016,17 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		pp->pwdMaxDelay = pp->pwdMinDelay;
 	}
 
-	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	op->o_bd = bd;
 	be_entry_release_r( op, pe );
-	op->o_bd->bd_info = (BackendInfo *)on;
+	op->o_bd = bd_orig;
 
 	return LDAP_SUCCESS;
 
 defaultpol:
 	if ( pe ) {
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		op->o_bd = bd;
 		be_entry_release_r( op, pe );
-		op->o_bd->bd_info = (BackendInfo *)on;
+		op->o_bd = bd_orig;
 	}
 
 	if ( rc && !BER_BVISNULL( vals ) ) {
