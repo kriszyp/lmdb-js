@@ -255,7 +255,7 @@ When syntax checking is enabled
 (see also the
 .B pwdCheckQuality
 attribute), this attribute contains the minimum
-number of characters that will be accepted in a password. If this
+length in bytes that will be accepted in a password. If this
 attribute is not present, minimum password length is not
 enforced. If the server is unable to check the length of the password,
 whether due to a client-side hashed password or some other reason,
@@ -267,7 +267,9 @@ without checking it (if
 .B pwdCheckQuality
 is zero (0) or one (1)) or refuse it (if
 .B pwdCheckQuality
-is two (2)).
+is two (2)). If the number of characters should be enforced with regards
+to a particular encoding, the use of an appropriate pwdCheckModule is
+required.
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.6
@@ -283,7 +285,7 @@ When syntax checking is enabled
 (see also the
 .B pwdCheckQuality
 attribute), this attribute contains the maximum
-number of characters that will be accepted in a password. If this
+length in bytes that will be accepted in a password. If this
 attribute is not present, maximum password length is not
 enforced. If the server is unable to check the length of the password,
 whether due to a client-side hashed password or some other reason,
@@ -295,7 +297,9 @@ without checking it (if
 .B pwdCheckQuality
 is zero (0) or one (1)) or refuse it (if
 .B pwdCheckQuality
-is two (2)).
+is two (2)). If the number of characters should be enforced with regards
+to a particular encoding, the use of an appropriate pwdCheckModule is
+required.
 .LP
 .RS 4
 (  1.3.6.1.4.1.42.2.27.8.1.31
