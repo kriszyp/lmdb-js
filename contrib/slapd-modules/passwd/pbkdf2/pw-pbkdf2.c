@@ -52,7 +52,7 @@ const struct berval pbkdf2_sha512_scheme = BER_BVC("{PBKDF2-SHA512}");
  * Converting base64 string to adapted base64 string.
  * Adapted base64 encode is identical to general base64 encode except
  * that it uses '.' instead of '+', and omits trailing padding '=' and
- * whitepsace.
+ * whitespace.
  * see http://pythonhosted.org/passlib/lib/passlib.utils.html
  * This is destructive function.
  */

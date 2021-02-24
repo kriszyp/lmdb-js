@@ -558,7 +558,7 @@ retrieve_matching_rule( char* mr_oid, AsnTypeId type );
 #define INITIAL_ATTR_SIZE 256
 #define INCREMENT_SIZE 32
 /*
- * Followings are for conversion from ASN.1 RDN and DN to
+ * The following are for conversion from ASN.1 RDN and DN to
  * LDAP encodings
  */
 #define MAX_ALIASING_ENTRY 128

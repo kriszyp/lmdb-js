@@ -61,7 +61,7 @@ class LDAPRequest{
         void unbind() const; 
 
         /**
-         * This method encodes the request an calls the apprpriate
+         * This method encodes the request an calls the appropriate
          * functions of the C-API to send the Request to a LDAP-Server
          */
         virtual LDAPMessageQueue* sendRequest()=0;

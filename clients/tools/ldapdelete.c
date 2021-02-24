@@ -68,7 +68,7 @@ usage( void )
 {
 	fprintf( stderr, _("Delete entries from an LDAP server\n\n"));
 	fprintf( stderr, _("usage: %s [options] [dn]...\n"), prog);
-	fprintf( stderr, _("	dn: list of DNs to delete. If not given, it will be readed from stdin\n"));
+	fprintf( stderr, _("	dn: list of DNs to delete. If not given, it will be read from stdin\n"));
 	fprintf( stderr, _("	    or from the file specified with \"-f file\".\n"));
 	fprintf( stderr, _("Delete Options:\n"));
 	fprintf( stderr, _("  -c         continuous operation mode (do not stop on errors)\n"));

@@ -894,7 +894,6 @@ LDAP_SLAPD_F (void) slap_resume_listeners LDAP_P((void));
 
 LDAP_SLAPD_F (int) slap_pause_server LDAP_P((void));
 LDAP_SLAPD_F (int) slap_unpause_server LDAP_P((void));
-LDAP_SLAPD_F (void) slap_sockaddrstr LDAP_P((Sockaddr *sa, struct berval *));
 
 LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
@@ -1556,6 +1555,11 @@ LDAP_SLAPD_F (void) slap_passwd_init (void);
  * phonetic.c
  */
 LDAP_SLAPD_F (char *) phonetic LDAP_P(( char *s ));
+
+/*
+ * proxyp.c
+ */
+LDAP_SLAPD_F (int) proxyp LDAP_P((ber_socket_t sfd, Sockaddr *from));
 
 /*
  * referral.c

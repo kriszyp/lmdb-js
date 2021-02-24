@@ -39,7 +39,7 @@ allop-URI	<ldapURI>
 #include <ac/string.h>
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 #define	SLAP_OVER_VERSION_REQUIRE(major,minor,patch) \
 	( \

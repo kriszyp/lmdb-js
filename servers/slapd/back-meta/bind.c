@@ -212,7 +212,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			if ( LDAP_BACK_SINGLECONN( mi ) ) {
 				metaconn_t	*tmpmc;
 
-				while ( ( tmpmc = avl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc, meta_back_conn_cmp ) ) != NULL )
+				while ( ( tmpmc = tavl_delete( &mi->mi_conninfo.lai_tree, (caddr_t)mc, meta_back_conn_cmp ) ) != NULL )
 				{
 					assert( !LDAP_BACK_PCONN_ISPRIV( mc ) );
 					Debug( LDAP_DEBUG_TRACE,
@@ -235,7 +235,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			}
 
 			ber_bvreplace( &mc->mc_local_ndn, &op->o_req_ndn );
-			lerr = avl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
+			lerr = tavl_insert( &mi->mi_conninfo.lai_tree, (caddr_t)mc,
 				meta_back_conndn_cmp, meta_back_conndn_dup );
 #if META_BACK_PRINT_CONNTREE > 0
 			meta_back_print_conntree( mi, "<<< meta_back_bind" );

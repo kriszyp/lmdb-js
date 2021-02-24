@@ -18,6 +18,14 @@
 
 #include <ldap_cdefs.h>
 #include <lber_types.h>
+#include <ac/socket.h>
+
+#ifdef HAVE_TCPD
+# include <tcpd.h>
+# define LUTIL_STRING_UNKNOWN	STRING_UNKNOWN
+#else /* ! TCP Wrappers */
+# define LUTIL_STRING_UNKNOWN	"unknown"
+#endif /* ! TCP Wrappers */
 
 /*
  * Include file for LDAP utility routine
@@ -335,6 +343,29 @@ lutil_parse_time( const char *in, unsigned long *tp );
 
 LDAP_LUTIL_F (int)
 lutil_unparse_time( char *buf, size_t buflen, unsigned long t );
+
+#ifdef LDAP_PF_LOCAL
+#define LUTIL_ADDRLEN	(MAXPATHLEN + sizeof("PATH="))
+#elif defined(LDAP_PF_INET6)
+#define LUTIL_ADDRLEN	sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")
+#else
+#define LUTIL_ADDRLEN	sizeof("IP=255.255.255.255:65336")
+#endif
+
+typedef union Sockaddr {
+	struct sockaddr sa_addr;
+	struct sockaddr_in sa_in_addr;
+#ifdef LDAP_PF_INET6
+	struct sockaddr_storage sa_storage;
+	struct sockaddr_in6 sa_in6_addr;
+#endif
+#ifdef LDAP_PF_LOCAL
+	struct sockaddr_un sa_un_addr;
+#endif
+} Sockaddr;
+
+LDAP_LUTIL_F (void)
+lutil_sockaddrstr(Sockaddr *sa, struct berval *);
 
 #ifdef timerdiv
 #define lutil_timerdiv timerdiv

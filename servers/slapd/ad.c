@@ -546,7 +546,7 @@ int ad_inlist(
 			}
 
 			/*
-			 * EXTENSION: if requested description is preceeded by
+			 * EXTENSION: if requested description is preceded by
 			 * a '-' character, do not match on subtypes.
 			 */
 			if ( attrs->an_name.bv_val[0] == '-' ) {

@@ -51,7 +51,7 @@ ldap_back_conn_destroy(
 #if LDAP_BACK_PRINT_CONNTREE > 0
 	ldap_back_print_conntree( li, ">>> ldap_back_conn_destroy" );
 #endif /* LDAP_BACK_PRINT_CONNTREE */
-	while ( ( lc = avl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp ) ) != NULL )
+	while ( ( lc = tavl_delete( &li->li_conninfo.lai_tree, (caddr_t)&lc_curr, ldap_back_conn_cmp ) ) != NULL )
 	{
 		assert( !LDAP_BACK_PCONN_ISPRIV( lc ) );
 		Debug( LDAP_DEBUG_TRACE,

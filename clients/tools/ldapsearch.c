@@ -132,7 +132,7 @@ usage( void )
 	fprintf( stderr, _("             !dontUseCopy                (Don't Use Copy)\n"));
 	fprintf( stderr, _("             [!]mv=<filter>              (RFC 3876 matched values filter)\n"));
 	fprintf( stderr, _("             [!]pr=<size>[/prompt|noprompt] (RFC 2696 paged results/prompt)\n"));
-	fprintf( stderr, _("             [!]ps=<changetypes>/<changesonly>/<echg> (draft persisten search)\n"));
+	fprintf( stderr, _("             [!]ps=<changetypes>/<changesonly>/<echg> (draft persistent search)\n"));
 	fprintf( stderr, _("             [!]sss=[-]<attr[:OID]>[/[-]<attr[:OID]>...]\n"));
 	fprintf( stderr, _("                                         (RFC 2891 server side sorting)\n"));
 	fprintf( stderr, _("             [!]subentries[=true|false]  (RFC 3672 subentries)\n"));

@@ -24,7 +24,7 @@ First, You need to configure and build OpenLDAP.
     $ make
     # make install
 
-# Configration
+# Configuration
 
 In slapd.conf:
 

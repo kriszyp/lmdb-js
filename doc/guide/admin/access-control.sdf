@@ -1112,8 +1112,9 @@ You can restrict access based on the security strength factor (SSF)
 0 (zero) implies no protection,
 1 implies integrity protection only,
 56 DES or other weak ciphers,
-112 triple DES and other strong ciphers,
-128 RC4, Blowfish and other modern strong ciphers.
+112 triple DES and similar ciphers,
+128 RC4, Blowfish and other similar ciphers,
+256 modern ciphers.
 
 Other possibilities:
 

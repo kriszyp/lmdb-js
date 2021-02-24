@@ -15,7 +15,7 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 /* This work was initially developed by Kurt D. Zeilenga for
- * inclusion in OpenLDAP Software based, in part, on publically
+ * inclusion in OpenLDAP Software based, in part, on publicly
  * available works (as noted below).
  */
 

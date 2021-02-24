@@ -92,7 +92,7 @@ static void HMAC_CTX_free(HMAC_CTX *ctx)
 #endif
 
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 static LUTIL_PASSWD_CHK_FUNC chk_totp1, chk_totp256, chk_totp512,
 	chk_totp1andpw, chk_totp256andpw, chk_totp512andpw;

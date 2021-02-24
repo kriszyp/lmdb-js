@@ -68,7 +68,7 @@ These features were strongly deprecated in 2.4 and removed in 2.5.
 
 H3: back-bdb and back-hdb
 
-back-bdb and back-hdb were signficantly slower than back-mdb and
+back-bdb and back-hdb were significantly slower than back-mdb and
 required significant tuning of multiple parameters to maximize
 performance. back-mdb requires no tuning and provides all the
 functionality previously provided via back-bdb and back-hdb.

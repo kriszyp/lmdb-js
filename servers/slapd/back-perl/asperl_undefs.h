@@ -18,7 +18,7 @@
 
 /* This file is necessary because both PERL headers */
 /* and OpenLDAP define a number of macros without   */
-/* checking wether they're already defined */
+/* checking whether they're already defined */
 
 #ifndef ASPERL_UNDEFS_H
 #define ASPERL_UNDEFS_H

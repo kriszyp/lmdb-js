@@ -17,7 +17,7 @@ default to).
 
 Use Makefile or the following commands should work to
 build it from inside the unpacked slapd sources, provided the required KRB5
-header files and libaries are installed on your system:
+header files and libraries are installed on your system:
 
     gcc -fPIC -c -I ../../../include/ -I ../../../servers/slapd kinit.c
     gcc -shared -o kinit.so kinit.o -lkrb5

@@ -27,7 +27,7 @@
 #define SLAPD_OVER_NSSOV SLAPD_MOD_DYNAMIC
 #endif
 
-#include "../slapd/config.h"	/* not nss-ldapd config.h */
+#include "slap-config.h"
 
 #include "lutil.h"
 
@@ -158,7 +158,7 @@ int write_address(TFILE *fp,struct berval *addr)
 		/* failure, log but write simple invalid address
 			 (otherwise the address list is messed up) */
 		/* TODO: have error message in correct format */
-		Debug(LDAP_DEBUG_ANY,"nssov: unparseable address: %s\n",addr->bv_val );
+		Debug(LDAP_DEBUG_ANY,"nssov: unparsable address: %s\n",addr->bv_val );
 		/* write an illegal address type */
 		WRITE_INT32(fp,-1);
 		/* write an empty address */
@@ -928,7 +928,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: bind() to "NSLCD_SOCKET" failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -941,7 +941,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -958,7 +958,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -971,7 +971,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}

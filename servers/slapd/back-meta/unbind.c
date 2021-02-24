@@ -54,7 +54,7 @@ meta_back_conn_destroy(
 #if META_BACK_PRINT_CONNTREE > 0
 	meta_back_print_conntree( mi, ">>> meta_back_conn_destroy" );
 #endif /* META_BACK_PRINT_CONNTREE */
-	while ( ( mc = avl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr, meta_back_conn_cmp ) ) != NULL )
+	while ( ( mc = tavl_delete( &mi->mi_conninfo.lai_tree, ( caddr_t )&mc_curr, meta_back_conn_cmp ) ) != NULL )
 	{
 		assert( !LDAP_BACK_PCONN_ISPRIV( mc ) );
 		Debug( LDAP_DEBUG_TRACE,

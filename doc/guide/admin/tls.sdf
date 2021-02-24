@@ -81,10 +81,10 @@ H4: TLSCACertificatePath <path>
 
 This directive specifies the path of a directory that contains
 individual {{TERM:CA}} certificates in separate files.  In addition,
-this directory must be specially managed using the OpenSSL {{c_rehash}}
-utility. When using this feature, the OpenSSL library will attempt to
+this directory must be specially managed using the OpenSSL {{rehash}}
+command. When using this feature, the OpenSSL library will attempt to
 locate certificate files based on a hash of their name and serial number.
-The {{c_rehash}} utility is used to generate symbolic links with the
+The OpenSSL {{rehash}} command is used to generate symbolic links with the
 hashed names that point to the actual certificate files. As such,
 this option can only be used with a filesystem that actually supports
 symbolic links. In general, it is simpler to use the
@@ -226,8 +226,8 @@ same considerations apply.
 H4: TLS_CACERTDIR <path>
 
 This is equivalent to the server's {{EX:TLSCACertificatePath}} option. The
-specified directory must be managed with the OpenSSL {{c_rehash}}
-utility as well.
+specified directory must be managed with the OpenSSL {{rehash}}
+command as well.
 
 H4: TLS_CERT <filename>
 

@@ -404,6 +404,8 @@ lload_open_listener(
     l.sl_is_tls = ldap_pvt_url_scheme2tls( lud->lud_scheme );
 #endif /* HAVE_TLS */
 
+    l.sl_is_proxied = ldap_pvt_url_scheme2proxied( lud->lud_scheme );
+
 #ifdef LDAP_TCP_BUFFER
     l.sl_tcp_rmem = 0;
     l.sl_tcp_wmem = 0;
@@ -833,24 +835,8 @@ lload_listener(
     LloadListener *sl = arg;
     LloadConnection *c;
     Sockaddr *from = (Sockaddr *)a;
-#ifdef SLAPD_RLOOKUPS
-    char hbuf[NI_MAXHOST];
-#endif /* SLAPD_RLOOKUPS */
-
-    const char *peeraddr = NULL;
-    /* we assume INET6_ADDRSTRLEN > INET_ADDRSTRLEN */
-    char addr[INET6_ADDRSTRLEN];
-#ifdef LDAP_PF_LOCAL
-    char peername[MAXPATHLEN + sizeof("PATH=")];
-#ifdef LDAP_PF_LOCAL_SENDMSG
-    char peerbuf[8];
-    struct berval peerbv = BER_BVNULL;
-#endif
-#elif defined(LDAP_PF_INET6)
-    char peername[sizeof("IP=[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:65535")];
-#else /* ! LDAP_PF_LOCAL && ! LDAP_PF_INET6 */
-    char peername[sizeof("IP=255.255.255.255:65336")];
-#endif /* LDAP_PF_LOCAL */
+    char peername[LUTIL_ADDRLEN];
+    struct berval peerbv = BER_BVC(peername);
     int cflag;
     int tid;
     char ebuf[128];
@@ -905,6 +891,16 @@ lload_listener(
     }
 #endif /* SO_KEEPALIVE || TCP_NODELAY */
 
+    if ( sl->sl_is_proxied ) {
+        if ( !proxyp( s, from ) ) {
+            Debug( LDAP_DEBUG_ANY, "lload_listener: "
+                    "proxyp(%ld) failed\n",
+                    (long)s );
+            lloadd_close( s );
+            return;
+        }
+    }
+
     cflag = 0;
     switch ( from->sa_addr.sa_family ) {
 #ifdef LDAP_PF_LOCAL
@@ -918,40 +914,10 @@ lload_listener(
 
 #ifdef LDAP_PF_INET6
         case AF_INET6:
-            if ( IN6_IS_ADDR_V4MAPPED( &from->sa_in6_addr.sin6_addr ) ) {
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_INET_NTOP)
-                peeraddr = inet_ntop( AF_INET,
-                        ( (struct in_addr *)&from->sa_in6_addr.sin6_addr
-                                        .s6_addr[12] ),
-                        addr, sizeof(addr) );
-#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-                peeraddr = inet_ntoa( *( (struct in_addr *)&from->sa_in6_addr
-                                                 .sin6_addr.s6_addr[12] ) );
-#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-                if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-                sprintf( peername, "IP=%s:%d", peeraddr,
-                        (unsigned)ntohs( from->sa_in6_addr.sin6_port ) );
-            } else {
-                peeraddr = inet_ntop( AF_INET6, &from->sa_in6_addr.sin6_addr,
-                        addr, sizeof(addr) );
-                if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-                sprintf( peername, "IP=[%s]:%d", peeraddr,
-                        (unsigned)ntohs( from->sa_in6_addr.sin6_port ) );
-            }
-            break;
 #endif /* LDAP_PF_INET6 */
-
-        case AF_INET: {
-#if defined(HAVE_GETADDRINFO) && defined(HAVE_INET_NTOP)
-            peeraddr = inet_ntop(
-                    AF_INET, &from->sa_in_addr.sin_addr, addr, sizeof(addr) );
-#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-            peeraddr = inet_ntoa( from->sa_in_addr.sin_addr );
-#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
-            if ( !peeraddr ) peeraddr = SLAP_STRING_UNKNOWN;
-            sprintf( peername, "IP=%s:%d", peeraddr,
-                    (unsigned)ntohs( from->sa_in_addr.sin_port ) );
-        } break;
+        case AF_INET:
+            lutil_sockaddrstr( from, &peerbv );
+            break;
 
         default:
             lloadd_close( s );
@@ -1164,8 +1130,9 @@ lload_listener_activate( void )
 
         lload_listeners[l]->sl_busy = 1;
         listener = evconnlistener_new( listener_base, lload_listener,
-                lload_listeners[l], LEV_OPT_THREADSAFE, SLAPD_LISTEN_BACKLOG,
-                lload_listeners[l]->sl_sd );
+                lload_listeners[l],
+                LEV_OPT_THREADSAFE|LEV_OPT_DEFERRED_ACCEPT,
+                SLAPD_LISTEN_BACKLOG, lload_listeners[l]->sl_sd );
         if ( !listener ) {
             int err = sock_errno();
 
@@ -1266,10 +1233,6 @@ lloadd_daemon( struct event_base *daemon_base )
 
     assert( daemon_base != NULL );
 
-#ifndef EVDNS_BASE_INITIALIZE_NAMESERVERS /* libevent 2.0 support */
-#define EVDNS_BASE_INITIALIZE_NAMESERVERS 1
-#endif /* !EVDNS_BASE_INITIALIZE_NAMESERVERS */
-
     dnsbase = evdns_base_new( daemon_base, EVDNS_BASE_INITIALIZE_NAMESERVERS );
     if ( !dnsbase ) {
         Debug( LDAP_DEBUG_ANY, "lloadd startup: "
@@ -1326,7 +1289,7 @@ lloadd_daemon( struct event_base *daemon_base )
         }
     }
 
-    event = evtimer_new( daemon_base, operations_timeout, NULL );
+    event = evtimer_new( daemon_base, operations_timeout, event_self_cbarg() );
     if ( !event ) {
         Debug( LDAP_DEBUG_ANY, "lloadd: "
                 "failed to allocate timeout event\n" );

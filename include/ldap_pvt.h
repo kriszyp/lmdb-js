@@ -32,6 +32,9 @@ ldap_pvt_url_scheme2proto LDAP_P((
 LDAP_F ( int )
 ldap_pvt_url_scheme2tls LDAP_P((
 	const char * ));
+LDAP_F ( int )
+ldap_pvt_url_scheme2proxied LDAP_P((
+	const char * ));
 
 LDAP_F ( int )
 ldap_pvt_url_scheme_port LDAP_P((

@@ -58,8 +58,10 @@ from the database, and thus it must exist.
 The
 .I DN
 is also used to determine what rules apply; thus, it must be
-in the naming context of a configured database.  See also
+in the naming context of a configured database. By default, the first
+database that supports the requested operation is used.  See also
 .BR \-u .
+
 .TP
 .BI \-d \ debug-level
 enable debugging messages as defined by the specified

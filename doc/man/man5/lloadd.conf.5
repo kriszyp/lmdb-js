@@ -173,9 +173,12 @@ If modified after server starts up, a change to this option will not take
 effect until the server has been restarted.
 .TP
 .B logfile <filename>
-Specify a file for recording debug log messages. By default these messages
-only go to stderr and are not recorded anywhere else. Specifying a logfile
-copies messages to both stderr and the logfile.
+Specify a file for recording lloadd debug messages. By default these messages
+only go to stderr, are not recorded anywhere else, and are unrelated to
+messages exposed by the
+.B loglevel
+configuration parameter. Specifying a logfile copies messages to both stderr
+and the logfile.
 .TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation
@@ -468,7 +471,7 @@ When using Mozilla NSS, TLSCertificateKeyFile specifies the name of
 a file that contains the password for the key for the certificate specified with
 TLSCertificateFile.  The modutil command can be used to turn off password
 protection for the cert/key database.  For example, if TLSCACertificatePath
-specifes /etc/openldap/certdb as the location of the cert/key database, use
+specifies /etc/openldap/certdb as the location of the cert/key database, use
 modutil to change the password to the empty string:
 .nf
 	modutil \-dbdir /etc/openldap/certdb \-changepw 'NSS Certificate DB'

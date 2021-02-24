@@ -1856,7 +1856,7 @@ slap_acl_mask(
 			ACL_PRIV_CLR( *mask, ~ACL_PRIV_MASK );
 
 		} else if( ACL_IS_SUBTRACTIVE(modmask) ) {
-			/* substract privs */
+			/* subtract privs */
 			ACL_PRIV_CLR( *mask, modmask );
 
 			/* cleanup */

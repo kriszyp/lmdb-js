@@ -95,6 +95,8 @@ clause matches the accessor's properties, its
 and
 .B <control>
 clauses are evaluated.
+
+.LP
 Access control checking stops at the first match of the
 .B <what>
 and
@@ -110,8 +112,26 @@ clause list is implicitly terminated by a
 	by * none stop
 .fi
 .LP
-clause that results in stopping the access control with no access 
-privileges granted.
+.B <control>
+clause.  This implicit
+.B <control>
+stops access directive evaluation with no more access privileges
+granted to anyone else.
+To stop access directive evaluation only when both
+.B <who>
+and
+.B <what>
+match, add an explicit
+.LP
+.nf
+	by * break
+.fi
+.LP
+to the end of the
+.B <who>
+clause list.
+
+.LP
 Each
 .B <what>
 clause list is implicitly terminated by a
@@ -776,7 +796,11 @@ and
 .BR manage .
 Each access level implies all the preceding ones, thus 
 .B manage
-grants all access including administrative access.
+grants all access including administrative access. This access
+allows some modifications which would otherwise be prohibited by the
+LDAP data model or the directory schema, e.g. changing the
+structural objectclass of an entry, or modifying an operational
+attribute that is defined as not user modifiable.
 The 
 .BR write
 access is actually the combination of

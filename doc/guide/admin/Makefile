@@ -86,7 +86,10 @@ index.html: index.sdf sdf-src sdf-img
 admin.html: admin.sdf sdf-src sdf-img
 	sdf -DPDF -2html admin.sdf
 
-guide.pdf: admin.html guide.book
+booktitle.html: booktitle.sdf
+	sdf -2html booktitle.sdf
+
+guide.pdf: admin.html booktitle.html guide.book
 	htmldoc --batch guide.book -f guide.pdf
 
 OpenLDAP-Admin-Guide.pdf: admin.html guide.book

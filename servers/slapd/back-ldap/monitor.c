@@ -540,6 +540,7 @@ ldap_back_monitor_conn_create(
 
 	struct ldap_back_monitor_conn_arg *arg;
 	int conn_type;
+	TAvlnode *edge;
 
 	assert( e_parent->e_private != NULL );
 
@@ -564,8 +565,13 @@ ldap_back_monitor_conn_create(
 		}
 	}
 
-	avl_apply( li->li_conninfo.lai_tree, (AVL_APPLY)ldap_back_monitor_conn_entry,
-		arg, -1, AVL_INORDER );
+	edge = tavl_end( li->li_conninfo.lai_tree, TAVL_DIR_LEFT );
+	while ( edge ) {
+		TAvlnode *next = tavl_next( edge, TAVL_DIR_RIGHT );
+		ldapconn_t *lc = (ldapconn_t *)edge->avl_data;
+		ldap_back_monitor_conn_entry( lc, arg );
+		edge = next;
+	}
 
 	ch_free( arg );
 

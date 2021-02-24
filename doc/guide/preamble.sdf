@@ -282,7 +282,7 @@ lloadd|LDAP Load Balancer
 !block references; data; sort=Reference; style=grid
 Reference|Status|Document|Jump
 UM-GUIDE|O|The SLAPD and SLURPD Administrators Guide|https://web.archive.org/web/20170809071245/http://www.umich.edu/~dirsvcs/ldap/doc/guides/slapd/guide.pdf
-RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifers|https://www.rfc-editor.org/rfc/rfc2079.txt
+RFC2079|PS|Definition of an X.500 Attribute Type and an Object Class to Hold Uniform Resource Identifiers|https://www.rfc-editor.org/rfc/rfc2079.txt
 RFC2296|PS|Use of Language Codes in LDAP|https://www.rfc-editor.org/rfc/rfc2296.txt
 RFC2307|X|An Approach for Using LDAP as a Network Information Service|https://www.rfc-editor.org/rfc/rfc2307.txt
 RFC2589|PS|Lightweight Directory Access Protocol (v3): Extensions for Dynamic Directory Services|https://www.rfc-editor.org/rfc/rfc2589.txt

@@ -759,7 +759,7 @@ int entry_encode(Entry *e, struct berval *bv)
 
 /* Retrieve an Entry that was stored using entry_encode above.
  * First entry_header must be called to decode the size of the entry.
- * Then a single block of memory must be malloc'd to accomodate the
+ * Then a single block of memory must be malloc'd to accommodate the
  * bervals and the bulk data. Next the bulk data is retrieved from
  * the DB and parsed by entry_decode.
  *

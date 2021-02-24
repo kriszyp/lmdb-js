@@ -265,19 +265,26 @@ portions must be absent, so that the search occurs locally on either
 .I authzFrom
 or 
 .IR authzTo .
+
+.LP
 The second form is a 
-.BR DN ,
-with the optional style modifiers
+.BR DN .
+The optional
+.B dnstyle
+modifiers
 .IR exact ,
 .IR onelevel ,
 .IR children ,
 and
 .I subtree
-for exact, onelevel, children and subtree matches, which cause 
+provide exact, onelevel, children and subtree matches, which cause 
 .I <pattern>
-to be normalized according to the DN normalization rules, or the special
+to be normalized according to the DN normalization rules.
+The special
+.B dnstyle
+modifier
 .I regex
-style, which causes the
+causes the
 .I <pattern>
 to be treated as a POSIX (''extended'') regular expression, as
 discussed in
@@ -287,38 +294,57 @@ and/or
 A pattern of
 .I *
 means any non-anonymous DN.
+
+.LP
 The third form is a SASL
-.BR id ,
-with the optional fields
+.BR id .
+The optional fields
 .I <mech>
 and
 .I <realm>
-that allow to specify a SASL
+allow specification of a SASL
 .BR mechanism ,
 and eventually a SASL
 .BR realm ,
 for those mechanisms that support one.
 The need to allow the specification of a mechanism is still debated, 
 and users are strongly discouraged to rely on this possibility.
-The fourth form is a group specification, consisting of the keyword
+
+.LP
+The fourth form is a group specification.
+It consists of the keyword
 .BR group ,
-optionally followed by the specification of the group
+optionally followed by the specification of
 .B objectClass
-and member
+and
 .BR attributeType .
+The
+.B objectClass
+defaults to
+.IR memberOf .
+The
+.B attributeType
+defaults to
+.IR member .
 The group with DN
 .B <pattern>
-is searched with base scope, and in case of match, the values of the
-member
+is searched with base scope, filtered on the specified
+.BR objectClass .
+The values of the resulting
 .B attributeType
 are searched for the asserted DN.
-For backwards compatibility, if no identity type is provided, i.e. only
+
+.LP
+The fifth form is provided for backwards compatibility.  If no identity
+type is provided, i.e. only
 .B <pattern>
 is present, an
 .I exact DN
 is assumed; as a consequence, 
 .B <pattern>
 is subjected to DN normalization.
+
+.LP
 Since the interpretation of
 .I authzFrom
 and
@@ -589,9 +615,12 @@ see
 option description.  The default is 71.
 .TP
 .B logfile <filename>
-Specify a file for recording debug log messages. By default these messages
-only go to stderr and are not recorded anywhere else. Specifying a logfile
-copies messages to both stderr and the logfile.
+Specify a file for recording slapd debug messages. By default these messages
+only go to stderr, are not recorded anywhere else, and are unrelated to
+messages exposed by the
+.B loglevel
+configuration parameter. Specifying a logfile copies messages to both stderr
+and the logfile.
 .TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
@@ -697,6 +726,14 @@ In fact, if loglevel is set to 0, no logging occurs,
 so at least the 
 .B none
 level is required to have high priority messages logged.
+
+Note that the
+.BR packets ,
+.BR BER ,
+and
+.B parse
+levels are only available as debug output on stderr, and are not
+sent to syslog.
 
 The loglevel defaults to \fBstats\fP.
 This level should usually also be included when using other loglevels, to
@@ -901,9 +938,8 @@ property specifies the minimum acceptable
 .I security strength factor
 as an integer approximate to effective key length used for
 encryption.  0 (zero) implies no protection, 1 implies integrity
-protection only, 56 allows DES or other weak ciphers, 112
-allows triple DES and other strong ciphers, 128 allows RC4,
-Blowfish and other modern strong ciphers.  The default is 0.
+protection only, 128 allows RC4, Blowfish and other similar ciphers,
+256 will require modern ciphers.  The default is 0.
 The
 .B maxssf=<factor> 
 property specifies the maximum acceptable
@@ -958,13 +994,11 @@ factor is measure of security provided by the underlying transport,
 e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
 .B serverID <integer> [<URL>]
-Specify an integer ID from 0 to 4095 for this server (limited
-to 3 hexadecimal digits).  The ID may also be specified as a
-hexadecimal ID by prefixing the value with "0x".
-Non-zero IDs are
-required when using multi-provider replication and each provider must have a
-unique non-zero ID. Note that this requirement also applies to separate providers
-contributing to a glued set of databases.
+Specify an integer ID from 0 to 4095 for this server. The ID may also be
+specified as a hexadecimal ID by prefixing the value with "0x".
+Non-zero IDs are required when using multi-provider replication and each
+provider must have a unique non-zero ID. Note that this requirement also
+applies to separate providers contributing to a glued set of databases.
 If the URL is provided, this directive may be specified
 multiple times, providing a complete list of participating servers
 and their IDs. The fully qualified hostname of each server should be
@@ -979,17 +1013,18 @@ Example:
 .TP
 .B sizelimit {<integer>|unlimited}
 .TP
-.B sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
+.B sizelimit size[.{soft|hard}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 Use
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the size limits.
+If no special qualifiers are specified, both soft and hard limits are set.
 Extra args can be added on the same line.
-See
+Additional qualifiers are available; see
 .BR limits
-for an explanation of the different flags.
+for an explanation of all of the different flags.
 .TP
 .B sockbuf_max_incoming <integer>
 Specify the maximum incoming LDAP PDU size for anonymous sessions.
@@ -1953,7 +1988,7 @@ fails. Otherwise the syncrepl session continues without TLS. The
 .B tls_reqcert
 setting defaults to "demand", the
 .B tls_reqsan
-seting defaults to "allow", and the other TLS settings
+setting defaults to "allow", and the other TLS settings
 default to the same as the main slapd TLS settings.
 
 The

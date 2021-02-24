@@ -539,9 +539,12 @@ see
 option description.  The default is 71.
 .TP
 .B olcLogFile: <filename>
-Specify a file for recording debug log messages. By default these messages
-only go to stderr and are not recorded anywhere else. Specifying a logfile
-copies messages to both stderr and the logfile.
+Specify a file for recording slapd debug messages. By default these messages
+only go to stderr, are not recorded anywhere else, and are unrelated to
+messages exposed by the
+.B loglevel
+configuration parameter. Specifying a logfile copies messages to both stderr
+and the logfile.
 .TP
 .B olcLogLevel: <integer> [...]
 Specify the level at which debugging statements and operation 
@@ -647,6 +650,18 @@ In fact, if no olcLogLevel (or a 0 level) is defined, no logging occurs,
 so at least the 
 .B none
 level is required to have high priority messages logged.
+
+Note that the
+.BR packets ,
+.BR BER ,
+and
+.B parse
+levels are only available as debug output on stderr, and are not
+sent to syslog.
+
+This setting defaults to \fBstats\fP.
+This level should usually also be included when using other loglevels, to
+help analyze the logs.
 .RE
 .TP
 .B olcPasswordCryptSaltFormat: <format>
@@ -761,9 +776,8 @@ property specifies the minimum acceptable
 .I security strength factor
 as an integer approximate to effective key length used for
 encryption.  0 (zero) implies no protection, 1 implies integrity
-protection only, 56 allows DES or other weak ciphers, 112
-allows triple DES and other strong ciphers, 128 allows RC4,
-Blowfish and other modern strong ciphers.  The default is 0.
+protection only, 128 allows RC4, Blowfish and other similar ciphers,
+256 will require modern ciphers.  The default is 0.
 The
 .B maxssf=<factor> 
 property specifies the maximum acceptable
@@ -775,13 +789,11 @@ property specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
 .TP
 .B olcServerID: <integer> [<URL>]
-Specify an integer ID from 0 to 4095 for this server (limited
-to 3 hexadecimal digits).  The ID may also be specified as a
-hexadecimal ID by prefixing the value with "0x".
-Non-zero IDs are
-required when using multi-provider replication and each provider must have a
-unique non-zero ID. Note that this requirement also applies to separate providers
-contributing to a glued set of databases.
+Specify an integer ID from 0 to 4095 for this server.  The ID may also be
+specified as a hexadecimal ID by prefixing the value with "0x".
+Non-zero IDs are required when using multi-provider replication and each
+provider must have a unique non-zero ID. Note that this requirement also
+applies to separate providers contributing to a glued set of databases.
 If the URL is provided, this directive may be specified
 multiple times, providing a complete list of participating servers
 and their IDs. The fully qualified hostname of each server should be
@@ -1327,16 +1339,18 @@ e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
 .TP
 .B olcSizeLimit: {<integer>|unlimited}
 .TP
-.B olcSizeLimit: size[.{soft|hard|unchecked}]=<integer> [...]
+.B olcSizeLimit: size[.{soft|hard}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
 Use
 .B unlimited
 to specify no limits.
 The second format allows a fine grain setting of the size limits.
-Extra args can be added in the same value. See
+If no special qualifiers are specified, both soft and hard limits are set.
+Extra args can be added in the same value.
+Additional qualifiers are available. See
 .BR olcLimits
-for an explanation of the different flags.
+for an explanation of all of the different flags.
 .TP
 .B olcSortVals: <attr> [...]
 Specify a list of multi-valued attributes whose values will always

@@ -28,6 +28,7 @@
 #endif
 
 #include <stdio.h>
+#include <errno.h>
 
 #include "nslcd.h"
 #include "nslcd-prot.h"

@@ -240,7 +240,7 @@ ldap_create_persistentsearch_control(
 					not to return it). If this parameter is NULL, no indication
 					of whether the change number was present is returned.
 
-   chgnump    (OUT) This result paramter is filled in with the change number
+   chgnump    (OUT) This result parameter is filled in with the change number
    					if one was returned in the control. If this parameter
 					is NULL, the change number is not returned.
    

@@ -863,7 +863,7 @@ get_matching_value( Operation *op, ComponentAssertion* ca,
 		}
 
 	} else {
-		/* embeded componentFilterMatch Description */
+		/* embedded componentFilterMatch Description */
 		bv->bv_val = cav->cav_ptr;
 		bv->bv_len = cav_cur_len( cav );
 	}

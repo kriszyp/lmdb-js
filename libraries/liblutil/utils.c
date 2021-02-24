@@ -1070,3 +1070,74 @@ lutil_snprintf( char *buf, ber_len_t bufsize, char **next, ber_len_t *len, LDAP_
 	return 0;
 }
 
+void
+lutil_sockaddrstr( Sockaddr *sa, struct berval *addrbuf )
+{
+	char *addr;
+	switch( sa->sa_addr.sa_family ) {
+#ifdef LDAP_PF_LOCAL
+	case AF_LOCAL:
+		addrbuf->bv_len = snprintf( addrbuf->bv_val, addrbuf->bv_len,
+			"PATH=%s", sa->sa_un_addr.sun_path );
+		break;
+#endif
+#ifdef LDAP_PF_INET6
+	case AF_INET6:
+		strcpy(addrbuf->bv_val, "IP=");
+		if ( IN6_IS_ADDR_V4MAPPED(&sa->sa_in6_addr.sin6_addr) ) {
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+			addr = (char *)inet_ntop( AF_INET,
+			   ((struct in_addr *)&sa->sa_in6_addr.sin6_addr.s6_addr[12]),
+			   addrbuf->bv_val+3, addrbuf->bv_len-3 );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+			addr = inet_ntoa( *((struct in_addr *)
+					&sa->sa_in6_addr.sin6_addr.s6_addr[12]) );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+			if ( !addr ) addr = LUTIL_STRING_UNKNOWN;
+			if ( addr != addrbuf->bv_val+3 ) {
+				addrbuf->bv_len = sprintf( addrbuf->bv_val+3, "%s:%d", addr,
+				 (unsigned) ntohs( sa->sa_in6_addr.sin6_port ) ) + 3;
+			} else {
+				int len = strlen( addr );
+				addrbuf->bv_len = sprintf( addr+len, ":%d",
+				 (unsigned) ntohs( sa->sa_in6_addr.sin6_port ) ) + len + 3;
+			}
+		} else {
+			addr = (char *)inet_ntop( AF_INET6,
+				      &sa->sa_in6_addr.sin6_addr,
+				      addrbuf->bv_val+4, addrbuf->bv_len-4 );
+			if ( !addr ) addr = LUTIL_STRING_UNKNOWN;
+			if ( addr != addrbuf->bv_val+4 ) {
+				addrbuf->bv_len = sprintf( addrbuf->bv_val+3, "[%s]:%d", addr,
+				 (unsigned) ntohs( sa->sa_in6_addr.sin6_port ) ) + 3;
+			} else {
+				int len = strlen( addr );
+				addrbuf->bv_val[3] = '[';
+				addrbuf->bv_len = sprintf( addr+len, "]:%d",
+				 (unsigned) ntohs( sa->sa_in6_addr.sin6_port ) ) + len + 4;
+			}
+		}
+		break;
+#endif /* LDAP_PF_INET6 */
+	case AF_INET:
+		strcpy(addrbuf->bv_val, "IP=");
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+		addr = (char *)inet_ntop( AF_INET, &sa->sa_in_addr.sin_addr,
+			   addrbuf->bv_val+3, addrbuf->bv_len-3 );
+#else /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+		addr = inet_ntoa( sa->sa_in_addr.sin_addr );
+#endif /* ! HAVE_GETADDRINFO || ! HAVE_INET_NTOP */
+		if ( !addr ) addr = LUTIL_STRING_UNKNOWN;
+		if ( addr != addrbuf->bv_val+3 ) {
+			addrbuf->bv_len = sprintf( addrbuf->bv_val+3, "%s:%d", addr,
+			 (unsigned) ntohs( sa->sa_in_addr.sin_port ) ) + 3;
+		} else {
+			int len = strlen( addr );
+			addrbuf->bv_len = sprintf( addr+len, ":%d",
+			 (unsigned) ntohs( sa->sa_in_addr.sin_port ) ) + len + 3;
+		}
+		break;
+	default:
+		addrbuf->bv_val[0] = '\0';
+	}
+}

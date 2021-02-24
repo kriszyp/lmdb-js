@@ -31,7 +31,7 @@
  *
  * It should only be enabled by an experienced developer as it causes
  * the inclusion of numerous assert()'s, many of which may be triggered
- * by a prefectly valid program.  If LDAP_MEMORY_DEBUG & 2 is true,
+ * by a perfectly valid program.  If LDAP_MEMORY_DEBUG & 2 is true,
  * that includes asserts known to break both slapd and current clients.
  *
  * The code behind this macro is subject to change as needed to

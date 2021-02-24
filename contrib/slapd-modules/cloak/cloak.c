@@ -30,7 +30,7 @@
 
 #include "lutil.h"
 #include "slap.h"
-#include "config.h"
+#include "slap-config.h"
 
 enum { CLOAK_ATTR = 1 };
 

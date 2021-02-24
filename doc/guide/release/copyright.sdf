@@ -2,7 +2,7 @@
 # Copyright 1999-2021 The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-# This file should match ../../../COPYRIGHT (except in formating)
+# This file should match ../../../COPYRIGHT (except in formatting)
 
 !if OPT_PP_HTML
 !define	copyright '[[c]] Copyright'

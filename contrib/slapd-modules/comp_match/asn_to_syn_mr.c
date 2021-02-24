@@ -123,7 +123,7 @@ AsnTypetoCompMatchingRule asntype_to_compMR_mapping_tbl[] = {
 };
 
 /*
- * This table mapps an ASN type to a corresponding ComponentType which has
+ * This table maps an ASN type to a corresponding ComponentType which has
  * equivalent contents of an existing AttributeType
  */
 AsnTypetoCompType asntype_to_compType_mapping_tbl[] = {

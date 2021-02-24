@@ -16,7 +16,7 @@
  */
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Kurt Zeilenga for inclusion
- * in OpenLDAP Software.  Additional signficant contributors include
+ * in OpenLDAP Software.  Additional significant contributors include
  *    Jong Hyuk Choi
  *    Pierangelo Masarati
  */

@@ -22,7 +22,7 @@ NT_SRCS = ../slapd/nt_svc.c
 NT_OBJS = ../slapd/nt_svc.o ../../libraries/liblutil/slapdmsg.res
 
 SRCS	+= main.c value.c \
-		  ../slapd/ch_malloc.c ../slapd/sl_malloc.c ../slapd/user.c
+		  ../slapd/ch_malloc.c ../slapd/proxyp.c ../slapd/sl_malloc.c ../slapd/user.c
 
 OBJS	= $(patsubst %.c,%.o,$(SRCS)) $(@PLAT@_OBJS)
 
@@ -63,7 +63,7 @@ install-local-srv: FORCE
 	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-lloadd
 	@(								\
 	    for prg in $(PROGRAMS); do					\
-		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP) -m 755 $$prg$(EXEEXT)	\
+		$(LTINSTALL) $(INSTALLFLAGS) $(STRIP_OPTS) -m 755 $$prg$(EXEEXT)	\
 		    $(DESTDIR)$(libexecdir);				\
 	    done							\
 	)

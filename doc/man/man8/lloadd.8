@@ -142,13 +142,24 @@ For example, if lloadd is given
 it will listen on 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
 and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
 INADDR_ANY (any interface).
-A space separated list of URLs is expected.  The URLs should be of
-the LDAP, LDAPS, or LDAPI schemes, and generally
-without a DN or other optional parameters (excepting as discussed below).
-Support for the latter two schemes depends on selected configuration
-options.  Hosts may be specified by name or IPv4 and IPv6 address formats.
-Ports, if specified, must be numeric.  The default ldap:// port is \fB389\fP
-and the default ldaps:// port is \fB636\fP.
+A space separated list of URLs is expected.  The URLs should be of the LDAP,
+PLDAP, LDAPS, PLDAPS, or LDAPI schemes, and generally without a DN or other
+optional parameters (excepting as discussed below).  Support for the latter
+three schemes depends on selected configuration options. Hosts may be specified
+by name or IPv4 and IPv6 address formats.  Ports, if specified, must be
+numeric.  The default ldap:// port is \fB389\fP and the default ldaps:// port
+is \fB636\fP, same for the proxy enabled variants.
+
+The PLDAP and PLDAPS URL schemes provide support for the HAProxy proxy protocol
+version 2, which allows a load balancer or proxy server to provide the remote
+client IP address to slapd to be used for access control or logging. Ports
+configured for PLDAP or PLDAPS will only accept connections that include the
+necessary proxy protocol header. Connections to these ports should be
+restricted at the network level to only trusted load balancers or proxies to
+avoid spoofing of client IP addresses by third parties.
+
+At the moment, the load balancer does not act on the recorded address in any
+way.
 
 For LDAP over IPC,
 .B name

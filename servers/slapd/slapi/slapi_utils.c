@@ -2047,7 +2047,7 @@ int slapi_is_connection_ssl( Slapi_PBlock *pb, int *isSSL )
 }
 
 /*
- * DS 5.x compatability API follow
+ * DS 5.x compatibility API follow
  */
 
 int slapi_attr_get_flags( const Slapi_Attr *attr, unsigned long *flags )

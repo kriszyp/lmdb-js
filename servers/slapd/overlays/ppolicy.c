@@ -703,7 +703,7 @@ create_passcontrol( Operation *op, int exptime, int grace, LDAPPasswordPolicyErr
 		}
 		ber_printf( ber, "tO", PPOLICY_WARNING, &bv );
 		ch_free( bv.bv_val );
-	} else if ( grace > 0 ) {
+	} else if ( grace >= 0 ) {
 		ber_init2( b2, NULL, LBER_USE_DER );
 		ber_printf( b2, "ti", PPOLICY_GRACE, grace );
 		rc = ber_flatten2( b2, &bv, 1 );
@@ -863,6 +863,7 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
 	pp_info *pi = on->on_bi.bi_private;
+	BackendDB *bd, *bd_orig = op->o_bd;
 	Attribute *a;
 	BerVarray vals;
 	int rc = LDAP_SUCCESS;
@@ -889,9 +890,14 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		}
 	}
 
-	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	op->o_bd = bd = select_backend( vals, 0 );
+	if ( op->o_bd == NULL ) {
+		op->o_bd = bd_orig;
+		goto defaultpol;
+	}
+
 	rc = be_entry_get_rw( op, vals, NULL, NULL, 0, &pe );
-	op->o_bd->bd_info = (BackendInfo *)on;
+	op->o_bd = bd_orig;
 
 	if ( rc ) goto defaultpol;
 
@@ -1010,17 +1016,17 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		pp->pwdMaxDelay = pp->pwdMinDelay;
 	}
 
-	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	op->o_bd = bd;
 	be_entry_release_r( op, pe );
-	op->o_bd->bd_info = (BackendInfo *)on;
+	op->o_bd = bd_orig;
 
 	return LDAP_SUCCESS;
 
 defaultpol:
 	if ( pe ) {
-		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		op->o_bd = bd;
 		be_entry_release_r( op, pe );
-		op->o_bd->bd_info = (BackendInfo *)on;
+		op->o_bd = bd_orig;
 	}
 
 	if ( rc && !BER_BVISNULL( vals ) ) {
@@ -1658,8 +1664,10 @@ grace:
 		Debug( LDAP_DEBUG_ANY,
 			"ppolicy_bind: Entry %s has an expired password: %d grace logins\n",
 			e->e_name.bv_val, ngut );
-		
-		if (ngut < 1) {
+
+		ngut--;
+
+		if (ngut < 0) {
 			ppb->pErr = PP_passwordExpired;
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
@@ -1676,8 +1684,8 @@ grace:
 		m->sml_numvals = 1;
 		m->sml_values = ch_calloc( sizeof(struct berval), 2 );
 		m->sml_nvalues = ch_calloc( sizeof(struct berval), 2 );
-		ber_dupbv( &m->sml_values[0], &timestamp );
-		ber_dupbv( &m->sml_nvalues[0], &timestamp );
+		ber_dupbv( &m->sml_values[0], &timestamp_usec );
+		ber_dupbv( &m->sml_nvalues[0], &timestamp_usec );
 		m->sml_next = mod;
 		mod = m;
 

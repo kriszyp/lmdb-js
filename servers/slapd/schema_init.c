@@ -62,7 +62,7 @@
  *   them in an index, a {key->entry ID set} mapping, for the attribute.
  *
  *   A search can look up the DN/scope and asserted values in the
- *   indexes, if any, to narrow down the number of entires to check
+ *   indexes, if any, to narrow down the number of entries to check
  *   against the search criteria.
  *
  * Filter function(...asserted value, *output keysp,...):
@@ -1785,7 +1785,7 @@ NumericString
 	InternationalISDNNumber ::=
 	    NumericString (SIZE(1..ub-international-isdn-number))
 
-  Unforunately, some assertion values are don't carry the same
+  Unfortunately, some assertion values are don't carry the same
   constraint (but its unclear how such an assertion could ever
   be true). In LDAP, there is one syntax (numericString) not two
   (numericString with constraint, numericString without constraint).
@@ -5603,7 +5603,7 @@ check_time_syntax (struct berval *val,
 		if (p < e && (*p == '.' || *p == ',')) {
 			char *end_num;
 			while (++p < e && ASCII_DIGIT(*p)) {
-				/* EMTPY */;
+				/* EMPTY */;
 			}
 			if (p - fraction->bv_val == 1) {
 				return LDAP_INVALID_SYNTAX;

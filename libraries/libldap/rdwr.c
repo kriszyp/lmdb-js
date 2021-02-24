@@ -25,7 +25,7 @@
  *
  * Does not support cancellation nor does any status checking.
  */
-/* Adapted from publically available examples for:
+/* Adapted from publicly available examples for:
  *	"Programming with Posix Threads"
  *		by David R Butenhof, Addison-Wesley 
  *		http://cseng.aw.com/bookpage.taf?ISBN=0-201-63392-2

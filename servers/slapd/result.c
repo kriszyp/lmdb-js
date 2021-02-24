@@ -1000,7 +1000,7 @@ slap_send_ldap_intermediate( Operation *op, SlapReply *rs )
 	rs->sr_msgid = op->o_msgid;
 	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
 		Debug( LDAP_DEBUG_STATS2,
-			"%s INTERM oid=%s\n",
+			"%s INTERMEDIATE oid=%s\n",
 			op->o_log_prefix,
 			rs->sr_rspoid ? rs->sr_rspoid : "" );
 	}

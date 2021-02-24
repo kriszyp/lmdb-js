@@ -451,9 +451,6 @@
 /* define if you have res_query() */
 #undef HAVE_RES_QUERY
 
-/* define if OpenSSL needs RSAref */
-#undef HAVE_RSAREF
-
 /* Define to 1 if you have the <sasl.h> header file. */
 #undef HAVE_SASL_H
 

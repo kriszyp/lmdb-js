@@ -944,7 +944,6 @@ RetCodes
 userApplications
 NDBM
 newSuperiorDN
-browseable
 auditBind
 setstyle
 newSuperior

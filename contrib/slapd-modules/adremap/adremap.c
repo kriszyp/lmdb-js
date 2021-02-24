@@ -32,7 +32,7 @@
 #include <ac/time.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
-#include "config.h"
+#include "slap-config.h"
 
 typedef struct adremap_dnv {
 	struct adremap_dnv *ad_next;
