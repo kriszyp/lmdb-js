@@ -2097,7 +2097,6 @@ slap_listener(
 #endif /* SLAPD_RLOOKUPS */
 
 	char	*dnsname = NULL;
-	const char *peeraddr = NULL;
 	/* we assume INET6_ADDRSTRLEN > INET_ADDRSTRLEN */
 	char peername[LUTIL_ADDRLEN];
 	struct berval peerbv = BER_BVC(peername);
@@ -2308,6 +2307,11 @@ slap_listener(
 #ifdef HAVE_TCPD
 		{
 			int rc;
+			char *peeraddr, *paend;
+			peeraddr = peerbv.bv_val + 3;
+			paend = strrchr( peeraddr, ':' );
+			if ( paend )
+				*paend = '\0';
 			ldap_pvt_thread_mutex_lock( &sd_tcpd_mutex );
 			rc = hosts_ctl("slapd",
 				dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
@@ -2324,6 +2328,8 @@ slap_listener(
 				slapd_close(sfd);
 				return 0;
 			}
+			if ( paend )
+				*paend = ':';
 		}
 #endif /* HAVE_TCPD */
 	}
