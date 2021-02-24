@@ -761,7 +761,7 @@ function open(path, options) {
 				if (readTxn) {
 					try {
 						readTxn.abort()
-					} catch(error)
+					} catch(error) {}
 				}
 				readTxnRenewed = null
 				env.close()
