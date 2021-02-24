@@ -17232,7 +17232,7 @@ done
 			cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 #include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER < 0x1000200fL
+#if OPENSSL_VERSION_NUMBER < 0x1010100fL
 #error "OpenSSL is too old"
 #endif
 _ACEOF
@@ -17241,14 +17241,14 @@ if ac_fn_c_try_cpp "$LINENO"; then :
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "OpenSSL 1.0.2a or newer required
+as_fn_error $? "OpenSSL 1.1.1 or newer required
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 rm -f conftest.err conftest.i conftest.$ac_ext
 
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_CTX_set_msg_callback in -lssl" >&5
-$as_echo_n "checking for SSL_CTX_set_msg_callback in -lssl... " >&6; }
-if ${ac_cv_lib_ssl_SSL_CTX_set_msg_callback+:} false; then :
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_export_keying_material_early in -lssl" >&5
+$as_echo_n "checking for SSL_export_keying_material_early in -lssl... " >&6; }
+if ${ac_cv_lib_ssl_SSL_export_keying_material_early+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -17262,79 +17262,32 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char SSL_CTX_set_msg_callback ();
+char SSL_export_keying_material_early ();
 int
 main ()
 {
-return SSL_CTX_set_msg_callback ();
+return SSL_export_keying_material_early ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ssl_SSL_CTX_set_msg_callback=yes
+  ac_cv_lib_ssl_SSL_export_keying_material_early=yes
 else
-  ac_cv_lib_ssl_SSL_CTX_set_msg_callback=no
+  ac_cv_lib_ssl_SSL_export_keying_material_early=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_CTX_set_msg_callback" >&5
-$as_echo "$ac_cv_lib_ssl_SSL_CTX_set_msg_callback" >&6; }
-if test "x$ac_cv_lib_ssl_SSL_CTX_set_msg_callback" = xyes; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_export_keying_material_early" >&5
+$as_echo "$ac_cv_lib_ssl_SSL_export_keying_material_early" >&6; }
+if test "x$ac_cv_lib_ssl_SSL_export_keying_material_early" = xyes; then :
   have_openssl=yes
-			need_rsaref=no
 else
   have_openssl=no
 fi
 
-
-		if test $have_openssl = no ; then
-			{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ssl3_accept in -lssl" >&5
-$as_echo_n "checking for ssl3_accept in -lssl... " >&6; }
-if ${ac_cv_lib_ssl_ssl3_accept+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl -lcrypto -lRSAglue -lrsaref $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char ssl3_accept ();
-int
-main ()
-{
-return ssl3_accept ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ssl_ssl3_accept=yes
-else
-  ac_cv_lib_ssl_ssl3_accept=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_ssl3_accept" >&5
-$as_echo "$ac_cv_lib_ssl_ssl3_accept" >&6; }
-if test "x$ac_cv_lib_ssl_ssl3_accept" = xyes; then :
-  have_openssl=yes
-				need_rsaref=yes
-else
-  have_openssl=no
-fi
-
-		fi
 
 		if test $have_openssl = yes ; then
 			ol_with_tls=openssl
@@ -17345,15 +17298,7 @@ fi
 $as_echo "#define HAVE_OPENSSL 1" >>confdefs.h
 
 
-			if test $need_rsaref = yes; then
-
-$as_echo "#define HAVE_RSAREF 1" >>confdefs.h
-
-
-				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
-			else
-				TLS_LIBS="-lssl -lcrypto"
-			fi
+			TLS_LIBS="-lssl -lcrypto"
 		fi
 	fi
 fi
@@ -22955,13 +22900,60 @@ fi
 
 fi
 
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for libevent_global_shutdown in -levent" >&5
+$as_echo_n "checking for libevent_global_shutdown in -levent... " >&6; }
+if ${ac_cv_lib_event_libevent_global_shutdown+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-levent  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char libevent_global_shutdown ();
+int
+main ()
+{
+return libevent_global_shutdown ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_event_libevent_global_shutdown=yes
+else
+  ac_cv_lib_event_libevent_global_shutdown=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_event_libevent_global_shutdown" >&5
+$as_echo "$ac_cv_lib_event_libevent_global_shutdown" >&6; }
+if test "x$ac_cv_lib_event_libevent_global_shutdown" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBEVENT 1
+_ACEOF
+
+  LIBS="-levent $LIBS"
+
+else
+  have_libevent=no
+fi
+
 
 	if test $have_libevent = yes ; then
 
 $as_echo "#define HAVE_LIBEVENT 1" >>confdefs.h
 
 	else
-		as_fn_error $? "You need libevent 2.0 or later with DNS support to build the load balancer" "$LINENO" 5
+		as_fn_error $? "You need libevent 2.1 or later with DNS support to build the load balancer" "$LINENO" 5
 	fi
 fi
 
