@@ -89,4 +89,5 @@ sed -e "s/@BACKEND@/${BACKEND}/"			\
 	-e "s;@KRB5REALM@;${KRB5REALM};"		\
 	-e "s;@KDCHOST@;${KDCHOST};"			\
 	-e "s;@KDCPORT@;${KDCPORT};"			\
+	-e "s;@TIMEOUT@;${TIMEOUT};"			\
 	-e "/^#/d"

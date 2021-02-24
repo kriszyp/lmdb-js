@@ -405,7 +405,7 @@ meta_back_db_destroy(
 		ldap_pvt_thread_mutex_lock( &mi->mi_conninfo.lai_mutex );
 
 		if ( mi->mi_conninfo.lai_tree ) {
-			avl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
+			tavl_free( mi->mi_conninfo.lai_tree, meta_back_conn_free );
 		}
 		for ( i = LDAP_BACK_PCONN_FIRST; i < LDAP_BACK_PCONN_LAST; i++ ) {
 			while ( !LDAP_TAILQ_EMPTY( &mi->mi_conn_priv[ i ].mic_priv ) ) {
