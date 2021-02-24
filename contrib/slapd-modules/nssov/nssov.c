@@ -928,7 +928,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: bind() to "NSLCD_SOCKET" failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -941,7 +941,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: fcntl(F_SETFL,O_NONBLOCK) failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -958,7 +958,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: chmod(0666) failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
@@ -971,7 +971,7 @@ nssov_db_open(
 			Debug( LDAP_DEBUG_ANY,"nssov: listen() failed: %s",
 				AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			if (close(sock)) {
-				saved_errno = errno
+				saved_errno = errno;
 				Debug( LDAP_DEBUG_ANY,"nssov: problem closing socket: %s",
 					AC_STRERROR_R(saved_errno, ebuf, sizeof(ebuf)) );
 			}
