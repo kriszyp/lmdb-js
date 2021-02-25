@@ -301,7 +301,7 @@ if test $RC != 0 ; then
         exit $RC
 fi
 
-# sleep until 2 seconds before new exteneded idle-timeout, check that connection still exist
+# sleep until 2 seconds before new extended idle-timeout, check that connection still exist
 NOW=`date +%s`
 sleep `expr $CONN_EXPIRES - $NOW - 2`
 echo "Check that connection is still alive due to idle-timeout reset (time_t now=`date +%s`)"
