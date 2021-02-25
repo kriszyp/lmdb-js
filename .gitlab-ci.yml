@@ -25,7 +25,7 @@ build-openssl-heimdal-lloadd:
     - apt update
     - DEBIAN_FRONTEND=noninteractive apt install -y build-essential pkg-config automake libsasl2-dev heimdal-multidev libssl-dev libltdl-dev groff-base unixodbc-dev libwiredtiger-dev libperl-dev heimdal-kdc libsasl2-modules-gssapi-heimdal sasl2-bin libevent-dev
     - autoreconf
-    - ./configure --enable-backends=mod --enable-overlays=mod --enable-modules --enable-dynamic --disable-ndb --enable-balancer=mod
+    - ./configure --enable-backends=mod --enable-overlays=mod --enable-modules --enable-dynamic --disable-ndb --enable-balancer=mod --disable-asyncmeta
     - make depend
     - make
     - ulimit -n 4096 # back-monitor takes a while scanning a long connections array
@@ -43,7 +43,7 @@ build-gnutls-mit-standalone-lloadd:
     - apt update
     - DEBIAN_FRONTEND=noninteractive apt install -y build-essential pkg-config automake libsasl2-dev libltdl-dev groff-base unixodbc-dev libwiredtiger-dev libperl-dev krb5-user krb5-kdc krb5-admin-server libsasl2-modules-gssapi-mit sasl2-bin libgnutls28-dev libevent-dev
     - autoreconf
-    - ./configure --enable-backends=mod --enable-overlays=mod --disable-autoca --enable-modules --enable-dynamic --disable-ndb --enable-balancer=yes
+    - ./configure --enable-backends=mod --enable-overlays=mod --disable-autoca --enable-modules --enable-dynamic --disable-ndb --enable-balancer=yes --disable-asyncmeta
     - make depend
     - make
     - ulimit -n 4096 # back-monitor takes a while scanning a long connections array
