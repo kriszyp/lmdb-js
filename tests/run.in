@@ -49,6 +49,7 @@ AC_memberof=memberof@BUILD_MEMBEROF@
 AC_pcache=pcache@BUILD_PROXYCACHE@
 AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_refint=refint@BUILD_REFINT@
+AC_remoteauth=remoteauth@BUILD_REMOTEAUTH@
 AC_retcode=retcode@BUILD_RETCODE@
 AC_translucent=translucent@BUILD_TRANSLUCENT@
 AC_unique=unique@BUILD_UNIQUE@
@@ -75,8 +76,9 @@ if test "${AC_asyncmeta}" = "asyncmetamod" && test "${AC_LIBS_DYNAMIC}" = "stati
 	AC_meta="asyncmetano"
 fi
 export AC_ldap AC_mdb AC_meta AC_asyncmeta AC_monitor AC_null AC_perl AC_relay AC_sql \
-	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof AC_pcache AC_ppolicy \
-	AC_refint AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
+	AC_accesslog AC_autoca AC_constraint AC_dds AC_dynlist AC_memberof \
+	AC_pcache AC_ppolicy AC_refint AC_remoteauth \
+	AC_retcode AC_rwm AC_unique AC_syncprov AC_translucent \
 	AC_valsort \
 	AC_lloadd \
 	AC_WITH_SASL AC_WITH_TLS AC_WITH_MODULES_ENABLED AC_ACI_ENABLED \

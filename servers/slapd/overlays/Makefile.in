@@ -27,6 +27,7 @@ SRCS = overlays.c \
 	collect.c \
 	ppolicy.c \
 	refint.c \
+	remoteauth.c \
 	retcode.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c \
 	seqmod.c \
@@ -101,6 +102,9 @@ ppolicy.la : ppolicy.lo
 
 refint.la : refint.lo
 	$(LTLINK_MOD) -module -o $@ refint.lo version.lo $(LINK_LIBS)
+
+remoteauth.la : remoteauth.lo
+	$(LTLINK_MOD) -module -o $@ remoteauth.lo version.lo $(LINK_LIBS)
 
 retcode.la : retcode.lo
 	$(LTLINK_MOD) -module -o $@ retcode.lo version.lo $(LINK_LIBS)

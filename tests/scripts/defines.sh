@@ -37,6 +37,7 @@ MEMBEROF=${AC_memberof-memberofno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
+REMOTEAUTH=${AC_remoteauth-remoteauthno}
 RETCODE=${AC_retcode-retcodeno}
 RWM=${AC_rwm-rwmno}
 SYNCPROV=${AC_syncprov-syncprovno}
@@ -54,7 +55,7 @@ ACI=${AC_ACI_ENABLED-acino}
 SLEEP0=${SLEEP0-1}
 SLEEP1=${SLEEP1-7}
 SLEEP2=${SLEEP2-15}
-TIMEOUT=${TIMEOUT-4}
+TIMEOUT=${TIMEOUT-8}
 
 # dirs
 PROGDIR=./progs
@@ -64,6 +65,10 @@ SCHEMADIR=${USER_SCHEMADIR-./schema}
 case "$SCHEMADIR" in
 .*)	ABS_SCHEMADIR="$TESTWD/$SCHEMADIR" ;;
 *)  ABS_SCHEMADIR="$SCHEMADIR" ;;
+esac
+case "$SRCDIR" in
+.*)	ABS_SRCDIR="$TESTWD/$SRCDIR" ;;
+*)  ABS_SRCDIR="$SRCDIR" ;;
 esac
 
 DBDIR1A=$TESTDIR/db.1.a
@@ -181,6 +186,23 @@ SLURPLOG=$TESTDIR/slurp.log
 
 CONFIGPWF=$TESTDIR/configpw
 
+# wrappers (valgrind, gdb, environment variables, etc.)
+if [ -n "$WRAPPER" ]; then
+	: # skip
+elif [ "$SLAPD_COMMON_WRAPPER" = gdb ]; then
+	WRAPPER="$ABS_SRCDIR/scripts/grandchild_wrapper.py gdb -nx -x $ABS_SRCDIR/scripts/gdb.py -batch-silent -return-child-result --args"
+elif [ "$SLAPD_COMMON_WRAPPER" = valgrind ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --fullpath-after=`dirname $ABS_SRCDIR` --keep-debuginfo=yes --leak-check=full"
+elif [ "$SLAPD_COMMON_WRAPPER" = "valgrind-errstop" ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --vgdb=yes --vgdb-error=1"
+elif [ "$SLAPD_COMMON_WRAPPER" = vgdb ]; then
+	WRAPPER="valgrind --log-file=$TESTDIR/valgrind.%p.log --vgdb=yes --vgdb-error=0"
+fi
+
+if [ -n "$WRAPPER" ]; then
+	SLAPD_WRAPPER="$TESTWD/../libtool --mode=execute env $WRAPPER"
+fi
+
 # args
 SASLARGS="-Q"
 TOOLARGS="-x $LDAP_TOOLARGS"
@@ -192,11 +214,11 @@ CONFDIRSYNC=$SRCDIR/scripts/confdirsync.sh
 
 MONITORDATA=$SRCDIR/scripts/monitor_data.sh
 
-SLAPADD="$TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
-SLAPCAT="$TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
-SLAPINDEX="$TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
-SLAPMODIFY="$TESTWD/../servers/slapd/slapd -Tm -d 0 $LDAP_VERBOSE"
-SLAPPASSWD="$TESTWD/../servers/slapd/slapd -Tpasswd"
+SLAPADD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Ta -d 0 $LDAP_VERBOSE"
+SLAPCAT="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tc -d 0 $LDAP_VERBOSE"
+SLAPINDEX="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Ti -d 0 $LDAP_VERBOSE"
+SLAPMODIFY="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tm -d 0 $LDAP_VERBOSE"
+SLAPPASSWD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -Tpasswd"
 
 unset DIFF_OPTIONS
 # NOTE: -u/-c is not that portable...
@@ -204,8 +226,8 @@ DIFF="diff -i"
 CMP="diff -i"
 BCMP="diff -iB"
 CMPOUT=/dev/null
-SLAPD="$TESTWD/../servers/slapd/slapd -s0"
-LLOADD="$TESTWD/../servers/lloadd/lloadd -s0"
+SLAPD="$SLAPD_WRAPPER $TESTWD/../servers/slapd/slapd -s0"
+LLOADD="$SLAPD_WRAPPER $TESTWD/../servers/lloadd/lloadd -s0"
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSASLSEARCH="$CLIENTDIR/ldapsearch $SASLARGS $TOOLPROTO $LDAP_TOOLARGS -LLL"
 LDAPSASLWHOAMI="$CLIENTDIR/ldapwhoami $SASLARGS $LDAP_TOOLARGS"
