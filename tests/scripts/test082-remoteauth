@@ -309,7 +309,7 @@ kill -HUP $REMOTEAUTH_PID
 KILLPIDS="$BACKEND_PID"
 sleep $SLEEP0
 
-echo "Testing slapd.conf suppport..."
+echo "Testing slapd.conf support..."
 sed -e "s,database\\s*monitor,\\
 TLSCACertificateFile $TESTDIR/tls/ca/certs/testsuiteCA.crt\\
 \\
