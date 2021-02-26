@@ -18,7 +18,7 @@ latter case, it saves a full backtrace and core file.
 
 These signals are considered part of normal operation and will not trigger the
 above handling:
-- SIGPIPE: normal in a networked environmnet
+- SIGPIPE: normal in a networked environment
 - SIGHUP: normally used to tell a process to shut down
 """
 
