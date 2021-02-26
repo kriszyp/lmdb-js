@@ -682,6 +682,7 @@ BUILD_SSSVLV
 BUILD_SEQMOD
 BUILD_RWM
 BUILD_RETCODE
+BUILD_REMOTEAUTH
 BUILD_REFINT
 BUILD_PROXYCACHE
 BUILD_PPOLICY
@@ -880,6 +881,7 @@ enable_memberof
 enable_ppolicy
 enable_proxycache
 enable_refint
+enable_remoteauth
 enable_retcode
 enable_rwm
 enable_seqmod
@@ -1584,6 +1586,7 @@ SLAPD Overlay Options:
   --enable-ppolicy        Password Policy overlay no|yes|mod [no]
   --enable-proxycache     Proxy Cache overlay no|yes|mod [no]
   --enable-refint         Referential Integrity overlay no|yes|mod [no]
+  --enable-remoteauth     Deferred Authentication overlay no|yes|mod [no]
   --enable-retcode        Return Code testing overlay no|yes|mod [no]
   --enable-rwm            Rewrite/Remap overlay no|yes|mod [no]
   --enable-seqmod         Sequential Modify overlay no|yes|mod [no]
@@ -3794,6 +3797,7 @@ Overlays="accesslog \
 	ppolicy \
 	proxycache \
 	refint \
+	remoteauth \
 	retcode \
 	rwm \
 	seqmod \
@@ -4113,6 +4117,28 @@ else
 fi
 
 # end --enable-refint
+
+# OpenLDAP --enable-remoteauth
+
+	# Check whether --enable-remoteauth was given.
+if test "${enable_remoteauth+set}" = set; then :
+  enableval=$enable_remoteauth;
+	ol_arg=invalid
+	for ol_val in no yes mod ; do
+		if test "$enableval" = "$ol_val" ; then
+			ol_arg="$ol_val"
+		fi
+	done
+	if test "$ol_arg" = "invalid" ; then
+		as_fn_error $? "bad value $enableval for --enable-remoteauth" "$LINENO" 5
+	fi
+	ol_enable_remoteauth="$ol_arg"
+
+else
+  	ol_enable_remoteauth=${ol_enable_overlays:-no}
+fi
+
+# end --enable-remoteauth
 
 # OpenLDAP --enable-retcode
 
@@ -4527,6 +4553,7 @@ BUILD_MEMBEROF=no
 BUILD_PPOLICY=no
 BUILD_PROXYCACHE=no
 BUILD_REFINT=no
+BUILD_REMOTEAUTH=no
 BUILD_RETCODE=no
 BUILD_RWM=no
 BUILD_SEQMOD=no
@@ -25015,6 +25042,22 @@ _ACEOF
 
 fi
 
+if test "$ol_enable_remoteauth" != no ; then
+	BUILD_REMOTEAUTH=$ol_enable_remoteauth
+	if test "$ol_enable_remoteauth" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS remoteauth.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+		SLAPD_STATIC_OVERLAYS="$SLAPD_STATIC_OVERLAYS remoteauth.o"
+	fi
+
+cat >>confdefs.h <<_ACEOF
+#define SLAPD_OVER_REMOTEAUTH $MFLAG
+_ACEOF
+
+fi
+
 if test "$ol_enable_retcode" != no ; then
 	BUILD_RETCODE=$ol_enable_retcode
 	if test "$ol_enable_retcode" = mod ; then
@@ -25171,6 +25214,7 @@ if test "$ac_cv_mingw32" = yes -o $ol_cv_msvc = yes ; then
 else
 	PLAT=UNIX
 fi
+
 
 
 

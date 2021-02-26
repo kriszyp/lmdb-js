@@ -981,6 +981,9 @@
 /* define for Referential Integrity overlay */
 #undef SLAPD_OVER_REFINT
 
+/* define for Deferred Authentication overlay */
+#undef SLAPD_OVER_REMOTEAUTH
+
 /* define for Return Code overlay */
 #undef SLAPD_OVER_RETCODE
 
