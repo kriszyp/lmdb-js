@@ -161,7 +161,9 @@ declare namespace lmdb {
 		**/
 		openDB(dbName: string, dbOptions: DatabaseOptions): Database<V, K>
 	}
-	type Key = string | symbol | number | boolean | Buffer
+
+	type Key = Key[] | string | symbol | number | boolean | Buffer;
+
 	interface DatabaseOptions {
 		name?: string
 		cache?: boolean
