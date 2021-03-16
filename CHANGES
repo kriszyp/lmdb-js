@@ -1,6 +1,6 @@
 OpenLDAP 2.4 Change Log
 
-OpenLDAP 2.4.58 Engineering
+OpenLDAP 2.4.58 Release (2021/03/16)
 	Fixed slapd validity checks for issuerAndThisUpdateCheck (ITS#9454)
 	Fixed slapd to alloc new conn struct after freeing old one (ITS#9458)
 	Fixed slapd syncrepl to check all contextCSNs (ITS#9282)
