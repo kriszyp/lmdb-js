@@ -194,6 +194,21 @@ describe('lmdb-store', function() {
       }
       count.should.equal(2)
     });
+    it('should break out of query', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      db.put('key1',  data1);
+      await db.put('key2',  data2);
+      let count = 0;
+      for (let { key, value } of db.getRange({start:'key', end:'keyz'})) {
+        if (count > 0)
+          break;
+        count++;
+        data1.should.deep.equal(value);
+        'key1'.should.equal(key);
+      }
+      count.should.equal(1);
+    });
     it('should iterate over query with offset/limit', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}

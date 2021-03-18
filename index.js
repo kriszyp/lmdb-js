@@ -24,6 +24,7 @@ SYNC_PROMISE_FAIL.isSync = true
 const LAST_KEY = String.fromCharCode(0xffff)
 const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
 const FIRST_BUFFER_KEY = Buffer.from([0])
+const ITERATOR_DONE = { done: true, value: undefined }
 let env
 let defaultCompression
 let lastSize
@@ -577,7 +578,7 @@ function open(path, options) {
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= limit)) {
 							finishCursor()
-							return { done: true }
+							return ITERATOR_DONE
 						}
 						if (includeValues) {
 							let value
@@ -626,10 +627,12 @@ function open(path, options) {
 						}
 					},
 					return() {
-						return finishCursor()
+						finishCursor()
+						return ITERATOR_DONE
 					},
 					throw() {
-						return finishCursor()
+						finishCursor()
+						return ITERATOR_DONE
 					}
 				}
 			}
