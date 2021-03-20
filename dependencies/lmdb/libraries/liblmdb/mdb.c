@@ -5,7 +5,7 @@
  *	BerkeleyDB API, but much simplified.
  */
 /*
- * Copyright 2011-2020 Howard Chu, Symas Corp.
+ * Copyright 2011-2021 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,7 @@
 #include <malloc.h>
 #include <windows.h>
 #include <wchar.h>				/* get wcscpy() */
-int test() {
-	return 0;
-}
+
 /* We use native NT APIs to setup the memory map, so that we can
  * let the DB file grow incrementally instead of always preallocating
  * the full size. These APIs are defined in <wdm.h> and <ntifs.h>
@@ -594,7 +592,7 @@ static txnid_t mdb_debug_start;
 	 *	The string is printed literally, with no format processing.
 	 */
 #define DPUTS(arg)	DPRINTF(("%s", arg))
-	/** Debuging output value of a cursor DBI: Negative in a sub-cursor. */
+	/** Debugging output value of a cursor DBI: Negative in a sub-cursor. */
 #define DDBI(mc) \
 	(((mc)->mc_flags & C_SUB) ? -(int)(mc)->mc_dbi : (int)(mc)->mc_dbi)
 /** @} */
@@ -2614,9 +2612,6 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	MDB_cursor_op op;
 	MDB_cursor m2;
 	int found_old = 0;
-	if (retry > Max_retries) {
-		retry = Max_retries;
-	}
 
 #if OVERFLOW_NOTYET
 	MDB_dovpage *dph = NULL;
@@ -6006,8 +6001,11 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 #ifndef _WIN32
 	{
 		struct stat st;
+		rc = stat(path, &st);
+		if (rc)
+			return ErrCode();
 		flags &= ~MDB_RAWPART;
-		if (!stat(path, &st) && (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode)))
+		if (S_ISBLK(st.st_mode) || S_ISCHR(st.st_mode))
 			flags |= MDB_RAWPART | MDB_NOSUBDIR;
 	}
 #endif
@@ -8676,7 +8674,7 @@ put_sub:
 			xdata.mv_size = 0;
 			xdata.mv_data = "";
 			leaf = NODEPTR(mc->mc_pg[mc->mc_top], mc->mc_ki[mc->mc_top]);
-			if (flags == MDB_CURRENT) {
+			if ((flags & (MDB_CURRENT|MDB_APPENDDUP)) == MDB_CURRENT) {
 				xflags = MDB_CURRENT|MDB_NOSPILL;
 			} else {
 				mdb_xcursor_init1(mc, leaf);
@@ -10192,7 +10190,6 @@ mdb_cursor_del0(MDB_cursor *mc)
 		return rc;
 	}
 
-	ki = mc->mc_ki[mc->mc_top];
 	mp = mc->mc_pg[mc->mc_top];
 	nkeys = NUMKEYS(mp);
 
@@ -10204,19 +10201,18 @@ mdb_cursor_del0(MDB_cursor *mc)
 		if (m3->mc_snum < mc->mc_snum)
 			continue;
 		if (m3->mc_pg[mc->mc_top] == mp) {
+			if (m3->mc_ki[mc->mc_top] >= mc->mc_ki[mc->mc_top]) {
 			/* if m3 points past last node in page, find next sibling */
-			if (m3->mc_ki[mc->mc_top] >= nkeys) {
-				rc = mdb_cursor_sibling(m3, 1);
-				if (rc == MDB_NOTFOUND) {
-					m3->mc_flags |= C_EOF;
-					rc = MDB_SUCCESS;
-					continue;
+				if (m3->mc_ki[mc->mc_top] >= nkeys) {
+					rc = mdb_cursor_sibling(m3, 1);
+					if (rc == MDB_NOTFOUND) {
+						m3->mc_flags |= C_EOF;
+						rc = MDB_SUCCESS;
+						continue;
+					}
+					if (rc)
+						goto fail;
 				}
-				if (rc)
-					goto fail;
-			}
-			if (m3->mc_ki[mc->mc_top] >= ki ||
-				/* moved to right sibling */ m3->mc_pg[mc->mc_top] != mp) {
 				if (m3->mc_xcursor && !(m3->mc_flags & C_EOF)) {
 					MDB_node *node = NODEPTR(m3->mc_pg[m3->mc_top], m3->mc_ki[m3->mc_top]);
 					/* If this node has dupdata, it may need to be reinited
@@ -10238,10 +10234,10 @@ mdb_cursor_del0(MDB_cursor *mc)
 					}
 					m3->mc_xcursor->mx_cursor.mc_flags |= C_DEL;
 				}
-				m3->mc_flags |= C_DEL;
 			}
 		}
 	}
+	mc->mc_flags |= C_DEL;
 
 fail:
 	if (rc)

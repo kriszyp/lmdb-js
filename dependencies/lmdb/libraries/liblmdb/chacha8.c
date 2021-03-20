@@ -6,7 +6,7 @@ Public domain.
 
 #include <memory.h>
 #include <stdio.h>
-//#include <sys/param.h>
+#include <sys/param.h>
 
 #include "chacha8.h"
 #if 0
