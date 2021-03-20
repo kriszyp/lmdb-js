@@ -173,6 +173,7 @@ declare namespace lmdb {
 		useVersions?: boolean
 		keyIsBuffer?: boolean
 		keyIsUint32?: boolean
+		dupSort?: boolean
 	}
 	interface RootDatabaseOptions extends DatabaseOptions {
 		/** The maximum number of databases to be able to open (there is some extra overhead if this is set very high).*/
