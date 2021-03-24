@@ -195,6 +195,9 @@ This returns the version number of the last entry that was retrieved with `get` 
 ### close(): void
 This will close the current store. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `store.openDB`), it will close the environment (and child stores will no longer be able to interact with the database).
 
+### `store.doesExist(key, valueOrVersion): boolean`
+This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
+
 ## Concurrency and Versioning
 LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning is the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```

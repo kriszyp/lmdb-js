@@ -123,6 +123,23 @@ declare namespace lmdb {
 		**/
 		ifNoExists(id: K, action: () => any): Promise<boolean>
 		/**
+		* Check if an entry for the provided key exists
+		* @param id Key of the entry to check
+		*/
+		doesExist(key: K): boolean
+		/**
+		* Check if an entry for the provided key/value exists
+		* @param id Key of the entry to check
+		* @param value Value of the entry to check
+		*/
+		doesExist(key: K, value: V): boolean
+		/**
+		* Check if an entry for the provided key exists with the expected version
+		* @param id Key of the entry to check
+		* @param version Expected version
+		*/
+		doesExist(key: K, version: number): boolean
+		/**
 		* Delete this database/store.
 		**/
 		deleteDB(): void
