@@ -310,6 +310,33 @@ function open(path, options) {
 				scheduledOperations.push(false) // reset condition
 			}
 		}
+		doesExist(key, versionOrValue) {
+			let txn
+			try {
+				if (writeTxn) {
+					txn = writeTxn
+				} else {
+					txn = readTxnRenewed ? readTxn : renewReadTxn()
+				}
+				if (versionOrValue === undefined)
+					return Boolean(txn.getBinaryUnsafe(this.db, key))
+				else if (this.useVersions)
+					return txn.getBinaryUnsafe(this.db, key) && matches(getLastVersion(), versionOrValue)
+				else {
+					let cursor = new Cursor(txn, this.db)
+					if (this.encoder) {
+						versionOrValue = this.encoder.encode(versionOrValue)
+					}
+					if (typeof versionOrValue == 'string')
+						versionOrValue = Buffer.from(versionOrValue)
+					let result = Boolean(cursor.goToDup(key, versionOrValue))
+					cursor.close()
+					return result
+				}
+			} catch(error) {
+				return handleError(error, this, txn, () => this.doesExist(key, versionOrValue))
+			}
+		}
 		getScheduledOperations() {
 			if (!scheduledOperations) {
 				scheduledOperations = []
@@ -403,6 +430,8 @@ function open(path, options) {
 							return false
 					} else if (this.encoder)
 						deleteValue = this.encoder.encode(ifVersionOrValue)
+					else
+						deleteValue = ifVersionOrValue
 				}
 				this.writes++
 				let result

@@ -238,7 +238,7 @@ let myStore = open('my-store', {
 	}
 })
 ```
-Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults.
+Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
 lmdb-store supports caching of entries from stores, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the store `options`.

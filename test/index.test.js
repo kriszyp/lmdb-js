@@ -285,6 +285,18 @@ describe('lmdb-store', function() {
       }
       count.should.equal(0);
     });
+    it('doesExist', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      let data3 = {foo: 3, bar: true}
+      db2.put('key1',  data1);
+      db2.put('key1',  data3);
+      await db2.put('key2',  data3);
+      should.equal(db2.doesExist('key1'), true);
+      should.equal(db2.doesExist('key1', data1), true);
+      should.equal(db2.doesExist('key1', data2), false);
+      should.equal(db2.doesExist('key1', data3), true);
+    })
     it('should iterate over keys without duplicates', async function() {
       let lastKey
       for (let key of db2.getKeys({ start: 'k' })) {
