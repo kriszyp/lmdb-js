@@ -329,7 +329,7 @@ function open(path, options) {
 					}
 					if (typeof versionOrValue == 'string')
 						versionOrValue = Buffer.from(versionOrValue)
-					let result = Boolean(cursor.goToDup(key, versionOrValue))
+					let result = cursor.goToDup(key, versionOrValue) !== undefined
 					cursor.close()
 					return result
 				}
