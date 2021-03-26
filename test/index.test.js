@@ -179,21 +179,25 @@ describe('lmdb-store', function() {
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
     });
-    it('should iterate over query', async function() {
+    function iterateQuery(acrossTransactions) { return async () => {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
       await db.put('key2',  data2);
       let count = 0
-      for (let { key, value } of db.getRange({start:'key', end:'keyz'})) {
+      for (let { key, value } of db.getRange({start:'key', end:'keyz', snapshot: !acrossTransactions})) {
+        if (acrossTransactions)
+          await delay(10)
         count++
         switch(key) {
           case 'key1': data1.should.deep.equal(value); break;
           case 'key2': data2.should.deep.equal(value); break;
         }
       }
-      count.should.equal(2)
-    });
+      should.equal(count >= 2, true);
+    }}
+    it('should iterate over query', iterateQuery(false));
+    it('should iterate over query, across transactions', iterateQuery(true));
     it('should break out of query', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
@@ -285,17 +289,22 @@ describe('lmdb-store', function() {
       }
       count.should.equal(0);
     });
+
     it('doesExist', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: true}
       db2.put('key1',  data1);
       db2.put('key1',  data3);
+      db2.put(false,  3);
       await db2.put('key2',  data3);
       should.equal(db2.doesExist('key1'), true);
       should.equal(db2.doesExist('key1', data1), true);
       should.equal(db2.doesExist('key1', data2), false);
       should.equal(db2.doesExist('key1', data3), true);
+      should.equal(db2.doesExist(false), true);
+      should.equal(db2.doesExist(false, 3), true);
+      should.equal(db2.doesExist(false, 4), false);
     })
     it('should iterate over keys without duplicates', async function() {
       let lastKey
@@ -366,3 +375,7 @@ describe('lmdb-store', function() {
     });
   });
 });
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}

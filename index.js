@@ -491,6 +491,8 @@ function open(path, options) {
 				start: key,
 				valuesForKey: true
 			}
+			if (options && options.snapshot === false)
+				throw new Error('Can not disable snapshots for getValues')
 			return this.getRange(options ? Object.assign(defaultOptions, options) : defaultOptions)
 		}
 		getKeys(options) {

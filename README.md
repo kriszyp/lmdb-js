@@ -318,10 +318,12 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 `lmdb-store` is licensed under the terms of the MIT license.
 
+Also note that LMDB: Symas (the authors of LMDB) [offers commercial support of LMDB](https://symas.com/lightning-memory-mapped-database/).
+
 ## Related Projects
 
-lmdb-store is built on top of [node-lmdb](https://github.com/Venemo/node-lmdb)
-lmdb-store uses msgpackr for the default serialization of data [msgpackr](https://github.com/kriszyp/msgpackr)
-cobase is built on top of lmdb-store: [cobase](https://github.com/DoctorEvidence/cobase)
+* lmdb-store is built on top of [node-lmdb](https://github.com/Venemo/node-lmdb)
+* lmdb-store uses msgpackr for the default serialization of data [msgpackr](https://github.com/kriszyp/msgpackr)
+* cobase is built on top of lmdb-store: [cobase](https://github.com/DoctorEvidence/cobase)
 
 <a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203"/></a>
