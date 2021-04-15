@@ -374,6 +374,37 @@ describe('lmdb-store', function() {
       all.should.deep.equal([1, 2, 3, 4, 5, 6])
     });
   });
+  describe('mixed keys', function() {
+    this.timeout(10000);
+    let intKeys, strKeys;
+    before(function() {
+      const rootDb = open({
+        name: `root`,
+        path: testDirPath + '/test-mixedkeys.mdb',
+        keyIsUint32: false,
+      })
+
+      intKeys = rootDb.openDB({
+        name: `intKeys`,
+        keyIsUint32: true,
+      })
+
+      strKeys = rootDb.openDB({
+        name: `strKeys`,
+        keyIsUint32: false,
+      })
+
+    })
+    it('create with keys', async function() {
+      let lastPromise
+      for (let intKey = 0; intKey < 100; intKey++) {
+        const strKey = `k${intKey}`
+        intKeys.put(intKey, `${intKey}-value`)
+        lastPromise = strKeys.put(strKey, `${strKey}-value`)
+      }
+      await lastPromise
+    });
+  });
 });
 
 function delay(ms) {

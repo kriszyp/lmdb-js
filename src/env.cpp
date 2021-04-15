@@ -854,10 +854,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         Local<Object> operation = Local<Object>::Cast(operationValue);
         Local<v8::Value> key = operation->Get(context, 0).ToLocalChecked();
         
-        if (!keyIsValid) {
-            // just execute this the first time so we didn't need to re-execute for each iteration
-            keyType = keyTypeFromOptions(options, dw->keyType);
-        }
+        keyType = keyTypeFromOptions(options, dw->keyType);
         if (keyType == NodeLmdbKeyType::DefaultKey) {
             keyIsValid = valueToMDBKey(key, action->key, *keySpace);
         }
