@@ -4404,10 +4404,10 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if ((rc = mdb_page_flush(txn, 0)))
 		goto fail;
-	/*if ((unsigned)txn->mt_loose_count != txn->mt_u.dirty_list[0].mid) {
-		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list
+	if ((unsigned)txn->mt_loose_count < txn->mt_u.dirty_list[0].mid) {
+		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
-	}*/
+	}
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
