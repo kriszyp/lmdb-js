@@ -944,6 +944,45 @@ describe('Node.js LMDB Bindings', function() {
       done();
     });
   });
+
+  describe('Remove last item', function() {
+    this.timeout(10000);
+    var env;
+    var dbi;
+    before(function() {
+      env = new lmdb.Env();
+      env.open({
+        path: testDirPath,
+        maxDbs: 10,
+        mapSize: MAX_DB_SIZE
+      });
+      dbi = env.openDbi({
+        name: 'removelast',
+        create: true,
+        keyIsBuffer: true
+      });
+    });
+    after(function() {
+      dbi.close();
+      env.close();
+    });
+    it('remove last entry', function() {
+      for (let i = 0; i < 10; i++) {
+        var readTxn = env.beginTxn({readOnly: true});
+        var txn = env.beginTxn();
+        txn.putBinary(dbi, Buffer.from([1]), Buffer.from([1]));
+        txn.putBinary(dbi, Buffer.from([2]), Buffer.from([1]));
+        txn.commit();
+        var txn = env.beginTxn();
+        txn.del(dbi, Buffer.from([1]));
+        txn.del(dbi, Buffer.from([2]));
+        txn.commit();
+        readTxn.commit();
+      }
+    })
+   });
+
+
   describe('Cursors with binary key and data', function() {
     this.timeout(10000);
     var env;
