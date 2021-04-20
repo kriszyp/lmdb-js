@@ -100,8 +100,8 @@ This will delete the entry at the specified key. This functions like `put`, with
 
 Again, if this is performed inside a transation, the removal will be included in the current transaction (synchronously).
 
-### `store.putSync(key, value: Buffer, ifVersion?: number): boolean`
-This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, this put will be added to the current transaction. If not, a transaction will be started, the put will be executed, and the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds).
+### `store.putSync(key, value: Buffer, versionOrOptions?: number | PutOptions): boolean`
+This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be added to the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
 ### `store.removeSync(key, valueOrIfVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`. This returns `true` if there was an existing entry deleted, `false` if there was no matching entry.

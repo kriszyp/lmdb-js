@@ -35,19 +35,17 @@ declare namespace lmdb {
 		put(id: K, value: V, version: number, ifVersion?: number): Promise<boolean>
 		/**
 		* Remove the entry with the provided id/key
-		* existing version
 		* @param id The key for the entry to remove
 		**/
 		remove(id: K): Promise<boolean>
 		/**
 		* Remove the entry with the provided id/key, conditionally based on the provided existing version number
-		* existing version
 		* @param id The key for the entry to remove
 		* @param ifVersion If provided the remove will only succeed if the previous version number matches this (atomically checked)
 		**/
 		remove(id: K, ifVersion: number): Promise<boolean>
 		/**
-		* Remove the entry with the provided id/key and value (mainly used for dupsort databases)
+		* Remove the entry with the provided id/key and value (mainly used for dupsort databases) and optionally the required
 		* existing version
 		* @param id The key for the entry to remove
 		* @param valueToRemove The value for the entry to remove
@@ -61,12 +59,18 @@ declare namespace lmdb {
 		putSync(id: K, value: V): void
 		/**
 		* Syncronously store the provided value, using the provided id/key and version number
-		* existing version
 		* @param id The key for the entry
 		* @param value The value to store
 		* @param version The version number to assign to this entry
 		**/
 		putSync(id: K, value: V, version: number): void
+		/**
+		* Syncronously store the provided value, using the provided id/key and options
+		* @param id The key for the entry
+		* @param value The value to store
+		* @param options The version number to assign to this entry
+		**/
+		putSync(id: K, value: V, options: PutOptions): void
 		/**
 		* Syncronously remove the entry with the provided id/key
 		* existing version
@@ -232,6 +236,18 @@ declare namespace lmdb {
 		offset?: number
 		/** Use a snapshot of the database from when the iterator started **/
 		snapshot?: boolean
+	}
+	interface PutOptions {
+		/* Append to the database using MDB_APPEND, which can be faster */
+		append?: boolean
+		/* Append to a dupsort database using MDB_APPENDDUP, which can be faster */
+		appendDup?: boolean
+		/* Perform put with MDB_NOOVERWRITE which will fail if the entry for the key already exists */
+		noOverwrite?: boolean
+		/* Perform put with MDB_NODUPDATA which will fail if the entry for the key/value already exists */
+		noDupData?: boolean
+		/* The version of the entry to set */
+		version?: number
 	}
 	class ArrayLikeIterable<T> implements Iterable<T> {
 		map<U>(callback: (entry: T) => U): ArrayLikeIterable<U>

@@ -288,6 +288,14 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
         if (info[3]->IsNumber()) {
             auto versionLocal = Nan::To<v8::Number>(info[3]).ToLocalChecked();
             version = versionLocal->Value();
+        } else if (info[3]->IsObject()) {
+            auto options = Local<Object>::Cast(info[3]);
+            auto versionProp = options->Get(Nan::GetCurrentContext(), Nan::New<String>("version").ToLocalChecked()).ToLocalChecked();
+            if (versionProp->IsNumber()) {
+                auto versionLocal = Nan::To<v8::Number>(versionProp).ToLocalChecked();
+                version = versionLocal->Value();
+            } else
+                version = 0;
         } else
              version = 0;
         rc = putWithVersion(tw->txn, dw->dbi, &key, &data, flags, version);

@@ -318,6 +318,18 @@ describe('lmdb-store', function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
     });
+    it('put options (sync)', function() {
+      db.putSync('zkey6', 'test', { append: true, version: 33 });
+      let entry = db.getEntry('zkey6');
+      entry.value.should.equal('test');
+      entry.version.should.equal(33);
+      db.putSync('zkey7', 'test', { append: true, noOverwrite: true });
+      db2.putSync('zkey6', 'test1', { appendDup: true });
+      db2.putSync('zkey6', 'test2', { appendDup: true });
+      expect(() => db.putSync('zkey5', 'test', { append: true, version: 44 })).to.throw();
+      expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
+      expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
+    });
     after(function(done) {
       db.get('key1');
       let iterator = db.getRange({})[Symbol.iterator]()
