@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store",
   "author": "Kris Zyp",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
   "license": "MIT",
   "repository": {
@@ -41,7 +41,7 @@
     "weak-lru-cache": "^0.4.1"
   },
   "optionalDependencies": {
-    "msgpackr": "^1.2.7"
+    "msgpackr": "^1.2.8"
   },
   "devDependencies": {
     "@types/node": "latest",
