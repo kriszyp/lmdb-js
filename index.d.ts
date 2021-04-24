@@ -104,13 +104,33 @@ declare namespace lmdb {
 		**/
 		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
 		/**
+		* @deprecated Since v1.3.0, this will be replaced with the functionality of asyncTransaction in a future release
+		**/
+		transaction<T>(action: () => T): T
+		/**
 		* Execute a transaction syncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
 		* @param abort If true will abort the transaction when completed
 		**/
-		transaction<T>(action: () => T, abort?: boolean): T
+		transactionSync<T>(action: () => T, abort?: boolean): T
+		/**
+		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
+		* and committing the transaction after the action callback completes.
+		* existing version
+		* @param action The function to execute within the transaction
+		* @param abort If true will abort the transaction when completed
+		**/
+		transactionAsync<T>(action: () => T): T
+		/**
+		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
+		* and committing the transaction after the action callback completes.
+		* existing version
+		* @param action The function to execute within the transaction
+		* @param abort If true will abort the transaction when completed
+		**/
+		childTransaction<T>(action: () => T): T
 		/**
 		* Execute writes actions that are all conditionally dependent on the entry with the provided key having the provided
 		* version number (checked atomically).

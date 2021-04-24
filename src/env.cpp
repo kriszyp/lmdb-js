@@ -160,62 +160,25 @@ class CopyWorker : public Nan::AsyncWorker {
     int flags;
 };
 
-struct condition_t {
-    MDB_val key;
-    MDB_val data;
-    MDB_dbi dbi;
-    bool matchSize;
-    argtokey_callback_t freeKey;
-};
+BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback)  : Nan::AsyncProgressWorker(callback, "lmdb:batch") {
+}
+void BatchWorkerBase::FinishCommit() {
+    uv_mutex_lock(userCallbackLock);
+    uv_cond_signal(userCallbackCond);
+    uv_mutex_unlock(userCallbackLock);
+}
 
-struct action_t {
-    int actionType;
-    MDB_val key;
-    union {
-        struct {
-            DbiWrap* dw;
-        };
-        struct {
-            MDB_val data;
-            double ifVersion;
-            double version;
-            argtokey_callback_t freeValue;
-        };
-    };
-};/*
-struct action_t {
-    MDB_val key;
-    MDB_val data;
-    DbiWrap* dw;
-    condition_t *condition;
-    double ifVersion;
-    double version;
-    argtokey_callback_t freeKey;
-    argtokey_callback_t freeValue;
-};*/
-
-const int CHANGE_DB = 8;
-const int RESET_CONDITION = 9;
-const int CONDITION = 1;
-const int WRITE_WITH_VALUE = 2;
-const int DELETE_OPERATION = 4;
-
-const int FAILED_CONDITION = 1;
-const int SUCCESSFUL_OPERATION = 0;
-const int BAD_KEY = 3;
-const int NOT_FOUND = 2;
-
-class BatchWorker : public Nan::AsyncWorker {
+class BatchWorker : public BatchWorkerBase {
   public:
-    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, uint8_t* results, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback, "node-lmdb:Batch"),
+    BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, EnvWrap* envForTxn, uint8_t* results, Nan::Callback *callback)
+      : BatchWorkerBase(callback),
       env(env),
       actionCount(actionCount),
       results(results),
       actions(actions),
       putFlags(putFlags),
-      keySpace(keySpace)
-       {
+      keySpace(keySpace),
+      envForTxn(envForTxn) {
     }
 
     ~BatchWorker() {
@@ -223,7 +186,7 @@ class BatchWorker : public Nan::AsyncWorker {
         delete keySpace;
     }
 
-    void Execute() {
+    void Execute(const ExecutionProgress& executionProgress) {
         MDB_txn *txn;
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
         DbiWrap* dw;
@@ -327,7 +290,24 @@ class BatchWorker : public Nan::AsyncWorker {
             i++;
         }
 
+        if (envForTxn) {
+            TxnWrap* tw = new TxnWrap(envForTxn->env, txn);
+            envForTxn->currentWriteTxn = tw;
+            userCallbackLock = new uv_mutex_t;
+            userCallbackCond = new uv_cond_t;
+            uv_mutex_init(userCallbackLock);
+            uv_cond_init(userCallbackCond);
+            uv_mutex_lock(userCallbackLock);
+            executionProgress.Send(reinterpret_cast<const char*>(&rc), sizeof(int));
+            uv_cond_wait(userCallbackCond, userCallbackLock);
+            uv_mutex_unlock(userCallbackLock);
+            uv_mutex_destroy(userCallbackLock);
+            uv_cond_destroy(userCallbackCond);
+            tw->removeFromEnvWrap();
+            tw->txn = nullptr;
+        }
         rc = mdb_txn_commit(txn);
+
         if (rc != 0) {
             if ((putFlags & 1) > 0) // sync mode
                 return Nan::ThrowError(mdb_strerror(rc));
@@ -336,11 +316,18 @@ class BatchWorker : public Nan::AsyncWorker {
         }
     }
 
-   
+    void HandleProgressCallback(const char* data, size_t count) {
+        Nan::HandleScope scope;
+        v8::Local<v8::Value> argv[] = {
+            Nan::True()
+        };
+        callback->Call(1, argv, async_resource);
+    }
+
     void HandleOKCallback() {
         Nan::HandleScope scope;
         Local<v8::Value> argv[] = {
-            Nan::Null()
+            Nan::Null(), 
         };
 
         callback->Call(1, argv, async_resource);
@@ -355,6 +342,7 @@ class BatchWorker : public Nan::AsyncWorker {
     action_t* actions;
     int putFlags;
     KeySpace* keySpace;
+    EnvWrap* envForTxn;
     friend class DbiWrap;
 };
 
@@ -726,10 +714,20 @@ NAN_METHOD(EnvWrap::detachBuffer) {
 NAN_METHOD(EnvWrap::beginTxn) {
     Nan::HandleScope scope;
 
-    const int argc = 2;
+    Nan::MaybeLocal<Object> maybeInstance;
 
-    Local<Value> argv[argc] = { info.This(), info[0] };
-    Nan::MaybeLocal<Object> maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
+    if (info.Length() > 1) {
+        const int argc = 3;
+
+        Local<Value> argv[argc] = { info.This(), info[0], info[1] };
+        maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
+
+    } else {
+        const int argc = 2;
+
+        Local<Value> argv[argc] = { info.This(), info[0] };
+        maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
+    }
 
     // Check if txn could be created
     if ((maybeInstance.IsEmpty())) {
@@ -824,8 +822,9 @@ NAN_METHOD(EnvWrap::batchWrite) {
     }
 
     BatchWorker* worker = new BatchWorker(
-        ew->env, actions, length, putFlags, keySpace, results, callback
+        ew->env, actions, length, putFlags, keySpace, info[3]->IsTrue() ? ew : nullptr, results, callback
     );
+    ew->batchWorker = worker;
     bool keyIsValid = false;
     NodeLmdbKeyType keyType;
     DbiWrap* dw;
@@ -923,13 +922,17 @@ NAN_METHOD(EnvWrap::batchWrite) {
         Nan::AsyncQueueWorker(worker);
     } else {
         // sync mode
-        worker->Execute();
+        //AsyncProgressWorker::ExecutionProgress executionProgress;
+        //worker->Execute(&executionProgress);
         delete worker;
     }
     return;
 }
 
-
+NAN_METHOD(EnvWrap::finishBatch) {
+    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    ew->batchWorker->FinishCommit();
+}
 
 void EnvWrap::setupExports(Local<Object> exports) {
     // EnvWrap: Prepare constructor template
@@ -944,6 +947,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "openDbi", Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
+    envTpl->PrototypeTemplate()->Set(isolate, "finishBatch", Nan::New<FunctionTemplate>(EnvWrap::finishBatch));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
@@ -959,6 +963,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // TxnWrap: Add functions to the prototype
     txnTpl->PrototypeTemplate()->Set(isolate, "commit", Nan::New<FunctionTemplate>(TxnWrap::commit));
+    txnTpl->PrototypeTemplate()->Set(isolate, "commitAsync", Nan::New<FunctionTemplate>(TxnWrap::commitAsync));
     txnTpl->PrototypeTemplate()->Set(isolate, "abort", Nan::New<FunctionTemplate>(TxnWrap::abort));
     txnTpl->PrototypeTemplate()->Set(isolate, "getString", Nan::New<FunctionTemplate>(TxnWrap::getString));
     txnTpl->PrototypeTemplate()->Set(isolate, "getStringUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getStringUnsafe));

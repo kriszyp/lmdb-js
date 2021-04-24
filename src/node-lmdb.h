@@ -160,6 +160,40 @@ struct env_path_t {
     int count;
 };
 
+struct action_t {
+    int actionType;
+    MDB_val key;
+    union {
+        struct {
+            DbiWrap* dw;
+        };
+        struct {
+            MDB_val data;
+            double ifVersion;
+            double version;
+            argtokey_callback_t freeValue;
+        };
+    };
+};
+const int CHANGE_DB = 8;
+const int RESET_CONDITION = 9;
+const int CONDITION = 1;
+const int WRITE_WITH_VALUE = 2;
+const int DELETE_OPERATION = 4;
+
+const int FAILED_CONDITION = 1;
+const int SUCCESSFUL_OPERATION = 0;
+const int BAD_KEY = 3;
+const int NOT_FOUND = 2;
+
+class BatchWorkerBase : public Nan::AsyncProgressWorker {
+  public:
+    BatchWorkerBase(Nan::Callback *callback);
+    void FinishCommit();
+    uv_mutex_t* userCallbackLock;
+    uv_cond_t* userCallbackCond;
+};
+
 /*
     `Env`
     Represents a database environment.
@@ -167,10 +201,6 @@ struct env_path_t {
 */
 class EnvWrap : public Nan::ObjectWrap {
 private:
-    // The wrapped object
-    MDB_env *env;
-    // Current write transaction
-    TxnWrap *currentWriteTxn;
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
     // Constructor for TxnWrap
@@ -182,6 +212,7 @@ private:
     static uv_mutex_t* initMutex();
     // compression settings and space
     Compression *compression;
+    BatchWorkerBase* batchWorker;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -192,6 +223,10 @@ private:
 public:
     EnvWrap();
     ~EnvWrap();
+    // The wrapped object
+    MDB_env *env;
+    // Current write transaction
+    TxnWrap *currentWriteTxn;
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
@@ -328,6 +363,8 @@ public:
         * Callback to be executed after the sync is complete.
     */
     static NAN_METHOD(batchWrite);
+
+    static NAN_METHOD(finishBatch);
 };
 
 /*
@@ -337,8 +374,6 @@ public:
 */
 class TxnWrap : public Nan::ObjectWrap {
 private:
-    // The wrapped object
-    MDB_txn *txn;
 
     // Reference to the MDB_env of the wrapped MDB_txn
     MDB_env *env;
@@ -349,8 +384,6 @@ private:
     // Flags used with mdb_txn_begin
     unsigned int flags;
     
-    // Remove the current TxnWrap from its EnvWrap
-    void removeFromEnvWrap();
 
     friend class CursorWrap;
     friend class DbiWrap;
@@ -359,6 +392,10 @@ private:
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
     ~TxnWrap();
+    // Remove the current TxnWrap from its EnvWrap
+    void removeFromEnvWrap();
+    // The wrapped object
+    MDB_txn *txn;
 
     // Constructor (not exposed)
     static NAN_METHOD(ctor);
@@ -374,6 +411,12 @@ public:
         (Wrapper for `mdb_txn_commit`)
     */
     static NAN_METHOD(commit);
+
+    /*
+        Commits the transaction asynchronously.
+        (Wrapper for `mdb_txn_commit`)
+    */
+    static NAN_METHOD(commitAsync);
 
     /*
         Aborts the transaction.

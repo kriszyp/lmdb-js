@@ -41,7 +41,7 @@ describe('lmdb-store', function() {
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
-    this.timeout(10000);
+    this.timeout(1000000);
     let db, db2;
     before(function() {
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
@@ -329,6 +329,41 @@ describe('lmdb-store', function() {
       expect(() => db.putSync('zkey5', 'test', { append: true, version: 44 })).to.throw();
       expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
       expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
+    });
+    it('async transactions', async function() {
+      let ranTransaction
+      db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
+      let errorHandled
+      debugger
+      if (!db.cache) {
+        db.childTransaction(() => {
+          db.put('key1',  'should be rolled back');
+          throw new Error('Make sure this is properly propagated without interfering with next transaction')
+        }).catch(error => {
+          if (error)
+            errorHandled = true
+        })
+        await db.childTransaction(() => {
+          should.equal(db.get('key1'), 'async initial value');
+          db.put('key-a',  'async test a');
+          should.equal(db.get('key-a'), 'async test a');
+        })
+        should.equal(errorHandled, true);
+      }
+      await db.transactionAsync(() => {
+        ranTransaction = true;
+        should.equal(db.get('key1'), 'async initial value');
+        db.put('key1',  'async test 1');
+        should.equal(db.get('key1'), 'async test 1');
+        for (let { key, value } of db.getRange({start: 'key1', end: 'key1z' })) {
+          should.equal(value, 'async test 1');
+        }
+        db2.put('key2-async',  'async test 2');
+        should.equal(db2.get('key2-async'), 'async test 2');
+      });
+      should.equal(db.get('key1'), 'async test 1');
+      should.equal(db2.get('key2-async'), 'async test 2');
+      should.equal(ranTransaction, true);
     });
     after(function(done) {
       db.get('key1');

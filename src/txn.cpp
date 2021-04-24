@@ -63,42 +63,51 @@ NAN_METHOD(TxnWrap::ctor) {
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     int flags = 0;
+    TxnWrap* tw;
 
-    if (info[1]->IsObject()) {
-        Local<Object> options = Local<Object>::Cast(info[1]);
+    if (info[1]->IsTrue()) {
+        tw = ew->currentWriteTxn;
+    } else {
+        if (info[1]->IsObject()) {
+            Local<Object> options = Local<Object>::Cast(info[1]);
 
-        // Get flags from options
+            // Get flags from options
 
-        setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
-    }
-    
-    // Check existence of current write transaction
-    if (0 == (flags & MDB_RDONLY) && ew->currentWriteTxn != nullptr) {
-        return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
-    }
-
-    MDB_txn *txn;
-    int rc = mdb_txn_begin(ew->env, nullptr, flags, &txn);
-    if (rc != 0) {
-        if (rc == EINVAL) {
-            return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see node-lmdb docs for more info)");
+            setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
         }
-        return throwLmdbError(rc);
+        
+        MDB_txn *parentTxn;
+        if (info[2]->IsObject()) {
+            TxnWrap *parentTw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[2]));
+            parentTxn = parentTw->txn;
+        } else {
+            parentTxn = nullptr;
+            // Check existence of current write transaction
+            if (0 == (flags & MDB_RDONLY) && ew->currentWriteTxn != nullptr) {
+                return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
+            }
+        }
+        MDB_txn *txn;
+        int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
+        if (rc != 0) {
+            if (rc == EINVAL) {
+                return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see node-lmdb docs for more info)");
+            }
+            return throwLmdbError(rc);
+        }
+        tw = new TxnWrap(ew->env, txn);
+        // Set the current write transaction
+        if (0 == (flags & MDB_RDONLY)) {
+            ew->currentWriteTxn = tw;
+        }
+        else {
+            ew->readTxns.push_back(tw);
+        }
     }
-
-    TxnWrap* tw = new TxnWrap(ew->env, txn);
     tw->flags = flags;
     tw->ew = ew;
     tw->ew->Ref();
     tw->Wrap(info.This());
-    
-    // Set the current write transaction
-    if (0 == (flags & MDB_RDONLY)) {
-        ew->currentWriteTxn = tw;
-    }
-    else {
-        ew->readTxns.push_back(tw);
-    }
 
     return info.GetReturnValue().Set(info.This());
 }
@@ -119,6 +128,53 @@ NAN_METHOD(TxnWrap::commit) {
     if (rc != 0) {
         return throwLmdbError(rc);
     }
+}
+
+class CommitWorker : public Nan::AsyncWorker {
+  public:
+    CommitWorker(MDB_txn* txn, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback, "lmdb:commit"), txn(txn) {}
+
+    void Execute() {
+        int rc = mdb_txn_commit(txn);
+        if (rc != 0) {
+            SetErrorMessage(mdb_strerror(rc));
+        }
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+        Local<v8::Value> argv[] = {
+            Nan::Null()
+        };
+
+        callback->Call(1, argv, async_resource);
+    }
+
+  private:
+    MDB_txn* txn;
+};
+
+NAN_METHOD(TxnWrap::commitAsync) {
+    Nan::HandleScope scope;
+
+    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
+
+    if (!tw->txn) {
+        return Nan::ThrowError("The transaction is already closed.");
+    }
+    Nan::Callback* callback = new Nan::Callback(
+      Local<v8::Function>::Cast(info[0])
+    );
+
+    CommitWorker* worker = new CommitWorker(
+      tw->txn, callback
+    );
+
+    Nan::AsyncQueueWorker(worker);
+    tw->removeFromEnvWrap();
+    tw->txn = nullptr;
+    return;
 }
 
 NAN_METHOD(TxnWrap::abort) {

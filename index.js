@@ -15,6 +15,7 @@ const DEFAULT_COMMIT_DELAY = 0
 const READING_TNX = {
 	readOnly: true
 }
+const ABORT = {}
 
 const allDbs = exports.allDbs = new Map()
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
@@ -29,10 +30,11 @@ let env
 let defaultCompression
 let lastSize
 exports.open = open
+exports.ABORT = ABORT
 function open(path, options) {
 	let env = new Env()
 	let committingWrites
-	let scheduledWrites
+	let scheduledTransactions
 	let scheduledOperations
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed, cursorTxns = []
 	let renewId = 1
@@ -73,6 +75,7 @@ function open(path, options) {
 		fs.removeSync(path)
 		console.info('Removed', path)
 	}
+	let useWritemap = options.useWritemap
 	try {
 		env.open(options)
 	} catch(error) {
@@ -183,7 +186,28 @@ function open(path, options) {
 				throw error
 			}
 		}
+		transactionAsync(execute, asChild) {
+			let transactions = scheduledTransactions || (scheduledTransactions = [])
+			let index = transactions.push(execute) - 1
+			transactions.push(asChild)
+			return this.scheduleCommit().results.then((results) => {
+				let transactionResults = results.transactionResults
+				let error = transactionResults[index]
+				if (error)
+					throw error
+				return transactionResults[index + 1]
+			})
+		}
+		childTransaction(execute) {
+			if (useWritemap)
+				throw new Error('Child transactions are not supported in writemap mode')
+			return this.transactionAsync(execute, true)
+		}
 		transaction(execute, abort) {
+			console.warn('Deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction')
+			return this.transactionSync(execute, abort)
+		}
+		transactionSync(execute, abort) {
 			let result
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
@@ -686,14 +710,51 @@ function open(path, options) {
 						currentCommit = whenCommitted
 						whenCommitted = null
 						pendingBatch = null
-						if (scheduledOperations) {
+						if (scheduledOperations || scheduledTransactions) {
 							// operations to perform, collect them as an array and start doing them
-							let operations = scheduledOperations
+							let operations = scheduledOperations || []
+							let transactions = scheduledTransactions
 							scheduledOperations = null
+							scheduledTransactions = null
 							const writeBatch = () => {
 								let start = Date.now()
 								let results = Buffer.alloc(operations.length)
 								let callback = (error) => {
+									if (error === true) {
+										// resume batch transaction
+										let continuedWriteTxn = env.beginTxn(true)
+										// execute scheduled transactions, each with own child transaction
+										let transactionResults = new Array(transactions.length)
+										results.transactionResults = transactionResults
+										for (let i = 0, l = transactions.length; i < l; i++) {
+											let userTxn = transactions[i++]
+											let asChild = transactions[i]
+											let childTxn = writeTxn = asChild ? env.beginTxn(null, continuedWriteTxn) : continuedWriteTxn
+											try {
+												let result = userTxn()
+												if (result === ABORT) {
+													if (asChild)
+														childTxn.abort()
+													else
+														throw new Error('Can not abort async transaction callbacks, must be run as a child transaction')
+												} else if (asChild)
+													childTxn.commit()
+												transactionResults[i] = result
+											} catch(error) {
+												if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
+													return handleError(error, this, null, writeBatch)
+												}
+												// user exception
+												if (asChild)
+													childTxn.abort()
+												transactionResults[i - 1] = error
+											}
+										}
+										writeTxn = null
+										transactions = null
+										return env.finishBatch()
+//										return continuedWriteTxn.commitAsync(callback) // continue after commit
+									}
 									let duration = Date.now() - start
 									this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
 									//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
@@ -722,7 +783,7 @@ function open(path, options) {
 										env.batchWrite(operations, results)
 										callback()
 									} else
-										env.batchWrite(operations, results, callback)
+										env.batchWrite(operations, results, callback, !!transactions)
 								} catch (error) {
 									callback(error)
 								}
@@ -907,7 +968,7 @@ function open(path, options) {
 		if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
 			const oldSize = env.info().mapSize
 			const newSize = error.message.startsWith('MDB_MAP_FULL') ?
-				Math.floor(((1.06 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x100000) * 0x100000 : // increase size, more rapidly at first, and round to nearest 1 MB
+				Math.floor(((1.08 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x100000) * 0x100000 : // increase size, more rapidly at first, and round to nearest 1 MB
 				0 // for resized notifications, we simply want to match the existing size of other processes
 			for (const store of stores) {
 				store.emit('remap')

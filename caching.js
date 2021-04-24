@@ -104,6 +104,9 @@ exports.CachingStore = Store => class extends Store {
 		this.cache.clear()
 		super.clear()
 	}
+	childTransaction(execute) {
+		throw new Error('Child transactions are not supported in caching stores')
+	}
 }
 exports.setGetLastVersion = (get) => {
 	getLastVersion = get
