@@ -160,9 +160,21 @@ class CopyWorker : public Nan::AsyncWorker {
     int flags;
 };
 
+const int CHANGE_DB = 8;
+const int RESET_CONDITION = 9;
+const int USER_TRANSACTION_CALLBACK = 12;
+const int CONDITION = 1;
+const int WRITE_WITH_VALUE = 2;
+const int DELETE_OPERATION = 4;
+
+const int FAILED_CONDITION = 1;
+const int SUCCESSFUL_OPERATION = 0;
+const int BAD_KEY = 3;
+const int NOT_FOUND = 2;
+
 BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback)  : Nan::AsyncProgressWorker(callback, "lmdb:batch") {
 }
-void BatchWorkerBase::FinishCommit() {
+void BatchWorkerBase::ContinueBatch() {
     uv_mutex_lock(userCallbackLock);
     uv_cond_signal(userCallbackCond);
     uv_mutex_unlock(userCallbackLock);
@@ -190,6 +202,7 @@ class BatchWorker : public BatchWorkerBase {
         MDB_txn *txn;
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
         DbiWrap* dw;
+
         for (int i = 0; i < actionCount; i++) {
             action_t* action = &actions[i];
             int actionType = action->actionType;
@@ -206,6 +219,15 @@ class BatchWorker : public BatchWorkerBase {
         if (rc != 0) {
             return SetErrorMessage(mdb_strerror(rc));
         }
+        TxnWrap* tw;
+        if (envForTxn) {
+            tw = new TxnWrap(envForTxn->env, txn);
+            envForTxn->currentWriteTxn = tw;
+            userCallbackLock = new uv_mutex_t;
+            userCallbackCond = new uv_cond_t;
+            uv_mutex_init(userCallbackLock);
+            uv_cond_init(userCallbackCond);
+        }
         int validatedDepth = 0;
         int conditionDepth = 0;
 
@@ -216,11 +238,16 @@ class BatchWorker : public BatchWorkerBase {
                 if (actionType == CHANGE_DB) {
                     // reset target db
                     dw = action->dw;
-                } else { // actionType == CHANGE_DB
+                } else if (actionType == RESET_CONDITION) {
                     // reset last condition
                     conditionDepth--;
                     if (validatedDepth > conditionDepth)
                         validatedDepth--;
+                } else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
+                    uv_mutex_lock(userCallbackLock);
+                    executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+                    uv_cond_wait(userCallbackCond, userCallbackLock);
+                    uv_mutex_unlock(userCallbackLock);
                 }
                 results[i++] = SUCCESSFUL_OPERATION;
                 continue;
@@ -273,6 +300,12 @@ class BatchWorker : public BatchWorkerBase {
                             results[i] = BAD_KEY;
                             rc = 0;
                         } else {
+                            if (envForTxn) {
+                                uv_mutex_destroy(userCallbackLock);
+                                uv_cond_destroy(userCallbackCond);
+                                tw->removeFromEnvWrap();
+                                tw->txn = nullptr;
+                            }
                             mdb_txn_abort(txn);
                             return SetErrorMessage(mdb_strerror(rc));
                         }
@@ -291,18 +324,9 @@ class BatchWorker : public BatchWorkerBase {
         }
 
         if (envForTxn) {
-            TxnWrap* tw = new TxnWrap(envForTxn->env, txn);
-            envForTxn->currentWriteTxn = tw;
-            userCallbackLock = new uv_mutex_t;
-            userCallbackCond = new uv_cond_t;
-            uv_mutex_init(userCallbackLock);
-            uv_cond_init(userCallbackCond);
-            uv_mutex_lock(userCallbackLock);
-            executionProgress.Send(reinterpret_cast<const char*>(&rc), sizeof(int));
-            uv_cond_wait(userCallbackCond, userCallbackLock);
-            uv_mutex_unlock(userCallbackLock);
             uv_mutex_destroy(userCallbackLock);
             uv_cond_destroy(userCallbackCond);
+            envForTxn->currentWriteTxn = nullptr;
             tw->removeFromEnvWrap();
             tw->txn = nullptr;
         }
@@ -321,7 +345,9 @@ class BatchWorker : public BatchWorkerBase {
         v8::Local<v8::Value> argv[] = {
             Nan::True()
         };
-        callback->Call(1, argv, async_resource);
+        if (callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue()) {
+            ContinueBatch();
+        }
     }
 
     void HandleOKCallback() {
@@ -822,7 +848,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     }
 
     BatchWorker* worker = new BatchWorker(
-        ew->env, actions, length, putFlags, keySpace, info[3]->IsTrue() ? ew : nullptr, results, callback
+        ew->env, actions, length, putFlags, keySpace, ew, results, callback
     );
     ew->batchWorker = worker;
     bool keyIsValid = false;
@@ -840,9 +866,11 @@ NAN_METHOD(EnvWrap::batchWrite) {
         if (!isArray) {
             // change target db
             if (operationValue->IsObject()) {
-                dw = action->dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(operationValue));
                 action->actionType = CHANGE_DB;
-            } else {
+                dw = action->dw = Nan::ObjectWrap::Unwrap<DbiWrap>(Local<Object>::Cast(operationValue));
+            } else if (operationValue->IsTrue()) {
+                action->actionType = USER_TRANSACTION_CALLBACK;
+            } else { // else false
                 // reset condition
                 action->actionType = RESET_CONDITION;
             }
@@ -922,16 +950,16 @@ NAN_METHOD(EnvWrap::batchWrite) {
         Nan::AsyncQueueWorker(worker);
     } else {
         // sync mode
-        //AsyncProgressWorker::ExecutionProgress executionProgress;
-        //worker->Execute(&executionProgress);
+        //AsyncProgressWorker::ExecutionProgress executionProgress(worker);
+        //worker->Execute(/*&executionProgress*/);
         delete worker;
     }
     return;
 }
 
-NAN_METHOD(EnvWrap::finishBatch) {
+NAN_METHOD(EnvWrap::continueBatch) {
     EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->batchWorker->FinishCommit();
+    ew->batchWorker->ContinueBatch();
 }
 
 void EnvWrap::setupExports(Local<Object> exports) {
@@ -947,7 +975,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "openDbi", Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
-    envTpl->PrototypeTemplate()->Set(isolate, "finishBatch", Nan::New<FunctionTemplate>(EnvWrap::finishBatch));
+    envTpl->PrototypeTemplate()->Set(isolate, "continueBatch", Nan::New<FunctionTemplate>(EnvWrap::continueBatch));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
@@ -963,7 +991,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
     // TxnWrap: Add functions to the prototype
     txnTpl->PrototypeTemplate()->Set(isolate, "commit", Nan::New<FunctionTemplate>(TxnWrap::commit));
-    txnTpl->PrototypeTemplate()->Set(isolate, "commitAsync", Nan::New<FunctionTemplate>(TxnWrap::commitAsync));
     txnTpl->PrototypeTemplate()->Set(isolate, "abort", Nan::New<FunctionTemplate>(TxnWrap::abort));
     txnTpl->PrototypeTemplate()->Set(isolate, "getString", Nan::New<FunctionTemplate>(TxnWrap::getString));
     txnTpl->PrototypeTemplate()->Set(isolate, "getStringUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getStringUnsafe));

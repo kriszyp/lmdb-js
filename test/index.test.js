@@ -334,7 +334,6 @@ describe('lmdb-store', function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
-      debugger
       if (!db.cache) {
         db.childTransaction(() => {
           db.put('key1',  'should be rolled back');

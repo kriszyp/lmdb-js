@@ -175,21 +175,11 @@ struct action_t {
         };
     };
 };
-const int CHANGE_DB = 8;
-const int RESET_CONDITION = 9;
-const int CONDITION = 1;
-const int WRITE_WITH_VALUE = 2;
-const int DELETE_OPERATION = 4;
-
-const int FAILED_CONDITION = 1;
-const int SUCCESSFUL_OPERATION = 0;
-const int BAD_KEY = 3;
-const int NOT_FOUND = 2;
 
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
     BatchWorkerBase(Nan::Callback *callback);
-    void FinishCommit();
+    void ContinueBatch();
     uv_mutex_t* userCallbackLock;
     uv_cond_t* userCallbackCond;
 };
@@ -364,7 +354,7 @@ public:
     */
     static NAN_METHOD(batchWrite);
 
-    static NAN_METHOD(finishBatch);
+    static NAN_METHOD(continueBatch);
 };
 
 /*
@@ -411,12 +401,6 @@ public:
         (Wrapper for `mdb_txn_commit`)
     */
     static NAN_METHOD(commit);
-
-    /*
-        Commits the transaction asynchronously.
-        (Wrapper for `mdb_txn_commit`)
-    */
-    static NAN_METHOD(commitAsync);
 
     /*
         Aborts the transaction.

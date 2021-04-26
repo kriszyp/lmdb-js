@@ -186,12 +186,31 @@ function open(path, options) {
 				throw error
 			}
 		}
-		transactionAsync(execute, asChild) {
-			let transactions = scheduledTransactions || (scheduledTransactions = [])
-			let index = transactions.push(execute) - 1
-			transactions.push(asChild)
+		transactionAsync(transactionFunction, asChild) {
+			let lastOperation
+			if (scheduledOperations) {
+				lastOperation = scheduledOperations[scheduledOperations.length - 1]
+			} else {
+				scheduledOperations = []
+				scheduledOperations.bytes = 0
+			}
+			let transactionSet
+			let transactionSetIndex
+			if (lastOperation === true) { // continue last set of transactions
+				transactionSetIndex = scheduledTransactions.length - 1
+				transactionSet = scheduledTransactions[transactionSetIndex]
+			} else {
+				// for now we signify transactions as a true
+				scheduledOperations.push(true)
+				if (!scheduledTransactions) {
+					scheduledTransactions = []
+				}
+				transactionSetIndex = scheduledTransactions.push(transactionSet = []) - 1
+			}
+			let index = (transactionSet.push(asChild ?
+				{asChild, execute: transactionFunction } : transactionFunction) - 1) << 1
 			return this.scheduleCommit().results.then((results) => {
-				let transactionResults = results.transactionResults
+				let transactionResults = results.transactionResults[transactionSetIndex]
 				let error = transactionResults[index]
 				if (error)
 					throw error
@@ -719,41 +738,76 @@ function open(path, options) {
 							const writeBatch = () => {
 								let start = Date.now()
 								let results = Buffer.alloc(operations.length)
-								let callback = (error) => {
+								let continuedWriteTxn
+								let transactionResults
+								let transactionSetIndex = 0
+								let callback = async (error) => {
 									if (error === true) {
 										// resume batch transaction
-										let continuedWriteTxn = env.beginTxn(true)
-										// execute scheduled transactions, each with own child transaction
-										let transactionResults = new Array(transactions.length)
-										results.transactionResults = transactionResults
-										for (let i = 0, l = transactions.length; i < l; i++) {
-											let userTxn = transactions[i++]
-											let asChild = transactions[i]
-											let childTxn = writeTxn = asChild ? env.beginTxn(null, continuedWriteTxn) : continuedWriteTxn
-											try {
-												let result = userTxn()
-												if (result === ABORT) {
-													if (asChild)
+										if (!transactionResults) {
+											// get the transaction we will use
+											continuedWriteTxn = env.beginTxn(true)
+											transactionResults = new Array(transactions.length)
+											results.transactionResults = transactionResults
+										}
+										let transactionSet = transactions[transactionSetIndex]
+										let transactionSetResults = transactionResults[transactionSetIndex++] = []
+										let promises
+										for (let i = 0, l = transactionSet.length; i < l; i++) {
+											let userTxn = transactionSet[i]
+											let asChild = userTxn.asChild
+											if (asChild) {
+												if (promises) {
+													// must complete any outstanding transactions before proceeding
+													await Promise.all(promises).then(continueTransactions)
+													promises = null
+												}
+												let childTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)
+												try {
+													let result = userTxn.execute()
+													if (result && result.then) {
+														await result
+													}
+													if (result === ABORT)
 														childTxn.abort()
 													else
-														throw new Error('Can not abort async transaction callbacks, must be run as a child transaction')
-												} else if (asChild)
-													childTxn.commit()
-												transactionResults[i] = result
-											} catch(error) {
-												if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
-													return handleError(error, this, null, writeBatch)
-												}
-												// user exception
-												if (asChild)
+														childTxn.commit()
+													transactionSetResults[(i << 1) + 1] = result
+												} catch(error) {
 													childTxn.abort()
-												transactionResults[i - 1] = error
+													txnError(error, i)
+												}
+											} else {
+												writeTxn = continuedWriteTxn
+												try {
+													let result = userTxn()
+													if (result && result.then) {
+														if (!promises)
+															promises = []
+														transactionSetResults[(i << 1) + 1] = result
+														promises.push(result.catch(() => {
+															txnError(error, i)
+														}))
+													} else
+														transactionSetResults[(i << 1) + 1] = result
+												} catch(error) {
+													txnError(error, i)
+												}
 											}
+										}
+										if (promises) { // finish any outstanding commit functions
+											await Promise.all(promises)
 										}
 										writeTxn = null
 										transactions = null
-										return env.finishBatch()
-//										return continuedWriteTxn.commitAsync(callback) // continue after commit
+										return env.continueBatch()
+										function txnError(error, i) {
+											if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
+												return handleError(error, this, null, writeBatch)
+											}
+											// user exception
+											transactionSetResults[i << 1] = error
+										}
 									}
 									let duration = Date.now() - start
 									this.averageTransactionTime = (this.averageTransactionTime * 3 + duration) / 4
@@ -783,7 +837,7 @@ function open(path, options) {
 										env.batchWrite(operations, results)
 										callback()
 									} else
-										env.batchWrite(operations, results, callback, !!transactions)
+										env.batchWrite(operations, results, callback)
 								} catch (error) {
 									callback(error)
 								}

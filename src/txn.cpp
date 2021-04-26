@@ -31,6 +31,7 @@ TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     this->env = env;
     this->txn = txn;
     this->flags = 0;
+    this->ew = nullptr;
 }
 
 TxnWrap::~TxnWrap() {
@@ -154,28 +155,6 @@ class CommitWorker : public Nan::AsyncWorker {
   private:
     MDB_txn* txn;
 };
-
-NAN_METHOD(TxnWrap::commitAsync) {
-    Nan::HandleScope scope;
-
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-
-    if (!tw->txn) {
-        return Nan::ThrowError("The transaction is already closed.");
-    }
-    Nan::Callback* callback = new Nan::Callback(
-      Local<v8::Function>::Cast(info[0])
-    );
-
-    CommitWorker* worker = new CommitWorker(
-      tw->txn, callback
-    );
-
-    Nan::AsyncQueueWorker(worker);
-    tw->removeFromEnvWrap();
-    tw->txn = nullptr;
-    return;
-}
 
 NAN_METHOD(TxnWrap::abort) {
     Nan::HandleScope scope;
