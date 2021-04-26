@@ -59,14 +59,12 @@ EnvWrap::~EnvWrap() {
 void EnvWrap::cleanupStrayTxns() {
     if (this->currentWriteTxn) {
         mdb_txn_abort(this->currentWriteTxn->txn);
-        this->currentWriteTxn->txn = nullptr;
         this->currentWriteTxn->removeFromEnvWrap();
     }
     while (this->readTxns.size()) {
         TxnWrap *tw = *this->readTxns.begin();
         mdb_txn_abort(tw->txn);
         tw->removeFromEnvWrap();
-        tw->txn = nullptr;
     }
 }
 
@@ -215,14 +213,13 @@ class BatchWorker : public BatchWorkerBase {
                 }
             }
         }
+
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
         if (rc != 0) {
             return SetErrorMessage(mdb_strerror(rc));
         }
-        TxnWrap* tw;
         if (envForTxn) {
-            tw = new TxnWrap(envForTxn->env, txn);
-            envForTxn->currentWriteTxn = tw;
+            envForTxn->currentBatchTxn = txn;
             userCallbackLock = new uv_mutex_t;
             userCallbackCond = new uv_cond_t;
             uv_mutex_init(userCallbackLock);
@@ -300,14 +297,7 @@ class BatchWorker : public BatchWorkerBase {
                             results[i] = BAD_KEY;
                             rc = 0;
                         } else {
-                            if (envForTxn) {
-                                uv_mutex_destroy(userCallbackLock);
-                                uv_cond_destroy(userCallbackCond);
-                                tw->removeFromEnvWrap();
-                                tw->txn = nullptr;
-                            }
-                            mdb_txn_abort(txn);
-                            return SetErrorMessage(mdb_strerror(rc));
+                            goto done;
                         }
                     }
                 }
@@ -322,15 +312,20 @@ class BatchWorker : public BatchWorkerBase {
             }
             i++;
         }
-
+done:
         if (envForTxn) {
             uv_mutex_destroy(userCallbackLock);
             uv_cond_destroy(userCallbackCond);
-            envForTxn->currentWriteTxn = nullptr;
-            tw->removeFromEnvWrap();
-            tw->txn = nullptr;
+            envForTxn->currentBatchTxn = nullptr;
+            if (envForTxn->currentWriteTxn) {
+                TxnWrap* tw = envForTxn->currentWriteTxn;
+                tw->removeFromEnvWrap();
+            }
         }
-        rc = mdb_txn_commit(txn);
+        if (rc)
+            mdb_txn_abort(txn);
+        else
+            rc = mdb_txn_commit(txn);
 
         if (rc != 0) {
             if ((putFlags & 1) > 0) // sync mode

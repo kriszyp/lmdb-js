@@ -223,7 +223,7 @@ function open(path, options) {
 			return this.transactionAsync(execute, true)
 		}
 		transaction(execute, abort) {
-			console.warn('Deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction')
+			console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction')
 			return this.transactionSync(execute, abort)
 		}
 		transactionSync(execute, abort) {
@@ -759,7 +759,7 @@ function open(path, options) {
 											if (asChild) {
 												if (promises) {
 													// must complete any outstanding transactions before proceeding
-													await Promise.all(promises).then(continueTransactions)
+													await Promise.all(promises)
 													promises = null
 												}
 												let childTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)

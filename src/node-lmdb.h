@@ -217,6 +217,8 @@ public:
     MDB_env *env;
     // Current write transaction
     TxnWrap *currentWriteTxn;
+    // Current raw batch transaction
+    MDB_txn *currentBatchTxn;
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
@@ -370,6 +372,10 @@ private:
 
     // Environment wrapper of the current transaction
     EnvWrap *ew;
+    // parent TW, if it is exists
+    TxnWrap *parentTw;
+    // The wrapped object
+    MDB_txn *txn;
     
     // Flags used with mdb_txn_begin
     unsigned int flags;
@@ -384,8 +390,6 @@ public:
     ~TxnWrap();
     // Remove the current TxnWrap from its EnvWrap
     void removeFromEnvWrap();
-    // The wrapped object
-    MDB_txn *txn;
 
     // Constructor (not exposed)
     static NAN_METHOD(ctor);

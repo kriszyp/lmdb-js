@@ -45,7 +45,7 @@ TxnWrap::~TxnWrap() {
 void TxnWrap::removeFromEnvWrap() {
     if (this->ew) {
         if (this->ew->currentWriteTxn == this) {
-            this->ew->currentWriteTxn = nullptr;
+            this->ew->currentWriteTxn = this->parentTw;
         }
         else {
             auto it = std::find(ew->readTxns.begin(), ew->readTxns.end(), this);
@@ -57,6 +57,7 @@ void TxnWrap::removeFromEnvWrap() {
         this->ew->Unref();
         this->ew = nullptr;
     }
+    this->txn = nullptr;
 }
 
 NAN_METHOD(TxnWrap::ctor) {
@@ -64,10 +65,11 @@ NAN_METHOD(TxnWrap::ctor) {
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     int flags = 0;
-    TxnWrap* tw;
-
+    MDB_txn *txn;
+    TxnWrap *parentTw;
     if (info[1]->IsTrue()) {
-        tw = ew->currentWriteTxn;
+        txn = ew->currentBatchTxn;
+        parentTw = nullptr;
     } else {
         if (info[1]->IsObject()) {
             Local<Object> options = Local<Object>::Cast(info[1]);
@@ -76,19 +78,18 @@ NAN_METHOD(TxnWrap::ctor) {
 
             setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
         }
-        
         MDB_txn *parentTxn;
         if (info[2]->IsObject()) {
-            TxnWrap *parentTw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[2]));
+            parentTw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[2]));
             parentTxn = parentTw->txn;
         } else {
             parentTxn = nullptr;
+            parentTw = nullptr;
             // Check existence of current write transaction
             if (0 == (flags & MDB_RDONLY) && ew->currentWriteTxn != nullptr) {
                 return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
             }
         }
-        MDB_txn *txn;
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
         if (rc != 0) {
             if (rc == EINVAL) {
@@ -96,15 +97,17 @@ NAN_METHOD(TxnWrap::ctor) {
             }
             return throwLmdbError(rc);
         }
-        tw = new TxnWrap(ew->env, txn);
-        // Set the current write transaction
-        if (0 == (flags & MDB_RDONLY)) {
-            ew->currentWriteTxn = tw;
-        }
-        else {
-            ew->readTxns.push_back(tw);
-        }
     }
+    TxnWrap* tw = new TxnWrap(ew->env, txn);
+
+    // Set the current write transaction
+    if (0 == (flags & MDB_RDONLY)) {
+        ew->currentWriteTxn = tw;
+    }
+    else {
+        ew->readTxns.push_back(tw);
+    }
+    tw->parentTw = parentTw;
     tw->flags = flags;
     tw->ew = ew;
     tw->ew->Ref();
@@ -124,7 +127,6 @@ NAN_METHOD(TxnWrap::commit) {
 
     int rc = mdb_txn_commit(tw->txn);
     tw->removeFromEnvWrap();
-    tw->txn = nullptr;
 
     if (rc != 0) {
         return throwLmdbError(rc);
@@ -167,7 +169,6 @@ NAN_METHOD(TxnWrap::abort) {
 
     mdb_txn_abort(tw->txn);
     tw->removeFromEnvWrap();
-    tw->txn = nullptr;
 }
 
 NAN_METHOD(TxnWrap::reset) {
