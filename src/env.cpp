@@ -322,6 +322,7 @@ done:
             uv_cond_destroy(userCallbackCond);
             envForTxn->currentBatchTxn = nullptr;
             if (envForTxn->currentWriteTxn) {
+                // if a transaction was wrapped, need to do clean up
                 TxnWrap* tw = envForTxn->currentWriteTxn;
                 tw->removeFromEnvWrap();
             }

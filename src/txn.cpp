@@ -133,31 +133,6 @@ NAN_METHOD(TxnWrap::commit) {
     }
 }
 
-class CommitWorker : public Nan::AsyncWorker {
-  public:
-    CommitWorker(MDB_txn* txn, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback, "lmdb:commit"), txn(txn) {}
-
-    void Execute() {
-        int rc = mdb_txn_commit(txn);
-        if (rc != 0) {
-            SetErrorMessage(mdb_strerror(rc));
-        }
-    }
-
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-
-        callback->Call(1, argv, async_resource);
-    }
-
-  private:
-    MDB_txn* txn;
-};
-
 NAN_METHOD(TxnWrap::abort) {
     Nan::HandleScope scope;
 

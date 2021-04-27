@@ -789,7 +789,7 @@ function open(path, options) {
 															promises = []
 														transactionSetResults[(i << 1) + 1] = result
 														promises.push(result.catch(() => {
-															txnError(error, i)
+															 txnError(error, i)
 														}))
 													} else
 														transactionSetResults[(i << 1) + 1] = result
@@ -803,15 +803,16 @@ function open(path, options) {
 											await Promise.all(promises)
 										}
 										writeTxn = null
-										transactions = null
 										return env.continueBatch(0)
 										function txnError(error, i) {
 											if (error.message.startsWith('MDB_MAP_FULL')) {
 												env.continueBatch(-30792)
+												writeTxn = null
 												return false
 											}
 											if (error.message.startsWith('MDB_MAP_RESIZED')) {
 												env.continueBatch(-30785)
+												writeTxn = null
 												return false
 											}
 											// user exception
@@ -989,7 +990,7 @@ function open(path, options) {
 			}
 			return {
 				saveStructures: (structures, previousLength) => {
-					return this.transaction(() => {
+					return this.transactionAsync(() => {
 						let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)
