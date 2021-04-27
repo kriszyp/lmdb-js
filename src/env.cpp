@@ -172,7 +172,8 @@ const int NOT_FOUND = 2;
 
 BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback)  : Nan::AsyncProgressWorker(callback, "lmdb:batch") {
 }
-void BatchWorkerBase::ContinueBatch() {
+void BatchWorkerBase::ContinueBatch(int rc) {
+    batchRC = rc;
     uv_mutex_lock(userCallbackLock);
     uv_cond_signal(userCallbackCond);
     uv_mutex_unlock(userCallbackLock);
@@ -245,6 +246,9 @@ class BatchWorker : public BatchWorkerBase {
                     executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
                     uv_cond_wait(userCallbackCond, userCallbackLock);
                     uv_mutex_unlock(userCallbackLock);
+                    rc = batchRC;
+                    if (rc)
+                        goto done;
                 }
                 results[i++] = SUCCESSFUL_OPERATION;
                 continue;
@@ -341,7 +345,7 @@ done:
             Nan::True()
         };
         if (callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue()) {
-            ContinueBatch();
+            ContinueBatch(0);
         }
     }
 
@@ -954,7 +958,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
 NAN_METHOD(EnvWrap::continueBatch) {
     EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->batchWorker->ContinueBatch();
+    ew->batchWorker->ContinueBatch(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust());
 }
 
 void EnvWrap::setupExports(Local<Object> exports) {

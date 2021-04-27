@@ -179,9 +179,10 @@ struct action_t {
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
     BatchWorkerBase(Nan::Callback *callback);
-    void ContinueBatch();
+    void ContinueBatch(int rc);
     uv_mutex_t* userCallbackLock;
     uv_cond_t* userCallbackCond;
+    int batchRC;
 };
 
 /*

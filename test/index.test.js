@@ -364,6 +364,24 @@ describe('lmdb-store', function() {
       should.equal(db2.get('key2-async'), 'async test 2');
       should.equal(ranTransaction, true);
     });
+    it.skip('big child transactions', async function() {
+      let ranTransaction
+      db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
+      let errorHandled
+      if (!db.cache) {
+        db.childTransaction(() => {
+          let value
+          for (let i = 0; i < 4; i++) {
+            value += ' test string ' + value
+          }
+          for (let i = 0; i < 4000; i++) {
+            db.put('key' + i, value)
+          }
+        })
+        await db.put('key1',  'test');
+        should.equal(db.get('key1'), 'test');
+      }
+    });
     after(function(done) {
       db.get('key1');
       let iterator = db.getRange({})[Symbol.iterator]()

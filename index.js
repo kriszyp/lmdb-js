@@ -187,6 +187,10 @@ function open(path, options) {
 			}
 		}
 		transactionAsync(transactionFunction, asChild) {
+			if (writeTxn) {
+				// already nested in a transaction, just execute and return
+				return execute()
+			}
 			let lastOperation
 			if (scheduledOperations) {
 				lastOperation = scheduledOperations[scheduledOperations.length - 1]
@@ -227,11 +231,9 @@ function open(path, options) {
 			return this.transactionSync(execute, abort)
 		}
 		transactionSync(execute, abort) {
-			let result
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
-				result = execute()
-				return result
+				return execute()
 			}
 			let txn
 			try {
@@ -775,7 +777,8 @@ function open(path, options) {
 													transactionSetResults[(i << 1) + 1] = result
 												} catch(error) {
 													childTxn.abort()
-													txnError(error, i)
+													if (!txnError(error, i))
+														return
 												}
 											} else {
 												writeTxn = continuedWriteTxn
@@ -791,7 +794,8 @@ function open(path, options) {
 													} else
 														transactionSetResults[(i << 1) + 1] = result
 												} catch(error) {
-													txnError(error, i)
+													if (!txnError(error, i))
+														return
 												}
 											}
 										}
@@ -800,13 +804,19 @@ function open(path, options) {
 										}
 										writeTxn = null
 										transactions = null
-										return env.continueBatch()
+										return env.continueBatch(0)
 										function txnError(error, i) {
-											if (error.message.startsWith('MDB_MAP_FULL') || error.message.startsWith('MDB_MAP_RESIZED')) {
-												return handleError(error, this, null, writeBatch)
+											if (error.message.startsWith('MDB_MAP_FULL')) {
+												env.continueBatch(-30792)
+												return false
+											}
+											if (error.message.startsWith('MDB_MAP_RESIZED')) {
+												env.continueBatch(-30785)
+												return false
 											}
 											// user exception
 											transactionSetResults[i << 1] = error
+											return true
 										}
 									}
 									let duration = Date.now() - start
