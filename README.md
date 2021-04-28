@@ -8,7 +8,7 @@
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Automated database size handling
-* Simpe transaction management
+* Simple transaction management
 * Iterable queries/cursors
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression
@@ -43,8 +43,13 @@ let myStore = open({
 	// any options go here, we can turn on compression like this:
 	compression: true,
 });
-await myStore.put('greeting', { someText: 'Hello, World!' })
+await myStore.put('greeting', { someText: 'Hello, World!' });
 myStore.get('greeting').someText // 'Hello, World!'
+// or
+myStore.transactionAsync(() => {
+	myStore.put('greeting', { someText: 'Hello, World!' });
+	myStore.get('greeting').someText // 'Hello, World!'
+});
 ```
 (see store options below for more options)
 
@@ -93,12 +98,43 @@ This will store the provided value/data at the specified key. If the database is
 
 This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit.
 
-If this is performed inside a transation, the put will be included in the current transaction (synchronously).
+If this is performed inside a transaction, the put will be executed immediately in the current transaction.
 
 ### `store.remove(key, valueOrIfVersion?: number): Promise<boolean>`
 This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
 
-Again, if this is performed inside a transation, the removal will be included in the current transaction (synchronously).
+Again, if this is performed inside a transation, the removal will be included in the current transaction.
+
+### `store.transactionAsync(callback: Function): Promise`
+This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple operations atomically and isolated. Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (without awaiting for returned promise) in the transaction.
+
+The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current even turn, and will be executed in the order they were called.
+
+`transactionAsync` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function. The callback function may also be an asynchronous function that returns a promise, which will delay/defer the commit until the callback's promise is resolved (although other callback functions can proceed to execute while waiting for the promise).
+
+For example:
+```
+let products = open(...);
+// decrement count if above zero
+function buyShoe() {
+	return products.transactionAsync(() => {
+		let shoe = products.get('shoe')
+		// this is performed atomically, so we can guarantee no other processes
+		// modify this entry before we write the new value
+		if (shoe.count > 0) {
+			shoe.count--
+			products.put('shoe', shoe)
+			return true // succeeded
+		}
+		return false // count is zero, no shoes to buy
+	})
+}
+```
+
+Note that `store.transactionAsync(() => store.put(...))` is functionally equivalent to simply calling `store.put(...)`, queuing the put for asynchronous being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a bit less efficient).
+
+### `store.childTransaction(callback: Function): Promise`
+This will run the provided callback in a transaction much like `transactionAsync` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the lmdb-store exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. If the callback function returns a promise this will defer the next operation until this callback finishes. This childTransaction function is not available if caching or useWritemap is enabled.
 
 ### `store.putSync(key, value: Buffer, versionOrOptions?: number | PutOptions): boolean`
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be added to the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
@@ -112,7 +148,7 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.ifNoExists(key, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry does not exist yet.
 
-### `store.transaction(execute: Function)`
+### `store.transactionSync(execute: Function)`
 This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
 ### `store.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
@@ -280,8 +316,6 @@ The following additional option properties are only available when creating the 
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
-* `immediateBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will schedule the asynchronous commit for the immediate next even turn (with setImmediate). The default is 10,000,000 (bytes).
-* `syncBatchThreshold` - This parameter defines a limit on the number of batched bytes in write operations that can be pending for a transaction before ldmb-store will be force an immediate synchronous commit of all pending batched data for the store. This provides a safeguard against too much data being enqueued for asynchronous commit, and excessive memory usage, that can sometimes occur for a large number of continuous `put` calls without waiting for an event turn for the timer to execute. The default is 200,000,000 (bytes).
 
 #### LMDB Flags
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a> (only `noMemInit` is recommended, but others are available for boosting performance):

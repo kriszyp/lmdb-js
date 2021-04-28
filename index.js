@@ -148,8 +148,10 @@ function open(path, options) {
 			this.writes = 0
 			this.transactions = 0
 			this.averageTransactionTime = 5
-			this.syncBatchThreshold = DEFAULT_SYNC_BATCH_THRESHOLD
-			this.immediateBatchThreshold = DEFAULT_IMMEDIATE_BATCH_THRESHOLD
+			if (dbOptions.syncBatchThreshold)
+				console.warn('syncBatchThreshold is no longer supported')
+			if (dbOptions.immediateBatchThreshold)
+				console.warn('immediateBatchThreshold is no longer supported')
 			this.commitDelay = DEFAULT_COMMIT_DELAY
 			Object.assign(this, { // these are the options that are inherited
 				path: options.path,
@@ -186,10 +188,10 @@ function open(path, options) {
 				throw error
 			}
 		}
-		transactionAsync(transactionFunction, asChild) {
+		transactionAsync(callback, asChild) {
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
-				return execute()
+				return callback()
 			}
 			let lastOperation
 			if (scheduledOperations) {
@@ -212,7 +214,7 @@ function open(path, options) {
 				transactionSetIndex = scheduledTransactions.push(transactionSet = []) - 1
 			}
 			let index = (transactionSet.push(asChild ?
-				{asChild, execute: transactionFunction } : transactionFunction) - 1) << 1
+				{asChild, callback } : callback) - 1) << 1
 			return this.scheduleCommit().results.then((results) => {
 				let transactionResults = results.transactionResults[transactionSetIndex]
 				let error = transactionResults[index]
@@ -221,19 +223,19 @@ function open(path, options) {
 				return transactionResults[index + 1]
 			})
 		}
-		childTransaction(execute) {
+		childTransaction(callback) {
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode')
-			return this.transactionAsync(execute, true)
+			return this.transactionAsync(callback, true)
 		}
-		transaction(execute, abort) {
-			console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction')
-			return this.transactionSync(execute, abort)
+		transaction(callback, abort) {
+			console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction. In this future this will always call transactionAsync.')
+			return this.transactionSync(callback, abort)
 		}
-		transactionSync(execute, abort) {
+		transactionSync(callback, abort) {
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
-				return execute()
+				return callback()
 			}
 			let txn
 			try {
@@ -250,7 +252,7 @@ function open(path, options) {
 				}
 				TODO: To reenable forced sequential writes, we need to re-execute the operations if we get an env resize
 				*/
-				return when(execute(), (result) => {
+				return when(callback(), (result) => {
 					try {
 						if (abort) {
 							txn.abort()
@@ -264,13 +266,13 @@ function open(path, options) {
 						if (error.message == 'The transaction is already closed.') {
 							return result
 						}
-						return handleError(error, this, txn, () => this.transaction(execute))
+						return handleError(error, this, txn, () => this.transaction(callback))
 					}
 				}, (error) => {
-					return handleError(error, this, txn, () => this.transaction(execute))
+					return handleError(error, this, txn, () => this.transaction(callback))
 				})
 			} catch(error) {
-				return handleError(error, this, txn, () => this.transaction(execute))
+				return handleError(error, this, txn, () => this.transaction(callback))
 			}
 		}
 		get(id) {
@@ -766,7 +768,7 @@ function open(path, options) {
 												}
 												let childTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)
 												try {
-													let result = userTxn.execute()
+													let result = userTxn.callback()
 													if (result && result.then) {
 														await result
 													}
@@ -876,18 +878,6 @@ function open(path, options) {
 				pendingBatch = {
 					results: whenCommitted,
 					unconditionalResults: whenCommitted.then(() => true) // for returning from non-conditional operations
-				}
-			}
-			if (scheduledOperations && scheduledOperations.bytes >= this.immediateBatchThreshold && runNextBatch) {
-				if (scheduledOperations && scheduledOperations.bytes >= this.syncBatchThreshold) {
-					// past a certain threshold, run it immediately and synchronously
-					let batch = pendingBatch
-					console.warn('Performing synchronous commit in database ' + this.name + ' because over ' + this.syncBatchThreshold + ' bytes were included in one transaction, should run transactions over separate event turns to avoid this or increase syncBatchThreshold')
-					runNextBatch(true)
-					return batch
-				} else if (!runNextBatch.immediate) {
-					let thisNextBatch = runNextBatch
-					runNextBatch.immediate = setImmediate(() => when(currentCommit, () => thisNextBatch()))
 				}
 			}
 			return pendingBatch
