@@ -106,9 +106,9 @@ This will delete the entry at the specified key. This functions like `put`, with
 Again, if this is performed inside a transation, the removal will be included in the current transaction.
 
 ### `store.transactionAsync(callback: Function): Promise`
-This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple operations atomically and isolated. Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (without awaiting for returned promise) in the transaction.
+This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple database operations atomically and isolated (fully [ACID compliant](https://en.wikipedia.org/wiki/ACID)). Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (you can call `get()` or `getRange()` without awaiting for a returned promise) in the transaction.
 
-The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current even turn, and will be executed in the order they were called.
+The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current event turn, and will be executed in the order they were called. It also important to remember that the transaction callback function may be executed more than once if the transaction needs to be restarted due to resizing the database.
 
 `transactionAsync` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function. The callback function may also be an asynchronous function that returns a promise, which will delay/defer the commit until the callback's promise is resolved (although other callback functions can proceed to execute while waiting for the promise).
 
@@ -136,7 +136,7 @@ Note that `store.transactionAsync(() => store.put(...))` is functionally equival
 ### `store.childTransaction(callback: Function): Promise`
 This will run the provided callback in a transaction much like `transactionAsync` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the lmdb-store exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. If the callback function returns a promise this will defer the next operation until this callback finishes. This childTransaction function is not available if caching or useWritemap is enabled.
 
-### `store.putSync(key, value: Buffer, versionOrOptions?: number | PutOptions): boolean`
+### `store.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be added to the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
 ### `store.removeSync(key, valueOrIfVersion?: number): boolean`
