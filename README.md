@@ -55,10 +55,6 @@ myStore.transactionAsync(() => {
 
 Once you have created a store, you can store and retrieve values using keys:
 
-## Upgrade Note
-
-LMDB 1.0RC (reported as 0.9.90) has upgraded their database format (incompatible with LMDB 0.9). lmdb-store 0.8.x uses this new database format and includes an automatic upgrade script that will upgrade an existing legacy database to the new format. To use the automatic upgrade script, you must install the [lmdb-store-0.9](https://www.npmjs.com/package/lmdb-store-0.9) package.
-
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. These primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
 ```
@@ -96,14 +92,14 @@ This will retrieve the the entry at the specified key. The `key` must be a JS va
 ### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
 
-This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit.
+This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit. Once the promise resolves, the transaction will have been fully written to the physical storage medium (durable commit, guaranteed available in the future as far as the OS/physical storage can permit and confirm, even if there is power loss or system crash).
 
 If this is performed inside a transaction, the put will be executed immediately in the current transaction.
 
 ### `store.remove(key, valueOrIfVersion?: number): Promise<boolean>`
 This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
 
-Again, if this is performed inside a transation, the removal will be included in the current transaction.
+Again, if this is performed inside a transation, the removal will be performed in the current transaction.
 
 ### `store.transactionAsync(callback: Function): Promise`
 This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple database operations atomically and isolated (fully [ACID compliant](https://en.wikipedia.org/wiki/ACID)). Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (you can call `get()` or `getRange()` without awaiting for a returned promise) in the transaction.
@@ -129,17 +125,17 @@ function buyShoe() {
 }
 ```
 
-Note that `store.transactionAsync(() => store.put(...))` is functionally equivalent to simply calling `store.put(...)`, queuing the put for asynchronous being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a bit less efficient).
+Note that `store.transactionAsync(() => store.put(...))` is functionally equivalent to simply calling `store.put(...)`, queuing the put for asynchronous being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a little bit less efficient).
 
- Also, the callback function can be an async function (or return a promise), but this is not recommended. If the function returns a promise, this will delay/defer the commit until the callback's promise is resolved. However, while waiting for the callback to finish, other code may execute operations that would end up in the current transaction and may result in a surprising order of operations.
+ Also, the callback function can be an async function (or return a promise), but this is not recommended. If the function returns a promise, this will delay/defer the commit until the callback's promise is resolved. However, while waiting for the callback to finish, other code may execute operations that would end up in the current transaction and may result in a surprising order of operations, and long running transactions are discouraged.
 
 ### `store.childTransaction(callback: Function): Promise`
-This will run the provided callback in a transaction much like `transactionAsync` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the lmdb-store exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. This childTransaction function is not available if caching or useWritemap is enabled.
+This will run the provided callback in a transaction much like `transactionAsync` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the lmdb-store exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. This childTransaction function is not available if caching or `useWritemap` is enabled.
 
-The childTransaction function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
+The `childTransaction` function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
 
 ### `store.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
-This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be added to the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (for the main JS thread) than the `put` operation (often taking multiple milliseconds). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
+This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be performed in the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (often blocking the main JS thread for multiple milliseconds) than the `put` operation (typically consumes a few _microseconds_ on a worker thread). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
 ### `store.removeSync(key, valueOrIfVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`. This returns `true` if there was an existing entry deleted, `false` if there was no matching entry.
@@ -150,8 +146,8 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.ifNoExists(key, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry does not exist yet.
 
-### `store.transactionSync(execute: Function)`
-This will begin synchronous transaction, execute the provided function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The execute function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
+### `store.transactionSync(callback: Function)`
+This will begin a synchronous transaction, executing the provided callback function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The `callback` function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
 ### `store.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
@@ -201,7 +197,7 @@ You can optionally provide a second argument with the same `options` that `getRa
 ### `store.getKeys(options: RangeOptions): Iterable<any>`
 This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
 
-### RangeOptions
+### `RangeOptions`
 Here are the options that can be provided to the range methods (all are optional):
 * `start`: Starting key (will start at beginning of db, if not provided), can be any valid key type (primitive or array of primitives).
 * `end`: Ending key (will finish at end of db, if not provided), can be any valid key type (primitive or array of primitives).
@@ -226,18 +222,25 @@ usersStore.put('some-user', { data: userInfo });
 groupsStore.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and committed in the same transaction in the next event turn.
+Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction:
+```
+rootStore.transactionAsync(() => {
+	usersStore.put('some-user', { data: userInfo });
+	groupsStore.put('some-group', { groupData: moreData });
+});
+```
 
-### getLastVersion(): number
+### `getLastVersion(): number`
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
 
-### close(): void
+### `close(): void`
 This will close the current store. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `store.openDB`), it will close the environment (and child stores will no longer be able to interact with the database).
 
 ### `store.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
 
 ## Concurrency and Versioning
-LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning is the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
+LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
 let myStore = open('my-store', { useVersions: true })
 ```
@@ -256,6 +259,7 @@ myStore.ifVersion('key1', 4, () => {
 	myStore2.put('keyInOtherDb', 'value'); 
 });
 ```
+Asynchronous transactions are also a robust way to handle concurrency with multiple processes and provides a more traditional and flexible mechanism for making atomic ACID-compliant transactional data changes.
 
 ## Shared Structures
 Shared structures are mechanism for storing the structural information about objects stored in database in dedicated entry, outside of individual entries, for reuse across all of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack or CBOR encoding, using the msgpackr or cbor-x package). This is highly recommended when storing structured objects with similiar object structures (including inside of array) in lmdb-store. When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where lmdb-store can store the shared structures. You can use a symbol as a metadata key, as symbols are outside of the range of the standard JS primitive values:
@@ -279,14 +283,14 @@ let myStore = open('my-store', {
 	}
 })
 ```
-Compression is recommended for large databases that may be larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
+Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
 lmdb-store supports caching of entries from stores, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the store `options`.
 
 The weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, and `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
 
-Because asynchronous `put` operations immediately go in the cache (and are pinned in the cache until committed), the caching enabled, `put` values can be retrieved via `get`, immediately and synchronously after the `put` call. Without caching enabled, you need wait for the `put` promise to resolve (indicating it has been committed) before you can access the stored value, but the cache enables the value to be immediately without waiting for the commit to finish:
+Because asynchronous `put` operations immediately go in the cache (and are pinned in the cache until committed), the caching enabled, `put` values can be retrieved via `get`, immediately and synchronously after the `put` call. Without caching enabled, you need wait for the `put` promise to resolve (or use asynchronous transactions) before you can access the stored value, but the cache enables the value to be immediately without waiting for the commit to finish:
 ```
 store.put('hi', 'there');
 store.get('hi'); // can immediately access value without having to await the promise
