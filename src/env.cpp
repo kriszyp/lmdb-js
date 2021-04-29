@@ -191,6 +191,8 @@ class BatchWorker : public BatchWorkerBase {
       putFlags(putFlags),
       keySpace(keySpace),
       envForTxn(envForTxn) {
+        batchRC = 0;
+        currentTxnWrap = nullptr;
     }
 
     ~BatchWorker() {
@@ -244,6 +246,11 @@ class BatchWorker : public BatchWorkerBase {
                         validatedDepth--;
                 } else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
                     uv_mutex_lock(userCallbackLock);
+                    if (batchRC) { // interrupted
+                        uv_mutex_unlock(userCallbackLock);
+                        rc = batchRC;
+                        goto done;
+                    }
                     executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
                     uv_cond_wait(userCallbackCond, userCallbackLock);
                     uv_mutex_unlock(userCallbackLock);
@@ -322,10 +329,9 @@ done:
             uv_mutex_destroy(userCallbackLock);
             uv_cond_destroy(userCallbackCond);
             envForTxn->currentBatchTxn = nullptr;
-            if (envForTxn->currentWriteTxn) {
+            if (currentTxnWrap) {
                 // if a transaction was wrapped, need to do clean up
-                TxnWrap* tw = envForTxn->currentWriteTxn;
-                tw->removeFromEnvWrap();
+                currentTxnWrap->removeFromEnvWrap();
             }
         }
         if (rc)
@@ -336,25 +342,34 @@ done:
         if (rc != 0) {
             if ((putFlags & 1) > 0) // sync mode
                 return Nan::ThrowError(mdb_strerror(rc));
-            else
+            else {
+                if (rc == INTERRUPTED_BATCH)
+                    return SetErrorMessage("Interrupted batch");
                 return SetErrorMessage(mdb_strerror(rc));
+            }
         }
     }
 
     void HandleProgressCallback(const char* data, size_t count) {
         Nan::HandleScope scope;
+        if (batchRC == INTERRUPTED_BATCH) {
+            return;
+        }
         v8::Local<v8::Value> argv[] = {
             Nan::True()
         };
-        if (callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue()) {
+        envForTxn->currentWriteTxn = currentTxnWrap;
+        bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+        currentTxnWrap = envForTxn->currentWriteTxn;
+        envForTxn->currentWriteTxn = nullptr;
+        if (immediateContinue)
             ContinueBatch(0);
-        }
     }
 
     void HandleOKCallback() {
         Nan::HandleScope scope;
         Local<v8::Value> argv[] = {
-            Nan::Null(), 
+            Nan::Null(),
         };
 
         callback->Call(1, argv, async_resource);
@@ -370,6 +385,7 @@ done:
     int putFlags;
     KeySpace* keySpace;
     EnvWrap* envForTxn;
+    TxnWrap* currentTxnWrap;
     friend class DbiWrap;
 };
 

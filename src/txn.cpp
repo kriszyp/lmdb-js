@@ -86,8 +86,14 @@ NAN_METHOD(TxnWrap::ctor) {
             parentTxn = nullptr;
             parentTw = nullptr;
             // Check existence of current write transaction
-            if (0 == (flags & MDB_RDONLY) && (ew->currentWriteTxn != nullptr || ew->currentBatchTxn != nullptr)) {
-                return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
+            if (0 == (flags & MDB_RDONLY)) {
+                if (ew->currentWriteTxn != nullptr)
+                    return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
+                if (ew->currentBatchTxn != nullptr) {
+                    auto batchWorker = ew->batchWorker;
+                    if (batchWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
+                        batchWorker->ContinueBatch(INTERRUPTED_BATCH);
+                }
             }
         }
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);

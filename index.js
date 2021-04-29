@@ -854,6 +854,9 @@ function open(path, options) {
 									//console.log('did batch', (duration) + 'ms', name, operations.length/*map(o => o[1].toString('binary')).join(',')*/)
 									resetReadTxn()
 									if (error) {
+										if (error.message == 'Interrupted batch')
+											// if the batch was interrupted by a sync transaction request we just have to restart it
+											return writeBatch()
 										try {
 											// see if we can recover from recoverable error (like full map with a resize)
 											handleError(error, this, null, writeBatch)
@@ -1007,7 +1010,7 @@ function open(path, options) {
 			}
 			return {
 				saveStructures: (structures, previousLength) => {
-					return this.transactionAsync(() => {
+					return this.transactionSync(() => {
 						let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)

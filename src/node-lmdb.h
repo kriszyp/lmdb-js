@@ -176,6 +176,8 @@ struct action_t {
     };
 };
 
+const int INTERRUPTED_BATCH = 9999;
+
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
     BatchWorkerBase(Nan::Callback *callback);

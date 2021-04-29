@@ -384,7 +384,33 @@ describe('lmdb-store', function() {
         })
         should.equal(db.get('key3'), 'test-async-child-txn');
       })
-    })
+    });
+    it('async transaction with interrupting sync transaction', async function() {
+      let order = []
+      let ranSyncTxn
+      db.transactionAsync(() => {
+        console.log('a1');
+        order.push('a1');
+        db.put('async1', 'test');
+        if (!ranSyncTxn) {
+          ranSyncTxn = true;
+          setImmediate(() => db.transactionSync(() => {
+            order.push('s1');
+            db.put('inside-sync', 'test');
+          }));
+        }
+      });
+      db.put('outside-txn', 'test');
+      await db.transactionAsync(() => {
+        order.push('a2');
+        db.put('async2', 'test');
+      });
+      order.should.deep.equal(['a1', 's1', 'a1', 'a2']);
+      should.equal(db.get('async1'), 'test');
+      should.equal(db.get('outside-txn'), 'test');
+      should.equal(db.get('inside-sync'), 'test');
+      should.equal(db.get('async2'), 'test');
+    });
     it.skip('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
