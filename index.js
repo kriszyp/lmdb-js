@@ -36,6 +36,7 @@ function open(path, options) {
 	let committingWrites
 	let scheduledTransactions
 	let scheduledOperations
+	let transactionWarned
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed, cursorTxns = []
 	let renewId = 1
 	if (typeof path == 'object' && !options) {
@@ -226,11 +227,37 @@ function open(path, options) {
 		childTransaction(callback) {
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode')
+			if (writeTxn) {
+				let parentTxn = writeTxn
+				let childTxn = writeTxn = env.beginTxn(null, parentTxn)
+				try {
+					return when(callback(), (result) => {
+						writeTxn = parentTxn
+						if (result === ABORT)
+							childTxn.abort()
+						else
+							childTxn.commit()
+						return result
+					}, (error) => {
+						writeTxn = parentTxn
+						childTxn.abort()
+						throw error
+					})
+				} catch(error) {
+					writeTxn = parentTxn
+					childTxn.abort()
+					throw error
+				}
+			}
 			return this.transactionAsync(callback, true)
 		}
 		transaction(callback, abort) {
-			console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction. In this future this will always call transactionAsync.')
-			return this.transactionSync(callback, abort)
+			if (!transactionWarned) {
+				console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction. In this future this will always call transactionAsync.')
+				transactionWarned = true
+			}
+			let result = this.transactionSync(callback, abort)
+			return abort ? ABORT : result
 		}
 		transactionSync(callback, abort) {
 			if (writeTxn) {
@@ -409,7 +436,7 @@ function open(path, options) {
 						return SYNC_PROMISE_FAIL
 					}
 				}
-				this.putSync(id, value, version)
+				putSync.call(this, id, value, version)
 				return SYNC_PROMISE_RESULT
 			}
 			if (this.encoder)
@@ -504,7 +531,7 @@ function open(path, options) {
 			}
 			this.writes++
 			if (writeTxn) {
-				if (this.removeSync(id, ifVersionOrValue) === false)
+				if (removeSync.call(this, id, ifVersionOrValue) === false)
 					return SYNC_PROMISE_FAIL
 				return SYNC_PROMISE_RESULT
 			}
@@ -993,6 +1020,9 @@ function open(path, options) {
 			}
 		}
 	}
+	// if caching class overrides putSync, don't want to double call the caching code
+	const putSync = LMDBStore.prototype.putSync
+	const removeSync = LMDBStore.prototype.removeSync
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)

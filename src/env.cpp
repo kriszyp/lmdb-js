@@ -44,6 +44,7 @@ uv_mutex_t* EnvWrap::initMutex() {
 EnvWrap::EnvWrap() {
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
+    this->currentBatchTxn = nullptr;
 }
 
 EnvWrap::~EnvWrap() {

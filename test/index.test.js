@@ -9,7 +9,7 @@ let should = chai.should();
 let expect = chai.expect;
 let spawn = require('child_process').spawn;
 
-let { open, getLastVersion } = require('..');
+let { open, getLastVersion, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
 
 describe('lmdb-store', function() {
@@ -364,6 +364,27 @@ describe('lmdb-store', function() {
       should.equal(db2.get('key2-async'), 'async test 2');
       should.equal(ranTransaction, true);
     });
+    it('child transaction in sync transaction', async function() {
+      if (db.cache)
+        return
+      await db.transactionSync(async () => {
+        db.put('key3', 'test-sync-txn');
+        db.childTransaction(() => {
+          db.put('key3', 'test-child-txn');
+          return ABORT;
+        })
+        should.equal(db.get('key3'), 'test-sync-txn');
+        db.childTransaction(() => {
+          db.put('key3', 'test-child-txn');
+        })
+        should.equal(db.get('key3'), 'test-child-txn');
+        await db.childTransaction(async () => {
+          await new Promise(resolve => setTimeout(resolve, 1))
+          db.put('key3', 'test-async-child-txn');
+        })
+        should.equal(db.get('key3'), 'test-async-child-txn');
+      })
+    })
     it.skip('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction

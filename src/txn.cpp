@@ -86,7 +86,7 @@ NAN_METHOD(TxnWrap::ctor) {
             parentTxn = nullptr;
             parentTw = nullptr;
             // Check existence of current write transaction
-            if (0 == (flags & MDB_RDONLY) && ew->currentWriteTxn != nullptr) {
+            if (0 == (flags & MDB_RDONLY) && (ew->currentWriteTxn != nullptr || ew->currentBatchTxn != nullptr)) {
                 return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
             }
         }
