@@ -641,7 +641,7 @@ function open(path, options) {
 								cursor.close()
 							} catch(error) { }
 						}
-						return handleError(error, this, txn, () => iterable[Symbol.iterator]())
+						return handleError(error, this, txn, resetCursor)
 					}
 				}
 				resetCursor()
