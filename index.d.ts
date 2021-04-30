@@ -184,7 +184,11 @@ declare namespace lmdb {
 		**/
 		getStats(): {}
 		/**
-		* Make a snapshot copy of the current database at the indicated path.
+		* Explicitly force the read transaction to reset to the latest snapshot/version of the database
+		**/
+		resetReadTxn(): void
+		/**
+		* Make a snapshot copy of the current database at the indicated path
 		**/
 		backup(path: string, compact: boolean): Promise<void>
 		/**
