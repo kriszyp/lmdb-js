@@ -389,7 +389,6 @@ describe('lmdb-store', function() {
       let order = []
       let ranSyncTxn
       db.transactionAsync(() => {
-        console.log('a1');
         order.push('a1');
         db.put('async1', 'test');
         if (!ranSyncTxn) {

@@ -36,6 +36,11 @@ let result
 
 function setData(deferred) {
   result = store.put((c += 357) % total, data)
+  /*let key = (c += 357) % total
+  if (key % 2 == 0)
+    result = store.put(key, data)
+  else
+    result = store.transactionAsync(() => store.put(key, data))*/
   if (c % 1500 == 0) {
       setImmediate(() => deferred.resolve(), 0)
   } else
@@ -53,7 +58,7 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 var inspector = require('inspector')
-//inspector.open(9330, null, true)
+//inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -95,6 +100,7 @@ cleanup(async function (err) {
     suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
+      console.log({result})
       if (result && result.then) {
         let start = Date.now()
         result.then(() => {
@@ -108,7 +114,7 @@ cleanup(async function (err) {
         var numCPUs = require('os').cpus().length;
         console.log('Now will run benchmark across ' + numCPUs + ' threads');
         for (var i = 0; i < numCPUs; i++) {
-          var worker = new Worker(__filename);
+          //var worker = new Worker(__filename);
           //var worker = fork();
         }
     });

@@ -92,7 +92,7 @@ NAN_METHOD(TxnWrap::ctor) {
                 if (ew->currentBatchTxn != nullptr) {
                     auto batchWorker = ew->batchWorker;
                     if (batchWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
-                        batchWorker->ContinueBatch(INTERRUPTED_BATCH);
+                        batchWorker->ContinueBatch(INTERRUPTED_BATCH, false);
                 }
             }
         }

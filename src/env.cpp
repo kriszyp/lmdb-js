@@ -171,10 +171,15 @@ const int SUCCESSFUL_OPERATION = 0;
 const int BAD_KEY = 3;
 const int NOT_FOUND = 2;
 
-BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback)  : Nan::AsyncProgressWorker(callback, "lmdb:batch") {
+BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)  : Nan::AsyncProgressWorker(callback, "lmdb:batch"),
+      envForTxn(envForTxn) {
+        currentTxnWrap = nullptr;    
 }
-void BatchWorkerBase::ContinueBatch(int rc) {
+void BatchWorkerBase::ContinueBatch(int rc, bool hasStarted) {
     batchRC = rc;
+    if (hasStarted)
+        currentTxnWrap = envForTxn->currentWriteTxn;
+    envForTxn->currentWriteTxn = nullptr;
     uv_mutex_lock(userCallbackLock);
     uv_cond_signal(userCallbackCond);
     uv_mutex_unlock(userCallbackLock);
@@ -183,16 +188,14 @@ void BatchWorkerBase::ContinueBatch(int rc) {
 class BatchWorker : public BatchWorkerBase {
   public:
     BatchWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, EnvWrap* envForTxn, uint8_t* results, Nan::Callback *callback)
-      : BatchWorkerBase(callback),
+      : BatchWorkerBase(callback, envForTxn),
       env(env),
       actionCount(actionCount),
       results(results),
       actions(actions),
       putFlags(putFlags),
-      keySpace(keySpace),
-      envForTxn(envForTxn) {
+      keySpace(keySpace) {
         batchRC = 0;
-        currentTxnWrap = nullptr;
     }
 
     ~BatchWorker() {
@@ -360,10 +363,8 @@ done:
         };
         envForTxn->currentWriteTxn = currentTxnWrap;
         bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
-        currentTxnWrap = envForTxn->currentWriteTxn;
-        envForTxn->currentWriteTxn = nullptr;
         if (immediateContinue)
-            ContinueBatch(0);
+            ContinueBatch(0, true);
     }
 
     void HandleOKCallback() {
@@ -384,8 +385,6 @@ done:
     action_t* actions;
     int putFlags;
     KeySpace* keySpace;
-    EnvWrap* envForTxn;
-    TxnWrap* currentTxnWrap;
     friend class DbiWrap;
 };
 
@@ -976,7 +975,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
 NAN_METHOD(EnvWrap::continueBatch) {
     EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->batchWorker->ContinueBatch(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust());
+    ew->batchWorker->ContinueBatch(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust(), true);
 }
 
 void EnvWrap::setupExports(Local<Object> exports) {

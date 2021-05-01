@@ -66,7 +66,7 @@ console.log('opened')
 			let actionTime
 			let cpuStart = process.cpuUsage()
 
-			lmdb.transaction(() => {
+			lmdb.transactionSync(() => {
 				for (let j = 0; j < 1000; j++) {
 					let buffer = Buffer.allocUnsafe(4)
 					buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))

@@ -180,11 +180,13 @@ const int INTERRUPTED_BATCH = 9999;
 
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
-    BatchWorkerBase(Nan::Callback *callback);
-    void ContinueBatch(int rc);
+    BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
+    void ContinueBatch(int rc, bool hasStarted);
     uv_mutex_t* userCallbackLock;
     uv_cond_t* userCallbackCond;
     int batchRC;
+    EnvWrap* envForTxn;
+    TxnWrap* currentTxnWrap;
 };
 
 /*
