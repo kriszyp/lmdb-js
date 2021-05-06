@@ -24,7 +24,7 @@
         "src/dbi.cpp",
         "src/cursor.cpp"
       ],
-      "defines": ["MDB_FIXEDSIZE"],
+      "defines": ["MDB_MAXKEYSIZE=1792"],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
         "dependencies/lmdb/libraries/liblmdb",
@@ -70,12 +70,12 @@
             "libraries": ["ntdll.lib"]
         }],
         ["use_robust=='true'", {
-          "defines": ["MDB_FIXEDSIZE", "MDB_PARANOID", "MDB_USE_ROBUST"],
+          "defines": ["MDB_MAXKEYSIZE=1792", "MDB_USE_ROBUST"],
         }],
         ["use_vl32=='true'", {
           "conditions": [
             ["target_arch=='ia32'", {
-                "defines": ["MDB_FIXEDSIZE", "MDB_PARANOID", "MDB_VL32"]
+                "defines": ["MDB_MAXKEYSIZE=1792", "MDB_VL32"]
               }]
             ]
         }],

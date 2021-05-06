@@ -50,7 +50,7 @@ function open(path, options) {
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
-		mapSize: 0x40000, // default map size of 256KB
+		mapSize: 0x10000000000000, // default map size limit of 4 exabytes
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
@@ -926,8 +926,8 @@ function open(path, options) {
 			}
 			return this.scheduleCommit().unconditionalResults
 		}
-		backup(path, compact) {
-			return new Promise((resolve, reject) => env.copy(path, compact, (error) => {
+		backup(path) {
+			return new Promise((resolve, reject) => env.copy(path, true, (error) => {
 				if (error) {
 					reject(error)
 				} else {

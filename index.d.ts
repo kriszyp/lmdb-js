@@ -190,7 +190,7 @@ declare namespace lmdb {
 		/**
 		* Make a snapshot copy of the current database at the indicated path
 		**/
-		backup(path: string, compact: boolean): Promise<void>
+		backup(path: string): Promise<void>
 		/**
 		* Close the current database.
 		**/

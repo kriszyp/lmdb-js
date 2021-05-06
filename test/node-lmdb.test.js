@@ -296,7 +296,7 @@ describe('Node.js LMDB Bindings', function() {
       });
       txn.putUtf8(dbi, 'hello', 'world');
       txn.commit();
-      env.copy(testBackupDirPath, (error) => {
+      env.copy(testBackupDirPath, true, (error) => {
         done(error)
       });
 //      console.log('sent copy')

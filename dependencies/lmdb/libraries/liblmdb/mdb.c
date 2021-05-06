@@ -2559,11 +2559,12 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 {
 	MDB_ID2 mid;
 	int rc;
-
+#ifndef _WIN32	/* With Windows we always write pages with WriteFile so we still need a dirty list */
 	if (txn->mt_flags & MDB_TXN_WRITEMAP) {
 		txn->mt_flags |= MDB_TXN_DIRTY;
 		return;
 	}
+#endif
 	mid.mid = mp->mp_pgno;
 	mid.mptr = mp;
 	rc = mdb_mid2l_insert(txn->mt_u.dirty_list, &mid);
@@ -3274,8 +3275,13 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_loose_count = 0;
 		if (env->me_flags & MDB_WRITEMAP) {
 			txn->mt_workid = txn->mt_txnid;
+#ifdef _WIN32	/* With Windows we always write pages with WriteFile so we still need a dirty list */
+			txn->mt_dirty_room = MDB_IDL_UM_MAX;
+#else
 			txn->mt_dirty_room = 1;
-		} else {
+#endif
+		} else
+		{
 			txn->mt_workid = (txn->mt_txnid | MDB_PGTXNID_FLAGMASK) + 1;
 			txn->mt_dirty_room = MDB_IDL_UM_MAX;
 		}
@@ -4936,7 +4942,7 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-		//munmap(env->me_map, env->me_mapsize);
+		munmap(env->me_map, env->me_mapsize);
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
