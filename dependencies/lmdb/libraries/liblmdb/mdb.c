@@ -3979,11 +3979,31 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	for (n=1; n<=pagecount; n++) {
 		dp = dl[n].mptr;
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
+		pgno = dl[n].mid;
 	}
 	n = 0;
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
 
 #ifdef _WIN32
+	/* <lmdb-store addition> */
+	DWORD file_high;
+	size_t file_size = GetFileSize(fd, &file_high);
+	file_size += (size_t) file_high << 32;
+	if (pgno * psize >= file_size) {
+		file_size = ((size_t) ((1.04 + 32 / sqrt(pgno + 128)) * pgno * psize / 0x40000 + 1)) * 0x40000;
+		LONG high_position = file_size >> 32;
+		fprintf(stderr, "Set file pointer: %u\n", file_size);
+		if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+			fprintf(stderr, "SetFilePointer failed\n");
+		} else {
+			rc = SetEndOfFile(fd);
+			if (!rc) {
+				rc = ErrCode();
+				fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+			}
+		}
+	}
+	/* </lmdb-store addition> */
 	if (pagecount - keep >= env->me_ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */

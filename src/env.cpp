@@ -481,6 +481,7 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
     setFlagFromValue(&flags, MDB_NOLOCK, "unsafeNoLock", false, options);
+    setFlagFromValue(&flags, MDB_REMAP_CHUNKS, "remapChunks", false, options);
 
     if (flags & MDB_NOLOCK) {
         fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
@@ -488,7 +489,6 @@ NAN_METHOD(EnvWrap::open) {
 
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
-    flags |= MDB_REMAP_CHUNKS;
     #ifdef _WIN32
         if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC)) {
             fprintf(stderr, "Writemaps are currently disabled on Windows doing to issues with syncing\n");
