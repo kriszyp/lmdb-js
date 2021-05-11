@@ -18,7 +18,10 @@ suite('performance', function() {
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
 	const lmdb = openLmdb('tests/db/test-lmdb.mdb', {
-		keyIsBuffer:true,
+		keyIsBuffer: true,
+	})
+	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
+		encoding: 'binary',
 	})
 console.log('opened')
 	suiteSetup(() => {
@@ -58,7 +61,7 @@ console.log('opened')
 		}
 		return level.batch(operations)
 	})*/
-	test.only('lmdb-write', () => {
+	test('lmdb-write', () => {
 		let last
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
@@ -104,12 +107,36 @@ console.log('opened')
 			})
 		}
 	})
-	test('lmdb-read-write', () => {
-		console.log('lmdb.get', lmdb.get.length)
-		for (let i = 0; i < 300; i++) {
-			lmdb.putSync(Buffer.from((i % 1000).toString()), sampleBuffer)
-			lmdb.get(Buffer.from((i % 1000).toString()))
+	test.only('lmdb-random-read-write', async function() {
+		this.timeout(100000)
+		let start = Date.now()
+		let position = 0
+		let getPosition = 0
+		let txnCount = 0
+		let hits = 0, misses = 0
+		for (let i = 0; i < 1000000; i++) {
+			if (Math.random() < 0.05) {
+				position++
+				let key = position % 2 == 0 ? position :  position - Math.floor(position *Math.exp(Math.random() * -4))
+				let promise = db2.put(key, sampleBuffer)
+				if (position % 100 == 0) {
+					await (position % 1000 == 0 ? promise : waitForImmediate())
+					promise.then(() => getPosition = key)
+					if (position % 10000 == 0) {
+						console.log('Time elapsed', { position, getPosition }, Date.now() - start, {hits, misses})
+					}
+				}
+			}
+			else {
+				let key = getPosition - Math.floor(getPosition *Math.exp(Math.random() * -4))
+				let result = db2.get(key)
+				if (result)
+					hits++
+				else
+					misses++
+			}
 		}
+		console.log('total time',  Date.now() - start, {hits, misses})
 	})
 	test.skip('lmdb-batch', function() {
 		let start = Date.now()
@@ -128,3 +155,6 @@ console.log('opened')
 		return promise.then(() => console.log('after commit', Date.now() -start))
 	})
 })
+function waitForImmediate() {
+	return new Promise(resolve => { setImmediate(resolve) })
+}
