@@ -225,8 +225,8 @@ declare namespace lmdb {
 		maxDbs?: number
 		/** Set a longer delay (in milliseconds) to wait longer before committing writes to increase the number of writes per transaction (higher latency, but more efficient) **/
 		commitDelay?: number
-		immediateBatchThreshold?: number
-		syncBatchThreshold?: number
+		mapSize?: number
+		remapChunks?: boolean
 		/** This provides a small performance boost (when not using useWritemap) for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database. This is recommended unless there are concerns of database files being accessible. */
 		noMemInit?: boolean
 		/** Use writemaps, this improves performance by reducing malloc calls, but it is possible for a stray pointer to corrupt data. */

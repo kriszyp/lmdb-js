@@ -50,8 +50,8 @@ function open(path, options) {
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
-		remapChunks: true,
-		mapSize: 0x10000000000000, // default map size limit of 4 exabytes
+		remapChunks: !options || !options.mapSize,
+		mapSize: 0x10000000000000, // default map size limit of 4 exabytes when using remapChunks
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
