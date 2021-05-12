@@ -7,6 +7,7 @@ const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
+const os = require('os')
 setGetLastVersion(getLastVersion)
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -45,13 +46,21 @@ function open(path, options) {
 	}
 	let extension = extname(path)
 	let name = basename(path, extension)
+	let is32Bit = os.arch().endsWith('32')
+	let isWindows = os.platform() == 'win32'
+	let remapChunks = (options && options.mapSize) ?
+		(is32Bit && options.mapSize > 0x100000000) || // larger than fits in address space, must use dynamic maps
+		(isWindows && options.mapSize > 0x10000000) : // for larger maps, windows tends to performs better with dynamic maps, but otherwise can safely use static maps
+		is32Bit || isWindows // without a known map size, we default to being able to handle large data correctly/well
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
-		remapChunks: !options || !options.mapSize,
-		mapSize: 0x10000000000000, // default map size limit of 4 exabytes when using remapChunks
+		remapChunks,
+		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
+		// make it super huge. Otherwise we just use the default LMDB mapping of 1MB
+		mapSize: remapChunks && 0x10000000000000,
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
@@ -88,6 +97,14 @@ function open(path, options) {
 		} else
 			throw error
 	}
+/*	let filePath = noSubdir ? path : (path + '/data.mdb')
+	if (fs.statSync(filePath).size == env.info().mapSize && !options.remapChunks) {
+		// if the file size is identical to the map size, that means the OS is taking full disk space for
+		// mapping and we need to revert back to remapChunks
+		env.close()
+		options.remapChunks = true
+		env.open(options)
+	}*/
 	env.readerCheck() // clear out any stale entries
 	function renewReadTxn() {
 		if (readTxn)
@@ -1058,10 +1075,11 @@ function open(path, options) {
 			const oldSize = env.info().mapSize
 			const newSize = error.message.startsWith('MDB_MAP_FULL') ?
 				Math.floor(((1.08 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x100000) * 0x100000 : // increase size, more rapidly at first, and round to nearest 1 MB
-				0 // for resized notifications, we simply want to match the existing size of other processes
+				Math.pow(2, (Math.round(Math.log2(oldSize)) + 1)) // for resized notifications, we try to align to doubling each time
 			for (const store of stores) {
 				store.emit('remap')
 			}
+			console.log('resize', name, newSize)
 			env.resize(newSize)
 			return retry()
 			return result

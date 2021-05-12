@@ -71,14 +71,7 @@
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_MAXKEYSIZE=1792", "MDB_USE_ROBUST"],
-        }],
-        ["use_vl32=='true'", {
-          "conditions": [
-            ["target_arch=='ia32'", {
-                "defines": ["MDB_MAXKEYSIZE=1792", "MDB_VL32"]
-              }]
-            ]
-        }],
+        }]
       ],
     }
   ]

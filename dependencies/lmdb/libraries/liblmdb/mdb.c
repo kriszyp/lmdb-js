@@ -2757,9 +2757,14 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	i = 0;
 	pgno = txn->mt_next_pgno;
 	if (pgno + num >= env->me_maxpg) {
+	/* <lmdb-store addition> */
+		if (env->me_flags & MDB_WRITEMAP) {
+	/* </lmdb-store addition> */
 			DPUTS("DB size maxed out");
 			rc = MDB_MAP_FULL;
 			goto fail;
+		}
+		goto search_done;
 	}
 #if defined(_WIN32)
 	if (!MDB_REMAPPING(env->me_flags) && !(env->me_flags & MDB_RDONLY)) {
@@ -3979,13 +3984,13 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	for (n=1; n<=pagecount; n++) {
 		dp = dl[n].mptr;
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
-		pgno = dl[n].mid;
 	}
-	n = 0;
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
-
-#ifdef _WIN32
 	/* <lmdb-store addition> */
+	pgno = dl[pagecount].mid + dl_nump[pagecount];
+	n = 0;
+	
+#ifdef _WIN32
 	DWORD file_high;
 	size_t file_size = GetFileSize(fd, &file_high);
 	file_size += (size_t) file_high << 32;
@@ -4961,7 +4966,9 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
+	/* <lmdb-store change> 
 		munmap(env->me_map, env->me_mapsize);
+	 	</lmdb-store change> */
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);

@@ -469,6 +469,13 @@ NAN_METHOD(EnvWrap::open) {
         return throwLmdbError(rc);
     }
 
+    // Parse the pageSize option
+    // default is 4096
+    rc = applyUint32Setting<int>(&mdb_env_set_pagesize, ew->env, options, 4096, "pageSize");
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
+
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
     setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
