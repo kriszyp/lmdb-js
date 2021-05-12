@@ -19,12 +19,12 @@ suite('performance', function() {
 console.log('opening')
 	const lmdb = openLmdb('tests/db/test-lmdb.mdb', {
 		keyIsBuffer: true,
-		mapSize: 0x10000,
+//		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
-		mapSize: 0x10000,
+//		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
 console.log('opened')
