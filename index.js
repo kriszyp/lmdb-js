@@ -51,7 +51,7 @@ function open(path, options) {
 	let remapChunks = (options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) || // larger than fits in address space, must use dynamic maps
 		(isWindows && options.mapSize > 0x10000000) : // for larger maps, windows tends to performs better with dynamic maps, but otherwise can safely use static maps
-		is32Bit || isWindows // without a known map size, we default to being able to handle large data correctly/well
+		(is32Bit || isWindows) // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
@@ -59,8 +59,9 @@ function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
-		// make it super huge. Otherwise we just use the default LMDB mapping of 1MB
-		mapSize: remapChunks && 0x10000000000000,
+		// make it super huge.
+		mapSize: remapChunks ? 0x10000000000000 :
+			0x20000, // Otherwise we start small with 128KB
 	}, options)
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
@@ -73,7 +74,7 @@ function open(path, options) {
 				defaultCompression = options.compression = new Compression({
 					threshold: 1000,
 					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-				})
+				})	
 		} else
 			options.compression = new Compression(Object.assign({
 				threshold: 1000,
