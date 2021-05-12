@@ -983,7 +983,6 @@ function open(path, options) {
 			})
 		}
 		deleteDB() {
-			//console.log('clearing db', name)
 			try {
 				this.db.drop({
 					justFreePages: false,
@@ -994,7 +993,6 @@ function open(path, options) {
 			}
 		}
 		clear() {
-			//console.log('clearing db', name)
 			try {
 				this.db.drop({
 					justFreePages: true,
@@ -1080,7 +1078,6 @@ function open(path, options) {
 			for (const store of stores) {
 				store.emit('remap')
 			}
-			console.log('resize', name, newSize)
 			env.resize(newSize)
 			return retry()
 			return result
