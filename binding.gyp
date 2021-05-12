@@ -2,7 +2,6 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
-      'node_version': '<!(node -e "console.log(process.versions.node.split(\'.\')[0])")',
       "build_v8_with_gn": "false"
   },
   "targets": [
