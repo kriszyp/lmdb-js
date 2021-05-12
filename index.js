@@ -1078,9 +1078,12 @@ function open(path, options) {
 			for (const store of stores) {
 				store.emit('remap')
 			}
-			env.resize(newSize)
+			try {
+				env.resize(newSize)
+			} catch(error) {
+				throw new Error(error.message + ' trying to set map size to ' + newSize)
+			}
 			return retry()
-			return result
 		}
 		error.message = 'In database ' + name + ': ' + error.message
 		throw error
