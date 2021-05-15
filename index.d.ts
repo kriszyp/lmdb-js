@@ -114,13 +114,12 @@ declare namespace lmdb {
 		* @param action The function to execute within the transaction
 		* @param abort If true will abort the transaction when completed
 		**/
-		transactionSync<T>(action: () => T, abort?: boolean): T
+		transactionSync<T>(action: () => T): T
 		/**
 		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
-		* @param abort If true will abort the transaction when completed
 		**/
 		transactionAsync<T>(action: () => T): T
 		/**

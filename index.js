@@ -285,8 +285,8 @@ function open(path, options) {
 		}
 		transactionSync(callback, abort) {
 			if (writeTxn) {
-				// already nested in a transaction, just execute and return
-				return callback()
+				// already nested in a transaction, execute as child transaction and return
+				return childTransaction(callback)
 			}
 			let txn
 			try {
@@ -305,9 +305,9 @@ function open(path, options) {
 				*/
 				return when(callback(), (result) => {
 					try {
-						if (abort) {
+						if (result === ABORT)
 							txn.abort()
-						} else {
+						else {
 							txn.commit()
 							resetReadTxn()
 						}
