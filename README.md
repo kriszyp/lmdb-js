@@ -7,9 +7,9 @@
 `lmdb-store` is an ultra-fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
-* Automated database size handling
 * Simple transaction management
 * Iterable queries/cursors
+* Automated database growth
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression
 * And ridiculously fast and efficient:
@@ -305,6 +305,13 @@ While caching can improve performance, LMDB itself is extremely fast, and for sm
 
 If you are using caching with a database that has versions enabled, you should use the `getEntry` method to get the `value` and `version`, as `getLastVersion` will not be reliable (only returns the version when the data is accessed from the database).
 
+### Asynchronous Transaction Ordering
+Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transactionAsync` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _before_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by enabling the `strictAsyncOrder` option (setting to `true`).
+
+However, `strictAsyncOrder` comes with a couple of caveats. First, because lmdb-store executes asynchronous single operations on a separate transaction thread, but asynchronous transaction callbacks must execute on the main JS thread, if there is a lot of frequent switching back and forth between single operations and callbacks, this can significantly reduce performance since it requires substantial thread switching and event queuing.
+
+Second, if there are asynchronous operations that have been performed, and asynchronous transaction callbacks that waiting to be called, and a synchronous transaction is executed (`transactionSync`), this must interrupt and split the current asynchronous transaction batch, so the synchronous transaction can be executed (the synchronous transaction can not block to wait for the asynchronous if there are outstanding callbacks to execute as part of that async transaction, as that would result in a deadlock). This can potentially create an exception to the general rule that all asynchronous operations that are performed in one event turn will be part of the same transaction. Of course each single asynchronous transaction callback is still guaranteed to execute in a single atomic transaction (and calls to `transactionSync` _during_ a asynchronous transaction callback are simply executed as part of the current transaction).
+
 ### Store Options
 The open method can be used to create the main database/environment with the following signature:
 `open(path, options)` or `open(options)`
@@ -321,7 +328,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 * `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
 * `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
-
+* `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
@@ -359,13 +366,15 @@ The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/do
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
 
-On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 db environments with a write transaction). If you need more concurrent write transactions, you can increase your  maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Or you can build with POSIX semaphores, using `npm install --use_posix_semaphores=true`. However POSIX semaphores are not robust semaphores, which again means that if you are running multiple processes and one crashes in the midst of transaction, it may block other processes from starting a transaction on that environment. Or try to minimize overlapping transactions and/or reduce the number of db environments (and use more databases within each environment).
+On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 db environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Otherwise don't use the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of db environments (and use more databases within each environment).
 
 ## License
 
 `lmdb-store` is licensed under the terms of the MIT license.
 
 Also note that LMDB: Symas (the authors of LMDB) [offers commercial support of LMDB](https://symas.com/lightning-memory-mapped-database/).
+
+This project has no funding needs. If you feel inclined to donate, donate to one of Kris's favorite charities like [Innovations in Poverty Action](https://www.poverty-action.org/) or any of [GiveWell](https://givewell.org)'s recommended charities.
 
 ## Related Projects
 

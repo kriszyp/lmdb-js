@@ -176,7 +176,7 @@ function open(path, options) {
 			Object.assign(this, { // these are the options that are inherited
 				path: options.path,
 				encoding: options.encoding,
-				asyncTransactionInOrder: options.asyncTransactionInOrder,
+				strictAsyncOrder: options.strictAsyncOrder,
 			}, dbOptions)
 			if (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor') {
 				this.encoder = this.decoder = new (this.encoding == 'cbor' ? require('cbor-x').Encoder : require('msgpackr').Encoder)
@@ -215,7 +215,7 @@ function open(path, options) {
 				return callback()
 			}
 			let lastOperation
-			let inOrder = this.asyncTransactionInOrder
+			let inOrder = this.strictAsyncOrder
 			if (scheduledOperations) {
 				lastOperation = scheduledOperations[inOrder ? scheduledOperations.length - 1 : 0]
 			} else {

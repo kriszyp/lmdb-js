@@ -48,7 +48,7 @@ describe('lmdb-store', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
-        asyncTransactionInOrder: true,
+        strictAsyncOrder: true,
         compression: {
           threshold: 256,
         },
@@ -387,7 +387,7 @@ describe('lmdb-store', function() {
       })
     });
     it('async transaction with interrupting sync transaction in order', async function() {
-      db.asyncTransactionInOrder = true
+      db.strictAsyncOrder = true
       let order = []
       let ranSyncTxn
       db.transactionAsync(() => {
@@ -413,7 +413,7 @@ describe('lmdb-store', function() {
       should.equal(db.get('async2'), 'test');
     });
     it('async transaction with interrupting sync transaction default order', async function() {
-      db.asyncTransactionInOrder = false
+      db.strictAsyncOrder = false
       let order = []
       let ranSyncTxn
       db.transactionAsync(() => {
