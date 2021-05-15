@@ -176,7 +176,8 @@ struct action_t {
     };
 };
 
-const int INTERRUPTED_BATCH = 9999;
+const int INTERRUPT_BATCH = 9998;
+const int RESUME_BATCH = 9999;
 
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
@@ -184,7 +185,8 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
     void ContinueBatch(int rc, bool hasStarted);
     uv_mutex_t* userCallbackLock;
     uv_cond_t* userCallbackCond;
-    int batchRC;
+    int interruptionStatus;
+    bool finishedProgress;
     EnvWrap* envForTxn;
     TxnWrap* currentTxnWrap;
 };

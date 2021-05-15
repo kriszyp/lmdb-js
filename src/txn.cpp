@@ -90,16 +90,17 @@ NAN_METHOD(TxnWrap::ctor) {
                 if (ew->currentWriteTxn != nullptr)
                     return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
                 if (ew->currentBatchTxn != nullptr) {
+                    //fprintf(stderr, "begin sync txn");
                     auto batchWorker = ew->batchWorker;
                     if (batchWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
-                        batchWorker->ContinueBatch(INTERRUPTED_BATCH, false);
+                        batchWorker->ContinueBatch(INTERRUPT_BATCH, false);
                 }
             }
         }
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
         if (rc != 0) {
             if (rc == EINVAL) {
-                return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see node-lmdb docs for more info)");
+                return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)");
             }
             return throwLmdbError(rc);
         }
@@ -132,6 +133,13 @@ NAN_METHOD(TxnWrap::commit) {
     }
 
     int rc = mdb_txn_commit(tw->txn);
+    if (tw->parentTw == nullptr && tw->ew->currentBatchTxn != nullptr) {
+        //fprintf(stderr, "committed sync txn");
+
+        auto batchWorker = tw->ew->batchWorker;
+        if (batchWorker) // notify the batch worker that we are done, and it can proceed
+            batchWorker->ContinueBatch(RESUME_BATCH, false);
+    }
     tw->removeFromEnvWrap();
 
     if (rc != 0) {

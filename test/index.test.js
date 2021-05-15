@@ -1,5 +1,4 @@
 'use strict';
-//var inspector = require('inspector'); inspector.open(9330, null, true)
 
 let path = require('path');
 let mkdirp = require('mkdirp');
@@ -11,6 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
+//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -48,6 +48,7 @@ describe('lmdb-store', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
+        asyncTransactionInOrder: true,
         compression: {
           threshold: 256,
         },
@@ -385,7 +386,8 @@ describe('lmdb-store', function() {
         should.equal(db.get('key3'), 'test-async-child-txn');
       })
     });
-    it('async transaction with interrupting sync transaction', async function() {
+    it('async transaction with interrupting sync transaction in order', async function() {
+      db.asyncTransactionInOrder = true
       let order = []
       let ranSyncTxn
       db.transactionAsync(() => {
@@ -404,7 +406,33 @@ describe('lmdb-store', function() {
         order.push('a2');
         db.put('async2', 'test');
       });
-      order.should.deep.equal(['a1', 's1', 'a1', 'a2']);
+      order.should.deep.equal(['a1', 's1', 'a2']);
+      should.equal(db.get('async1'), 'test');
+      should.equal(db.get('outside-txn'), 'test');
+      should.equal(db.get('inside-sync'), 'test');
+      should.equal(db.get('async2'), 'test');
+    });
+    it('async transaction with interrupting sync transaction default order', async function() {
+      db.asyncTransactionInOrder = false
+      let order = []
+      let ranSyncTxn
+      db.transactionAsync(() => {
+        order.push('a1');
+        db.put('async1', 'test');
+        if (!ranSyncTxn) {
+          ranSyncTxn = true;
+          setImmediate(() => db.transactionSync(() => {
+            order.push('s1');
+            db.put('inside-sync', 'test');
+          }));
+        }
+      });
+      db.put('outside-txn', 'test');
+      await db.transactionAsync(() => {
+        order.push('a2');
+        db.put('async2', 'test');
+      });
+      order.should.deep.equal(['a1', 'a2', 's1']);
       should.equal(db.get('async1'), 'test');
       should.equal(db.get('outside-txn'), 'test');
       should.equal(db.get('inside-sync'), 'test');

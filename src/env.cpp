@@ -176,11 +176,13 @@ BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)  :
         currentTxnWrap = nullptr;    
 }
 void BatchWorkerBase::ContinueBatch(int rc, bool hasStarted) {
-    batchRC = rc;
-    if (hasStarted)
+    if (hasStarted) {
+        finishedProgress = true;
         currentTxnWrap = envForTxn->currentWriteTxn;
+    }
     envForTxn->currentWriteTxn = nullptr;
     uv_mutex_lock(userCallbackLock);
+    interruptionStatus = rc;
     uv_cond_signal(userCallbackCond);
     uv_mutex_unlock(userCallbackLock);
 }
@@ -195,7 +197,7 @@ class BatchWorker : public BatchWorkerBase {
       actions(actions),
       putFlags(putFlags),
       keySpace(keySpace) {
-        batchRC = 0;
+        interruptionStatus = 0;
     }
 
     ~BatchWorker() {
@@ -249,17 +251,35 @@ class BatchWorker : public BatchWorkerBase {
                         validatedDepth--;
                 } else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
                     uv_mutex_lock(userCallbackLock);
-                    if (batchRC) { // interrupted
-                        uv_mutex_unlock(userCallbackLock);
-                        rc = batchRC;
-                        goto done;
-                    }
+                    finishedProgress = false;
                     executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
-                    uv_cond_wait(userCallbackCond, userCallbackLock);
+waitForCallback:
+                    if (interruptionStatus == 0)
+                        uv_cond_wait(userCallbackCond, userCallbackLock);
+                    if (interruptionStatus != 0 && !finishedProgress) {
+                        if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
+                            rc = mdb_txn_commit(txn);
+                            if (rc == 0) {
+                                // wait again until the sync transaction is completed
+                                uv_cond_wait(userCallbackCond, userCallbackLock);
+                                // now restart our transaction
+                                rc = mdb_txn_begin(env, nullptr, 0, &txn);
+                                envForTxn->currentBatchTxn = txn;
+                                interruptionStatus = 0;
+                                uv_cond_signal(userCallbackCond);
+                                goto waitForCallback;
+                            }
+                            if (rc != 0) {
+                                uv_mutex_unlock(userCallbackLock);
+                                return SetErrorMessage(mdb_strerror(rc));
+                            }
+                        } else {
+                            uv_mutex_unlock(userCallbackLock);
+                            rc = interruptionStatus;
+                            goto done;
+                        }
+                    }
                     uv_mutex_unlock(userCallbackLock);
-                    rc = batchRC;
-                    if (rc)
-                        goto done;
                 }
                 results[i++] = SUCCESSFUL_OPERATION;
                 continue;
@@ -346,8 +366,6 @@ done:
             if ((putFlags & 1) > 0) // sync mode
                 return Nan::ThrowError(mdb_strerror(rc));
             else {
-                if (rc == INTERRUPTED_BATCH)
-                    return SetErrorMessage("Interrupted batch");
                 return SetErrorMessage(mdb_strerror(rc));
             }
         }
@@ -355,8 +373,12 @@ done:
 
     void HandleProgressCallback(const char* data, size_t count) {
         Nan::HandleScope scope;
-        if (batchRC == INTERRUPTED_BATCH) {
-            return;
+        if (interruptionStatus != 0) {
+            uv_mutex_lock(userCallbackLock);
+            if (interruptionStatus != 0)
+                uv_cond_wait(userCallbackCond, userCallbackLock);
+            // aquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
+            uv_mutex_unlock(userCallbackLock);
         }
         v8::Local<v8::Value> argv[] = {
             Nan::True()
@@ -381,7 +403,6 @@ done:
     int actionCount;
     uint8_t* results;
     int resultIndex = 0;
-    bool hasResultsArray = false;
     action_t* actions;
     int putFlags;
     KeySpace* keySpace;

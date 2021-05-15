@@ -66,24 +66,12 @@
           ],
         }],
         ["OS=='mac'", {
-          "conditions": [
-            ["node_module_version >= 93", {
-              "xcode_settings": {
-                "OTHER_CPLUSPLUSFLAGS" : ["-std=c++14"],
-                "MACOSX_DEPLOYMENT_TARGET": "10.7",
-                "OTHER_LDFLAGS": ["-std=c++14"],
-                "CLANG_CXX_LIBRARY": "libc++"
-              },
-            },
-            {
-              "xcode_settings": {
-                "OTHER_CPLUSPLUSFLAGS" : ["-std=c++11"],
-                "MACOSX_DEPLOYMENT_TARGET": "10.7",
-                "OTHER_LDFLAGS": ["-std=c++11"],
-                "CLANG_CXX_LIBRARY": "libc++"
-              }
-            }]
-          ]
+          "xcode_settings": {
+            "OTHER_CPLUSPLUSFLAGS" : ["-std=c++14"],
+            "MACOSX_DEPLOYMENT_TARGET": "10.7",
+            "OTHER_LDFLAGS": ["-std=c++14"],
+            "CLANG_CXX_LIBRARY": "libc++"
+          }
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
