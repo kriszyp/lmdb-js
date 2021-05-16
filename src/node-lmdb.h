@@ -189,6 +189,7 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
     bool finishedProgress;
     EnvWrap* envForTxn;
     TxnWrap* currentTxnWrap;
+    ~BatchWorkerBase();
 };
 
 /*

@@ -173,7 +173,11 @@ const int NOT_FOUND = 2;
 
 BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)  : Nan::AsyncProgressWorker(callback, "lmdb:batch"),
       envForTxn(envForTxn) {
-        currentTxnWrap = nullptr;    
+    currentTxnWrap = nullptr;    
+}
+BatchWorkerBase::~BatchWorkerBase() {
+    uv_mutex_destroy(userCallbackLock);
+    uv_cond_destroy(userCallbackCond);    
 }
 void BatchWorkerBase::ContinueBatch(int rc, bool hasStarted) {
     if (hasStarted) {
@@ -349,8 +353,6 @@ waitForCallback:
         }
 done:
         if (envForTxn) {
-            uv_mutex_destroy(userCallbackLock);
-            uv_cond_destroy(userCallbackCond);
             envForTxn->currentBatchTxn = nullptr;
             if (currentTxnWrap) {
                 // if a transaction was wrapped, need to do clean up
