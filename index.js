@@ -49,7 +49,7 @@ function open(path, options) {
 	let name = basename(path, extension)
 	let is32Bit = os.arch().endsWith('32')
 	let isWindows = os.platform() == 'win32'
-	let remapChunks = (options && options.mapSize) ?
+	let remapChunks = false/*(options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) || // larger than fits in address space, must use dynamic maps
 		(isWindows && options.mapSize > 0x10000000) : // for larger maps, windows tends to performs better with dynamic maps, but otherwise can safely use static maps
 		(is32Bit || isWindows) // without a known map size, we default to being able to handle large data correctly/well*/
@@ -1084,7 +1084,7 @@ function open(path, options) {
 			const oldSize = env.info().mapSize
 			const newSize = error.message.startsWith('MDB_MAP_FULL') ?
 				Math.floor(((1.08 + 3000 / Math.sqrt(oldSize)) * oldSize) / 0x100000) * 0x100000 : // increase size, more rapidly at first, and round to nearest 1 MB
-				Math.pow(2, (Math.round(Math.log2(oldSize)) + 1)) // for resized notifications, we try to align to doubling each time
+				oldSize + 0x2000//Math.pow(2, (Math.round(Math.log2(oldSize)) + 1)) // for resized notifications, we try to align to doubling each time
 			for (const store of stores) {
 				store.emit('remap')
 			}
