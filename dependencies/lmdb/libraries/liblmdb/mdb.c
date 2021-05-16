@@ -3312,10 +3312,14 @@ mdb_txn_renew0(MDB_txn *txn)
 	if (env->me_flags & MDB_FATAL_ERROR) {
 		DPUTS("environment had fatal error, must shutdown!");
 		rc = MDB_PANIC;
-	} else if (env->me_maxpg < txn->mt_next_pgno) {
-		fprintf(stderr,"resized %u %u\n", env->me_maxpg * env->me_psize, txn->mt_next_pgno * env->me_psize);
-		rc = MDB_MAP_RESIZED;
 	} else {
+		/* <lmdb-store change> */
+		if (env->me_maxpg < txn->mt_next_pgno) {
+			// need to resize map
+			size_t new_size = ((size_t) (2 * (txn->mt_next_pgno) * env->me_psize / 0x40000 + 1)) * 0x40000;
+			mdb_env_set_mapsize(env, new_size);
+		}
+		/* </lmdb-store change> */
 		return MDB_SUCCESS;
 	}
 	mdb_txn_end(txn, new_notls /*0 or MDB_END_SLOT*/ | MDB_END_FAIL_BEGIN);
