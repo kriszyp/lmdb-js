@@ -520,7 +520,7 @@ NAN_METHOD(EnvWrap::open) {
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
     #ifdef _WIN32
-        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC)) {
+        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) && !(flags & MDB_REMAP_CHUNKS)) {
             fprintf(stderr, "Writemaps are currently disabled on Windows doing to issues with syncing\n");
             flags &= ~MDB_WRITEMAP;
         }

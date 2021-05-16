@@ -30,7 +30,6 @@ const ITERATOR_DONE = { done: true, value: undefined }
 let env
 let defaultCompression
 let lastSize
-let writeMapWarned
 exports.open = open
 exports.ABORT = ABORT
 function open(path, options) {
@@ -89,10 +88,6 @@ function open(path, options) {
 		console.info('Removed', path)
 	}
 	let useWritemap = options.useWritemap
-	if (useWritemap && !writeMapWarned) {
-		console.warn('Using useWritemap flag is deprecated due to numerous complications and limitations')
-		writeMapWarned = true
-	}
 	try {
 		env.open(options)
 	} catch(error) {

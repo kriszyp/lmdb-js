@@ -26,7 +26,7 @@ LMDB supports multiple modes of transactions, including disabling of file sync'i
 
 `lmdb-store` supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows `lmdb-store` to scale to handle concurrent execution across many processes or threads while maintaining data integrity.
 
-When an `lmdb-store` is created, an LMDB environment/database is created, and starts with a default DB size of 256KB. LMDB itself uses a fixed size, but `lmdb-store` detects whenever the database goes beyond the current size, and automatically increases the size of DB, and re-executes the write operations after resizing. With this, you do not have to make any estimates of database size, the databases automatically grow as needed (as you would expect from a database!)
+When an `lmdb-store` is created, an LMDB environment/database is created, and starts with a default DB size of 128KB. `lmdb-store` detects whenever the database goes beyond the current size, and automatically grows the size of database as needed (as you would expect from a database!)
 
 `lmdb-store` provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
@@ -105,8 +105,6 @@ Again, if this is performed inside a transation, the removal will be performed i
 This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple database operations atomically and isolated (fully [ACID compliant](https://en.wikipedia.org/wiki/ACID)). Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (you can call `get()` or `getRange()` without awaiting for a returned promise) in the transaction.
 
 The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current event turn, and will be executed in the order they were called. `transactionAsync` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function.
-
-It also important to remember that the transaction callback function may be executed more than once if the transaction needs to be restarted due to resizing the database. Also, any of the writes (`put` or `remove`) operations may throw a `MDB_MAP_FULL` error during the transaction. This is a normal part of the resizing process, and the transaction callback function should allow these errors to propagate (either don't catch the error, or rethrow it), and lmdb-store will automatically handle resizing and restarting the transaction and callbacks.
 
 For example:
 ```
