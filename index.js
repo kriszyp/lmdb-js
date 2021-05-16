@@ -49,7 +49,7 @@ function open(path, options) {
 	let name = basename(path, extension)
 	let is32Bit = os.arch().endsWith('32')
 	let isWindows = os.platform() == 'win32'
-	let remapChunks = false/*(options && options.mapSize) ?
+	let remapChunks = (options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) || // larger than fits in address space, must use dynamic maps
 		(isWindows && options.mapSize > 0x10000000) : // for larger maps, windows tends to performs better with dynamic maps, but otherwise can safely use static maps
 		(is32Bit || isWindows) // without a known map size, we default to being able to handle large data correctly/well*/
