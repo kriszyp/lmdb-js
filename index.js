@@ -32,6 +32,7 @@ let defaultCompression
 let lastSize
 exports.open = open
 exports.ABORT = ABORT
+let abortedNonChildTransactionWarn
 function open(path, options) {
 	let env = new Env()
 	let committingWrites
@@ -288,7 +289,12 @@ function open(path, options) {
 				if (!useWritemap && !this.cache)
 					// already nested in a transaction, execute as child transaction (if possible) and return
 					return this.childTransaction(callback)
-				return callback() // else just run in current transaction
+				let result = callback() // else just run in current transaction
+				if (result == ABORT && !abortedNonChildTransactionWarn) {
+					console.warn('Can not abort a transaction inside another transaction with ' + (this.cache ? 'caching enabled' : 'useWritemap enabled'))
+					abortedNonChildTransactionWarn = true
+				}
+				return result
 			}
 			let txn
 			try {

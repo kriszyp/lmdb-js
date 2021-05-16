@@ -149,6 +149,10 @@ This executes a block of conditional writes, and conditionally execute any puts 
 ### `store.transactionSync(callback: Function)`
 This will begin a synchronous transaction, executing the provided callback function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The `callback` function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
+The callback may return the lmdb-store exported `ABORT` constant, or throw an error from the callback, to abort the transaction for this callback.
+
+If this is called inside an existing transaction and child transactions are supported (no write maps or caching), this will execute as a child transaction (and can be aborted), otherwise it will simply execute as part of the existing transaction (in which case it can't be aborted).
+
 ### `store.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
