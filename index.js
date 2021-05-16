@@ -289,9 +289,11 @@ function open(path, options) {
 			return abort ? ABORT : result
 		}
 		transactionSync(callback, abort) {
-			if (writeTxn && !useWritemap) {
-				// already nested in a transaction, execute as child transaction and return
-				return childTransaction(callback)
+			if (writeTxn) {
+				if (!useWritemap && !this.cache)
+					// already nested in a transaction, execute as child transaction (if possible) and return
+					return this.childTransaction(callback)
+				return callback() // else just run in current transaction
 			}
 			let txn
 			try {
