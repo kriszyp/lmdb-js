@@ -48,7 +48,7 @@ describe('lmdb-store', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
-        strictAsyncOrder: true,
+        //asyncTransactionOrder: 'strict',
         compression: {
           threshold: 256,
         },
@@ -385,32 +385,6 @@ describe('lmdb-store', function() {
         })
         should.equal(db.get('key3'), 'test-async-child-txn');
       })
-    });
-    it('async transaction with interrupting sync transaction in order', async function() {
-      db.strictAsyncOrder = true
-      let order = []
-      let ranSyncTxn
-      db.transactionAsync(() => {
-        order.push('a1');
-        db.put('async1', 'test');
-        if (!ranSyncTxn) {
-          ranSyncTxn = true;
-          setImmediate(() => db.transactionSync(() => {
-            order.push('s1');
-            db.put('inside-sync', 'test');
-          }));
-        }
-      });
-      db.put('outside-txn', 'test');
-      await db.transactionAsync(() => {
-        order.push('a2');
-        db.put('async2', 'test');
-      });
-      order.should.deep.equal(['a1', 's1', 'a2']);
-      should.equal(db.get('async1'), 'test');
-      should.equal(db.get('outside-txn'), 'test');
-      should.equal(db.get('inside-sync'), 'test');
-      should.equal(db.get('async2'), 'test');
     });
     it('async transaction with interrupting sync transaction default order', async function() {
       db.strictAsyncOrder = false

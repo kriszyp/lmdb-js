@@ -41,7 +41,7 @@
     "weak-lru-cache": "^0.4.1"
   },
   "optionalDependencies": {
-    "msgpackr": "^1.2.10"
+    "msgpackr": "^1.3.2"
   },
   "devDependencies": {
     "@types/node": "latest",

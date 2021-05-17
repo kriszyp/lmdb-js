@@ -104,7 +104,7 @@ declare namespace lmdb {
 		**/
 		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
 		/**
-		* @deprecated Since v1.3.0, this will be replaced with the functionality of asyncTransaction in a future release
+		* @deprecated Since v1.3.0, this will be replaced with the functionality of transactionAsync in a future release
 		**/
 		transaction<T>(action: () => T): T
 		/**
@@ -225,6 +225,7 @@ declare namespace lmdb {
 		maxDbs?: number
 		/** Set a longer delay (in milliseconds) to wait longer before committing writes to increase the number of writes per transaction (higher latency, but more efficient) **/
 		commitDelay?: number
+		asyncTransactionOrder?: 'after' | 'before' | 'strict'
 		mapSize?: number
 		pageSize?: number
 		remapChunks?: boolean

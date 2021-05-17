@@ -38,6 +38,7 @@ function open(path, options) {
 	let committingWrites
 	let scheduledTransactions
 	let scheduledOperations
+	let asyncTransactionAfter = true, asyncTransactionStrictOrder
 	let transactionWarned
 	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed, cursorTxns = []
 	let renewId = 1
@@ -64,6 +65,12 @@ function open(path, options) {
 		mapSize: remapChunks ? 0x10000000000000 :
 			0x20000, // Otherwise we start small with 128KB
 	}, options)
+	if (options.asyncTransactionOrder == 'before')
+		asyncTransactionAfter = false
+	else if (options.asyncTransactionOrder == 'strict') {
+		asyncTransactionStrictOrder = true
+		asyncTransactionAfter = false
+	}
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		mkdirpSync(options.noSubdir ? dirname(path) : path)
 	if (options.compression) {
@@ -216,9 +223,10 @@ function open(path, options) {
 				return callback()
 			}
 			let lastOperation
-			let inOrder = this.strictAsyncOrder
+			let after, strictOrder
 			if (scheduledOperations) {
-				lastOperation = scheduledOperations[inOrder ? scheduledOperations.length - 1 : 0]
+				lastOperation = asyncTransactionAfter ? scheduledOperations.appendAsyncTxn :
+					scheduledOperations[asyncTransactionStrictOrder ? scheduledOperations.length - 1 : 0]
 			} else {
 				scheduledOperations = []
 				scheduledOperations.bytes = 0
@@ -230,9 +238,11 @@ function open(path, options) {
 				transactionSet = scheduledTransactions[transactionSetIndex]
 			} else {
 				// for now we signify transactions as a true
-				if (inOrder)
+				if (asyncTransactionAfter) // by default we add a flag to put transactions after other operations
+					scheduledOperations.appendAsyncTxn = true
+				else if (asyncTransactionStrictOrder)
 					scheduledOperations.push(true)
-				else // put all the async transaction at the beginning by default
+				else // in before mode, we put all the async transaction at the beginning
 					scheduledOperations.unshift(true)
 				if (!scheduledTransactions) {
 					scheduledTransactions = []
@@ -796,6 +806,9 @@ function open(path, options) {
 							// operations to perform, collect them as an array and start doing them
 							let operations = scheduledOperations || []
 							let transactions = scheduledTransactions
+							if (operations.appendAsyncTxn) {
+								operations.push(true)
+							}
 							scheduledOperations = null
 							scheduledTransactions = null
 							const writeBatch = () => {
