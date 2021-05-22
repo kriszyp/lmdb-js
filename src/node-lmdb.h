@@ -79,6 +79,13 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
+#ifdef _WIN32
+#define lowerMemPriority(ew) if (ew->winMemoryPriority < 5) lowerMemoryPriority(ew->winMemoryPriority)
+#define restoreMemPriority(ew) if (ew->winMemoryPriority < 5) restoreMemoryPriority()
+#else
+#define lowerMemPriority(ew)
+#define restoreMemPriority(ew)
+#endif
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 bool valueToMDBKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace);
@@ -90,6 +97,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
+NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 
@@ -227,6 +235,8 @@ public:
     TxnWrap *currentWriteTxn;
     // Current raw batch transaction
     MDB_txn *currentBatchTxn;
+    // What memory priority for accessing LMDB data in windows
+    int winMemoryPriority;    
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
@@ -387,7 +397,6 @@ private:
     
     // Flags used with mdb_txn_begin
     unsigned int flags;
-    
 
     friend class CursorWrap;
     friend class DbiWrap;

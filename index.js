@@ -49,9 +49,9 @@ function open(path, options) {
 	let extension = extname(path)
 	let name = basename(path, extension)
 	let is32Bit = os.arch().endsWith('32')
-	let remapChunks = (options && options.mapSize) ?
+	let remapChunks = (options && options.remapChunks) || ((options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
-		is32Bit // without a known map size, we default to being able to handle large data correctly/well*/
+		is32Bit) // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),

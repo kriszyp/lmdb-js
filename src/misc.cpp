@@ -46,6 +46,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "setLastVersion", setLastVersion);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
+    Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
@@ -330,6 +331,15 @@ void setLastVersion(double version) {
 }
 NAN_METHOD(setLastVersion) {
     lastVersion = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+}
+
+NAN_METHOD(setWinMemoryLimit) {
+    #if defined(_WIN32)
+    SIZE_T  dwMin = 204800, dwMax = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+    if (!SetProcessWorkingSetSize(GetCurrentProcess(), dwMin, dwMax)) {
+        return throwLmdbError(GetLastError());
+    }
+    #endif
 }
 
 void throwLmdbError(int rc) {

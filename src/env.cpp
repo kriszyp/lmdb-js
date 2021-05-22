@@ -45,6 +45,7 @@ EnvWrap::EnvWrap() {
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
     this->currentBatchTxn = nullptr;
+    this->winMemoryPriority = 5;
 }
 
 EnvWrap::~EnvWrap() {
@@ -240,7 +241,7 @@ class BatchWorker : public BatchWorkerBase {
         }
         int validatedDepth = 0;
         int conditionDepth = 0;
-
+        lowerMemPriority(envForTxn);
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
             int actionType = action->actionType;
@@ -363,7 +364,7 @@ done:
             mdb_txn_abort(txn);
         else
             rc = mdb_txn_commit(txn);
-
+        restoreMemPriority(envForTxn);
         if (rc != 0) {
             if ((putFlags & 1) > 0) // sync mode
                 return Nan::ThrowError(mdb_strerror(rc));
@@ -498,6 +499,9 @@ NAN_METHOD(EnvWrap::open) {
     if (rc != 0) {
         return throwLmdbError(rc);
     }
+    Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
+    if (winMemoryPriorityLocal->IsNumber())
+        ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway

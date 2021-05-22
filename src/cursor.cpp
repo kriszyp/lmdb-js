@@ -173,6 +173,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     tempKey.mv_size = cw->key.mv_size;
     tempKey.mv_data = cw->key.mv_data;
 
+    lowerMemPriority(cw->dw->ew);
     // Call LMDB
     int rc = mdb_cursor_get(cw->cursor, &(cw->key), &(cw->data), op);
 
@@ -187,9 +188,11 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
     }
 
     if (rc == MDB_NOTFOUND) {
+        restoreMemPriority(cw->dw->ew);
         return info.GetReturnValue().Set(Nan::Undefined());
     }
     else if (rc != 0) {
+        restoreMemPriority(cw->dw->ew);
         return throwLmdbError(rc);
     }
 
@@ -218,6 +221,7 @@ Nan::NAN_METHOD_RETURN_TYPE CursorWrap::getCommon(
             }
         }
     }
+    restoreMemPriority(cw->dw->ew);
     //fprintf(stdout, "freeData");
 
     if (freeData) {

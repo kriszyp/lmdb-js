@@ -1762,6 +1762,11 @@ typedef struct MDB_crypto_funcs {
 typedef MDB_crypto_funcs *(MDB_crypto_hooks)(void);
 /**	@} */
 
+#if defined(_WIN32)
+int lowerMemoryPriority(int priority);
+int restoreMemoryPriority();
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -1775,3 +1780,4 @@ typedef MDB_crypto_funcs *(MDB_crypto_hooks)(void);
 */
 
 #endif /* _LMDB_H_ */
+

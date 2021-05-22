@@ -1653,7 +1653,7 @@ struct MDB_env {
 	pthread_mutex_t	me_rpmutex;	/**< control access to #me_rpages */
 	MDB_sum_func *me_sumfunc;	/**< checksum env data */
 	unsigned short me_sumsize;	/**< size of per-page checksums */
-#define MDB_ERPAGE_SIZE	16384
+#define MDB_ERPAGE_SIZE	1024
 #define MDB_ERPAGE_MAX	(MDB_ERPAGE_SIZE-1)
 	unsigned short me_esumsize;	/**< size of per-page authentication data */
 	unsigned int me_rpcheck;
@@ -2759,7 +2759,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	if (pgno + num >= env->me_maxpg) {
 	/* <lmdb-store addition> */
 		size_t new_size = ((size_t) (2 * (pgno + num) * env->me_psize / 0x40000 + 1)) * 0x40000;
-//		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
+		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
 		rc = mdb_env_set_mapsize(env, new_size);
 	/* </lmdb-store addition> */
 	}
@@ -12120,5 +12120,24 @@ utf8_to_utf16(const char *src, MDB_name *dst, int xtra)
 		return MDB_SUCCESS;
 	}
 }
+static int initializeMemoryPriority = 1;
+static MEMORY_PRIORITY_INFORMATION lowMemPriority;
+static MEMORY_PRIORITY_INFORMATION normalMemPriority;
+int lowerMemoryPriority(int priority) {
+	if (initializeMemoryPriority) {
+		GetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+		fprintf(stderr, "initialized memory %u\n", normalMemPriority.MemoryPriority);
+		ZeroMemory(&lowMemPriority, sizeof(lowMemPriority));
+		lowMemPriority.MemoryPriority = priority;
+		initializeMemoryPriority = 0;
+	}
+	return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
+}
+int restoreMemoryPriority() {
+	return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+}
+
+
 #endif /* defined(_WIN32) */
 /** @} */
+
