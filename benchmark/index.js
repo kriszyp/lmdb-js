@@ -1,5 +1,5 @@
 'use strict';
-const { Worker, isMainThread, parentPort } = require('worker_threads');
+const { Worker, isMainThread, parentPort, threadId } = require('worker_threads');
 const { isMaster, fork } = require('cluster');
 
 var crypto = require('crypto');
@@ -16,7 +16,7 @@ const { open } = require('..');
 var env;
 var dbi;
 var keys = [];
-var total = 10000;
+var total = isMainThread ? 100 : 100000;
 var store
 let data = {
   name: 'test',
@@ -31,7 +31,7 @@ let data = {
   more: 'string',
 }
 
-var c = 0;
+var c = (threadId || 0) * 10000;
 let result
 
 function setData(deferred) {
@@ -41,8 +41,8 @@ function setData(deferred) {
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  if (c % 1500 == 0) {
-      setImmediate(() => deferred.resolve(), 0)
+  if (c % 100 == 0) {
+      setImmediate(() => deferred.resolve())
   } else
     deferred.resolve()
 }
@@ -114,8 +114,8 @@ cleanup(async function (err) {
         var numCPUs = require('os').cpus().length;
         console.log('Now will run benchmark across ' + numCPUs + ' threads');
         for (var i = 0; i < numCPUs; i++) {
-          //var worker = new Worker(__filename);
-          //var worker = fork();
+          var worker = new Worker(__filename);
+          var worker = fork();
         }
     });
 
