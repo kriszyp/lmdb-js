@@ -83,6 +83,11 @@ console.log('opened')
 					}
 					actionTime = Date.now() - start
 				})
+				for (let i = 0; i < 1000; i++) {
+						let buffer = Buffer.allocUnsafe(4)
+						buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
+					global.test = lmdb.get(buffer)
+				}
 			}
 			let duration = Date.now() - start
 			if (duration > 10) {
@@ -119,7 +124,7 @@ console.log('opened')
 		let txnCount = 0
 		let hits = 0, misses = 0
 		let cpuStart = process.cpuUsage()
-		for (let i = 0; i < 100000; i++) {
+		for (let i = 0; i < 1000000; i++) {
 			if (Math.random() < 0.05) {
 				position++
 				let key = position % 2 == 0 ? position :  position - Math.floor(position *Math.exp(Math.random() * -4))

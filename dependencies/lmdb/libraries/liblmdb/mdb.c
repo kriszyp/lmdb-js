@@ -2759,7 +2759,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	if (pgno + num >= env->me_maxpg) {
 	/* <lmdb-store addition> */
 		size_t new_size = ((size_t) (2 * (pgno + num) * env->me_psize / 0x40000 + 1)) * 0x40000;
-		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
+//		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
 		rc = mdb_env_set_mapsize(env, new_size);
 	/* </lmdb-store addition> */
 	}
@@ -12126,15 +12126,16 @@ static MEMORY_PRIORITY_INFORMATION normalMemPriority;
 int lowerMemoryPriority(int priority) {
 	if (initializeMemoryPriority) {
 		GetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
-		fprintf(stderr, "initialized memory %u\n", normalMemPriority.MemoryPriority);
+//		fprintf(stderr, "initialized memory %u setting to %u\n", normalMemPriority.MemoryPriority, priority);
 		ZeroMemory(&lowMemPriority, sizeof(lowMemPriority));
 		lowMemPriority.MemoryPriority = priority;
 		initializeMemoryPriority = 0;
 	}
+	SetProcessInformation(GetCurrentProcess(), ProcessMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
 	return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
 }
 int restoreMemoryPriority() {
-	return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+	return 0;//SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
 }
 
 

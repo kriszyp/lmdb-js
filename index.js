@@ -58,6 +58,7 @@ function open(path, options) {
 		isRoot: true,
 		maxDbs: 12,
 		remapChunks,
+		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :

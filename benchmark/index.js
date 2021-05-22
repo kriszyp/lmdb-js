@@ -42,7 +42,7 @@ function setData(deferred) {
   else
     result = store.transactionAsync(() => store.put(key, data))*/
   if (c % 100 == 0) {
-      setImmediate(() => deferred.resolve())
+      setTimeout(() => deferred.resolve(), 15)
   } else
     deferred.resolve()
 }
@@ -115,7 +115,7 @@ cleanup(async function (err) {
         console.log('Now will run benchmark across ' + numCPUs + ' threads');
         for (var i = 0; i < numCPUs; i++) {
           var worker = new Worker(__filename);
-          var worker = fork();
+          //var worker = fork();
         }
     });
 
