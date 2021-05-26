@@ -3587,6 +3587,10 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 		txn->mt_numdbs = 0;
 		txn->mt_flags = MDB_TXN_FINISHED;
 
+		mdb_midl_free(txn->mt_spill_pgs);
+#if OVERFLOW_NOTYET
+		mdb_mid2l_free(txn->mt_dirty_ovs);
+#endif
 		if (!txn->mt_parent) {
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
@@ -3607,11 +3611,6 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_free(txn->mt_free_pgs);
 			free(txn->mt_u.dirty_list);
 		}
-		mdb_midl_free(txn->mt_spill_pgs);
-#if OVERFLOW_NOTYET
-		mdb_mid2l_free(txn->mt_dirty_ovs);
-#endif
-
 		mdb_midl_free(pghead);
 	}
 #if MDB_RPAGE_CACHE
