@@ -92,17 +92,35 @@ declare namespace lmdb {
 		**/
 		getValues(key: K, options?: RangeOptions): ArrayLikeIterable<V>
 		/**
-		* Get all the keys for the given range
+		* Get the count of all the values for the given key (for dupsort databases)
+		* existing version
+		* @param options The options for the range/iterator
+		**/
+		getValuesCount(key: K, options?: RangeOptions): number
+		/**
+		* Get all the unique keys for the given range
 		* existing version
 		* @param options The options for the range/iterator
 		**/
 		getKeys(options: RangeOptions): ArrayLikeIterable<K>
+		/**
+		* Get the count of all the unique keys for the given range
+		* existing version
+		* @param options The options for the range/iterator
+		**/
+		getKeysCount(options: RangeOptions): number
 		/**
 		* Get all the entries for the given range
 		* existing version
 		* @param options The options for the range/iterator
 		**/
 		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
+		/**
+		* Get the count of all the entries for the given range
+		* existing version
+		* @param options The options for the range/iterator
+		**/
+		getCount(options: RangeOptions): number
 		/**
 		* @deprecated Since v1.3.0, this will be replaced with the functionality of transactionAsync in a future release
 		**/
@@ -121,7 +139,7 @@ declare namespace lmdb {
 		* existing version
 		* @param action The function to execute within the transaction
 		**/
-		transactionAsync<T>(action: () => T): T
+		transactionAsync<T>(action: () => T): Promise<T>
 		/**
 		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
@@ -129,7 +147,7 @@ declare namespace lmdb {
 		* @param action The function to execute within the transaction
 		* @param abort If true will abort the transaction when completed
 		**/
-		childTransaction<T>(action: () => T): T
+		childTransaction<T>(action: () => T): Promise<T>
 		/**
 		* Execute writes actions that are all conditionally dependent on the entry with the provided key having the provided
 		* version number (checked atomically).
