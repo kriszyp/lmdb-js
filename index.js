@@ -616,6 +616,27 @@ function open(path, options) {
 			options.values = false
 			return this.getRange(options)
 		}
+		getCount(options) {
+			if (!options)
+				options = {}
+			options.onlyCount = true
+			return this.getRange(options)[Symbol.iterator]()
+		}
+		getKeysCount(options) {
+			if (!options)
+				options = {}
+			options.onlyCount = true
+			options.values = false
+			return this.getRange(options)[Symbol.iterator]()
+		}
+		getValuesCount(key, options) {
+			if (!options)
+				options = {}
+			options.start = key
+			options.valuesForKey = true
+			options.onlyCount = true
+			return this.getRange(options)[Symbol.iterator]()
+		}
 		getRange(options) {
 			let iterable = new ArrayLikeIterable()
 			if (!options)
@@ -693,6 +714,19 @@ function open(path, options) {
 							includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
 						valuesForKey ? cursor.goToNextDup() :
 							includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+				}
+				if (options.onlyCount) {
+					while (!(currentKey === undefined ||
+								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
+								(count++ >= limit))) {
+						currentKey = reverse ?
+							valuesForKey ? cursor.goToPrevDup() :
+								includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
+							valuesForKey ? cursor.goToNextDup() :
+								includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+					}
+					finishCursor()
+					return count
 				}
 
 				let store = this

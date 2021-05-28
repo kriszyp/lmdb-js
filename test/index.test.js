@@ -196,6 +196,7 @@ describe('lmdb-store', function() {
         }
       }
       should.equal(count >= 2, true);
+      should.equal(db.getCount({start:'key', end:'keyz'}) >= 2, true);
     }}
     it('should iterate over query', iterateQuery(false));
     it('should iterate over query, across transactions', iterateQuery(true));
@@ -264,6 +265,7 @@ describe('lmdb-store', function() {
         }
       }
       count.should.equal(3);
+      db2.getValuesCount('key1').should.equal(3);
       await db2.remove('key1',  data2);
       count = 0;
       for (let value of db2.getValues('key1')) {
@@ -274,6 +276,7 @@ describe('lmdb-store', function() {
         }
       }
       count.should.equal(2)
+      db2.getValuesCount('key1').should.equal(2);
       count = 0;
       for (let value of db2.getValues('key1', { reverse: true })) {
         count++;
@@ -283,12 +286,14 @@ describe('lmdb-store', function() {
         }
       }
       count.should.equal(2);
+      db2.getValuesCount('key1').should.equal(2);
 
       count = 0;
       for (let value of db2.getValues('key0')) {
         count++;
       }
       count.should.equal(0);
+      db2.getValuesCount('key0').should.equal(0);
     });
 
     it('doesExist', async function() {
