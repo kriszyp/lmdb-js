@@ -213,8 +213,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     // Bookkeeping for old key so that we can free it even if key will point inside LMDB
     oldkey.mv_data = key.mv_data;
     oldkey.mv_size = key.mv_size;
-    //fprintf(stderr, "the key is %s\n", key.mv_data);
-    lowerMemPriority(dw->ew);
     int rc = mdb_get(tw->txn, dw->dbi, &key, &data);
 
     
@@ -231,7 +229,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
     else {
         info.GetReturnValue().Set(getVersionAndUncompress(data, dw, successFunc));
     }
-    restoreMemPriority(dw->ew);
 }
 
 NAN_METHOD(TxnWrap::getString) {
@@ -308,7 +305,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     MDB_val originalData = data;
 
     int rc;
-    lowerMemPriority(dw->ew);
     if (dw->hasVersions) {
         double version;
         if (info[3]->IsNumber()) {
@@ -328,7 +324,6 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::putCommon(Nan::NAN_METHOD_ARGS_TYPE info, v
     }
     else
         rc = mdb_put(tw->txn, dw->dbi, &key, &data, flags);
-    restoreMemPriority(dw->ew);
 
     // Free original key and data (what was supplied by the user, not what points to lmdb)
     if (freeKey) {

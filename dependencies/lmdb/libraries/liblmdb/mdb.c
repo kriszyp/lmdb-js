@@ -12119,24 +12119,6 @@ utf8_to_utf16(const char *src, MDB_name *dst, int xtra)
 		return MDB_SUCCESS;
 	}
 }
-static int initializeMemoryPriority = 1;
-static MEMORY_PRIORITY_INFORMATION lowMemPriority;
-static MEMORY_PRIORITY_INFORMATION normalMemPriority;
-int lowerMemoryPriority(int priority) {
-	if (initializeMemoryPriority) {
-		GetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
-//		fprintf(stderr, "initialized memory %u setting to %u\n", normalMemPriority.MemoryPriority, priority);
-		ZeroMemory(&lowMemPriority, sizeof(lowMemPriority));
-		lowMemPriority.MemoryPriority = priority;
-		initializeMemoryPriority = 0;
-	}
-	SetProcessInformation(GetCurrentProcess(), ProcessMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
-	return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
-}
-int restoreMemoryPriority() {
-	return 0;//SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
-}
-
 
 #endif /* defined(_WIN32) */
 /** @} */

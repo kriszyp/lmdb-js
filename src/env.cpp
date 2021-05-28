@@ -529,14 +529,14 @@ NAN_METHOD(EnvWrap::open) {
             flags &= ~MDB_WRITEMAP;
         }
     #endif
-
-
+    lowerMemPriority(ew);
     // TODO: make file attributes configurable
     #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
     #else
     rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
     #endif
+    restoreMemPriority(ew);
 
     if (rc != 0) {
         mdb_env_close(ew->env);
@@ -573,7 +573,9 @@ NAN_METHOD(EnvWrap::resize) {
     }
 
     mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    lowerMemPriority(ew);
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
+    restoreMemPriority(ew);
     if (rc == EINVAL) {
         //fprintf(stderr, "Resize failed, will try to get transaction and try again");
         MDB_txn *txn;

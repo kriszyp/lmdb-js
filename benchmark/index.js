@@ -41,8 +41,8 @@ function setData(deferred) {
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  if (c % 100 == 0) {
-      setTimeout(() => deferred.resolve(), 15)
+  if (c % 1000 == 0) {
+      setImmediate(() => deferred.resolve())
   } else
     deferred.resolve()
 }
@@ -76,6 +76,7 @@ function setup() {
   store = open(testDirPath, {
     noMemInit: true,
     sharedStructuresKey: Symbol.for('structures'),
+    winMemoryPriority: 2,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {

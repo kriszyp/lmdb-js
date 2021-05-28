@@ -80,6 +80,10 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 #ifdef _WIN32
+extern "C" {
+int lowerMemoryPriority(int priority);
+int restoreMemoryPriority();
+}
 #define lowerMemPriority(ew) if (ew->winMemoryPriority < 5) lowerMemoryPriority(ew->winMemoryPriority)
 #define restoreMemPriority(ew) if (ew->winMemoryPriority < 5) restoreMemoryPriority()
 #else
