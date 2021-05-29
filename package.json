@@ -26,9 +26,9 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "recompile": "node-gyp build",
-    "test": "./node_modules/.bin/mocha test/**.test.js --recursive && npm run test:types",
-    "test2": "./node_modules/.bin/mocha tests -u tdd",
+    "recompile": "node-gyp configure && node-gyp build",
+    "test": "mocha test/**.test.js --recursive && npm run test:types",
+    "test2": "mocha tests -u tdd",
     "test:types": "tsd",
     "benchmark": "node ./benchmark/index.js",
     "benchmark-ll": "node ./benchmark/low-level.js"
@@ -47,8 +47,8 @@
     "@types/node": "latest",
     "benchmark": "^2.1.4",
     "chai": "^4.3.4",
-    "jshint": "^2.12.0",
     "fs-extra": "^9.0.1",
+    "jshint": "^2.12.0",
     "mocha": "^8.3.2",
     "node-gyp": "^8.0.0",
     "rimraf": "^3.0.2",
