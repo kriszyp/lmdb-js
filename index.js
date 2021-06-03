@@ -9,6 +9,10 @@ const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const os = require('os')
 setGetLastVersion(getLastVersion)
+Uint8ArraySlice = Uint8Array.prototype.slice
+const syncInstructions = Buffer.allocUnsafeSlow(2048)
+const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048)
+//var inspector = require('inspector'); inspector.open(9229, null, true); debugger
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
@@ -343,34 +347,51 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.transaction(callback))
 			}
 		}
-		get(id) {
-			let txn
-			try {
-				if (writeTxn) {
-					txn = writeTxn
-				} else {
-					txn = readTxnRenewed ? readTxn : renewReadTxn()
-				}
-				let result
-				if (this.decoder) {
-					this.lastSize = result = txn.getBinaryUnsafe(this.db, id)
-					return result && this.decoder.decode(this.db.unsafeBuffer, result)
-				}
-				if (this.encoding == 'binary') {
-					result = txn.getBinary(this.db, id)
-					this.lastSize = result
-					return result
-				}
-				result = txn.getUtf8(this.db, id)
-				if (result) {
-					this.lastSize = result.length
-					if (this.encoding == 'json')
-						return JSON.parse(result)
-				}
-				return result
-			} catch(error) {
-				return handleError(error, this, txn, () => this.get(id))
+		getBinaryLocation(id) {
+			keyToBinary(syncInstructions, id)
+			this.db.get(id)
+			lastSize = syncInstructionsView.getUint32(0, true)
+			let bufferIndex = syncInstructionsView.getUint32(8, true)
+			buffer = buffers[bufferIndex]
+			if (!buffer) {
+				buffer = buffers[bufferIndex] = getBufferForAddress(bufferIndex * 0x100000000)
 			}
+			lastOffset = buffer[syncInstructionsView.getUint32(12, true)]
+		}
+
+		getSizeBinaryFast(id) {
+			return lastSize = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+				.getBinaryUnsafe(this.db, id)
+		}
+		getString(id) {
+			let string = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+				.getUtf8(this.db, id)
+			if (string)
+				lastSize = string.length
+			return string
+		}
+		getBinaryFast(id) {
+			this.getSizeBinaryFast(id)
+			return this.db.unsafeBuffer.slice(0, lastSize)
+		}
+		getBinary(id) {
+			let size = this.getSizeBinaryFast(id)
+			return Uint8ArraySlice.call(this.db.unsafeBuffer, 0, size)
+		}
+		get(id) {
+			if (this.decoder) {
+				this.getSizeBinaryFast(id)
+				return lastSize && this.decoder.decode(this.db.unsafeBuffer, lastSize)
+			}
+			if (this.encoding == 'binary')
+				return this.getBinary(id)
+
+			let result = this.getString(id)
+			if (result) {
+				if (this.encoding == 'json')
+					return JSON.parse(result)
+			}
+			return result
 		}
 		getEntry(id) {
 			let value = this.get(id)
@@ -434,9 +455,9 @@ function open(path, options) {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
 				if (versionOrValue === undefined)
-					return Boolean(txn.getBinaryUnsafe(this.db, key))
+					return txn.getBinaryUnsafe(this.db, key) !== undefined
 				else if (this.useVersions)
-					return txn.getBinaryUnsafe(this.db, key) && matches(getLastVersion(), versionOrValue)
+					return txn.getBinaryUnsafe(this.db, key) !== undefined && matches(getLastVersion(), versionOrValue)
 				else {
 					let cursor = new Cursor(txn, this.db)
 					if (this.encoder) {
@@ -480,9 +501,11 @@ function open(path, options) {
 				putSync.call(this, id, value, version)
 				return SYNC_PROMISE_RESULT
 			}
-			if (this.encoder)
+			if (this.encoder) {
+				if (value && value.readUInt16BE)
+					console.warn('Buffers will be directly stored instead of encoded with ' + this.encoding + ' in a future version')
 				value = this.encoder.encode(value)
-			else if (typeof value != 'string' && !(value && value.readUInt16BE))
+			} else if (typeof value != 'string' && !(value && value.readUInt16BE))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 			let operations = this.getScheduledOperations()
 			let index = operations.push(ifVersion == null ? version == null ? [id, value] : [id, value, version] : [id, value, version, ifVersion]) - 1
