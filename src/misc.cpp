@@ -47,6 +47,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
+    Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
@@ -340,6 +341,18 @@ NAN_METHOD(setWinMemoryLimit) {
         return throwLmdbError(GetLastError());
     }
     #endif
+}
+
+NAN_METHOD(getBufferForAddress) {
+    char* address = (char*) (size_t) Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+    info.GetReturnValue().Set(Nan::NewBuffer(
+        (char*)address,
+        0x100000000, // max 4GB buffer size
+        [](char *, void *) {
+            // Data belongs to LMDB, we shouldn't free it here
+        },
+        nullptr
+    ).ToLocalChecked());
 }
 
 void throwLmdbError(int rc) {

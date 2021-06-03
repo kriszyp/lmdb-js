@@ -302,3 +302,37 @@ NAN_METHOD(DbiWrap::stat) {
 
     info.GetReturnValue().Set(obj);
 }
+
+/*void DbiWrap::Get() {
+    EnvWrap* ew = dw->ew;
+    MDB_txn txn* = ew->getReadTxn();
+    MDB_val key, data;
+    key.mv_size = (size_t) *(getInstructions + 8);
+    key.mv_data = (*void) (getInstructions + 16);
+
+    mdb_get(txn, dbi, key, data);
+    int offset = data.mv_data & 0xffffffff;
+    int whichBuffer = data.mv_data >> 32;
+    if (buffersCreated[whichBuffer])
+
+    ((*size_t) getInstructions) = data.mv_data;
+    ((*size_t) (getInstructions + 8)) = data.mv_size;
+    getInstructions
+}
+
+static void GetFast(v8::ApiObject receiver_obj, int param) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+    DbiWrap* dw = static_cast<DbiWrap*>(
+          v8_object->GetAlignedPointerFromInternalField(kV8EmbedderWrapperObjectIndex));
+    dw->Get();
+}
+
+static void GetSlow(
+  const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Unwrap(instance);
+    // TODO: Do type checks and extract {param}.
+    dw->Get();
+}
+*/

@@ -411,7 +411,23 @@ done:
     KeySpace* keySpace;
     friend class DbiWrap;
 };
-
+/*
+EnvWrap::getReadTxn() {
+    MDB_txn txn* = ew->currentWriteTxn;
+    if (txn)
+        return txn;
+    txn = ew->currentReadTxn;
+    if (ew->readTxnRenewed)
+        return txn;
+    if (txn)
+        mdb_renew_txn(txn);
+    else {
+        mdb_begin_txn(&txn);
+        ew->currentReadTxn = txn;
+    }
+    onReadTxnRenew->Call(1, argv);
+    return txn;
+}*/
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
 {
     chacha8(src->mv_data, src->mv_size, (uint8_t*) key[0].mv_data, (uint8_t*) key[1].mv_data, (char*)dst->mv_data);
@@ -1081,6 +1097,12 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
+/*    dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
+          isolate, DbiWrap::GetSlow, v8::Local<v8::Value>(),
+          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+          v8::SideEffectType::kHasNoSideEffect, CFunction::Make(DbiWrap::GetFast)));*/
+
+
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
     EnvWrap::dbiCtor = new Nan::Persistent<Function>();

@@ -47,9 +47,8 @@ function setData(deferred) {
     deferred.resolve()
 }
 
-
 function getData() {
-  result = store.get((c += 357) % total)
+  result = store.getBinary((c += 357) % total)
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
@@ -76,7 +75,7 @@ function setup() {
   store = open(testDirPath, {
     noMemInit: true,
     sharedStructuresKey: Symbol.for('structures'),
-    winMemoryPriority: 2,
+    //winMemoryPriority: 4,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {

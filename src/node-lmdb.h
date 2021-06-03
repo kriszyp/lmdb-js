@@ -1,5 +1,5 @@
 
-// This file is part of node-lmdb, the Node.js binding for lmdb
+// This file is part of lmdb-store
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license
 //
@@ -104,6 +104,7 @@ NAN_METHOD(setLastVersion);
 NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
+NAN_METHOD(getBufferForAddress);
 
 class KeySpaceHolder {
 public:
