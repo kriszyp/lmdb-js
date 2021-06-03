@@ -18,6 +18,20 @@ declare namespace lmdb {
 			value: V | undefined
 			version?: number
 		}
+
+		/**
+		* Get the value stored by given id/key in binary format, as a Buffer
+		* @param id The key for the entry
+		**/
+		getBinary(id: K): Buffer | undefined
+
+		/**
+		* Get the value stored by given id/key in binary format, as a temporary Buffer.
+		* This is faster, but the data is only valid until the next get operation
+		* @param id The key for the entry
+		**/
+		getBinaryFast(id: K): Buffer | undefined
+
 		/**
 		* Store the provided value, using the provided id/key
 		* @param id The key for the entry
