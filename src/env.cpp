@@ -411,23 +411,27 @@ done:
     KeySpace* keySpace;
     friend class DbiWrap;
 };
-/*
-EnvWrap::getReadTxn() {
-    MDB_txn txn* = ew->currentWriteTxn;
+
+MDB_txn* EnvWrap::getReadTxn() {
+    MDB_txn* txn = currentWriteTxn ? currentWriteTxn->txn : nullptr;
     if (txn)
         return txn;
-    txn = ew->currentReadTxn;
-    if (ew->readTxnRenewed)
+    txn = currentReadTxn;
+    if (readTxnRenewed)
         return txn;
     if (txn)
-        mdb_renew_txn(txn);
+        mdb_txn_renew(txn);
     else {
-        mdb_begin_txn(&txn);
-        ew->currentReadTxn = txn;
+        mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
+        currentReadTxn = txn;
     }
-    onReadTxnRenew->Call(1, argv);
+    Local<v8::Value> argv[] = {
+        Nan::Null()
+    };
+
+    (new Nan::Callback(onReadTxnRenew.Get(Isolate::GetCurrent())))->Call(1, argv);
     return txn;
-}*/
+}
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
 {
     chacha8(src->mv_data, src->mv_size, (uint8_t*) key[0].mv_data, (uint8_t*) key[1].mv_data, (char*)dst->mv_data);
@@ -501,6 +505,10 @@ NAN_METHOD(EnvWrap::open) {
             return throwLmdbError(rc);
         }
     }
+
+    Local<Value> syncInstructionsValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("syncInstructions").ToLocalChecked()).ToLocalChecked();
+    if (syncInstructionsValue->IsArrayBufferView())
+        ew->syncInstructions = node::Buffer::Data(syncInstructionsValue);
 
     // Parse the maxReaders option
     // NOTE: mdb.c defines DEFAULT_READERS as 126
@@ -1097,7 +1105,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-/*    dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
+    /*dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
           isolate, DbiWrap::GetSlow, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, CFunction::Make(DbiWrap::GetFast)));*/

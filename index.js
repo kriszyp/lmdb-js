@@ -12,7 +12,6 @@ setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
 const syncInstructions = Buffer.allocUnsafeSlow(2048)
 const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048)
-//var inspector = require('inspector'); inspector.open(9229, null, true); debugger
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
@@ -62,6 +61,7 @@ function open(path, options) {
 		isRoot: true,
 		maxDbs: 12,
 		remapChunks,
+		syncInstructions,
 		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -502,10 +502,9 @@ function open(path, options) {
 				return SYNC_PROMISE_RESULT
 			}
 			if (this.encoder) {
-				if (value && value.readUInt16BE)
-					console.warn('Buffers will be directly stored instead of encoded with ' + this.encoding + ' in a future version')
+				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
 				value = this.encoder.encode(value)
-			} else if (typeof value != 'string' && !(value && value.readUInt16BE))
+			} else if (typeof value != 'string' && !(value instanceof Uint8Array))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 			let operations = this.getScheduledOperations()
 			let index = operations.push(ifVersion == null ? version == null ? [id, value] : [id, value, version] : [id, value, version, ifVersion]) - 1
@@ -536,7 +535,7 @@ function open(path, options) {
 				if (typeof value == 'string') {
 					writeTxn.putUtf8(this.db, id, value, version)
 				} else {
-					if (!(value && value.readUInt16BE)) {
+					if (!(value instanceof Uint8Array)) {
 						throw new Error('Invalid value type ' + typeof value + ' used ' + value)
 					}
 					writeTxn.putBinary(this.db, id, value, version)

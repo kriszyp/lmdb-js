@@ -238,10 +238,16 @@ public:
     MDB_env *env;
     // Current write transaction
     TxnWrap *currentWriteTxn;
+
+    MDB_txn* currentReadTxn;
+    bool readTxnRenewed;
     // Current raw batch transaction
     MDB_txn *currentBatchTxn;
     // What memory priority for accessing LMDB data in windows
-    int winMemoryPriority;    
+    int winMemoryPriority;
+    char* syncInstructions;
+    Nan::Persistent<Function> onReadTxnRenew;
+    MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
@@ -626,6 +632,9 @@ public:
     // current unsafe buffer for this db
     char* lastUnsafePtr;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
+    void Get();
+    static void GetFast(v8::Value receiver_obj, int param);
+    static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;
     friend class CursorWrap;
