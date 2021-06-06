@@ -15,9 +15,9 @@ declare namespace lmdb {
 		* @param id The key for the entry
 		**/
 		getEntry(id: K): {
-			value: V | undefined
+			value: V
 			version?: number
-		}
+		} | undefined
 
 		/**
 		* Get the value stored by given id/key in binary format, as a Buffer
