@@ -1023,8 +1023,8 @@ NAN_METHOD(EnvWrap::batchWrite) {
             action->actionType = DELETE_OPERATION | (action->actionType & CONDITION); // only DELETE_OPERATION, no WRITE_WITH_VALUE
             action->freeValue = nullptr;
         } else if (value->IsArrayBufferView()) {
-            action->data.mv_size = node::Buffer::Length(value);
-            action->data.mv_data = node::Buffer::Data(value);
+            int size = action->data.mv_size = node::Buffer::Length(value);
+            action->data.mv_data = size > 0 ? node::Buffer::Data(value) : nullptr;
             action->freeValue = nullptr; // don't free, belongs to node
             //worker->SaveToPersistent(persistedIndex++, value); // this is coordinated to always be referenced on the JS side
         } else {
