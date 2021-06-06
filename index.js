@@ -65,7 +65,7 @@ function open(path, options) {
 		syncInstructions,
 		onReadTxnRenew: () => {
 			console.log('onReadTxnRenew')
-			env.resetCurrentReadTxn()
+			setImmediate(() => env.resetCurrentReadTxn())
 		},
 		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can

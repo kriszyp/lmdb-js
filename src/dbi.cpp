@@ -318,10 +318,11 @@ void DbiWrap::Get() {
         return;
     } else if (rc != 0) {
         throwLmdbError(rc);
+        return;
     }
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (hasVersions) {
-        *((size_t*) getInstructions + 16) = *((size_t*) charData);
+        *((uint64_t*) (getInstructions + 16)) = *((uint64_t*) charData);
 //        fprintf(stderr, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
@@ -329,7 +330,6 @@ void DbiWrap::Get() {
     }
     if (data.mv_size > 0) {
         unsigned char statusByte = compression ? charData[0] : 0;
-            //fprintf(stdout, "uncompressing status %X\n", statusByte);
         if (statusByte >= 250) {
             bool isValid;
             compression->decompress(data, isValid);
@@ -339,9 +339,8 @@ void DbiWrap::Get() {
             }
         }
     }
-
-    *((size_t*) (getInstructions)) = data.mv_size;
-    *((size_t*) getInstructions + 8) = (size_t) data.mv_data;
+    *((size_t*) getInstructions) = data.mv_size;
+    *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
 }
 
 void DbiWrap::GetFast(v8::ApiObject receiver_obj) {
