@@ -1052,6 +1052,12 @@ NAN_METHOD(EnvWrap::continueBatch) {
     ew->batchWorker->ContinueBatch(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust(), true);
 }
 
+NAN_METHOD(EnvWrap::resetCurrentReadTxn) {
+    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    mdb_txn_reset(ew->currentReadTxn);
+    ew->readTxnRenewed = false;
+}
+
 void EnvWrap::setupExports(Local<Object> exports) {
     // EnvWrap: Prepare constructor template
     Local<FunctionTemplate> envTpl = Nan::New<FunctionTemplate>(EnvWrap::ctor);
@@ -1074,6 +1080,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "resize", Nan::New<FunctionTemplate>(EnvWrap::resize));
     envTpl->PrototypeTemplate()->Set(isolate, "copy", Nan::New<FunctionTemplate>(EnvWrap::copy));
     envTpl->PrototypeTemplate()->Set(isolate, "detachBuffer", Nan::New<FunctionTemplate>(EnvWrap::detachBuffer));
+    envTpl->PrototypeTemplate()->Set(isolate, "resetCurrentReadTxn", Nan::New<FunctionTemplate>(EnvWrap::resetCurrentReadTxn));
 
     // TxnWrap: Prepare constructor template
     Local<FunctionTemplate> txnTpl = Nan::New<FunctionTemplate>(TxnWrap::ctor);

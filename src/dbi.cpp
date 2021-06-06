@@ -307,22 +307,41 @@ void DbiWrap::Get() {
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;
+    MDB_val data;
     key.mv_size = (uint32_t) *(getInstructions + 8);
     key.mv_data = (void*) (getInstructions + 16);
 
-    int rc = mdb_get(txn, dbi, &key, (MDB_val*) getInstructions);
+    int rc = mdb_get(txn, dbi, &key, &data);
     if (rc == MDB_NOTFOUND) {
         setLastVersion(NO_EXIST_VERSION);
         ((MDB_val*) getInstructions)->mv_data = nullptr;
         return;
-        //info.GetReturnValue().Set(Nan::Undefined());
-    }
-    else if (rc != 0) {
+    } else if (rc != 0) {
         throwLmdbError(rc);
     }
+    unsigned char* charData = (unsigned char*) data.mv_data;
+    if (hasVersions) {
+        *((size_t*) getInstructions + 16) = *((size_t*) charData);
+//        fprintf(stderr, "getVersion %u\n", lastVersion);
+        charData = charData + 8;
+        data.mv_data = charData;
+        data.mv_size -= 8;
+    }
+    if (data.mv_size > 0) {
+        unsigned char statusByte = compression ? charData[0] : 0;
+            //fprintf(stdout, "uncompressing status %X\n", statusByte);
+        if (statusByte >= 250) {
+            bool isValid;
+            compression->decompress(data, isValid);
+            if (!isValid) {
+                throwLmdbError(-1);
+                return;
+            }
+        }
+    }
 
-/*    *((size_t*) getInstructions) = (size_t) data.mv_data;
-    *((size_t*) (getInstructions + 8)) = data.mv_size;*/
+    *((size_t*) (getInstructions)) = data.mv_size;
+    *((size_t*) getInstructions + 8) = (size_t) data.mv_data;
 }
 
 void DbiWrap::GetFast(v8::ApiObject receiver_obj) {

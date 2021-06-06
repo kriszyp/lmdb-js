@@ -387,6 +387,7 @@ public:
     static NAN_METHOD(batchWrite);
 
     static NAN_METHOD(continueBatch);
+    static NAN_METHOD(resetCurrentReadTxn);
 };
 
 /*
