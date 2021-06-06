@@ -5,13 +5,14 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getLastVersion, setLastVersion } = exports
+const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
 const syncInstructions = Buffer.allocUnsafeSlow(2048)
 const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048)
+const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
 const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000 // 10MB
@@ -32,7 +33,7 @@ const FIRST_BUFFER_KEY = Buffer.from([0])
 const ITERATOR_DONE = { done: true, value: undefined }
 let env
 let defaultCompression
-let lastSize
+let lastSize, lastOffset
 exports.open = open
 exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
@@ -62,6 +63,7 @@ function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		syncInstructions,
+		onReadTxnRenew: () => console.log('onReadTxnRenew'),
 		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -348,15 +350,30 @@ function open(path, options) {
 			}
 		}
 		getBinaryLocation(id) {
-			keyToBinary(syncInstructions, id)
+			syncInstructionsView.setUint32(8, 4, true)
+			syncInstructionsView.setUint32(16, id, true)
+			//syncInstructions.utf8Write(id, 16, 1000)
+			syncInstructionsView.setUint32(20, 0)
+//			keyToBinary(syncInstructions, id)
 			this.db.get(id)
 			lastSize = syncInstructionsView.getUint32(0, true)
-			let bufferIndex = syncInstructionsView.getUint32(8, true)
-			buffer = buffers[bufferIndex]
-			if (!buffer) {
-				buffer = buffers[bufferIndex] = getBufferForAddress(bufferIndex * 0x100000000)
+			let bufferIndex = syncInstructionsView.getUint32(12, true)
+			let lastOffset = syncInstructionsView.getUint32(8, true)
+			if (lastOffset == 0 && bufferIndex == 0) {
+				return // not found
 			}
-			lastOffset = buffer[syncInstructionsView.getUint32(12, true)]
+			let buffer = buffers[bufferIndex]
+			let startOffset
+			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
+				if (buffer)
+					env.detachBuffer(buffer.buffer)
+				startOffset = (lastOffset >>> 16) * 0x10000
+				console.log('make buffer for address', bufferIndex * 0x100000000 + startOffset)
+				buffer = buffers[bufferIndex] = Buffer.from(getBufferForAddress(bufferIndex * 0x100000000 + startOffset))
+				buffer.startOffset = startOffset
+			}
+			lastOffset -= startOffset
+			return buffer.slice(lastOffset, lastOffset + lastSize)
 		}
 
 		getSizeBinaryFast(id) {

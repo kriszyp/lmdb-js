@@ -306,19 +306,29 @@ NAN_METHOD(DbiWrap::stat) {
 void DbiWrap::Get() {
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
-    MDB_val key, data;
-    key.mv_size = (size_t) *(getInstructions + 8);
+    MDB_val key;
+    key.mv_size = (uint32_t) *(getInstructions + 8);
     key.mv_data = (void*) (getInstructions + 16);
 
-    mdb_get(txn, dbi, &key, &data);
-    *((size_t*) getInstructions) = (size_t) data.mv_data;
-    *((size_t*) (getInstructions + 8)) = data.mv_size;
+    int rc = mdb_get(txn, dbi, &key, (MDB_val*) getInstructions);
+    if (rc == MDB_NOTFOUND) {
+        setLastVersion(NO_EXIST_VERSION);
+        ((MDB_val*) getInstructions)->mv_data = nullptr;
+        return;
+        //info.GetReturnValue().Set(Nan::Undefined());
+    }
+    else if (rc != 0) {
+        throwLmdbError(rc);
+    }
+
+/*    *((size_t*) getInstructions) = (size_t) data.mv_data;
+    *((size_t*) (getInstructions + 8)) = data.mv_size;*/
 }
 
-void DbiWrap::GetFast(v8::Value receiver_obj, int param) {
+void DbiWrap::GetFast(v8::ApiObject receiver_obj) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
-    DbiWrap* dw = static_cast<DbiWrap*>(
-          v8_object->GetAlignedPointerFromInternalField(1));
+	DbiWrap* dw = static_cast<DbiWrap*>(
+		v8_object->GetAlignedPointerFromInternalField(0));
     dw->Get();
 }
 

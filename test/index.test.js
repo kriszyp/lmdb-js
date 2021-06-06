@@ -435,7 +435,7 @@ describe('lmdb-store', function() {
         should.equal(db.get('key1'), 'test');
       }
     });
-    it('read and write binary data', async function() {
+    it('read and write with binary encoding', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb5',
         create: true,
@@ -445,6 +445,18 @@ describe('lmdb-store', function() {
       await dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
       dbBinary.get('buffer').toString().should.equal('hello');
       dbBinary.get('Uint8Array')[1].should.equal(2);
+    });
+    it.skip('read and write with binary methods', async function() {
+      debugger
+      let dbBinary = db.openDB(Object.assign({
+        name: 'mydb6',
+        keyIsUint32: true,
+        create: true,
+      }));
+      dbBinary.put(3, Buffer.from('hello'));
+      await dbBinary.put(4, new Uint8Array([1,2,3]));
+      console.log(dbBinary.getBinaryLocation(3))
+      console.log(dbBinary.getBinaryLocation(4))
     });
     after(function(done) {
       db.get('key1');

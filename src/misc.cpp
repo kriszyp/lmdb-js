@@ -345,14 +345,17 @@ NAN_METHOD(setWinMemoryLimit) {
 
 NAN_METHOD(getBufferForAddress) {
     char* address = (char*) (size_t) Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
-    info.GetReturnValue().Set(Nan::NewBuffer(
+    std::unique_ptr<v8::BackingStore> backing = v8::ArrayBuffer::NewBackingStore(
+    address, 0x100000000, [](void*, size_t, void*){}, nullptr);
+    auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
+    info.GetReturnValue().Set(array_buffer);/*Nan::NewBuffer(
         (char*)address,
-        0x100000000, // max 4GB buffer size
+        0x3f000000, // max 1GB buffer size
         [](char *, void *) {
             // Data belongs to LMDB, we shouldn't free it here
         },
         nullptr
-    ).ToLocalChecked());
+    ).ToLocalChecked());*/
 }
 
 void throwLmdbError(int rc) {

@@ -50,6 +50,9 @@ function setData(deferred) {
 function getData() {
   result = store.getBinary((c += 357) % total)
 }
+function getFast() {
+  result = store.getBinaryLocation((c += 357) % total)
+}
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
   result = JSON.parse(jsonBuffer)
@@ -72,10 +75,15 @@ function cleanup(done) {
   });
 }
 function setup() {
-  store = open(testDirPath, {
+  console.log('opening', testDirPath)
+  let rootStore = open(testDirPath, {
     noMemInit: true,
-    sharedStructuresKey: Symbol.for('structures'),
     //winMemoryPriority: 4,
+  })
+  store = rootStore.openDB('testing', {
+    create: true,
+    sharedStructuresKey: 100000000,
+    keyIsUint32: true,    
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -93,11 +101,12 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    suite.add('put', {
+    /*suite.add('put', {
       defer: true,
       fn: setData
-    });
+    });*/
     suite.add('get', getData);
+    suite.add('getFast', getFast);
     //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
       console.log({result})
@@ -123,19 +132,24 @@ cleanup(async function (err) {
 
 });
 } else {
-  store = open(testDirPath, {
+  let rootStore = open(testDirPath, {
     noMemInit: true,
-    sharedStructuresKey: Symbol.for('structures'),
+    //winMemoryPriority: 4,
+  })
+  store = rootStore.openDB('testing', {
+    sharedStructuresKey: 100000000,
+    keyIsUint32: true,    
   })
 
   // other threads
-    suite.add('put', {
+    /*suite.add('put', {
       defer: true,
       fn: setData
-    });
-    suite.add('get', getData);
+    });*/
+//    suite.add('get', getData);
+    suite.add('getFast', getFast);
     suite.on('cycle', function (event) {
-      if (result.then) {
+      if (result && result.then) {
         let start = Date.now()
         result.then(() => {
           console.log('last commit took ' + (Date.now() - start) + 'ms')

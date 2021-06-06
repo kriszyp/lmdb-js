@@ -45,6 +45,8 @@ EnvWrap::EnvWrap() {
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
     this->currentBatchTxn = nullptr;
+	this->currentReadTxn = nullptr;
+	this->readTxnRenewed = false;
     this->winMemoryPriority = 5;
 }
 
@@ -425,6 +427,7 @@ MDB_txn* EnvWrap::getReadTxn() {
         mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
         currentReadTxn = txn;
     }
+    readTxnRenewed = true;
     Local<v8::Value> argv[] = {
         Nan::Null()
     };
@@ -450,9 +453,24 @@ NAN_METHOD(EnvWrap::open) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
-    ew->compression = nullptr;
-
     Local<Object> options = Local<Object>::Cast(info[0]);
+    ew->compression = nullptr;
+    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
+    if (compressionOption->IsObject()) {
+        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
+        ew->compression->Ref();
+    }
+    Local<Value> syncInstructionsValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("syncInstructions").ToLocalChecked()).ToLocalChecked();
+    if (syncInstructionsValue->IsArrayBufferView())
+        ew->syncInstructions = node::Buffer::Data(syncInstructionsValue);
+
+    Local<Value> onReadTxnRenew = options->Get(Nan::GetCurrentContext(), Nan::New<String>("onReadTxnRenew").ToLocalChecked()).ToLocalChecked();
+    ew->onReadTxnRenew.Reset(Local<Function>::Cast(onReadTxnRenew));
+    Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
+    if (winMemoryPriorityLocal->IsNumber())
+        ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();
+
+
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     Nan::Utf8String charPath(path);
     uv_mutex_lock(envsLock);
@@ -484,11 +502,6 @@ NAN_METHOD(EnvWrap::open) {
             return throwLmdbError(rc);
         }
     }
-    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
-    if (compressionOption->IsObject()) {
-        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
-        ew->compression->Ref();
-    }
 
     Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
     if (!encryptionKey->IsUndefined()) {
@@ -506,10 +519,6 @@ NAN_METHOD(EnvWrap::open) {
         }
     }
 
-    Local<Value> syncInstructionsValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("syncInstructions").ToLocalChecked()).ToLocalChecked();
-    if (syncInstructionsValue->IsArrayBufferView())
-        ew->syncInstructions = node::Buffer::Data(syncInstructionsValue);
-
     // Parse the maxReaders option
     // NOTE: mdb.c defines DEFAULT_READERS as 126
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");
@@ -523,9 +532,6 @@ NAN_METHOD(EnvWrap::open) {
     if (rc != 0) {
         return throwLmdbError(rc);
     }
-    Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
-    if (winMemoryPriorityLocal->IsNumber())
-        ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
@@ -1105,10 +1111,11 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    /*dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
+    auto c_func = CFunction::Make(DbiWrap::GetFast);
+    dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
           isolate, DbiWrap::GetSlow, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, CFunction::Make(DbiWrap::GetFast)));*/
+          v8::SideEffectType::kHasNoSideEffect, &c_func));
 
 
     // TODO: wrap mdb_stat too
