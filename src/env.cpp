@@ -1118,12 +1118,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    auto c_func = CFunction::Make(DbiWrap::GetFast);
-    dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
-          isolate, DbiWrap::GetSlow, v8::Local<v8::Value>(),
-          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, &c_func));
-
 
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor

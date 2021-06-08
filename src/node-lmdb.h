@@ -27,7 +27,6 @@
 #include <vector>
 #include <algorithm>
 #include <v8.h>
-#include "v8-fast-api-calls.h"
 #include <node.h>
 #include <node_buffer.h>
 #include <nan.h>
@@ -635,7 +634,6 @@ public:
     char* lastUnsafePtr;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
     void Get();
-    static void GetFast(v8::ApiObject receiver_obj);
     static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;

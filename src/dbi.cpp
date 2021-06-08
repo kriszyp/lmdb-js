@@ -343,13 +343,6 @@ void DbiWrap::Get() {
     *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
 }
 
-void DbiWrap::GetFast(v8::ApiObject receiver_obj) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
-	DbiWrap* dw = static_cast<DbiWrap*>(
-		v8_object->GetAlignedPointerFromInternalField(0));
-    dw->Get();
-}
-
 void DbiWrap::GetSlow(
   const v8::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Object> instance =
