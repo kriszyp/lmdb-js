@@ -101,6 +101,7 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
+int32_t getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);

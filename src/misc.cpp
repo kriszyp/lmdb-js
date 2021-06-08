@@ -322,6 +322,55 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
     currentDb = dw;
     return successFunc(data);
 }
+int getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw) {
+    //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
+    unsigned char* charData = (unsigned char*) data.mv_data;
+    if (dw->hasVersions) {
+        lastVersion = *((double*) charData);
+//        fprintf(stderr, "getVersion %u\n", lastVersion);
+        charData = charData + 8;
+        data.mv_data = charData;
+        data.mv_size -= 8;
+    }
+    if (data.mv_size == 0) {
+        currentDb = dw;
+        return 0;
+    }
+    unsigned char statusByte = dw->compression ? charData[0] : 0;
+        //fprintf(stdout, "uncompressing status %X\n", statusByte);
+    if (statusByte >= 250) {
+        bool isValid;
+        dw->compression->decompress(data, isValid);
+        if (!isValid)
+            return 0;
+    }
+    Compression* compression = dw->compression;
+    if (compression) {
+        if (data.mv_data == compression->decompressTarget) {
+            // already decompressed to the target, nothing more to do
+        } else {
+            if (data.mv_size > compression->decompressSize) {
+                compression->expand(data.mv_size);
+            }
+            // copy into the buffer target
+            memcpy(compression->decompressTarget, data.mv_data, data.mv_size);
+        }
+        dw->setUnsafeBuffer(compression->decompressTarget, compression->unsafeBuffer);
+    } else {
+        if (data.mv_size > globalUnsafeSize) {
+            // TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
+            /* if(data.mv_size > 64000) {
+                dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
+                return Nan::New<Number>(data.mv_size);
+            }*/
+            makeGlobalUnsafeBuffer(data.mv_size * 2);
+        }
+        memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
+        dw->setUnsafeBuffer(globalUnsafePtr, *globalUnsafeBuffer);
+    }
+    return data.mv_size;
+}
+
 
 NAN_METHOD(getLastVersion) {
     if (lastVersion == NO_EXIST_VERSION)

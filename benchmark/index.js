@@ -51,7 +51,7 @@ function getData() {
   result = store.get((c += 357) % total)
 }
 function getBinaryFast() {
-  result = store.getBinaryFast((c += 357) % total)
+  result = store.getBinary((c += 357) % total)
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {

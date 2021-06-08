@@ -374,12 +374,13 @@ function open(path, options) {
 			if (!writeTxn && !readTxnRenewed)
 				renewReadTxn()
 			let returnCode = this.keyIsCompatibility ? this.db.get(0, id) : this.db.get(this.writeKey(id, syncInstructions, 0))
-			if (returnCode) {
+			if (returnCode < 0) {
 				if (returnCode == -30798) //MDB_NOTFOUND
 					return //undefined
 				else
 					lmdbError(returnCode)
 			}
+			return returnCode
 			lastSize = syncInstructionsView.getUint32(0, true)
 			let bufferIndex = syncInstructionsView.getUint32(12, true)
 			lastOffset = syncInstructionsView.getUint32(8, true)
@@ -419,8 +420,8 @@ function open(path, options) {
 		}
 		get(id) {
 			if (this.decoder) {
-				let buffer = this.getBufferForGet(id)
-				return buffer && this.decoder.decode(buffer, lastOffset + lastSize, lastOffset)
+				lastSize = this.getBufferForGet(id)
+				return lastSize && this.decoder.decode(this.db.unsafeBuffer, lastSize)
 			}
 			if (this.encoding == 'binary')
 				return this.getBinary(id)

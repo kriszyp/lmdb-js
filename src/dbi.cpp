@@ -314,6 +314,7 @@ int32_t DbiWrap::Get(uint32_t keySize) {
     int rc = mdb_get(txn, dbi, &key, &data);
     if (rc)
         return rc;
+    return getVersionAndUncompressUnsafe(data, this); /*
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (hasVersions) {
         *((uint64_t*) (getInstructions + 16)) = *((uint64_t*) charData);
@@ -334,7 +335,7 @@ int32_t DbiWrap::Get(uint32_t keySize) {
     }
     *((size_t*) getInstructions) = data.mv_size;
     *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
-    return 0;
+    return 0;*/
 }
 
 int32_t DbiWrap::GetFast(v8::ApiObject receiver_obj, uint32_t keySize) {
