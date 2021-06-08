@@ -48,12 +48,10 @@ function setData(deferred) {
 }
 
 function getData() {
-  result = store.getBinaryFast((c += 357) % total)
+  result = store.get((c += 357) % total)
 }
-function getFast() {
-  result = store.getBinaryLocation((c += 357) % total)
-  if (!result)
-    console.log('no result')
+function getBinaryFast() {
+  result = store.getBinaryFast((c += 357) % total)
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
@@ -108,7 +106,7 @@ cleanup(async function (err) {
       fn: setData
     });*/
     suite.add('get', getData);
-    suite.add('getFast', getFast);
+    suite.add('getBinaryFast', getBinaryFast);
     //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
       console.log({result})
@@ -149,7 +147,7 @@ cleanup(async function (err) {
       fn: setData
     });*/
 //    suite.add('get', getData);
-    suite.add('getFast', getFast);
+    suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {
       if (result && result.then) {
         let start = Date.now()
