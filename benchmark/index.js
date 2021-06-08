@@ -50,8 +50,11 @@ function setData(deferred) {
 function getData() {
   result = store.get((c += 357) % total)
 }
-function getBinaryFast() {
+function getBinary() {
   result = store.getBinary((c += 357) % total)
+}
+function getBinaryFast() {
+  result = store.getBinaryFast((c += 357) % total)
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
@@ -106,6 +109,7 @@ cleanup(async function (err) {
       fn: setData
     });*/
     suite.add('get', getData);
+    suite.add('getBinary', getBinary);
     suite.add('getBinaryFast', getBinaryFast);
     //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {

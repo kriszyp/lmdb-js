@@ -415,8 +415,8 @@ function open(path, options) {
 			return buffer && buffer.slice(lastOffset, lastOffset + lastSize)
 		}
 		getBinary(id) {
-			let buffer = this.getBufferForGet(id)
-			return buffer && Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)
+			let lastSize = this.getBufferForGet(id)
+			return lastSize ? Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize) : undefined
 		}
 		get(id) {
 			if (this.decoder) {
