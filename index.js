@@ -12,7 +12,7 @@ const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
 const syncInstructions = Buffer.allocUnsafeSlow(2048)
-const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048)
+const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048) // max key size is actually 1978
 const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -37,7 +37,7 @@ const writeUint32Key = (key, target) => {
 	return 4
 }
 const writeBufferKey = (key, target) => {
-	if (key.length > 2000)
+	if (key.length > 1978)
 		throw new Error('Key buffer is too long')
 	target.set(key)
 	return key.length
@@ -219,8 +219,10 @@ function open(path, options) {
 				this.writeKey = writeUint32Key
 			else if (this.keyIsBuffer)
 				this.writeKey = writeBufferKey
-			else
+			else {
 				this.writeKey = writeKey
+				this.keyIsCompatibility = true
+			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
 		}
@@ -371,7 +373,7 @@ function open(path, options) {
 		getBufferForGet(id) {
 			if (!writeTxn && !readTxnRenewed)
 				renewReadTxn()
-			let returnCode = this.db.get(this.writeKey(id, syncInstructions, 0))
+			let returnCode = this.keyIsCompatibility ? this.db.get(0, id) : this.db.get(this.writeKey(id, syncInstructions, 0))
 			if (returnCode) {
 				if (returnCode == -30798) //MDB_NOTFOUND
 					return //undefined

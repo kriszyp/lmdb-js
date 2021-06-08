@@ -349,25 +349,10 @@ void DbiWrap::GetSlow(
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    info.GetReturnValue().Set(Nan::New<Number>(dw->Get(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust())));
+    if (info.Length() < 2)
+        info.GetReturnValue().Set(Nan::New<Number>(dw->Get(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust())));
+    else {
+        // compatibility fall-back
+        info.GetReturnValue().Set(Nan::New<Number>(dw->Get(valueToKey(info[1], (uint8_t*) dw->ew->syncInstructions, 2000, false, true))));
+    }
 }
-int32_t DbiWrap::GetCursor(uint32_t keySize, uint32_t operation) {
-    return 0;
-}
-
-
-int32_t DbiWrap::GetCursorFast(v8::ApiObject receiver_obj, uint32_t keySize, uint32_t operation) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
-    DbiWrap* dw = static_cast<DbiWrap*>(
-        v8_object->GetAlignedPointerFromInternalField(0));
-    return dw->GetCursor(keySize, operation);
-}
-
-void DbiWrap::GetCursorSlow(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    dw->GetCursor(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust(), info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust());
-}
-
