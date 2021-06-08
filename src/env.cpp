@@ -428,11 +428,6 @@ MDB_txn* EnvWrap::getReadTxn() {
         currentReadTxn = txn;
     }
     readTxnRenewed = true;
-    Local<v8::Value> argv[] = {
-        Nan::Null()
-    };
-
-    (new Nan::Callback(onReadTxnRenew.Get(Isolate::GetCurrent())))->Call(1, argv);
     return txn;
 }
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)

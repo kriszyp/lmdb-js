@@ -5,8 +5,9 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress } = exports
+const { Env, Cursor, Compression, setLastVersion, getBufferForAddress, lmdbError } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
+const { writeKey } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
@@ -31,9 +32,19 @@ const LAST_KEY = String.fromCharCode(0xffff)
 const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
 const FIRST_BUFFER_KEY = Buffer.from([0])
 const ITERATOR_DONE = { done: true, value: undefined }
+const writeUint32Key = (key, target) => {
+	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(0, key, true)
+	return 4
+}
+const writeBufferKey = (key, target) => {
+	if (key.length > 2000)
+		throw new Error('Key buffer is too long')
+	target.set(key)
+	return key.length
+}
 let env
 let defaultCompression
-let lastSize, lastOffset
+let lastSize, lastOffset, lastVersion
 exports.open = open
 exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
@@ -64,7 +75,6 @@ function open(path, options) {
 		remapChunks,
 		syncInstructions,
 		onReadTxnRenew: () => {
-			console.log('onReadTxnRenew')
 			setImmediate(() => env.resetCurrentReadTxn())
 		},
 		//winMemoryPriority: 4,
@@ -205,6 +215,12 @@ function open(path, options) {
 					encode: JSON.stringify,
 				}
 			}
+			if (this.keyIsUint32)
+				this.writeKey = writeUint32Key
+			else if (this.keyIsBuffer)
+				this.writeKey = writeBufferKey
+			else
+				this.writeKey = writeKey
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
 		}
@@ -352,19 +368,19 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.transaction(callback))
 			}
 		}
-		getBinaryLocation(id) {
-			syncInstructionsView.setUint32(8, 4, true)
-			syncInstructionsView.setUint32(16, id, true)
-			//syncInstructions.utf8Write(id, 16, 1000)
-			syncInstructionsView.setUint32(20, 0)
-//			keyToBinary(syncInstructions, id)
-			this.db.get(id)
+		getBufferForGet(id) {
+			if (!writeTxn && !readTxnRenewed)
+				renewReadTxn()
+			let returnCode = this.db.get(this.writeKey(id, syncInstructions, 0))
+			if (returnCode) {
+				if (returnCode == -30798) //MDB_NOTFOUND
+					return //undefined
+				else
+					lmdbError(returnCode)
+			}
 			lastSize = syncInstructionsView.getUint32(0, true)
 			let bufferIndex = syncInstructionsView.getUint32(12, true)
-			let lastOffset = syncInstructionsView.getUint32(8, true)
-			if (lastOffset == 0 && bufferIndex == 0) {
-				return // not found
-			}
+			lastOffset = syncInstructionsView.getUint32(8, true)
 			let buffer = buffers[bufferIndex]
 			let startOffset
 			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
@@ -376,7 +392,8 @@ function open(path, options) {
 				buffer.startOffset = startOffset
 			}
 			lastOffset -= startOffset
-			return buffer.slice(lastOffset, lastOffset + lastSize)
+			return buffer
+			return buffer.slice(lastOffset, lastOffset + lastSize)/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)*/
 		}
 
 		getSizeBinaryFast(id) {
@@ -391,17 +408,17 @@ function open(path, options) {
 			return string
 		}
 		getBinaryFast(id) {
-			this.getSizeBinaryFast(id)
-			return this.db.unsafeBuffer.slice(0, lastSize)
+			let buffer = this.getBufferForGet(id)
+			return buffer && buffer.slice(lastOffset, lastOffset + lastSize)
 		}
 		getBinary(id) {
-			let size = this.getSizeBinaryFast(id)
-			return Uint8ArraySlice.call(this.db.unsafeBuffer, 0, size)
+			let buffer = this.getBufferForGet(id)
+			return buffer && Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)
 		}
 		get(id) {
 			if (this.decoder) {
-				this.getSizeBinaryFast(id)
-				return lastSize && this.decoder.decode(this.db.unsafeBuffer, lastSize)
+				let buffer = this.getBufferForGet(id)
+				return buffer && this.decoder.decode(buffer, lastOffset + lastSize, lastOffset)
 			}
 			if (this.encoding == 'binary')
 				return this.getBinary(id)
@@ -1270,4 +1287,7 @@ const typeOrder = {
 }
 exports.getLastEntrySize = function() {
 	return lastSize
+}
+function getLastVersion() {
+	return syncInstructionsView.getFloat64(16, true)
 }

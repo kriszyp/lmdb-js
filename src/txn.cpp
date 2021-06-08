@@ -113,6 +113,7 @@ NAN_METHOD(TxnWrap::ctor) {
     }
     else {
         ew->readTxns.push_back(tw);
+        ew->currentReadTxn = txn;
     }
     tw->parentTw = parentTw;
     tw->flags = flags;
@@ -168,7 +169,7 @@ NAN_METHOD(TxnWrap::reset) {
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
     }
-
+    tw->ew->readTxnRenewed = false;
     mdb_txn_reset(tw->txn);
 }
 

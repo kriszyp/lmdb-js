@@ -303,23 +303,17 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-void DbiWrap::Get() {
+int32_t DbiWrap::Get(uint32_t keySize) {
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;
     MDB_val data;
-    key.mv_size = (uint32_t) *(getInstructions + 8);
-    key.mv_data = (void*) (getInstructions + 16);
+    key.mv_size = keySize;
+    key.mv_data = (void*) getInstructions;
 
     int rc = mdb_get(txn, dbi, &key, &data);
-    if (rc == MDB_NOTFOUND) {
-        setLastVersion(NO_EXIST_VERSION);
-        ((MDB_val*) getInstructions)->mv_data = nullptr;
-        return;
-    } else if (rc != 0) {
-        throwLmdbError(rc);
-        return;
-    }
+    if (rc)
+        return rc;
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (hasVersions) {
         *((uint64_t*) (getInstructions + 16)) = *((uint64_t*) charData);
@@ -334,20 +328,20 @@ void DbiWrap::Get() {
             bool isValid;
             compression->decompress(data, isValid);
             if (!isValid) {
-                throwLmdbError(-1);
-                return;
+                return -1;
             }
         }
     }
     *((size_t*) getInstructions) = data.mv_size;
     *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
+    return 0;
 }
 
-void DbiWrap::GetFast(v8::ApiObject receiver_obj) {
+int32_t DbiWrap::GetFast(v8::ApiObject receiver_obj, uint32_t keySize) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
 	DbiWrap* dw = static_cast<DbiWrap*>(
 		v8_object->GetAlignedPointerFromInternalField(0));
-    dw->Get();
+    return dw->Get(keySize);
 }
 
 void DbiWrap::GetSlow(
@@ -355,7 +349,25 @@ void DbiWrap::GetSlow(
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    // TODO: Do type checks and extract {param}.
-    dw->Get();
+    info.GetReturnValue().Set(Nan::New<Number>(dw->Get(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust())));
+}
+int32_t DbiWrap::GetCursor(uint32_t keySize, uint32_t operation) {
+    return 0;
+}
+
+
+int32_t DbiWrap::GetCursorFast(v8::ApiObject receiver_obj, uint32_t keySize, uint32_t operation) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+    DbiWrap* dw = static_cast<DbiWrap*>(
+        v8_object->GetAlignedPointerFromInternalField(0));
+    return dw->GetCursor(keySize, operation);
+}
+
+void DbiWrap::GetCursorSlow(
+  const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    dw->GetCursor(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust(), info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust());
 }
 

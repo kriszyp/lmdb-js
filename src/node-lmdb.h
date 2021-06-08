@@ -102,6 +102,7 @@ Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
+NAN_METHOD(lmdbError);
 NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
@@ -634,9 +635,12 @@ public:
     // current unsafe buffer for this db
     char* lastUnsafePtr;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
-    void Get();
-    static void GetFast(v8::ApiObject receiver_obj);
+    int32_t Get(uint32_t keySize);
+    static int32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize);
     static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
+    int32_t GetCursor(uint32_t keySize, uint32_t operation);
+    static int32_t GetCursorFast(v8::ApiObject receiver_obj, uint32_t keySize, uint32_t operation);
+    static void GetCursorSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;
     friend class CursorWrap;

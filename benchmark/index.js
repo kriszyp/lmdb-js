@@ -16,7 +16,7 @@ const { open } = require('..');
 var env;
 var dbi;
 var keys = [];
-var total = isMainThread ? 100 : 100000;
+var total = 100;
 var store
 let data = {
   name: 'test',
@@ -31,7 +31,7 @@ let data = {
   more: 'string',
 }
 
-var c = (threadId || 0) * 10000;
+var c = 0
 let result
 
 function setData(deferred) {
@@ -48,10 +48,12 @@ function setData(deferred) {
 }
 
 function getData() {
-  result = store.getBinary((c += 357) % total)
+  result = store.getBinaryFast((c += 357) % total)
 }
 function getFast() {
   result = store.getBinaryLocation((c += 357) % total)
+  if (!result)
+    console.log('no result')
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {

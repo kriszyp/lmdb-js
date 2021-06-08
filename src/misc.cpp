@@ -44,6 +44,7 @@ void setupExportMisc(Local<Object> exports) {
     (void)exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
     Nan::SetMethod(exports, "getLastVersion", getLastVersion);
     Nan::SetMethod(exports, "setLastVersion", setLastVersion);
+    Nan::SetMethod(exports, "lmdbError", lmdbError);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
@@ -327,6 +328,10 @@ NAN_METHOD(getLastVersion) {
         return info.GetReturnValue().Set(Nan::Null());
     return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
 }
+NAN_METHOD(lmdbError) {
+    throwLmdbError(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+}
+
 void setLastVersion(double version) {
     lastVersion = version;
 }
