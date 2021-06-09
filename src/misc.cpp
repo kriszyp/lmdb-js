@@ -301,7 +301,7 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (dw->hasVersions) {
-        lastVersion = *((double*) charData);
+        *((double*) (dw->ew->syncInstructions + 16)) = *((double*) charData);
 //        fprintf(stderr, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;
@@ -326,7 +326,7 @@ uint32_t getVersionAndUncompressFast(MDB_val &data, DbiWrap* dw) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (dw->hasVersions) {
-        lastVersion = *((double*) charData);
+        *((double*) (dw->ew->syncInstructions + 16)) = *((double*) charData);
 //        fprintf(stderr, "getVersion %u\n", lastVersion);
         charData = charData + 8;
         data.mv_data = charData;

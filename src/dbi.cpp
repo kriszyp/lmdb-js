@@ -303,7 +303,7 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-uint32_t DbiWrap::Get(uint32_t keySize) {
+int32_t DbiWrap::Get(uint32_t keySize) {
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;

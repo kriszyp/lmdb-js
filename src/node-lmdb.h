@@ -638,8 +638,8 @@ public:
     char* lastUnsafePtr;
     bool getFailed;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
-    uint32_t Get(uint32_t keySize);
-    static uint32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    int32_t Get(uint32_t keySize);
+    static int32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
     static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;

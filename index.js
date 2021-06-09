@@ -5,7 +5,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, setLastVersion, getBufferForAddress, lmdbError } = exports
+const { Env, Cursor, Compression, getBufferForAddress, lmdbError } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { writeKey } = require('ordered-binary')
 const os = require('os')
@@ -1293,3 +1293,10 @@ exports.getLastEntrySize = function() {
 function getLastVersion() {
 	return syncInstructionsView.getFloat64(16, true)
 }
+
+function setLastVersion(version) {
+	return syncInstructionsView.setFloat64(16, version, true)
+}
+exports.getLastVersion = getLastVersion
+exports.setLastVersion = setLastVersion
+
