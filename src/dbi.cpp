@@ -303,7 +303,7 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-int32_t DbiWrap::Get(uint32_t keySize) {
+uint32_t DbiWrap::Get(uint32_t keySize) {
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;
@@ -314,7 +314,7 @@ int32_t DbiWrap::Get(uint32_t keySize) {
     int rc = mdb_get(txn, dbi, &key, &data);
     if (rc)
         return rc;
-    return getVersionAndUncompressUnsafe(data, this); /*
+    return getVersionAndUncompressFast(data, this); /*
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (hasVersions) {
         *((uint64_t*) (getInstructions + 16)) = *((uint64_t*) charData);
@@ -338,11 +338,16 @@ int32_t DbiWrap::Get(uint32_t keySize) {
     return 0;*/
 }
 
-int32_t DbiWrap::GetFast(v8::ApiObject receiver_obj, uint32_t keySize) {
+int32_t DbiWrap::GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
 	DbiWrap* dw = static_cast<DbiWrap*>(
 		v8_object->GetAlignedPointerFromInternalField(0));
-    return dw->Get(keySize);
+    int32_t returnCode = dw->Get(keySize);
+    if (!returnCode && dw->getFailed) {
+        dw->getFailed = false;
+        options.fallback = true;
+    }
+    return returnCode;
 }
 
 void DbiWrap::GetSlow(
@@ -350,10 +355,14 @@ void DbiWrap::GetSlow(
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    if (info.Length() < 2)
-        info.GetReturnValue().Set(Nan::New<Number>(dw->Get(info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust())));
-    else {
-        // compatibility fall-back
-        info.GetReturnValue().Set(Nan::New<Number>(dw->Get(valueToKey(info[1], (uint8_t*) dw->ew->syncInstructions, 2000, false, true))));
-    }
+    char* getInstructions = dw->ew->syncInstructions;
+    MDB_txn* txn = dw->ew->getReadTxn();
+    MDB_val key;
+    MDB_val data;
+    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_data = (void*) getInstructions;
+    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    if (rc)
+        return info.GetReturnValue().Set(Nan::New<Number>(rc));
+    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToBinaryUnsafe));
 }

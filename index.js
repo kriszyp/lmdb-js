@@ -371,16 +371,15 @@ function open(path, options) {
 			}
 		}
 		getBufferForGet(id) {
-			if (!writeTxn && !readTxnRenewed)
-				renewReadTxn()
-			let returnCode = this.keyIsCompatibility ? this.db.get(0, id) : this.db.get(this.writeKey(id, syncInstructions, 0))
-			if (returnCode < 0) {
-				if (returnCode == -30798) //MDB_NOTFOUND
+			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			lastSize = this.keyIsCompatibility ? txn.getBinaryUnsafe(id) : this.db.get(this.writeKey(id, syncInstructions, 0))
+			if (lastSize < 0) {
+				if (lastSize == -30798) //MDB_NOTFOUND
 					return //undefined
 				else
-					lmdbError(returnCode)
+					lmdbError(lastSize)
 			}
-			return returnCode
+			return lastSize
 			lastSize = syncInstructionsView.getUint32(0, true)
 			let bufferIndex = syncInstructionsView.getUint32(12, true)
 			lastOffset = syncInstructionsView.getUint32(8, true)
@@ -411,12 +410,12 @@ function open(path, options) {
 			return string
 		}
 		getBinaryFast(id) {
-			let buffer = this.getBufferForGet(id)
-			return buffer && buffer.slice(lastOffset, lastOffset + lastSize)
+			this.getBufferForGet(id)
+			return lastSize > -1 ? this.db.unsafeBuffer.slice(0, lastSize) : undefined
 		}
 		getBinary(id) {
-			let lastSize = this.getBufferForGet(id)
-			return lastSize ? Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize) : undefined
+			this.getBufferForGet(id)
+			return lastSize > -1 ? Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize) : undefined
 		}
 		get(id) {
 			if (this.decoder) {

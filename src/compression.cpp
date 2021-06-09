@@ -84,7 +84,7 @@ void Compression::makeUnsafeBuffer() {
     unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
-void Compression::decompress(MDB_val& data, bool &isValid) {
+void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     uint32_t uncompressedLength;
     int compressionHeaderSize;
     unsigned char* charData = (unsigned char*) data.mv_data;
@@ -99,14 +99,19 @@ void Compression::decompress(MDB_val& data, bool &isValid) {
     }
     else {
         fprintf(stderr, "Unknown status byte %u\n", charData[0]);
-        Nan::ThrowError("Unknown status byte");
+        if (canAllocate)
+            Nan::ThrowError("Unknown status byte");
         isValid = false;
         return;
     }
     //TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
     //fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
-    if (uncompressedLength > decompressSize)
-        expand(uncompressedLength);
+    if (uncompressedLength > decompressSize) {
+        if (canAllocate)
+            expand(uncompressedLength);
+        else
+            isValid = false;
+    }
     int written = LZ4_decompress_safe_usingDict(
         (char*)charData + compressionHeaderSize, decompressTarget,
         data.mv_size - compressionHeaderSize, uncompressedLength,
@@ -114,7 +119,8 @@ void Compression::decompress(MDB_val& data, bool &isValid) {
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
         //fprintf(stderr, "Failed to decompress data %u %u %u %u\n", charData[0], data.mv_size, compressionHeaderSize, uncompressedLength);
-        Nan::ThrowError("Failed to decompress data");
+        if (canAllocate)
+            Nan::ThrowError("Failed to decompress data");
         isValid = false;
         return;
     }

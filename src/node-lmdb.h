@@ -101,7 +101,7 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
-int32_t getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw);
+uint32_t getVersionAndUncompressFast(MDB_val &data, DbiWrap* dw);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
@@ -636,9 +636,10 @@ public:
     bool hasVersions;
     // current unsafe buffer for this db
     char* lastUnsafePtr;
+    bool getFailed;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
-    int32_t Get(uint32_t keySize);
-    static int32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize);
+    uint32_t Get(uint32_t keySize);
+    static uint32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
     static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;
@@ -685,7 +686,7 @@ public:
     // compression acceleration (defaults to 1)
     int acceleration;
     static thread_local LZ4_stream_t* stream;
-    void decompress(MDB_val& data, bool &isValid);
+    void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     void makeUnsafeBuffer();
     void expand(unsigned int size);

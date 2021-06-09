@@ -315,14 +315,14 @@ Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
         bool isValid;
-        dw->compression->decompress(data, isValid);
+        dw->compression->decompress(data, isValid, true);
         if (!isValid)
             return Nan::Null();
     }
     currentDb = dw;
     return successFunc(data);
 }
-int getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw) {
+uint32_t getVersionAndUncompressFast(MDB_val &data, DbiWrap* dw) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);
     unsigned char* charData = (unsigned char*) data.mv_data;
     if (dw->hasVersions) {
@@ -340,9 +340,11 @@ int getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw) {
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
         bool isValid;
-        dw->compression->decompress(data, isValid);
-        if (!isValid)
+        dw->compression->decompress(data, isValid, false);
+        if (!isValid) {
+            dw->getFailed = true;
             return 0;
+        }
     }
     Compression* compression = dw->compression;
     if (compression) {
@@ -355,7 +357,10 @@ int getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw) {
             // copy into the buffer target
             memcpy(compression->decompressTarget, data.mv_data, data.mv_size);
         }
-        dw->setUnsafeBuffer(compression->decompressTarget, compression->unsafeBuffer);
+        if (dw->lastUnsafePtr != globalUnsafePtr) {
+            dw->getFailed = true;
+            return 0;
+        }
     } else {
         if (data.mv_size > globalUnsafeSize) {
             // TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
@@ -363,10 +368,14 @@ int getVersionAndUncompressUnsafe(MDB_val &data, DbiWrap* dw) {
                 dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
                 return Nan::New<Number>(data.mv_size);
             }*/
-            makeGlobalUnsafeBuffer(data.mv_size * 2);
+            dw->getFailed = true;
+            return 0;
         }
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
-        dw->setUnsafeBuffer(globalUnsafePtr, *globalUnsafeBuffer);
+        if (dw->lastUnsafePtr != globalUnsafePtr) {
+            dw->getFailed = true;
+            return 0;
+        }
     }
     return data.mv_size;
 }
