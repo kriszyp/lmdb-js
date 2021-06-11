@@ -638,9 +638,6 @@ public:
     char* lastUnsafePtr;
     bool getFailed;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
-    int32_t Get(uint32_t keySize);
-    static int32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
-    static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     friend class TxnWrap;
     friend class CursorWrap;
@@ -673,6 +670,9 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+    static uint32_t GetByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    static void GetByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
+    static NAN_METHOD(DbiWrap::GetByPrimitive);
 };
 
 class Compression : public Nan::ObjectWrap {
