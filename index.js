@@ -11,8 +11,8 @@ const { writeKey } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
-const syncInstructions = Buffer.allocUnsafeSlow(2048)
-const syncInstructionsView = new DataView(syncInstructions.buffer, 0, 2048) // max key size is actually 1978
+const keyBuffer = Buffer.allocUnsafeSlow(2048)
+const keyBufferView = new DataView(keyBuffer.buffer, 0, 2048) // max key size is actually 1978
 const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -73,7 +73,7 @@ function open(path, options) {
 		isRoot: true,
 		maxDbs: 12,
 		remapChunks,
-		syncInstructions,
+		keyBuffer,
 		onReadTxnRenew: () => {
 			setImmediate(() => env.resetCurrentReadTxn())
 		},
@@ -372,14 +372,14 @@ function open(path, options) {
 		}
 		getSharedBufferForGet(id) {
 			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, syncInstructions, 0))
+			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBuffer, 0))
 			if (lastSize === 0xffffffff) { // not found code
 				return //undefined
 			}
 			return lastSize
-			lastSize = syncInstructionsView.getUint32(0, true)
-			let bufferIndex = syncInstructionsView.getUint32(12, true)
-			lastOffset = syncInstructionsView.getUint32(8, true)
+			lastSize = keyBufferView.getUint32(0, true)
+			let bufferIndex = keyBufferView.getUint32(12, true)
+			lastOffset = keyBufferView.getUint32(8, true)
 			let buffer = buffers[bufferIndex]
 			let startOffset
 			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
@@ -396,8 +396,8 @@ function open(path, options) {
 		}
 
 		getSizeBinaryFast(id) {
-			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.keyIsCompatibility ? this.db.getByPrimitive(id) : this.db.getByBinary(this.writeKey(id, syncInstructions, 0))
+			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			lastSize = this.keyIsCompatibility ? this.db.getByPrimitive(id) : this.db.getByBinary(this.writeKey(id, keyBuffer, 0))
 		}
 		getString(id) {
 			let string = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
@@ -1288,11 +1288,11 @@ exports.getLastEntrySize = function() {
 	return lastSize
 }
 function getLastVersion() {
-	return syncInstructionsView.getFloat64(16, true)
+	return keyBufferView.getFloat64(16, true)
 }
 
 function setLastVersion(version) {
-	return syncInstructionsView.setFloat64(16, version, true)
+	return keyBufferView.setFloat64(16, version, true)
 }
 exports.getLastVersion = getLastVersion
 exports.setLastVersion = setLastVersion

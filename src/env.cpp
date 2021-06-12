@@ -455,9 +455,9 @@ NAN_METHOD(EnvWrap::open) {
         ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
         ew->compression->Ref();
     }
-    Local<Value> syncInstructionsValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("syncInstructions").ToLocalChecked()).ToLocalChecked();
-    if (syncInstructionsValue->IsArrayBufferView())
-        ew->syncInstructions = node::Buffer::Data(syncInstructionsValue);
+    Local<Value> keyBufferValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBuffer").ToLocalChecked()).ToLocalChecked();
+    if (keyBufferValue->IsArrayBufferView())
+        ew->keyBuffer = node::Buffer::Data(keyBufferValue);
 
     Local<Value> onReadTxnRenew = options->Get(Nan::GetCurrentContext(), Nan::New<String>("onReadTxnRenew").ToLocalChecked()).ToLocalChecked();
     ew->onReadTxnRenew.Reset(Local<Function>::Cast(onReadTxnRenew));

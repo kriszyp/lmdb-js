@@ -249,7 +249,7 @@ public:
     MDB_txn *currentBatchTxn;
     // What memory priority for accessing LMDB data in windows
     int winMemoryPriority;
-    char* syncInstructions;
+    char* keyBuffer;
     Nan::Persistent<Function> onReadTxnRenew;
     MDB_txn* getReadTxn();
 
@@ -933,9 +933,10 @@ public:
     */
     static NAN_METHOD(del);
 
-    int32_t Get(uint32_t keySize, uint32_t operation);
-    static int32_t GetFast(v8::ApiObject receiver_obj, uint32_t keySize, uint32_t operation);
-    static void GetSlow(const v8::FunctionCallbackInfo<v8::Value>& info);
+    static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
+    static NAN_METHOD(DbiWrap::getByPrimitive);
+    static NAN_METHOD(DbiWrap::getStringByPrimitive);
 };
 
 // External string resource that glues MDB_val and v8::String

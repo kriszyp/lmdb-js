@@ -309,12 +309,12 @@ uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, 
 	DbiWrap* dw = static_cast<DbiWrap*>(
 		v8_object->GetAlignedPointerFromInternalField(0));
     EnvWrap* ew = dw->ew;
-    char* getInstructions = ew->syncInstructions;
+    char* keyBuffer = ew->keyBuffer;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;
     MDB_val data;
     key.mv_size = keySize;
-    key.mv_data = (void*) getInstructions;
+    key.mv_data = (void*) keyBuffer;
 
     int result = mdb_get(txn, dw->dbi, &key, &data);
     if (result) {
@@ -333,8 +333,8 @@ uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, 
     }
     /*
     alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
-    *((size_t*) getInstructions) = data.mv_size;
-    *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
+    *((size_t*) keyBuffer) = data.mv_size;
+    *((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
     return 0;*/
     return result;
 }
@@ -344,12 +344,12 @@ void DbiWrap::getByBinary(
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    char* getInstructions = dw->ew->syncInstructions;
+    char* keyBuffer = dw->ew->keyBuffer;
     MDB_txn* txn = dw->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
     key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    key.mv_data = (void*) getInstructions;
+    key.mv_data = (void*) keyBuffer;
     int rc = mdb_get(txn, dw->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
