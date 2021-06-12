@@ -30,7 +30,11 @@ static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 static thread_local Persistent<Object>* globalUnsafeBuffer;
 
+void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
+    #ifndef _WIN32
+    signal(SIGSEGV, signalHandler);   // install our handler
+    #endif
     Local<Object> versionObj = Nan::New<Object>();
 
     int major, minor, patch;
@@ -575,4 +579,18 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
+#ifndef _WIN32
+#include <execinfo.h>
+void signalHandler(int sig) {
+    void *array[20];
+    size_t size;
 
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 20);
+
+    // print out all the frames to stderr
+    fprintf(stderr, "Error: signal %d:\n", sig);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+    exit(1);
+}
+#endif

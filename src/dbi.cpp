@@ -303,7 +303,12 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-int32_t DbiWrap::Get(uint32_t keySize) {
+
+uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+	DbiWrap* dw = static_cast<DbiWrap*>(
+		v8_object->GetAlignedPointerFromInternalField(0));
+    EnvWrap* ew = dw->ew;
     char* getInstructions = ew->syncInstructions;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key;
@@ -311,46 +316,30 @@ int32_t DbiWrap::Get(uint32_t keySize) {
     key.mv_size = keySize;
     key.mv_data = (void*) getInstructions;
 
-    int rc = mdb_get(txn, dbi, &key, &data);
-    if (rc)
-        return rc;
-    return getVersionAndUncompressFast(data, this); /*
-    unsigned char* charData = (unsigned char*) data.mv_data;
-    if (hasVersions) {
-        *((uint64_t*) (getInstructions + 16)) = *((uint64_t*) charData);
-//        fprintf(stderr, "getVersion %u\n", lastVersion);
-        charData = charData + 8;
-        data.mv_data = charData;
-        data.mv_size -= 8;
+    int result = mdb_get(txn, dw->dbi, &key, &data);
+    if (result) {
+        if (result == MDB_NOTFOUND)
+            return 0xffffffff;
+        // let the slow handler handle throwing errors
+        options.fallback = true;
+        return result;
     }
-    if (data.mv_size > 0) {
-        unsigned char statusByte = compression ? charData[0] : 0;
-        if (statusByte >= 250) {
-            bool isValid;
-            compression->decompress(data, isValid);
-            if (!isValid) {
-                return -1;
-            }
-        }
-    }
-    *((size_t*) getInstructions) = data.mv_size;
-    *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
-    return 0;*/
-}
-
-int32_t DbiWrap::GetFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
-	DbiWrap* dw = static_cast<DbiWrap*>(
-		v8_object->GetAlignedPointerFromInternalField(0));
-    int32_t returnCode = dw->Get(keySize);
-    if (!returnCode && dw->getFailed) {
+    result = getVersionAndUncompressFast(data, dw);
+    if ((!result && dw->getFailed)) {
+        // this means an allocation or error needs to be thrown, so we fallback to the slow handler
+        // or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
         dw->getFailed = false;
         options.fallback = true;
     }
-    return returnCode;
+    /*
+    alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
+    *((size_t*) getInstructions) = data.mv_size;
+    *((uint64_t*) (getInstructions + 8)) = (uint64_t) data.mv_data;
+    return 0;*/
+    return result;
 }
 
-void DbiWrap::GetSlow(
+void DbiWrap::getByBinary(
   const v8::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
@@ -362,7 +351,58 @@ void DbiWrap::GetSlow(
     key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
     key.mv_data = (void*) getInstructions;
     int rc = mdb_get(txn, dw->dbi, &key, &data);
-    if (rc)
-        return info.GetReturnValue().Set(Nan::New<Number>(rc));
+    if (rc) {
+        if (rc == MDB_NOTFOUND)
+            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+        else
+            return throwLmdbError(rc);
+    }   
     return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToBinaryUnsafe));
+}
+NAN_METHOD(DbiWrap::getByPrimitive) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    MDB_txn* txn = dw->ew->getReadTxn();
+    MDB_val key;
+    MDB_val data;
+    bool keyIsValid;
+    if(argToKey(info[0], key, dw->keyType, keyIsValid)) {
+        return Nan::ThrowError("argToKey should not allocate");
+    }
+    if (!keyIsValid) {
+        // argToKey already threw an error
+        return;
+    }
+    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    if (rc) {
+        if (rc == MDB_NOTFOUND)
+            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+        else
+            return throwLmdbError(rc);
+    }
+    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToBinaryUnsafe));
+}
+
+NAN_METHOD(DbiWrap::getStringByPrimitive) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    MDB_txn* txn = dw->ew->getReadTxn();
+    MDB_val key;
+    MDB_val data;
+    bool keyIsValid;
+    if(argToKey(info[0], key, dw->keyType, keyIsValid)) {
+        return Nan::ThrowError("argToKey should not allocate");
+    }
+    if (!keyIsValid) {
+        // argToKey already threw an error
+        return;
+    }
+    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    if (rc) {
+
+        return throwLmdbError(rc);
+    }
+    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToUtf8));
 }

@@ -670,9 +670,10 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
-    static uint32_t GetByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
-    static void GetByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(DbiWrap::GetByPrimitive);
+    static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
+    static NAN_METHOD(DbiWrap::getByPrimitive);
+    static NAN_METHOD(DbiWrap::getStringByPrimitive);
 };
 
 class Compression : public Nan::ObjectWrap {

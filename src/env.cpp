@@ -1111,11 +1111,14 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    auto getFast = CFunction::MakeWithFallbackSupport(DbiWrap::GetFast);
-    dbiTpl->PrototypeTemplate()->Set(isolate, "get", v8::FunctionTemplate::New(
-          isolate, DbiWrap::GetSlow, v8::Local<v8::Value>(),
+    auto getFast = CFunction::MakeWithFallbackSupport(DbiWrap::getByBinaryFast);
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
+          isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getByPrimitive));
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getStringByPrimitive));
+    dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
 
 
     // TODO: wrap mdb_stat too

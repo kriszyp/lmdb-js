@@ -370,14 +370,11 @@ function open(path, options) {
 				return handleError(error, this, txn, () => this.transaction(callback))
 			}
 		}
-		getBufferForGet(id) {
+		getSharedBufferForGet(id) {
 			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.keyIsCompatibility ? txn.getBinaryUnsafe(id) : this.db.get(this.writeKey(id, syncInstructions, 0))
-			if (lastSize < 0) {
-				if (lastSize == -30798) //MDB_NOTFOUND
-					return //undefined
-				else
-					lmdbError(lastSize)
+			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, syncInstructions, 0))
+			if (lastSize === 0xffffffff) { // not found code
+				return //undefined
 			}
 			return lastSize
 			lastSize = syncInstructionsView.getUint32(0, true)
@@ -399,8 +396,8 @@ function open(path, options) {
 		}
 
 		getSizeBinaryFast(id) {
-			return lastSize = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-				.getBinaryUnsafe(this.db, id)
+			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			lastSize = this.keyIsCompatibility ? this.db.getByPrimitive(id) : this.db.getByBinary(this.writeKey(id, syncInstructions, 0))
 		}
 		getString(id) {
 			let string = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
@@ -410,17 +407,17 @@ function open(path, options) {
 			return string
 		}
 		getBinaryFast(id) {
-			this.getBufferForGet(id)
-			return lastSize > -1 ? this.db.unsafeBuffer.slice(0, lastSize) : undefined
+			this.getSizeBinaryFast(id)
+			return lastSize === 0xffffffff ? undefined : this.db.unsafeBuffer.slice(0, lastSize)
 		}
 		getBinary(id) {
-			this.getBufferForGet(id)
-			return lastSize > -1 ? Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize) : undefined
+			this.getSizeBinaryFast(id)
+			return lastSize === 0xffffffff ? undefined : Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize)
 		}
 		get(id) {
 			if (this.decoder) {
-				lastSize = this.getBufferForGet(id)
-				return lastSize && this.decoder.decode(this.db.unsafeBuffer, lastSize)
+				this.getSizeBinaryFast(id)
+				return lastSize === 0xffffffff ? undefined : this.decoder.decode(this.db.unsafeBuffer, lastSize)
 			}
 			if (this.encoding == 'binary')
 				return this.getBinary(id)
