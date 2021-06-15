@@ -36,6 +36,7 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->keyType = NodeLmdbKeyType::DefaultKey;
     this->compression = nullptr;
     this->isOpen = false;
+    this->getFast = false;
     this->ew = nullptr;
 }
 
@@ -311,8 +312,7 @@ uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, 
     EnvWrap* ew = dw->ew;
     char* keyBuffer = ew->keyBuffer;
     MDB_txn* txn = ew->getReadTxn();
-    MDB_val key;
-    MDB_val data;
+    MDB_val key, data;
     key.mv_size = keySize;
     key.mv_data = (void*) keyBuffer;
 
@@ -324,19 +324,22 @@ uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, 
         options.fallback = true;
         return result;
     }
-    result = getVersionAndUncompressFast(data, dw);
-    if ((!result && dw->getFailed)) {
+    dw->getFast = true;
+    result = getVersionAndUncompress(data, dw);
+    if (result)
+        result = valToBinaryFast(data);
+    if (!result) {
         // this means an allocation or error needs to be thrown, so we fallback to the slow handler
         // or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
-        dw->getFailed = false;
         options.fallback = true;
     }
+    dw->getFast = false;
     /*
     alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
     *((size_t*) keyBuffer) = data.mv_size;
     *((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
     return 0;*/
-    return result;
+    return data.mv_size;
 }
 
 void DbiWrap::getByBinary(
@@ -357,7 +360,8 @@ void DbiWrap::getByBinary(
         else
             return throwLmdbError(rc);
     }   
-    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToBinaryUnsafe));
+    rc = getVersionAndUncompress(data, dw);
+    return info.GetReturnValue().Set(valToBinaryUnsafe(data));
 }
 NAN_METHOD(DbiWrap::getByPrimitive) {
     v8::Local<v8::Object> instance =
@@ -381,7 +385,8 @@ NAN_METHOD(DbiWrap::getByPrimitive) {
         else
             return throwLmdbError(rc);
     }
-    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToBinaryUnsafe));
+    rc = getVersionAndUncompress(data, dw);
+    return info.GetReturnValue().Set(valToBinaryUnsafe(data));
 }
 
 NAN_METHOD(DbiWrap::getStringByPrimitive) {
@@ -404,5 +409,6 @@ NAN_METHOD(DbiWrap::getStringByPrimitive) {
 
         return throwLmdbError(rc);
     }
-    return info.GetReturnValue().Set(getVersionAndUncompress(data, dw, valToUtf8));
+    rc = getVersionAndUncompress(data, dw);
+    return info.GetReturnValue().Set(valToUtf8(data));
 }

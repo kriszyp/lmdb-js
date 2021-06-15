@@ -45,6 +45,7 @@ const writeBufferKey = (key, target) => {
 let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
+const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_LAST = 2, MDB_NEXT = 3, MDB_NEXT_NODUP = 4, MDB_NEXT_DUP = 5, MDB_PREV = 6, MDB_PREV_NODUP = 7, MDB_PREV_DUP = 8, MDB_GET_CURRENT = 9
 exports.open = open
 exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
@@ -730,29 +731,29 @@ function open(path, options) {
 						if (reverse) {
 							if (valuesForKey) {
 								// position at key
-								currentKey = cursor.goToKey(currentKey)
+								cursorOp(MDB_SET_KEY)
 								// now move to next key and then previous entry to get to last value
 								if (currentKey) {
-									cursor.goToNextNoDup()
-									cursor.goToPrev()
+									cursor.getByBinary(MDB_NEXT_NODUP, 0)
+									cursor.getByBinary(MDB_PREV, 0)
 								}
 							} else {
 								// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key
-								let nextKey = cursor.goToRange(currentKey)
+								let nextKey = cursor.getByPrimitive(MDB_SET_RANGE, currentKey)
 								if (nextKey) {
 									if (compareKey(nextKey, currentKey)) {
 										// goToRange positioned us at a key after the provided key, so we need to go the previous key to be less than the provided key
-										currentKey = cursor.goToPrev()
+										cursorOp(MDB_PREV)
 									} else
 										currentKey = nextKey // they match, we are good, and currentKey is already correct
 								} else {
 									// likewise, we have been position beyond the end of the index, need to go to last
-									currentKey = cursor.goToLast()
+									cursorOp(MDB_LAST)
 								}
 							}
 						} else {
 							// for forward retrieval, goToRange does what we want
-							currentKey = valuesForKey ? cursor.goToKey(currentKey) : cursor.goToRange(currentKey)
+							cursorOp(valuesForKey ? MDB_SET_KEY : MDB_SET_RANGE)
 						}
 						// TODO: Make a makeCompare(endKey)
 					} catch(error) {
@@ -764,28 +765,33 @@ function open(path, options) {
 						return handleError(error, this, txn, resetCursor)
 					}
 				}
+				function cursorOp(operation) {
+					//if (keyIsCompatibility)
+						currentKey = cursor.getByPrimitive(operation, currentKey)
+					/*else
+						currentKey = cursor.getByBinary(operation, this.writeKey(id, keyBuffer, 0))*/
+				}
 				resetCursor()
 				let offset = options.offset
+				let iteratingOperation = reverse ?
+						valuesForKey ? MDB_PREV_DUP :
+							includeValues ? MDB_PREV : MDB_PREV_NODUP :
+						valuesForKey ? MDB_NEXT_DUP :
+							includeValues ? MDB_NEXT : MDB_NEXT_NODUP
 				while(offset-- > 0 && currentKey !== undefined) {
-					currentKey = reverse ?
-						valuesForKey ? cursor.goToPrevDup() :
-							includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
-						valuesForKey ? cursor.goToNextDup() :
-							includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+					cursorOp(iteratingOperation)
 				}
 				if (options.onlyCount) {
 					while (!(currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= limit))) {
-						currentKey = reverse ?
-							valuesForKey ? cursor.goToPrevDup() :
-								includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
-							valuesForKey ? cursor.goToNextDup() :
-								includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+						cursorOp(iteratingOperation)
 					}
 					finishCursor()
 					return count
 				}
+				if (includeValues)
+					iteratingOperation |= 0x100
 
 				let store = this
 				function finishCursor() {
@@ -807,27 +813,24 @@ function open(path, options) {
 						if (cursorRenewId && cursorRenewId != renewId)
 							resetCursor()
 						if (count > 0)
-							currentKey = reverse ?
-								valuesForKey ? cursor.goToPrevDup() :
-									includeValues ? cursor.goToPrev() : cursor.goToPrevNoDup() :
-								valuesForKey ? cursor.goToNextDup() :
-									includeValues ? cursor.goToNext() : cursor.goToNextNoDup()
+							cursorOp(iteratingOperation)
 						if (currentKey === undefined ||
 								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= limit)) {
 							finishCursor()
 							return ITERATOR_DONE
 						}
+						if (count == 1 && includeValues) // on first entry, get current value if we need to
+							cursorOp(MDB_GET_CURRENT | 0x100)
 						if (includeValues) {
 							let value
+							lastSize = keyBufferView.getUint32(0, true)
 							if (store.decoder) {
-								lastSize = value = cursor.getCurrentBinaryUnsafe()
-								if (value)
-									value = store.decoder.decode(store.db.unsafeBuffer, value)
+								value = store.decoder.decode(store.db.unsafeBuffer, lastSize)
 							} else if (store.encoding == 'binary')
-								value = cursor.getCurrentBinary()
+								value = Uint8ArraySlice.call(store.db.unsafeBuffer, 0, lastSize)
 							else {
-								value = cursor.getCurrentUtf8()
+								value = store.db.unsafeBuffer.toString('utf8', 0, lastSize)
 								if (store.encoding == 'json' && value)
 									value = JSON.parse(value)
 							}
@@ -851,7 +854,6 @@ function open(path, options) {
 									}
 								}
 						} else if (includeVersions) {
-							cursor.getCurrentBinaryUnsafe()
 							return {
 								value: {
 									key: currentKey,

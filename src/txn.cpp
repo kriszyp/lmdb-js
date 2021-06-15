@@ -228,7 +228,8 @@ Nan::NAN_METHOD_RETURN_TYPE TxnWrap::getCommon(Nan::NAN_METHOD_ARGS_TYPE info, L
         throwLmdbError(rc);
     }
     else {
-        info.GetReturnValue().Set(getVersionAndUncompress(data, dw, successFunc));
+        getVersionAndUncompress(data, dw);
+        info.GetReturnValue().Set(successFunc(data));
     }
 }
 

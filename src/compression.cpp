@@ -109,8 +109,10 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     if (uncompressedLength > decompressSize) {
         if (canAllocate)
             expand(uncompressedLength);
-        else
+        else {
             isValid = false;
+            return;
+        }
     }
     int written = LZ4_decompress_safe_usingDict(
         (char*)charData + compressionHeaderSize, decompressTarget,
@@ -127,6 +129,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     data.mv_data = decompressTarget;
     data.mv_size = uncompressedLength;
     isValid = true;
+
 }
 
 void Compression::expand(unsigned int size) {

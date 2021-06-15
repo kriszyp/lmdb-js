@@ -62,6 +62,7 @@ enum class KeyCreation {
     Continue = 1,
     InArray = 2,
 };
+const int THEAD_MEMORY_THRESHOLD = 4000;
 
 class TxnWrap;
 class DbiWrap;
@@ -100,8 +101,7 @@ NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Val
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
-Local<Value> getVersionAndUncompress(MDB_val &data, DbiWrap* dw, Local<Value> (*successFunc)(MDB_val&));
-uint32_t getVersionAndUncompressFast(MDB_val &data, DbiWrap* dw);
+bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
@@ -148,6 +148,7 @@ static thread_local DbiWrap* currentDb = nullptr;
 static thread_local KeySpace* fixedKeySpace;
 void setLastVersion(double version);
 
+bool valToBinaryFast(MDB_val &data);
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
@@ -636,7 +637,7 @@ public:
     bool hasVersions;
     // current unsafe buffer for this db
     char* lastUnsafePtr;
-    bool getFailed;
+    bool getFast;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
 
     friend class TxnWrap;
@@ -933,10 +934,10 @@ public:
     */
     static NAN_METHOD(del);
 
-    static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(DbiWrap::getByPrimitive);
-    static NAN_METHOD(DbiWrap::getStringByPrimitive);
+    static NAN_METHOD(CursorWrap::getByPrimitive);
+    static NAN_METHOD(CursorWrap::getStringByPrimitive);
 };
 
 // External string resource that glues MDB_val and v8::String
