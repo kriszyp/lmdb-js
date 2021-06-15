@@ -2,6 +2,7 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
+      "use_data_v1%": "false",
       "build_v8_with_gn": "false"
   },
   "targets": [
@@ -9,7 +10,6 @@
       "target_name": "lmdb-store",
       "win_delay_load_hook": "false",
       "sources": [
-        "dependencies/lmdb/libraries/liblmdb/mdb.c",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
@@ -76,6 +76,21 @@
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
+        }],
+        ["use_data_v1=='true'", {
+          "sources": [
+            "dependencies/lmdb-data-v1/libraries/liblmdb/mdb.c"
+          ],
+          "include_dirs": [
+            "dependencies/lmdb-data-v1/libraries/liblmdb",
+          ],
+        }, {
+          "sources": [
+            "dependencies/lmdb/libraries/liblmdb/mdb.c"
+          ],
+          "include_dirs": [
+            "dependencies/lmdb/libraries/liblmdb",
+          ],        
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_MAXKEYSIZE=1978", "MDB_USE_ROBUST"],

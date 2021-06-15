@@ -522,6 +522,24 @@ function open(path, options) {
 			}
 			return scheduledOperations
 		}
+		putToBinary(id, value, version, ifVersion) {
+			let operations = this.getScheduledOperations()
+			let position = writeBuffer.position || 0
+			writeUint32Array[(position++) << 1] = 0 // write the operation
+			writeFloat64Array[position++] = version
+			writeFloat64Array[position++] = ifVersion
+			let keySize = this.writeKey(id, writeBuffer, (position + 2) << 3)
+			writeUint32Array[(position << 1) - 3] = keySize
+			if (this.encoder) {
+				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
+				value = this.encoder.encode(value)
+			}
+			writeUint32Array[(position++ << 1) - 2] = keySize
+			writeUint32Array[(position++) << 1] = value.length
+			writeFloat64Array[position] = 0
+			position += ((keySize - 1) >> 3) + 1
+			writeBuffer.position = position
+		}
 		put(id, value, version, ifVersion) {
 			if (id.length > 511) {
 				throw new Error('Key is larger than maximum key size (511)')

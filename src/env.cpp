@@ -508,7 +508,11 @@ NAN_METHOD(EnvWrap::open) {
         if (enckey.mv_size != 32) {
             return Nan::ThrowError("Encryption key must be 32 bytes long");
         }
+        #ifdef MDB_RPAGE_CACHE
         rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
+        #else
+        return Nan::ThrowError("Encryption not supported with data format version 1");
+        #endif
         if (rc != 0) {
             return throwLmdbError(rc);
         }
@@ -521,12 +525,14 @@ NAN_METHOD(EnvWrap::open) {
         return throwLmdbError(rc);
     }
 
+    #ifdef MDB_RPAGE_CACHE
     // Parse the pageSize option
     // default is 4096
     rc = applyUint32Setting<int>(&mdb_env_set_pagesize, ew->env, options, 4096, "pageSize");
     if (rc != 0) {
         return throwLmdbError(rc);
     }
+    #endif
 
     // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
     // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway

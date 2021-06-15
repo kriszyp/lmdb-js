@@ -1,7 +1,7 @@
 # lmdb-store
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb-store.svg?style=flat-square)](https://www.npmjs.org/package/lmdb-store)
-[![get](https://img.shields.io/badge/get-4.5%20MOPS-yellow)](README.md)
+[![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
 `lmdb-store` is an ultra-fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
@@ -369,6 +369,8 @@ A few LMDB options are available at build time, and can be specified with option
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
 
 On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 db environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Otherwise don't use the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of db environments (and use more databases within each environment).
+
+`npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
 ## License
 

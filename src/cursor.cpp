@@ -268,9 +268,11 @@ NAN_METHOD(CursorWrap::getCurrentBoolean) {
 }
 
 NAN_METHOD(CursorWrap::getCurrentIsDatabase) {
+    #ifdef MDB_RPAGE_CACHE
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
     int isDatabase = mdb_cursor_is_db(cw->cursor);
     return info.GetReturnValue().Set(Nan::New<Boolean>(isDatabase));
+    #endif
 }
 
 #define MAKE_GET_FUNC(name, op) NAN_METHOD(CursorWrap::name) { return getCommon(info, op); }
