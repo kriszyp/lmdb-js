@@ -227,6 +227,8 @@ declare namespace lmdb {
 		**/
 		close(): void
 	}
+	/* A special value that can be returned from a transaction to indicate that the transaction should be aborted */
+	export const ABORT = 10000000000000
 	class RootDatabase<V = any, K extends Key = Key> extends Database<V, K> {
 		/**
 		* Open a database store using the provided options.
@@ -271,6 +273,7 @@ declare namespace lmdb {
 		readOnly?: boolean
 		mapAsync?: boolean
 		maxReaders?: number
+		winMemoryPriority?: 1 | 2 | 3 | 4 | 5
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
 		path: string

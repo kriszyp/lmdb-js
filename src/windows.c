@@ -16,7 +16,6 @@ int lowerMemoryPriority(int priority) {
     return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
 }
 int restoreMemoryPriority() {
-    return 0;
-    //return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+    return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
 }
 #endif

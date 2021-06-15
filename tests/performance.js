@@ -13,17 +13,19 @@ var getRandomBuffer = () => {
 	return randomBuffer
 }
 suite('performance', function() {
-	removeSync('tests/db')
+	//removeSync('tests/db')
 
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
 	const lmdb = openLmdb('tests/db/test-lmdb.mdb', {
 		keyIsBuffer: true,
+		winMemoryPriority: 3,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
+		winMemoryPriority: 3,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
@@ -65,7 +67,7 @@ console.log('opened')
 		}
 		return level.batch(operations)
 	})*/
-	test.only('lmdb-write', () => {
+	test('lmdb-write', () => {
 		let last
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
@@ -107,16 +109,15 @@ console.log('opened')
 		debugger
 		return last
 	})
-	test('lmdb-read', () => {
-		for (let i = 0; i < 10000; i++) {
-			global.test = lmdb.get(Buffer.from((i % 1000).toString()), {
-				onShareInvalidate(arg) {
-					console.log('onShareInvalidate', arg)
-				}
-			})
+	test.only('lmdb-read', () => {
+		let count = 0;
+		start = Date.now()
+		for (let { key, value } of db2.getRange({start:0, end: 1000000000000})) {
+			count++
 		}
+		console.log('entries', count, 'time to read', Date.now() - start)
 	})
-	test.only('lmdb-random-read-write', async function() {
+	test('lmdb-random-read-write', async function() {
 		this.timeout(100000)
 		let start = Date.now()
 		let position = 0
