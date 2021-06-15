@@ -58,6 +58,10 @@ void setupExportMisc(Local<Object> exports) {
     fixedKeySpace = new KeySpace(true);
 }
 
+KeySpace* getFixedKeySpace() {
+    return fixedKeySpace;
+}
+
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
     Local<Context> context = Nan::GetCurrentContext();
     Local<Value> opt = options->Get(context, Nan::New<String>(name).ToLocalChecked()).ToLocalChecked();

@@ -291,7 +291,7 @@ NAN_METHOD(bufferToKeyValue) {
     info.GetReturnValue().Set(MDBKeyToValue(key));
 }
 NAN_METHOD(keyValueToBuffer) {
-    uint8_t* targetBytes = fixedKeySpace->getTarget();
+    uint8_t* targetBytes = getFixedKeySpace()->getTarget();
     size_t size = valueToKey(info[0], targetBytes, 1978, false, true);
     if (!size) {
         return;

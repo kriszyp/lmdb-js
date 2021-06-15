@@ -146,6 +146,7 @@ const double NO_EXIST_VERSION = -4.2434325325532E-199;
 static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
 static thread_local KeySpace* fixedKeySpace;
+KeySpace* getFixedKeySpace();
 void setLastVersion(double version);
 
 bool valToBinaryFast(MDB_val &data);

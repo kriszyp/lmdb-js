@@ -8,7 +8,7 @@ let should = chai.should();
 let expect = chai.expect;
 let spawn = require('child_process').spawn;
 
-let { open, getLastVersion, ABORT } = require('..');
+let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
 var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
@@ -470,6 +470,32 @@ describe('lmdb-store', function() {
       },10);
     });
   }}
+  describe('direct key', function() {
+    it('should serialize and deserialize keys', function() {
+      let keys = [
+        Symbol.for('test'),
+        false,
+        true,
+        -33,
+        -1.1,
+        3.3,
+        5,
+        [5,4],
+        [5,55],
+        'hello',
+        ['hello', 3],
+        ['hello', 'world'],
+        [ 'uid', 'I-7l9ySkD-wAOULIjOEnb', 'Rwsu6gqOw8cqdCZG5_YNF' ],
+        'z'
+      ]
+      let serializedKeys = []
+      for (let key of keys) {
+        let buffer = keyValueToBuffer(key)
+        serializedKeys.push(bufferToKeyValue(buffer))
+      }
+      serializedKeys.should.deep.equal(keys)
+    })
+  });
   describe('uint32 keys', function() {
     this.timeout(10000);
     let db, db2;
