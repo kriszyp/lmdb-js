@@ -392,11 +392,11 @@ function open(path, options) {
 		}
 		getBinaryFast(id) {
 			this.getSizeBinaryFast(id)
-			return this.db.unsafeBuffer.slice(0, lastSize)
+			return lastSize && this.db.unsafeBuffer.slice(0, lastSize)
 		}
 		getBinary(id) {
-			let size = this.getSizeBinaryFast(id)
-			return Uint8ArraySlice.call(this.db.unsafeBuffer, 0, size)
+			this.getSizeBinaryFast(id)
+			return lastSize && Uint8ArraySlice.call(this.db.unsafeBuffer, 0, size)
 		}
 		get(id) {
 			if (this.decoder) {
