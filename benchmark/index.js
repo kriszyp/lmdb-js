@@ -109,9 +109,9 @@ cleanup(async function (err) {
       fn: setData
     });*/
     suite.add('get', getData);
+    suite.add('plainJSON', plainJSON);
     suite.add('getBinary', getBinary);
     suite.add('getBinaryFast', getBinaryFast);
-    //suite.add('plainJSON', plainJSON);
     suite.on('cycle', function (event) {
       console.log({result})
       if (result && result.then) {
