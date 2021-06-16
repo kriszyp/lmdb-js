@@ -561,6 +561,7 @@ size_t CustomExternalOneByteStringResource::length() const {
 
 #ifndef _WIN32
 #include <execinfo.h>
+#include <unistd.h>
 void signalHandler(int sig) {
     void *array[20];
     size_t size;
