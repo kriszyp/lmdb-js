@@ -674,8 +674,8 @@ public:
     static NAN_METHOD(stat);
     static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(DbiWrap::getByPrimitive);
-    static NAN_METHOD(DbiWrap::getStringByPrimitive);
+    static NAN_METHOD(getByPrimitive);
+    static NAN_METHOD(getStringByPrimitive);
 };
 
 class Compression : public Nan::ObjectWrap {
@@ -937,8 +937,8 @@ public:
 
     static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(CursorWrap::getByPrimitive);
-    static NAN_METHOD(CursorWrap::getStringByPrimitive);
+    static NAN_METHOD(getByPrimitive);
+    static NAN_METHOD(getStringByPrimitive);
 };
 
 // External string resource that glues MDB_val and v8::String
