@@ -47,7 +47,6 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
-    Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
@@ -347,7 +346,7 @@ NAN_METHOD(setWinMemoryLimit) {
     #endif
 }
 
-NAN_METHOD(getBufferForAddress) {
+/*NAN_METHOD(getBufferForAddress) {
     char* address = (char*) (size_t) Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
     std::unique_ptr<v8::BackingStore> backing = v8::ArrayBuffer::NewBackingStore(
     address, 0x100000000, [](void*, size_t, void*){}, nullptr);
@@ -360,7 +359,7 @@ NAN_METHOD(getBufferForAddress) {
         },
         nullptr
     ).ToLocalChecked());*/
-}
+//}
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));

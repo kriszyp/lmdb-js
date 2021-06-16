@@ -104,7 +104,6 @@ NAN_METHOD(setLastVersion);
 NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
-NAN_METHOD(getBufferForAddress);
 
 class KeySpaceHolder {
 public:
