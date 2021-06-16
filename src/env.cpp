@@ -971,7 +971,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
         Local<Object> operation = Local<Object>::Cast(operationValue);
         Local<v8::Value> key = operation->Get(context, 0).ToLocalChecked();
         
-        keyType = keyTypeFromOptions(options, dw->keyType);
+        keyType = dw->keyType;
         if (keyType == NodeLmdbKeyType::DefaultKey) {
             keyIsValid = valueToMDBKey(key, action->key, *keySpace);
         }
