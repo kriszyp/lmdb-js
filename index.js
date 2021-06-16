@@ -388,16 +388,16 @@ function open(path, options) {
 		}
 		getBinaryFast(id) {
 			this.getSizeBinaryFast(id)
-			return lastSize && this.db.unsafeBuffer.slice(0, lastSize)
+			return lastSize === undefined ? undefined : this.db.unsafeBuffer.slice(0, lastSize)
 		}
 		getBinary(id) {
 			this.getSizeBinaryFast(id)
-			return lastSize && Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize)
+			return lastSize === undefined ? undefined : Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize)
 		}
 		get(id) {
 			if (this.decoder) {
 				this.getSizeBinaryFast(id)
-				return lastSize && this.decoder.decode(this.db.unsafeBuffer, lastSize)
+				return lastSize === undefined ? undefined : this.decoder.decode(this.db.unsafeBuffer, lastSize)
 			}
 			if (this.encoding == 'binary')
 				return this.getBinary(id)

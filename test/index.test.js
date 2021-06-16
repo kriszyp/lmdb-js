@@ -442,9 +442,11 @@ describe('lmdb-store', function() {
         encoding: 'binary'
       }));
       dbBinary.put('buffer', Buffer.from('hello'));
+      dbBinary.put('empty', Buffer.from([]));
       await dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
       dbBinary.get('buffer').toString().should.equal('hello');
       dbBinary.get('Uint8Array')[1].should.equal(2);
+      dbBinary.get('empty').length.should.equal(0);
     });
     it.skip('read and write with binary methods', async function() {
       debugger
