@@ -392,7 +392,7 @@ function open(path, options) {
 		}
 		getBinary(id) {
 			this.getSizeBinaryFast(id)
-			return lastSize && Uint8ArraySlice.call(this.db.unsafeBuffer, 0, size)
+			return lastSize && Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize)
 		}
 		get(id) {
 			if (this.decoder) {
