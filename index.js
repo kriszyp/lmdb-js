@@ -502,8 +502,8 @@ function open(path, options) {
 			return scheduledOperations
 		}
 		put(id, value, version, ifVersion) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			this.writes++
 			if (writeTxn) {
@@ -538,8 +538,8 @@ function open(path, options) {
 				})
 		}
 		putSync(id, value, version) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			let localTxn, hadWriteTxn = writeTxn
 			try {
@@ -568,8 +568,8 @@ function open(path, options) {
 			}
 		}
 		removeSync(id, ifVersionOrValue) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			let localTxn, hadWriteTxn = writeTxn
 			try {
@@ -605,8 +605,8 @@ function open(path, options) {
 			}
 		}
 		remove(id, ifVersionOrValue) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			this.writes++
 			if (writeTxn) {

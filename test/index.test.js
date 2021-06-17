@@ -488,6 +488,7 @@ describe('lmdb-store', function() {
         ['hello', 3],
         ['hello', 'world'],
         [ 'uid', 'I-7l9ySkD-wAOULIjOEnb', 'Rwsu6gqOw8cqdCZG5_YNF' ],
+        'x'.repeat(1978),
         'z'
       ]
       let serializedKeys = []

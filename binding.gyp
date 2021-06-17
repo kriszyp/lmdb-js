@@ -78,9 +78,9 @@
             "libraries": ["ntdll.lib"]
         }],
         ["use_robust=='true'", {
-          "defines": ["MDB_MAXKEYSIZE=1792", "MDB_USE_ROBUST"],
+          "defines": ["MDB_MAXKEYSIZE=1978", "MDB_USE_ROBUST"],
         }, {
-          "defines": ["MDB_MAXKEYSIZE=1792"],
+          "defines": ["MDB_MAXKEYSIZE=1978"],
         }],
       ],
     }

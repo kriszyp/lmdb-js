@@ -30,14 +30,14 @@ size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remain
         #endif
         if (utfWritten < string->Length()) {
             if (throwErrors)
-                Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+                Nan::ThrowError("String is too long to fit in a key with a maximum of 1978 bytes");
             return 0;
         }
         if (bytesWritten == 0 || targetBytes[0] < 28) {
             // use string/escape indicator starting byte
             if (remainingBytes == 0) {
                 if (throwErrors)
-                    Nan::ThrowError("String is too long to fit in a key with a maximum of 511 bytes");
+                    Nan::ThrowError("String is too long to fit in a key with a maximum of 1978 bytes");
                 return 0;
             }
             memmove(targetBytes + 1, targetBytes, bytesWritten++);
@@ -101,7 +101,7 @@ size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remain
             if (i > 0) {
                 if (remainingBytes <= 10) {
                     if (throwErrors)
-                        Nan::ThrowError("Array is too large to fit in a key with a maximum of 511 bytes");
+                        Nan::ThrowError("Array is too large to fit in a key with a maximum of 1978 bytes");
                     return 0;
                 }
                 *targetBytes = 0;
@@ -128,7 +128,7 @@ size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remain
         if (bytesWritten > remainingBytes - 10 && // guard the second check with this first check to see if we are close to the end
                 Local<ArrayBufferView>::Cast(jsKey)->ByteLength() > bytesWritten) {
             if (throwErrors)
-                Nan::ThrowError("Buffer is too long to fit in a key with a maximum of 511 bytes");
+                Nan::ThrowError("Buffer is too long to fit in a key with a maximum of 1978 bytes");
             return 0; // not enough space
         }
         return bytesWritten;
@@ -147,7 +147,7 @@ size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remain
         bytesWritten = string->WriteUtf8((char*) targetBytes + 1, remainingBytes - 1, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION) + 1;
 #endif
         if (utfWritten < string->Length()) {
-            Nan::ThrowError("Symbol name is too long to fit in a key with a maximum of 511 bytes");
+            Nan::ThrowError("Symbol name is too long to fit in a key with a maximum of 1978 bytes");
             return 0;
         }
         return bytesWritten;
@@ -166,7 +166,7 @@ bool valueToMDBKey(const Local<Value>& jsKey, MDB_val& mdbKey, KeySpace& keySpac
         return true;
     }
     uint8_t* targetBytes = keySpace.getTarget();
-    size_t size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 511, false, keySpace.fixedSize);
+    size_t size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, MDB_MAXKEYSIZE, false, keySpace.fixedSize);
     mdbKey.mv_data = targetBytes;
     if (!keySpace.fixedSize)
         keySpace.position += size;
@@ -292,7 +292,7 @@ NAN_METHOD(bufferToKeyValue) {
 }
 NAN_METHOD(keyValueToBuffer) {
     uint8_t* targetBytes = getFixedKeySpace()->getTarget();
-    size_t size = valueToKey(info[0], targetBytes, 1978, false, true);
+    size_t size = valueToKey(info[0], targetBytes, MDB_MAXKEYSIZE, false, true);
     if (!size) {
         return;
     }
@@ -317,7 +317,7 @@ KeySpaceHolder::~KeySpaceHolder() {
 }
 
 uint8_t* KeySpace::getTarget() {
-    if (position + 511 > size) {
+    if (position + MDB_MAXKEYSIZE > size) {
         if (fixedSize) {
             Nan::ThrowError("Key is too large");
             return nullptr;
@@ -332,6 +332,6 @@ uint8_t* KeySpace::getTarget() {
 KeySpace::KeySpace(bool fixed) {
     fixedSize = fixed;
     position = 0;
-    size = fixed ? 512 : 8192;
+    size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
     data = new uint8_t[size];
 }
