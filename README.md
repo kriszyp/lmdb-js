@@ -1,10 +1,10 @@
-# lmdb-store
+# LMDB
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb-store.svg?style=flat-square)](https://www.npmjs.org/package/lmdb-store)
 [![get](https://img.shields.io/badge/get-4.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-`lmdb-store` is an ultra-fast interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb-store` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+The `lmdb` library is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
@@ -18,28 +18,28 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a `get` operation, using
 
 ## Design
 
-`lmdb-store` handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
+This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
 
-`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb-store` observes this design pattern; because LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, commiting transactions does involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of a batch operation can be performed in a separate thread. Consequently, `lmdb-store` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
+`lmdb` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. `lmdb` observes this design pattern; because LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, commiting transactions does involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of a batch operation can be performed in a separate thread. Consequently, `lmdb` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
-With the default sync'ing functionality, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and lmdb-store is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
+With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and lmdb-store is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
 
-`lmdb-store` supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows `lmdb-store` to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
+`lmdb` supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows this library to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
 
-When an `lmdb-store` automatically handles automatically database growth, expanding file size with a smart heuristic that minimizes file fragmentation (as you would expect from a database)..
+This library automatically handles automatically database growth, expanding file size with a smart heuristic that minimizes file fragmentation (as you would expect from a database)..
 
-`lmdb-store` provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
+This library provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
-`lmdb-store` is built on the excellent [node-lmdb](https://github.com/Venemo/node-lmdb) package.
+`lmdb` is built on the excellent [node-lmdb](https://github.com/Venemo/node-lmdb) package.
 
 ## Usage
-An lmdb-store instances is created with by using `open` export from the main module:
+An lmdb database instance is created with by using `open` export from the main module:
 ```
-const { open } = require('lmdb-store');
+const { open } = require('lmdb');
 // or
-// import { open } from 'lmdb-store';
+// import { open } from 'lmdb';
 let myStore = open({
-	path: 'my-store',
+	path: 'my-db',
 	// any options go here, we can turn on compression like this:
 	compression: true,
 });
@@ -51,9 +51,9 @@ myStore.transactionAsync(() => {
 	myStore.get('greeting').someText // 'Hello, World!'
 });
 ```
-(see store options below for more options)
+(see database options below for more options)
 
-Once you have created a store, you can store and retrieve values using keys:
+Once you have opened a database, you can store and retrieve values using keys:
 
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. These primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
@@ -247,7 +247,7 @@ This checks if an entry exists for the given key, and optionally verifies that t
 Normally, lmdb-store will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
 
 ## Concurrency and Versioning
-LMDB and lmdb-store are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with lmdb-store (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
+LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency with `lmdb` (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
 let myStore = open('my-store', { useVersions: true })
 ```
@@ -360,7 +360,7 @@ You can also use the CBOR format by specifying the encoding of `'cbor'` and inst
 
 ## Events
 
-The `lmdb-store` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
+The `lmdb` instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
 `beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
 
@@ -372,7 +372,7 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 ## License
 
-`lmdb-store` is licensed under the terms of the MIT license.
+`lmdb` is licensed under the terms of the MIT license.
 
 Also note that LMDB: Symas (the authors of LMDB) [offers commercial support of LMDB](https://symas.com/lightning-memory-mapped-database/).
 
