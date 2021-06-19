@@ -39,6 +39,7 @@ describe('lmdb-store', function() {
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
+  describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(1000000);
@@ -162,6 +163,8 @@ describe('lmdb-store', function() {
       data = db.get('key1');
       should.equal(data, undefined);
     });
+    if (options.encoding == 'ordered-binary')
+      return // no more tests need to be applied for this
     it('store objects', async function() {
       let dataIn = {foo: 3, bar: true}
       await db.put('key1',  dataIn);

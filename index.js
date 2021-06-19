@@ -5,7 +5,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress } = exports
+const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const os = require('os')
 setGetLastVersion(getLastVersion)
@@ -199,6 +199,11 @@ function open(path, options) {
 			} else if (this.encoding == 'json') {
 				this.encoder = {
 					encode: JSON.stringify,
+				}
+			} else if (this.encoding == 'ordered-binary') {
+				this.encoder = this.decoder = {
+					encode(value) { return keyValueToBuffer(value) },
+					decode(buffer, end) { return bufferToKeyValue(buffer.slice(0, end)) }
 				}
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)

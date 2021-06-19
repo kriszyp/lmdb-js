@@ -246,7 +246,7 @@ declare namespace lmdb {
 		name?: string
 		cache?: boolean
 		compression?: boolean | CompressionOptions
-		encoding?: 'msgpack' | 'json' | 'string' | 'binary'
+		encoding?: 'msgpack' | 'json' | 'string' | 'binary' | 'ordered-binary'
 		sharedStructuresKey?: Key
 		useVersions?: boolean
 		keyIsBuffer?: boolean
