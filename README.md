@@ -3,7 +3,7 @@
 [![get](https://img.shields.io/badge/get-4.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This library is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. `lmdb` offers several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This library is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
