@@ -32,7 +32,7 @@ This library automatically handles automatically database growth, expanding file
 This library provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
 ## Usage
-An lmdb database instance is created with by using `open` export from the main module:
+An lmdb store instance is created with by using `open` export from the main module:
 ```
 const { open } = require('lmdb');
 // or
