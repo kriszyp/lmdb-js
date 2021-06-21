@@ -48,6 +48,9 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     Nan::SetMethod(exports, "setWinMemoryPriority", setWinMemoryPriority);
+    // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
+    // just uses the name of the last exported native function:
+    Nan::SetMethod(exports, "lmdbNativeFunctions", getLastVersion);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
