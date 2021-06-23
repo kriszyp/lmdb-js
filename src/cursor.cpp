@@ -32,6 +32,7 @@ CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
     this->keyType = NodeLmdbKeyType::StringKey;
     this->freeKey = nullptr;
+    this->endKey.mv_size = 0; // indicates no end key (yet)
 }
 
 CursorWrap::~CursorWrap() {
@@ -374,7 +375,7 @@ NAN_METHOD(CursorWrap::goToDupRange) {
     return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
-MDB_cursor_op operations[10] = { MDB_SET_KEY, MDB_SET_RANGE, MDB_LAST, MDB_NEXT, MDB_NEXT_NODUP, MDB_NEXT_DUP, MDB_PREV, MDB_PREV_NODUP, MDB_PREV_DUP, MDB_GET_CURRENT };
+MDB_cursor_op operations[10] = { MDB_SET_KEY, MDB_SET_RANGE, MDB_GET_CURRENT, MDB_LAST, MDB_NEXT, MDB_NEXT_NODUP, MDB_NEXT_DUP, MDB_PREV, MDB_PREV_NODUP, MDB_PREV_DUP };
 uint32_t CursorWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -385,9 +386,15 @@ uint32_t CursorWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t operat
     MDB_val key;
     MDB_val data;
     int opCode = operation & 0xff;
-    if (opCode < 2) {
-        key.mv_size = keySize;
-        key.mv_data = (void*) keyBuffer;
+    if (opCode < 3) {
+        if (opCode < 2) {
+            key.mv_size = keySize;
+            key.mv_data = (void*) keyBuffer;
+        } else {
+            cw->endKey.mv_size = keySize;
+            //endKey.mv_data = endKeyData;
+            //memcpy(endKeyData, keyBuffer, keySize);
+        }
     }
 
     int result = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
@@ -463,9 +470,9 @@ NAN_METHOD(CursorWrap::getByPrimitive) {
     char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key;
     MDB_val data;
-    if (opCode < 2) {
+    if (opCode < 3 && !info[1]->IsUndefined()) {
         bool keyIsValid;
-        if(argToKey(info[1], key, dw->keyType, keyIsValid)) {
+        if (argToKey(info[1], opCode < 2 ? key : cw->endKey, dw->keyType, keyIsValid)) {
             return Nan::ThrowError("argToKey should not allocate");
         }
         if (!keyIsValid) {
@@ -479,7 +486,17 @@ NAN_METHOD(CursorWrap::getByPrimitive) {
             return info.GetReturnValue().Set(Nan::Undefined());
         else
             return throwLmdbError(rc);
-    }   
+    }
+    if (cw->endKey.mv_size > 0) {
+        int comparison;
+        if (operation & 0x800)
+            comparison = mdb_dcmp(cw->tw->txn, dw->dbi, &data, &cw->endKey);
+        else
+            comparison = mdb_cmp(cw->tw->txn, dw->dbi, &key, &cw->endKey);
+        if ((operation & 0x400) ? comparison <= 0 : (comparison >=0)) {
+            return info.GetReturnValue().Set(Nan::Undefined());
+        }
+    }
     if (operation & 0x100) {
         getVersionAndUncompress(data, dw);
         valToBinaryFast(data);

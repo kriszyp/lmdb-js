@@ -45,7 +45,7 @@ const writeBufferKey = (key, target) => {
 let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
-const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_LAST = 2, MDB_NEXT = 3, MDB_NEXT_NODUP = 4, MDB_NEXT_DUP = 5, MDB_PREV = 6, MDB_PREV_NODUP = 7, MDB_PREV_DUP = 8, MDB_GET_CURRENT = 9
+const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_CURRENT = 2, MDB_LAST = 3, MDB_NEXT = 4, MDB_NEXT_NODUP = 5, MDB_NEXT_DUP = 6, MDB_PREV = 7, MDB_PREV_NODUP = 8, MDB_PREV_DUP = 9
 exports.open = open
 exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
@@ -727,9 +727,6 @@ function open(path, options) {
 				let currentKey = options.start !== undefined ? options.start :
 					(options.reverse ? this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY :
 						this.keyIsUint32 ? 0 : this.keyIsBuffer ? FIRST_BUFFER_KEY : false)
-				let endKey = options.end !== undefined ? options.end :
-					(options.reverse ? this.keyIsUint32 ? 0 : this.keyIsBuffer ? FIRST_BUFFER_KEY : false :
-						this.keyIsUint32 ? 0xffffffff : this.keyIsBuffer ? LAST_BUFFER_KEY : LAST_KEY)
 				const reverse = options.reverse
 				let count = 0
 				let cursor, cursorRenewId
@@ -792,16 +789,17 @@ function open(path, options) {
 				resetCursor()
 				let offset = options.offset
 				let iteratingOperation = reverse ?
-						valuesForKey ? MDB_PREV_DUP :
+						valuesForKey ? MDB_PREV_DUP | 0x800 :
 							includeValues ? MDB_PREV : MDB_PREV_NODUP :
-						valuesForKey ? MDB_NEXT_DUP :
+						valuesForKey ? MDB_NEXT_DUP | 0x800 :
 							includeValues ? MDB_NEXT : MDB_NEXT_NODUP
+				if (reverse)
+					iteratingOperation |= 0x400
 				while(offset-- > 0 && currentKey !== undefined) {
 					cursorOp(iteratingOperation)
 				}
 				if (options.onlyCount) {
 					while (!(currentKey === undefined ||
-								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= limit))) {
 						cursorOp(iteratingOperation)
 					}
@@ -830,16 +828,17 @@ function open(path, options) {
 					next() {
 						if (cursorRenewId && cursorRenewId != renewId)
 							resetCursor()
-						if (count > 0)
+						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
+							if (currentKey !== undefined)
+								currentKey = cursor.getByPrimitive(MDB_GET_CURRENT |
+									(includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0), options.end)
+						} else
 							cursorOp(iteratingOperation)
 						if (currentKey === undefined ||
-								(reverse ? compareKey(currentKey, endKey) <= 0 : compareKey(currentKey, endKey) >= 0) ||
 								(count++ >= limit)) {
 							finishCursor()
 							return ITERATOR_DONE
 						}
-						if (count == 1 && includeValues) // on first entry, get current value if we need to
-							cursorOp(MDB_GET_CURRENT | 0x100)
 						if (includeValues) {
 							let value
 							lastSize = keyBufferView.getUint32(0, true)

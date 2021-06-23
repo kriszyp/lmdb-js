@@ -715,11 +715,10 @@ private:
     MDB_cursor *cursor;
     // Stores how key is represented
     NodeLmdbKeyType keyType;
-    // Key/data pair where the cursor is at
-    MDB_val key, data;
+    // Key/data pair where the cursor is at, and ending key
+    MDB_val key, data, endKey;
     // Free function for the current key
     argtokey_callback_t freeKey;
-    
     DbiWrap *dw;
     TxnWrap *tw;
     
