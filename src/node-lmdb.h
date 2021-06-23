@@ -33,8 +33,10 @@
 #include <nan.h>
 #include <uv.h>
 #include "lmdb.h"
-#include "chacha8.h"
 #include "lz4.h"
+#ifdef MDB_RPAGE_CACHE
+#include "chacha8.h"
+#endif
 
 using namespace v8;
 using namespace node;

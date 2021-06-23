@@ -26,7 +26,6 @@
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
-        "dependencies/lmdb/libraries/liblmdb",
         "dependencies/lz4/lib"
       ],
       "conditions": [

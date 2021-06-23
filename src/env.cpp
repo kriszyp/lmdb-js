@@ -430,11 +430,13 @@ MDB_txn* EnvWrap::getReadTxn() {
     readTxnRenewed = true;
     return txn;
 }
+#ifdef MDB_RPAGE_CACHE
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
 {
     chacha8(src->mv_data, src->mv_size, (uint8_t*) key[0].mv_data, (uint8_t*) key[1].mv_data, (char*)dst->mv_data);
     return 0;
 }
+#endif
 
 NAN_METHOD(EnvWrap::open) {
     Nan::HandleScope scope;
@@ -546,7 +548,15 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
     setFlagFromValue(&flags, MDB_NOLOCK, "unsafeNoLock", false, options);
+    #ifdef MDB_RPAGE_CACHE
     setFlagFromValue(&flags, MDB_REMAP_CHUNKS, "remapChunks", false, options);
+    #ifdef _WIN32
+        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) &&!(flags & MDB_REMAP_CHUNKS)) {
+            fprintf(stderr, "Writemaps are currently disabled on Windows doing to issues with syncing\n");
+            flags &= ~MDB_WRITEMAP;
+        }
+    #endif
+    #endif
 
     if (flags & MDB_NOLOCK) {
         fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
@@ -554,12 +564,6 @@ NAN_METHOD(EnvWrap::open) {
 
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
-    #ifdef _WIN32
-        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) && !(flags & MDB_REMAP_CHUNKS)) {
-            fprintf(stderr, "Writemaps are currently disabled on Windows doing to issues with syncing\n");
-            flags &= ~MDB_WRITEMAP;
-        }
-    #endif
     // TODO: make file attributes configurable
     #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
