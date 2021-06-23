@@ -45,7 +45,7 @@ const writeBufferKey = (key, target) => {
 let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
-const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_CURRENT = 2, MDB_LAST = 3, MDB_NEXT = 4, MDB_NEXT_NODUP = 5, MDB_NEXT_DUP = 6, MDB_PREV = 7, MDB_PREV_NODUP = 8, MDB_PREV_DUP = 9
+const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_BOTH_RANGE = 2, MDB_GET_CURRENT = 3, MDB_FIRST = 4, MDB_LAST = 5, MDB_NEXT = 6, MDB_NEXT_NODUP = 7, MDB_NEXT_DUP = 8, MDB_PREV = 9, MDB_PREV_NODUP = 10, MDB_PREV_DUP = 11
 exports.open = open
 exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
@@ -749,8 +749,7 @@ function open(path, options) {
 								cursorOp(MDB_SET_KEY)
 								// now move to next key and then previous entry to get to last value
 								if (currentKey) {
-									cursor.getByBinary(MDB_NEXT_NODUP, 0)
-									cursor.getByBinary(MDB_PREV, 0)
+									cursor.getByBinary(MDB_LAST_DUP, 0)
 								}
 							} else {
 								// for reverse retrieval, goToRange is backwards because it positions at the key equal or *greater than* the provided key

@@ -375,7 +375,7 @@ NAN_METHOD(CursorWrap::goToDupRange) {
     return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
 
-MDB_cursor_op operations[10] = { MDB_SET_KEY, MDB_SET_RANGE, MDB_GET_CURRENT, MDB_LAST, MDB_NEXT, MDB_NEXT_NODUP, MDB_NEXT_DUP, MDB_PREV, MDB_PREV_NODUP, MDB_PREV_DUP };
+MDB_cursor_op operations[12] = { MDB_SET_KEY, MDB_SET_RANGE, MDB_GET_CURRENT, MDB_GET_CURRENT_BOTH_RANGE, MDB_FIRST, MDB_LAST, MDB_NEXT, MDB_NEXT_NODUP, MDB_NEXT_DUP, MDB_PREV, MDB_PREV_NODUP, MDB_PREV_DUP };
 uint32_t CursorWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -470,17 +470,41 @@ NAN_METHOD(CursorWrap::getByPrimitive) {
     char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key;
     MDB_val data;
-    if (opCode < 3 && !info[1]->IsUndefined()) {
+    int rc;
+    if (opCode < 4 && !info[1]->IsUndefined()) {
         bool keyIsValid;
-        if (argToKey(info[1], opCode < 2 ? key : cw->endKey, dw->keyType, keyIsValid)) {
+        if (argToKey(info[1], opCode < 3 ? key : cw->endKey, dw->keyType, keyIsValid)) {
             return Nan::ThrowError("argToKey should not allocate");
         }
         if (!keyIsValid) {
             // argToKey already threw an error
             return;
         }
-    }
-    int rc = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
+        if (operation & 0x400) {// reverse
+            MDB_val firstKey = key; // save it for comparison
+            rc = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
+            if (rc) { // not found
+                if (opCode == 0) {// MDB_SET_KEY
+                    // nothing to do
+                } else if (opCode == 1) {// MDB_SET_RANGE
+                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
+                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
+                }
+            } else {
+                if (opCode == 0) {// MDB_SET_KEY
+                    // compare data
+                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
+                } else if (opCode == 1) {// MDB_SET_RANGE
+                    if (mdb_cmp(cw->tw->txn, dw->dbi, &key, firstKey) == 0)
+                        rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
+                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
+
+                }
+            }
+        } else
+            rc = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
+    } else
+        rc = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
     if (rc) {
         if (rc == MDB_NOTFOUND)
             return info.GetReturnValue().Set(Nan::Undefined());
