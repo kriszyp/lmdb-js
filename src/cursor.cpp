@@ -460,7 +460,7 @@ void CursorWrap::positionByBinary(
     info.GetReturnValue().Set(Nan::New<Number>(key.mv_size));
     
 }
-bool CursorWrap::returnEntry(MDB_val &key, MDB_val &data) {
+int CursorWrap::returnEntry(MDB_val &key, MDB_val &data) {
     if (endKey.mv_size > 0) {
         int comparison;
         if (flags & 0x800)

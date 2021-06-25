@@ -766,6 +766,7 @@ function open(path, options) {
 				if (reverse)
 					iteratingOperation |= 0x400
 				if (options.onlyCount) {
+					return 0
 					while (!(currentKey === undefined ||
 								(count++ >= limit))) {
 						cursorOp(iteratingOperation)

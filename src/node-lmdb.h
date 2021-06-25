@@ -938,7 +938,7 @@ public:
     */
     static NAN_METHOD(del);
 
-    bool returnEntry(MDB_val &key, MDB_val &data);
+    int returnEntry(MDB_val &key, MDB_val &data);
     static uint32_t positionByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options);
     static void positionByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(positionByPrimitive);
