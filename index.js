@@ -32,15 +32,21 @@ const LAST_KEY = String.fromCharCode(0xffff)
 const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
 const FIRST_BUFFER_KEY = Buffer.from([0])
 const ITERATOR_DONE = { done: true, value: undefined }
-const writeUint32Key = (key, target) => {
-	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(0, key, true)
+const writeUint32Key = (key, target, start) => {
+	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true)
 	return 4
 }
-const writeBufferKey = (key, target) => {
+const readUint32Key = (target, start) => {
+	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true)
+}
+const writeBufferKey = (key, target, start) => {
 	if (key.length > 1978)
 		throw new Error('Key buffer is too long')
-	target.set(key)
+	target.set(key, start)
 	return key.length
+}
+const readBufferKey = (target, start, end) => {
+	return Uint8ArraySlice.call(target, start, end)
 }
 let env
 let defaultCompression
@@ -216,12 +222,15 @@ function open(path, options) {
 					encode: JSON.stringify,
 				}
 			}
-			if (this.keyIsUint32)
+			if (this.keyIsUint32) {
 				this.writeKey = writeUint32Key
-			else if (this.keyIsBuffer)
+				this.readKey = readUint32Key
+			} else if (this.keyIsBuffer) {
 				this.writeKey = writeBufferKey
-			else {
+				this.readKey = readBufferKey
+			}	else {
 				this.writeKey = writeKey
+				this.readKey = readKey
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -797,7 +806,7 @@ function open(path, options) {
 							return ITERATOR_DONE
 						}
 						if (!valuesForKey || snapshot === false)
-							currentKey = readKey(keyBuffer, 32, keySize + 32)
+							currentKey = store.readKey(keyBuffer, 32, keySize + 32)
 						if (includeValues) {
 							let value
 							lastSize = keyBufferView.getUint32(0, true)
