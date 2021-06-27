@@ -12,11 +12,20 @@ int lowerMemoryPriority(int priority) {
         lowMemPriority.MemoryPriority = priority;
         initializeMemoryPriority = 0;
     }
-    SetProcessInformation(GetCurrentProcess(), ProcessMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
     return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
 }
+int setProcessMemoryPriority(int priority) {
+    if (initializeMemoryPriority) {
+        GetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+//      fprintf(stderr, "initialized memory %u setting to %u\n", normalMemPriority.MemoryPriority, priority);
+        ZeroMemory(&lowMemPriority, sizeof(lowMemPriority));
+        lowMemPriority.MemoryPriority = priority;
+        initializeMemoryPriority = 0;
+    }
+    return SetProcessInformation(GetCurrentProcess(), ProcessMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
+}
+
 int restoreMemoryPriority() {
-    return 0;
-    //return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
+    return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &normalMemPriority, sizeof(normalMemPriority));
 }
 #endif

@@ -54,6 +54,10 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     Nan::SetMethod(exports, "getAddress", getAddress);
+    Nan::SetMethod(exports, "setWinMemoryPriority", setWinMemoryPriority);
+    // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
+    // just uses the name of the last exported native function:
+    Nan::SetMethod(exports, "lmdbNativeFunctions", getLastVersion);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
@@ -390,8 +394,17 @@ NAN_METHOD(setWinMemoryLimit) {
     }
     #endif
 }
+NAN_METHOD(setWinMemoryPriority) {
+    #if defined(_WIN32)
+    setProcessMemoryPriority(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+    SIZE_T  dwMin = 204800, dwMax = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+    if (!SetProcessWorkingSetSize(GetCurrentProcess(), dwMin, dwMax)) {
+        return throwLmdbError(GetLastError());
+    }
+    #endif
+}
 
-NAN_METHOD(getBufferForAddress) {
+/*NAN_METHOD(getBufferForAddress) {
     char* address = (char*) (size_t) Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
     std::unique_ptr<v8::BackingStore> backing = v8::ArrayBuffer::NewBackingStore(
     address, 0x100000000, [](void*, size_t, void*){}, nullptr);
@@ -404,11 +417,9 @@ NAN_METHOD(getBufferForAddress) {
         },
         nullptr
     ).ToLocalChecked());*/
-}
 NAN_METHOD(getAddress) {
     info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
 }
-
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));

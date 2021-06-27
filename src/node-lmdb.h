@@ -85,6 +85,7 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 #ifdef _WIN32
 extern "C" {
+int setProcessMemoryPriority(int priority);
 int lowerMemoryPriority(int priority);
 int restoreMemoryPriority();
 }
@@ -108,6 +109,7 @@ NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
 NAN_METHOD(setWinMemoryLimit);
+NAN_METHOD(setWinMemoryPriority);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 NAN_METHOD(getBufferForAddress);

@@ -166,7 +166,7 @@ bool valueToMDBKey(const Local<Value>& jsKey, MDB_val& mdbKey, KeySpace& keySpac
         return true;
     }
     uint8_t* targetBytes = keySpace.getTarget();
-    size_t size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, 1978, false, keySpace.fixedSize);
+    size_t size = mdbKey.mv_size = valueToKey(jsKey, targetBytes, MDB_MAXKEYSIZE, false, keySpace.fixedSize);
     mdbKey.mv_data = targetBytes;
     if (!keySpace.fixedSize)
         keySpace.position += size;
@@ -292,7 +292,7 @@ NAN_METHOD(bufferToKeyValue) {
 }
 NAN_METHOD(keyValueToBuffer) {
     uint8_t* targetBytes = getFixedKeySpace()->getTarget();
-    size_t size = valueToKey(info[0], targetBytes, 1978, false, true);
+    size_t size = valueToKey(info[0], targetBytes, MDB_MAXKEYSIZE, false, true);
     if (!size) {
         return;
     }
@@ -317,7 +317,7 @@ KeySpaceHolder::~KeySpaceHolder() {
 }
 
 uint8_t* KeySpace::getTarget() {
-    if (position + 1978 > size) {
+    if (position + MDB_MAXKEYSIZE > size) {
         if (fixedSize) {
             Nan::ThrowError("Key is too large");
             return nullptr;
@@ -332,6 +332,6 @@ uint8_t* KeySpace::getTarget() {
 KeySpace::KeySpace(bool fixed) {
     fixedSize = fixed;
     position = 0;
-    size = fixed ? 2048 : 8192;
+    size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
     data = new uint8_t[size];
 }

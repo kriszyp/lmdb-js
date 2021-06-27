@@ -34,15 +34,19 @@ let data = {
 var c = 0
 let result
 
+let iteration = 1
 function setData(deferred) {
-  result = store.put((c += 357) % total, data)
+  result = store.transactionAsync(() => {
+    for (let j = 0;j<100; j++)
+      store.put((c += 357) % total, data)
+  })
   /*let key = (c += 357) % total
   if (key % 2 == 0)
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  if (c % 1000 == 0) {
-      setImmediate(() => deferred.resolve())
+  if (iteration++ % 1000 == 0) {
+      setImmediate(() => deferred.resolve(result))
   } else
     deferred.resolve()
 }
@@ -55,6 +59,16 @@ function getBinary() {
 }
 function getBinaryFast() {
   result = store.getBinaryFast((c += 357) % total)
+}
+function getRange() {
+  let start = (c += 357) % total
+  let i = 0
+  for (let entry of store.getRange({
+    start,
+    end: start + 10
+  })) {
+    i++
+  }
 }
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
@@ -104,10 +118,11 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    /*suite.add('put', {
+    suite.add('getRange', getRange);
+    suite.add('put', {
       defer: true,
       fn: setData
-    });*/
+    });
     suite.add('get', getData);
     suite.add('plainJSON', plainJSON);
     suite.add('getBinary', getBinary);
@@ -146,10 +161,10 @@ cleanup(async function (err) {
   })
 
   // other threads
-    /*suite.add('put', {
+    suite.add('put', {
       defer: true,
       fn: setData
-    });*/
+    });
 //    suite.add('get', getData);
     suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {

@@ -5,7 +5,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getBufferForAddress, getAddress, lmdbError } = exports
+const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { writeKey, readKey } = require('ordered-binary')
 const os = require('os')
@@ -81,9 +81,6 @@ function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBuffer,
-		onReadTxnRenew: () => {
-			setImmediate(() => env.resetCurrentReadTxn())
-		},
 		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -220,6 +217,11 @@ function open(path, options) {
 			} else if (this.encoding == 'json') {
 				this.encoder = {
 					encode: JSON.stringify,
+				}
+			} else if (this.encoding == 'ordered-binary') {
+				this.encoder = this.decoder = {
+					encode(value) { return keyValueToBuffer(value) },
+					decode(buffer, end) { return bufferToKeyValue(buffer.slice(0, end)) }
 				}
 			}
 			if (this.keyIsUint32) {
@@ -549,8 +551,8 @@ function open(path, options) {
 			writeBuffer.position = position
 		}
 		put(id, value, version, ifVersion) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			this.writes++
 			if (writeTxn) {
@@ -585,8 +587,8 @@ function open(path, options) {
 				})
 		}
 		putSync(id, value, version) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			let localTxn, hadWriteTxn = writeTxn
 			try {
@@ -615,8 +617,8 @@ function open(path, options) {
 			}
 		}
 		removeSync(id, ifVersionOrValue) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			let localTxn, hadWriteTxn = writeTxn
 			try {
@@ -652,8 +654,8 @@ function open(path, options) {
 			}
 		}
 		remove(id, ifVersionOrValue) {
-			if (id.length > 511) {
-				throw new Error('Key is larger than maximum key size (511)')
+			if (id.length > 1978) {
+				throw new Error('Key is larger than maximum key size (1978)')
 			}
 			this.writes++
 			if (writeTxn) {
