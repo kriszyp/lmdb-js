@@ -57,6 +57,16 @@ function getData() {
 function getBinaryFast() {
   result = store.getBinaryFast((c += 357) % total)
 }
+function getRange() {
+  let start = (c += 357) % total
+  let i = 0
+  for (let entry of store.getRange({
+    start,
+    end: start + 10
+  })) {
+    i++
+  }
+}
 let jsonBuffer = JSON.stringify(data)
 function plainJSON() {
   result = JSON.parse(jsonBuffer)
@@ -64,7 +74,7 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 var inspector = require('inspector')
-inspector.open(9330, null, true); debugger
+//inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -105,6 +115,7 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
+    suite.add('getRange', getRange);
     suite.add('put', {
       defer: true,
       fn: setData
