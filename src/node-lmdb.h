@@ -111,6 +111,7 @@ NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 NAN_METHOD(getBufferForAddress);
+NAN_METHOD(getAddress);
 
 class KeySpaceHolder {
 public:
@@ -938,10 +939,10 @@ public:
     */
     static NAN_METHOD(del);
 
-    int returnEntry(MDB_val &key, MDB_val &data);
+    int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
     static uint32_t positionByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options);
     static void positionByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(positionByPrimitive);
+    static NAN_METHOD(position);
     static NAN_METHOD(iterate);
     //static NAN_METHOD(getStringByPrimitive);
 };

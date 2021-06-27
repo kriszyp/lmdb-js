@@ -460,7 +460,15 @@ void CursorWrap::positionByBinary(
     info.GetReturnValue().Set(Nan::New<Number>(key.mv_size));
     
 }
-int CursorWrap::returnEntry(MDB_val &key, MDB_val &data) {
+int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
+    if (lastRC) {
+        if (lastRC == MDB_NOTFOUND)
+            return 0;
+        else {
+            throwLmdbError(lastRC);
+            return 0;
+        }
+    }   
     if (endKey.mv_size > 0) {
         int comparison;
         if (flags & 0x800)
@@ -468,18 +476,22 @@ int CursorWrap::returnEntry(MDB_val &key, MDB_val &data) {
         else
             comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
         if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
-            return MDB_NOTFOUND;
+            return 0;
         }
     }
-    if (flags & 0x100) {
+	char* keyBuffer = dw->ew->keyBuffer;
+	if (flags & 0x100) {
         getVersionAndUncompress(data, dw);
         valToBinaryFast(data);
-        char* keyBuffer = dw->ew->keyBuffer;
-        *((size_t*) keyBuffer) = data.mv_size;
-    }
-    return 0;
+		*((size_t*)keyBuffer) = data.mv_size;
+	}
+	if (!(flags & 0x800)) {
+		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
+	}
+
+    return key.mv_size;
 }
-NAN_METHOD(CursorWrap::positionByPrimitive) {
+NAN_METHOD(CursorWrap::position) {
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
@@ -490,57 +502,61 @@ NAN_METHOD(CursorWrap::positionByPrimitive) {
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;
     int rc;
-    bool keyIsValid;
+    char* keyBuffer;
     cw->flags = flags;
     if (!info[3]->IsUndefined()) {
-        if (argToKey(info[3], cw->endKey, dw->keyType, keyIsValid) || !keyIsValid)
-            return Nan::ThrowError("argToKey should not allocate");
+        keyBuffer = (char*) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+        cw->endKey.mv_size = *((uint32_t*)keyBuffer);
+        cw->endKey.mv_data = keyBuffer + 4;
     }
-    if (info[2]->IsUndefined())
-        rc = mdb_cursor_get(cw->cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);
-    else {
-        if (argToKey(info[2], key, dw->keyType, keyIsValid) || !keyIsValid)
-            return Nan::ThrowError("argToKey should not allocate");
-        if (flags & 0x400) {// reverse
-            MDB_val firstKey = key; // save it for comparison
-            cw->iteratingOp = (flags & 0x800) ? MDB_PREV_DUP : MDB_PREV;
-            rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
-            if (rc) { // not found
-                if (opCode == 0) {// MDB_SET_KEY
-                    // nothing to do, not found
-                } else if (opCode == 1) {// MDB_SET_RANGE, not found, go to end
-                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
-                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
-                }
-            } else {
-                if (opCode == 0) {// MDB_SET_KEY
-                    // compare data
-                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
-                } else if (opCode == 1) {// MDB_SET_RANGE
-                    if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
-                        rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
-                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
-
-                }
+    cw->iteratingOp = (flags & 0x400) ?
+        (flags & 0x100) ?
+            (flags & 0x800) ? MDB_PREV_DUP : MDB_PREV :
+            MDB_PREV_NODUP :
+        (flags & 0x100) ?
+            (flags & 0x800) ? MDB_NEXT_DUP : MDB_NEXT :
+            MDB_NEXT_NODUP;
+    key.mv_size = info[2]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_data = dw->ew->keyBuffer;
+    if (key.mv_size == 0) {
+        rc = mdb_cursor_get(cw->cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
+    } else if (flags & 0x400) {// reverse
+        MDB_val firstKey = key; // save it for comparison
+        rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
+        if (rc) { // not found
+            if (flags & 0x800) {// MDB_SET_KEY
+                // nothing to do, not found
+            } else if (true) {// MDB_SET_RANGE, not found, go to end
+                rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
+            } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
             }
         } else {
-            cw->iteratingOp = (flags & 0x800) ? MDB_NEXT_DUP : MDB_NEXT;
-            rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
+            if (flags & 0x800) {// MDB_SET_KEY
+                // compare data
+                rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
+            } else if (true) {// MDB_SET_RANGE
+                if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
+                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
+            } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
+
+            }
         }
+    } else {
+        rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
     }
     while (offset-- > 0 && !rc) {
         rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
     }
-    // TODO: Handle count?
-    if (!rc)
-        rc = cw->returnEntry(key, data);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::Undefined());
-        else
-            return throwLmdbError(rc);
+    if (flags & 0x1000) {
+        int count = 0;
+        while (!rc) {
+            count++;
+            rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+        }
+        return info.GetReturnValue().Set(Nan::New<Number>(count));
     }
-    return info.GetReturnValue().Set(keyToHandle(key, cw->keyType));
+    // TODO: Handle count?
+    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
 }
 NAN_METHOD(CursorWrap::iterate) {
     v8::Local<v8::Object> instance =
@@ -548,15 +564,7 @@ NAN_METHOD(CursorWrap::iterate) {
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
     MDB_val key, data;
     int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
-    if (!rc)
-        rc = cw->returnEntry(key, data);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::Undefined());
-        else
-            return throwLmdbError(rc);
-    }
-    return info.GetReturnValue().Set(keyToHandle(key, cw->keyType));
+    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
 }
 
 void CursorWrap::setupExports(Local<Object> exports) {
@@ -597,7 +605,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
 
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("positionByPrimitive").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::positionByPrimitive));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("position").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::position));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("iterate").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::iterate));
 
     // Set exports

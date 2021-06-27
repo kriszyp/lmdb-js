@@ -53,6 +53,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
+    Nan::SetMethod(exports, "getAddress", getAddress);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
     fixedKeySpace = new KeySpace(true);
@@ -404,6 +405,10 @@ NAN_METHOD(getBufferForAddress) {
         nullptr
     ).ToLocalChecked());*/
 }
+NAN_METHOD(getAddress) {
+    info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
+}
+
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));

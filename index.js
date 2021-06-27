@@ -5,9 +5,9 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getBufferForAddress, lmdbError } = exports
+const { Env, Cursor, Compression, getBufferForAddress, getAddress, lmdbError } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
-const { writeKey } = require('ordered-binary')
+const { writeKey, readKey } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
@@ -222,7 +222,6 @@ function open(path, options) {
 				this.writeKey = writeBufferKey
 			else {
 				this.writeKey = writeKey
-				this.keyIsCompatibility = true
 			}
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
@@ -723,6 +722,7 @@ function open(path, options) {
 			let valuesForKey = options.valuesForKey
 			let limit = options.limit
 			let db = this.db
+			let snapshot = options.snapshot
 			iterable[Symbol.iterator] = () => {
 				let currentKey = options.start
 				const reverse = options.reverse
@@ -737,11 +737,10 @@ function open(path, options) {
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
 						cursor = new Cursor(txn, db)
 						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
-						if (options.snapshot === false) {
+						if (snapshot === false) {
 							cursorRenewId = renewId // use shared read transaction
 							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1 // need to know how many are renewing cursors
 						}
-						// TODO: Make a makeCompare(endKey)
 					} catch(error) {
 						if (cursor) {
 							try {
@@ -751,33 +750,22 @@ function open(path, options) {
 						return handleError(error, this, txn, resetCursor)
 					}
 				}
-				function cursorOp(operation) {
-					//if (keyIsCompatibility)
-						currentKey = cursor.positionByPrimitive(operation, currentKey)
-					/*else
-						currentKey = cursor.getByBinary(operation, this.writeKey(id, keyBuffer, 0))*/
-				}
 				resetCursor()
+				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0)
 				let iteratingOperation = reverse ?
 						valuesForKey ? MDB_PREV_DUP | 0x800 :
 							includeValues ? MDB_PREV : MDB_PREV_NODUP :
 						valuesForKey ? MDB_NEXT_DUP | 0x800 :
 							includeValues ? MDB_NEXT : MDB_NEXT_NODUP
-				if (reverse)
-					iteratingOperation |= 0x400
+				iteratingOperation |= flags
+				let store = this
 				if (options.onlyCount) {
-					return 0
-					while (!(currentKey === undefined ||
-								(count++ >= limit))) {
-						cursorOp(iteratingOperation)
-					}
+					flags |= 0x1000
+					let count = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
 					finishCursor()
 					return count
 				}
-				if (includeValues)
-					iteratingOperation |= 0x100
 
-				let store = this
 				function finishCursor() {
 					if (txn.isAborted)
 						return
@@ -794,21 +782,22 @@ function open(path, options) {
 				}
 				return {
 					next() {
+						let keySize
 						if (cursorRenewId && cursorRenewId != renewId) {
 							resetCursor()
-							currentKey = cursor.positionByPrimitive(
-								(includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0), 0, currentKey, options.end)
+							keySize = cursor.position(flags, 0, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
-							currentKey = cursor.positionByPrimitive(
-								(includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0), options.offset, currentKey, options.end)
+							keySize = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
 						} else
-							currentKey = cursor.iterate()
-						if (currentKey === undefined ||
+							keySize = cursor.iterate()
+						if (keySize === 0 ||
 								(count++ >= limit)) {
 							finishCursor()
 							return ITERATOR_DONE
 						}
+						if (!valuesForKey || snapshot === false)
+							currentKey = readKey(keyBuffer, 32, keySize + 32)
 						if (includeValues) {
 							let value
 							lastSize = keyBufferView.getUint32(0, true)
@@ -1282,6 +1271,20 @@ function getLastVersion() {
 
 function setLastVersion(version) {
 	return keyBufferView.setFloat64(16, version, true)
+}
+let saveBuffer, saveDataView, saveDataAddress
+let savePosition = 8000
+function saveKey(key, writeKey) {
+	if (savePosition > 6200) {
+		saveBuffer = Buffer.alloc(8192)
+		saveDataView = new DataView(saveBuffer.buffer, 0, 8192)
+		saveDataAddress = getAddress(saveBuffer)
+		savePosition = 0
+	}
+	let start = savePosition
+	savePosition = writeKey(key, saveBuffer, start + 4)
+	saveDataView.setUint32(start, savePosition - start - 4, true)
+	return start + saveDataAddress
 }
 exports.getLastVersion = getLastVersion
 exports.setLastVersion = setLastVersion
