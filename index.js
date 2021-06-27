@@ -5,7 +5,7 @@ const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
-const { Env, Cursor, Compression, getLastVersion, setLastVersion, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
+const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { writeKey, readKey } = require('ordered-binary')
 const os = require('os')
@@ -149,6 +149,10 @@ function open(path, options) {
 		if (readTxnRenewed) {
 			renewId++
 			readTxnRenewed = null
+			if (readTxn.availableCursor) {
+				readTxn.availableCursor.close()
+				readTxn.availableCursor = null
+			}
 			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true
 				cursorTxns.push(readTxn)
@@ -746,7 +750,12 @@ function open(path, options) {
 							finishCursor()
 
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
-						cursor = new Cursor(txn, db)
+						if (txn.availableCursor) {
+							cursor = txn.availableCursor
+							txn.availableCursor = null
+						} else {
+							cursor = new Cursor(txn, db)
+						}
 						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
 						if (snapshot === false) {
 							cursorRenewId = renewId // use shared read transaction
@@ -780,15 +789,20 @@ function open(path, options) {
 				function finishCursor() {
 					if (txn.isAborted)
 						return
-					cursor.close()
 					if (cursorRenewId)
 						txn.renewingCursorCount--
 					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+						cursor.close()
 						let index = cursorTxns.indexOf(txn)
 						if (index > -1)
 							cursorTxns.splice(index, 1)
 						txn.abort() // this is no longer main read txn, abort it now that we are done
 						txn.isAborted = true
+					} else {
+						if (txn.availableCursor)
+							cursor.close()
+						else // try to reuse it
+							txn.availableCursor = cursor
 					}
 				}
 				return {
