@@ -499,11 +499,14 @@ NAN_METHOD(CursorWrap::position) {
     int offset = info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust();
     int opCode = flags & 0xff;
     DbiWrap* dw = cw->dw;
+    MDB_cursor* cursor = cw->cursor;
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;
     int rc;
     char* keyBuffer;
     cw->flags = flags;
+    if (flags & 0x2000)
+        mdb_cursor_renew(mdb_cursor_txn(cursor), cursor);
     if (!info[3]->IsUndefined()) {
         keyBuffer = (char*) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
         cw->endKey.mv_size = *((uint32_t*)keyBuffer);
@@ -519,44 +522,44 @@ NAN_METHOD(CursorWrap::position) {
     key.mv_size = info[2]->Uint32Value(Nan::GetCurrentContext()).FromJust();
     key.mv_data = dw->ew->keyBuffer;
     if (key.mv_size == 0) {
-        rc = mdb_cursor_get(cw->cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
+        rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
         if (flags & 0x800) { //dupsort
             // take the next part of the key buffer as the starting data
             keyBuffer = key.mv_data + ((key.mv_size + 7) & 0xffff8);
             data.mv_size = *((uint32_t*)keyBuffer);
             data.mv_data = keyBuffer + 4;
-            rc = mdb_cursor_get(cw->cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+            rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
         } else
-            rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_SET_RANGE);
+            rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
         if (flags & 0x400) {// reverse
             MDB_val firstKey = key; // save it for comparison
             if (rc) { // not found
                 if (flags & 0x800) {// MDB_SET_KEY
                     // nothing to do, not found
                 } else if (true) {// MDB_SET_RANGE, not found, go to end
-                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
+                    rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
                 } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
                 }
             } else {
                 if (flags & 0x800) {// dupsort
                     // compare data
-                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
+                    rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
                 } else  {// MDB_SET_RANGE
                     if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
-                        rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
+                        rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
                 }
             }
         }
     }
     while (offset-- > 0 && !rc) {
-        rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+        rc = mdb_cursor_get(cursor, &key, &data, cw->iteratingOp);
     }
     if (flags & 0x1000) {
         int count = 0;
         while (!rc) {
             count++;
-            rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+            rc = mdb_cursor_get(cursor, &key, &data, cw->iteratingOp);
         }
         return info.GetReturnValue().Set(Nan::New<Number>(count));
     }
@@ -570,6 +573,16 @@ NAN_METHOD(CursorWrap::iterate) {
     MDB_val key, data;
     int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
     return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+}
+
+NAN_METHOD(CursorWrap::renew) {
+    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
+    // Unwrap Txn and Dbi
+    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(v8::Local<v8::Object>::Cast(info[0]));
+    int rc = mdb_cursor_renew(tw->txn, cw->cursor);
+    if (rc != 0) {
+        return throwLmdbError(rc);
+    }
 }
 
 void CursorWrap::setupExports(Local<Object> exports) {
@@ -612,6 +625,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
 
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("position").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::position));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("iterate").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::iterate));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("renew").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::renew));
 
     // Set exports
     (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());

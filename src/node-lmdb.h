@@ -105,6 +105,7 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
+//void swapBytesPack(uint64_t* buffer, unsigned int size);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
@@ -946,6 +947,7 @@ public:
     static void positionByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(position);
     static NAN_METHOD(iterate);
+    static NAN_METHOD(renew);
     //static NAN_METHOD(getStringByPrimitive);
 };
 

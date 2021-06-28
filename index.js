@@ -149,10 +149,6 @@ function open(path, options) {
 		if (readTxnRenewed) {
 			renewId++
 			readTxnRenewed = null
-			if (readTxn.availableCursor) {
-				readTxn.availableCursor.close()
-				readTxn.availableCursor = null
-			}
 			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true
 				cursorTxns.push(readTxn)
@@ -744,15 +740,20 @@ function open(path, options) {
 				let count = 0
 				let cursor, cursorRenewId
 				let txn
+				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0)
 				function resetCursor() {
 					try {
 						if (cursor)
 							finishCursor()
 
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
-						if (txn.availableCursor) {
-							cursor = txn.availableCursor
-							txn.availableCursor = null
+						cursor = !writeTxn && db.availableCursor
+						if (cursor) {
+							db.availableCursor = null
+							if (db.cursorTxn != txn)
+								cursor.renew(txn)
+							else// if (db.currentRenewId != renewId)
+								flags |= 0x2000
 						} else {
 							cursor = new Cursor(txn, db)
 						}
@@ -771,7 +772,6 @@ function open(path, options) {
 					}
 				}
 				resetCursor()
-				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0)
 				let iteratingOperation = reverse ?
 						valuesForKey ? MDB_PREV_DUP | 0x800 :
 							includeValues ? MDB_PREV : MDB_PREV_NODUP :
@@ -799,10 +799,12 @@ function open(path, options) {
 						txn.abort() // this is no longer main read txn, abort it now that we are done
 						txn.isAborted = true
 					} else {
-						if (txn.availableCursor)
+						if (db.availableCursor || txn != readTxn)
 							cursor.close()
-						else // try to reuse it
-							txn.availableCursor = cursor
+						else {// try to reuse it
+							db.availableCursor = cursor
+							db.cursorTxn = txn
+						}
 					}
 				}
 				return {
@@ -831,9 +833,9 @@ function open(path, options) {
 							let value
 							lastSize = keyBufferView.getUint32(0, true)
 							if (store.decoder) {
-								value = store.decoder.decode(store.db.unsafeBuffer, lastSize)
+								value = store.decoder.decode(db.unsafeBuffer, lastSize)
 							} else if (store.encoding == 'binary')
-								value = Uint8ArraySlice.call(store.db.unsafeBuffer, 0, lastSize)
+								value = Uint8ArraySlice.call(db.unsafeBuffer, 0, lastSize)
 							else {
 								value = store.db.unsafeBuffer.toString('utf8', 0, lastSize)
 								if (store.encoding == 'json' && value)
