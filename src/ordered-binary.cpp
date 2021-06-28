@@ -335,3 +335,33 @@ KeySpace::KeySpace(bool fixed) {
     size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
     data = new uint8_t[size];
 }
+#ifdef _WIN32
+#define bswap_64 _byteswap_uint64
+#else
+#include <byteswap.h>
+#endif
+void swapBytes(uint64_t* buffer, unsigned int size) {
+    uint64_t* end = buffer + (size >> 3);
+    for (; buffer < end; buffer++) {
+        *buffer = bswap_64(*buffer);
+    }
+    *buffer = bswap_64(*buffer << (64 - ((size & 7) << 3)));
+}
+void naturalEndianPack(MDB_val val) {
+    uint8_t* bytes = (uint8_t*) val.mv_data;
+    unsigned int size = val.mv_size;
+    if (val.mv_size & 1) {
+        if (bytes[size - 1] == 0)
+            val.mv_size = --size;
+        else
+            return;
+    }
+    size = size >> 1;
+    if (((uint16_t*)bytes)[size - 1] == 0) {
+        if (((uint16_t*)bytes)[size - 2] == 0)
+            val.mv_size -= 4;
+        else
+            val.mv_size -= 2;
+    }
+    swapBytes((uint64_t*)bytes, val.mv_size);
+}
