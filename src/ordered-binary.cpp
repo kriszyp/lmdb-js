@@ -340,13 +340,26 @@ KeySpace::KeySpace(bool fixed) {
 #else
 #include <byteswap.h>
 #endif
-void swapBytes(uint64_t* buffer, unsigned int size) {
+void load64LE(MDB_val &val, uint64_t* target) {
+    // copy and swap at the same time, and guarantee null termination
+    uint64_t* source = (uint64_t*) val.mv_data;
+    unsigned int size = val.mv_size;
+    uint64_t* end = source + (size >> 3);
+    for (; source < end; source++) {
+        *target = bswap_64(*source);
+        target++;
+    }
+    *target = bswap_64(*source << (64 - ((size & 7) << 3)));
+}
+void make64LE(MDB_val &val) {
+    uint64_t* buffer = (uint64_t*) val.mv_data;
+    unsigned int size = val.mv_size;
     uint64_t* end = buffer + (size >> 3);
     for (; buffer < end; buffer++) {
         *buffer = bswap_64(*buffer);
     }
     *buffer = bswap_64(*buffer << (64 - ((size & 7) << 3)));
-}
+}/*
 void naturalEndianPack(MDB_val val) {
     uint8_t* bytes = (uint8_t*) val.mv_data;
     unsigned int size = val.mv_size;
@@ -364,4 +377,34 @@ void naturalEndianPack(MDB_val val) {
             val.mv_size -= 2;
     }
     swapBytes((uint64_t*)bytes, val.mv_size);
+}
+*/
+// compare items by 64-bit LE comparison
+int compare64LE(const MDB_val *a, const MDB_val *b) {
+    uint64_t* dataA = a->mv_data;
+    uint64_t* dataB = b->mv_data;
+    uint64_t sizeA = a->mv_size;
+    uint64_t sizeB = b->mv_size;
+    uint64_t minSize = (sizeA > sizeB ? sizeB : sizeA);
+    uint64_t wordA;
+    uint64_t wordB;
+    for (int i = minSize >> 3; i > 0; i--) {
+        wordA = *dataA++;
+        wordB = *dataB++;
+        if (wordA > wordB)
+            return 1;
+        if (wordA < wordB)
+            return -1;
+    }
+    if (minSize & 0x7) {
+        sizeA -= minSize;
+        sizeB -= minSize;
+        wordA = sizeA < 8 ? *dataA << ((8 - sizeA) << 3) : *dataA;
+        wordB = sizeB < 8 ? *dataB << ((8 - sizeB) << 3) : *dataB;
+    }
+    if (wordA > wordB)
+        return 1;
+    if (wordA < wordB)
+        return -1;
+    return sizeA - sizeB;
 }

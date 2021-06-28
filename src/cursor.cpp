@@ -374,92 +374,6 @@ NAN_METHOD(CursorWrap::goToDupRange) {
     }
     return getCommon(info, MDB_GET_BOTH_RANGE, cursorArgToKey<0, 2>, fillDataFromArg1, freeDataFromArg1, nullptr);
 }
-
-MDB_cursor_op operations[12] = { MDB_SET_KEY, MDB_SET_RANGE, MDB_GET_CURRENT, MDB_FIRST, MDB_LAST, MDB_NEXT, MDB_NEXT_NODUP, MDB_NEXT_DUP, MDB_PREV, MDB_PREV_NODUP, MDB_PREV_DUP };
-uint32_t CursorWrap::positionByBinaryFast(v8::ApiObject receiver_obj, uint32_t operation, uint32_t keySize, FastApiCallbackOptions& options) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
-    CursorWrap* cw = static_cast<CursorWrap*>(
-        v8_object->GetAlignedPointerFromInternalField(0));
-    DbiWrap* dw = cw->dw;
-    EnvWrap* ew = dw->ew;
-    char* keyBuffer = ew->keyBuffer;
-    MDB_val key;
-    MDB_val data;
-    int opCode = operation & 0xff;
-    if (opCode < 3) {
-        if (opCode < 2) {
-            key.mv_size = keySize;
-            key.mv_data = (void*) keyBuffer;
-        } else {
-            cw->endKey.mv_size = keySize;
-            //endKey.mv_data = endKeyData;
-            //memcpy(endKeyData, keyBuffer, keySize);
-        }
-    }
-
-    int result = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
-    if (result) {
-        if (result == MDB_NOTFOUND)
-            return 0xffffffff;
-        // let the slow handler handle throwing errors
-        options.fallback = true;
-        return result;
-    }
-    dw->getFast = true;
-    if (operation & 0x100) {
-        result = getVersionAndUncompress(data, dw);
-        if (result)
-            result = valToBinaryFast(data);
-        if (!result) {
-            // this means an allocation or error needs to be thrown, so we fallback to the slow handler
-            // or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
-            options.fallback = true;
-        }
-        *((size_t*) keyBuffer) = data.mv_size;
-    }
-    dw->getFast = false;
-    memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
-
-    /*
-    alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
-    *((size_t*) keyBuffer) = data.mv_size;
-    *((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
-    return 0;*/
-    return key.mv_size;
-}
-
-void CursorWrap::positionByBinary(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
-    int operation = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    int opCode = operation & 0xff;
-    DbiWrap* dw = cw->dw;
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_val key;
-    MDB_val data;
-    if (opCode < 2) {
-        key.mv_size = info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-        key.mv_data = (void*) keyBuffer;
-    }
-
-    int rc = mdb_cursor_get(cw->cursor, &key, &data, operations[opCode]);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
-        else
-            return throwLmdbError(rc);
-    }   
-    if (operation & 0x100) {
-        getVersionAndUncompress(data, dw);
-        valToBinaryFast(data);
-        *((size_t*) keyBuffer) = data.mv_size;
-    }
-    memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
-    info.GetReturnValue().Set(Nan::New<Number>(key.mv_size));
-    
-}
 int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     if (lastRC) {
         if (lastRC == MDB_NOTFOUND)
@@ -481,52 +395,56 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     }
 	char* keyBuffer = dw->ew->keyBuffer;
 	if (flags & 0x100) {
-        getVersionAndUncompress(data, dw);
-        valToBinaryFast(data);
+        bool result = getVersionAndUncompress(data, dw);
+        if (result)
+            result = valToBinaryFast(data);
+        if (!result)
+            dw->getFast = false;
 		*((size_t*)keyBuffer) = data.mv_size;
 	}
 	if (!(flags & 0x800)) {
-		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
+        if (dw->keysUse64LE)
+            load64LE(key, (uint64_t*)(keyBuffer + 32));
+        else
+            memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
 	}
 
     return key.mv_size;
 }
-NAN_METHOD(CursorWrap::position) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
-    int flags = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    int offset = info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    int opCode = flags & 0xff;
-    DbiWrap* dw = cw->dw;
-    MDB_cursor* cursor = cw->cursor;
+
+uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;
     int rc;
     char* keyBuffer;
-    cw->flags = flags;
-    if (flags & 0x2000)
+    if (flags & 0x2000) // TODO: check the txn_id to determine if we need to renew
         mdb_cursor_renew(mdb_cursor_txn(cursor), cursor);
-    if (!info[3]->IsUndefined()) {
-        keyBuffer = (char*) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-        cw->endKey.mv_size = *((uint32_t*)keyBuffer);
-        cw->endKey.mv_data = keyBuffer + 4;
+    if (endKeyAddress) {
+        keyBuffer = (char*) endKeyAddress;
+        endKey.mv_size = *((uint32_t*)keyBuffer);
+        endKey.mv_data = keyBuffer + 4;
+        if (dw->keysUse64LE) {
+            make64LE(endKey);
+        }
     }
-    cw->iteratingOp = (flags & 0x400) ?
+    iteratingOp = (flags & 0x400) ?
         (flags & 0x100) ?
             (flags & 0x800) ? MDB_PREV_DUP : MDB_PREV :
             MDB_PREV_NODUP :
         (flags & 0x100) ?
             (flags & 0x800) ? MDB_NEXT_DUP : MDB_NEXT :
             MDB_NEXT_NODUP;
-    key.mv_size = info[2]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_size = keySize;
     key.mv_data = dw->ew->keyBuffer;
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
+        if (dw->keysUse64LE)
+            make64LE(key);
+
         if (flags & 0x800) { //dupsort
             // take the next part of the key buffer as the starting data
-            keyBuffer = key.mv_data + ((key.mv_size + 7) & 0xffff8);
+            keyBuffer = (char*)key.mv_data + ((key.mv_size + 7) & 0xffff8);
             data.mv_size = *((uint32_t*)keyBuffer);
             data.mv_data = keyBuffer + 4;
             rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
@@ -539,34 +457,76 @@ NAN_METHOD(CursorWrap::position) {
                     // nothing to do, not found
                 } else if (true) {// MDB_SET_RANGE, not found, go to end
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
-                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
                 }
             } else {
                 if (flags & 0x800) {// dupsort
                     // compare data
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
                 } else  {// MDB_SET_RANGE
-                    if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
+                    if (mdb_cmp(tw->txn, dw->dbi, &key, &firstKey))
                         rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
                 }
             }
         }
     }
     while (offset-- > 0 && !rc) {
-        rc = mdb_cursor_get(cursor, &key, &data, cw->iteratingOp);
+        rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
     }
     if (flags & 0x1000) {
         int count = 0;
         while (!rc) {
             count++;
-            rc = mdb_cursor_get(cursor, &key, &data, cw->iteratingOp);
+            rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
         }
-        return info.GetReturnValue().Set(Nan::New<Number>(count));
+        return count;
     }
     // TODO: Handle count?
-    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+    return returnEntry(rc, key, data);
 }
-NAN_METHOD(CursorWrap::iterate) {
+uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+    CursorWrap* cw = static_cast<CursorWrap*>(
+        v8_object->GetAlignedPointerFromInternalField(0));
+    DbiWrap* dw = cw->dw;
+    dw->getFast = true;
+    cw->flags = flags;
+    uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
+    if (dw->getFast)
+        dw->getFast = false;
+    else
+        options.fallback = true;
+    return result;
+}
+void CursorWrap::position(
+  const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
+    cw->flags = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    uint32_t offset = info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    uint32_t keySize = info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    uint64_t endKeyAddress = info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
+    info.GetReturnValue().Set(Nan::New<Number>(result));
+}
+
+uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
+    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+    CursorWrap* cw = static_cast<CursorWrap*>(
+        v8_object->GetAlignedPointerFromInternalField(0));
+    DbiWrap* dw = cw->dw;
+    dw->getFast = true;
+    MDB_val key, data;
+    int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+    uint32_t result = cw->returnEntry(rc, key, data);
+    if (dw->getFast)
+        dw->getFast = false;
+    else
+        options.fallback = true;
+    return result;
+}
+void CursorWrap::iterate(
+  const v8::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
@@ -617,14 +577,18 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     Isolate *isolate = Isolate::GetCurrent();
-    auto getFast = CFunction::Make(CursorWrap::positionByBinaryFast);
-    cursorTpl->PrototypeTemplate()->Set(isolate, "positionByBinary", v8::FunctionTemplate::New(
-          isolate, CursorWrap::positionByBinary, v8::Local<v8::Value>(),
+    auto positionFast = CFunction::Make(CursorWrap::positionFast);
+    cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
+          isolate, CursorWrap::position, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, &getFast));
+          v8::SideEffectType::kHasNoSideEffect, &positionFast));
 
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("position").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::position));
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("iterate").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::iterate));
+    auto iterateFast = CFunction::Make(CursorWrap::iterateFast);
+    cursorTpl->PrototypeTemplate()->Set(isolate, "iterate", v8::FunctionTemplate::New(
+          isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
+          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+          v8::SideEffectType::kHasNoSideEffect, &iterateFast));
+
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("renew").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::renew));
 
     // Set exports

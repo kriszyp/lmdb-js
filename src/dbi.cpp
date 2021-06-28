@@ -37,6 +37,8 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->compression = nullptr;
     this->isOpen = false;
     this->getFast = false;
+    this->keysUse64LE = false;
+    this->valuesUse64LE = false;
     this->ew = nullptr;
 }
 
@@ -168,6 +170,14 @@ NAN_METHOD(DbiWrap::ctor) {
     }
     else {
         isOpen = true;
+    }
+    if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue) {
+        dw->keysUse64LE = true;
+        mdb_set_compare(txn, dbi, compare64LE);
+    }
+    if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue) {
+        dw->valuesUse64LE = true;
+        mdb_set_dupsort(txn, dbi, compare64LE);
     }
 
     if (needsTransaction) {

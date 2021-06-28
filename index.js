@@ -781,7 +781,7 @@ function open(path, options) {
 				let store = this
 				if (options.onlyCount) {
 					flags |= 0x1000
-					let count = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
+					let count = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey, iterable))
 					finishCursor()
 					return count
 				}
@@ -812,14 +812,14 @@ function open(path, options) {
 						let keySize
 						if (cursorRenewId && cursorRenewId != renewId) {
 							resetCursor()
-							keySize = cursor.position(flags, 0, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
+							keySize = cursor.position(flags, 0, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey, iterable))
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
 							keySize = store.writeKey(currentKey, keyBuffer, 0)
 							if (valuesForKey && options.startValue !== undefined) {
 								let buffer = store.encoder.encode(options.startValue)
 							}
-							keySize = cursor.position(flags, options.offset, keySize, saveKey(options.end, store.writeKey))
+							keySize = cursor.position(flags, options.offset, keySize, saveKey(options.end, store.writeKey, iterable))
 						} else
 							keySize = cursor.iterate()
 						if (keySize === 0 ||
@@ -1305,7 +1305,7 @@ function setLastVersion(version) {
 }
 let saveBuffer, saveDataView, saveDataAddress
 let savePosition = 8000
-function saveKey(key, writeKey) {
+function saveKey(key, writeKey, saveTo) {
 	if (savePosition > 6200) {
 		saveBuffer = Buffer.alloc(8192)
 		saveDataView = new DataView(saveBuffer.buffer, 0, 8192)
@@ -1315,6 +1315,7 @@ function saveKey(key, writeKey) {
 	let start = savePosition
 	savePosition = writeKey(key, saveBuffer, start + 4)
 	saveDataView.setUint32(start, savePosition - start - 4, true)
+	saveTo.saveBuffer = saveBuffer
 	return start + saveDataAddress
 }
 exports.getLastVersion = getLastVersion

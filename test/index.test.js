@@ -250,7 +250,7 @@ describe('lmdb-store', function() {
       }
       count.should.equal(1)
     });
-    it('should iterate over dupsort query, with removal', async function() {
+    it.only('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: true}
