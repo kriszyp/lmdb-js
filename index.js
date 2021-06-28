@@ -813,6 +813,11 @@ function open(path, options) {
 							keySize = cursor.position(flags, 0, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
+							
+							let keySize = store.writeKey(currentKey, keyBuffer, 0)
+							if (valuesForKey && options.startValue != undefined) {
+								let buffer = store.encoder.encode(options.startValue)
+							}
 							keySize = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey))
 						} else
 							keySize = cursor.iterate()

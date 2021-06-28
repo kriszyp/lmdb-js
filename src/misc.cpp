@@ -504,7 +504,6 @@ int putWithVersion(MDB_txn *   txn,
     return rc;
 }
 
-
 void CustomExternalStringResource::writeTo(Local<String> str, MDB_val *val) {
     unsigned int l = str->Length() + 1;
     uint16_t *d = new uint16_t[l];

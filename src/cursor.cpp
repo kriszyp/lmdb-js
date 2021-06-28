@@ -520,29 +520,34 @@ NAN_METHOD(CursorWrap::position) {
     key.mv_data = dw->ew->keyBuffer;
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cw->cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
-    } else if (flags & 0x400) {// reverse
-        MDB_val firstKey = key; // save it for comparison
-        rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
-        if (rc) { // not found
-            if (flags & 0x800) {// MDB_SET_KEY
-                // nothing to do, not found
-            } else if (true) {// MDB_SET_RANGE, not found, go to end
-                rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
-            } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
-            }
-        } else {
-            if (flags & 0x800) {// MDB_SET_KEY
-                // compare data
-                rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
-            } else if (true) {// MDB_SET_RANGE
-                if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
-                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
-            } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
-
+    } else {
+        if (flags & 0x800) { //dupsort
+            // take the next part of the key buffer as the starting data
+            keyBuffer = key.mv_data + ((key.mv_size + 7) & 0xffff8);
+            data.mv_size = *((uint32_t*)keyBuffer);
+            data.mv_data = keyBuffer + 4;
+            rc = mdb_cursor_get(cw->cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+        } else
+            rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_SET_RANGE);
+        if (flags & 0x400) {// reverse
+            MDB_val firstKey = key; // save it for comparison
+            if (rc) { // not found
+                if (flags & 0x800) {// MDB_SET_KEY
+                    // nothing to do, not found
+                } else if (true) {// MDB_SET_RANGE, not found, go to end
+                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST);
+                } else if (opCode == 2) {// MDB_GET_BOTH_RANGE
+                }
+            } else {
+                if (flags & 0x800) {// dupsort
+                    // compare data
+                    rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_LAST_DUP);
+                } else  {// MDB_SET_RANGE
+                    if (mdb_cmp(cw->tw->txn, dw->dbi, &key, &firstKey))
+                        rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_PREV);
+                }
             }
         }
-    } else {
-        rc = mdb_cursor_get(cw->cursor, &key, &data, (flags & 0x800) ? MDB_SET_KEY : MDB_SET_RANGE);
     }
     while (offset-- > 0 && !rc) {
         rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
