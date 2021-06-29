@@ -18,7 +18,7 @@ var dbi;
 var keys = [];
 var total = 100;
 var store
-let data = 'hi'/*{
+let data = {
   name: 'test',
   greeting: 'Hello, World!',
   flag: true,
@@ -29,7 +29,7 @@ let data = 'hi'/*{
   negative: -54,
   aNull: null,
   more: 'string',
-}*/
+}
 
 var c = 0
 let result
@@ -101,7 +101,7 @@ function setup() {
   store = rootStore.openDB('testing', {
     create: true,
     sharedStructuresKey: 100000000,
-    //keyIsUint32: true,    
+    keyIsUint32: true,    
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -158,7 +158,7 @@ cleanup(async function (err) {
   })
   store = rootStore.openDB('testing', {
     sharedStructuresKey: 100000000,
-    //keyIsUint32: true,    
+    keyIsUint32: true,    
   })
 
   // other threads
