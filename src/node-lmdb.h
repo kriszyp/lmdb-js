@@ -950,10 +950,10 @@ public:
     static NAN_METHOD(del);
 
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
-    static uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
+    static uint32_t positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
     static void position(const v8::FunctionCallbackInfo<v8::Value>& info);    
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
-    static uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options);
+    static uint32_t iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options);
     static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
     static NAN_METHOD(renew);
     //static NAN_METHOD(getStringByPrimitive);
