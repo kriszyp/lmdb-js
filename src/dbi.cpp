@@ -37,8 +37,8 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->compression = nullptr;
     this->isOpen = false;
     this->getFast = false;
-    this->keysUse64LE = false;
-    this->valuesUse64LE = false;
+    this->keysUse32LE = false;
+    this->valuesUse32LE = false;
     this->ew = nullptr;
 }
 
@@ -86,8 +86,8 @@ NAN_METHOD(DbiWrap::ctor) {
     bool needsTransaction = true;
     bool isOpen = false;
     bool hasVersions = false;
-    bool keysUse64LE = false;
-    bool valuesUse64LE = false;
+    bool keysUse32LE = false;
+    bool valuesUse32LE = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     Compression* compression = ew->compression;
@@ -143,11 +143,11 @@ NAN_METHOD(DbiWrap::ctor) {
             needsTransaction = false;
             txn = tw->txn;
         }
-        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
-            keysUse64LE = true;
+        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse32LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
+            keysUse32LE = true;
         }
-        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
-            valuesUse64LE = true;
+        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse32LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
+            valuesUse32LE = true;
         }
     }
     else {
@@ -194,13 +194,13 @@ NAN_METHOD(DbiWrap::ctor) {
         dw->ew = ew;
         dw->ew->Ref();
     }
-    if (keysUse64LE) {
-        dw->keysUse64LE = true;
-        mdb_set_compare(txn, dbi, compare64LE);
+    if (keysUse32LE) {
+        dw->keysUse32LE = true;
+        mdb_set_compare(txn, dbi, compare32LE);
     }
-    if (valuesUse64LE) {
-        dw->valuesUse64LE = true;
-        mdb_set_dupsort(txn, dbi, compare64LE);
+    if (valuesUse32LE) {
+        dw->valuesUse32LE = true;
+        mdb_set_dupsort(txn, dbi, compare32LE);
     }
     dw->keyType = keyType;
     dw->flags = flags;

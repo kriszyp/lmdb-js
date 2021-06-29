@@ -109,8 +109,7 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
-int compare64LE(const MDB_val *a, const MDB_val *b);
-//void swapBytesPack(uint64_t* buffer, unsigned int size);
+int compare32LE(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
@@ -650,8 +649,8 @@ public:
     // current unsafe buffer for this db
     char* lastUnsafePtr;
     bool getFast;
-    bool keysUse64LE;
-    bool valuesUse64LE;
+    bool keysUse32LE;
+    bool valuesUse32LE;
     void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
 
     friend class TxnWrap;
@@ -959,8 +958,8 @@ public:
     //static NAN_METHOD(getStringByPrimitive);
 };
 
-void load64LE(MDB_val &val, uint64_t* target);
-void make64LE(MDB_val &val);
+void load32LE(MDB_val &val, uint64_t* target);
+void make32LE(MDB_val &val);
 
 // External string resource that glues MDB_val and v8::String
 class CustomExternalStringResource : public String::ExternalStringResource {

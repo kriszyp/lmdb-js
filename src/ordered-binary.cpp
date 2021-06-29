@@ -335,30 +335,21 @@ KeySpace::KeySpace(bool fixed) {
     size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
     data = new uint8_t[size];
 }
-#ifdef _WIN32
-#define bswap_64 _byteswap_uint64
-#endif
-void load64LE(MDB_val &val, uint64_t* target) {
+void load32LE(MDB_val &val, uint64_t* target) {
     // copy and swap at the same time, and guarantee null termination
-    uint64_t* source = (uint64_t*) val.mv_data;
+    uint32_t* source = (uint32_t*) val.mv_data;
     unsigned int size = val.mv_size;
-    uint64_t* end = source + (size >> 3);
+    uint32_t* end = source + (size >> 2);
     for (; source < end; source++) {
-        *target = bswap_64(*source);
+        *target = ntohl(*source);
         target++;
     }
-    *target = bswap_64(*source << (64 - ((size & 7) << 3)));
+    *target = ntohl(*source << (32 - ((size & 3) << 3)));
 }
-void make64LE(MDB_val &val) {
-    uint64_t* buffer = (uint64_t*) val.mv_data;
-    unsigned int size = val.mv_size;
-    uint64_t* end = buffer + (size >> 3);
-    for (; buffer < end; buffer++) {
-        *buffer = bswap_64(*buffer);
-    }
-    *buffer = bswap_64(*buffer << (64 - ((size & 7) << 3)));
-}/*
-void naturalEndianPack(MDB_val val) {
+
+
+void make32LE(MDB_val &val) {
+/*
     uint8_t* bytes = (uint8_t*) val.mv_data;
     unsigned int size = val.mv_size;
     if (val.mv_size & 1) {
@@ -374,19 +365,25 @@ void naturalEndianPack(MDB_val val) {
         else
             val.mv_size -= 2;
     }
-    swapBytes((uint64_t*)bytes, val.mv_size);
+*/ 
+    uint32_t* buffer = (uint32_t*) val.mv_data;
+    unsigned int size = val.mv_size;
+    uint32_t* end = buffer + (size >> 3);
+    for (; buffer < end; buffer++) {
+        *buffer = htonl(*buffer);
+    }
+    *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));
 }
-*/
-// compare items by 64-bit LE comparison
-int compare64LE(const MDB_val *a, const MDB_val *b) {
-    uint64_t* dataA = (uint64_t*) a->mv_data;
-    uint64_t* dataB = (uint64_t*) b->mv_data;
-    uint64_t sizeA = a->mv_size;
-    uint64_t sizeB = b->mv_size;
-    uint64_t minSize = (sizeA > sizeB ? sizeB : sizeA);
-    uint64_t wordA;
-    uint64_t wordB;
-    for (int i = minSize >> 3; i > 0; i--) {
+// compare items by 32-bit LE comparison
+int compare32LE(const MDB_val *a, const MDB_val *b) {
+    uint32_t* dataA = (uint32_t*) a->mv_data;
+    uint32_t* dataB = (uint32_t*) b->mv_data;
+    uint32_t sizeA = a->mv_size;
+    uint32_t sizeB = b->mv_size;
+    uint32_t minSize = (sizeA > sizeB ? sizeB : sizeA);
+    uint32_t wordA;
+    uint32_t wordB;
+    for (int i = minSize >> 2; i > 0; i--) {
         wordA = *dataA++;
         wordB = *dataB++;
         if (wordA > wordB)
@@ -394,11 +391,11 @@ int compare64LE(const MDB_val *a, const MDB_val *b) {
         if (wordA < wordB)
             return -1;
     }
-    if (minSize & 0x7) {
+    if (minSize & 0x3) {
         sizeA -= minSize;
         sizeB -= minSize;
-        wordA = sizeA < 8 ? *dataA << ((8 - sizeA) << 3) : *dataA;
-        wordB = sizeB < 8 ? *dataB << ((8 - sizeB) << 3) : *dataB;
+        wordA = sizeA < 4 ? *dataA << ((4 - sizeA) << 3) : *dataA;
+        wordB = sizeB < 4 ? *dataB << ((4 - sizeB) << 3) : *dataB;
     }
     if (wordA > wordB)
         return 1;

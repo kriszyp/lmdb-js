@@ -403,8 +403,8 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 		*((size_t*)keyBuffer) = data.mv_size;
 	}
 	if (!(flags & 0x800)) {
-        if (dw->keysUse64LE)
-            load64LE(key, (uint64_t*)(keyBuffer + 32));
+        if (dw->keysUse32LE)
+            load32LE(key, (uint64_t*)(keyBuffer + 32));
         else
             memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
 	}
@@ -422,8 +422,8 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
         uint32_t* keyBuffer = (uint32_t*) endKeyAddress;
         endKey.mv_size = *keyBuffer;
         endKey.mv_data = (char*)(keyBuffer + 1);
-        if (dw->keysUse64LE) {
-            make64LE(endKey);
+        if (dw->keysUse32LE) {
+            make32LE(endKey);
         }
     } else
         endKey.mv_size = 0;
@@ -439,8 +439,8 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
-        if (dw->keysUse64LE)
-            make64LE(key);
+        if (dw->keysUse32LE)
+            make32LE(key);
         if (flags & 0x800) { //dupsort
             // take the next part of the key buffer as a pointer to starting data
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
