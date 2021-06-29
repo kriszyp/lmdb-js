@@ -337,8 +337,6 @@ KeySpace::KeySpace(bool fixed) {
 }
 #ifdef _WIN32
 #define bswap_64 _byteswap_uint64
-#else
-#include <byteswap.h>
 #endif
 void load64LE(MDB_val &val, uint64_t* target) {
     // copy and swap at the same time, and guarantee null termination
