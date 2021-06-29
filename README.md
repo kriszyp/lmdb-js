@@ -3,7 +3,7 @@
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This library is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
@@ -15,13 +15,16 @@ This library is an ultra-fast NodeJS interface to LMDB; probably the fastest and
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-This library has replaced the previous deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
+This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, can can be installed with:
+```npm install lmdb```
+
+This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
 ## Design
 
-This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized code using native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
+This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
 
-This is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can almost always be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, in default mode with sync'ed/flushed transactions, commiting transactions does involve I/O, and furthermore can achieve vastly higher throughput by batching operations. The entire transaction of a batch operation can be performed in a separate thread. Consequently, this library is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
+`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-store` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
 With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
 
@@ -54,8 +57,18 @@ myStore.transactionAsync(() => {
 
 Once you have opened a database, you can store and retrieve values using keys:
 
+### Values
+You can store a wide variety of JavaScript values and data structures in this library, including objects (with arbitrary complexity), arrays, buffers, strings, numbers, etc. in your database. Even full structural cloning (with cycles) is an optionally supported. Values are stored and retrieved according the database encoding, which can be set using the `encoding` property on the database options. By default, data is stored using MessagePack, but there are several supported encodings:
+
+* `msgpack` (default) - All values are stored by serializing the value as MessagePack (using the [msgpackr](https://github.com/kriszyp/msgpackr) package). Values are decoded and parsed on retrieval, so `get` and `getRange` will return the object, array, or other value that you have stored. The msgpackr package is extremely fast (usually faster than native JSON), and provides the most flexibility in storing different value types. See the Shared Structures section for how to achieve maximum efficiency with this.
+* `cbor` - This specifies all values use the CBOR format, which requires that the [cbor-x](https://github.com/kriszyp/cbor-x) package be installed. This package is based on [msgpackr](https://github.com/kriszyp/msgpackr) and supports all the same options.
+* `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
+* `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
+* `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
+* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` stores where data values are ordered, and having consistent key and value ordering is helpful.
+
 ### Keys
-When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. These primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
+When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
 ```
 Symbol.for('even symbols')
 -10 // negative supported
@@ -69,19 +82,9 @@ Symbol.for('even symbols')
 ['hello', 1, 'world']
 ['hello', 'world']
 ```
-You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower).
+You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), or use `keyIsUint32` for keys that are strictly 32-bit unsigned integers.
 
-### Values
-You can store a wide variety of JavaScript values and data structures in this library, including objects (with arbitrary complexity), arrays, buffers, strings, numbers, etc. in your database. Even full structural cloning (with cycles) is an optionally supported. Values are stored and retrieved according the database encoding, which can be set using the `encoding` property on the database options. By default, data is stored using MessagePack, but there are several supported encodings:
-
-* `msgpack` (default) - All values are stored by serializing the value as MessagePack (using the [msgpackr](https://github.com/kriszyp/msgpackr) package). Values are decoded and parsed on retrieval, so `get` and `getRange` will return the object, array, or other value that you have stored. The msgpackr package is extremely fast (usually faster than native JSON), and provides the most flexibility in storing different value types. See the Shared Structures section for how to achieve maximum efficiency with this.
-* `cbor` - This specifies all values use the CBOR format, which requires that the [cbor-x](https://github.com/kriszyp/cbor-x) package be installed. This package is based on [msgpackr](https://github.com/kriszyp/msgpackr) and supports all the same options.
-* `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
-* `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
-* `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
-* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` stores where data values are ordered, and having consistent key and value ordering is helpful.
-
-Once you have a store, the following methods are available:
+Once you created have a store, the following methods are available:
 
 ### `store.get(key): any`
 This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist.
@@ -92,9 +95,9 @@ This will retrieve the the entry at the specified key. The `key` must be a JS va
 ### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
 
-This operation will be enqueued to be written in a batch transaction. Any other operations that occur within a certain timeframe (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit. Once the promise resolves, the transaction will have been fully written to the physical storage medium (durable commit, guaranteed available in the future as far as the OS/physical storage can permit and confirm, even if there is power loss or system crash).
+This operation will be enqueued to be written in a batch transaction. Any other operations that occur within the current event turn (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit. Once the promise resolves, the transaction will have been fully written to the physical storage medium (durable commit, guaranteed available in the future as far as the OS/physical storage can permit and confirm, even if there is power loss or system crash).
 
-If this is performed inside a transaction, the put will be executed immediately in the current transaction.
+If `put` is called inside a transaction, the put will be executed immediately in the current transaction.
 
 ### `store.remove(key, valueOrIfVersion?: number): Promise<boolean>`
 This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
@@ -125,7 +128,7 @@ function buyShoe() {
 }
 ```
 
-Note that `store.transactionAsync(() => store.put(...))` is functionally equivalent to simply calling `store.put(...)`, queuing the put for asynchronously being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a little bit less efficient, although still quite fast).
+Note that `store.transactionAsync(() => store.put(...))` is functionally the same as calling `store.put(...)`, queuing the put for asynchronously being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a little bit less efficient, although still quite fast).
 
  Also, the callback function can be an async function (or return a promise), but this is not recommended. If the function returns a promise, this will delay/defer the commit until the callback's promise is resolved. However, while waiting for the callback to finish, other code may execute operations that would end up in the current transaction and may result in a surprising order of operations, and long running transactions are generally discouraged since they extend the single write lock.
 
@@ -135,7 +138,7 @@ This will run the provided callback in a transaction much like `transactionAsync
 The `childTransaction` function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
 
 ### `store.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
-This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a synchronous transaction, the put will be performed in the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (often blocking the main JS thread for multiple milliseconds) than the `put` operation (typically consumes a few _microseconds_ on a worker thread). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
+This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a transaction, the put will be performed in the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (often blocking the main JS thread for multiple milliseconds) than the `put` operation (typically consumes a few _microseconds_ on a worker thread). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
 ### `store.removeSync(key, valueOrIfVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`. This returns `true` if there was an existing entry deleted, `false` if there was no matching entry.
@@ -168,7 +171,7 @@ db.getRange({ start, end })
 		// for each key-value pair in the given range that matched the filter
 	})
 ```
-Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create async iterable if the callback functions execute asynchronously (return a promise).
+Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create an async iterable if the callback functions execute asynchronously (return a promise).
 
 We can also query with offset to skip a certain number of entries, and limit the number of entries to iterate through:
 ```
@@ -185,13 +188,13 @@ When using a store with duplicate entries per key (with `dupSort` flag), you can
 ```
 let db = store.openDB('my-index', {
 	dupSort: true
-})
-await db.put('key1', 'value1')
-await db.put('key1', 'value2')
+});
+await db.put('key1', 'value1');
+await db.put('key1', 'value2');
 for (let value of db.getValues('key1')) {
 	// iterate values 'value1', 'value2'
 }
-await db.remove('key', 'value1') // only remove the second value under key1
+await db.remove('key', 'value1'); // only remove the second value under key1
 for (let value of db.getValues('key1')) {
 	// just iterate value 'value1'
 }
@@ -247,9 +250,9 @@ This checks if an entry exists for the given key, and optionally verifies that t
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
 
 ## Concurrency and Versioning
-LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
+LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes are accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
-let myStore = open('my-store', { useVersions: true })
+let myStore = open('my-store', { useVersions: true });
 ```
 You can set a version by using the `version` argument in `put` calls. You can later update data and ensure that the data will only be updated if the version matches the expected version by using the `ifVersion` argument. When retrieving entries, you can access the version number by calling `getLastVersion()`.
 
