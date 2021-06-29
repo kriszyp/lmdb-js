@@ -404,7 +404,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	}
 	if (!(flags & 0x800)) {
         if (dw->keysUse32LE)
-            load32LE(key, (uint64_t*)(keyBuffer + 32));
+            load32LE(key, (uint32_t*)(keyBuffer + 32));
         else
             memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
 	}

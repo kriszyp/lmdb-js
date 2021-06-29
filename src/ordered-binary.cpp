@@ -335,7 +335,12 @@ KeySpace::KeySpace(bool fixed) {
     size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
     data = new uint8_t[size];
 }
-void load32LE(MDB_val &val, uint64_t* target) {
+#ifdef _WIN32
+#define ntohl _byteswap_ulong
+#define htonl _byteswap_ulong
+#endif
+
+void load32LE(MDB_val &val, uint32_t* target) {
     // copy and swap at the same time, and guarantee null termination
     uint32_t* source = (uint32_t*) val.mv_data;
     unsigned int size = val.mv_size;

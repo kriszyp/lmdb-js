@@ -958,7 +958,7 @@ public:
     //static NAN_METHOD(getStringByPrimitive);
 };
 
-void load32LE(MDB_val &val, uint64_t* target);
+void load32LE(MDB_val &val, uint32_t* target);
 void make32LE(MDB_val &val);
 
 // External string resource that glues MDB_val and v8::String
