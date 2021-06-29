@@ -10,7 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -43,7 +43,7 @@ describe('lmdb-store', function() {
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(1000000);
-    let db, db2;
+    let db, db2, db3;
     before(function() {
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
@@ -64,6 +64,14 @@ describe('lmdb-store', function() {
       }));
       if (!options.checkLast)
         db2.clear();
+      db3 = db.openDB({
+        name: 'mydb5',
+        create: true,
+        dupSort: true,
+        encoding: 'ordered-binary',
+      });
+      if (!options.checkLast)
+        db3.clear();
     });
     if (options.checkLast) {
       it('encrypted data can not be accessed', function() {
@@ -298,7 +306,32 @@ describe('lmdb-store', function() {
       count.should.equal(0);
       db2.getValuesCount('key0').should.equal(0);
     });
-
+    it('should iterate over ordered-binary dupsort query with start/end', async function() {
+      db3.put('key1',  1);
+      db3.put('key1',  2);
+      db3.put('key1',  3);
+      await db3.put('key2',  3);
+      let count = 0;
+      for (let value of db3.getValues('key1', { start: 1 })) {
+        count++
+        value.should.equal(count)
+      }
+      count.should.equal(3);
+      count = 0;
+      for (let value of db3.getValues('key1', { end: 3 })) {
+        count++
+        value.should.equal(count)
+      }
+      count.should.equal(2);
+      db3.getValuesCount('key1').should.equal(3);
+      db3.getValuesCount('key1', { start: 1, end: 3 }).should.equal(2);
+      db3.getValuesCount('key1', { start: 2, end: 3 }).should.equal(1);
+      db3.getValuesCount('key1', { start: 2 }).should.equal(2);
+      db3.getValuesCount('key1', { end: 2 }).should.equal(1);
+      db3.getValuesCount('key1', { start: 1, end: 2 }).should.equal(1);
+      db3.getValuesCount('key1', { start: 2, end: 2 }).should.equal(0);
+      db3.getValuesCount('key1').should.equal(3);
+    });
     it('doesExist', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}

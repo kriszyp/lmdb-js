@@ -101,7 +101,7 @@ function setup() {
   store = rootStore.openDB('testing', {
     create: true,
     sharedStructuresKey: 100000000,
-    keyIsUint32: true,    
+    //keyIsUint32: true,    
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -158,7 +158,7 @@ cleanup(async function (err) {
   })
   store = rootStore.openDB('testing', {
     sharedStructuresKey: 100000000,
-    keyIsUint32: true,    
+    //keyIsUint32: true,    
   })
 
   // other threads

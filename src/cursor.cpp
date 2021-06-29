@@ -416,17 +416,17 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;
     int rc;
-    char* keyBuffer;
     if (flags & 0x2000) // TODO: check the txn_id to determine if we need to renew
         mdb_cursor_renew(mdb_cursor_txn(cursor), cursor);
     if (endKeyAddress) {
-        keyBuffer = (char*) endKeyAddress;
-        endKey.mv_size = *((uint32_t*)keyBuffer);
-        endKey.mv_data = keyBuffer + 4;
+        uint32_t* keyBuffer = (uint32_t*) endKeyAddress;
+        endKey.mv_size = *keyBuffer;
+        endKey.mv_data = (char*)(keyBuffer + 1);
         if (dw->keysUse64LE) {
             make64LE(endKey);
         }
-    }
+    } else
+        endKey.mv_size = 0;
     iteratingOp = (flags & 0x400) ?
         (flags & 0x100) ?
             (flags & 0x800) ? MDB_PREV_DUP : MDB_PREV :
@@ -443,10 +443,10 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             make64LE(key);
 
         if (flags & 0x800) { //dupsort
-            // take the next part of the key buffer as the starting data
-            keyBuffer = (char*)key.mv_data + ((key.mv_size + 7) & 0xffff8);
-            data.mv_size = *((uint32_t*)keyBuffer);
-            data.mv_data = keyBuffer + 4;
+            // take the next part of the key buffer as a pointer to starting data
+            uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
+            data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
+            data.mv_data = startValueBuffer + 1;
             rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
         } else
             rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
@@ -475,6 +475,16 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     if (flags & 0x1000) {
         int count = 0;
         while (!rc) {
+            if (endKey.mv_size > 0) {
+                int comparison;
+                if (flags & 0x800)
+                    comparison = mdb_dcmp(tw->txn, dw->dbi, &data, &endKey);
+                else
+                    comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
+                if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
+                    return count;
+                }
+            }
             count++;
             rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
         }

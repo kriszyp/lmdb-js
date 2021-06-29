@@ -27,7 +27,6 @@
 #include <vector>
 #include <algorithm>
 #include <v8.h>
-#include "v8-fast-api-calls.h"
 #include <node.h>
 #include <node_buffer.h>
 #include <nan.h>
@@ -36,6 +35,11 @@
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
+#endif
+#if NODE_VERSION_AT_LEAST(16,4,0)
+#include "v8-fast-api-calls.h"
+#else
+#include "v8-fast-api-calls-v1.h"
 #endif
 
 using namespace v8;

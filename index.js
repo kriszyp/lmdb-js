@@ -220,8 +220,18 @@ function open(path, options) {
 				}
 			} else if (this.encoding == 'ordered-binary') {
 				this.encoder = this.decoder = {
-					encode(value) { return keyValueToBuffer(value) },
-					decode(buffer, end) { return bufferToKeyValue(buffer.slice(0, end)) }
+					encode(value) {
+						if (savePosition > 6200)
+							allocateSaveBuffer()
+						let start = savePosition
+						savePosition = writeKey(value, saveBuffer, start)
+						let buffer = saveBuffer.slice(start, savePosition)
+						savePosition = (savePosition + 7) & 0xfffff8
+						return buffer
+					},
+					decode(buffer, end) { return readKey(buffer, 0, end) },
+					writeKey,
+					readKey,
 				}
 			}
 			if (this.keyIsUint32) {
@@ -690,7 +700,7 @@ function open(path, options) {
 		}
 		getValues(key, options) {
 			let defaultOptions = {
-				start: key,
+				key,
 				valuesForKey: true
 			}
 			if (options && options.snapshot === false)
@@ -719,7 +729,7 @@ function open(path, options) {
 		getValuesCount(key, options) {
 			if (!options)
 				options = {}
-			options.start = key
+			options.key = key
 			options.valuesForKey = true
 			options.onlyCount = true
 			return this.getRange(options)[Symbol.iterator]()
@@ -735,7 +745,7 @@ function open(path, options) {
 			let db = this.db
 			let snapshot = options.snapshot
 			iterable[Symbol.iterator] = () => {
-				let currentKey = options.start
+				let currentKey = valuesForKey ? options.key : options.start
 				const reverse = options.reverse
 				let count = 0
 				let cursor, cursorRenewId
@@ -772,18 +782,35 @@ function open(path, options) {
 					}
 				}
 				resetCursor()
-				let iteratingOperation = reverse ?
-						valuesForKey ? MDB_PREV_DUP | 0x800 :
-							includeValues ? MDB_PREV : MDB_PREV_NODUP :
-						valuesForKey ? MDB_NEXT_DUP | 0x800 :
-							includeValues ? MDB_NEXT : MDB_NEXT_NODUP
-				iteratingOperation |= flags
 				let store = this
 				if (options.onlyCount) {
 					flags |= 0x1000
-					let count = cursor.position(flags, options.offset, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey, iterable))
+					let count = position(options.offset)
 					finishCursor()
 					return count
+				}
+				function position(offset) {
+					let keySize = store.writeKey(currentKey, keyBuffer, 0)
+					let endAddress
+					if (valuesForKey) {
+						if (options.start === undefined && options.end === undefined)
+							endAddress = 0
+						else {
+							let startAddress
+							if (store.encoder.writeKey) {
+								startAddress = BigInt(saveKey(options.start, store.encoder.writeKey, iterable))
+								keyBufferView.setBigUint64(2000, startAddress, true)
+								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
+							} else {
+								throw new Error('Only key-based encoding is supported for start/end values for ')
+								let encoded = store.encoder.encode(options.start)
+								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset)
+								startAddress = bufferAddress + encoded.byteOffset
+							}
+						}
+					} else
+						endAddress = saveKey(options.end, store.writeKey, iterable)
+					return cursor.position(flags, offset, keySize, endAddress)
 				}
 
 				function finishCursor() {
@@ -812,14 +839,10 @@ function open(path, options) {
 						let keySize
 						if (cursorRenewId && cursorRenewId != renewId) {
 							resetCursor()
-							keySize = cursor.position(flags, 0, store.writeKey(currentKey, keyBuffer, 0), saveKey(options.end, store.writeKey, iterable))
+							keySize = position(0)
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
-							keySize = store.writeKey(currentKey, keyBuffer, 0)
-							if (valuesForKey && options.startValue !== undefined) {
-								let buffer = store.encoder.encode(options.startValue)
-							}
-							keySize = cursor.position(flags, options.offset, keySize, saveKey(options.end, store.writeKey, iterable))
+							keySize = position(options.offset)
 						} else
 							keySize = cursor.iterate()
 						if (keySize === 0 ||
@@ -1305,17 +1328,23 @@ function setLastVersion(version) {
 }
 let saveBuffer, saveDataView, saveDataAddress
 let savePosition = 8000
+function allocateSaveBuffer() {
+	saveBuffer = Buffer.alloc(8192)
+	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength)
+	saveDataAddress = getAddress(saveBuffer)
+	saveBuffer.buffer.address = saveDataAddress - saveBuffer.byteOffset
+	savePosition = 0
+
+}
 function saveKey(key, writeKey, saveTo) {
 	if (savePosition > 6200) {
-		saveBuffer = Buffer.alloc(8192)
-		saveDataView = new DataView(saveBuffer.buffer, 0, 8192)
-		saveDataAddress = getAddress(saveBuffer)
-		savePosition = 0
+		allocateSaveBuffer()
 	}
 	let start = savePosition
 	savePosition = writeKey(key, saveBuffer, start + 4)
 	saveDataView.setUint32(start, savePosition - start - 4, true)
 	saveTo.saveBuffer = saveBuffer
+	savePosition = (savePosition + 7) & 0xfffff8
 	return start + saveDataAddress
 }
 exports.getLastVersion = getLastVersion
