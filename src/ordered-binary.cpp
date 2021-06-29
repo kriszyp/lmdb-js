@@ -381,8 +381,8 @@ void naturalEndianPack(MDB_val val) {
 */
 // compare items by 64-bit LE comparison
 int compare64LE(const MDB_val *a, const MDB_val *b) {
-    uint64_t* dataA = a->mv_data;
-    uint64_t* dataB = b->mv_data;
+    uint64_t* dataA = (uint64_t*) a->mv_data;
+    uint64_t* dataB = (uint64_t*) b->mv_data;
     uint64_t sizeA = a->mv_size;
     uint64_t sizeB = b->mv_size;
     uint64_t minSize = (sizeA > sizeB ? sizeB : sizeA);

@@ -10,7 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -250,7 +250,7 @@ describe('lmdb-store', function() {
       }
       count.should.equal(1)
     });
-    it.only('should iterate over dupsort query, with removal', async function() {
+    it('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: true}

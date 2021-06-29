@@ -18,7 +18,7 @@ var dbi;
 var keys = [];
 var total = 100;
 var store
-let data = {
+let data = 'hi'/*{
   name: 'test',
   greeting: 'Hello, World!',
   flag: true,
@@ -29,19 +29,20 @@ let data = {
   negative: -54,
   aNull: null,
   more: 'string',
-}
+}*/
 
 var c = 0
 let result
 
 let iteration = 1
 function setData(deferred) {
-  result = store.transactionAsync(() => {
+/*  result = store.transactionAsync(() => {
     for (let j = 0;j<100; j++)
       store.put((c += 357) % total, data)
-  })
-  /*let key = (c += 357) % total
-  if (key % 2 == 0)
+  })*/
+  let key = (c += 357) % total
+  result = store.put(key, data)
+  /*if (key % 2 == 0)
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/

@@ -86,6 +86,8 @@ NAN_METHOD(DbiWrap::ctor) {
     bool needsTransaction = true;
     bool isOpen = false;
     bool hasVersions = false;
+    bool keysUse64LE = false;
+    bool valuesUse64LE = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     Compression* compression = ew->compression;
@@ -141,6 +143,12 @@ NAN_METHOD(DbiWrap::ctor) {
             needsTransaction = false;
             txn = tw->txn;
         }
+        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
+            keysUse64LE = true;
+        }
+        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
+            valuesUse64LE = true;
+        }
     }
     else {
         return Nan::ThrowError("Invalid parameters.");
@@ -171,14 +179,6 @@ NAN_METHOD(DbiWrap::ctor) {
     else {
         isOpen = true;
     }
-    if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue) {
-        dw->keysUse64LE = true;
-        mdb_set_compare(txn, dbi, compare64LE);
-    }
-    if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse64LE").ToLocalChecked()).ToLocalChecked()->IsTrue) {
-        dw->valuesUse64LE = true;
-        mdb_set_dupsort(txn, dbi, compare64LE);
-    }
 
     if (needsTransaction) {
         // Commit transaction
@@ -193,6 +193,14 @@ NAN_METHOD(DbiWrap::ctor) {
     if (isOpen) {
         dw->ew = ew;
         dw->ew->Ref();
+    }
+    if (keysUse64LE) {
+        dw->keysUse64LE = true;
+        mdb_set_compare(txn, dbi, compare64LE);
+    }
+    if (valuesUse64LE) {
+        dw->valuesUse64LE = true;
+        mdb_set_dupsort(txn, dbi, compare64LE);
     }
     dw->keyType = keyType;
     dw->flags = flags;
