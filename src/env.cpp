@@ -1121,11 +1121,18 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
+    #ifdef ENABLE_FAST_API
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
+    #else
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
+          isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
+          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+          v8::SideEffectType::kHasNoSideEffect, nullptr));
+    #endif
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getByPrimitive));
     dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getStringByPrimitive));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));

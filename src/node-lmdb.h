@@ -36,10 +36,12 @@
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
 #endif
+#ifdef ENABLE_FAST_API
 #if NODE_VERSION_AT_LEAST(16,4,0)
 #include "v8-fast-api-calls.h"
 #else
 #include "v8-fast-api-calls-v1.h"
+#endif
 #endif
 
 using namespace v8;
@@ -684,7 +686,9 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+#ifdef ENABLE_FAST_API
     static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+#endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(getByPrimitive);
     static NAN_METHOD(getStringByPrimitive);
@@ -949,10 +953,12 @@ public:
     static NAN_METHOD(del);
 
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
+#ifdef ENABLE_FAST_API
     static uint32_t positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
+    static uint32_t iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options);
+#endif
     static void position(const v8::FunctionCallbackInfo<v8::Value>& info);    
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
-    static uint32_t iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options);
     static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
     static NAN_METHOD(renew);
     //static NAN_METHOD(getStringByPrimitive);

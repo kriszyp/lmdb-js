@@ -3,6 +3,7 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
+      "enable_fast_api_calls%": "false",
       "build_v8_with_gn": "false"
   },
   "targets": [
@@ -28,6 +29,7 @@
         "<!(node -e \"require('nan')\")",
         "dependencies/lz4/lib"
       ],
+      "defines": ["MDB_MAXKEYSIZE=1978"],
       "conditions": [
         ["OS=='linux'", {
           "variables": {
@@ -91,10 +93,11 @@
             "dependencies/lmdb/libraries/liblmdb",
           ],        
         }],
+        ["enable_fast_api_calls=='true'", {
+          "defines": ["ENABLE_FAST_API=1"],
+        }],
         ["use_robust=='true'", {
-          "defines": ["MDB_MAXKEYSIZE=1978", "MDB_USE_ROBUST"],
-        }, {
-          "defines": ["MDB_MAXKEYSIZE=1978"],
+          "defines": ["MDB_USE_ROBUST"],
         }],
       ],
     }

@@ -375,6 +375,8 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
+`npm install --enable_fast_api_calls=true`: This will build `lmdb-store` with V8's new API for fast calls. `lmdb-store` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option.
+
 ## Credits
 
 This library is built on [LMDB](https://symas.com/lmdb/) and is built from and derived from  the excellent [node-lmdb](https://github.com/Venemo/node-lmdb) package.

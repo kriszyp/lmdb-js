@@ -501,6 +501,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     // TODO: Handle count?
     return returnEntry(rc, key, data);
 }
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -515,6 +516,7 @@ uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, ui
         options.fallback = true;
     return result;
 }
+#endif
 void CursorWrap::position(
   const v8::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Object> instance =
@@ -527,7 +529,7 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
-
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -543,6 +545,7 @@ uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOpti
         options.fallback = true;
     return result;
 }
+#endif
 void CursorWrap::iterate(
   const v8::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Object> instance =
@@ -595,6 +598,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     Isolate *isolate = Isolate::GetCurrent();
+    #ifdef ENABLE_FAST_API
     auto positionFast = CFunction::Make(CursorWrap::positionFast);
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),
@@ -606,6 +610,17 @@ void CursorWrap::setupExports(Local<Object> exports) {
           isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &iterateFast));
+    #else
+    cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
+          isolate, CursorWrap::position, v8::Local<v8::Value>(),
+          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+          v8::SideEffectType::kHasNoSideEffect, nullptr));
+
+    cursorTpl->PrototypeTemplate()->Set(isolate, "iterate", v8::FunctionTemplate::New(
+          isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
+          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+          v8::SideEffectType::kHasNoSideEffect, nullptr));
+    #endif
 
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("renew").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::renew));
 

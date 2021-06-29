@@ -810,7 +810,7 @@ function open(path, options) {
 						}
 					} else
 						endAddress = saveKey(options.end, store.writeKey, iterable)
-					return cursor.position(flags, offset, keySize, endAddress)
+					return cursor.position(flags, offset || 0, keySize, endAddress)
 				}
 
 				function finishCursor() {
