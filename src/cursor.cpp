@@ -441,13 +441,21 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     } else {
         if (dw->keysUse64LE)
             make64LE(key);
-
         if (flags & 0x800) { //dupsort
             // take the next part of the key buffer as a pointer to starting data
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
             data.mv_data = startValueBuffer + 1;
             rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+            if (flags & 0x1000 && !endKeyAddress) {
+                if (rc == MDB_NOTFOUND)
+                    return 0;
+                size_t count;
+                rc = mdb_cursor_count(cursor, &count);
+                if (rc)
+                    throwLmdbError(rc);
+                return count;
+            }
         } else
             rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
         if (flags & 0x400) {// reverse
@@ -473,7 +481,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
         rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
     }
     if (flags & 0x1000) {
-        int count = 0;
+        uint32_t count = 0;
         while (!rc) {
             if (endKey.mv_size > 0) {
                 int comparison;
