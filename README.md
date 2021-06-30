@@ -187,7 +187,8 @@ By default a range iterator will use a database snapshot, using a single read tr
 When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
 ```
 let db = store.openDB('my-index', {
-	dupSort: true
+	dupSort: true,
+	encoding: 'ordered-binary',
 });
 await db.put('key1', 'value1');
 await db.put('key1', 'value2');
@@ -199,7 +200,11 @@ for (let value of db.getValues('key1')) {
 	// just iterate value 'value1'
 }
 ```
-You can optionally provide a second argument with the same `options` that `getRange` handles.
+You can optionally provide a second argument with the same `options` that `getRange` handles. You can provide a `start` and/or `end` values, which will be define the starting value and ending value for the range of values to return for the key:
+```
+for (let value of db.getValues('key1', { start: 'value1', end: 'value3'})) ...
+```
+Using `start`/`end` is only supported if using the `ordered-binary` encoding.
 
 ### `store.getKeys(options: RangeOptions): Iterable<any>`
 This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
@@ -324,7 +329,7 @@ Additional databases can be opened within the main database environment with:
 `store.openDB(name, options)` or `store.openDB(options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
-* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, or `'binary'`.
+* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)).
