@@ -396,11 +396,8 @@ NAN_METHOD(setWinMemoryLimit) {
 }
 NAN_METHOD(setWinMemoryPriority) {
     #if defined(_WIN32)
-    setProcessMemoryPriority(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
-    SIZE_T  dwMin = 204800, dwMax = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
-    if (!SetProcessWorkingSetSize(GetCurrentProcess(), dwMin, dwMax)) {
+    if (!setProcessMemoryPriority(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value()))
         return throwLmdbError(GetLastError());
-    }
     #endif
 }
 

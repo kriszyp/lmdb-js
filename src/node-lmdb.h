@@ -684,6 +684,7 @@ public:
 
     */
     static NAN_METHOD(drop);
+    static NAN_METHOD(dropAsync);
 
     static NAN_METHOD(stat);
 #ifdef ENABLE_FAST_API

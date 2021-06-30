@@ -229,6 +229,46 @@ NAN_METHOD(DbiWrap::close) {
     }
 }
 
+class DropWorker : public Nan::AsyncWorker {
+  public:
+    DropWorker(MDB_dbi dbi, MDB_env* env, int del, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), env(env), dbi(dbi), del(del) {
+      }
+    void Execute() {
+        MDB_txn *txn;
+        int rc = mdb_txn_begin(env, nullptr, 0, &txn);
+        if (!rc)
+            rc = mdb_drop(txn, dbi, del);
+        if (rc)
+            mdb_txn_abort(txn);
+        else
+            rc = mdb_txn_commit(txn);
+        if (rc)
+            SetErrorMessage(mdb_strerror(rc));
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+        Local<v8::Value> argv[] = {
+            Nan::Null()
+        };
+        callback->Call(1, argv, async_resource);
+    }
+  private:
+    MDB_dbi dbi;
+    MDB_env* env;
+    int del;
+};
+
+NAN_METHOD(DbiWrap::dropAsync) {
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
+    int del = info[0]->IsTrue();
+    Nan::Callback* callback = new Nan::Callback(
+      Local<v8::Function>::Cast(info[1])
+    );
+    Nan::AsyncQueueWorker(new DropWorker(dw->dbi, dw->ew->env, del, callback));
+}
+
 NAN_METHOD(DbiWrap::drop) {
     Nan::HandleScope scope;
 
