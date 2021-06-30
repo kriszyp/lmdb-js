@@ -1136,7 +1136,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, nullptr));
+          v8::SideEffectType::kHasNoSideEffect));
     #endif
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getByPrimitive));
     dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getStringByPrimitive));

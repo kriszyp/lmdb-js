@@ -614,12 +614,12 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, nullptr));
+          v8::SideEffectType::kHasNoSideEffect));
 
     cursorTpl->PrototypeTemplate()->Set(isolate, "iterate", v8::FunctionTemplate::New(
           isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect, nullptr));
+          v8::SideEffectType::kHasNoSideEffect));
     #endif
 
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("renew").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::renew));
