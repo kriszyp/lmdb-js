@@ -26,19 +26,17 @@
 using namespace v8;
 using namespace node;
 
-extern "C" {
+extern "C" NODE_MODULE_EXPORT void
+NODE_MODULE_INITIALIZER(Local<Object> exports,
+                        Local<Value> module,
+                        Local<Context> context) {
     // Initializes the module
-    void initializeModule(Local<Object> exports) {
-        // Export Env as constructor for EnvWrap
-        EnvWrap::setupExports(exports);
+    // Export Env as constructor for EnvWrap
+    EnvWrap::setupExports(exports);
 
-        // Export Cursor as constructor for CursorWrap
-        CursorWrap::setupExports(exports);
+    // Export Cursor as constructor for CursorWrap
+    CursorWrap::setupExports(exports);
 
-        // Export misc things
-        setupExportMisc(exports);
-    }
-
-    // Context-aware, ie. thread safe
-    NODE_MODULE_CONTEXT_AWARE(lmdb, initializeModule)
+    // Export misc things
+    setupExportMisc(exports);
 }
