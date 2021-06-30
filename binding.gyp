@@ -4,6 +4,7 @@
       "use_robust%": "false",
       "use_data_v1%": "false",
       "enable_fast_api_calls%": "false",
+      "target%": "",
       "build_v8_with_gn": "false"
   },
   "targets": [
@@ -91,7 +92,10 @@
           ],
           "include_dirs": [
             "dependencies/lmdb/libraries/liblmdb",
-          ],        
+          ],
+        }],
+        ["target=='14.17.1'", {
+          "defines": ["ENABLE_FAST_API=1"],
         }],
         ["enable_fast_api_calls=='true'", {
           "defines": ["ENABLE_FAST_API=1"],

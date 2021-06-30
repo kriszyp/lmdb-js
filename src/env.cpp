@@ -297,6 +297,8 @@ waitForCallback:
                 results[i] = FAILED_CONDITION;
                 validated = false;
             } else if (actionType & CONDITION) { // has precondition
+                if (dw->keysUse32LE)
+                    make32LE(action->key);
                 MDB_val value;
                 // TODO: Use a cursor
                 rc = mdb_get(txn, dw->dbi, &action->key, &value);
@@ -322,6 +324,8 @@ waitForCallback:
             }
             if (actionType & (WRITE_WITH_VALUE | DELETE_OPERATION)) { // has write operation to perform
                 if (validated) {
+                    if (dw->keysUse32LE)
+                        make32LE(action->key);
                     if (actionType & DELETE_OPERATION) {
                         rc = mdb_del(txn, dw->dbi, &action->key, (actionType & WRITE_WITH_VALUE) ? &action->data : nullptr);
                         if (rc == MDB_NOTFOUND) {
