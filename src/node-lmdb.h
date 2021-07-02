@@ -36,7 +36,7 @@
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
 #endif
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
 #if NODE_VERSION_AT_LEAST(16,4,0)
 #include "v8-fast-api-calls.h"
 #else
@@ -269,6 +269,7 @@ public:
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
+    void closeEnv();
 
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
@@ -687,7 +688,7 @@ public:
     static NAN_METHOD(dropAsync);
 
     static NAN_METHOD(stat);
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
     static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -954,7 +955,7 @@ public:
     static NAN_METHOD(del);
 
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
     static uint32_t positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
     static uint32_t iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options);
 #endif

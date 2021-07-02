@@ -179,15 +179,6 @@ NAN_METHOD(DbiWrap::ctor) {
     else {
         isOpen = true;
     }
-
-    if (needsTransaction) {
-        // Commit transaction
-        rc = mdb_txn_commit(txn);
-        if (rc != 0) {
-            return throwLmdbError(rc);
-        }
-    }
-
     // Create wrapper
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     if (isOpen) {
@@ -202,6 +193,14 @@ NAN_METHOD(DbiWrap::ctor) {
         dw->valuesUse32LE = true;
         mdb_set_dupsort(txn, dbi, compare32LE);
     }
+    if (needsTransaction) {
+        // Commit transaction
+        rc = mdb_txn_commit(txn);
+        if (rc != 0) {
+            return throwLmdbError(rc);
+        }
+    }
+
     dw->keyType = keyType;
     dw->flags = flags;
     dw->isOpen = isOpen;
@@ -362,7 +361,7 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
 uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
 	DbiWrap* dw = static_cast<DbiWrap*>(

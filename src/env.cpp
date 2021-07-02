@@ -297,8 +297,6 @@ waitForCallback:
                 results[i] = FAILED_CONDITION;
                 validated = false;
             } else if (actionType & CONDITION) { // has precondition
-                if (dw->keysUse32LE)
-                    make32LE(action->key);
                 MDB_val value;
                 // TODO: Use a cursor
                 rc = mdb_get(txn, dw->dbi, &action->key, &value);
@@ -324,8 +322,6 @@ waitForCallback:
             }
             if (actionType & (WRITE_WITH_VALUE | DELETE_OPERATION)) { // has write operation to perform
                 if (validated) {
-                    if (dw->keysUse32LE)
-                        make32LE(action->key);
                     if (actionType & DELETE_OPERATION) {
                         rc = mdb_del(txn, dw->dbi, &action->key, (actionType & WRITE_WITH_VALUE) ? &action->data : nullptr);
                         if (rc == MDB_NOTFOUND) {
@@ -441,6 +437,10 @@ static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int enc
     return 0;
 }
 #endif
+
+void cleanup(void* data) {
+    ((EnvWrap*) data)->closeEnv();
+}
 
 NAN_METHOD(EnvWrap::open) {
     Nan::HandleScope scope;
@@ -581,6 +581,7 @@ NAN_METHOD(EnvWrap::open) {
         ew->env = nullptr;
         return throwLmdbError(rc);
     }
+    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);
     env_path_t envPath;
     envPath.path = strdup(*charPath);
     envPath.env = ew->env;
@@ -629,23 +630,17 @@ NAN_METHOD(EnvWrap::resize) {
     }
 }
 
-NAN_METHOD(EnvWrap::close) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->Unref();
-
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
-    }
-    ew->cleanupStrayTxns();
+void EnvWrap::closeEnv() {
+    cleanupStrayTxns();
 
     uv_mutex_lock(envsLock);
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
-        if (envPath->env == ew->env) {
+        if (envPath->env == env) {
             envPath->count--;
             if (envPath->count <= 0) {
                 // last thread using it, we can really close it now
                 envs.erase(envPath);
-                mdb_env_close(ew->env);
+                mdb_env_close(env);
             }
             break;
         }
@@ -653,7 +648,17 @@ NAN_METHOD(EnvWrap::close) {
     }
     uv_mutex_unlock(envsLock);
 
-    ew->env = nullptr;
+    env = nullptr;
+
+}
+NAN_METHOD(EnvWrap::close) {
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    ew->Unref();
+
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+    ew->closeEnv();
 }
 
 NAN_METHOD(EnvWrap::stat) {
@@ -990,6 +995,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
                 return;
             }
         }
+
         // if we did not coordinate to always reference the object on the JS side, we would need this (but it is expensive):
         //if (!action->freeKey)
           //  worker->SaveToPersistent(persistedIndex++, key);
@@ -1126,7 +1132,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "dropAsync", Nan::New<FunctionTemplate>(DbiWrap::dropAsync));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    #ifdef ENABLE_FAST_API
+    #ifndef DISABLE_FAST_API
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),

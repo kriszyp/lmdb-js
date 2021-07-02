@@ -3,7 +3,7 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
-      "enable_fast_api_calls%": "false",
+      "disable_fast_api_calls%": "false",
       "target%": "",
       "build_v8_with_gn": "false"
   },
@@ -36,25 +36,15 @@
           "variables": {
             "gcc_version" : "<!(<(os_linux_compiler) -dumpversion | cut -d '.' -f 1)",
           },
+          "cflags_cc": [
+            "-fPIC",
+            "-fvisibility=hidden",
+            "-fvisibility-inlines-hidden",
+          ],
           "conditions": [
             ["gcc_version>=7", {
               "cflags": [
                 "-Wimplicit-fallthrough=2",
-              ],
-            }],
-            ["node_module_version >= 93", {
-              "cflags_cc": [
-                "-fPIC",
-                "-fvisibility=hidden",
-                "-fvisibility-inlines-hidden",
-                "-std=c++14"
-              ]
-            }, {
-             "cflags_cc": [
-              "-fPIC",
-              "-fvisibility=hidden",
-              "-fvisibility-inlines-hidden",
-              "-std=c++11"
               ],
             }],
           ],
@@ -67,14 +57,6 @@
             "-fvisibility=hidden",
             "-O3"
           ],
-        }],
-        ["OS=='mac'", {
-          "xcode_settings": {
-            "OTHER_CPLUSPLUSFLAGS" : ["-std=c++14"],
-            "MACOSX_DEPLOYMENT_TARGET": "10.7",
-            "OTHER_LDFLAGS": ["-std=c++14"],
-            "CLANG_CXX_LIBRARY": "libc++"
-          }
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
@@ -94,11 +76,11 @@
             "dependencies/lmdb/libraries/liblmdb",
           ],
         }],
-        ["target=='14.17.1'", {
-          "defines": ["ENABLE_FAST_API=1"],
+        ["target=='16.4.0'", {
+          "defines": ["DISABLE_FAST_API=1"],
         }],
-        ["enable_fast_api_calls=='true'", {
-          "defines": ["ENABLE_FAST_API=1"],
+        ["disable_fast_api_calls=='true'", {
+          "defines": ["DISABLE_FAST_API=1"],
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_USE_ROBUST"],
