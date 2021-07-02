@@ -81,7 +81,6 @@ function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBuffer,
-		//winMemoryPriority: 4,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
@@ -1166,7 +1165,7 @@ function open(path, options) {
 				if (this.useVersions)
 					lastVersion = getLastVersion()
 				try {
-					let buffer = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())).getBinary(this.db, this.sharedStructuresKey)
+					let buffer = this.getBinary(this.sharedStructuresKey)
 					if (this.useVersions)
 						setLastVersion(lastVersion)
 					return buffer ? this.encoder.decode(buffer) : []
@@ -1177,7 +1176,7 @@ function open(path, options) {
 			return {
 				saveStructures: (structures, previousLength) => {
 					return this.transactionSync(() => {
-						let existingStructuresBuffer = writeTxn.getBinary(this.db, this.sharedStructuresKey)
+						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey)
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
