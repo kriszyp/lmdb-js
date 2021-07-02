@@ -10,7 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -92,6 +92,8 @@ describe('lmdb-store', function() {
         5,
         [5,4],
         [5,55],
+        [5, 'words after number'],
+        [6, 'abc'],
         'hello',
         ['hello', 3],
         ['hello', 'world'],
@@ -105,6 +107,7 @@ describe('lmdb-store', function() {
         start: Symbol.for('A')
       })) {
         returnedKeys.push(key)
+        value.should.equal(db.get(key))
       }
       keys.should.deep.equal(returnedKeys)
     });
@@ -226,6 +229,36 @@ describe('lmdb-store', function() {
       }
       count.should.equal(1);
     });
+    it('getRange with arrays', async function() {
+      const keys = [
+        [ 'foo', 0 ],
+        [ 'foo', 1 ],
+        [ 'foo', 2 ],
+      ]
+      let promise
+      keys.forEach((key, i) => {
+        promise = db.put(key, i)
+      })
+      await promise
+
+      let result = Array.from(db.getRange({
+        start: [ 'foo'],
+        end: [ 'foo', 1 ],
+      }))
+      result.should.deep.equal([ { key: [ 'foo', 0 ], value: 0 } ])
+
+      result = Array.from(db.getRange({
+        start: [ 'foo', 0 ],
+        end: [ 'foo', 1 ],
+      }))
+      result.should.deep.equal([ { key: [ 'foo', 0 ], value: 0 } ])
+
+      result = Array.from(db.getRange({
+        start: [ 'foo', 2 ],
+        end: [ 'foo', [2, null] ],
+      }))
+      result.should.deep.equal([ { key: [ 'foo', 2 ], value: 2 } ])
+    })
     it('should iterate over query with offset/limit', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
