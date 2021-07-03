@@ -343,13 +343,16 @@ KeySpace::KeySpace(bool fixed) {
 void load32LE(MDB_val &val, uint32_t* target) {
     // copy and swap at the same time, and guarantee null termination
     uint32_t* source = (uint32_t*) val.mv_data;
-    unsigned int size = val.mv_size;
+    unsigned int size = val.mv_size - 4;
+    *target++ = ntohl(*source++);
+    memcpy(target, source, size);
+    /*
     uint32_t* end = source + (size >> 2);
     for (; source < end; source++) {
         *target = ntohl(*source);
         target++;
     }
-    *target = ntohl(*source << (32 - ((size & 3) << 3)));
+    *target = ntohl(*source << (32 - ((size & 3) << 3)));*/
 }
 
 
@@ -372,39 +375,83 @@ void make32LE(MDB_val &val) {
     }
 */ 
     uint32_t* buffer = (uint32_t*) val.mv_data;
+    *buffer = htonl(*buffer);/*
     unsigned int size = val.mv_size;
-    uint32_t* end = buffer + (size >> 3);
+    uint32_t* end = buffer + (size >> 2);
     for (; buffer < end; buffer++) {
         *buffer = htonl(*buffer);
     }
-    *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));
+    *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));*/
 }
 // compare items by 32-bit LE comparison
 int compare32LE(const MDB_val *a, const MDB_val *b) {
     uint32_t* dataA = (uint32_t*) a->mv_data;
     uint32_t* dataB = (uint32_t*) b->mv_data;
+    int diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
+    if (diff)
+        return diff;
+    ssize_t len_diff;
+    unsigned int len;
+
+    len = a->mv_size;
+    len_diff = (ssize_t) a->mv_size - (ssize_t) b->mv_size;
+    if (len_diff > 0) {
+        len = b->mv_size;
+        len_diff = 1;
+    }
+
+    diff = memcmp(a->mv_data, b->mv_data, len);
+    return diff ? diff : len_diff<0 ? -1 : len_diff;
+}/*
+
+int compare32LE(const MDB_val *a, const MDB_val *b) {
+    uint32_t* dataA = (uint32_t*) a->mv_data;
+    uint32_t* dataB = (uint32_t*) b->mv_data;
+    int diff = *dataA - *dataB;
+    if (diff)
+        return diff;
+
+    ssize_t len_diff;
+    unsigned int len;
+
+    len = a->mv_size;
+    len_diff = (ssize_t) a->mv_size - (ssize_t) b->mv_size;
+    if (len_diff > 0) {
+        len = b->mv_size;
+        len_diff = 1;
+    }
+
+    diff = memcmp(a->mv_data, b->mv_data, len);
+    return diff ? diff : len_diff<0 ? -1 : len_diff;
+/*
     uint32_t sizeA = a->mv_size;
     uint32_t sizeB = b->mv_size;
     uint32_t minSize = (sizeA > sizeB ? sizeB : sizeA);
     uint32_t wordA;
     uint32_t wordB;
     for (int i = minSize >> 2; i > 0; i--) {
-        wordA = *dataA++;
-        wordB = *dataB++;
-        if (wordA > wordB)
-            return 1;
-        if (wordA < wordB)
-            return -1;
+        int diff = *dataA++ - *dataB++;
+        if (diff)
+            return diff;
     }
     if (minSize & 0x3) {
+        minSize = minSize & 0xfffffffc;
         sizeA -= minSize;
         sizeB -= minSize;
-        wordA = sizeA < 4 ? *dataA << ((4 - sizeA) << 3) : *dataA;
-        wordB = sizeB < 4 ? *dataB << ((4 - sizeB) << 3) : *dataB;
+        wordA = sizeA < 4 ?
+            sizeA < 2 ?
+                sizeA == 0 ? 0 : *dataA << 24 :
+                sizeA == 2 ? *dataA << 16 : *dataA << 8 :
+                    *dataA;
+        wordB = sizeB < 4 ?
+            sizeB < 2 ?
+                sizeB == 0 ? 0 : *dataB << 24 :
+                sizeB == 2 ? *dataB << 16 : *dataB << 8 :
+                    *dataB;
     }
     if (wordA > wordB)
         return 1;
     if (wordA < wordB)
         return -1;
     return sizeA - sizeB;
-}
+}*/
