@@ -42,6 +42,7 @@ describe('Node.js LMDB Bindings', function() {
     this.timeout(10000);
     var env = new lmdb.Env();
     env.open({
+        keyBuffer: Buffer.alloc(2048),
       path: testDirPath,
       maxDbs: 10
     });
@@ -59,6 +60,7 @@ describe('Node.js LMDB Bindings', function() {
     for (let i =0; i < 12; i++) {
       var env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath + '/data' + i + '.mdb',
         noSubdir: true
       });
@@ -71,6 +73,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         maxReaders: 422,
@@ -303,6 +306,7 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   describe('Data types', function() {
+    debugger
     this.timeout(10000);
     var env;
     var dbi;
@@ -310,6 +314,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10
       });
@@ -463,6 +468,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10
       });
@@ -521,6 +527,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -644,6 +651,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -758,6 +766,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -841,6 +850,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -952,6 +962,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -995,6 +1006,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -1068,6 +1080,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -1159,6 +1172,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize:  MAX_DB_SIZE
@@ -1259,6 +1273,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         mapSize: MAX_DB_SIZE
@@ -1310,6 +1325,7 @@ describe('Node.js LMDB Bindings', function() {
       var expectedValue = new Buffer('ec65d632d9168c33350ed31a30848d01e95172931e90984c218ef6b08c1fa90a', 'hex');
       var env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 12,
         mapSize: MAX_DB_SIZE
@@ -1348,6 +1364,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 12,
         mapSize: MAX_DB_SIZE
@@ -1385,6 +1402,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 12,
         mapSize: MAX_DB_SIZE
@@ -1420,6 +1438,7 @@ describe('Node.js LMDB Bindings', function() {
     before(function() {
       env = new lmdb.Env();
       env.open({
+        keyBuffer: Buffer.alloc(2048),
         path: testDirPath,
         maxDbs: 10,
         maxReaders: 422,
