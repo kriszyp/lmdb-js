@@ -402,12 +402,8 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
             dw->getFast = false;
 		*((size_t*)keyBuffer) = data.mv_size;
 	}
-	if (!(flags & 0x800)) {
-        if (dw->keysUse32LE)
-            load32LE(key, (uint32_t*)(keyBuffer + 32));
-        else
-            memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
-	}
+	if (!(flags & 0x800))
+        memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
 
     return key.mv_size;
 }
@@ -422,9 +418,6 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
         uint32_t* keyBuffer = (uint32_t*) endKeyAddress;
         endKey.mv_size = *keyBuffer;
         endKey.mv_data = (char*)(keyBuffer + 1);
-        if (dw->keysUse32LE) {
-            make32LE(endKey);
-        }
     } else
         endKey.mv_size = 0;
     iteratingOp = (flags & 0x400) ?
@@ -439,8 +432,6 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
-        if (dw->keysUse32LE)
-            make32LE(key);
         if (flags & 0x800) { //dupsort
             // take the next part of the key buffer as a pointer to starting data
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
@@ -501,7 +492,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     // TODO: Handle count?
     return returnEntry(rc, key, data);
 }
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
 uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -529,7 +520,7 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
-#ifdef ENABLE_FAST_API
+#ifndef DISABLE_FAST_API
 uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -598,7 +589,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     Isolate *isolate = Isolate::GetCurrent();
-    #ifdef ENABLE_FAST_API
+    #ifndef DISABLE_FAST_API
     auto positionFast = CFunction::Make(CursorWrap::positionFast);
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),
