@@ -10,7 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
