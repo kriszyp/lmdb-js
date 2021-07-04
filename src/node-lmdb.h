@@ -111,7 +111,7 @@ NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
-int compare32LE(const MDB_val *a, const MDB_val *b);
+int compareFast(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
@@ -692,7 +692,7 @@ public:
     static uint32_t getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(getByPrimitive);
+    static NAN_METHOD(compareKeys);
     static NAN_METHOD(getStringByPrimitive);
 };
 

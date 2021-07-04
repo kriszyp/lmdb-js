@@ -187,11 +187,11 @@ NAN_METHOD(DbiWrap::ctor) {
     }
     if (keysUse32LE) {
         dw->keysUse32LE = true;
-        mdb_set_compare(txn, dbi, compare32LE);
+        mdb_set_compare(txn, dbi, compareFast);
     }
     if (valuesUse32LE) {
         dw->valuesUse32LE = true;
-        mdb_set_dupsort(txn, dbi, compare32LE);
+        mdb_set_dupsort(txn, dbi, compareFast);
     }
     if (needsTransaction) {
         // Commit transaction
@@ -421,30 +421,22 @@ void DbiWrap::getByBinary(
     rc = getVersionAndUncompress(data, dw);
     return info.GetReturnValue().Set(valToBinaryUnsafe(data));
 }
-NAN_METHOD(DbiWrap::getByPrimitive) {
+
+NAN_METHOD(DbiWrap::compareKeys) {
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
     DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
     MDB_txn* txn = dw->ew->getReadTxn();
-    MDB_val key;
-    MDB_val data;
-    bool keyIsValid;
-    if(argToKey(info[0], key, dw->keyType, keyIsValid)) {
-        return Nan::ThrowError("argToKey should not allocate");
+    MDB_val a, b;
+    a.mv_size = node::Buffer::Length(info[0]);
+    a.mv_data = node::Buffer::Data(info[0]);
+    b.mv_size = node::Buffer::Length(info[1]);
+    b.mv_data = node::Buffer::Data(info[1]);
+    int rc;
+    for (int i = 0; i < 10000; i++) {
+        rc = mdb_cmp(txn, dw->dbi, &a, &b);
     }
-    if (!keyIsValid) {
-        // argToKey already threw an error
-        return;
-    }
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
-        else
-            return throwLmdbError(rc);
-    }
-    rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToBinaryUnsafe(data));
+    return info.GetReturnValue().Set(Nan::New<Number>(rc));
 }
 
 NAN_METHOD(DbiWrap::getStringByPrimitive) {

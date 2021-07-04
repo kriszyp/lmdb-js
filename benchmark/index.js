@@ -12,7 +12,7 @@ var mkdirp = require('mkdirp');
 var benchmark = require('benchmark');
 var suite = new benchmark.Suite();
 
-const { open } = require('..');
+const { open, compareKeys } = require('..');
 var env;
 var dbi;
 var keys = [];
@@ -60,6 +60,14 @@ function getBinary() {
 }
 function getBinaryFast() {
   result = store.getBinaryFast((c += 357) % total)
+}
+let a = Buffer.from('this is a a test')
+let b = Buffer.from('more text')
+let b2 = Buffer.from('this is similar')
+function keyComparison() {
+  try {
+  result = store.db.compareKeys(a, b)
+}catch(error) { console.log(error)}
 }
 function getRange() {
   let start = (c += 357) % total
@@ -119,6 +127,7 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
+    suite.add('compare keys', keyComparison);
     suite.add('getRange', getRange);
     suite.add('put', {
       defer: true,

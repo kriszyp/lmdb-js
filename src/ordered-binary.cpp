@@ -384,25 +384,52 @@ void make32LE(MDB_val &val) {
     *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));*/
 }
 // compare items by 32-bit LE comparison
-int compare32LE(const MDB_val *a, const MDB_val *b) {
+int compareFast(const MDB_val *a, const MDB_val *b) {
+    uint32_t* dataA = (uint32_t*) a->mv_data;
+    uint32_t* dataB = (uint32_t*) b->mv_data;
+    size_t remaining = a->mv_size;
+    int diff;
+    while(remaining >= 4) {
+        diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
+        if (diff)
+            return diff;
+        dataA++;
+        dataB++;
+        remaining -= 4;
+    }
+    if (remaining) {
+        diff = (int) ntohl(*dataA & (remaining == 1 ? 0x000000ff : remaining == 2 ? 0x0000ffff : 0x00ffffff)) - (int) ntohl(*dataB);
+        if (diff)
+            return diff;
+    }
+    return a->mv_size - b->mv_size;
+}
+int compareFaster(const MDB_val *a, const MDB_val *b) {
     uint32_t* dataA = (uint32_t*) a->mv_data;
     uint32_t* dataB = (uint32_t*) b->mv_data;
     int diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
     if (diff)
         return diff;
-    ssize_t len_diff;
-    unsigned int len;
-
-    len = a->mv_size;
-    len_diff = (ssize_t) a->mv_size - (ssize_t) b->mv_size;
-    if (len_diff > 0) {
-        len = b->mv_size;
-        len_diff = 1;
+    dataA++;
+    dataB++;
+    size_t remaining = a->mv_size - 4;
+    while(remaining >= 4) {
+        diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
+        if (diff)
+            return diff;
+        dataA++;
+        dataB++;
+        remaining -= 4;
     }
+    if (remaining) {
+        diff = (int) ntohl(*dataA & 0x0000ffff) - (int) ntohl(*dataB);
+        if (diff)
+            return diff;
+    }
+    return a->mv_size - b->mv_size;
+}
 
-    diff = memcmp(a->mv_data, b->mv_data, len);
-    return diff ? diff : len_diff<0 ? -1 : len_diff;
-}/*
+/*
 
 int compare32LE(const MDB_val *a, const MDB_val *b) {
     uint32_t* dataA = (uint32_t*) a->mv_data;

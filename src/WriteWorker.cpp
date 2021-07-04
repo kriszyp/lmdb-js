@@ -40,6 +40,7 @@ const CONDITIONAL_VERSION = 0x100;
 const SET_VERSION = 0x200;
 const COMPRESSIBLE = 0x400;
 const DELETE_DATABASE = 0x800;
+const IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 
 struct compressibles_t {
 	int length;
@@ -136,21 +137,21 @@ class WriteWorker : public WriteWorkerBase {
 				if (flags & CONDITIONAL_VERSION) {
 					conditionalVersion = *((double*) instruction);
 					instruction += 2;
-					mdb_get(txn, dbi, &key, &data);
-					if (action->ifVersion == NO_EXIST_VERSION) {
-						validated = rc;
-					}
-					else {
-						if (rc)
-							validated = false;
-						else
-							validated = action->ifVersion == *((double*)value.mv_data);
+					rc = mdb_get(txn, dbi, &key, &data);
+					if (rc)
+						validated = false;
+					else
+						validated = conditionalVersion == *((double*)value.mv_data);
 					}
 					results[i] = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
 				}
 				if (flags & SET_VERSION) {
 					setVersion = *((double*) instruction);
 					instruction += 2;
+				}
+				if (flags == (IF_NO_EXISTS | START_BLOCK)) {
+					rc = mdb_get(txn, dbi, &key, &data);
+					validated = rc == MDB_NOTFOUND;
 				}
 			}
 			if (flags & HAS_VALUE) {
@@ -167,27 +168,65 @@ class WriteWorker : public WriteWorkerBase {
 						rc = putWithVersion(txn, dbi, &key, &data, flags, setVersion);
 					else
 						rc = mdb_put(txn, dbi, &key, &data, flags);
+					if (needsFree)
+						free(data.mv_data);
 					break;
 				case DEL:
 					rc = mdb_del(txn, dbi, &key, nullptr);
 					break;
 				case DEL_VALUE:
 					rc = mdb_del(txn, dbi, &key, &data);
+					if (needsFree)
+						free(data.mv_data);
 					break;
+				case START_BLOCK:
+					conditionDepth++;
+					break;
+				case USER_CALLBACK:
+					uv_mutex_lock(userCallbackLock);
+					finishedProgress = false;
+					executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+waitForCallback:
+					if (interruptionStatus == 0)
+						uv_cond_wait(userCallbackCond, userCallbackLock);
+					if (interruptionStatus != 0 && !finishedProgress) {
+						if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
+							rc = mdb_txn_commit(txn);
+							if (rc == 0) {
+								// wait again until the sync transaction is completed
+								uv_cond_wait(userCallbackCond, userCallbackLock);
+								// now restart our transaction
+								rc = mdb_txn_begin(env, nullptr, 0, &txn);
+								envForTxn->currentWriteTxn = txn;
+								interruptionStatus = 0;
+								uv_cond_signal(userCallbackCond);
+								goto waitForCallback;
+							}
+							if (rc != 0) {
+								uv_mutex_unlock(userCallbackLock);
+								return SetErrorMessage(mdb_strerror(rc));
+							}
+						} else {
+							uv_mutex_unlock(userCallbackLock);
+							rc = interruptionStatus;
+							goto done;
+						}
+					}
+					uv_mutex_unlock(userCallbackLock);
+					results[i++] = SUCCESSFUL_OPERATION;
 				case DROP:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
 				case POINTER_NEXT:
 					instruction++;
 					instruction = (uint32_t*) *((double*)instruction);
-				case START_BLOCK:
-					conditionDepth++;
 					break;
 				case BLOCK_END;
 					conditionDepth--;
+					if (validatedDepth > conditionDepth)
+						validatedDepth--;
 					break;
 			}
 		} while(conditionDepth)
-
 
 		for (int i = 0; i < actionCount;) {
 			action_t* action = &actions[i];
