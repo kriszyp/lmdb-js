@@ -1132,7 +1132,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "dropAsync", Nan::New<FunctionTemplate>(DbiWrap::dropAsync));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    #ifndef DISABLE_FAST_API
+    #ifdef ENABLE_FAST_API
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),

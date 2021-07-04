@@ -492,7 +492,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     // TODO: Handle count?
     return returnEntry(rc, key, data);
 }
-#ifndef DISABLE_FAST_API
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -520,7 +520,7 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
-#ifndef DISABLE_FAST_API
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -589,7 +589,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     Isolate *isolate = Isolate::GetCurrent();
-    #ifndef DISABLE_FAST_API
+    #ifdef ENABLE_FAST_API
     auto positionFast = CFunction::Make(CursorWrap::positionFast);
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),

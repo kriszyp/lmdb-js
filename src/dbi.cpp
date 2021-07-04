@@ -361,7 +361,7 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-#ifndef DISABLE_FAST_API
+#ifdef ENABLE_FAST_API
 uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
 	DbiWrap* dw = static_cast<DbiWrap*>(

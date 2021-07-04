@@ -3,7 +3,7 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
-      "disable_fast_api_calls%": "false",
+      "enable_fast_api_calls%": "false",
       "target%": "",
       "build_v8_with_gn": "false"
   },
@@ -76,11 +76,8 @@
             "dependencies/lmdb/libraries/liblmdb",
           ],
         }],
-        ["target=='16.4.0'", {
-          "defines": ["DISABLE_FAST_API=1"],
-        }],
-        ["disable_fast_api_calls=='true'", {
-          "defines": ["DISABLE_FAST_API=1"],
+        ["enable_fast_api_calls=='true'", {
+          "defines": ["ENABLE_FAST_API=1"],
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_USE_ROBUST"],
