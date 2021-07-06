@@ -432,7 +432,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
-        if (flags & 0x800) { //dupsort
+        if (flags & 0x800) { // only values for this key
             // take the next part of the key buffer as a pointer to starting data
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
@@ -452,13 +452,13 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
         if (flags & 0x400) {// reverse
             MDB_val firstKey = key; // save it for comparison
             if (rc) { // not found
-                if (flags & 0x800) {// MDB_SET_KEY
+                if (flags & 0x800) {// only values for this key
                     // nothing to do, not found
                 } else if (true) {// MDB_SET_RANGE, not found, go to end
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
                 }
             } else {
-                if (flags & 0x800) {// dupsort
+                if (flags & 0x800) {// only values for this key
                     // compare data
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
                 } else  {// MDB_SET_RANGE
@@ -473,6 +473,19 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     }
     if (flags & 0x1000) {
         uint32_t count = 0;
+        bool useCursorCount = false;
+        // if we are in a dupsort database, and we are iterating over all entries, we can just count all the values for each key
+        if (dw->flags & MDB_DUPSORT) {
+            if (iteratingOp == MDB_PREV) {
+                iteratingOp = MDB_PREV_NODUP;
+                useCursorCount = true;
+            }
+            if (iteratingOp == MDB_NEXT) {
+                iteratingOp = MDB_NEXT_NODUP;
+                useCursorCount = true;
+            }
+        }
+
         while (!rc) {
             if (endKey.mv_size > 0) {
                 int comparison;
@@ -484,7 +497,14 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                     return count;
                 }
             }
-            count++;
+            if (useCursorCount) {
+                size_t countForKey;
+                rc = mdb_cursor_count(cursor, &countForKey);
+                if (rc)
+                    throwLmdbError(rc);
+                count += countForKey;
+            } else
+                count++;
             rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
         }
         return count;

@@ -50,7 +50,7 @@ describe('lmdb-store', function() {
         create: true,
         useVersions: true,
         //asyncTransactionOrder: 'strict',
-        useWritemap: true,
+        //useWritemap: true,
         mapSize: 0x1000000,
         compression: {
           threshold: 256,
@@ -340,6 +340,7 @@ describe('lmdb-store', function() {
       }
       count.should.equal(0);
       db2.getValuesCount('key0').should.equal(0);
+      db2.getCount({start: 'key1', end: 'key3'}).should.equal(3);
     });
     it('should iterate over ordered-binary dupsort query with start/end', async function() {
       db3.put('key1',  1);
