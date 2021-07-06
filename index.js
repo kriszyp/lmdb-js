@@ -224,7 +224,7 @@ function open(path, options) {
 							allocateSaveBuffer()
 						let start = savePosition
 						savePosition = writeKey(value, saveBuffer, start)
-						let buffer = saveBuffer.slice(start, savePosition)
+						let buffer = saveBuffer.subarray(start, savePosition)
 						savePosition = (savePosition + 7) & 0xfffff8
 						return buffer
 					},
@@ -428,7 +428,7 @@ function open(path, options) {
 		}
 		getBinaryFast(id) {
 			this.getSizeBinaryFast(id)
-			return lastSize === 0xffffffff ? undefined : this.db.unsafeBuffer.slice(0, lastSize)
+			return lastSize === 0xffffffff ? undefined : this.db.unsafeBuffer.subarray(0, lastSize)
 		}
 		getBinary(id) {
 			this.getSizeBinaryFast(id)
@@ -510,10 +510,14 @@ function open(path, options) {
 				} else {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
-				if (versionOrValue === undefined)
-					return txn.getBinaryUnsafe(this.db, key) !== undefined
-				else if (this.useVersions)
-					return txn.getBinaryUnsafe(this.db, key) !== undefined && matches(getLastVersion(), versionOrValue)
+				if (versionOrValue === undefined) {
+					this.getSizeBinaryFast(key)
+					return lastSize !== 0xffffffff
+				}
+				else if (this.useVersions) {
+					this.getSizeBinaryFast(key)
+					return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue)
+				}
 				else {
 					let cursor = new Cursor(txn, this.db)
 					if (this.encoder) {
