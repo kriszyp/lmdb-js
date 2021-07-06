@@ -386,10 +386,10 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     if (endKey.mv_size > 0) {
         int comparison;
         if (flags & 0x800)
-            comparison = mdb_dcmp(tw->txn, dw->dbi, &data, &endKey);
+            comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
         else
-            comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
-        if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
+            comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+        if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
             return 0;
         }
     }
