@@ -61,12 +61,14 @@ function getBinary() {
 function getBinaryFast() {
   result = store.getBinaryFast((c += 357) % total)
 }
-let a = Buffer.from('this is a a test')
-let b = Buffer.from('more text')
-let b2 = Buffer.from('this is similar')
+let a = Buffer.from('this id\0\0\0\0\0')
+let b = Buffer.from('mmmmmmore text')
+//b = b.subarray(2,b.length)
+let b2 = Buffer.from('the similar key')
+let b3 = Buffer.from('this is very similar')
 function keyComparison() {
   try {
-  result = store.db.compareKeys(a, b)
+  result = store.db.compareKeys(a, b2)
 }catch(error) { console.log(error)}
 }
 function getRange() {
@@ -104,12 +106,14 @@ function setup() {
   console.log('opening', testDirPath)
   let rootStore = open(testDirPath, {
     noMemInit: true,
+    //useWritemap: true,
+    //noSync: true,
     //winMemoryPriority: 4,
   })
   store = rootStore.openDB('testing', {
     create: true,
     sharedStructuresKey: 100000000,
-    keyIsUint32: true,    
+    keysUse32LE: false,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -167,7 +171,7 @@ cleanup(async function (err) {
   })
   store = rootStore.openDB('testing', {
     sharedStructuresKey: 100000000,
-    keyIsUint32: true,    
+    keysUse32LE: true,    
   })
 
   // other threads
