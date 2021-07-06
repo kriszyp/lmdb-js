@@ -51,7 +51,7 @@ describe('lmdb-store', function() {
         useVersions: true,
         //asyncTransactionOrder: 'strict',
         //useWritemap: true,
-        mapSize: 0x1000000,
+        //noSync: true,
         compression: {
           threshold: 256,
         },
@@ -96,6 +96,9 @@ describe('lmdb-store', function() {
         [5,55],
         [5, 'words after number'],
         [6, 'abc'],
+        [ 'Test', null, 1 ],
+        [ 'Test', Symbol.for('test'), 2 ],
+        [ 'Test', 'not null', 3 ],
         'hello',
         ['hello', 3],
         ['hello', 'world'],

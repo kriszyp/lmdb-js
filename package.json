@@ -38,7 +38,7 @@
     "mkdirp": "^1.0.4",
     "nan": "^2.14.2",
     "node-gyp-build": "^4.2.3",
-    "ordered-binary": "^0.2.2",
+    "ordered-binary": "^0.2.3",
     "weak-lru-cache": "^1.0.0"
   },
   "optionalDependencies": {
