@@ -462,7 +462,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                     // compare data
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
                 } else  {// MDB_SET_RANGE
-                    if (mdb_cmp(tw->txn, dw->dbi, &key, &firstKey))
+                    if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key))
                         rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
                 }
             }
@@ -490,10 +490,10 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             if (endKey.mv_size > 0) {
                 int comparison;
                 if (flags & 0x800)
-                    comparison = mdb_dcmp(tw->txn, dw->dbi, &data, &endKey);
+                    comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
                 else
-                    comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
-                if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
+                    comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+                if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
                     return count;
                 }
             }
