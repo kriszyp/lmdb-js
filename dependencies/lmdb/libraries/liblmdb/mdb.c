@@ -2763,6 +2763,18 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		rc = mdb_env_set_mapsize(env, new_size);
 	/* </lmdb-store addition> */
 	}
+#if defined(_WIN32) && !defined(MDB_VL32)
+	if (env->me_flags & MDB_WRITEMAP) {
+		void *p;
+		p = (MDB_page *)(env->me_map + env->me_psize * pgno);
+		p = VirtualAlloc(p, env->me_psize * num, MEM_COMMIT, PAGE_READWRITE);
+		if (!p) {
+			DPUTS("VirtualAlloc failed");
+			rc = ErrCode();
+			goto fail;
+		}
+	}
+#endif
 
 
 search_done:
@@ -3995,14 +4007,12 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			}
 		}
 	}
-	if (!MDB_REMAPPING(env->me_flags)) {
+	if (!MDB_REMAPPING(env->me_flags) && !(env->me_flags & MDB_WRITEMAP)) {
 		MDB_meta *m = mdb_env_pick_meta(env);
 		void *p;
 		p = (MDB_page *)(env->me_map + env->me_psize * m->mm_last_pg);
 		if (pgno > m->mm_last_pg) {
-			p = VirtualAlloc(p, env->me_psize * (pgno - m->mm_last_pg), MEM_COMMIT,
-				(env->me_flags & MDB_WRITEMAP) ? PAGE_READWRITE:
-				PAGE_READONLY);
+			p = VirtualAlloc(p, env->me_psize * (pgno - m->mm_last_pg), MEM_COMMIT, PAGE_READONLY);
 			if (!p) {
 				fprintf(stderr, "VirtualAlloc failed\n");
 				DPUTS("VirtualAlloc failed");

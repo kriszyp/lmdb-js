@@ -50,6 +50,8 @@ describe('lmdb-store', function() {
         create: true,
         useVersions: true,
         //asyncTransactionOrder: 'strict',
+        useWritemap: true,
+        mapSize: 0x1000000,
         compression: {
           threshold: 256,
         },
