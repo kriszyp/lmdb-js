@@ -383,22 +383,85 @@ void make32LE(MDB_val &val) {
     }
     *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));*/
 }
-// compare items by 32-bit LE comparison
+// compare items by 32-bit LE comparison, a is user provided and assumed to be zero terminated/padded
 int compareFast(const MDB_val *a, const MDB_val *b) {
     uint32_t* dataA = (uint32_t*) a->mv_data;
     uint32_t* dataB = (uint32_t*) b->mv_data;
-    size_t remaining = a->mv_size;
-    int diff;
+    size_t remaining = b->mv_size;
+    uint32_t aVal, bVal;
     while(remaining >= 4) {
-        diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
+        aVal = ntohl(*dataA);
+        bVal = ntohl(*dataB);
+        if (aVal > bVal)
+            return 1;
+        if (aVal < bVal)
+            return -1;
+        /*diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB);
         if (diff)
-            return diff;
+            return diff;*/
         dataA++;
         dataB++;
         remaining -= 4;
     }
     if (remaining) {
-        diff = (int) ntohl(*dataA & (remaining == 1 ? 0x000000ff : remaining == 2 ? 0x0000ffff : 0x00ffffff)) - (int) ntohl(*dataB);
+        aVal = ntohl(*dataA);
+        bVal = ntohl(*dataB & (remaining == 2 ? 0x0000ffff : remaining == 1 ? 0x000000ff : 0x00ffffff));
+        if (aVal > bVal)
+            return 1;
+        if (aVal < bVal)
+            return -1;
+    }
+    return a->mv_size - b->mv_size;
+}
+int compareFast64(const MDB_val *a, const MDB_val *b) {
+    uint64_t* dataA = (uint64_t*) a->mv_data;
+    uint64_t* dataB = (uint64_t*) b->mv_data;
+    size_t remaining = b->mv_size;
+    uint64_t aVal, bVal;
+    while(remaining >= 8) {
+        aVal = _byteswap_uint64(*dataA);
+        bVal = _byteswap_uint64(*dataB);
+        if (aVal > bVal)
+            return 1;
+        if (aVal < bVal)
+            return -1;
+        /*diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB);
+        if (diff)
+            return diff;*/
+        dataA++;
+        dataB++;
+        remaining -= 8;
+    }
+    int64_t diff;
+    if (remaining) {
+        diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB & (remaining == 2 ? 0x0000ffff : remaining == 1 ? 0x000000ff : 0x00ffffff));
+        if (diff)
+            return diff;
+    }
+    return a->mv_size - b->mv_size;
+}
+int compareFast16(const MDB_val *a, const MDB_val *b) {
+    uint16_t* dataA = (uint16_t*) a->mv_data;
+    uint16_t* dataB = (uint16_t*) b->mv_data;
+    size_t remaining = b->mv_size;
+    uint16_t aVal, bVal;
+    while(remaining >= 2) {
+        aVal = _byteswap_ushort(*dataA);
+        bVal = _byteswap_ushort(*dataB);
+        if (aVal > bVal)
+            return 1;
+        if (aVal < bVal)
+            return -1;
+        /*diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB);
+        if (diff)
+            return diff;*/
+        dataA++;
+        dataB++;
+        remaining -= 2;
+    }
+    int64_t diff;
+    if (remaining) {
+        diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB & (remaining == 2 ? 0x0000ffff : remaining == 1 ? 0x000000ff : 0x00ffffff));
         if (diff)
             return diff;
     }
@@ -412,7 +475,7 @@ int compareFaster(const MDB_val *a, const MDB_val *b) {
         return diff;
     dataA++;
     dataB++;
-    size_t remaining = a->mv_size - 4;
+    size_t remaining = b->mv_size - 4;
     while(remaining >= 4) {
         diff = (int) ntohl(*dataA) - (int) ntohl(*dataB);
         if (diff)
@@ -422,7 +485,7 @@ int compareFaster(const MDB_val *a, const MDB_val *b) {
         remaining -= 4;
     }
     if (remaining) {
-        diff = (int) ntohl(*dataA & 0x0000ffff) - (int) ntohl(*dataB);
+        diff = (int) ntohl(*dataA) - (int) ntohl(*dataB & 0x0000ffff);
         if (diff)
             return diff;
     }
