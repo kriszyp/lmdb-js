@@ -551,6 +551,7 @@ NAN_METHOD(CursorWrap::renew) {
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
     // Unwrap Txn and Dbi
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(v8::Local<v8::Object>::Cast(info[0]));
+    cw->tw = tw;
     int rc = mdb_cursor_renew(tw->txn, cw->cursor);
     if (rc != 0) {
         return throwLmdbError(rc);
