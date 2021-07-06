@@ -185,10 +185,10 @@ NAN_METHOD(DbiWrap::ctor) {
         dw->ew = ew;
         dw->ew->Ref();
     }
-    if (keysUse32LE) {
-        dw->keysUse32LE = true;
+    /*if (keyType == NodeLmdbKeyType::DefaultKey) {
+//        dw->keysUse32LE = true;
         mdb_set_compare(txn, dbi, compareFast);
-    }
+    }*/
     if (valuesUse32LE) {
         dw->valuesUse32LE = true;
         mdb_set_dupsort(txn, dbi, compareFast);
