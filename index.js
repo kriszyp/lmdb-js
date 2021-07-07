@@ -805,7 +805,7 @@ function open(path, options) {
 								keyBufferView.setBigUint64(2000, startAddress, true)
 								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
 							} else {
-								throw new Error('Only key-based encoding is supported for start/end values for ')
+								throw new Error('Only key-based encoding is supported for start/end values')
 								let encoded = store.encoder.encode(options.start)
 								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset)
 								startAddress = bufferAddress + encoded.byteOffset
@@ -853,11 +853,12 @@ function open(path, options) {
 							finishCursor()
 							return ITERATOR_DONE
 						}
+						if (includeValues) // TODO: Can we do this after readKey, ran into issues with this before
+							lastSize = keyBufferView.getUint32(0, true)
 						if (!valuesForKey || snapshot === false)
 							currentKey = store.readKey(keyBuffer, 32, keySize + 32)
 						if (includeValues) {
 							let value
-							lastSize = keyBufferView.getUint32(0, true)
 							if (store.decoder) {
 								value = store.decoder.decode(db.unsafeBuffer, lastSize)
 							} else if (store.encoding == 'binary')
