@@ -115,6 +115,32 @@ describe('lmdb-store', function() {
         value.should.equal(db.get(key))
       }
       keys.should.deep.equal(returnedKeys)
+
+      returnedKeys = []
+      for (let { key, value } of db.getRange({
+        reverse: true,
+      })) {
+        returnedKeys.unshift(key)
+        value.should.equal(db.get(key))
+      }
+      keys.should.deep.equal(returnedKeys)
+    });
+    it('reverse query range', async function() {
+      const keys = [
+        [ 'Test', 100, 1 ],
+        [ 'Test', 10010, 2 ],
+        [ 'Test', 10010, 3 ],
+      ]
+      for (let key of keys)
+        await db.put(key, 3);
+      let returnedKeys = []
+      for (let { key, value } of db.getRange({
+        start: ['Test', null],
+        end: ['Test', null],
+        reverse: true
+      })) {
+        throw new Error('Should not return any results')
+      }
     });
     it('string', async function() {
       await db.put('key1', 'Hello world!');
