@@ -370,6 +370,8 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_PREVSNAPSHOT	0x2000000
 	/** don't use a single mmap, remap individual chunks (needs MDB_RPAGE_CACHE) */
 #define MDB_REMAP_CHUNKS	0x4000000
+      /** Use overlapping sync approach */
+#define MDB_OVERLAPPINGSYNC      0x8000000
 /** @} */
 
 /**	@defgroup	mdb_dbi_open	Database Flags
