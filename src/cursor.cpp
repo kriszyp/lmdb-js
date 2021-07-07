@@ -386,10 +386,10 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     if (endKey.mv_size > 0) {
         int comparison;
         if (flags & 0x800)
-            comparison = mdb_dcmp(tw->txn, dw->dbi, &data, &endKey);
+            comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
         else
-            comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
-        if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
+            comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+        if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
             return 0;
         }
     }
@@ -432,7 +432,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     if (key.mv_size == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
-        if (flags & 0x800) { //dupsort
+        if (flags & 0x800) { // only values for this key
             // take the next part of the key buffer as a pointer to starting data
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
@@ -452,17 +452,17 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
         if (flags & 0x400) {// reverse
             MDB_val firstKey = key; // save it for comparison
             if (rc) { // not found
-                if (flags & 0x800) {// MDB_SET_KEY
+                if (flags & 0x800) {// only values for this key
                     // nothing to do, not found
                 } else if (true) {// MDB_SET_RANGE, not found, go to end
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
                 }
             } else {
-                if (flags & 0x800) {// dupsort
+                if (flags & 0x800) {// only values for this key
                     // compare data
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
                 } else  {// MDB_SET_RANGE
-                    if (mdb_cmp(tw->txn, dw->dbi, &key, &firstKey))
+                    if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key))
                         rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
                 }
             }
@@ -473,18 +473,38 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     }
     if (flags & 0x1000) {
         uint32_t count = 0;
+        bool useCursorCount = false;
+        // if we are in a dupsort database, and we are iterating over all entries, we can just count all the values for each key
+        if (dw->flags & MDB_DUPSORT) {
+            if (iteratingOp == MDB_PREV) {
+                iteratingOp = MDB_PREV_NODUP;
+                useCursorCount = true;
+            }
+            if (iteratingOp == MDB_NEXT) {
+                iteratingOp = MDB_NEXT_NODUP;
+                useCursorCount = true;
+            }
+        }
+
         while (!rc) {
             if (endKey.mv_size > 0) {
                 int comparison;
                 if (flags & 0x800)
-                    comparison = mdb_dcmp(tw->txn, dw->dbi, &data, &endKey);
+                    comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
                 else
-                    comparison = mdb_cmp(tw->txn, dw->dbi, &key, &endKey);
-                if ((flags & 0x400) ? comparison <= 0 : (comparison >=0)) {
+                    comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+                if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
                     return count;
                 }
             }
-            count++;
+            if (useCursorCount) {
+                size_t countForKey;
+                rc = mdb_cursor_count(cursor, &countForKey);
+                if (rc)
+                    throwLmdbError(rc);
+                count += countForKey;
+            } else
+                count++;
             rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
         }
         return count;
@@ -492,7 +512,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     // TODO: Handle count?
     return returnEntry(rc, key, data);
 }
-#ifndef DISABLE_FAST_API
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -520,7 +540,7 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
-#ifndef DISABLE_FAST_API
+#ifdef ENABLE_FAST_API
 uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
     v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
     CursorWrap* cw = static_cast<CursorWrap*>(
@@ -590,7 +610,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
 
     Isolate *isolate = Isolate::GetCurrent();
-    #ifndef DISABLE_FAST_API
+    #ifdef ENABLE_FAST_API
     auto positionFast = CFunction::Make(CursorWrap::positionFast);
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),

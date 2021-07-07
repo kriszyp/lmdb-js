@@ -1653,7 +1653,7 @@ struct MDB_env {
 	pthread_mutex_t	me_rpmutex;	/**< control access to #me_rpages */
 	MDB_sum_func *me_sumfunc;	/**< checksum env data */
 	unsigned short me_sumsize;	/**< size of per-page checksums */
-#define MDB_ERPAGE_SIZE	1024
+#define MDB_ERPAGE_SIZE	16384
 #define MDB_ERPAGE_MAX	(MDB_ERPAGE_SIZE-1)
 	unsigned short me_esumsize;	/**< size of per-page authentication data */
 	unsigned int me_rpcheck;
@@ -2559,12 +2559,11 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 {
 	MDB_ID2 mid;
 	int rc;
-#ifndef _WIN32	/* With Windows we always write pages with WriteFile so we still need a dirty list */
+
 	if (txn->mt_flags & MDB_TXN_WRITEMAP) {
 		txn->mt_flags |= MDB_TXN_DIRTY;
 		return;
 	}
-#endif
 	mid.mid = mp->mp_pgno;
 	mid.mptr = mp;
 	rc = mdb_mid2l_insert(txn->mt_u.dirty_list, &mid);
@@ -2775,7 +2774,6 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		}
 	}
 #endif
-
 
 search_done:
 	if (env->me_flags & MDB_WRITEMAP) {
@@ -3276,13 +3274,8 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_loose_count = 0;
 		if (env->me_flags & MDB_WRITEMAP) {
 			txn->mt_workid = txn->mt_txnid;
-#ifdef _WIN32	/* With Windows we always write pages with WriteFile so we still need a dirty list */
-			txn->mt_dirty_room = MDB_IDL_UM_MAX;
-#else
 			txn->mt_dirty_room = 1;
-#endif
-		} else
-		{
+		} else {
 			txn->mt_workid = (txn->mt_txnid | MDB_PGTXNID_FLAGMASK) + 1;
 			txn->mt_dirty_room = MDB_IDL_UM_MAX;
 		}
@@ -5512,6 +5505,9 @@ static int ESECT
 mdb_env_share_locks(MDB_env *env, int *excl)
 {
 	int rc = 0;
+	MDB_meta *meta = mdb_env_pick_meta(env);
+
+	env->me_txns->mti_txnid = meta->mm_txnid;
 
 #ifdef _WIN32
 	{
@@ -12129,7 +12125,5 @@ utf8_to_utf16(const char *src, MDB_name *dst, int xtra)
 		return MDB_SUCCESS;
 	}
 }
-
 #endif /* defined(_WIN32) */
 /** @} */
-

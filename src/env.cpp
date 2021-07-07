@@ -555,10 +555,10 @@ NAN_METHOD(EnvWrap::open) {
     #ifdef MDB_RPAGE_CACHE
     setFlagFromValue(&flags, MDB_REMAP_CHUNKS, "remapChunks", false, options);
     #ifdef _WIN32
-        /*if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) &&!(flags & MDB_REMAP_CHUNKS)) {
-            fprintf(stderr, "Writemaps are currently disabled on Windows doing to issues with syncing\n");
+        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) &&!(flags & MDB_REMAP_CHUNKS)) {
+            fprintf(stderr, "Writemaps are currently disabled on Windows due to issues with syncing\n");
             flags &= ~MDB_WRITEMAP;
-        }*/
+        }
     #endif
     #endif
 
@@ -1132,7 +1132,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
     dbiTpl->PrototypeTemplate()->Set(isolate, "dropAsync", Nan::New<FunctionTemplate>(DbiWrap::dropAsync));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
-    #ifndef DISABLE_FAST_API
+    #ifdef ENABLE_FAST_API
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),

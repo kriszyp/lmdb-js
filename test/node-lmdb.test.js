@@ -306,7 +306,6 @@ describe('Node.js LMDB Bindings', function() {
     });
   });
   describe('Data types', function() {
-    debugger
     this.timeout(10000);
     var env;
     var dbi;

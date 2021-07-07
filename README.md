@@ -15,7 +15,7 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, can can be installed with:
+This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
 ```npm install lmdb```
 
 This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
@@ -350,12 +350,12 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `noMemInit` - This provides a small performance boost (when not using useWritemap) for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database.
 * `remapChunks` - This a flag to specify if dynamic memory mapping should be used. Enabling this generally makes read operations a little bit slower, but frees up more mapped memory, making it friendlier to other applications. This is enabled by default on 32-bit operating systems (which require this to go beyond 4GB database size) if `mapSize` is not specified, otherwise it is disabled by default.
 * `mapSize` - This can be used to specify the initial amount of how much virtual memory address space (in bytes) to allocate for mapping to the database files. Setting a map size will typically disable `remapChunks` by default unless the size is larger than appropriate for the OS. Different OSes have different allocation limits.
-* `pageSize` - This changes the page size of the database.
-* `noReadAhead` - This disables read-ahead caching. Turning it off may help random read performance when the DB is larger than RAM and system RAM is full. However, this is not supported by all OSes, including Windows.
-* `useWritemap` - Use writemaps, this improves performance by reducing malloc calls, but can increase risk of a stray pointer corrupting data. This is currently disabled on Windows.
-* `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
-* `noSync` - Doesn't sync the data to disk. We highly discourage this flag, since it can result in data corruption and batching mitigates performance issues associated with disk syncs.
+* `noSync` - Doesn't sync the data to disk. This can be useful for temporary databases where durability/integrity is not necessary, and can significantly improve write performance that is I/O bound. We discourage this flag for data that needs integrity and durability in storage, since it can result in data corruption. For situations where `noSync` is appropriate, it is often useful to combine with `useWritemap` for further performance benefits.
+* `useWritemap` - Use writemaps, this improves performance by reducing malloc calls and file writes, but can increase risk of a stray pointer corrupting data. This is currently disabled on Windows if not combined with `noSync`. Combined with `noSync`, normal reads/writes/transactions involve virtually zero explicit I/O calls, only modifications to memory maps that the OS persists when convenient.
 * `noMetaSync` - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
+* `pageSize` - This changes the page size of the database. This is 4096 by default, and the default generally has the best performance since it aligns with normal OS page size.
+* `noReadAhead` - This disables read-ahead caching. Turning it off may help random read performance when the DB is larger than RAM and system RAM is full. However, this is not supported by all OSes, including Windows.
+* `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * `readOnly` - Self-descriptive.
 * `mapAsync` - Not recommended, commits are already performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
@@ -380,7 +380,7 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
-`npm install --disable_fast_api_calls=true`: By default `lmdb-store` will build with V8's new API for fast calls. `lmdb-store` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This can be disabled by using this build option.
+`npm install --enable_fast_api_calls=true`: This will build `lmdb-store` with V8's new API for fast calls. `lmdb-store` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This is only supported in Node v16.4.0 and higher.
 
 ## Credits
 

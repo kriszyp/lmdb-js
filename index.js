@@ -34,7 +34,7 @@ const FIRST_BUFFER_KEY = Buffer.from([0])
 const ITERATOR_DONE = { done: true, value: undefined }
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true)
-	return 4
+	return start + 4
 }
 const readUint32Key = (target, start) => {
 	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true)
@@ -43,7 +43,7 @@ const writeBufferKey = (key, target, start) => {
 	if (key.length > 1978)
 		throw new Error('Key buffer is too long')
 	target.set(key, start)
-	return key.length
+	return key.length + start
 }
 const readBufferKey = (target, start, end) => {
 	return Uint8ArraySlice.call(target, start, end)

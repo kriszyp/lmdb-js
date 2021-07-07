@@ -10,7 +10,7 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -50,8 +50,8 @@ describe('lmdb-store', function() {
         create: true,
         useVersions: true,
         //asyncTransactionOrder: 'strict',
-        useWritemap: true,
-        mapSize: 0x1000000,
+        //useWritemap: true,
+        //noSync: true,
         compression: {
           threshold: 256,
         },
@@ -96,6 +96,9 @@ describe('lmdb-store', function() {
         [5,55],
         [5, 'words after number'],
         [6, 'abc'],
+        [ 'Test', null, 1 ],
+        [ 'Test', Symbol.for('test'), 2 ],
+        [ 'Test', 'not null', 3 ],
         'hello',
         ['hello', 3],
         ['hello', 'world'],
@@ -340,6 +343,7 @@ describe('lmdb-store', function() {
       }
       count.should.equal(0);
       db2.getValuesCount('key0').should.equal(0);
+      db2.getCount({start: 'key1', end: 'key3'}).should.equal(3);
     });
     it('should iterate over ordered-binary dupsort query with start/end', async function() {
       db3.put('key1',  1);
