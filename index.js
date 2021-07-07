@@ -22,6 +22,7 @@ const READING_TNX = {
 	readOnly: true
 }
 const ABORT = {}
+const MAX_KEY_SIZE = 1978
 
 const allDbs = exports.allDbs = new Map()
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
@@ -552,6 +553,8 @@ function open(path, options) {
 			writeFloat64Array[position++] = version
 			writeFloat64Array[position++] = ifVersion
 			let keySize = this.writeKey(id, writeBuffer, (position + 2) << 3)
+			if (keySize > MAX_KEY_SIZE)
+				throw new Error('Key size is too large')
 			writeUint32Array[(position << 1) - 3] = keySize
 			if (this.encoder) {
 				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
