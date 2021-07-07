@@ -2543,7 +2543,7 @@ mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
 	/* <lmdb-store> */
-	txnid_t mr, oldest = txn->mt_txnid - (txn->mt_flags & MDB_OVERLAPPING_SYNC ? 2 : 1);
+	txnid_t mr, oldest = txn->mt_txnid - (txn->mt_flags & MDB_OVERLAPPINGSYNC ? 2 : 1);
 	/* </lmdb-store> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
@@ -3272,7 +3272,7 @@ mdb_txn_renew0(MDB_txn *txn)
 		txn->mt_txnid++;
 	/* <lmdb-store> */
 		#ifndef _WIN32
-		if (env->me_flags & MDB_OVERLAPPING_SYNC) {
+		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 			txn->mt_flags |= MDB_TXN_NOSYNC;
 			txn->sync_aio = {0};
 			//memset(aio, 0, sizeof(aiocb));
@@ -3401,7 +3401,7 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 
 	flags &= MDB_TXN_BEGIN_FLAGS;
 	flags |= env->me_flags & MDB_WRITEMAP;
-	flags |= env->me_flags & MDB_OVERLAPPING_SYNC;
+	flags |= env->me_flags & MDB_OVERLAPPINGSYNC;
 
 	if (env->me_flags & MDB_RDONLY & ~flags) /* write txn in RDONLY env */
 		return EACCES;
@@ -4464,7 +4464,7 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 	/* <lmdb-store> */
 	#ifndef _WIN32
-	if (txn->mt_flags & MDB_OVERLAPPING_SYNC) {
+	if (txn->mt_flags & MDB_OVERLAPPINGSYNC) {
 		struct aiocb *aioList[1] = { &txn->sync_aio };
 		rc = aio_suspend(aioList, 1, 0);
 	}
@@ -6121,7 +6121,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	}
 	env->me_dbxs[FREE_DBI].md_cmp = mdb_cmp_long; /* aligned MDB_INTEGERKEY */
 
-	if (flags & MDB_OVERLAPPING_SYNC) // overlapping sync implies loading from previous snapshot
+	if (flags & MDB_OVERLAPPINGSYNC) // overlapping sync implies loading from previous snapshot
 		flags |= MDB_PREVSNAPSHOT;
 	/* For RDONLY, get lockfile after we know datafile exists */
 	if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
