@@ -1460,6 +1460,9 @@ struct MDB_txn {
 	 *	When #MDB_WRITEMAP, it is nonzero but otherwise irrelevant.
 	 */
 	unsigned int	mt_dirty_room;
+	#ifndef _WIN32
+	struct aiocb sync_aio;
+	#endif;
 };
 
 /** Enough space for 2^32 nodes with minimum of 2 keys per node. I.e., plenty.
@@ -2539,7 +2542,9 @@ static txnid_t
 mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
-	txnid_t mr, oldest = txn->mt_txnid - 1;
+	/* <lmdb-store> */
+	txnid_t mr, oldest = txn->mt_txnid - (txn->mt_flags & OVERLAPPING_SYNC ? 2 : 1);
+	/* </lmdb-store> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
 		for (i = txn->mt_env->me_txns->mti_numreaders; --i >= 0; ) {
@@ -3265,6 +3270,22 @@ mdb_txn_renew0(MDB_txn *txn)
 			txn->mt_txnid = meta->mm_txnid;
 		}
 		txn->mt_txnid++;
+	/* <lmdb-store> */
+		#ifndef _WIN32
+		if (env->me_flags & OVERLAPPING_SYNC) {
+			// start read txn on previous id?
+			
+			txn->sync_aio = {0};
+			//memset(aio, 0, sizeof(aiocb));
+			txn->sync_aio.aio_fildes = env->fd;
+			rc = aio_fsync(O_DSYNC, txn->sync_aio);
+			// later in commit
+			struct aiocb *aioList[1] = { &txn->sync_aio };
+			rc = aio_suspend(aioList, 1, 0);
+		}
+		#endif
+	/* </lmdb-store> */
+
 #if MDB_DEBUG
 		if (txn->mt_txnid == mdb_debug_start)
 			mdb_debug = 1;
