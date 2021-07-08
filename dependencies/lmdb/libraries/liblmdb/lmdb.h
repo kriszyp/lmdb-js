@@ -293,6 +293,9 @@ typedef struct MDB_val {
 	void		*mv_data;	/**< address of the data item */
 } MDB_val;
 
+typedef int  (MDB_flush_func)(void* data);
+
+
 /** @brief A callback function used to compare two keys in a database */
 typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
 
@@ -1043,6 +1046,8 @@ int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int mdb_env_set_encrypt(MDB_env *env, MDB_enc_func *func, const MDB_val *key, unsigned int size);
+int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func);
+
 
 	/** @brief Set checksums on an environment.
 	 *

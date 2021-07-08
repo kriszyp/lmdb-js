@@ -35,6 +35,9 @@ thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
 uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
 std::vector<env_path_t> EnvWrap::envs;
 
+uv_mutex_t* EnvWrap::syncThreadsLock = EnvWrap::initMutex();
+std::vector<void*> EnvWrap::syncThreads;
+
 uv_mutex_t* EnvWrap::initMutex() {
     uv_mutex_t* mutex = new uv_mutex_t;
     uv_mutex_init(mutex);
@@ -430,6 +433,34 @@ MDB_txn* EnvWrap::getReadTxn() {
     readTxnRenewed = true;
     return txn;
 }
+
+void EnvWrap::SyncRunner(void* arg) {
+    MDB_env* env = (MDB_env*) arg;
+    mdb_filehandle_t fd;
+    mdb_env_get_fd(env, &fd);
+    do {
+        mdb_env_sync(env, 1);
+        uv_mutex_lock(ew->flushLock);
+        uv_cond_wait(ew->flushCond, ew->flushLock);
+        uv_mutex_unlock(ew->flushLock);        
+    } while(false); // TODO: continually run this
+}
+
+int EnvWrap::BeginSync(MDB_txn* txn) {
+    int txnId = mdb_txn_id(txn);
+    // TODO: if txnId matches the current sync, we can just let it keep going, otherwise replace it.
+    // Also the thread syncing pool is be shared across all threads
+    uv_thread_t tid;
+    // TODO: Use existing thread if available
+    int rc = uv_thread_create(&tid, SyncRunner, mdb_txn_env(txn));
+}
+
+int EnvWrap::OverlappingFlush(void* data) {
+    EnvWrap* ew = ((EnvWrap*) data);
+    uv_mutex_lock(ew->flushLock);
+    uv_cond_wait(ew->flushCond, ew->flushLock);
+    uv_mutex_unlock(ew->flushLock);
+}
 #ifdef MDB_RPAGE_CACHE
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
 {
@@ -548,6 +579,7 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
     setFlagFromValue(&flags, MDB_NOMEMINIT , "noMemInit", false, options);
     setFlagFromValue(&flags, MDB_NORDAHEAD , "noReadAhead", false, options);
+    setFlagFromValue(&flags, MDB_OVERLAPPINGSYNC "overlappingSync", false, options);
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
@@ -561,6 +593,10 @@ NAN_METHOD(EnvWrap::open) {
         }
     #endif
     #endif
+    if (flags & MDB_OVERLAPPINGSYNC) {
+        flags |= MDB_PREVSNAPSHOT|MDB_NOSYNC;
+        mdb_env_set_flush(OverlappingFlush, ew);
+    }
 
     if (flags & MDB_NOLOCK) {
         fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");

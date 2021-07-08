@@ -412,7 +412,7 @@ int compareFast(const MDB_val *a, const MDB_val *b) {
             return -1;
     }
     return a->mv_size - b->mv_size;
-}
+}/*
 int compareFast64(const MDB_val *a, const MDB_val *b) {
     uint64_t* dataA = (uint64_t*) a->mv_data;
     uint64_t* dataB = (uint64_t*) b->mv_data;
@@ -427,7 +427,7 @@ int compareFast64(const MDB_val *a, const MDB_val *b) {
             return -1;
         /*diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB);
         if (diff)
-            return diff;*/
+            return diff;*//*
         dataA++;
         dataB++;
         remaining -= 8;
@@ -454,7 +454,7 @@ int compareFast16(const MDB_val *a, const MDB_val *b) {
             return -1;
         /*diff = (int64_t) ntohl(*dataA) - (int64_t) ntohl(*dataB);
         if (diff)
-            return diff;*/
+            return diff;*//*
         dataA++;
         dataB++;
         remaining -= 2;

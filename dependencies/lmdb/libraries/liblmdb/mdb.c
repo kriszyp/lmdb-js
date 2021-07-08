@@ -1460,9 +1460,6 @@ struct MDB_txn {
 	 *	When #MDB_WRITEMAP, it is nonzero but otherwise irrelevant.
 	 */
 	unsigned int	mt_dirty_room;
-	#ifndef _WIN32
-	struct aiocb sync_aio;
-	#endif;
 };
 
 /** Enough space for 2^32 nodes with minimum of 2 keys per node. I.e., plenty.
@@ -1661,6 +1658,8 @@ struct MDB_env {
 	unsigned short me_esumsize;	/**< size of per-page authentication data */
 	unsigned int me_rpcheck;
 
+	MDB_flush_func *me_flushfunc;	/**< flush data */
+	void *me_flushdata;	/**< flush data */
 	MDB_enc_func *me_encfunc;	/**< encrypt env data */
 	MDB_val		me_enckey;	/**< key for env encryption */
 #endif
@@ -2543,7 +2542,7 @@ mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
 	/* <lmdb-store> */
-	txnid_t mr, oldest = txn->mt_txnid - (txn->mt_flags & MDB_OVERLAPPINGSYNC ? 2 : 1);
+	txnid_t mr, oldest = txn->mt_txnid - ((txn->mt_env->me_flags & MDB_OVERLAPPINGSYNC) ? 2 : 1);
 	/* </lmdb-store> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
@@ -3270,18 +3269,6 @@ mdb_txn_renew0(MDB_txn *txn)
 			txn->mt_txnid = meta->mm_txnid;
 		}
 		txn->mt_txnid++;
-	/* <lmdb-store> */
-		#ifndef _WIN32
-		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
-			txn->mt_flags |= MDB_TXN_NOSYNC;
-			txn->sync_aio = {0};
-			//memset(aio, 0, sizeof(aiocb));
-			txn->sync_aio.aio_fildes = env->fd;
-			rc = aio_fsync(O_DSYNC, txn->sync_aio);
-		}
-		#endif
-	/* </lmdb-store> */
-
 #if MDB_DEBUG
 		if (txn->mt_txnid == mdb_debug_start)
 			mdb_debug = 1;
@@ -3401,7 +3388,6 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 
 	flags &= MDB_TXN_BEGIN_FLAGS;
 	flags |= env->me_flags & MDB_WRITEMAP;
-	flags |= env->me_flags & MDB_OVERLAPPINGSYNC;
 
 	if (env->me_flags & MDB_RDONLY & ~flags) /* write txn in RDONLY env */
 		return EACCES;
@@ -4463,13 +4449,11 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 	}
 	/* <lmdb-store> */
-	#ifndef _WIN32
-	if (txn->mt_flags & MDB_OVERLAPPINGSYNC) {
-		struct aiocb *aioList[1] = { &txn->sync_aio };
-		rc = aio_suspend(aioList, 1, 0);
+	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
+	// flushfunc that calls back to mdb_page_flush we before and after actions
+	if (env->me_flushfunc) {
+		env->me_flushfunc();
 	}
-	else
-	#endif
 	/* </lmdb-store> */
 
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
@@ -6121,8 +6105,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	}
 	env->me_dbxs[FREE_DBI].md_cmp = mdb_cmp_long; /* aligned MDB_INTEGERKEY */
 
-	if (flags & MDB_OVERLAPPINGSYNC) // overlapping sync implies loading from previous snapshot
-		flags |= MDB_PREVSNAPSHOT;
 	/* For RDONLY, get lockfile after we know datafile exists */
 	if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
@@ -11434,6 +11416,11 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 	env->me_assert_func = func;
 #endif
 	return MDB_SUCCESS;
+}
+
+int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func, void* data) {
+	env->me_flushfunc = func;
+	env->me_flushdata = data;
 }
 
 #if MDB_RPAGE_CACHE
