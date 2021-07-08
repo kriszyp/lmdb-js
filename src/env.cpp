@@ -452,7 +452,7 @@ int EnvWrap::BeginSync(MDB_txn* txn) {
     // Also the thread syncing pool is be shared across all threads
     uv_thread_t tid;
     // TODO: Use existing thread if available
-    int rc = uv_thread_create(&tid, SyncRunner, mdb_txn_env(txn));
+    int rc = currentThread || uv_thread_create(&currentThread, SyncRunner, mdb_txn_env(txn));
 }
 
 int EnvWrap::OverlappingFlush(void* data) {
