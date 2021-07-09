@@ -35,8 +35,8 @@ thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
 uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
 std::vector<env_path_t> EnvWrap::envs;
 
-uv_mutex_t* EnvWrap::syncThreadsLock = EnvWrap::initMutex();
-std::vector<void*> EnvWrap::syncThreads;
+//uv_mutex_t* EnvWrap::syncThreadsLock = EnvWrap::initMutex();
+//std::vector<void*> EnvWrap::syncThreads;
 
 uv_mutex_t* EnvWrap::initMutex() {
     uv_mutex_t* mutex = new uv_mutex_t;
@@ -435,18 +435,17 @@ MDB_txn* EnvWrap::getReadTxn() {
 }
 
 void EnvWrap::SyncRunner(void* arg) {
-    MDB_env* env = (MDB_env*) arg;
-    mdb_filehandle_t fd;
-    mdb_env_get_fd(env, &fd);
+    EnvWrap* ew = (EnvWrap*) arg;
     do {
-        mdb_env_sync(env, 1);
+        mdb_env_sync(ew->env, 1);
         uv_mutex_lock(ew->flushLock);
         uv_cond_wait(ew->flushCond, ew->flushLock);
         uv_mutex_unlock(ew->flushLock);        
     } while(false); // TODO: continually run this
 }
 
-int EnvWrap::BeginSync(MDB_txn* txn) {
+// this is can be called when a transaction begins if there is no existing sync taking place
+int EnvWrap::BeginOrResumeSync(MDB_txn* txn) {
     int txnId = mdb_txn_id(txn);
     // TODO: if txnId matches the current sync, we can just let it keep going, otherwise replace it.
     // Also the thread syncing pool is be shared across all threads
@@ -594,7 +593,7 @@ NAN_METHOD(EnvWrap::open) {
     #endif
     #endif
     if (flags & MDB_OVERLAPPINGSYNC) {
-        flags |= MDB_PREVSNAPSHOT|MDB_NOSYNC;
+        flags |= MDB_PREVSNAPSHOT;
         mdb_env_set_flush(OverlappingFlush, ew);
     }
 
@@ -605,11 +604,19 @@ NAN_METHOD(EnvWrap::open) {
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
     // TODO: make file attributes configurable
-    #if NODE_VERSION_AT_LEAST(12,0,0)
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
-    #else
-    rc = mdb_env_open(ew->env, *String::Utf8Value(path), flags, 0664);
-    #endif
+    if (flags & MDB_PREVSNAPSHOT) {
+        if (rc == EAGAIN) {
+            fprintf(stderr, "EAGAIN after usePreviousSnapshot, will start without\n")
+            flags ~= MDB_PREVSNAPSHOT;
+            rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
+        } else if (!rc) {
+            fprintf(stderr, "Opened with previous snapshot, writing initial txn to clear last txn\n");
+            MDB_txn* txn;
+            mdb_txn_begin(ew->env, nullptr, 0, &txn);
+            mdb_txn_commit(txn);
+        }
+    }
 
     if (rc != 0) {
         mdb_env_close(ew->env);

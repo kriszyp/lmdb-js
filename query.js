@@ -1,8 +1,9 @@
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
+const { saveKey } = require('./keys')
 const ITERATOR_DONE = { done: true, value: undefined }
 
 exports.addQueryMethods = function(LMDBStore, {
-	getReadTxn, getWriteTxn, saveKey, Cursor, keyBuffer, keyBufferView, getLastVersion
+	getReadTxn, getWriteTxn, Cursor, keyBuffer, keyBufferView, getLastVersion
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++

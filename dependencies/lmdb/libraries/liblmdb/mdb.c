@@ -4182,7 +4182,7 @@ retry_seek:
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 
 #ifdef _WIN32
-	if (!F_ISSET(env->me_flags, MDB_NOSYNC)) {
+	if (!F_ISSET(env->me_flags, MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) {
 		/* Now wait for all the asynchronous/overlapped sync/write-through writes to complete.
 		* We start with the last one so that all the others should already be complete and
 		* we reduce thread suspend/resuming (in practice, typically about 99.5% of writes are
@@ -4452,11 +4452,11 @@ mdb_txn_commit(MDB_txn *txn)
 	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
 	// flushfunc that calls back to mdb_page_flush we before and after actions
 	if (env->me_flushfunc) {
-		env->me_flushfunc();
+		env->me_flushfunc(env->me_flushdata);
 	}
 	/* </lmdb-store> */
 
-	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
+	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC|MDB_OVERLAPPINGSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
 	if ((rc = mdb_env_write_meta(txn)))

@@ -67,6 +67,7 @@ NAN_METHOD(Compression::ctor) {
     compression->Wrap(info.This());
     compression->Ref();
     compression->makeUnsafeBuffer();
+    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("address").ToLocalChecked(), Nan::New<Number>((double) (size_t) compression));
 
     return info.GetReturnValue().Set(info.This());
 }

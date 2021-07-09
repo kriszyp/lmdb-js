@@ -18,13 +18,14 @@
 
 4-7 dbi
 8-11 key-size
-16 ... key followed by at least 2 32-bit zeros
-8 bytes (optional): conditional version
-8 bytes (optional): version
+12 ... key followed by at least 2 32-bit zeros
+4 value-size
+8 bytes: value pointer (or value itself)
 8 next-compressible pointer?
 8 compressor pointer?
-8 bytes: value pointer (or value itself)
-4 value-size
+8 bytes (optional): conditional version
+8 bytes (optional): version
+inline value?
 */
 const PUT = 0;
 const DEL = 1;
@@ -100,9 +101,9 @@ class WriteWorker : public WriteWorkerBase {
 		double* nextCompressible = instructions;
 		uint32_t* instruction = (uint32_t*) (nextCompressible + 1);
 		MDB_val data;
-		while (nextCompressible = ((double*) (*nextCompressible))) {
+		while (nextCompressible = ((double*) (size_t) (*nextCompressible))) {
 			Compression* compression = (Compression*) (*(nextCompressible + 1));
-			data.mv_data = (void*) (*(nextCompressible + 2));
+			data.mv_data = (void*) ((size_t) *(nextCompressible + 2));
 			data.mv_size = *((uint32_t*)(nextCompressible + 3));
 			void* compressedData = compression->compress(&data, nullptr);
 			if (compressedData)
@@ -112,6 +113,7 @@ class WriteWorker : public WriteWorkerBase {
 		MDB_val key, data;
 
 		int rc = mdb_txn_begin(env, nullptr, 0, &txn);
+		int txnId = mdb_txn_id(txn);
 		if (rc != 0) {
 			return SetErrorMessage(mdb_strerror(rc));
 		}
@@ -157,9 +159,9 @@ class WriteWorker : public WriteWorkerBase {
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE)
 					instruction += 4; // skip compression pointers
-				data.mv_data = (void*) *((double*)instruction);
+				data.mv_data = (void*) (size_t) *((double*)instruction);
 				instruction += 2;
-				data.mv_size = *instruction++;				
+				data.mv_size = *instruction++;
 			}
 			if (validated || !(flags & NEEDS_VALIDATION)) {
 				switch (flags & 0xf) {
@@ -218,7 +220,7 @@ waitForCallback:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
 				case POINTER_NEXT:
 					instruction++;
-					instruction = (uint32_t*) *((double*)instruction);
+					instruction = (uint32_t*) (size_t) *((double*)instruction);
 					break;
 				case BLOCK_END;
 					conditionDepth--;
@@ -350,14 +352,45 @@ done:
 			mdb_txn_abort(txn);
 		else
 			rc = mdb_txn_commit(txn);
-		restoreMemPriority(envForTxn);
-		if (rc != 0) {
+		if (rc == 0) {
+			if (envForTxn->flags & MDB_OVERLAPPINGSYNC) {
+				// successfully completed, we can now send a progress event to tell JS that the commit has been completed
+				// and that it is welcome to submit the next transaction, however the commit is not synced/flushed yet,
+				// so we continue execution to do that
+				i = -1; // indicator of completion
+				executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+				envForTxn->syncTxnId = txnId;
+				rc= mdb_env_sync(env, 1);
+				// signal a subsequent txn that we are synced
+				uv_cond_signal(envForTxn->syncCond);
+				if (rc)
+					return SetErrorMessage(mdb_strerror(rc));
+				// we have sync'ed to disk, but the commit is not truly durable and available on restart yet since
+				// we always use the previous snapshot/txn, so we need to wait for completion of next transaction
+				// if (ongoing transaction)
+				// 	uv_cond_wait(envForTxn->txnCond);
+				// else // we start an empty txn to ensure this txn becomes the previous one
+				// the drawback to beginning a transaction as confirmation is that if other processes are doing multiple/large
+				// transactions, we could have a long wait here, and it is potentially better to do this in a separate thread and
+				// also poll for txn id increments that would indicate that the commit is truly durable.
+				// we also don't want to be too jumpy about making empty transactions, certainly preferable that we
+				// simply use the next transaction as confirmation of durability
+				rc = mdb_txn_begin(env, nullptr, 0, &txn);
+				int nextTxnId = mdb_txn_id(txn);
+				if (nextTxnId - 2 >= txnId) {
+					// if there has already been another transaction completed, we are truly done, abort the empty txn
+					mdb_txn_abort(txn);
+				}
+				mdb_txn_commit(txn);
+			}
+		} else {
 			if ((putFlags & 1) > 0) // sync mode
 				return Nan::ThrowError(mdb_strerror(rc));
 			else {
 				return SetErrorMessage(mdb_strerror(rc));
 			}
 		}
+
 	}
 
 	void HandleProgressCallback(const char* data, size_t count) {
