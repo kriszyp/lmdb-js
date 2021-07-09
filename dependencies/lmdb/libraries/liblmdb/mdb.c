@@ -6110,6 +6110,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
 		if (rc)
 			goto leave;
+		fprintf(stderr, "Exclusive value is %u \n", excl);
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
 			rc = EAGAIN;
 			goto leave;

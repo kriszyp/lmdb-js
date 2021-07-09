@@ -1,5 +1,8 @@
+const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
+const ITERATOR_DONE = { done: true, value: undefined }
+
 exports.addQueryMethods = function(LMDBStore, {
-	getReadTxn, getWriteTxn, saveKey, Cursor
+	getReadTxn, getWriteTxn, saveKey, Cursor, keyBuffer, keyBufferView, getLastVersion
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++
@@ -129,9 +132,9 @@ exports.addQueryMethods = function(LMDBStore, {
 						txn.abort() // this is no longer main read txn, abort it now that we are done
 						txn.isAborted = true
 					} else {
-						if (db.availableCursor || txn != readTxn)
+						if (db.availableCursor || txn != getReadTxn())
 							cursor.close()
-						else {// try to reuse it
+						else { // try to reuse it
 							db.availableCursor = cursor
 							db.cursorTxn = txn
 						}

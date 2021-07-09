@@ -1,12 +1,12 @@
 const { sync: mkdirpSync } = require('mkdirp')
 const fs = require('fs')
 const { extname, basename, dirname} = require('path')
-const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
 const when  = require('./util/when')
 const EventEmitter = require('events')
 Object.assign(exports, require('node-gyp-build')(__dirname))
 const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
+const { addQueryMethods } = require('./query')
 const { writeKey, readKey } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
@@ -29,10 +29,7 @@ const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 SYNC_PROMISE_RESULT.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
-const LAST_KEY = String.fromCharCode(0xffff)
-const LAST_BUFFER_KEY = Buffer.from([255, 255, 255, 255])
-const FIRST_BUFFER_KEY = Buffer.from([0])
-const ITERATOR_DONE = { done: true, value: undefined }
+
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true)
 	return start + 4
@@ -969,7 +966,7 @@ function open(path, options) {
 	const removeSync = LMDBStore.prototype.removeSync
 	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
-	}, saveKey}, exports))
+	}, saveKey, keyBuffer, keyBufferView, getLastVersion }, exports))
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
