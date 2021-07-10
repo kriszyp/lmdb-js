@@ -3,7 +3,7 @@ const fs = require('fs')
 const { extname, basename, dirname} = require('path')
 const when  = require('./util/when')
 const EventEmitter = require('events')
-Object.assign(exports, require('node-gyp-build')(__dirname))
+Object.assign(exports, require('./native'))
 const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { addQueryMethods } = require('./query')

@@ -1,3 +1,5 @@
+const { getAddress } = require('./native')
+
 exports.addWriteMethods = function(LMDBStore, {}) {
 	// wi stands for write instructions
 	let wiBuffer, wiDataView, wiDataAddress
@@ -5,8 +7,8 @@ exports.addWriteMethods = function(LMDBStore, {}) {
 	function allocateInstructionBuffer() {
 		wiBuffer = Buffer.alloc(8192)
 		wiBuffer.dataView = wiDataView = new DataView(wiBuffer.buffer, wiBuffer.byteOffset, wiBuffer.byteLength)
-		wiDataAddress = getAddress(wiBuffer)
-		wiBuffer.address = wiDataAddress - wiBuffer.byteOffset
+		wiBuffer.buffer.address = getAddress(wiBuffer.buffer)
+		wiDataAddress = wiBuffer.buffer.address + wiBuffer.byteOffset
 		wiPosition = 0
 	}
 	let lastCompressible = 0
@@ -49,12 +51,29 @@ exports.addWriteMethods = function(LMDBStore, {}) {
 			wiDataView.setFloat64(wiPosition, this.compression.address, true)
 			wiPosition += 8
 		}
-		wiDataView.setUint32(wiPosition, )
+		let valueArrayBuffer = valueBuffer.buffer
+		// record pointer to value buffer
+		wiDataView.setUint32(wiPosition, (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) +
+			valueBuffer.byteOffset, true)
 
 
 	}
 	Object.assign(LMDB.prototype, {
 		put(id, value, versionOrOptions, ifVersion) {
+			let flags = 0
+			if (typeof versionOrOptions == 'object') {
+				if (versionOrOptions.noOverwrite)
+					flags |= 0x10
+				if (versionOrOptions.noDupData)
+					flags |= 0x20
+				if (versionOrOptions.append)
+					flags |= 0x20000
+				if (versionsOrOptions.ifVersion != undefined)
+					ifVersion = versionsOrOptions.ifVersion
+				versionOrOptions = versionOrOptions.version
+			}
+			writeInstructions(flags, id, value, versionOrOptions, ifVersion)
+
 		}
 	})
 	function commitQueued() {

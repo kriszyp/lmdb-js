@@ -1,3 +1,4 @@
+const { getAddress } = require('./native')
 const keyBuffer = Buffer.allocUnsafeSlow(2048)
 const keyBufferView = new DataView(keyBuffer.buffer, 0, 2048) // max key size is actually 1978
 
@@ -52,8 +53,8 @@ let savePosition = 8000
 function allocateSaveBuffer() {
 	saveBuffer = Buffer.alloc(8192)
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength)
-	saveDataAddress = getAddress(saveBuffer)
-	saveBuffer.buffer.address = saveDataAddress - saveBuffer.byteOffset
+	saveBuffer.buffer.address = getAddress(saveBuffer.buffer)
+	saveDataAddress = saveBuffer.buffer.address + saveBuffer.byteOffset
 	savePosition = 0
 
 }

@@ -415,7 +415,8 @@ NAN_METHOD(setWinMemoryPriority) {
         nullptr
     ).ToLocalChecked());*/
 NAN_METHOD(getAddress) {
-    info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
+    info.GetReturnValue().Set(Nan::New<Number>((uint64_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
+    //info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
 }
 
 void throwLmdbError(int rc) {
