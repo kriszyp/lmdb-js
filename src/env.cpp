@@ -56,8 +56,11 @@ EnvWrap::~EnvWrap() {
         this->cleanupStrayTxns();
         mdb_env_close(env);
     }
-    if (this->compression)
+    if (this->compression) {
+        if (this->compression->persistent().IsWeak())
+            fprintf(stderr, "compression is already unref'ed from env destructor\n");
         this->compression->Unref();
+    }
 }
 
 void EnvWrap::cleanupStrayTxns() {
@@ -653,6 +656,8 @@ void EnvWrap::closeEnv() {
 }
 NAN_METHOD(EnvWrap::close) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    if (ew->persistent().IsWeak())
+        fprintf(stderr, "env is already unref'ed from env close\n");
     ew->Unref();
 
     if (!ew->env) {

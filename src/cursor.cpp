@@ -37,7 +37,11 @@ CursorWrap::CursorWrap(MDB_cursor *cursor) {
 
 CursorWrap::~CursorWrap() {
     if (this->cursor) {
+        if (this->dw->persistent().IsWeak())
+            fprintf(stderr, "dbi is already unref'ed from cursor destructor\n");
         this->dw->Unref();
+        if (this->tw->persistent().IsWeak())
+            fprintf(stderr, "dbi is already unref'ed from cursor destructor\n");
         this->tw->Unref();
         // Don't close cursor here, it is possible that the environment may already be closed, which causes it to crash
         //mdb_cursor_close(this->cursor);
@@ -98,7 +102,11 @@ NAN_METHOD(CursorWrap::close) {
       return Nan::ThrowError("cursor.close: Attempt to close a closed cursor!");
     }
     mdb_cursor_close(cw->cursor);
+    if (cw->dw->persistent().IsWeak())
+        fprintf(stderr, "dbi is already unref'ed from cursor close\n");
     cw->dw->Unref();
+    if (cw->tw->persistent().IsWeak())
+        fprintf(stderr, "txn is already unref'ed from cursor close\n");
     cw->tw->Unref();
     cw->cursor = nullptr;
 }

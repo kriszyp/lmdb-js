@@ -755,33 +755,24 @@ function open(path, options) {
 				let txn
 				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0)
 				function resetCursor() {
-					try {
-						if (cursor)
-							finishCursor()
+					if (cursor)
+						finishCursor()
 
-						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
-						cursor = !writeTxn && db.availableCursor
-						if (cursor) {
-							db.availableCursor = null
-							if (db.cursorTxn != txn)
-								cursor.renew(txn)
-							else// if (db.currentRenewId != renewId)
-								flags |= 0x2000
-						} else {
-							cursor = new Cursor(txn, db)
-						}
-						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
-						if (snapshot === false) {
-							cursorRenewId = renewId // use shared read transaction
-							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1 // need to know how many are renewing cursors
-						}
-					} catch(error) {
-						if (cursor) {
-							try {
-								cursor.close()
-							} catch(error) { }
-						}
-						return handleError(error, this, txn, resetCursor)
+					txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn())
+					cursor = !writeTxn && db.availableCursor
+					if (cursor) {
+						db.availableCursor = null
+						if (db.cursorTxn != txn)
+							cursor.renew(txn)
+						else// if (db.currentRenewId != renewId)
+							flags |= 0x2000
+					} else {
+						cursor = new Cursor(txn, db)
+					}
+					txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
+					if (snapshot === false) {
+						cursorRenewId = renewId // use shared read transaction
+						txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1 // need to know how many are renewing cursors
 					}
 				}
 				resetCursor()

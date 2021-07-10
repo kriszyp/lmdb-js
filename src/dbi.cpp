@@ -57,10 +57,15 @@ DbiWrap::~DbiWrap() {
     // NOTE: according to LMDB authors, it is perfectly fine if mdb_dbi_close is never called on an MDB_dbi
 
     if (this->ew) {
+        if (this->ew->persistent().IsWeak())
+            fprintf(stderr, "env is already unref'ed from dbi destructor\n");
         this->ew->Unref();
     }
-    if (this->compression)
+    if (this->compression) {
+        if (this->compression->persistent().IsWeak())
+            fprintf(stderr, "compression is already unref'ed from dbi destructor\n");
         this->compression->Unref();
+    }
 }
 
 void DbiWrap::setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer) {
@@ -220,6 +225,8 @@ NAN_METHOD(DbiWrap::close) {
     if (dw->isOpen) {
         mdb_dbi_close(dw->env, dw->dbi);
         dw->isOpen = false;
+        if (dw->ew->persistent().IsWeak())
+            fprintf(stderr, "env is already unref'ed from dbi close\n");
         dw->ew->Unref();
         dw->ew = nullptr;
     }
@@ -330,6 +337,8 @@ NAN_METHOD(DbiWrap::drop) {
     // Only close database if del == 1
     if (del == 1) {
         dw->isOpen = false;
+        if (dw->ew->persistent().IsWeak())
+            fprintf(stderr, "env is already unref'ed from dbi drop\n");
         dw->ew->Unref();
         dw->ew = nullptr;
     }

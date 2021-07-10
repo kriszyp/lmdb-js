@@ -30,7 +30,7 @@
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
     "test:types": "tsd",
-    "benchmark": "node --turbo-fast-api-calls ./benchmark/index.js",
+    "benchmark": "node --turbo-fast-api-calls --expose-gc ./benchmark/index.js",
     "benchmark-ll": "node ./benchmark/low-level.js"
   },
   "gypfile": true,

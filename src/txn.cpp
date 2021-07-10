@@ -54,6 +54,8 @@ void TxnWrap::removeFromEnvWrap() {
             }
         }
         
+        if (this->ew->persistent().IsWeak())
+            fprintf(stderr, "env is already unref'ed from txn end\n");
         this->ew->Unref();
         this->ew = nullptr;
     }

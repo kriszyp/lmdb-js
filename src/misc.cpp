@@ -371,8 +371,6 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 }
 
 NAN_METHOD(getLastVersion) {
-    char test[] = "abcdefghijklmnop";
-    fprintf(stderr, "misaligned access: %p\n", *((uint32_t*) (test + 3)));
     if (lastVersion == NO_EXIST_VERSION)
         return info.GetReturnValue().Set(Nan::Null());
     return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
