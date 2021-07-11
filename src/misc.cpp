@@ -32,7 +32,7 @@ static thread_local Persistent<Object>* globalUnsafeBuffer;
 
 void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
-    #ifndef _WIN32
+    #ifdef __GNUC__
     signal(SIGSEGV, signalHandler);   // install our handler
     #endif
     Local<Object> versionObj = Nan::New<Object>();
@@ -406,14 +406,8 @@ NAN_METHOD(setWinMemoryPriority) {
     std::unique_ptr<v8::BackingStore> backing = v8::ArrayBuffer::NewBackingStore(
     address, 0x100000000, [](void*, size_t, void*){}, nullptr);
     auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
-    info.GetReturnValue().Set(array_buffer);/*Nan::NewBuffer(
-        (char*)address,
-        0x3f000000, // max 1GB buffer size
-        [](char *, void *) {
-            // Data belongs to LMDB, we shouldn't free it here
-        },
-        nullptr
-    ).ToLocalChecked());*/
+    info.GetReturnValue().Set(array_buffer);
+}*/
 NAN_METHOD(getAddress) {
     info.GetReturnValue().Set(Nan::New<Number>((uint64_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
     //info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
@@ -572,7 +566,7 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
-#ifndef _WIN32
+#ifdef __GNUC__
 #include <execinfo.h>
 #include <unistd.h>
 void signalHandler(int sig) {

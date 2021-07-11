@@ -112,7 +112,7 @@ exports.addQueryMethods = function(LMDBStore, {
 								keyBufferView.setBigUint64(2000, startAddress, true)
 								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
 							} else {
-								throw new Error('Only key-based encoding is supported for start/end values for ')
+								throw new Error('Only key-based encoding is supported for start/end values')
 								let encoded = store.encoder.encode(options.start)
 								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset)
 								startAddress = bufferAddress + encoded.byteOffset

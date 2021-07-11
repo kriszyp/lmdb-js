@@ -389,7 +389,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
             comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
         else
             comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
-        if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
+        if ((flags & 0x400) ? comparison >= 0 : (comparison <= 0)) {
             return 0;
         }
     }
@@ -438,34 +438,27 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
             data.mv_data = startValueBuffer + 1;
             rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+            if (rc == MDB_NOTFOUND)
+                return 0;
             if (flags & 0x1000 && !endKeyAddress) {
-                if (rc == MDB_NOTFOUND)
-                    return 0;
                 size_t count;
                 rc = mdb_cursor_count(cursor, &count);
                 if (rc)
                     throwLmdbError(rc);
                 return count;
             }
-        } else
-            rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
-        if (flags & 0x400) {// reverse
-            MDB_val firstKey = key; // save it for comparison
-            if (rc) { // not found
-                if (flags & 0x800) {// only values for this key
-                    // nothing to do, not found
-                } else if (true) {// MDB_SET_RANGE, not found, go to end
+            if (flags & 0x400) // reverse, get last dup
+                rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
+        } else {
+            if (flags & 0x400) {// reverse
+                MDB_val firstKey = key; // save it for comparison
+                rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
+                if (rc)
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
-                }
-            } else {
-                if (flags & 0x800) {// only values for this key
-                    // compare data
-                    rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
-                } else  {// MDB_SET_RANGE
-                    if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key))
-                        rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
-                }
-            }
+                if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key) && !rc)
+                    rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
+            } else // forward, just do a get by range
+                rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
         }
     }
     while (offset-- > 0 && !rc) {
@@ -571,7 +564,9 @@ NAN_METHOD(CursorWrap::renew) {
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
     // Unwrap Txn and Dbi
     TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(v8::Local<v8::Object>::Cast(info[0]));
+    cw->tw->Unref(); // no longer using the previous transaction
     cw->tw = tw;
+    cw->tw->Ref(); // now we are using this one
     int rc = mdb_cursor_renew(tw->txn, cw->cursor);
     if (rc != 0) {
         return throwLmdbError(rc);

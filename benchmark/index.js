@@ -123,7 +123,7 @@ function setup() {
     console.log('setup completed');
   })
 }
-
+lmdbNativeFunctions()
 var txn;
 
 cleanup(async function (err) {
@@ -151,12 +151,22 @@ cleanup(async function (err) {
       }
       console.log(String(event.target));
     });
-    suite.on('complete', function () {
+    suite.on('complete', async function () {
         console.log('Fastest is ' + this.filter('fastest').map('name'));
         var numCPUs = require('os').cpus().length;
+        console.log('Test opening/closing threads ' + numCPUs + ' threads');
+        for (var i = 0; i < numCPUs; i++) {
+          var worker = new Worker(__filename);
+          await new Promise(r => setTimeout(r,30));
+          worker.terminate();
+          if ((i % 2) == 0)
+            await new Promise(r => setTimeout(r,30));
+          //var worker = fork();
+        }
         console.log('Now will run benchmark across ' + numCPUs + ' threads');
         for (var i = 0; i < numCPUs; i++) {
           var worker = new Worker(__filename);
+
           //var worker = fork();
         }
     });
@@ -179,7 +189,7 @@ cleanup(async function (err) {
       defer: true,
       fn: setData
     });
-//    suite.add('get', getData);
+    suite.add('get', getData);
     suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {
       if (result && result.then) {

@@ -115,6 +115,32 @@ describe('lmdb-store', function() {
         value.should.equal(db.get(key))
       }
       keys.should.deep.equal(returnedKeys)
+
+      returnedKeys = []
+      for (let { key, value } of db.getRange({
+        reverse: true,
+      })) {
+        returnedKeys.unshift(key)
+        value.should.equal(db.get(key))
+      }
+      keys.should.deep.equal(returnedKeys)
+    });
+    it('reverse query range', async function() {
+      const keys = [
+        [ 'Test', 100, 1 ],
+        [ 'Test', 10010, 2 ],
+        [ 'Test', 10010, 3 ],
+      ]
+      for (let key of keys)
+        await db.put(key, 3);
+      let returnedKeys = []
+      for (let { key, value } of db.getRange({
+        start: ['Test', null],
+        end: ['Test', null],
+        reverse: true
+      })) {
+        throw new Error('Should not return any results')
+      }
     });
     it('string', async function() {
       await db.put('key1', 'Hello world!');
@@ -295,6 +321,31 @@ describe('lmdb-store', function() {
         }
       }
       count.should.equal(1)
+    });
+    it('should handle open iterators and cursor renewal', async function() {
+      let data1 = {foo: 1, bar: true};
+      let data2 = {foo: 2, bar: false};
+      let data3 = {foo: 3, bar: false};
+      db2.put('key1',  data1);
+      db.put('key1',  data1);
+      db.put('key2',  data2);
+      await db.put('key3',  data3);
+      let it1 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it2 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it3 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      it1.return();
+      it2.return();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      it1 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      it2 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it4 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it5 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      it4.return()
+      it5.return()
+      it1.return()
+      it2.return()
+      it3.return()
     });
     it('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
@@ -524,7 +575,6 @@ describe('lmdb-store', function() {
       dbBinary.get('empty').length.should.equal(0);
     });
     it.skip('read and write with binary methods', async function() {
-      debugger
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb6',
         keyIsUint32: true,

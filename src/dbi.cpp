@@ -231,7 +231,7 @@ NAN_METHOD(DbiWrap::close) {
 class DropWorker : public Nan::AsyncWorker {
   public:
     DropWorker(MDB_dbi dbi, MDB_env* env, int del, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), env(env), dbi(dbi), del(del) {
+      : Nan::AsyncWorker(callback), dbi(dbi), env(env), del(del) {
       }
     void Execute() {
         MDB_txn *txn;
