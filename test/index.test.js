@@ -338,7 +338,14 @@ describe('lmdb-store', function() {
       await new Promise(resolve => setTimeout(resolve, 10));
       it1 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
       it2 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
-      it3 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it4 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it5 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      it4.return()
+      it5.return()
+      it1.return()
+      it2.return()
+      it3.return()
     });
     it('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
