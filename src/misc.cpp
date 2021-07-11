@@ -32,7 +32,7 @@ static thread_local Persistent<Object>* globalUnsafeBuffer;
 
 void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
-    #ifndef _WIN32
+    #ifdef __GNUC__
     signal(SIGSEGV, signalHandler);   // install our handler
     #endif
     Local<Object> versionObj = Nan::New<Object>();
@@ -571,7 +571,7 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
-#ifndef _WIN32
+#ifdef __GNUC__
 #include <execinfo.h>
 #include <unistd.h>
 void signalHandler(int sig) {
