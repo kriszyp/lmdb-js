@@ -774,7 +774,7 @@ NAN_METHOD(EnvWrap::readerCheck) {
 
 Local<Array> readerStrings;
 MDB_msg_func* printReaders = ([](const char* message, void* ctx) -> int {
-    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), Nan::New<String>(message).ToLocalChecked());
+    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), Nan::New<String>(message).ToLocalChecked()).ToChecked();
     return 0;
 });
 
