@@ -322,6 +322,24 @@ describe('lmdb-store', function() {
       }
       count.should.equal(1)
     });
+    it('should handle open iterators and cursor renewal', async function() {
+      let data1 = {foo: 1, bar: true};
+      let data2 = {foo: 2, bar: false};
+      let data3 = {foo: 3, bar: false};
+      db2.put('key1',  data1);
+      db.put('key1',  data1);
+      db.put('key2',  data2);
+      await db.put('key3',  data3);
+      let it1 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it2 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      let it3 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      it1.return();
+      it2.return();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      it1 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      it2 = db2.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+      it3 = db.getRange({start:'key', end:'keyz'})[Symbol.iterator]();
+    });
     it('should iterate over dupsort query, with removal', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
@@ -550,7 +568,6 @@ describe('lmdb-store', function() {
       dbBinary.get('empty').length.should.equal(0);
     });
     it.skip('read and write with binary methods', async function() {
-      debugger
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb6',
         keyIsUint32: true,
