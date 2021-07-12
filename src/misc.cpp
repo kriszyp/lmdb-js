@@ -565,7 +565,7 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
-#ifdef __GNUC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 #include <execinfo.h>
 #include <unistd.h>
 void signalHandler(int sig) {
