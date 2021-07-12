@@ -11419,9 +11419,8 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 	return MDB_SUCCESS;
 }
 
-int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func, void* data) {
+int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func) {
 	env->me_flushfunc = func;
-	env->me_flushdata = data;
 }
 
 #if MDB_RPAGE_CACHE

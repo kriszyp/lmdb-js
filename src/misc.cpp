@@ -409,8 +409,11 @@ NAN_METHOD(setWinMemoryPriority) {
     info.GetReturnValue().Set(array_buffer);
 }*/
 NAN_METHOD(getAddress) {
-    info.GetReturnValue().Set(Nan::New<Number>((uint64_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
-    //info.GetReturnValue().Set(Nan::New<Number>((uint64_t) node::Buffer::Data(info[0])));
+    #if NODE_VERSION_AT_LEAST(14,0,0)
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<ArrayBuffer>::Cast(info[0])->GetBackingStore()->Data()));
+    #else
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
+    #endif
 }
 
 void throwLmdbError(int rc) {

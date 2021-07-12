@@ -433,14 +433,16 @@ MDB_txn* EnvWrap::getReadTxn() {
     readTxnRenewed = true;
     return txn;
 }
+static uv_cond_t* flushCond;
+static uv_mutex_t* flushLock;
 
 void EnvWrap::SyncRunner(void* arg) {
     EnvWrap* ew = (EnvWrap*) arg;
     do {
         mdb_env_sync(ew->env, 1);
-        uv_mutex_lock(ew->flushLock);
-        uv_cond_wait(ew->flushCond, ew->flushLock);
-        uv_mutex_unlock(ew->flushLock);        
+        uv_mutex_lock(flushLock);
+        uv_cond_signal(flushCond);
+        uv_mutex_unlock(flushLock);        
     } while(false); // TODO: continually run this
 }
 
@@ -451,14 +453,16 @@ int EnvWrap::BeginOrResumeSync(MDB_txn* txn) {
     // Also the thread syncing pool is be shared across all threads
     uv_thread_t tid;
     // TODO: Use existing thread if available
-    int rc = currentThread || uv_thread_create(&currentThread, SyncRunner, mdb_txn_env(txn));
+    int rc = /*currentThread || */uv_thread_create(&tid, SyncRunner, mdb_txn_env(txn));
+    return rc;
 }
 
-int EnvWrap::OverlappingFlush(void* data) {
+static int OverlappingFlush(void* data) {
     EnvWrap* ew = ((EnvWrap*) data);
-    uv_mutex_lock(ew->flushLock);
-    uv_cond_wait(ew->flushCond, ew->flushLock);
-    uv_mutex_unlock(ew->flushLock);
+    uv_mutex_lock(flushLock);
+    uv_cond_wait(flushCond, flushLock);
+    uv_mutex_unlock(flushLock);
+    return 0;
 }
 #ifdef MDB_RPAGE_CACHE
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
@@ -578,7 +582,7 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
     setFlagFromValue(&flags, MDB_NOMEMINIT , "noMemInit", false, options);
     setFlagFromValue(&flags, MDB_NORDAHEAD , "noReadAhead", false, options);
-    setFlagFromValue(&flags, MDB_OVERLAPPINGSYNC "overlappingSync", false, options);
+    setFlagFromValue(&flags, MDB_OVERLAPPINGSYNC, "overlappingSync", false, options);
     setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
     setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
     setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
@@ -594,7 +598,7 @@ NAN_METHOD(EnvWrap::open) {
     #endif
     if (flags & MDB_OVERLAPPINGSYNC) {
         flags |= MDB_PREVSNAPSHOT;
-        mdb_env_set_flush(OverlappingFlush, ew);
+        mdb_env_set_flush(ew->env, OverlappingFlush);
     }
 
     if (flags & MDB_NOLOCK) {
@@ -607,8 +611,8 @@ NAN_METHOD(EnvWrap::open) {
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
     if (flags & MDB_PREVSNAPSHOT) {
         if (rc == EAGAIN) {
-            fprintf(stderr, "EAGAIN after usePreviousSnapshot, will start without\n")
-            flags ~= MDB_PREVSNAPSHOT;
+            fprintf(stderr, "EAGAIN after usePreviousSnapshot, will start without\n");
+            flags &= ~MDB_PREVSNAPSHOT;
             rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
         } else if (!rc) {
             fprintf(stderr, "Opened with previous snapshot, writing initial txn to clear last txn\n");

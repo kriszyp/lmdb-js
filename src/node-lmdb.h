@@ -218,6 +218,18 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
     TxnWrap* currentTxnWrap;
     ~BatchWorkerBase();
 };
+class WriteWorkerBase : public Nan::AsyncProgressWorker {
+  public:
+    WriteWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
+    void ContinueWrite(int rc, bool hasStarted);
+    uv_mutex_t* userCallbackLock;
+    uv_cond_t* userCallbackCond;
+    int interruptionStatus;
+    bool finishedProgress;
+    EnvWrap* envForTxn;
+    TxnWrap* currentTxnWrap;
+    ~WriteWorkerBase();
+};
 
 /*
     `Env`
@@ -238,6 +250,7 @@ private:
     // compression settings and space
     Compression *compression;
     BatchWorkerBase* batchWorker;
+    WriteWorkerBase* writeWorker;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -266,6 +279,8 @@ public:
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
     void closeEnv();
+    static void SyncRunner(void* arg);
+    static int EnvWrap::BeginOrResumeSync(MDB_txn* txn);
 
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.

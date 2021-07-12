@@ -27,34 +27,23 @@
 8 bytes (optional): version
 inline value?
 */
-const PUT = 0;
-const DEL = 1;
-const DEL_VALUE = 2;
-const START_BLOCK = 3;
-const POINTER_NEXT = 15;
-const USER_CALLBACK = 4;
-const DROP = 5;
-const BLOCK_END = 11;
-const HAS_VALUE = 2;
-const NEEDS_VALIDATION = 8;
-const CONDITIONAL_VERSION = 0x100;
-const SET_VERSION = 0x200;
-const COMPRESSIBLE = 0x400;
-const DELETE_DATABASE = 0x800;
-const IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
+#include "node-lmdb.h"
+const int PUT = 0;
+const int DEL = 1;
+const int DEL_VALUE = 2;
+const int START_BLOCK = 3;
+const int POINTER_NEXT = 15;
+const int USER_CALLBACK = 4;
+const int DROP = 5;
+const int BLOCK_END = 11;
+const int HAS_VALUE = 2;
+const int NEEDS_VALIDATION = 8;
+const int CONDITIONAL_VERSION = 0x100;
+const int SET_VERSION = 0x200;
+const int COMPRESSIBLE = 0x400;
+const int DELETE_DATABASE = 0x800;
+const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 
-struct compressibles_t {
-	int length;
-	compressible_t* compressibles;
-}
-struct compressible_t {
-	uint32_t size;
-	uint32_t flags;
-	union {
-		double address;
-		char* addressToFree;
-	}
-}
 
 WriteWorkerBase::WriteWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)	: Nan::AsyncProgressWorker(callback, "lmdb:batch"),
 		envForTxn(envForTxn) {
@@ -87,6 +76,7 @@ class WriteWorker : public WriteWorkerBase {
 		results(results),
 		instructions(instructions) {
 		interruptionStatus = 0;
+
 	}
 
 	~WriteWorker() {
@@ -187,7 +177,7 @@ class WriteWorker : public WriteWorkerBase {
 				case USER_CALLBACK:
 					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
-					executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+					executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
 waitForCallback:
 					if (interruptionStatus == 0)
 						uv_cond_wait(userCallbackCond, userCallbackLock);
@@ -245,7 +235,7 @@ waitForCallback:
 				} else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
 					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
-					executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+					executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
 waitForCallback:
 					if (interruptionStatus == 0)
 						uv_cond_wait(userCallbackCond, userCallbackLock);
@@ -358,7 +348,7 @@ done:
 				// and that it is welcome to submit the next transaction, however the commit is not synced/flushed yet,
 				// so we continue execution to do that
 				i = -1; // indicator of completion
-				executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+				executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
 				envForTxn->syncTxnId = txnId;
 				rc= mdb_env_sync(env, 1);
 				// signal a subsequent txn that we are synced
@@ -393,7 +383,7 @@ done:
 
 	}
 
-	void HandleProgressCallback(const char* data, size_t count) {
+	void HandleProgressCallback(const int char* data, size_t count) {
 		Nan::HandleScope scope;
 		if (interruptionStatus != 0) {
 			uv_mutex_lock(userCallbackLock);
