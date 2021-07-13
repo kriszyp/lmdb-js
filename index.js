@@ -7,7 +7,8 @@ Object.assign(exports, require('./native'))
 const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { addQueryMethods } = require('./query')
-const { writeKey, readKey } = require('ordered-binary')
+const { addWriteMethods } = require('./writer')
+const { writeKey, readKey, compareKeys } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
@@ -966,6 +967,7 @@ function open(path, options) {
 	const removeSync = LMDBStore.prototype.removeSync
 	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
+	addWriteMethods(LMDBStore, {})
 	}, saveKey, keyBuffer, keyBufferView, getLastVersion }, exports))
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
@@ -1011,48 +1013,6 @@ function matches(previousVersion, ifVersion){
 	return matches
 }
 
-function compareKey(a, b) {
-	// compare with type consistency that matches ordered-binary
-	if (typeof a == 'object') {
-		if (!a) {
-			return b == null ? 0 : -1
-		}
-		if (a.compare) {
-			if (b == null) {
-				return 1
-			} else if (b.compare) {
-				return a.compare(b)
-			} else {
-				return -1
-			}
-		}
-		let arrayComparison
-		if (b instanceof Array) {
-			let i = 0
-			while((arrayComparison = compareKey(a[i], b[i])) == 0 && i <= a.length)  {
-				i++
-			}
-			return arrayComparison
-		}
-		arrayComparison = compareKey(a[0], b)
-		if (arrayComparison == 0 && a.length > 1)
-			return 1
-		return arrayComparison
-	} else if (typeof a == typeof b) {
-		if (typeof a === 'symbol') {
-			a = Symbol.keyFor(a)
-			b = Symbol.keyFor(b)
-		}
-		return a < b ? -1 : a === b ? 0 : 1
-	}
-	else if (typeof b == 'object') {
-		if (b instanceof Array)
-			return -compareKey(b, a)
-		return 1
-	} else {
-		return typeOrder[typeof a] < typeOrder[typeof b] ? -1 : 1
-	}
-}
 class Entry {
 	constructor(value, version, db) {
 		this.value = value
@@ -1065,14 +1025,6 @@ class Entry {
 	ifSameRemove() {
 
 	}
-}
-exports.compareKey = compareKey
-const typeOrder = {
-	symbol: 0,
-	undefined: 1,
-	boolean: 2,
-	number: 3,
-	string: 4
 }
 exports.getLastEntrySize = function() {
 	return lastSize
@@ -1089,8 +1041,8 @@ let savePosition = 8000
 function allocateSaveBuffer() {
 	saveBuffer = Buffer.alloc(8192)
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength)
-	saveDataAddress = getAddress(saveBuffer)
-	saveBuffer.buffer.address = saveDataAddress - saveBuffer.byteOffset
+	saveBuffer.buffer.address = getAddress(saveBuffer.buffer)
+	saveDataAddress = saveBuffer.buffer.address + saveBuffer.byteOffset
 	savePosition = 0
 
 }
@@ -1107,4 +1059,4 @@ function saveKey(key, writeKey, saveTo) {
 }
 exports.getLastVersion = getLastVersion
 exports.setLastVersion = setLastVersion
-
+exports.compareKey = compareKeys

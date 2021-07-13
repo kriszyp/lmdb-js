@@ -414,6 +414,7 @@ public:
         * Callback to be executed after the sync is complete.
     */
     static NAN_METHOD(batchWrite);
+    static NAN_METHOD(startWriting);
 
     static NAN_METHOD(continueBatch);
     static NAN_METHOD(resetCurrentReadTxn);

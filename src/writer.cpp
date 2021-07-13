@@ -28,6 +28,7 @@
 inline value?
 */
 #include "node-lmdb.h"
+// flags:
 const int PUT = 0;
 const int DEL = 1;
 const int DEL_VALUE = 2;
@@ -43,6 +44,11 @@ const int SET_VERSION = 0x200;
 const int COMPRESSIBLE = 0x400;
 const int DELETE_DATABASE = 0x800;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
+// result codes:
+const int FAILED_CONDITION = 1;
+const int SUCCESSFUL_OPERATION = 0;
+const int BAD_KEY = 3;
+const int NOT_FOUND = 2;
 
 
 WriteWorkerBase::WriteWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)	: Nan::AsyncProgressWorker(callback, "lmdb:batch"),
@@ -65,42 +71,30 @@ void WriteWorkerBase::ContinueWrite(int rc, bool hasStarted) {
 	uv_mutex_unlock(userCallbackLock);
 }
 
-
-
 class WriteWorker : public WriteWorkerBase {
 	public:
-	WriteWorker(MDB_env* env, action_t *actions, int actionCount, int putFlags, KeySpace* keySpace, EnvWrap* envForTxn, uint8_t* results, Nan::Callback *callback)
+	WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
 		: WriteWorkerBase(callback, envForTxn),
 		env(env),
-		actionCount(actionCount),
-		results(results),
 		instructions(instructions) {
 		interruptionStatus = 0;
-
-	}
-
-	~WriteWorker() {
-		delete[] actions;
-		delete keySpace;
 	}
 
 	void Execute(const ExecutionProgress& executionProgress) {
 		MDB_txn *txn;
 		// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
-		DbiWrap* dw;
-		double* nextCompressible = instructions;
+		double* nextCompressible = (double*) instructions;
 		uint32_t* instruction = (uint32_t*) (nextCompressible + 1);
-		MDB_val data;
+		MDB_val key, value;
 		while (nextCompressible = ((double*) (size_t) (*nextCompressible))) {
-			Compression* compression = (Compression*) (*(nextCompressible + 1));
-			data.mv_data = (void*) ((size_t) *(nextCompressible + 2));
-			data.mv_size = *((uint32_t*)(nextCompressible + 3));
-			void* compressedData = compression->compress(&data, nullptr);
+			Compression* compression = (Compression*) (size_t) (*(nextCompressible + 1));
+			value.mv_data = (void*) ((size_t) *(nextCompressible + 2));
+			value.mv_size = *((uint32_t*)(nextCompressible + 3));
+			void* compressedData = compression->compress(&value, nullptr);
 			if (compressedData)
-				*(nextCompressible + 2) = compressedData;
+				*(nextCompressible + 2) = (double) (size_t) compressedData;
 		}
 		int conditionDepth = 1;
-		MDB_val key, data;
 
 		int rc = mdb_txn_begin(env, nullptr, 0, &txn);
 		int txnId = mdb_txn_id(txn);
@@ -108,7 +102,7 @@ class WriteWorker : public WriteWorkerBase {
 			return SetErrorMessage(mdb_strerror(rc));
 		}
 		if (envForTxn) {
-			envForTxn->currentWriteTxn = txn;
+			envForTxn->currentBatchTxn = txn;
 			userCallbackLock = new uv_mutex_t;
 			userCallbackCond = new uv_cond_t;
 			uv_mutex_init(userCallbackLock);
@@ -118,58 +112,60 @@ class WriteWorker : public WriteWorkerBase {
 		lowerMemPriority(envForTxn);
 		double conditionalVersion, setVersion;
 		do {
-			uint32_t flags = *instruction++;
+			uint32_t* start = instruction++;
+			uint32_t flags = *start;
+			MDB_dbi dbi;
 			bool validated = true;
 			if ((flags & 0xf) < 4) {
 				// a key based instruction, get the key
-				MDB_dbi dbi = (MDB_dbi) *instruction++;
+				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
 				key.mv_data = instruction;
 				instruction += (key.mv_size + 8) >> 2;
 				if (flags & CONDITIONAL_VERSION) {
 					conditionalVersion = *((double*) instruction);
 					instruction += 2;
-					rc = mdb_get(txn, dbi, &key, &data);
+					rc = mdb_get(txn, dbi, &key, &value);
 					if (rc)
 						validated = false;
 					else
 						validated = conditionalVersion == *((double*)value.mv_data);
-					}
-					results[i] = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
+					*start = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
 				}
 				if (flags & SET_VERSION) {
 					setVersion = *((double*) instruction);
 					instruction += 2;
 				}
 				if (flags == (IF_NO_EXISTS | START_BLOCK)) {
-					rc = mdb_get(txn, dbi, &key, &data);
+					rc = mdb_get(txn, dbi, &key, &value);
 					validated = rc == MDB_NOTFOUND;
 				}
 			}
+			bool needsFree = false;
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE)
 					instruction += 4; // skip compression pointers
-				data.mv_data = (void*) (size_t) *((double*)instruction);
+				value.mv_data = (void*) (size_t) *((double*)instruction);
 				instruction += 2;
-				data.mv_size = *instruction++;
+				value.mv_size = *instruction++;
 			}
 			if (validated || !(flags & NEEDS_VALIDATION)) {
 				switch (flags & 0xf) {
 				case PUT:
 					if (flags & SET_VERSION)
-						rc = putWithVersion(txn, dbi, &key, &data, flags, setVersion);
+						rc = putWithVersion(txn, dbi, &key, &value, flags, setVersion);
 					else
-						rc = mdb_put(txn, dbi, &key, &data, flags);
+						rc = mdb_put(txn, dbi, &key, &value, flags);
 					if (needsFree)
-						free(data.mv_data);
+						free(value.mv_data);
 					break;
 				case DEL:
 					rc = mdb_del(txn, dbi, &key, nullptr);
 					break;
 				case DEL_VALUE:
-					rc = mdb_del(txn, dbi, &key, &data);
+					rc = mdb_del(txn, dbi, &key, &value);
 					if (needsFree)
-						free(data.mv_data);
+						free(value.mv_data);
 					break;
 				case START_BLOCK:
 					conditionDepth++;
@@ -177,7 +173,7 @@ class WriteWorker : public WriteWorkerBase {
 				case USER_CALLBACK:
 					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
-					executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
+					executionProgress.Send(nullptr, sizeof(int));
 waitForCallback:
 					if (interruptionStatus == 0)
 						uv_cond_wait(userCallbackCond, userCallbackLock);
@@ -189,7 +185,7 @@ waitForCallback:
 								uv_cond_wait(userCallbackCond, userCallbackLock);
 								// now restart our transaction
 								rc = mdb_txn_begin(env, nullptr, 0, &txn);
-								envForTxn->currentWriteTxn = txn;
+								envForTxn->currentBatchTxn = txn;
 								interruptionStatus = 0;
 								uv_cond_signal(userCallbackCond);
 								goto waitForCallback;
@@ -205,131 +201,21 @@ waitForCallback:
 						}
 					}
 					uv_mutex_unlock(userCallbackLock);
-					results[i++] = SUCCESSFUL_OPERATION;
+					*start = SUCCESSFUL_OPERATION;
 				case DROP:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
 				case POINTER_NEXT:
 					instruction++;
 					instruction = (uint32_t*) (size_t) *((double*)instruction);
 					break;
-				case BLOCK_END;
+				case BLOCK_END:
 					conditionDepth--;
 					if (validatedDepth > conditionDepth)
 						validatedDepth--;
 					break;
-			}
-		} while(conditionDepth)
-
-		for (int i = 0; i < actionCount;) {
-			action_t* action = &actions[i];
-			int actionType = action->actionType;
-			if (actionType >= 8) {
-				if (actionType == CHANGE_DB) {
-					// reset target db
-					dw = action->dw;
-				} else if (actionType == RESET_CONDITION) {
-					// reset last condition
-					conditionDepth--;
-					if (validatedDepth > conditionDepth)
-						validatedDepth--;
-				} else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
-					uv_mutex_lock(userCallbackLock);
-					finishedProgress = false;
-					executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
-waitForCallback:
-					if (interruptionStatus == 0)
-						uv_cond_wait(userCallbackCond, userCallbackLock);
-					if (interruptionStatus != 0 && !finishedProgress) {
-						if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-							rc = mdb_txn_commit(txn);
-							if (rc == 0) {
-								// wait again until the sync transaction is completed
-								uv_cond_wait(userCallbackCond, userCallbackLock);
-								// now restart our transaction
-								rc = mdb_txn_begin(env, nullptr, 0, &txn);
-								envForTxn->currentWriteTxn = txn;
-								interruptionStatus = 0;
-								uv_cond_signal(userCallbackCond);
-								goto waitForCallback;
-							}
-							if (rc != 0) {
-								uv_mutex_unlock(userCallbackLock);
-								return SetErrorMessage(mdb_strerror(rc));
-							}
-						} else {
-							uv_mutex_unlock(userCallbackLock);
-							rc = interruptionStatus;
-							goto done;
-						}
-					}
-					uv_mutex_unlock(userCallbackLock);
 				}
-				results[i++] = SUCCESSFUL_OPERATION;
-				continue;
 			}
-			bool validated;
-			if (validatedDepth < conditionDepth) {
-				// we are in an invalidated branch, just need to track depth
-				results[i] = FAILED_CONDITION;
-				validated = false;
-			} else if (actionType & CONDITION) { // has precondition
-				MDB_val value;
-				// TODO: Use a cursor
-				rc = mdb_get(txn, dw->dbi, &action->key, &value);
-				if (rc == MDB_BAD_VALSIZE) {
-					results[i] = BAD_KEY;
-					validated = false;
-				} else {
-					if (action->ifVersion == NO_EXIST_VERSION) {
-						validated = rc;
-					}
-					else {
-						if (rc)
-							validated = false;
-						else
-							validated = action->ifVersion == *((double*)value.mv_data);
-					}
-					results[i] = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
-				}
-				rc = 0;
-			} else {
-				validated = true;
-				results[i] = SUCCESSFUL_OPERATION;
-			}
-			if (actionType & (WRITE_WITH_VALUE | DELETE_OPERATION)) { // has write operation to perform
-				if (validated) {
-					if (actionType & DELETE_OPERATION) {
-						rc = mdb_del(txn, dw->dbi, &action->key, (actionType & WRITE_WITH_VALUE) ? &action->data : nullptr);
-						if (rc == MDB_NOTFOUND) {
-							rc = 0; // ignore not_found errors
-							results[i] = NOT_FOUND;
-						}
-					} else {
-						if (dw->hasVersions)
-							rc = putWithVersion(txn, dw->dbi, &action->key, &action->data, putFlags, action->version);
-						else
-							rc = mdb_put(txn, dw->dbi, &action->key, &action->data, putFlags);
-					}
-					if (rc != 0) {
-						if (rc == MDB_BAD_VALSIZE) {
-							results[i] = BAD_KEY;
-							rc = 0;
-						} else {
-							goto done;
-						}
-					}
-				}
-				if (action->freeValue) {
-					action->freeValue(action->data);
-				}
-			} else {
-				// starting condition branch
-				conditionDepth++;
-				if (validated)
-					validatedDepth++;
-			}
-			i++;
-		}
+		} while(conditionDepth);
 done:
 		if (envForTxn) {
 			envForTxn->currentWriteTxn = nullptr;
@@ -343,16 +229,18 @@ done:
 		else
 			rc = mdb_txn_commit(txn);
 		if (rc == 0) {
-			if (envForTxn->flags & MDB_OVERLAPPINGSYNC) {
+			unsigned int envFlags;
+			mdb_env_get_flags(env, &envFlags);
+			if (envFlags & MDB_OVERLAPPINGSYNC) {
 				// successfully completed, we can now send a progress event to tell JS that the commit has been completed
 				// and that it is welcome to submit the next transaction, however the commit is not synced/flushed yet,
 				// so we continue execution to do that
-				i = -1; // indicator of completion
-				executionProgress.Send(reinterpret_cast<const int char*>(&i), sizeof(int));
-				envForTxn->syncTxnId = txnId;
+				int i = -1; // indicator of completion
+				executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
+				//envForTxn->syncTxnId = txnId;
 				rc= mdb_env_sync(env, 1);
 				// signal a subsequent txn that we are synced
-				uv_cond_signal(envForTxn->syncCond);
+				//uv_cond_signal(envForTxn->syncCond);
 				if (rc)
 					return SetErrorMessage(mdb_strerror(rc));
 				// we have sync'ed to disk, but the commit is not truly durable and available on restart yet since
@@ -374,16 +262,16 @@ done:
 				mdb_txn_commit(txn);
 			}
 		} else {
-			if ((putFlags & 1) > 0) // sync mode
-				return Nan::ThrowError(mdb_strerror(rc));
-			else {
+			if (&executionProgress)
 				return SetErrorMessage(mdb_strerror(rc));
+			else { // sync mode
+				return Nan::ThrowError(mdb_strerror(rc));
 			}
 		}
 
 	}
 
-	void HandleProgressCallback(const int char* data, size_t count) {
+	void HandleProgressCallback(const char* data, size_t count) {
 		Nan::HandleScope scope;
 		if (interruptionStatus != 0) {
 			uv_mutex_lock(userCallbackLock);
@@ -412,12 +300,20 @@ done:
 
 	private:
 	MDB_env* env;
-	int actionCount;
-	uint8_t* results;
-	MDB_val compressibles;
-	int resultIndex = 0;
-	uint32_t* instructions
-	int putFlags;
-	KeySpace* keySpace;
+	uint32_t* instructions;
 	friend class DbiWrap;
 };
+
+NAN_METHOD(EnvWrap::startWriting) {
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    Local<Context> context = Nan::GetCurrentContext();
+    if (!ew->env) {
+        return Nan::ThrowError("The environment is already closed.");
+    }
+    size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
+
+
+    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
+    Nan::AsyncQueueWorker(worker);
+}

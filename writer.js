@@ -1,19 +1,21 @@
 const { getAddress } = require('./native')
 
-exports.addWriteMethods = function(LMDBStore, {}) {
+exports.addWriteMethods = function(LMDBStore, { env }) {
 	// wi stands for write instructions
 	let wiBuffer, wiDataView, wiDataAddress
-	let wiPosition = 8000
 	function allocateInstructionBuffer() {
 		wiBuffer = Buffer.alloc(8192)
 		wiBuffer.dataView = wiDataView = new DataView(wiBuffer.buffer, wiBuffer.byteOffset, wiBuffer.byteLength)
 		wiBuffer.buffer.address = getAddress(wiBuffer.buffer)
 		wiDataAddress = wiBuffer.buffer.address + wiBuffer.byteOffset
-		wiPosition = 0
+		wiPosition = 8
 	}
 	let lastCompressible = 0
+	allocateInstructionBuffer()
 	let scheduleCommitStartBuffer = wiBuffer
-	let scheduleCommitStartPosition
+	let scheduleCommitStartPosition = 0
+	wiDataView.setUint32(0, 1, true)
+	let currentWritePromise = new Promise(()=>{})
 	function writeInstructions(flags, id, valueBuffer, version, ifVersion) {
 		let valueBuffer = encode(value)
 		if (wiPosition > 6000) {
@@ -55,8 +57,16 @@ exports.addWriteMethods = function(LMDBStore, {}) {
 		// record pointer to value buffer
 		wiDataView.setUint32(wiPosition, (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) +
 			valueBuffer.byteOffset, true)
-
-
+		let transactionCompletion = scheduleCommitStartBuffer.dataView.getUint32(scheduleCommitStartPosition)
+		if (transactionCompletion) {
+			currentWritePromise = new Promise(resolve => {
+				env.startWriting(scheduleCommitStartBuffer.buffer.address + scheduleCommitStartPosition, () => {
+					console.log('finished writing')
+					resolve()
+				})
+			})
+		}
+		return currentWritePromise
 	}
 	Object.assign(LMDB.prototype, {
 		put(id, value, versionOrOptions, ifVersion) {
@@ -72,8 +82,7 @@ exports.addWriteMethods = function(LMDBStore, {}) {
 					ifVersion = versionsOrOptions.ifVersion
 				versionOrOptions = versionOrOptions.version
 			}
-			writeInstructions(flags, id, value, versionOrOptions, ifVersion)
-
+			return writeInstructions(flags, id, value, versionOrOptions, ifVersion)
 		}
 	})
 	function commitQueued() {
