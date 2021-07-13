@@ -401,10 +401,10 @@ int compare32LE(const MDB_val *a, const MDB_val *b) {
         sizeB -= minSize;
         wordA = sizeA < 4 ? *dataA << ((4 - sizeA) << 3) : *dataA;
         wordB = sizeB < 4 ? *dataB << ((4 - sizeB) << 3) : *dataB;
+        if (wordA > wordB)
+            return 1;
+        if (wordA < wordB)
+            return -1;
     }
-    if (wordA > wordB)
-        return 1;
-    if (wordA < wordB)
-        return -1;
     return sizeA - sizeB;
 }

@@ -38,6 +38,8 @@
           },
           "cflags_cc": [
             "-fPIC",
+            "-Wno-strict-aliasing",
+            "-Wno-unused-result",
             "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
           ],
