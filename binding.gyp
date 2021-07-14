@@ -40,6 +40,7 @@
             "-fPIC",
             "-Wno-strict-aliasing",
             "-Wno-unused-result",
+            "-Wno-cast-function-type",
             "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
           ],

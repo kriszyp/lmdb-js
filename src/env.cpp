@@ -215,7 +215,7 @@ class BatchWorker : public BatchWorkerBase {
     void Execute(const ExecutionProgress& executionProgress) {
         MDB_txn *txn;
         // we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
-        DbiWrap* dw;
+        DbiWrap* dw = nullptr;
 
         for (int i = 0; i < actionCount; i++) {
             action_t* action = &actions[i];
@@ -955,7 +955,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
     ew->batchWorker = worker;
     bool keyIsValid = false;
     NodeLmdbKeyType keyType;
-    DbiWrap* dw;
+    DbiWrap* dw = nullptr;
 
     for (unsigned int i = 0; i < array->Length(); i++) {
         //Local<Value> element = array->Get(context, i).ToLocalChecked(); // checked/enforce in js
