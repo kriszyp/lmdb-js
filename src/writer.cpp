@@ -33,6 +33,7 @@ const int PUT = 0;
 const int DEL = 1;
 const int DEL_VALUE = 2;
 const int START_BLOCK = 3;
+const int START_TXN = 12;
 const int POINTER_NEXT = 15;
 const int USER_CALLBACK = 4;
 const int DROP = 5;
@@ -41,8 +42,11 @@ const int HAS_VALUE = 2;
 const int NEEDS_VALIDATION = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
-const int COMPRESSIBLE = 0x400;
-const int DELETE_DATABASE = 0x800;
+const int COMPRESSIBLE = 0x10000000;
+const int NOT_COMPRESSED = 0x20000000; // was compressible, but didn't get compressed (probably didn't meet threshold)
+const int FINISHED_COMPRESSING = 0x20000000; // finished attempt to compress
+const int COMPRESSED = 0x30000000;
+const int DELETE_DATABASE = 0x400;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
 const int FAILED_CONDITION = 1;
@@ -96,6 +100,15 @@ class WriteWorker : public WriteWorkerBase {
 		}
 		int conditionDepth = 1;
 
+		if (envForTxn->currentBatchTxn && envForTxn->currentBatchTxn->isWriting) {
+			uv_mutex_lock(userCallbackLock);
+			if (envForTxn->currentBatchTxn && envForTxn->currentBatchTxn->isWriting) {
+				*instruction = START_BLOCK; // switch from start transaction to start block and let the other worker finish it
+				uv_mutex_unlock(userCallbackLock);
+				return;
+			}
+			uv_mutex_unlock(userCallbackLock);
+		}
 		int rc = mdb_txn_begin(env, nullptr, 0, &txn);
 		int txnId = mdb_txn_id(txn);
 		if (rc != 0) {
@@ -141,7 +154,6 @@ class WriteWorker : public WriteWorkerBase {
 					validated = rc == MDB_NOTFOUND;
 				}
 			}
-			bool needsFree = false;
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE)
 					instruction += 4; // skip compression pointers
@@ -156,7 +168,7 @@ class WriteWorker : public WriteWorkerBase {
 						rc = putWithVersion(txn, dbi, &key, &value, flags, setVersion);
 					else
 						rc = mdb_put(txn, dbi, &key, &value, flags);
-					if (needsFree)
+					if (flags & COMPRESSED)
 						free(value.mv_data);
 					break;
 				case DEL:
@@ -164,7 +176,7 @@ class WriteWorker : public WriteWorkerBase {
 					break;
 				case DEL_VALUE:
 					rc = mdb_del(txn, dbi, &key, &value);
-					if (needsFree)
+					if (flags & COMPRESSED)
 						free(value.mv_data);
 					break;
 				case START_BLOCK:

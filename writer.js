@@ -16,7 +16,7 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 	let scheduleCommitStartPosition = 0
 	wiDataView.setUint32(0, 1, true)
 	let currentWritePromise = new Promise(()=>{})
-	function writeInstructions(flags, id, valueBuffer, version, ifVersion) {
+	function writeInstructions(flags, id, value, version, ifVersion) {
 		let valueBuffer = encode(value)
 		if (wiPosition > 6000) {
 			// make new buffer and make pointer to it
