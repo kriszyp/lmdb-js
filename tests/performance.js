@@ -109,11 +109,36 @@ console.log('opened')
 		debugger
 		return last
 	})
-	test.only('lmdb-read', () => {
+	test('lmdb-read', () => {
 		let count = 0;
 		start = Date.now()
-		for (let { key, value } of db2.getRange({start:0, end: 1000000000000})) {
+		for (let i =0; i < 100; i++) {
+			for (let { key, value } of db2.getRange({start:0, end: 1000000000000})) {
+				count++
+			}
+		}
+		console.log('entries', count, 'time to read', Date.now() - start)
+	})
+	test.only('lmdb-iterators', async () => {
+		let count = 0;
+		start = Date.now()
+		let iterators = []
+		let key = 0
+		for (let i =0; i < 1000000; i++) {
+			let j = Math.floor(Math.random() * 100)
+			let iterator = db2.getRange({start:key, end: 1000000000000})[Symbol.iterator]()
+			key = iterator.next()?.value.key + 1
 			count++
+			let oldIterator = iterators[j]
+			if (oldIterator) {
+				oldIterator.next()
+				oldIterator.return()
+			}
+			iterators[j] = iterator
+			if (Math.random() < 0.005) {
+				await waitForImmediate()
+				key = 0
+			}
 		}
 		console.log('entries', count, 'time to read', Date.now() - start)
 	})
