@@ -21,11 +21,15 @@ console.log('opening')
 		keyIsBuffer: true,
 		winMemoryPriority: 3,
 //		mapSize: 0x10000,
+useWritemap: true,
+noSync: true,
 		pageSize: 0x1000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
 		winMemoryPriority: 3,
+		useWritemap: true,
+		noSync: true,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
@@ -72,7 +76,7 @@ console.log('opened')
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
 		let start = Date.now()
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 100; i++) {
 			let start = Date.now()
 			let actionTime
 			let cpuStart = process.cpuUsage()
