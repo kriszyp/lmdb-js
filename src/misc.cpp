@@ -35,7 +35,7 @@ static thread_local KeySpace* fixedKeySpace;
 
 void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
-    #ifdef __GNUC__
+    #if defined(__GLIBC__) && !defined(__UCLIBC__)
     signal(SIGSEGV, signalHandler);   // install our handler
     #endif
     Local<Object> versionObj = Nan::New<Object>();
