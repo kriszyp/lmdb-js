@@ -3962,13 +3962,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 
 	j = i = keep;
 
-	if (env->me_flags & MDB_WRITEMAP
-#ifdef _WIN32
-		/* In windows, we still do writes to the file (with write-through enabled in sync mode),
-		 * as this is faster than FlushViewOfFile/FlushFileBuffers */
-		&& (env->me_flags & MDB_NOSYNC)
-#endif
-	) {
+	if (env->me_flags & MDB_WRITEMAP) {
 		goto done;
 	}
 

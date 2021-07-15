@@ -21,12 +21,15 @@ console.log('opening')
 		keyIsBuffer: true,
 		winMemoryPriority: 3,
 //		mapSize: 0x10000,
+useWritemap: true,
+
 		pageSize: 0x1000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
 		winMemoryPriority: 3,
 		useWritemap: true,
+		noSync: true,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
