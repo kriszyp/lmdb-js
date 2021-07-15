@@ -13,7 +13,7 @@ var getRandomBuffer = () => {
 	return randomBuffer
 }
 suite('performance', function() {
-	//removeSync('tests/db')
+	removeSync('tests/db')
 
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
@@ -26,6 +26,7 @@ console.log('opening')
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
 		winMemoryPriority: 3,
+		useWritemap: true,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
@@ -85,7 +86,7 @@ console.log('opened')
 					}
 					actionTime = Date.now() - start
 				})
-				for (let i = 0; i < 1000; i++) {
+				for (let i = 0; i < 100; i++) {
 						let buffer = Buffer.allocUnsafe(4)
 						buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
 					global.test = lmdb.get(buffer)
@@ -119,7 +120,7 @@ console.log('opened')
 		}
 		console.log('entries', count, 'time to read', Date.now() - start)
 	})
-	test.only('lmdb-iterators', async () => {
+	test('lmdb-iterators', async () => {
 		let count = 0;
 		start = Date.now()
 		let iterators = []

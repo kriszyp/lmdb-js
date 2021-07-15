@@ -554,12 +554,6 @@ NAN_METHOD(EnvWrap::open) {
     setFlagFromValue(&flags, MDB_NOLOCK, "unsafeNoLock", false, options);
     #ifdef MDB_RPAGE_CACHE
     setFlagFromValue(&flags, MDB_REMAP_CHUNKS, "remapChunks", false, options);
-    #ifdef _WIN32
-        if ((flags & MDB_WRITEMAP) && !(flags & MDB_NOSYNC) &&!(flags & MDB_REMAP_CHUNKS)) {
-            fprintf(stderr, "Writemaps are currently disabled on Windows due to issues with syncing\n");
-            flags &= ~MDB_WRITEMAP;
-        }
-    #endif
     #endif
 
     if (flags & MDB_NOLOCK) {
