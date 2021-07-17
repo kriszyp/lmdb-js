@@ -4,6 +4,7 @@
       "use_robust%": "false",
       "use_data_v1%": "false",
       "enable_fast_api_calls%": "false",
+      "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false"
   },
@@ -78,6 +79,9 @@
           "include_dirs": [
             "dependencies/lmdb/libraries/liblmdb",
           ],
+        }],
+        ["enable_pointer_compression=='true'", {
+          "defines": ["V8_COMPRESS_POINTERS", "V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE"],
         }],
         ["enable_fast_api_calls=='true'", {
           "defines": ["ENABLE_FAST_API=1"],
