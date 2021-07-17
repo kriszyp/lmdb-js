@@ -44,7 +44,7 @@ const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
 const int COMPRESSIBLE = 0x10000000;
 const int NOT_COMPRESSED = 0x20000000; // was compressible, but didn't get compressed (probably didn't meet threshold)
-const int FINISHED_COMPRESSING = 0x20000000; // finished attempt to compress
+const int PROCESSING = 0x20000000; // finished attempt to compress
 const int COMPRESSED = 0x30000000;
 const int DELETE_DATABASE = 0x400;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
@@ -324,7 +324,6 @@ NAN_METHOD(EnvWrap::startWriting) {
     }
     size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
     Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
-
 
     WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
     Nan::AsyncQueueWorker(worker);
