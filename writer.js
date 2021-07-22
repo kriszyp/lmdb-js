@@ -1,22 +1,28 @@
 const { getAddress } = require('./native')
+let backpressureArray
 
 const PROCESSING = 0x20000000
+const BACKPRESSURE_THRESHOLD = 5000000
+const TXN_DELIMITER = 0xffffffff
 exports.addWriteMethods = function(LMDBStore, { env }) {
+	const writerStatus = Float64Array(2)
+
+	let resolution
 	// wi stands for write instructions
-	let wiBuffer, wiDataView, wiDataAddress
+	let wiBuffer, wiDataView, wiDataAddress, uint32Wi, float64Wi
 	function allocateInstructionBuffer() {
 		wiBuffer = Buffer.alloc(8192)
 		wiBuffer.dataView = wiDataView = new DataView(wiBuffer.buffer, wiBuffer.byteOffset, wiBuffer.byteLength)
+		uint32Wi = wiBuffer.uint32Wi = new Uint32Array(wiBuffer.buffer, 0, 2048)
+		float64Wi = wiBuffer.float64Wi = new Float64rray(wiBuffer.buffer, 0, 1024)
 		wiBuffer.buffer.address = getAddress(wiBuffer.buffer)
 		wiDataAddress = wiBuffer.buffer.address + wiBuffer.byteOffset
-		wiPosition = 8
+		wiPosition = 0
 	}
 	let lastCompressible = 0
+	let outstandingWriteCount = 0
 	allocateInstructionBuffer()
-	let scheduleCommitStartBuffer = wiBuffer
-	let scheduleCommitStartPosition = 0
-	wiDataView.setUint32(0, 2, true) // pseudo end of transaction to indicate a new start
-	let currentWritePromise = new Promise(()=>{})
+	uint32Wi[0] = TXN_DELIMITER
 	function writeInstructions(flags, id, value, version, ifVersion) {
 		let valueBuffer = encode(value)
 		if (wiPosition > 6000) {
@@ -29,51 +35,83 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 		}
 		let flags = 0
 		let flagPosition = wiPosition
+
 		// don't increment wiPosition until we are sure we don't have any key writing errors
-		wiDataView.setUint32(wiPosition + 4, this.db.dbi, true)
+		uint32Wi[flagPosition + 1] = this.db.dbi
 		let keySize = writeKey(id, wiBuffer, wiPosition + 12)
 		if (keySize > MAX_KEY_SIZE)
 			throw new Error('Key size is too large')
-
-		wiDataView.setUint32(wiPosition + 8, keySize, true)
+		uint32Wi[flagPosition + 2] = keySize
 		wiPosition += (keySize + 27) & 0xffffff8
 		if (ifVersion != undefined) {
 			flags |= 0x100
-			wiDataView.setFloat64(wiPosition, ifVersion, true)
-			wiPosition += 8
+			float64Wi[wiPosition >> 1] = ifVersion
+			wiPosition += 2
 		}
 		if (version != undefined) {
 			flags |= 0x200
-			wiDataView.setFloat64(wiPosition, versionOrOptions, true)
-			wiPosition += 8
+			float64Wi[wiPosition >> 1] = versionOrOptions
+			wiPosition += 2
 		}
 		if (this.compression) {
-			wiDataView.setFloat64(wiPosition, lastCompressible, true)
-			lastCompressible = wiDataAddress + wiPosition
-			wiPosition += 8
-			wiDataView.setFloat64(wiPosition, this.compression.address, true)
-			wiPosition += 8
+			float64Wi[wiPosition >> 1] = lastCompressible
+			lastCompressible = wiDataAddress + (wiPosition << 2)
+			wiPosition += 2
+			float64Wi[wiPosition >> 1] = this.compression.address
+			wiPosition += 2
 		}
 		let valueArrayBuffer = valueBuffer.buffer
 		// record pointer to value buffer
-		wiDataView.setUint32(wiPosition, (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) +
-			valueBuffer.byteOffset, true)
-		wiDataView.setUint32(flagPosition, flags, true) // write flags at the end so the writer never processes mid-stream
-
-		let transactionCompletion = scheduleCommitStartBuffer.dataView.getUint32(scheduleCommitStartPosition)
-		if (transactionCompletion) {
-			while(transactionCompletion == 1) // spin lock while waiting for resolution of address
-				transactionCompletion = scheduleCommitStartBuffer.dataView.getUint32(scheduleCommitStartPosition)
-			if (wiDataView.getUint32(flagPosition, true) & PROCESSING) // if it was already counted as processing, it is part of the past transaction
-				return currentWritePromise
-			currentWritePromise = new Promise(resolve => {
-				env.startWriting(scheduleCommitStartBuffer.buffer.address + scheduleCommitStartPosition, () => {
-					console.log('finished writing')
-					resolve()
+		uint32Wi[wiPosition++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+		uint32Wi[wiPosition] = 0 // clear out next so there is a stop signal
+		let writeStatus = Atomic.exchange(uint32Wi, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so with an atomic exchanges
+		outstandingWriteCount++
+		resolveWrites()
+		if (writeStatus == TXN_DELIMITER) {
+			let startAddress = wiBuffer.buffer.address + (flagPosition << 2)
+			function startWriting() {
+				env.startWriting(startAddress, (committedCount) => {
+					console.log('finished a write')
+					if (committedCount > 0) {
+						resolveWrites()
+					} else {
+						// user callback?
+					}
 				})
-			})
+			}
+			if (true || commitDelay == IMMEDIATE)
+				startWriting()
+			else
+				setImmediate(startWriting)
+		} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+			if (!backpressureArray)
+				backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
+			Atomics.wait(backpressure, 0, 0, 1)
 		}
-		return currentWritePromise
+		return new Promise((resolve, reject) => {
+			let newResolution = {
+				uint32Wi,
+				flagPosition,
+				resolve,
+				reject,
+				valueBuffer,
+				nextResolution: null,
+			}
+			nextResolution.nextResolution = newResolution
+			nextResolution = newResolution
+		})
+	}
+	function resolveWrites() {
+		// clean up finished instructions
+		let instructionStatus
+		while((instructionStatus = resolution.uint32Wi[resolution.flagPosition]) & 0xf0000000) {
+			outstandingWriteCount--
+			if (instructionStatus)
+				resolution.reject(new Error())
+			else
+				resolution.resolve(true)
+			resolution = resolution.nextResolution
+		}
 	}
 	Object.assign(LMDB.prototype, {
 		put(id, value, versionOrOptions, ifVersion) {
