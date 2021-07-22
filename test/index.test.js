@@ -130,10 +130,11 @@ describe('lmdb-store', function() {
         [ 'Test', 100, 1 ],
         [ 'Test', 10010, 2 ],
         [ 'Test', 10010, 3 ],
+        '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/00000000MMsoFg0R8824kvws2YbpA0Vo',
+        '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu5zqpvRiJBvOJG3CLCPGjULWtA5Ri',
       ]
       for (let key of keys)
         await db.put(key, 3);
-      let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: ['Test', null],
         end: ['Test', null],
@@ -141,6 +142,12 @@ describe('lmdb-store', function() {
       })) {
         throw new Error('Should not return any results')
       }
+      let returnedKeys = Array.from(db.getKeys({
+        start:'0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu5zqpvRiJBvOJG3CLCPGjULWtA5Ri',
+        end:  '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/00000000MMsoFg0R8824kvws2YbpA0Vo',
+        reverse: true
+      }))
+      returnedKeys.should.deep.equal(['0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu5zqpvRiJBvOJG3CLCPGjULWtA5Ri'])
     });
     it('string', async function() {
       await db.put('key1', 'Hello world!');
