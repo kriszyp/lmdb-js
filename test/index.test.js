@@ -129,11 +129,10 @@ describe('lmdb-store', function() {
       const keys = [
         [ 'Test', 100, 1 ],
         [ 'Test', 10010, 2 ],
-        [ 'Test', 10010, 3 ],
+        [ 'Test', 10010, 3 ]
       ]
       for (let key of keys)
         await db.put(key, 3);
-      let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: ['Test', null],
         end: ['Test', null],
@@ -141,6 +140,18 @@ describe('lmdb-store', function() {
       })) {
         throw new Error('Should not return any results')
       }
+    })
+    it('more reverse query range', async function() {
+      db.putSync('0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8', 1, 1, null);
+      db.putSync('0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu0mnkm8lS38yIZa4Xte3Q3JUoD84V', 1, 1, null);
+      const options =
+      {
+        start: '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0SdvKaMkMNPoydWV6HxZbFtKeQm5sqz3',
+        end: '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/00000000dKZzSn03pte5dWbaYfrZl4hG',
+        reverse: true
+      };
+      let returnedKeys = Array.from(db.getKeys(options))
+      returnedKeys.should.deep.equal(['0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu0mnkm8lS38yIZa4Xte3Q3JUoD84V', '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8'])
     });
     it('string', async function() {
       await db.put('key1', 'Hello world!');

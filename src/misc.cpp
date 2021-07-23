@@ -29,10 +29,13 @@
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 static thread_local Persistent<Object>* globalUnsafeBuffer;
+static thread_local double lastVersion = 0;
+static thread_local DbiWrap* currentDb = nullptr;
+static thread_local KeySpace* fixedKeySpace;
 
 void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
-    #ifdef __GNUC__
+    #if defined(__GLIBC__) && !defined(__UCLIBC__)
     signal(SIGSEGV, signalHandler);   // install our handler
     #endif
     Local<Object> versionObj = Nan::New<Object>();
@@ -569,7 +572,7 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
-#ifdef __GNUC__
+#if defined(__GLIBC__) && !defined(__UCLIBC__)
 #include <execinfo.h>
 #include <unistd.h>
 void signalHandler(int sig) {

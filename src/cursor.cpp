@@ -455,7 +455,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
                 if (rc)
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
-                if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key) && !rc)
+                else if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
             } else // forward, just do a get by range
                 rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);

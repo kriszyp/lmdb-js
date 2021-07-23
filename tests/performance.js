@@ -13,7 +13,7 @@ var getRandomBuffer = () => {
 	return randomBuffer
 }
 suite('performance', function() {
-	//removeSync('tests/db')
+	removeSync('tests/db')
 
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
@@ -21,11 +21,15 @@ console.log('opening')
 		keyIsBuffer: true,
 		winMemoryPriority: 3,
 //		mapSize: 0x10000,
+useWritemap: true,
+noSync: true,
 		pageSize: 0x1000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
 		winMemoryPriority: 3,
+		useWritemap: true,
+		noSync: true,
 //		mapSize: 0x10000,
 		pageSize: 0x1000
 	})
@@ -72,7 +76,7 @@ console.log('opened')
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
 		let start = Date.now()
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 100; i++) {
 			let start = Date.now()
 			let actionTime
 			let cpuStart = process.cpuUsage()
@@ -85,7 +89,7 @@ console.log('opened')
 					}
 					actionTime = Date.now() - start
 				})
-				for (let i = 0; i < 1000; i++) {
+				for (let i = 0; i < 100; i++) {
 						let buffer = Buffer.allocUnsafe(4)
 						buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
 					global.test = lmdb.get(buffer)
@@ -109,11 +113,36 @@ console.log('opened')
 		debugger
 		return last
 	})
-	test.only('lmdb-read', () => {
+	test('lmdb-read', () => {
 		let count = 0;
 		start = Date.now()
-		for (let { key, value } of db2.getRange({start:0, end: 1000000000000})) {
+		for (let i =0; i < 100; i++) {
+			for (let { key, value } of db2.getRange({start:0, end: 1000000000000})) {
+				count++
+			}
+		}
+		console.log('entries', count, 'time to read', Date.now() - start)
+	})
+	test('lmdb-iterators', async () => {
+		let count = 0;
+		start = Date.now()
+		let iterators = []
+		let key = 0
+		for (let i =0; i < 1000000; i++) {
+			let j = Math.floor(Math.random() * 100)
+			let iterator = db2.getRange({start:key, end: 1000000000000})[Symbol.iterator]()
+			key = iterator.next()?.value.key + 1
 			count++
+			let oldIterator = iterators[j]
+			if (oldIterator) {
+				oldIterator.next()
+				oldIterator.return()
+			}
+			iterators[j] = iterator
+			if (Math.random() < 0.005) {
+				await waitForImmediate()
+				key = 0
+			}
 		}
 		console.log('entries', count, 'time to read', Date.now() - start)
 	})

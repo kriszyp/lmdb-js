@@ -538,10 +538,10 @@ int compare32LE(const MDB_val *a, const MDB_val *b) {
                 sizeB == 0 ? 0 : *dataB << 24 :
                 sizeB == 2 ? *dataB << 16 : *dataB << 8 :
                     *dataB;
+        if (wordA > wordB)
+            return 1;
+        if (wordA < wordB)
+            return -1;
     }
-    if (wordA > wordB)
-        return 1;
-    if (wordA < wordB)
-        return -1;
     return sizeA - sizeB;
 }*/

@@ -3012,9 +3012,9 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY)
 		return EACCES;
-	if (force
-#ifndef _WIN32	/* Sync is normally achieved in Windows by doing WRITE_THROUGH writes */
-		|| !(env->me_flags & MDB_NOSYNC)
+	if (force || !(env->me_flags & MDB_NOSYNC)
+#ifdef _WIN32	/* Sync is normally achieved in Windows by doing WRITE_THROUGH writes */
+	 && (env->me_flags & MDB_WRITEMAP)
 #endif
 		) {
 		if (env->me_flags & MDB_WRITEMAP) {
@@ -3966,13 +3966,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 
 	j = i = keep;
 
-	if (env->me_flags & MDB_WRITEMAP
-#ifdef _WIN32
-		/* In windows, we still do writes to the file (with write-through enabled in sync mode),
-		 * as this is faster than FlushViewOfFile/FlushFileBuffers */
-		&& (env->me_flags & MDB_NOSYNC)
-#endif
-	) {
+	if (env->me_flags & MDB_WRITEMAP) {
 		goto done;
 	}
 
@@ -3988,32 +3982,34 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	n = 0;
 	
 #ifdef _WIN32
-	DWORD file_high;
-	size_t file_size = GetFileSize(fd, &file_high);
-	file_size += (size_t) file_high << 32;
-	if (pgno * psize >= file_size) {
-		file_size = ((size_t) ((1.04 + 16 / sqrt(pgno + 128)) * pgno * psize / 0x40000 + 1)) * 0x40000;
-		LONG high_position = file_size >> 32;
-		if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-			fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
-		} else {
-			rc = SetEndOfFile(fd);
-			if (!rc) {
-				rc = ErrCode();
-				fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+	if (!(env->me_flags & MDB_WRITEMAP)) {
+		DWORD file_high;
+		size_t file_size = GetFileSize(fd, &file_high);
+		file_size += (size_t) file_high << 32;
+		if (pgno * psize >= file_size) {
+			file_size = ((size_t) ((1.04 + 16 / sqrt(pgno + 128)) * pgno * psize / 0x40000 + 1)) * 0x40000;
+			LONG high_position = file_size >> 32;
+			if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+				fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
+			} else {
+				rc = SetEndOfFile(fd);
+				if (!rc) {
+					rc = ErrCode();
+					fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+				}
 			}
 		}
-	}
-	if (!MDB_REMAPPING(env->me_flags) && !(env->me_flags & MDB_WRITEMAP)) {
-		MDB_meta *m = mdb_env_pick_meta(env);
-		void *p;
-		p = (MDB_page *)(env->me_map + env->me_psize * m->mm_last_pg);
-		if (pgno > m->mm_last_pg) {
-			p = VirtualAlloc(p, env->me_psize * (pgno - m->mm_last_pg), MEM_COMMIT, PAGE_READONLY);
-			if (!p) {
-				fprintf(stderr, "VirtualAlloc failed\n");
-				DPUTS("VirtualAlloc failed");
-				return ErrCode();
+		if (!MDB_REMAPPING(env->me_flags)) {
+			MDB_meta *m = mdb_env_pick_meta(env);
+			void *p;
+			p = (MDB_page *)(env->me_map + env->me_psize * m->mm_last_pg);
+			if (pgno > m->mm_last_pg) {
+				p = VirtualAlloc(p, env->me_psize * (pgno - m->mm_last_pg), MEM_COMMIT, PAGE_READONLY);
+				if (!p) {
+					fprintf(stderr, "VirtualAlloc failed\n");
+					DPUTS("VirtualAlloc failed");
+					return ErrCode();
+				}
 			}
 		}
 	}

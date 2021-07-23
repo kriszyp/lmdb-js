@@ -868,7 +868,7 @@ function open(path, options) {
 			return this.scheduleCommit().unconditionalResults
 		}
 		backup(path) {
-			return new Promise((resolve, reject) => env.copy(path, true, (error) => {
+			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
 				if (error) {
 					reject(error)
 				} else {
