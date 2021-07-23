@@ -215,17 +215,27 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
     TxnWrap* currentTxnWrap;
     ~BatchWorkerBase();
 };
-class WriteWorkerBase : public Nan::AsyncProgressWorker {
+class WriteWorker : public Nan::AsyncProgressWorker {
   public:
-    WriteWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
+    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressible, Nan::Callback *callback);
     void ContinueWrite(int rc, bool hasStarted);
+    void Write();
+    void Compress();
+    void Execute(const ExecutionProgress& executionProgress);
+    void HandleProgressCallback(const char* data, size_t count);
+    void HandleOKCallback();
     uv_mutex_t* userCallbackLock;
     uv_cond_t* userCallbackCond;
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
     TxnWrap* currentTxnWrap;
-    ~WriteWorkerBase();
+    ~WriteWorker();
+  private:
+    MDB_env* env;
+    uint32_t* instructions;
+    double* nextCompressible;
+    ExecutionProgress* executionProgress;
 };
 
 /*
@@ -247,7 +257,8 @@ private:
     // compression settings and space
     Compression *compression;
     BatchWorkerBase* batchWorker;
-    WriteWorkerBase* writeWorker;
+    WriteWorker* writeWorker;
+    WriteWorker* syncWriter;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -412,6 +423,7 @@ public:
     */
     static NAN_METHOD(batchWrite);
     static NAN_METHOD(startWriting);
+    static NAN_METHOD(writeSync);
 
     static NAN_METHOD(continueBatch);
     static NAN_METHOD(resetCurrentReadTxn);
@@ -432,8 +444,6 @@ private:
     EnvWrap *ew;
     // parent TW, if it is exists
     TxnWrap *parentTw;
-    // The wrapped object
-    MDB_txn *txn;
     
     // Flags used with mdb_txn_begin
     unsigned int flags;
@@ -445,6 +455,10 @@ private:
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
     ~TxnWrap();
+
+    // The wrapped object
+    MDB_txn *txn;
+
     // Remove the current TxnWrap from its EnvWrap
     void removeFromEnvWrap();
 
@@ -725,6 +739,7 @@ public:
     ~Compression();
     friend class EnvWrap;
     friend class DbiWrap;
+    //NAN_METHOD(Compression::startCompressing);
 };
 
 /*

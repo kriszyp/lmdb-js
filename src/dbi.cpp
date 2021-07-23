@@ -209,6 +209,7 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->compression = compression;
     dw->hasVersions = hasVersions;
     dw->Wrap(info.This());
+    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dbi));
 
     return info.GetReturnValue().Set(info.This());
 }

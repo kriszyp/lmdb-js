@@ -188,4 +188,41 @@ argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t fr
         return nullptr;
     }
 }
+/*
+NAN_METHOD(Compression::startCompressing) {
+    Compression *compression = Nan::ObjectWrap::Unwrap<Compression>(info.This());
+    Local<Context> context = Nan::GetCurrentContext();
+    double compressionAddress = Local<Number>::Cast(info[0])->Value();
+    CompressionWorker* worker = new CompressionWorker(compression, compressionAddress);
+    Nan::AsyncQueueWorker(worker);
+}
 
+class CompressionWorker : public Nan::AsyncWorker {
+  public:
+    CompressionWorker(Compression* compression, double compressionAddress)
+      : compression(compression), compressionAddress(compressionAddress) {}
+
+    void Execute() {
+        while(compressionAddress) {
+            // TODO: Lock this as being compressed
+            double* compressionEntry = (double*) (size_t) compressionAddress;
+            compressionAddress = *compressionEntry;
+            MDB_val data;
+            data.mv_data = (void*) (size_t) *(compressionEntry + 1);
+            data.mv_size = *(((uint32_t*) compressionEntry) - 1);
+            if (compression->compress(&data, nullptr)) {
+                *(((uint32_t*) compressionEntry) - 1) = data.mv_size;
+                *((size_t*) (compressionEntry + 1)) = (size_t) data.mv_data;
+            }
+        }
+    }
+
+    void HandleOKCallback() {
+    }
+
+  private:
+    Compression* compression;
+    double compressionAddress;
+};
+
+*/

@@ -1199,6 +1199,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     Local<FunctionTemplate> compressionTpl = Nan::New<FunctionTemplate>(Compression::ctor);
     compressionTpl->SetClassName(Nan::New<String>("Compression").ToLocalChecked());
     compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
+//    compressionTpl->PrototypeTemplate()->Set(isolate, "startCompressing", Nan::New<FunctionTemplate>(Compression::startCompressing));
     (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Compression").ToLocalChecked(), compressionTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 
     // Set exports
