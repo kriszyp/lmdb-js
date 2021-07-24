@@ -33,30 +33,32 @@ inline value?
 #endif
 // flags:
 const int NO_INSTRUCTION_YET = 0;
-const int PUT = 1;
-const int DEL = 2;
+const int PUT = 2;
+const int DEL = 1;
 const int DEL_VALUE = 3;
-const int START_BLOCK = 4;
-const int START_TXN = 12;
+const int START_CONDITION_BLOCK = 4;
+const int START_BLOCK = 12;
+const int BLOCK_END = 0;
 const int POINTER_NEXT = 15;
-const int USER_CALLBACK = 5;
-const int DROP = 6;
-const int BLOCK_END = 11;
+const int USER_CALLBACK = 8;
+const int DROP_DB = 9;
 const int HAS_VALUE = 2;
 const int NEEDS_VALIDATION = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
+const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x10000000;
 const int NOT_COMPRESSED = 0x20000000; // was compressible, but didn't get compressed (probably didn't meet threshold)
 const int PROCESSING = 0x20000000; // finished attempt to compress
 const int COMPRESSED = 0x30000000;
 const int DELETE_DATABASE = 0x400;
+const int TXN_DELIMITER = 0x80000000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
 const int FAILED_CONDITION = 1;
-const int SUCCESSFUL_OPERATION = 0;
+const int FINISHED_OPERATION = 0x40000000;
 const int BAD_KEY = 3;
-const int NOT_FOUND = 2;
+const int NOT_FOUND = 1;
 
 
 WriteWorker::~WriteWorker() {
@@ -108,7 +110,7 @@ void WriteWorker::Write() {
 	MDB_val key, value;
 	uint32_t* instruction = instructions;
 	int rc, txnId;
-	bool finishedProcessing = false;
+	bool moreProcessing = true;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
 		int conditionDepth = 1;
@@ -130,17 +132,25 @@ void WriteWorker::Write() {
 		}
 		int validatedDepth = 0;
 		double conditionalVersion, setVersion;
+		bool startingTransaction = true;
 		do {
 			uint32_t* start = instruction++;
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = true;
-			if ((flags & 0xf) < 4) {
+			if ((flags & 0xf) < 8 && flags) {
 				// a key based instruction, get the key
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
 				key.mv_data = instruction;
-				instruction += (key.mv_size + 8) >> 2;
+				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 15) & (~7));
+				if (flags & HAS_VALUE) {
+					value.mv_size = *(instruction - 1);
+					value.mv_data = (void*) (size_t) *((double*)instruction);
+					instruction += 2;
+					if (flags & COMPRESSIBLE)
+						instruction += 4; // skip compression pointers
+				}
 				if (flags & CONDITIONAL_VERSION) {
 					conditionalVersion = *((double*) instruction);
 					instruction += 2;
@@ -149,7 +159,6 @@ void WriteWorker::Write() {
 						validated = false;
 					else
 						validated = conditionalVersion == *((double*)value.mv_data);
-					*start = validated ? SUCCESSFUL_OPERATION : FAILED_CONDITION;
 				}
 				if (flags & SET_VERSION) {
 					setVersion = *((double*) instruction);
@@ -160,20 +169,23 @@ void WriteWorker::Write() {
 					validated = rc == MDB_NOTFOUND;
 				}
 			}
-			if (flags & HAS_VALUE) {
-				if (flags & COMPRESSIBLE)
-					instruction += 4; // skip compression pointers
-				value.mv_data = (void*) (size_t) *((double*)instruction);
-				instruction += 2;
-				value.mv_size = *instruction++;
+			if (!flags) {
+				rc = 0;
+				conditionDepth--;
+				if (validatedDepth > conditionDepth)
+					validatedDepth--;
+				if (conditionDepth)
+					continue;
+				else
+					break;
 			}
-			if (validated || !(flags & NEEDS_VALIDATION)) {
+			if (validated) {
 				switch (flags & 0xf) {
 				case PUT:
 					if (flags & SET_VERSION)
-						rc = putWithVersion(txn, dbi, &key, &value, flags, setVersion);
+						rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 					else
-						rc = mdb_put(txn, dbi, &key, &value, flags);
+						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 					if (flags & COMPRESSED)
 						free(value.mv_data);
 					break;
@@ -192,7 +204,7 @@ void WriteWorker::Write() {
 					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
 					executionProgress->Send(nullptr, sizeof(int));
-waitForCallback:
+				waitForCallback:
 					if (interruptionStatus == 0)
 						uv_cond_wait(userCallbackCond, userCallbackLock);
 					if (interruptionStatus != 0 && !finishedProgress) {
@@ -212,28 +224,31 @@ waitForCallback:
 								uv_mutex_unlock(userCallbackLock);
 								return SetErrorMessage(mdb_strerror(rc));
 							}
-						} else {
+						}
+						else {
 							uv_mutex_unlock(userCallbackLock);
 							rc = interruptionStatus;
 							goto done;
 						}
 					}
 					uv_mutex_unlock(userCallbackLock);
-					*start = SUCCESSFUL_OPERATION;
-				case DROP:
+				case DROP_DB:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
+					break;
 				case POINTER_NEXT:
 					instruction++;
-					instruction = (uint32_t*) (size_t) *((double*)instruction);
-					break;
-				case BLOCK_END:
-					conditionDepth--;
-					if (validatedDepth > conditionDepth)
-						validatedDepth--;
+					instruction = (uint32_t*)(size_t) * ((double*)instruction);
 					break;
 				}
+				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? NOT_FOUND : rc : 0);
+			} else
+				flags = FINISHED_OPERATION | FAILED_CONDITION;
+			if (startingTransaction) {
+				flags |= TXN_DELIMITER;
+				startingTransaction = false;
 			}
-		} while(conditionDepth);
+			*start = flags;
+		} while(true);
 done:
 		if (envForTxn) {
 			envForTxn->currentWriteTxn = nullptr;
@@ -283,11 +298,12 @@ done:
 			} else {
 				return SetErrorMessage(mdb_strerror(rc));
 			}
-			if (!*instructions) {
+			instruction--; // reset back to the previous flag as the current instruction
+			if (!*instruction) {
 				#ifdef _WIN32
-				finishedProcessing = InterlockedCompareExchange(instruction, NO_INSTRUCTION_YET, 0xffffffff);
+				moreProcessing = InterlockedCompareExchange(instruction, TXN_DELIMITER, NO_INSTRUCTION_YET);
 				#else
-				finishedProcessing = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, 0xffffffff);
+				moreProcessing = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, TXN_DELIMITER);
 				#endif
 			}
 		} else { // sync mode
@@ -296,8 +312,10 @@ done:
 			else
 				return;
 		}
-
-	} while(!finishedProcessing);
+		if (moreProcessing) {
+			//executionProgress->Send(reinterpret_cast<const char*>(&i), sizeof(int));
+		}
+	} while(moreProcessing);
 }
 
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {

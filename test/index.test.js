@@ -83,7 +83,7 @@ describe('lmdb-store', function() {
       })
       return
     }
-    it('query of keys', async function() {
+    it.only('query of keys', async function() {
       let keys = [
         Symbol.for('test'),
         false,
@@ -105,8 +105,10 @@ describe('lmdb-store', function() {
         [ 'uid', 'I-7l9ySkD-wAOULIjOEnb', 'Rwsu6gqOw8cqdCZG5_YNF' ],
         'z'
       ]
+      let lastPromise
       for (let key of keys)
-        await db.put(key, 3);
+        lastPromise = db.put(key, 3);
+      await lastPromise
       let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: Symbol.for('A')

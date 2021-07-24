@@ -4,9 +4,9 @@ let backpressureArray
 const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const BACKPRESSURE_THRESHOLD = 5000000
-const TXN_DELIMITER = 0xffffffff
-exports.addWriteMethods = function(LMDBStore, { env }) {
-	let resolution
+const TXN_DELIMITER = 0x80000000
+exports.addWriteMethods = function(LMDBStore, { env, resetReadTxn }) {
+	let unwrittenResolution, lastQueuedResolution, uncommittedResolution 
 	// wi stands for write instructions
 	let wiBytes, wiDataAddress, uint32Wi, float64Wi
 	let wiPosition // write instruction position in 64-bit word increments
@@ -33,26 +33,24 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 			let lastUint32 = uint32Wi
 			allocateInstructionBuffer()
 			lastFloat64[lastPosition + 1] = wiDataAddress
-			writeStatus = Atomics.exchange(lastUint32, lastPosition << 1, 15) // pointer instruction
+			writeStatus = Atomics.or(lastUint32, lastPosition << 1, 15) // pointer instruction
 		}
 		let flagPosition = wiPosition << 1 // flagPosition is the 32-bit word starting position
 
 		// don't increment wiPosition until we are sure we don't have any key writing errors
 		uint32Wi[flagPosition + 1] = store.db.dbi
-		let keySize = store.writeKey(id, wiBytes, (wiPosition << 3) + 12)
+		let keyStartPosition = (wiPosition << 3) + 12
+		let endPosition = store.writeKey(id, wiBytes, keyStartPosition)
+		let keySize = endPosition - keyStartPosition
 		if (keySize > MAX_KEY_SIZE)
 			throw new Error('Key size is too large')
 
 		uint32Wi[flagPosition + 2] = keySize
-		wiPosition += (keySize + 27) >> 3
-		if (ifVersion != undefined) {
-			flags |= 0x100
-			float64Wi[wiPosition++] = ifVersion
-		}
-		if (version != undefined) {
-			flags |= 0x200
-			float64Wi[wiPosition++] = versionOrOptions
-		}
+		wiPosition = (endPosition + 15) >> 3
+		uint32Wi[(wiPosition << 1) - 1] = valueBuffer.length
+		let valueArrayBuffer = valueBuffer.buffer
+		// record pointer to value buffer
+		float64Wi[wiPosition++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
 		let nextCompressible, compressionStatus
 		if (this.compression) {
 			nextCompressible = wiDataAddress + (wiPosition << 3)
@@ -61,22 +59,30 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 			wiPosition++
 			float64Wi[wiPosition++] = this.compression.address
 		}
-		let valueArrayBuffer = valueBuffer.buffer
-		// record pointer to value buffer
-		float64Wi[wiPosition++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+		if (ifVersion != undefined) {
+			flags |= 0x100
+			float64Wi[wiPosition++] = ifVersion
+		}
+		if (version != undefined) {
+			flags |= 0x200
+			float64Wi[wiPosition++] = version || 0
+		}
+
+
 		uint32Wi[wiPosition << 1] = 0 // clear out next so there is a stop signal
-		writeStatus = Atomics.exchange(uint32Wi, flagPosition, flags) || writeStatus // write flags at the end so the writer never processes mid-stream, and do so with an atomic exchanges
+		writeStatus = Atomics.or(uint32Wi, flagPosition, flags) || writeStatus // write flags at the end so the writer never processes mid-stream, and do so with an atomic exchanges
 		outstandingWriteCount++
-		resolveWrites()
-		if (writeStatus == TXN_DELIMITER) {
+		if (writeStatus) {
 			let startAddress = wiBytes.buffer.address + (flagPosition << 2)
 			function startWriting() {
-				env.startWriting(startAddress, nextCompressible || 0, (committedCount) => {
-					console.log('finished a write')
-					if (committedCount > 0) {
-						resolveWrites()
-					} else {
+				env.startWriting(startAddress, nextCompressible || 0, (status) => {
+					if (status === true) {
 						// user callback?
+						console.log('user callback')
+					} if (status) {
+						console.error(status)
+					} else {
+						resolveWrites()
 					}
 				})
 			}
@@ -91,38 +97,60 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 				backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 			Atomics.wait(backpressure, 0, 0, 1)
 		}
+		resolveWrites()
 		return new Promise((resolve, reject) => {
 			let newResolution = {
 				uint32Wi,
-				flagPosition,
+				flag: flagPosition,
 				resolve,
 				reject,
 				valueBuffer,
 				nextResolution: null,
 			}
-			if (resolution)
-				nextResolution.nextResolution = newResolution
+			if (unwrittenResolution)
+				lastQueuedResolution.nextResolution = newResolution
 			else
-				resolution = newResolution
-			
-			nextResolution = newResolution
+				unwrittenResolution = uncommittedResolution = newResolution
+			lastQueuedResolution = newResolution
 		})
 	}
 	function resolveWrites() {
 		// clean up finished instructions
 		let instructionStatus
-		while(resolution && (instructionStatus = resolution.uint32Wi[resolution.flagPosition]) & 0xf0000000) {
+		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32Wi[unwrittenResolution.flag]) & 0x40000000) {
+			if (instructionStatus & 0x80000000) {
+				instructionStatus = instructionStatus & 0x7fffffff
+				resolveCommit()
+			}
 			outstandingWriteCount--
-			if (instructionStatus)
-				resolution.reject(new Error())
+			unwrittenResolution.flag = instructionStatus
+			unwrittenResolution.valueBuffer = null
+			unwrittenResolution.uint32Wi = null
+			unwrittenResolution = unwrittenResolution.nextResolution
+		}
+		if (!unwrittenResolution) {
+			if (uint32Wi[wiPosition << 1] & 0x80000000) {
+				resolveCommit()
+			}
+			return
+		}
+	}
+	function resolveCommit() {
+		queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes, and do this synchronously if we are running in the async callback
+		while(uncommittedResolution != unwrittenResolution && uncommittedResolution) {
+			let flag = uncommittedResolution.flag
+			if (flag == 0x40000000)
+				uncommittedResolution.resolve(true)
+			else if (flag == 0x40000001)
+				uncommittedResolution.resolve(false)
 			else
-				resolution.resolve(true)
-			resolution = resolution.nextResolution
+				uncommittedResolution.reject(new Error("Error occurred in write"))
+			uncommittedResolution = uncommittedResolution.nextResolution
 		}
 	}
 	Object.assign(LMDBStore.prototype, {
 		put(id, value, versionOrOptions, ifVersion) {
-			let flags = 0
+			let flags = 2
 			if (typeof versionOrOptions == 'object') {
 				if (versionOrOptions.noOverwrite)
 					flags |= 0x10
@@ -142,12 +170,7 @@ exports.addWriteMethods = function(LMDBStore, { env }) {
 			} else if (!(value instanceof Uint8Array))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 
-			return writeInstructions(flags, this, id, value, versionOrOptions, ifVersion)
+			return writeInstructions(flags, this, id, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)
 		}
 	})
-	function commitQueued() {
-		scheduleCommitStartBuffer.dataView.setFloat64(scheduleCommitStartPosition, lastCompressible, true)
-		write(scheduleCommitStartBuffer.address + scheduleCommitStartPosition)
-
-		}
 }

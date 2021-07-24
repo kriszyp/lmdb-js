@@ -123,7 +123,6 @@ function setup() {
     console.log('setup completed');
   })
 }
-lmdbNativeFunctions()
 var txn;
 
 cleanup(async function (err) {
