@@ -1,135 +1,171 @@
 const { getAddress } = require('./native')
-let backpressureArray
+var backpressureArray
 
 const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const BACKPRESSURE_THRESHOLD = 5000000
 const TXN_DELIMITER = 0x80000000
-exports.addWriteMethods = function(LMDBStore, { env, resetReadTxn }) {
-	let unwrittenResolution, lastQueuedResolution, uncommittedResolution 
-	// wi stands for write instructions
-	let wiBytes, wiDataAddress, uint32Wi, float64Wi
-	let wiPosition // write instruction position in 64-bit word increments
+var log = []
+exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }) {
+	var unwrittenResolution, lastQueuedResolution, uncommittedResolution 
+	//  stands for write instructions
+	var dynamicBytes
 	function allocateInstructionBuffer() {
-		wiBytes = Buffer.alloc(8192)
-		uint32Wi = wiBytes.uint32Wi = new Uint32Array(wiBytes.buffer, 0, 2048)
-		float64Wi = wiBytes.float64Wi = new Float64Array(wiBytes.buffer, 0, 1024)
-		wiBytes.buffer.address = getAddress(wiBytes.buffer)
-		wiDataAddress = wiBytes.buffer.address + wiBytes.byteOffset
-		wiPosition = 0
+		dynamicBytes = Buffer.alloc(8192)
+		dynamicBytes.uint32 = new Uint32Array(dynamicBytes.buffer, 0, 2048)
+		dynamicBytes.float64 = new Float64Array(dynamicBytes.buffer, 0, 1024)
+		dynamicBytes.buffer.address = getAddress(dynamicBytes.buffer)
+		dynamicBytes.address = dynamicBytes.buffer.address + dynamicBytes.byteOffset
+		dynamicBytes.position = 0
+		return dynamicBytes
 	}
-	let lastCompressibleFloat64 = new Float64Array(1)
-	let lastCompressiblePosition = 0
-	let outstandingWriteCount = 0
+	var lastCompressibleFloat64 = new Float64Array(1)
+	var lastCompressiblePosition = 0
+	var compressionCount = 0
+	var outstandingWriteCount = 0
+	var writeTxn = null
 	allocateInstructionBuffer()
-	uint32Wi[0] = TXN_DELIMITER
-	function writeInstructions(flags, store, id, valueBuffer, version, ifVersion) {
-		let writeStatus
-		if (wiPosition > 750) { // 6000 bytes
+	dynamicBytes.uint32[0] = TXN_DELIMITER
+	function writeInstructions(flags, store, key, value, version, ifVersion) {
+		let writeStatus, compressionStatus
+		let targetBytes = writeTxn ? fixedBuffer : dynamicBytes
+		let position = targetBytes.position
+		if (position > 750) { // 6000 bytes
 			// make new buffer and make pointer to it
-			let lastBuffer = wiBytes
-			let lastPosition = wiPosition
-			let lastFloat64 = float64Wi
-			let lastUint32 = uint32Wi
-			allocateInstructionBuffer()
-			lastFloat64[lastPosition + 1] = wiDataAddress
-			writeStatus = Atomics.or(lastUint32, lastPosition << 1, 15) // pointer instruction
+			let lastBuffer = targetBytes
+			let lastPosition = targetBytes.position
+			let lastFloat64 = targetBytes.float64
+			let lastUint32 = targetBytes.uint32
+			targetBytes = allocateInstructionBuffer()
+			position = targetBytes.position
+			lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
+			writeStatus = Atomics.or(lastUint32, lastPosition << 1, 2) // pointer instruction
 		}
-		let flagPosition = wiPosition << 1 // flagPosition is the 32-bit word starting position
+		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
+		let flagPosition = position << 1 // flagPosition is the 32-bit word starting position
 
-		// don't increment wiPosition until we are sure we don't have any key writing errors
-		uint32Wi[flagPosition + 1] = store.db.dbi
-		let keyStartPosition = (wiPosition << 3) + 12
-		let endPosition = store.writeKey(id, wiBytes, keyStartPosition)
+		// don't increment Position until we are sure we don't have any key writing errors
+		uint32[flagPosition + 1] = store.db.dbi
+		let keyStartPosition = (position << 3) + 12
+		let endPosition
+		try {
+			endPosition = store.writeKey(key, targetBytes, keyStartPosition)
+		} catch(error) {
+			targetBytes.fill(0, keyStartPosition)
+			throw error
+		}
 		let keySize = endPosition - keyStartPosition
-		if (keySize > MAX_KEY_SIZE)
+		if (keySize > MAX_KEY_SIZE) {
+			targetBytes.fill(0, keyStartPosition)
 			throw new Error('Key size is too large')
+		}
+		uint32[flagPosition + 2] = keySize
+		position = (endPosition + 15) >> 3
+		let valueBuffer
+		if (flags & 2) {
+			if (store.encoder) {
+				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
+				valueBuffer = store.encoder.encode(value)
+			} else if (typeof value == 'string') {
+				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
+			} else if (!(value instanceof Uint8Array))
+				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 
-		uint32Wi[flagPosition + 2] = keySize
-		wiPosition = (endPosition + 15) >> 3
-		uint32Wi[(wiPosition << 1) - 1] = valueBuffer.length
-		let valueArrayBuffer = valueBuffer.buffer
-		// record pointer to value buffer
-		float64Wi[wiPosition++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
-		let nextCompressible, compressionStatus
-		if (this.compression) {
-			nextCompressible = wiDataAddress + (wiPosition << 3)
-			compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
-			float64Wi[wiPosition] = 0
-			wiPosition++
-			float64Wi[wiPosition++] = this.compression.address
+			uint32[(position << 1) - 1] = valueBuffer.length
+			let valueArrayBuffer = valueBuffer.buffer
+			// record pointer to value buffer
+			float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+			let nextCompressible
+			if (this.compression) {
+				nextCompressible = DataAddress + (Position << 3)
+				compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
+				float64[position] = 0
+				position++
+				float64[position++] = this.compression.address
+				compressionCount++
+			}
 		}
 		if (ifVersion != undefined) {
 			flags |= 0x100
-			float64Wi[wiPosition++] = ifVersion
+			float64[position++] = ifVersion
 		}
 		if (version != undefined) {
 			flags |= 0x200
-			float64Wi[wiPosition++] = version || 0
+			float64[position++] = version || 0
 		}
-
-
-		uint32Wi[wiPosition << 1] = 0 // clear out next so there is a stop signal
-		writeStatus = Atomics.or(uint32Wi, flagPosition, flags) || writeStatus // write flags at the end so the writer never processes mid-stream, and do so with an atomic exchanges
-		outstandingWriteCount++
-		if (writeStatus) {
-			let startAddress = wiBytes.buffer.address + (flagPosition << 2)
-			function startWriting() {
-				env.startWriting(startAddress, nextCompressible || 0, (status) => {
-					if (status === true) {
-						// user callback?
-						console.log('user callback')
-					} if (status) {
-						console.error(status)
-					} else {
-						resolveWrites()
-					}
-				})
-			}
-			if (true || commitDelay == IMMEDIATE)
-				startWriting()
-			else
-				setImmediate(startWriting)
-		} else if (compressionStatus) {
-			env.compress(nextCompressible)
-		} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
-			if (!backpressureArray)
-				backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
-			Atomics.wait(backpressure, 0, 0, 1)
+		targetBytes.position = position
+		if (writeTxn) {
+			uint32[flagPosition] = flags
+			return () => env.write(targetBytes.buffer.address)
 		}
-		resolveWrites()
-		return new Promise((resolve, reject) => {
-			let newResolution = {
-				uint32Wi,
-				flag: flagPosition,
-				resolve,
-				reject,
-				valueBuffer,
-				nextResolution: null,
+		return (forceCompression) => {
+			writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
+			outstandingWriteCount++
+			if (writeStatus) {
+				let startAddress = targetBytes.buffer.address + (flagPosition << 2)
+				function startWriting() {
+					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
+						console.log('finished batch', status, log)
+						if (status === true) {
+							// user callback?
+							console.log('user callback')
+						} if (status) {
+							console.error(status)
+						} else {
+							resolveWrites()
+						}
+					})
+				}
+				if (true || commitDelay == IMMEDIATE)
+					startWriting()
+				else
+					setImmediate(startWriting)
+			} else if (compressionStatus) {
+				env.compress(nextCompressible)
+			} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+				if (!backpressureArray)
+					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
+				Atomics.wait(backpressure, 0, 0, 1)
 			}
-			if (unwrittenResolution)
-				lastQueuedResolution.nextResolution = newResolution
-			else
-				unwrittenResolution = uncommittedResolution = newResolution
-			lastQueuedResolution = newResolution
-		})
+			log.push('put in js ', flagPosition)
+			resolveWrites()
+			return new Promise((resolve, reject) => {
+				let newResolution = {
+					uint32,
+					flag: flagPosition,
+					resolve,
+					reject,
+					valueBuffer,
+					nextResolution: null,
+				}
+				if (unwrittenResolution)
+					lastQueuedResolution.nextResolution = newResolution
+				else {
+					unwrittenResolution = newResolution
+					if (!uncommittedResolution)
+						uncommittedResolution = newResolution
+				}
+				lastQueuedResolution = newResolution
+			})
+		}
 	}
 	function resolveWrites() {
 		// clean up finished instructions
 		let instructionStatus
-		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32Wi[unwrittenResolution.flag]) & 0x40000000) {
+		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x40000000) {
 			if (instructionStatus & 0x80000000) {
 				instructionStatus = instructionStatus & 0x7fffffff
 				resolveCommit()
 			}
 			outstandingWriteCount--
+			log.push('resolution', unwrittenResolution.flag, instructionStatus)
 			unwrittenResolution.flag = instructionStatus
 			unwrittenResolution.valueBuffer = null
-			unwrittenResolution.uint32Wi = null
+			unwrittenResolution.uint32 = null
 			unwrittenResolution = unwrittenResolution.nextResolution
 		}
 		if (!unwrittenResolution) {
-			if (uint32Wi[wiPosition << 1] & 0x80000000) {
+			if (dynamicBytes.uint32[dynamicBytes.position << 1] & 0x80000000) {
 				resolveCommit()
 			}
 			return
@@ -149,8 +185,8 @@ exports.addWriteMethods = function(LMDBStore, { env, resetReadTxn }) {
 		}
 	}
 	Object.assign(LMDBStore.prototype, {
-		put(id, value, versionOrOptions, ifVersion) {
-			let flags = 2
+		put(key, value, versionOrOptions, ifVersion) {
+			let sync, flags = 10
 			if (typeof versionOrOptions == 'object') {
 				if (versionOrOptions.noOverwrite)
 					flags |= 0x10
@@ -162,15 +198,43 @@ exports.addWriteMethods = function(LMDBStore, { env, resetReadTxn }) {
 					ifVersion = versionsOrOptions.ifVersion
 				versionOrOptions = versionOrOptions.version
 			}
-			if (this.encoder) {
-				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
-				value = this.encoder.encode(value)
-			} else if (typeof value == 'string') {
-				value = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
-			} else if (!(value instanceof Uint8Array))
-				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
+			return writeInstructions(flags, this, key, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)()
+		},
+		remove(key, ifVersionOrValue) {
+			let flags = 9
+			let ifVersion, value
+			if (ifVersionOrValue !== undefined) {
+				if (this.useVersions)
+					ifVersion = ifVersionOrValue
+				else {
+					flags = 11
+					value = ifVersionOrValue
+				}
+			}
+			return writeInstructions(flags, this, key, value, undefined, ifVersion)()
+		},
+		ifVersion(key, version, callback) {
+			let finish = writeInstructions(0x105, this, key)
+			position += 2 // for compression slots
+			float64[position++] = ifVersion
+			let startingCompressionCount = compressionCount
+			try {
+				callback()
+			} catch(error) {
+				// TODO: Restore state
+				throw error
+			}
+			let compressionStatus
+			if (compressionCount > startingCompressionCount) {
+				nextCompressible = DataAddress + (Position << 3)
+				compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
+			}
+			return finish(compressionStatus)
+		},
+		putSync(key, value, versionOrOptions, ifVersion) {
+			if (!writeTxn) {
 
-			return writeInstructions(flags, this, id, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)
+			}
 		}
 	})
 }

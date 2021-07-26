@@ -33,17 +33,18 @@ inline value?
 #endif
 // flags:
 const int NO_INSTRUCTION_YET = 0;
-const int PUT = 2;
-const int DEL = 1;
-const int DEL_VALUE = 3;
-const int START_CONDITION_BLOCK = 4;
-const int START_BLOCK = 12;
+const int PUT = 10;
+const int DEL = 9;
+const int DEL_VALUE = 11;
+const int START_CONDITION_BLOCK = 5;
+const int START_CONDITION_VALUE_BLOCK = 7;
+const int START_BLOCK = 1;
 const int BLOCK_END = 0;
-const int POINTER_NEXT = 15;
+const int POINTER_NEXT = 2;
 const int USER_CALLBACK = 8;
-const int DROP_DB = 9;
+const int DROP_DB = 13;
 const int HAS_VALUE = 2;
-const int NEEDS_VALIDATION = 8;
+const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
 const int HAS_INLINE_VALUE = 0x400;
@@ -89,13 +90,20 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 
 void WriteWorker::Compress() {
 	MDB_val value;
+	uint64_t nextCompressibleSlot;
 	while (nextCompressible = ((double*) (size_t) (*nextCompressible))) {
 		Compression* compression = (Compression*) (size_t) (*(nextCompressible + 1));
 		value.mv_data = (void*) ((size_t) *(nextCompressible + 2));
 		value.mv_size = *((uint32_t*)(nextCompressible + 3));
 		void* compressedData = compression->compress(&value, nullptr);
 		if (compressedData)
-			*(nextCompressible + 2) = (double) (size_t) compressedData;
+			*(nextCompressible + 2) = (size_t) compressedData;
+		#ifdef _WIN32
+		nextCompressibleSlot = InterlockedExchange64((int64_t*) nextCompressible, 0xffffffffffffffffll);
+		#else
+		nextCompressibleSlot = atomic_fetch_exchange(compressible, 0xffffffffffffffffll);
+		#endif
+		nextCompressible = (double*) (size_t) *((double*) (&nextCompressibleSlot));
 	}
 }
 
@@ -111,6 +119,7 @@ void WriteWorker::Write() {
 	uint32_t* instruction = instructions;
 	int rc, txnId;
 	bool moreProcessing = true;
+	bool compressed;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
 		int conditionDepth = 1;
@@ -138,7 +147,7 @@ void WriteWorker::Write() {
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = true;
-			if ((flags & 0xf) < 8 && flags) {
+			if ((flags & 0xf) > 6) {
 				// a key based instruction, get the key
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
@@ -146,10 +155,28 @@ void WriteWorker::Write() {
 				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 15) & (~7));
 				if (flags & HAS_VALUE) {
 					value.mv_size = *(instruction - 1);
-					value.mv_data = (void*) (size_t) *((double*)instruction);
-					instruction += 2;
-					if (flags & COMPRESSIBLE)
-						instruction += 4; // skip compression pointers
+					if (flags & COMPRESSIBLE) {
+						if (*(instruction + 1) > 0x100000) {
+							// compressed
+							value.mv_data = (void*) ((size_t*)instruction);
+							instruction += 6; // skip compression pointers
+							compressed = true;
+						}
+						else if (*(instruction + 3) == 0xffffffff) {
+							// compression attempted, but not compressed
+							value.mv_data = (void*)(size_t) * ((double*)instruction);
+							instruction += 6;
+							compressed = false;
+						}
+						else {
+							// not compressed yet, need to break out until compressed
+							instruction -= 3;
+							goto done;
+						}
+					} else {
+						value.mv_data = (void*)(size_t) * ((double*)instruction);
+						instruction += 2;
+					}
 				}
 				if (flags & CONDITIONAL_VERSION) {
 					conditionalVersion = *((double*) instruction);
@@ -169,24 +196,25 @@ void WriteWorker::Write() {
 					validated = rc == MDB_NOTFOUND;
 				}
 			}
-			if (!flags) {
-				rc = 0;
-				conditionDepth--;
-				if (validatedDepth > conditionDepth)
-					validatedDepth--;
-				if (conditionDepth)
-					continue;
-				else
-					break;
-			}
-			if (validated) {
+			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
+				case BLOCK_END:
+					rc = 0;
+					conditionDepth--;
+					if (validatedDepth > conditionDepth)
+						validatedDepth--;
+					if (conditionDepth)
+						continue;
+					else {
+						instruction--; // reset back to the previous flag as the current instruction
+						goto done;
+					}
 				case PUT:
 					if (flags & SET_VERSION)
 						rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 					else
 						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
-					if (flags & COMPRESSED)
+					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
 					break;
 				case DEL:
@@ -194,7 +222,7 @@ void WriteWorker::Write() {
 					break;
 				case DEL_VALUE:
 					rc = mdb_del(txn, dbi, &key, &value);
-					if (flags & COMPRESSED)
+					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
 					break;
 				case START_BLOCK:
@@ -298,7 +326,6 @@ done:
 			} else {
 				return SetErrorMessage(mdb_strerror(rc));
 			}
-			instruction--; // reset back to the previous flag as the current instruction
 			if (!*instruction) {
 				#ifdef _WIN32
 				moreProcessing = InterlockedCompareExchange(instruction, TXN_DELIMITER, NO_INSTRUCTION_YET);

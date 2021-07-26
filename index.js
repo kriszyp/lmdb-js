@@ -205,21 +205,6 @@ function open(path, options) {
 				this.encoder = {
 					encode: JSON.stringify,
 				}
-			} else if (this.encoding == 'ordered-binary') {
-				this.encoder = this.decoder = {
-					encode(value) {
-						if (savePosition > 6200)
-							allocateSaveBuffer()
-						let start = savePosition
-						savePosition = writeKey(value, saveBuffer, start)
-						let buffer = saveBuffer.subarray(start, savePosition)
-						savePosition = (savePosition + 7) & 0xfffff8
-						return buffer
-					},
-					decode(buffer, end) { return readKey(buffer, 0, end) },
-					writeKey,
-					readKey,
-				}
 			}
 			if (this.keyIsUint32) {
 				this.writeKey = writeUint32Key
@@ -947,7 +932,7 @@ function open(path, options) {
 	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBuffer, keyBufferView, getLastVersion }, exports))
-	addWriteMethods(LMDBStore, { env, resetReadTxn })
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBuffer, resetReadTxn })
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
