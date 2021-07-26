@@ -236,6 +236,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     uint32_t* instructions;
     double* nextCompressible;
     ExecutionProgress* executionProgress;
+    int progressStatus;
 };
 
 /*

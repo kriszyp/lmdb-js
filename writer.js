@@ -96,23 +96,25 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 		targetBytes.position = position
 		if (writeTxn) {
 			uint32[flagPosition] = flags
-			return () => env.write(targetBytes.buffer.address)
+			return () => env.writeSync(targetBytes.buffer.address)
 		}
 		return (forceCompression) => {
-			writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
+			writeStatus = Atomics.or(uint32, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
 			outstandingWriteCount++
 			if (writeStatus) {
 				let startAddress = targetBytes.buffer.address + (flagPosition << 2)
 				function startWriting() {
 					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
 						console.log('finished batch', status, log)
-						if (status === true) {
-							// user callback?
-							console.log('user callback')
-						} if (status) {
+						switch (status) {
+							case 0: case 1:
+							resolveWrites(true)
+							break;
+							case 2:
+							console.log('user callback');
+							break
+							default:
 							console.error(status)
-						} else {
-							resolveWrites()
 						}
 					})
 				}
@@ -127,7 +129,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressure, 0, 0, 1)
 			}
-			log.push('put in js ', flagPosition)
+			log.push(['put in js ', flagPosition])
 			resolveWrites()
 			return new Promise((resolve, reject) => {
 				let newResolution = {
@@ -149,16 +151,17 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			})
 		}
 	}
-	function resolveWrites() {
+	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus
 		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x40000000) {
 			if (instructionStatus & 0x80000000) {
 				instructionStatus = instructionStatus & 0x7fffffff
-				resolveCommit()
+				resolveCommit(async)
 			}
 			outstandingWriteCount--
-			log.push('resolution', unwrittenResolution.flag, instructionStatus)
+			log.push(['resolution', unwrittenResolution.flag, instructionStatus])
+			unwrittenResolution.debuggingPosition = unwrittenResolution.flag
 			unwrittenResolution.flag = instructionStatus
 			unwrittenResolution.valueBuffer = null
 			unwrittenResolution.uint32 = null
@@ -166,15 +169,19 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 		}
 		if (!unwrittenResolution) {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & 0x80000000) {
-				resolveCommit()
+				resolveCommit(async)
 			}
 			return
 		}
 	}
-	function resolveCommit() {
-		queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes, and do this synchronously if we are running in the async callback
+	function resolveCommit(async) {
+		if (async)
+			resetReadTxn()
+		else
+			queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes?
 		while(uncommittedResolution != unwrittenResolution && uncommittedResolution) {
 			let flag = uncommittedResolution.flag
+			log.push(['committed', uncommittedResolution.debuggingPosition, !!uncommittedResolution.nextResolution])
 			if (flag == 0x40000000)
 				uncommittedResolution.resolve(true)
 			else if (flag == 0x40000001)

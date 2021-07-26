@@ -216,6 +216,7 @@ void WriteWorker::Write() {
 						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
+					fprintf(stderr, "put %u ", key.mv_size);
 					break;
 				case DEL:
 					rc = mdb_del(txn, dbi, &key, nullptr);
@@ -231,7 +232,8 @@ void WriteWorker::Write() {
 				case USER_CALLBACK:
 					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
-					executionProgress->Send(nullptr, sizeof(int));
+					progressStatus = 2;
+					executionProgress->Send(nullptr, 0);
 				waitForCallback:
 					if (interruptionStatus == 0)
 						uv_cond_wait(userCallbackCond, userCallbackLock);
@@ -271,10 +273,6 @@ void WriteWorker::Write() {
 				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? NOT_FOUND : rc : 0);
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
-			if (startingTransaction) {
-				flags |= TXN_DELIMITER;
-				startingTransaction = false;
-			}
 			*start = flags;
 		} while(true);
 done:
@@ -290,6 +288,8 @@ done:
 				mdb_txn_abort(txn);
 			else
 				rc = mdb_txn_commit(txn);
+			fprintf(stderr, "committed ");
+
 			if (rc == 0) {
 				unsigned int envFlags;
 				mdb_env_get_flags(env, &envFlags);
@@ -297,8 +297,8 @@ done:
 					// successfully completed, we can now send a progress event to tell JS that the commit has been completed
 					// and that it is welcome to submit the next transaction, however the commit is not synced/flushed yet,
 					// so we continue execution to do that
-					int i = -1; // indicator of completion
-					executionProgress->Send(reinterpret_cast<const char*>(&i), sizeof(int));
+					progressStatus = 1;
+					executionProgress->Send(nullptr, 0);
 					//envForTxn->syncTxnId = txnId;
 					rc= mdb_env_sync(env, 1);
 					// signal a subsequent txn that we are synced
@@ -340,7 +340,9 @@ done:
 				return;
 		}
 		if (moreProcessing) {
-			//executionProgress->Send(reinterpret_cast<const char*>(&i), sizeof(int));
+			*instruction |= TXN_DELIMITER;
+			progressStatus = 1;
+			executionProgress->Send(nullptr, 0);
 		}
 	} while(moreProcessing);
 }
@@ -355,7 +357,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 		uv_mutex_unlock(userCallbackLock);
 	}
 	v8::Local<v8::Value> argv[] = {
-		Nan::True()
+		Nan::New<Number>(progressStatus)
 	};
 	envForTxn->currentWriteTxn = currentTxnWrap;
 	bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
@@ -366,7 +368,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 void WriteWorker::HandleOKCallback() {
 	Nan::HandleScope scope;
 	Local<v8::Value> argv[] = {
-		Nan::Null(),
+		Nan::New<Number>(0)
 	};
 
 	callback->Call(1, argv, async_resource);
