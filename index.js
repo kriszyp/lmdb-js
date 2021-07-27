@@ -8,6 +8,7 @@ const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuf
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { addQueryMethods } = require('./query')
 const { addWriteMethods } = require('./writer')
+const { applyKeyHandling } = require('./keys')
 const { writeKey, readKey, compareKeys } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
@@ -30,22 +31,6 @@ const SYNC_PROMISE_FAIL = Promise.resolve(false)
 SYNC_PROMISE_RESULT.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
-const writeUint32Key = (key, target, start) => {
-	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true)
-	return start + 4
-}
-const readUint32Key = (target, start) => {
-	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true)
-}
-const writeBufferKey = (key, target, start) => {
-	if (key.length > 1978)
-		throw new Error('Key buffer is too long')
-	target.set(key, start)
-	return key.length + start
-}
-const readBufferKey = (target, start, end) => {
-	return Uint8ArraySlice.call(target, start, end)
-}
 let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
@@ -206,16 +191,7 @@ function open(path, options) {
 					encode: JSON.stringify,
 				}
 			}
-			if (this.keyIsUint32) {
-				this.writeKey = writeUint32Key
-				this.readKey = readUint32Key
-			} else if (this.keyIsBuffer) {
-				this.writeKey = writeBufferKey
-				this.readKey = readBufferKey
-			}	else {
-				this.writeKey = writeKey
-				this.readKey = readKey
-			}
+			applyKeyHandling(this)
 			allDbs.set(dbName ? name + '-' + dbName : name, this)
 			stores.push(this)
 		}

@@ -5,9 +5,14 @@ const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const BACKPRESSURE_THRESHOLD = 5000000
 const TXN_DELIMITER = 0x80000000
+const SYNC_PROMISE_RESULT = Promise.resolve(true)
+const SYNC_PROMISE_FAIL = Promise.resolve(false)
+SYNC_PROMISE_RESULT.isSync = true
+SYNC_PROMISE_FAIL.isSync = true
+
 var log = []
 exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }) {
-	var unwrittenResolution, lastQueuedResolution, uncommittedResolution 
+	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution 
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -60,12 +65,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			throw new Error('Key size is too large')
 		}
 		uint32[flagPosition + 2] = keySize
-		position = (endPosition + 15) >> 3
+		position = (endPosition + 12) >> 3
 		let valueBuffer
 		if (flags & 2) {
 			if (store.encoder) {
 				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
 				valueBuffer = store.encoder.encode(value)
+				if (typeof valueBuffer == 'string')
+					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
 			} else if (typeof value == 'string') {
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
 			} else if (!(value instanceof Uint8Array))
@@ -95,8 +102,9 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 		}
 		targetBytes.position = position
 		if (writeTxn) {
-			uint32[flagPosition] = flags
-			return () => env.writeSync(targetBytes.buffer.address)
+			uint32[0] = flags
+			env.writeSync(targetBytes.buffer.address)
+			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_RESULT
 		}
 		return (forceCompression) => {
 			writeStatus = Atomics.or(uint32, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
@@ -105,7 +113,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 				let startAddress = targetBytes.buffer.address + (flagPosition << 2)
 				function startWriting() {
 					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-						console.log('finished batch', status, log)
+						console.log('finished batch', status)
 						switch (status) {
 							case 0: case 1:
 							resolveWrites(true)
@@ -140,13 +148,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 					valueBuffer,
 					nextResolution: null,
 				}
-				if (unwrittenResolution)
-					lastQueuedResolution.nextResolution = newResolution
-				else {
+				if (!unwrittenResolution) {
 					unwrittenResolution = newResolution
 					if (!uncommittedResolution)
 						uncommittedResolution = newResolution
 				}
+				lastQueuedResolution.nextResolution = newResolution
 				lastQueuedResolution = newResolution
 			})
 		}
@@ -240,8 +247,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 		},
 		putSync(key, value, versionOrOptions, ifVersion) {
 			if (!writeTxn) {
-
 			}
+			return this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_RESULT
 		}
 	})
 }

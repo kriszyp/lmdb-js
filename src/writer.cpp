@@ -152,7 +152,7 @@ void WriteWorker::Write() {
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
 				key.mv_data = instruction;
-				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 15) & (~7));
+				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 12) & (~7));
 				if (flags & HAS_VALUE) {
 					value.mv_size = *(instruction - 1);
 					if (flags & COMPRESSIBLE) {

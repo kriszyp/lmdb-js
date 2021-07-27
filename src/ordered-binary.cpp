@@ -383,7 +383,7 @@ void make32LE(MDB_val &val) {
     }
     *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));*/
 }
-// compare items by 32-bit LE comparison, a is user provided and assumed to be zero terminated/padded
+// compare items by 32-bit comparison, a is user provided and assumed to be zero terminated/padded
 int compareFast(const MDB_val *a, const MDB_val *b) {
     uint32_t* dataA = (uint32_t*) a->mv_data;
     uint32_t* dataB = (uint32_t*) b->mv_data;
