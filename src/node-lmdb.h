@@ -717,7 +717,7 @@ public:
 #endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(compareKeys);
-    static NAN_METHOD(getStringByPrimitive);
+    static NAN_METHOD(getStringByBinary);
 };
 
 class Compression : public Nan::ObjectWrap {
@@ -988,7 +988,7 @@ public:
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
     static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
     static NAN_METHOD(renew);
-    //static NAN_METHOD(getStringByPrimitive);
+    //static NAN_METHOD(getStringByBinary);
 };
 
 void load32LE(MDB_val &val, uint32_t* target);

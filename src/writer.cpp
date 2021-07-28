@@ -48,16 +48,17 @@ const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
 const int HAS_INLINE_VALUE = 0x400;
-const int COMPRESSIBLE = 0x10000000;
-const int NOT_COMPRESSED = 0x20000000; // was compressible, but didn't get compressed (probably didn't meet threshold)
-const int PROCESSING = 0x20000000; // finished attempt to compress
-const int COMPRESSED = 0x30000000;
+const int COMPRESSIBLE = 0x100000;
+const int NOT_COMPRESSED = 0x200000; // was compressible, but didn't get compressed (probably didn't meet threshold)
+const int PROCESSING = 0x200000; // finished attempt to compress
+const int COMPRESSED = 0x300000;
 const int DELETE_DATABASE = 0x400;
-const int TXN_DELIMITER = 0x80000000;
+const int TXN_HAD_ERROR = 0x80000000;
+const int TXN_DELIMITER = 0x40000000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
 const int FAILED_CONDITION = 1;
-const int FINISHED_OPERATION = 0x40000000;
+const int FINISHED_OPERATION = 0x10000000;
 const int BAD_KEY = 3;
 const int NOT_FOUND = 1;
 
@@ -152,7 +153,7 @@ void WriteWorker::Write() {
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
 				key.mv_data = instruction;
-				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 12) & (~7));
+				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 16) & (~7));
 				if (flags & HAS_VALUE) {
 					value.mv_size = *(instruction - 1);
 					if (flags & COMPRESSIBLE) {

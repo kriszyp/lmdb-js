@@ -355,11 +355,11 @@ function open(path, options) {
 
 		getSizeBinaryFast(id) {
 			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.keyIsCompatibility ? this.db.getByPrimitive(id) : this.db.getByBinary(this.writeKey(id, keyBuffer, 0))
+			lastSize = this.db.getByBinary(this.writeKey(id, keyBuffer, 0))
 		}
 		getString(id) {
-			let string = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-				.getUtf8(this.db, id)
+			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			let string = this.db.getStringByBinary(this.writeKey(id, keyBuffer, 0))
 			if (string)
 				lastSize = string.length
 			return string

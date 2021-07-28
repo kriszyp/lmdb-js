@@ -16,7 +16,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
-		dynamicBytes = Buffer.alloc(8192)
+		dynamicBytes = Buffer.allocUnsafeSlow(8192)
 		dynamicBytes.uint32 = new Uint32Array(dynamicBytes.buffer, 0, 2048)
 		dynamicBytes.float64 = new Float64Array(dynamicBytes.buffer, 0, 1024)
 		dynamicBytes.buffer.address = getAddress(dynamicBytes.buffer)
@@ -65,7 +65,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			throw new Error('Key size is too large')
 		}
 		uint32[flagPosition + 2] = keySize
-		position = (endPosition + 12) >> 3
+		position = (endPosition + 16) >> 3
 		let valueBuffer
 		if (flags & 2) {
 			if (store.encoder) {
@@ -84,7 +84,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
 			let nextCompressible
 			if (this.compression) {
-				nextCompressible = DataAddress + (Position << 3)
+				flags |= 0x100000;
+				nextCompressible = dataAddress + (Position << 3)
 				compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
 				float64[position] = 0
 				position++
@@ -106,6 +107,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			env.writeSync(targetBytes.buffer.address)
 			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_RESULT
 		}
+		uint32[position << 1] = 0 // clear out the next slot
 		return (forceCompression) => {
 			writeStatus = Atomics.or(uint32, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
 			outstandingWriteCount++
@@ -114,15 +116,19 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 				function startWriting() {
 					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
 						console.log('finished batch', status)
+						resolveWrites(true)
 						switch (status) {
 							case 0: case 1:
-							resolveWrites(true)
 							break;
 							case 2:
 							console.log('user callback');
 							break
 							default:
 							console.error(status)
+							if (commitRejectPromise) {
+								commitRejectPromise.reject(status)
+								commitRejectPromise = null
+							}
 						}
 					})
 				}
@@ -161,10 +167,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus
-		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x40000000) {
-			if (instructionStatus & 0x80000000) {
-				instructionStatus = instructionStatus & 0x7fffffff
-				resolveCommit(async)
+		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x10000000) {
+			if (instructionStatus & 0x40000000) {
+				if (instructionStatus & 0x80000000)
+					rejectCommit()
+				else {
+					instructionStatus = instructionStatus & 0x1000000f
+					resolveCommit(async)
+				}
 			}
 			outstandingWriteCount--
 			log.push(['resolution', unwrittenResolution.flag, instructionStatus])
@@ -175,8 +185,11 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			unwrittenResolution = unwrittenResolution.nextResolution
 		}
 		if (!unwrittenResolution) {
-			if (dynamicBytes.uint32[dynamicBytes.position << 1] & 0x80000000) {
-				resolveCommit(async)
+			if ((instructionStatus = dynamicBytes.uint32[dynamicBytes.position << 1]) & 0x40000000) {
+				if (instructionStatus & 0x80000000)
+					rejectCommit()
+				else
+					resolveCommit(async)
 			}
 			return
 		}
@@ -186,15 +199,30 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			resetReadTxn()
 		else
 			queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes?
-		while(uncommittedResolution != unwrittenResolution && uncommittedResolution) {
+		while (uncommittedResolution != unwrittenResolution && uncommittedResolution) {
 			let flag = uncommittedResolution.flag
 			log.push(['committed', uncommittedResolution.debuggingPosition, !!uncommittedResolution.nextResolution])
-			if (flag == 0x40000000)
+			if (flag == 0x10000000)
 				uncommittedResolution.resolve(true)
-			else if (flag == 0x40000001)
+			else if (flag == 0x10000001)
 				uncommittedResolution.resolve(false)
 			else
 				uncommittedResolution.reject(new Error("Error occurred in write"))
+			uncommittedResolution = uncommittedResolution.nextResolution
+		}
+	}
+	var commitRejectPromise
+	function rejectCommit() {
+		if (!commitRejectPromise) {
+			let rejectFunction
+			commitRejectPromise = new Promise((resolve, reject) => rejectFunction = reject)
+			commitRejectPromise.reject = rejectFunction
+		}
+		while (uncommittedResolution != unwrittenResolution && uncommittedResolution) {
+			let flag = uncommittedResolution.flag & 0xf
+			let error = new Error("Commit failed (see commitError for details)")
+			error.commitError = commitRejectPromise
+			uncommittedResolution.reject(error)
 			uncommittedResolution = uncommittedResolution.nextResolution
 		}
 	}

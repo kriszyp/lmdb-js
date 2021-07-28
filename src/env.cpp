@@ -1187,7 +1187,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
           v8::SideEffectType::kHasNoSideEffect));
     #endif
     dbiTpl->PrototypeTemplate()->Set(isolate, "compareKeys", Nan::New<FunctionTemplate>(DbiWrap::compareKeys));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByPrimitive", Nan::New<FunctionTemplate>(DbiWrap::getStringByPrimitive));
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByBinary", Nan::New<FunctionTemplate>(DbiWrap::getStringByBinary));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
 
 

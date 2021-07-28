@@ -418,6 +418,27 @@ void DbiWrap::getByBinary(
     return info.GetReturnValue().Set(valToBinaryUnsafe(data));
 }
 
+NAN_METHOD(DbiWrap::getStringByBinary) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    char* keyBuffer = dw->ew->keyBuffer;
+    MDB_txn* txn = dw->ew->getReadTxn();
+    MDB_val key;
+    MDB_val data;
+    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_data = (void*) keyBuffer;
+    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    if (rc) {
+        if (rc == MDB_NOTFOUND)
+            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+        else
+            return throwLmdbError(rc);
+    }   
+    rc = getVersionAndUncompress(data, dw);
+    return info.GetReturnValue().Set(valToUtf8(data));
+}
+
 NAN_METHOD(DbiWrap::compareKeys) {
     v8::Local<v8::Object> instance =
       v8::Local<v8::Object>::Cast(info.Holder());
@@ -433,28 +454,4 @@ NAN_METHOD(DbiWrap::compareKeys) {
         rc = mdb_cmp(txn, dw->dbi, &a, &b);
     }
     return info.GetReturnValue().Set(Nan::New<Number>(rc));
-}
-
-NAN_METHOD(DbiWrap::getStringByPrimitive) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    MDB_txn* txn = dw->ew->getReadTxn();
-    MDB_val key;
-    MDB_val data;
-    bool keyIsValid;
-    if(argToKey(info[0], key, dw->keyType, keyIsValid)) {
-        return Nan::ThrowError("argToKey should not allocate");
-    }
-    if (!keyIsValid) {
-        // argToKey already threw an error
-        return;
-    }
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
-    if (rc) {
-
-        return throwLmdbError(rc);
-    }
-    rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToUtf8(data));
 }
