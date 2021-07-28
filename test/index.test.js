@@ -83,7 +83,7 @@ describe('lmdb-store', function() {
       })
       return
     }
-    it.only('query of keys', async function() {
+    it('query of keys', async function() {
       let keys = [
         Symbol.for('test'),
         false,

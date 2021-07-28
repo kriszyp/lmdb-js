@@ -11,7 +11,7 @@ SYNC_PROMISE_RESULT.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
-exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }) {
+exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap }) {
 	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution 
 	//  stands for write instructions
 	var dynamicBytes
@@ -29,6 +29,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 	var compressionCount = 0
 	var outstandingWriteCount = 0
 	var writeTxn = null
+	var abortedNonChildTransactionWarn
+
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
@@ -274,9 +276,46 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn }
 			return finish(compressionStatus)
 		},
 		putSync(key, value, versionOrOptions, ifVersion) {
-			if (!writeTxn) {
+			if (writeTxn)
+				return this.put(key, value, versionOrOptions, ifVersion)
+			else
+				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion))
+		},
+		transactionSync(callback, abort) {
+			if (writeTxn) {
+				if (!useWritemap && !this.cache)
+					// already nested in a transaction, execute as child transaction (if possible) and return
+					return this.childTransaction(callback)
+				let result = callback() // else just run in current transaction
+				if (result == ABORT && !abortedNonChildTransactionWarn) {
+					console.warn('Can not abort a transaction inside another transaction with ' + (this.cache ? 'caching enabled' : 'useWritemap enabled'))
+					abortedNonChildTransactionWarn = true
+				}
+				return result			}
+			let txn
+			try {
+				this.transactions++
+				txn = writeTxn = env.beginTxn()
+				return when(callback(), (result) => {
+					try {
+						if (result === ABORT)
+							txn.abort()
+						else {
+							txn.commit()
+							resetReadTxn()
+						}
+						return result
+					} finally {
+						writeTxn = null
+					}
+				}, (error) => {
+					writeTxn = null
+					throw error
+				})
+			} catch(error) {
+				writeTxn = null
+				throw error
 			}
-			return this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_RESULT
 		}
 	})
 }

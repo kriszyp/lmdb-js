@@ -908,7 +908,7 @@ function open(path, options) {
 	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBuffer, keyBufferView, getLastVersion }, exports))
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBuffer, resetReadTxn })
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBuffer, resetReadTxn, useWritemap })
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
