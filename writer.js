@@ -268,8 +268,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		},
 		ifVersion(key, version, callback) {
 			let finish = writeInstructions(0x105, this, key)
-			position += 2 // for compression slots
-			float64[position++] = ifVersion
+			dynamicBytes.position += 2 // for compression slots
+			float64[dynamicBytes.position++] = ifVersion
 			let startingCompressionCount = compressionCount
 			try {
 				callback()
