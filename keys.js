@@ -1,8 +1,6 @@
 const { getAddress } = require('./native')
 const { writeKey, readKey, enableNullTermination } = require('ordered-binary')
 enableNullTermination()
-const keyBuffer = Buffer.allocUnsafeSlow(2048)
-const keyBufferView = new DataView(keyBuffer.buffer, 0, 2048) // max key size is actually 1978
 
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true)

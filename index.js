@@ -13,8 +13,12 @@ const { writeKey, readKey, compareKeys } = require('ordered-binary')
 const os = require('os')
 setGetLastVersion(getLastVersion)
 Uint8ArraySlice = Uint8Array.prototype.slice
-const keyBuffer = Buffer.allocUnsafeSlow(2048)
-const keyBufferView = new DataView(keyBuffer.buffer, 0, 2048) // max key size is actually 1978
+const keyBytes = Buffer.allocUnsafeSlow(2048)
+const keyBuffer = keyBytes.buffer
+const keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048) // max key size is actually 1978
+keyBytes.uint32 = new Uint32Array(keyBuffer, 0, 512)
+keyBytes.float64 = new Float64Array(keyBuffer, 0, 256)
+keyBuffer.address = getAddress(keyBuffer)
 const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -23,7 +27,6 @@ const DEFAULT_COMMIT_DELAY = 0
 const READING_TNX = {
 	readOnly: true
 }
-const ABORT = {}
 
 const allDbs = exports.allDbs = new Map()
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
@@ -36,7 +39,6 @@ let defaultCompression
 let lastSize, lastOffset, lastVersion
 const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_BOTH_RANGE = 2, MDB_GET_CURRENT = 3, MDB_FIRST = 4, MDB_LAST = 5, MDB_NEXT = 6, MDB_NEXT_NODUP = 7, MDB_NEXT_DUP = 8, MDB_PREV = 9, MDB_PREV_NODUP = 10, MDB_PREV_DUP = 11
 exports.open = open
-exports.ABORT = ABORT
 let abortedNonChildTransactionWarn
 function open(path, options) {
 	let env = new Env()
@@ -62,7 +64,7 @@ function open(path, options) {
 		isRoot: true,
 		maxDbs: 12,
 		remapChunks,
-		keyBuffer,
+		keyBytes,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
@@ -330,14 +332,14 @@ function open(path, options) {
 		}
 		getSharedBufferForGet(id) {
 			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBuffer, 0))
+			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0))
 			if (lastSize === 0xffffffff) { // not found code
 				return //undefined
 			}
 			return lastSize
-			lastSize = keyBufferView.getUint32(0, true)
-			let bufferIndex = keyBufferView.getUint32(12, true)
-			lastOffset = keyBufferView.getUint32(8, true)
+			lastSize = keyBytesView.getUint32(0, true)
+			let bufferIndex = keyBytesView.getUint32(12, true)
+			lastOffset = keyBytesView.getUint32(8, true)
 			let buffer = buffers[bufferIndex]
 			let startOffset
 			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
@@ -355,11 +357,11 @@ function open(path, options) {
 
 		getSizeBinaryFast(id) {
 			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			lastSize = this.db.getByBinary(this.writeKey(id, keyBuffer, 0))
+			lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0))
 		}
 		getString(id) {
 			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
-			let string = this.db.getStringByBinary(this.writeKey(id, keyBuffer, 0))
+			let string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0))
 			if (string)
 				lastSize = string.length
 			return string
@@ -907,8 +909,8 @@ function open(path, options) {
 	const removeSync = LMDBStore.prototype.removeSync
 	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
-	}, saveKey, keyBuffer, keyBufferView, getLastVersion }, exports))
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBuffer, resetReadTxn, useWritemap })
+	}, saveKey, keyBytes, keyBytesView, getLastVersion }, exports))
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, useWritemap })
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
@@ -970,11 +972,11 @@ exports.getLastEntrySize = function() {
 	return lastSize
 }
 function getLastVersion() {
-	return keyBufferView.getFloat64(16, true)
+	return keyBytesView.getFloat64(16, true)
 }
 
 function setLastVersion(version) {
-	return keyBufferView.setFloat64(16, version, true)
+	return keyBytesView.setFloat64(16, version, true)
 }
 let saveBuffer, saveDataView, saveDataAddress
 let savePosition = 8000

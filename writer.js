@@ -1,4 +1,5 @@
 const { getAddress } = require('./native')
+const when  = require('./util/when')
 var backpressureArray
 
 const MAX_KEY_SIZE = 1978
@@ -7,6 +8,8 @@ const BACKPRESSURE_THRESHOLD = 5000000
 const TXN_DELIMITER = 0x80000000
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
+const ABORT = {}
+exports.ABORT = ABORT
 SYNC_PROMISE_RESULT.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
@@ -35,18 +38,24 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	dynamicBytes.uint32[0] = TXN_DELIMITER
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus, compressionStatus
-		let targetBytes = writeTxn ? fixedBuffer : dynamicBytes
-		let position = targetBytes.position
-		if (position > 750) { // 6000 bytes
-			// make new buffer and make pointer to it
-			let lastBuffer = targetBytes
-			let lastPosition = targetBytes.position
-			let lastFloat64 = targetBytes.float64
-			let lastUint32 = targetBytes.uint32
-			targetBytes = allocateInstructionBuffer()
+		let targetBytes, position
+		if (writeTxn) {
+			targetBytes = fixedBuffer
+			position = 0
+		} else {
+			targetBytes = dynamicBytes
 			position = targetBytes.position
-			lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
-			writeStatus = Atomics.or(lastUint32, lastPosition << 1, 2) // pointer instruction
+			if (position > 750) { // 6000 bytes
+				// make new buffer and make pointer to it
+				let lastBuffer = targetBytes
+				let lastPosition = targetBytes.position
+				let lastFloat64 = targetBytes.float64
+				let lastUint32 = targetBytes.uint32
+				targetBytes = allocateInstructionBuffer()
+				position = targetBytes.position
+				lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
+				writeStatus = Atomics.or(lastUint32, lastPosition << 1, 2) // pointer instruction
+			}
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
 		let flagPosition = position << 1 // flagPosition is the 32-bit word starting position
@@ -279,7 +288,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (writeTxn)
 				return this.put(key, value, versionOrOptions, ifVersion)
 			else
-				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion))
+				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_RESULT)
 		},
 		transactionSync(callback, abort) {
 			if (writeTxn) {
@@ -291,7 +300,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					console.warn('Can not abort a transaction inside another transaction with ' + (this.cache ? 'caching enabled' : 'useWritemap enabled'))
 					abortedNonChildTransactionWarn = true
 				}
-				return result			}
+				return result
+			}
 			let txn
 			try {
 				this.transactions++

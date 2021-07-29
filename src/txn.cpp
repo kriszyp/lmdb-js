@@ -91,9 +91,9 @@ NAN_METHOD(TxnWrap::ctor) {
                     return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
                 if (ew->currentBatchTxn != nullptr) {
                     //fprintf(stderr, "begin sync txn");
-                    auto batchWorker = ew->batchWorker;
-                    if (batchWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
-                        batchWorker->ContinueBatch(INTERRUPT_BATCH, false);
+                    auto writeWorker = ew->writeWorker;
+                    if (writeWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
+                        writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
                 }
             }
         }

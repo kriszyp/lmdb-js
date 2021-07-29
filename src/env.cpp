@@ -49,6 +49,8 @@ EnvWrap::EnvWrap() {
     this->currentWriteTxn = nullptr;
     this->currentBatchTxn = nullptr;
 	this->currentReadTxn = nullptr;
+    this->writeWorker = nullptr;
+    this->syncWriter = nullptr;
 	this->readTxnRenewed = false;
     this->winMemoryPriority = 5;
 }
@@ -495,9 +497,9 @@ NAN_METHOD(EnvWrap::open) {
         ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
         ew->compression->Ref();
     }
-    Local<Value> keyBufferValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBuffer").ToLocalChecked()).ToLocalChecked();
-    if (keyBufferValue->IsArrayBufferView())
-        ew->keyBuffer = node::Buffer::Data(keyBufferValue);
+    Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBytes").ToLocalChecked()).ToLocalChecked();
+    if (keyBytesValue->IsArrayBufferView())
+        ew->keyBuffer = node::Buffer::Data(keyBytesValue);
 
     Local<Value> onReadTxnRenew = options->Get(Nan::GetCurrentContext(), Nan::New<String>("onReadTxnRenew").ToLocalChecked()).ToLocalChecked();
     ew->onReadTxnRenew.Reset(Local<Function>::Cast(onReadTxnRenew));
@@ -1103,7 +1105,7 @@ NAN_METHOD(EnvWrap::batchWrite) {
 
 NAN_METHOD(EnvWrap::continueBatch) {
     EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->batchWorker->ContinueBatch(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust(), true);
+    ew->writeWorker->ContinueWrite(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust(), true);
 }
 
 NAN_METHOD(EnvWrap::resetCurrentReadTxn) {
@@ -1126,6 +1128,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(isolate, "startWriting", Nan::New<FunctionTemplate>(EnvWrap::startWriting));
+    envTpl->PrototypeTemplate()->Set(isolate, "writeSync", Nan::New<FunctionTemplate>(EnvWrap::writeSync));
     envTpl->PrototypeTemplate()->Set(isolate, "continueBatch", Nan::New<FunctionTemplate>(EnvWrap::continueBatch));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));

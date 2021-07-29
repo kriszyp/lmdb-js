@@ -275,10 +275,10 @@ void WriteWorker::Write() {
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			*start = flags;
-		} while(true);
+		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 done:
 		if (envForTxn) {
-			envForTxn->currentWriteTxn = nullptr;
+			envForTxn->currentBatchTxn= nullptr;
 			if (currentTxnWrap) {
 				// if a transaction was wrapped, need to do clean up
 				currentTxnWrap->removeFromEnvWrap();
@@ -385,6 +385,7 @@ NAN_METHOD(EnvWrap::startWriting) {
     Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[2]));
 
     WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, (double*) nextCompressible, callback);
+	ew->writeWorker = worker;
     Nan::AsyncQueueWorker(worker);
 }
 

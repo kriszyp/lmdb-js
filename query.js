@@ -3,7 +3,7 @@ const { saveKey } = require('./keys')
 const ITERATOR_DONE = { done: true, value: undefined }
 
 exports.addQueryMethods = function(LMDBStore, {
-	getReadTxn, getWriteTxn, Cursor, keyBuffer, keyBufferView, getLastVersion
+	getReadTxn, getWriteTxn, Cursor, keyBytes, keyBytesView, getLastVersion
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++
@@ -100,7 +100,7 @@ exports.addQueryMethods = function(LMDBStore, {
 					return count
 				}
 				function position(offset) {
-					let keySize = store.writeKey(currentKey, keyBuffer, 0)
+					let keySize = store.writeKey(currentKey, keyBytes, 0)
 					let endAddress
 					if (valuesForKey) {
 						if (options.start === undefined && options.end === undefined)
@@ -109,7 +109,7 @@ exports.addQueryMethods = function(LMDBStore, {
 							let startAddress
 							if (store.encoder.writeKey) {
 								startAddress = BigInt(saveKey(options.start, store.encoder.writeKey, iterable))
-								keyBufferView.setBigUint64(2000, startAddress, true)
+								keyBytesView.setBigUint64(2000, startAddress, true)
 								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values')
@@ -158,10 +158,10 @@ exports.addQueryMethods = function(LMDBStore, {
 							return ITERATOR_DONE
 						}
 						if (!valuesForKey || snapshot === false)
-							currentKey = store.readKey(keyBuffer, 32, keySize + 32)
+							currentKey = store.readKey(keyBytes, 32, keySize + 32)
 						if (includeValues) {
 							let value
-							lastSize = keyBufferView.getUint32(0, true)
+							lastSize = keyBytesView.getUint32(0, true)
 							if (store.decoder) {
 								value = store.decoder.decode(db.unsafeBuffer, lastSize)
 							} else if (store.encoding == 'binary')
