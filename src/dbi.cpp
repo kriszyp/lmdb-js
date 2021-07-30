@@ -431,10 +431,10 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
     int rc = mdb_get(txn, dw->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+            return info.GetReturnValue().Set(Nan::Undefined());
         else
             return throwLmdbError(rc);
-    }   
+    }
     rc = getVersionAndUncompress(data, dw);
     return info.GetReturnValue().Set(valToUtf8(data));
 }

@@ -38,7 +38,7 @@ describe('lmdb-store', function() {
   describe('Basic use', basicTests({ compression: false }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
-  describe('Basic use with JSON', basicTests({ encoding: 'json' }));
+  describe.only('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
@@ -174,7 +174,7 @@ describe('lmdb-store', function() {
       entry = db.getEntry('key1');
       should.equal(entry, undefined);
     });
-    it('string with version branching', async function() {
+    it.only('string with version branching', async function() {
       await db.put('key1', 'Hello world!', 53252);
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');

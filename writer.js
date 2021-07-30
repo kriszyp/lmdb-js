@@ -5,7 +5,7 @@ var backpressureArray
 const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const BACKPRESSURE_THRESHOLD = 5000000
-const TXN_DELIMITER = 0x80000000
+const TXN_DELIMITER = 0x40000000
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 const ABORT = {}
@@ -54,7 +54,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				targetBytes = allocateInstructionBuffer()
 				position = targetBytes.position
 				lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
-				writeStatus = Atomics.or(lastUint32, lastPosition << 1, 2) // pointer instruction
+				writeStatus = Atomics.or(lastUint32, lastPosition << 1, 3) // pointer instruction
 			}
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
@@ -104,15 +104,20 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				compressionCount++
 			}
 		}
-		if (ifVersion != undefined) {
-			flags |= 0x100
-			float64[position++] = ifVersion
+		if (ifVersion !== undefined) {
+			if (ifVersion === null)
+				flags |= 0x10
+			else {
+				flags |= 0x100
+				float64[position++] = ifVersion
+			}
 		}
-		if (version != undefined) {
+		if (version !== undefined) {
 			flags |= 0x200
 			float64[position++] = version || 0
 		}
 		targetBytes.position = position
+		console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
 			uint32[0] = flags
 			env.writeSync(targetBytes.buffer.address)
@@ -123,30 +128,34 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			writeStatus = Atomics.or(uint32, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
 			outstandingWriteCount++
 			if (writeStatus) {
-				let startAddress = targetBytes.buffer.address + (flagPosition << 2)
-				function startWriting() {
-					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-						console.log('finished batch', status)
-						resolveWrites(true)
-						switch (status) {
-							case 0: case 1:
-							break;
-							case 2:
-							console.log('user callback');
-							break
-							default:
-							console.error(status)
-							if (commitRejectPromise) {
-								commitRejectPromise.reject(status)
-								commitRejectPromise = null
+				if (writeStatus & 0x20000000) { // write thread is waiting
+					env.continueBatch(0)
+				} else {
+					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
+					function startWriting() {
+						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
+							console.log('finished batch', status)
+							resolveWrites(true)
+							switch (status) {
+								case 0: case 1:
+								break;
+								case 2:
+								console.log('user callback');
+								break
+								default:
+								console.error(status)
+								if (commitRejectPromise) {
+									commitRejectPromise.reject(status)
+									commitRejectPromise = null
+								}
 							}
-						}
-					})
+						})
+					}
+					if (true || commitDelay == IMMEDIATE)
+						startWriting()
+					else
+						setImmediate(startWriting)
 				}
-				if (true || commitDelay == IMMEDIATE)
-					startWriting()
-				else
-					setImmediate(startWriting)
 			} else if (compressionStatus) {
 				env.compress(nextCompressible)
 			} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
@@ -154,7 +163,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressure, 0, 0, 1)
 			}
-			log.push(['put in js ', flagPosition])
 			resolveWrites()
 			return new Promise((resolve, reject) => {
 				let newResolution = {
@@ -267,22 +275,34 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			return writeInstructions(flags, this, key, value, undefined, ifVersion)()
 		},
 		ifVersion(key, version, callback) {
-			let finish = writeInstructions(0x105, this, key)
-			dynamicBytes.position += 2 // for compression slots
-			float64[dynamicBytes.position++] = ifVersion
-			let startingCompressionCount = compressionCount
-			try {
-				callback()
-			} catch(error) {
-				// TODO: Restore state
-				throw error
+			if (writeTxn) {
+
 			}
-			let compressionStatus
-			if (compressionCount > startingCompressionCount) {
-				nextCompressible = DataAddress + (Position << 3)
-				compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
+			let finishWrite = writeInstructions(5, this, key, undefined, undefined, version)
+			if (callback) {
+				let promise = finishWrite() // commit to writing the whole block in the current transaction
+				console.log('wrote start of ifVersion')
+				try {
+					callback()
+				} catch(error) {
+					// TODO: Restore state
+					throw error
+				}
+				console.log('writing end of ifVersion', (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
+				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // no instruction yet for the next instruction
+				writeStatus = Atomics.or(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
+				if (writeStatus)
+					env.continueBatch(0)
+				return promise
+			} else {
+				return new Batch(() => {
+					// write the end block
+					dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0
+					dynamicBytes.uint32[(dynamicBytes.position++) << 1] = 2
+					// and then write the start block to so it is enqueued atomically
+					return finishWrite()
+				})
 			}
-			return finish(compressionStatus)
 		},
 		putSync(key, value, versionOrOptions, ifVersion) {
 			if (writeTxn)

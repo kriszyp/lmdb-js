@@ -39,8 +39,8 @@ const int DEL_VALUE = 11;
 const int START_CONDITION_BLOCK = 5;
 const int START_CONDITION_VALUE_BLOCK = 7;
 const int START_BLOCK = 1;
-const int BLOCK_END = 0;
-const int POINTER_NEXT = 2;
+const int BLOCK_END = 2;
+const int POINTER_NEXT = 3;
 const int USER_CALLBACK = 8;
 const int DROP_DB = 13;
 const int HAS_VALUE = 2;
@@ -55,6 +55,7 @@ const int COMPRESSED = 0x300000;
 const int DELETE_DATABASE = 0x400;
 const int TXN_HAD_ERROR = 0x80000000;
 const int TXN_DELIMITER = 0x40000000;
+const int WAITING_OPERATION = 0x20000000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
 const int FAILED_CONDITION = 1;
@@ -123,7 +124,7 @@ void WriteWorker::Write() {
 	bool compressed;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
-		int conditionDepth = 1;
+		int conditionDepth = 0;
 		if (callback) {
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
 			txnId = mdb_txn_id(txn);
@@ -147,8 +148,8 @@ void WriteWorker::Write() {
 			uint32_t* start = instruction++;
 			uint32_t flags = *start;
 			MDB_dbi dbi;
-			bool validated = true;
-			if ((flags & 0xf) > 6) {
+			bool validated = conditionDepth == validatedDepth;
+			if ((flags & 0xf) > 4) {
 				// a key based instruction, get the key
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
@@ -172,7 +173,7 @@ void WriteWorker::Write() {
 						else {
 							// not compressed yet, need to break out until compressed
 							instruction -= 3;
-							goto done;
+							goto txn_done;
 						}
 					} else {
 						value.mv_data = (void*)(size_t) * ((double*)instruction);
@@ -186,30 +187,47 @@ void WriteWorker::Write() {
 					if (rc)
 						validated = false;
 					else
-						validated = conditionalVersion == *((double*)value.mv_data);
+						validated = validated && conditionalVersion == *((double*)value.mv_data);
 				}
 				if (flags & SET_VERSION) {
 					setVersion = *((double*) instruction);
 					instruction += 2;
 				}
-				if (flags == (IF_NO_EXISTS | START_BLOCK)) {
+				if ((flags & IF_NO_EXISTS) && (flags & START_CONDITION_BLOCK)) {
 					rc = mdb_get(txn, dbi, &key, &value);
-					validated = rc == MDB_NOTFOUND;
+					validated = validated && rc == MDB_NOTFOUND;
 				}
-			}
+			} else
+				instruction++;
+			fprintf(stdout, "instr flags %p %p\n", start, flags);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
-				case BLOCK_END:
+				case NO_INSTRUCTION_YET:
 					rc = 0;
+					instruction -= 2; // reset back to the previous flag as the current instruction
+					if (conditionDepth) {
+						uv_mutex_lock(userCallbackLock);
+						int nextAvailable;
+						#ifdef _WIN32
+						nextAvailable = InterlockedCompareExchange(instruction, WAITING_OPERATION, NO_INSTRUCTION_YET);
+						#else
+						nextAvailable = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, WAITING_OPERATION);
+						#endif
+						fprintf(stdout, "No instruction yet %u\n", nextAvailable);
+						if (!nextAvailable)
+							uv_cond_wait(userCallbackCond, userCallbackLock);
+						uv_mutex_unlock(userCallbackLock);
+						continue;
+					}
+					else {
+						goto txn_done;
+					}
+				case BLOCK_END:
+					rc = !validated;
 					conditionDepth--;
 					if (validatedDepth > conditionDepth)
 						validatedDepth--;
-					if (conditionDepth)
-						continue;
-					else {
-						instruction--; // reset back to the previous flag as the current instruction
-						goto done;
-					}
+					continue; // don't need to update the flags
 				case PUT:
 					if (flags & SET_VERSION)
 						rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
@@ -217,7 +235,7 @@ void WriteWorker::Write() {
 						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
-					fprintf(stderr, "put %u ", key.mv_size);
+					fprintf(stdout, "put %u \n", key.mv_size);
 					break;
 				case DEL:
 					rc = mdb_del(txn, dbi, &key, nullptr);
@@ -227,7 +245,10 @@ void WriteWorker::Write() {
 					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
 					break;
-				case START_BLOCK:
+				case START_BLOCK: case START_CONDITION_BLOCK:
+					rc = !validated;
+					if (validated)
+						validatedDepth++;
 					conditionDepth++;
 					break;
 				case USER_CALLBACK:
@@ -259,7 +280,7 @@ void WriteWorker::Write() {
 						else {
 							uv_mutex_unlock(userCallbackLock);
 							rc = interruptionStatus;
-							goto done;
+							goto txn_done;
 						}
 					}
 					uv_mutex_unlock(userCallbackLock);
@@ -267,16 +288,15 @@ void WriteWorker::Write() {
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
 					break;
 				case POINTER_NEXT:
-					instruction++;
 					instruction = (uint32_t*)(size_t) * ((double*)instruction);
 					break;
 				}
-				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? NOT_FOUND : rc : 0);
+				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? FAILED_CONDITION : rc : 0);
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			*start = flags;
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
-done:
+txn_done:
 		if (envForTxn) {
 			envForTxn->currentBatchTxn= nullptr;
 			if (currentTxnWrap) {
@@ -289,7 +309,7 @@ done:
 				mdb_txn_abort(txn);
 			else
 				rc = mdb_txn_commit(txn);
-			fprintf(stderr, "committed ");
+			fprintf(stdout, "committed %p\n", instruction);
 
 			if (rc == 0) {
 				unsigned int envFlags;
