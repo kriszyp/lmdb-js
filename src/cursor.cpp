@@ -505,11 +505,10 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     // TODO: Handle count?
     return returnEntry(rc, key, data);
 }
-#ifdef ENABLE_FAST_API
-uint32_t CursorWrap::positionFast(v8::ApiObject receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+uint32_t CursorWrap::positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
     CursorWrap* cw = static_cast<CursorWrap*>(
-        v8_object->GetAlignedPointerFromInternalField(0));
+        receiver_obj->GetAlignedPointerFromInternalField(0));
     DbiWrap* dw = cw->dw;
     dw->getFast = true;
     cw->flags = flags;
@@ -534,10 +533,9 @@ void CursorWrap::position(
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
 #ifdef ENABLE_FAST_API
-uint32_t CursorWrap::iterateFast(v8::ApiObject receiver_obj, FastApiCallbackOptions& options) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+uint32_t CursorWrap::iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options) {
     CursorWrap* cw = static_cast<CursorWrap*>(
-        v8_object->GetAlignedPointerFromInternalField(0));
+        receiver_obj->GetAlignedPointerFromInternalField(0));
     DbiWrap* dw = cw->dw;
     dw->getFast = true;
     MDB_val key, data;

@@ -357,11 +357,10 @@ NAN_METHOD(DbiWrap::stat) {
     info.GetReturnValue().Set(obj);
 }
 
-#ifdef ENABLE_FAST_API
-uint32_t DbiWrap::getByBinaryFast(v8::ApiObject receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
-    v8::Object* v8_object = reinterpret_cast<v8::Object*>(&receiver_obj);
+#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
 	DbiWrap* dw = static_cast<DbiWrap*>(
-		v8_object->GetAlignedPointerFromInternalField(0));
+        receiver_obj->GetAlignedPointerFromInternalField(0));
     EnvWrap* ew = dw->ew;
     char* keyBuffer = ew->keyBuffer;
     MDB_txn* txn = ew->getReadTxn();
