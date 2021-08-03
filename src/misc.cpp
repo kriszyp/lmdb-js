@@ -33,11 +33,7 @@ static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
 static thread_local KeySpace* fixedKeySpace;
 
-void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
-    #if defined(__GLIBC__) && !defined(__UCLIBC__)
-    signal(SIGSEGV, signalHandler);   // install our handler
-    #endif
     Local<Object> versionObj = Nan::New<Object>();
 
     int major, minor, patch;
@@ -567,20 +563,3 @@ const char *CustomExternalOneByteStringResource::data() const {
 size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
-
-#if defined(__GLIBC__) && !defined(__UCLIBC__)
-#include <execinfo.h>
-#include <unistd.h>
-void signalHandler(int sig) {
-    void *array[20];
-    size_t size;
-
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 20);
-
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
-#endif

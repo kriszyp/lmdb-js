@@ -1,7 +1,7 @@
 {
   "name": "lmdb-store",
   "author": "Kris Zyp",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
   "license": "MIT",
   "repository": {
@@ -26,7 +26,7 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "recompile": "node-gyp configure && node-gyp build",
+    "recompile": "node-gyp configure && node-gyp build -d",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
     "test:types": "tsd",
