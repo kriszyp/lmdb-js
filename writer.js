@@ -39,6 +39,19 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus, compressionStatus
 		let targetBytes, position
+		let valueBuffer
+		if (flags & 2) {
+			// encode first in case we have to write a shared structure
+			if (store.encoder) {
+				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
+				valueBuffer = store.encoder.encode(value)
+				if (typeof valueBuffer == 'string')
+					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
+			} else if (typeof value == 'string') {
+				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
+			} else if (!(value instanceof Uint8Array))
+				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
+		}
 		if (writeTxn) {
 			targetBytes = fixedBuffer
 			position = 0
@@ -77,18 +90,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[flagPosition + 2] = keySize
 		position = (endPosition + 16) >> 3
-		let valueBuffer
 		if (flags & 2) {
-			if (store.encoder) {
-				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
-				valueBuffer = store.encoder.encode(value)
-				if (typeof valueBuffer == 'string')
-					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
-			} else if (typeof value == 'string') {
-				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
-			} else if (!(value instanceof Uint8Array))
-				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
-
 			uint32[(position << 1) - 1] = valueBuffer.length
 			let valueArrayBuffer = valueBuffer.buffer
 			// record pointer to value buffer
@@ -117,7 +119,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			float64[position++] = version || 0
 		}
 		targetBytes.position = position
-		console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
+		//console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
 			uint32[0] = flags
 			env.writeSync(targetBytes.buffer.address)

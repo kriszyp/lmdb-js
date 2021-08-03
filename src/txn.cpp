@@ -92,8 +92,13 @@ NAN_METHOD(TxnWrap::ctor) {
                 if (ew->currentBatchTxn != nullptr) {
                     //fprintf(stderr, "begin sync txn");
                     auto writeWorker = ew->writeWorker;
-                    if (writeWorker) // notify the batch worker that we need to jump ahead of any queued transaction callbacks
-                        writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
+                    if (writeWorker) {
+                        parentTxn = writeWorker->GetPausedTxn(); // see if we have a paused transaction
+                        if (!parentTxn) {
+                            // notify the batch worker that we need to jump ahead of any queued transaction callbacks
+                            writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
+                        // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
+                    }
                 }
             }
         }
@@ -105,7 +110,7 @@ NAN_METHOD(TxnWrap::ctor) {
             return throwLmdbError(rc);
         }
     }
-    TxnWrap* tw = new TxnWrap(ew->env, txn);
+    got_txn: TxnWrap* tw = new TxnWrap(ew->env, txn);
 
     // Set the current write transaction
     if (0 == (flags & MDB_RDONLY)) {

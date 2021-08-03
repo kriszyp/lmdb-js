@@ -896,7 +896,7 @@ function open(path, options) {
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
-						writeTxn.putBinary(this.db, this.sharedStructuresKey, this.encoder.encode(structures))
+						this.put(this.sharedStructuresKey, structures)
 					})
 				},
 				getStructures,

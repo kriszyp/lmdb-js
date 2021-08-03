@@ -221,6 +221,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void ContinueWrite(int rc, bool hasStarted);
     void Write();
     void Compress();
+    MDB_txn* GetPausedTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();

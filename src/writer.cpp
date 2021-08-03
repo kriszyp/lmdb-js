@@ -115,6 +115,12 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 		Compress();
 	Write();
 }
+MDB_txn* WriteWorker::GetPausedTxn() {
+	uv_mutex_lock(userCallbackLock);
+	MDB_txn txn = this.currentBatchTxn;
+	uv_mutex_unlock(userCallbackLock);
+	return txn;
+}
 void WriteWorker::Write() {
 	MDB_txn *txn;
 	MDB_val key, value;
@@ -199,7 +205,7 @@ void WriteWorker::Write() {
 				}
 			} else
 				instruction++;
-			fprintf(stdout, "instr flags %p %p\n", start, flags);
+//			fprintf(stdout, "instr flags %p %p\n", start, flags);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -213,7 +219,7 @@ void WriteWorker::Write() {
 						#else
 						nextAvailable = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, WAITING_OPERATION);
 						#endif
-						fprintf(stdout, "No instruction yet %u\n", nextAvailable);
+						//fprintf(stdout, "No instruction yet %u\n", nextAvailable);
 						if (!nextAvailable)
 							uv_cond_wait(userCallbackCond, userCallbackLock);
 						uv_mutex_unlock(userCallbackLock);
@@ -235,7 +241,7 @@ void WriteWorker::Write() {
 						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 					if ((flags & COMPRESSED) && compressed)
 						free(value.mv_data);
-					fprintf(stdout, "put %u \n", key.mv_size);
+					//fprintf(stdout, "put %u \n", key.mv_size);
 					break;
 				case DEL:
 					rc = mdb_del(txn, dbi, &key, nullptr);
