@@ -80,26 +80,32 @@ void WriteWorker::ContinueWrite(int rc, bool hasStarted) {
 	uv_mutex_unlock(userCallbackLock);
 }
 
-WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressible, Nan::Callback *callback)
+WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressibleArg, Nan::Callback *callback)
 		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
 		env(env),
 		envForTxn(envForTxn),
 		instructions(instructions),
-		nextCompressible(nextCompressible) {
+		nextCompressible(nextCompressibleArg) {
+	fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
 	}
 
 void WriteWorker::Compress() {
+	fprintf(stdout, "compress\n");
 	MDB_val value;
 	uint64_t nextCompressibleSlot;
-	while (nextCompressible = ((double*) (size_t) (*nextCompressible))) {
+	while (nextCompressible) {
 		Compression* compression = (Compression*) (size_t) (*(nextCompressible + 1));
-		value.mv_data = (void*) ((size_t) *(nextCompressible + 2));
-		value.mv_size = *((uint32_t*)(nextCompressible + 3));
+		value.mv_data = (void*) ((size_t) *(nextCompressible - 1));
+		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
+		fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data,value.mv_size);
 		void* compressedData = compression->compress(&value, nullptr);
-		if (compressedData)
-			*(nextCompressible + 2) = (size_t) compressedData;
+		if (compressedData) {
+			*((size_t*)(nextCompressible - 1)) = (size_t) value.mv_data;
+			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
+			fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
+		}
 		#ifdef _WIN32
 		nextCompressibleSlot = InterlockedExchange64((int64_t*) nextCompressible, 0xffffffffffffffffll);
 		#else
@@ -164,23 +170,23 @@ void WriteWorker::Write() {
 				if (flags & HAS_VALUE) {
 					value.mv_size = *(instruction - 1);
 					if (flags & COMPRESSIBLE) {
-						if (*(instruction + 1) > 0x100000) {
+						if (*(instruction + 1) < 0x100000) {
 							// compressed
-							value.mv_data = (void*) ((size_t*)instruction);
+							value.mv_data = (void*)(size_t) *((size_t*)instruction);
 							instruction += 6; // skip compression pointers
 							compressed = true;
 						}
-						else if (*(instruction + 3) == 0xffffffff) {
+						else /*if (*(instruction + 3) == 0xffffffff) */{
 							// compression attempted, but not compressed
 							value.mv_data = (void*)(size_t) * ((double*)instruction);
 							instruction += 6;
 							compressed = false;
 						}
-						else {
+						/*else {
 							// not compressed yet, need to break out until compressed
 							instruction -= 3;
 							goto txn_done;
-						}
+						}*/
 					} else {
 						value.mv_data = (void*)(size_t) * ((double*)instruction);
 						instruction += 2;
@@ -239,7 +245,7 @@ void WriteWorker::Write() {
 						rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 					else
 						rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
-					if ((flags & COMPRESSED) && compressed)
+					if ((flags & COMPRESSIBLE) && compressed)
 						free(value.mv_data);
 					//fprintf(stdout, "put %u \n", key.mv_size);
 					break;

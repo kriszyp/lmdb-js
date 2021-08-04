@@ -10,7 +10,6 @@ let spawn = require('child_process').spawn;
 
 let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
 const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-var inspector = require('inspector'); inspector.open(9330, null, true); debugger
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(__dirname, './testdata-ls');
@@ -35,7 +34,7 @@ describe('lmdb-store', function() {
     });
   });
   let testIteration = 1
-  describe('Basic use', basicTests({ compression: false }));
+  describe('Basic use', basicTests({ }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe.only('Basic use with JSON', basicTests({ encoding: 'json' }));
@@ -174,7 +173,7 @@ describe('lmdb-store', function() {
       entry = db.getEntry('key1');
       should.equal(entry, undefined);
     });
-    it.only('string with version branching', async function() {
+    it('string with version branching', async function() {
       await db.put('key1', 'Hello world!', 53252);
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');

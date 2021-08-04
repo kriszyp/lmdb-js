@@ -87,12 +87,16 @@ function open(path, options) {
 				defaultCompression = options.compression = new Compression({
 					threshold: 1000,
 					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-				})	
-		} else
-			options.compression = new Compression(Object.assign({
+				})
+				defaultCompression.threshold = 1000
+		} else {
+			let compressionOptions = Object.assign({
 				threshold: 1000,
 				dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-			}), options.compression)
+			}, options.compression)
+			options.compression = new Compression(compressionOptions)
+			options.compression.threshold = compressionOptions.threshold
+		}
 	}
 
 	if (options && options.clearOnStart) {
@@ -215,10 +219,6 @@ function open(path, options) {
 			}
 		}
 		transactionAsync(callback, asChild) {
-			if (writeTxn) {
-				// already nested in a transaction, just execute and return
-				return callback()
-			}
 			let lastOperation
 			let after, strictOrder
 			if (scheduledOperations) {
@@ -283,13 +283,15 @@ function open(path, options) {
 			}
 			return this.transactionAsync(callback, true)
 		}
-		transaction(callback, abort) {
-			if (!transactionWarned) {
-				console.warn('transaction is deprecated, use transactionSync if you want a synchronous transaction or transactionAsync for asynchronous transaction. In this future this will always call transactionAsync.')
-				transactionWarned = true
+		transaction(callback) {
+			if (writeTxn) {
+				// already nested in a transaction, just execute and return
+				if (useWritemap)
+					return callback()
+				else
+					return this.childTransaction(callback)
 			}
-			let result = this.transactionSync(callback, abort)
-			return abort ? ABORT : result
+			return this.transactionAsync(callback)
 		}
 		transactionSync(callback, abort) {
 			if (writeTxn) {

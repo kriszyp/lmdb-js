@@ -29,6 +29,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	}
 	var lastCompressibleFloat64 = new Float64Array(1)
 	var lastCompressiblePosition = 0
+	var lastFlagPosition = 0
+	var lastDynamicBytes
 	var compressionCount = 0
 	var outstandingWriteCount = 0
 	var writeTxn = null
@@ -90,19 +92,22 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[flagPosition + 2] = keySize
 		position = (endPosition + 16) >> 3
+		let valueBuffer, nextCompressible
 		if (flags & 2) {
 			uint32[(position << 1) - 1] = valueBuffer.length
 			let valueArrayBuffer = valueBuffer.buffer
 			// record pointer to value buffer
 			float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
-			let nextCompressible
-			if (this.compression) {
+			if (store.compression && valueBuffer.length >= store.compression.threshold) {
 				flags |= 0x100000;
-				nextCompressible = dataAddress + (Position << 3)
-				compressionStatus = Atomics.exchange(lastCompressibleFloat64, lastCompressiblePosition, nextCompressible)
 				float64[position] = 0
-				position++
-				float64[position++] = this.compression.address
+				float64[position + 1] = store.compression.address
+				nextCompressible = targetBytes.buffer.address + (position << 3)
+				compressionStatus = !lastCompressibleFloat64[lastCompressiblePosition]
+				lastCompressibleFloat64[lastCompressiblePosition] = nextCompressible
+				lastCompressiblePosition = position
+				lastCompressibleFloat64 = float64
+				position += 2
 				compressionCount++
 			}
 		}
@@ -127,7 +132,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		return (forceCompression) => {
-			writeStatus = Atomics.or(uint32, flagPosition, flags) // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
+			writeStatus = Atomics.or(uint32, flagPosition, flags)
+			/*uint32[flagPosition] = flags // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
+			writeStatus = lastUint32[lastFlagPosition]
+			while (writeStatus & STATUS_LOCKED) {
+				writeStatus = lastUint32[lastFlagPosition]
+			}
+			lastUint32 = uint32
+			lastFlagPosition = flagPosition*/
 			outstandingWriteCount++
 			if (writeStatus) {
 				if (writeStatus & 0x20000000) { // write thread is waiting
