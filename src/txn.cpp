@@ -97,6 +97,7 @@ NAN_METHOD(TxnWrap::ctor) {
                         if (!parentTxn) {
                             // notify the batch worker that we need to jump ahead of any queued transaction callbacks
                             writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
+                        }
                         // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
                     }
                 }

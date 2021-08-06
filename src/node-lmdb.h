@@ -220,6 +220,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressible, Nan::Callback *callback);
     void ContinueWrite(int rc, bool hasStarted);
     void Write();
+    double* CompressOne(double* nextCompressible);
     void Compress();
     MDB_txn* GetPausedTxn();
     void Execute(const ExecutionProgress& executionProgress);

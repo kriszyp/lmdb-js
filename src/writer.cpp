@@ -90,28 +90,44 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
 	}
+double* WriteWorker::CompressOne(double* nextCompressible) {
+	MDB_val value;
+	uint64_t nextCompressibleSlot;
+	Compression* compression;
+	uint64_t compressionPointer;
+#ifdef _WIN32
+	compressionPointer = InterlockedExchange64((int64_t*)nextCompressible + 1, 0);
+#else
+	compressionPointer = atomic_fetch_exchange(compressible, 0);
+#endif
+	compression = (Compression*)(size_t) * ((double*)&compressionPointer);
+	if (compression) {
+		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
+		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
+		fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
+		void* compressedData = compression->compress(&value, nullptr);
+		if (compressedData) {
+			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
+			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
+			fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
+		} else
+			fprintf(stdout, "failed to compress\n");
+		WakeByAddressAll(nextCompressible);
+	}
+/*
+#ifdef _WIN32
+	nextCompressibleSlot = InterlockedExchange64((int64_t*)nextCompressible, 0xffffffffffffffffll);
+#else
+	nextCompressibleSlot = atomic_fetch_exchange(compressible, 0xffffffffffffffffll);
+#endif*/
+	return (double*)(size_t) * (nextCompressible + 1);
+}
+
 
 void WriteWorker::Compress() {
 	fprintf(stdout, "compress\n");
-	MDB_val value;
-	uint64_t nextCompressibleSlot;
 	while (nextCompressible) {
-		Compression* compression = (Compression*) (size_t) (*(nextCompressible + 1));
-		value.mv_data = (void*) ((size_t) *(nextCompressible - 1));
-		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
-		fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data,value.mv_size);
-		void* compressedData = compression->compress(&value, nullptr);
-		if (compressedData) {
-			*((size_t*)(nextCompressible - 1)) = (size_t) value.mv_data;
-			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
-			fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
-		}
-		#ifdef _WIN32
-		nextCompressibleSlot = InterlockedExchange64((int64_t*) nextCompressible, 0xffffffffffffffffll);
-		#else
-		nextCompressibleSlot = atomic_fetch_exchange(compressible, 0xffffffffffffffffll);
-		#endif
-		nextCompressible = (double*) (size_t) *((double*) (&nextCompressibleSlot));
+		nextCompressible = CompressOne(nextCompressible);
 	}
 }
 
@@ -123,7 +139,7 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 }
 MDB_txn* WriteWorker::GetPausedTxn() {
 	uv_mutex_lock(userCallbackLock);
-	MDB_txn txn = this.currentBatchTxn;
+	MDB_txn* txn = envForTxn->currentBatchTxn;
 	uv_mutex_unlock(userCallbackLock);
 	return txn;
 }
@@ -170,23 +186,29 @@ void WriteWorker::Write() {
 				if (flags & HAS_VALUE) {
 					value.mv_size = *(instruction - 1);
 					if (flags & COMPRESSIBLE) {
-						if (*(instruction + 1) < 0x100000) {
-							// compressed
-							value.mv_data = (void*)(size_t) *((size_t*)instruction);
-							instruction += 6; // skip compression pointers
-							compressed = true;
+						uint32_t highPointer = *(instruction + 1);
+						if (highPointer > 0x40000000) { // not compressed yet
+/*							Compression* compression;
+							// this is the algorithm for always compressing if it is not compressed yet (rather than waiting for the other thread)
+#ifdef _WIN32
+							compression = (Compression*)InterlockedExchange64((int64_t*)(instruction + 4), 0);
+#else
+							compression = atomic_fetch_exchange(instruction + 4, 0);
+#endif
+							if (compression) {
+								CompressOne((double*)(instruction + 2));
+							} // else it is already done now */
+							CompressOne((double*)(instruction + 2));
+							while(*(instruction + 1) > 0x40000000) {
+								// compression in progress
+								WaitOnAddress(instruction, &highPointer, 4, INFINITE);
+								//syscall(SYS_futex, instruction + 2, FUTEX_WAIT, compressionPointer, NULL, NULL, 0);
+							}
 						}
-						else /*if (*(instruction + 3) == 0xffffffff) */{
-							// compression attempted, but not compressed
-							value.mv_data = (void*)(size_t) * ((double*)instruction);
-							instruction += 6;
-							compressed = false;
-						}
-						/*else {
-							// not compressed yet, need to break out until compressed
-							instruction -= 3;
-							goto txn_done;
-						}*/
+						// compressed
+						value.mv_data = (void*)(size_t) * ((size_t*)instruction);
+						instruction += 6; // skip compression pointers
+						compressed = true;
 					} else {
 						value.mv_data = (void*)(size_t) * ((double*)instruction);
 						instruction += 2;

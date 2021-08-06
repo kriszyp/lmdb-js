@@ -177,8 +177,8 @@ argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t fr
             compressedData[2] = (uint8_t)(dataLength >> 8u);
             compressedData[3] = (uint8_t)dataLength;
         }
-        value->mv_data = compressed;
         value->mv_size = compressedSize + prefixSize;
+        value->mv_data = compressed;
         return ([](MDB_val &value) -> void {
             delete[] (char*)value.mv_data;
         });

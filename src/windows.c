@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include <windows.h>
+#include <synchapi.h>
 
 static int initializeMemoryPriority = 1;
 static MEMORY_PRIORITY_INFORMATION lowMemPriority;
@@ -12,6 +13,10 @@ int lowerMemoryPriority(int priority) {
         lowMemPriority.MemoryPriority = priority;
         initializeMemoryPriority = 0;
     }
+    void* instruction;
+    void* pointer;
+    WaitOnAddress(instruction, pointer, 8, INFINITE);
+
     return SetThreadInformation(GetCurrentThread(), ThreadMemoryPriority, &lowMemPriority, sizeof(lowMemPriority));
 }
 int setProcessMemoryPriority(int priority) {

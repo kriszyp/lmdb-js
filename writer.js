@@ -92,7 +92,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[flagPosition + 2] = keySize
 		position = (endPosition + 16) >> 3
-		let valueBuffer, nextCompressible
+		let nextCompressible
 		if (flags & 2) {
 			uint32[(position << 1) - 1] = valueBuffer.length
 			let valueArrayBuffer = valueBuffer.buffer

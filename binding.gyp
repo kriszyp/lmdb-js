@@ -64,7 +64,7 @@
           ],
         }],
         ["OS=='win'", {
-            "libraries": ["ntdll.lib"]
+            "libraries": ["ntdll.lib", "synchronization.lib"]
         }],
         ["use_data_v1=='true'", {
           "sources": [
