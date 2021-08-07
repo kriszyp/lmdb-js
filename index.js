@@ -461,15 +461,12 @@ function open(path, options) {
 					return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue)
 				}
 				else {
-					let cursor = new Cursor(txn, this.db)
 					if (this.encoder) {
 						versionOrValue = this.encoder.encode(versionOrValue)
 					}
 					if (typeof versionOrValue == 'string')
 						versionOrValue = Buffer.from(versionOrValue)
-					let result = cursor.goToDup(key, versionOrValue) !== undefined
-					cursor.close()
-					return result
+					return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0
 				}
 			} catch(error) {
 				return handleError(error, this, txn, () => this.doesExist(key, versionOrValue))

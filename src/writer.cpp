@@ -343,7 +343,7 @@ txn_done:
 				mdb_txn_abort(txn);
 			else
 				rc = mdb_txn_commit(txn);
-			fprintf(stdout, "committed %p\n", instruction);
+			//fprintf(stdout, "committed %p\n", instruction);
 
 			if (rc == 0) {
 				unsigned int envFlags;

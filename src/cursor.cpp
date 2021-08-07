@@ -434,10 +434,11 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     } else {
         if (flags & 0x800) { // only values for this key
             // take the next part of the key buffer as a pointer to starting data
-            uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
+            uint32_t* startValueBuffer = (uint32_t*)(size_t)(*(double*)(dw->ew->keyBuffer + 2000));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
             data.mv_data = startValueBuffer + 1;
-            rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+            rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ?
+                (flags & 0x4000) ? MDB_GET_BOTH : MDB_GET_BOTH_RANGE : MDB_SET_KEY);
             if (rc == MDB_NOTFOUND)
                 return 0;
             if (flags & 0x1000 && !endKeyAddress) {
@@ -458,7 +459,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 else if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
             } else // forward, just do a get by range
-                rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
+                rc = mdb_cursor_get(cursor, &key, &data, (flags & 0x4000) ? MDB_SET_KEY : MDB_SET_RANGE);
         }
     }
     while (offset-- > 0 && !rc) {

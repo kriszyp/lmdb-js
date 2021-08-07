@@ -1,5 +1,7 @@
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
+const { getAddress } = require('./native')
 const { saveKey } = require('./keys')
+const { writeKey } = require('ordered-binary')
 const ITERATOR_DONE = { done: true, value: undefined }
 
 exports.addQueryMethods = function(LMDBStore, {
@@ -60,7 +62,8 @@ exports.addQueryMethods = function(LMDBStore, {
 				let count = 0
 				let cursor, cursorRenewId
 				let txn
-				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) | (valuesForKey ? 0x800 : 0)
+				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
+					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0)
 				function resetCursor() {
 					try {
 						if (cursor)
@@ -108,9 +111,13 @@ exports.addQueryMethods = function(LMDBStore, {
 						else {
 							let startAddress
 							if (store.encoder.writeKey) {
-								startAddress = BigInt(saveKey(options.start, store.encoder.writeKey, iterable))
-								keyBytesView.setBigUint64(2000, startAddress, true)
+								startAddress = saveKey(options.start, store.encoder.writeKey, iterable)
+								keyBytesView.setFloat64(2000, startAddress, true)
 								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
+							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
+								startAddress = saveKey(options.start, writeKey, iterable)
+								keyBytesView.setFloat64(2000, startAddress, true)
+								endAddress = saveKey(options.end, writeKey, iterable)
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values')
 								let encoded = store.encoder.encode(options.start)

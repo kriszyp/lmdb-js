@@ -269,7 +269,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					flags |= 0x20
 				if (versionOrOptions.append)
 					flags |= 0x20000
-				if (versionsOrOptions.ifVersion != undefined)
+				if (versionOrOptions.ifVersion != undefined)
 					ifVersion = versionsOrOptions.ifVersion
 				versionOrOptions = versionOrOptions.version
 			}
