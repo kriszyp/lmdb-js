@@ -67,8 +67,8 @@ NAN_METHOD(TxnWrap::ctor) {
     int flags = 0;
     MDB_txn *txn;
     TxnWrap *parentTw;
-    if (info[1]->IsTrue()) {
-        txn = ew->currentBatchTxn;
+    if (info[1]->IsTrue() && ew->writeWorker) { // this is from a transaction callback
+        txn = ew->writeWorker->AcquireTxn(false);
         parentTw = nullptr;
     } else {
         if (info[1]->IsObject()) {
@@ -89,11 +89,12 @@ NAN_METHOD(TxnWrap::ctor) {
             if (0 == (flags & MDB_RDONLY)) {
                 if (ew->currentWriteTxn != nullptr)
                     return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
+                if (ew->writeWorker)
                 if (ew->currentBatchTxn != nullptr) {
                     //fprintf(stderr, "begin sync txn");
                     auto writeWorker = ew->writeWorker;
                     if (writeWorker) {
-                        parentTxn = writeWorker->GetPausedTxn(); // see if we have a paused transaction
+                        parentTxn = writeWorker->AcquireTxn(true); // see if we have a paused transaction
                         if (!parentTxn) {
                             // notify the batch worker that we need to jump ahead of any queued transaction callbacks
                             writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
@@ -138,15 +139,26 @@ NAN_METHOD(TxnWrap::commit) {
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
     }
+    int rc;
+    WriteWorker* writeWorker = tw->ew->writeWorker;
+    if (writeWorker) {
+        // if (writeWorker->txn && env->writeMap)
+        // rc = 0
+        // else
+        rc = mdb_txn_commit(tw->txn);
+        
+        uv_mutex_unlock(writeWorker->userCallbackLock);
+        if (tw->parentTw == nullptr && tw->ew->currentBatchTxn != nullptr) {
+            //fprintf(stderr, "committed sync txn");
 
-    int rc = mdb_txn_commit(tw->txn);
-    if (tw->parentTw == nullptr && tw->ew->currentBatchTxn != nullptr) {
-        //fprintf(stderr, "committed sync txn");
-
-        auto batchWorker = tw->ew->batchWorker;
-        if (batchWorker) // notify the batch worker that we are done, and it can proceed
-            batchWorker->ContinueBatch(RESUME_BATCH, false);
+            auto batchWorker = tw->ew->batchWorker;
+            if (batchWorker) // notify the batch worker that we are done, and it can proceed
+                batchWorker->ContinueBatch(RESUME_BATCH, false);
+        }
     }
+    else
+        rc = mdb_txn_commit(tw->txn);
+
     tw->removeFromEnvWrap();
 
     if (rc != 0) {

@@ -1128,7 +1128,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(isolate, "startWriting", Nan::New<FunctionTemplate>(EnvWrap::startWriting));
-    envTpl->PrototypeTemplate()->Set(isolate, "writeSync", Nan::New<FunctionTemplate>(EnvWrap::writeSync));
     envTpl->PrototypeTemplate()->Set(isolate, "continueBatch", Nan::New<FunctionTemplate>(EnvWrap::continueBatch));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
@@ -1183,11 +1182,21 @@ void EnvWrap::setupExports(Local<Object> exports) {
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
+    auto writeFast = CFunction::Make(EnvWrap::writeFast);
+    envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
+        isolate, EnvWrap::write, v8::Local<v8::Value>(),
+        v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+        v8::SideEffectType::kHasNoSideEffect, &writeFast));
+
     #else
     dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect));
+    envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
+        isolate, EnvWrap::write, v8::Local<v8::Value>(),
+        v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
+        v8::SideEffectType::kHasNoSideEffect));
     #endif
     dbiTpl->PrototypeTemplate()->Set(isolate, "compareKeys", Nan::New<FunctionTemplate>(DbiWrap::compareKeys));
     dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByBinary", Nan::New<FunctionTemplate>(DbiWrap::getStringByBinary));

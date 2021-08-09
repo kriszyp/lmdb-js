@@ -37,7 +37,7 @@ describe('lmdb-store', function() {
   describe('Basic use', basicTests({ }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
-  describe.only('Basic use with JSON', basicTests({ encoding: 'json' }));
+  describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
   describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
@@ -472,7 +472,7 @@ describe('lmdb-store', function() {
       expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
       expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
     });
-    it('async transactions', async function() {
+    it.only('async transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
@@ -493,7 +493,7 @@ describe('lmdb-store', function() {
       }
       await db.transactionAsync(() => {
         ranTransaction = true;
-        should.equal(db.get('key1'), 'async initial value');
+        should.equal(db.get('key1'), 'async initial v6alue');
         db.put('key1',  'async test 1');
         should.equal(db.get('key1'), 'async test 1');
         for (let { key, value } of db.getRange({start: 'key1', end: 'key1z' })) {

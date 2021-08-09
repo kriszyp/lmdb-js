@@ -9,6 +9,7 @@ const TXN_DELIMITER = 0x40000000
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 const ABORT = {}
+const CALLBACK_THREW = {}
 exports.ABORT = ABORT
 SYNC_PROMISE_RESULT.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
@@ -35,6 +36,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	var outstandingWriteCount = 0
 	var writeTxn = null
 	var abortedNonChildTransactionWarn
+	var nextTxnCallbacks
+	var lastQueuedTxnCallbacks
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
@@ -127,7 +130,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		//console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
 			uint32[0] = flags
-			env.writeSync(targetBytes.buffer.address)
+			env.write(targetBytes.buffer.address)
 			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_RESULT
 		}
 		uint32[position << 1] = 0 // clear out the next slot
@@ -143,6 +146,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			outstandingWriteCount++
 			if (writeStatus) {
 				if (writeStatus & 0x20000000) { // write thread is waiting
+					console.log('resume batch thread')
 					env.continueBatch(0)
 				} else {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
@@ -154,6 +158,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 								case 0: case 1:
 								break;
 								case 2:
+									executeTxnCallbacks()
 								console.log('user callback');
 								break
 								default:
@@ -259,9 +264,70 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			uncommittedResolution = uncommittedResolution.nextResolution
 		}
 	}
+	async function executeTxnCallbacks() {
+		continuedWriteTxn = env.beginTxn(true)
+		transactionResults = new Array(transactions.length)
+		results.transactionResults = transactionResults
+		let promises, i
+		for (i = 0, l = nextTxnCallbacks.length; i < l; i++) {
+			let userTxnCallback = nextTxnCallbacks[i]
+			let asChild = userTxnCallback.asChild
+			if (asChild) {
+				if (promises) {
+					// must complete any outstanding transactions before proceeding
+					await Promise.all(promises)
+					promises = null
+				}
+				let childTxn = env.writeTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)
+				try {
+					let result = userTxnCallback.callback()
+					if (result && result.then) {
+						await result
+					}
+					if (result === ABORT)
+						childTxn.abort()
+					else
+						childTxn.commit()
+						nextTxnCallbacks[i] = result
+				} catch(error) {
+					childTxn.abort()
+					if (!txnError(error, i))
+						return
+				}
+			} else {
+				env.writeTxn = writeTxn = continuedWriteTxn
+				try {
+					let result = userTxnCallback()
+					if (result && result.then) {
+						if (!promises)
+							promises = []
+						nextTxnCallbacks[i] = result
+						promises.push(result.catch(() => {
+							txnError(error, i)
+						}))
+					} else
+						transactionSetResults[(i << 1) + 1] = result
+				} catch(error) {
+					if (!txnError(error, i))
+						return
+				}
+			}
+		}
+		if (promises) { // finish any outstanding commit functions
+			await Promise.all(promises)
+		}
+		env.writeTxn = writeTxn = null
+		console.log('async callback resume write trhead')
+		nextTxnCallbacks = nextTxnCallbacks.next
+		return env.continueBatch(0)
+		function txnError(error, i) {
+			(nextTxnCallbacks.errors || (nextTxnCallbacks.errors = []))[i] = error
+			nextTxnCallbacks[i] = CALLBACK_THREW
+		}
+	}
 	Object.assign(LMDBStore.prototype, {
 		put(key, value, versionOrOptions, ifVersion) {
-			let sync, flags = 10
+			let sync, flags = 15
 			if (typeof versionOrOptions == 'object') {
 				if (versionOrOptions.noOverwrite)
 					flags |= 0x10
@@ -276,13 +342,13 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			return writeInstructions(flags, this, key, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)()
 		},
 		remove(key, ifVersionOrValue) {
-			let flags = 9
+			let flags = 13
 			let ifVersion, value
 			if (ifVersionOrValue !== undefined) {
 				if (this.useVersions)
 					ifVersion = ifVersionOrValue
 				else {
-					flags = 11
+					flags = 14
 					value = ifVersionOrValue
 				}
 			}
@@ -292,7 +358,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (writeTxn) {
 
 			}
-			let finishWrite = writeInstructions(5, this, key, undefined, undefined, version)
+			let finishWrite = writeInstructions(4, this, key, undefined, undefined, version)
 			if (callback) {
 				let promise = finishWrite() // commit to writing the whole block in the current transaction
 				console.log('wrote start of ifVersion')
@@ -305,8 +371,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				console.log('writing end of ifVersion', (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
 				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // no instruction yet for the next instruction
 				writeStatus = Atomics.or(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
-				if (writeStatus)
+				if (writeStatus) {
+					console.log('ifVersion resume write thread')
 					env.continueBatch(0)
+				}
 				return promise
 			} else {
 				return new Batch(() => {
@@ -323,6 +391,64 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				return this.put(key, value, versionOrOptions, ifVersion)
 			else
 				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_RESULT)
+		},
+		transaction(callback) {
+			if (writeTxn) {
+				// already nested in a transaction, just execute and return
+				if (useWritemap)
+					return callback()
+				else
+					return this.childTransaction(callback)
+			}
+			return this.transactionAsync(callback)
+		},
+		childTransaction(callback) {
+			if (useWritemap)
+				throw new Error('Child transactions are not supported in writemap mode')
+			if (writeTxn) {
+				let parentTxn = writeTxn
+				let childTxn = writeTxn = env.beginTxn(null, parentTxn)
+				try {
+					return when(callback(), (result) => {
+						writeTxn = parentTxn
+						if (result === ABORT)
+							childTxn.abort()
+						else
+							childTxn.commit()
+						return result
+					}, (error) => {
+						writeTxn = parentTxn
+						childTxn.abort()
+						throw error
+					})
+				} catch(error) {
+					writeTxn = parentTxn
+					childTxn.abort()
+					throw error
+				}
+			}
+			return this.transactionAsync(callback, true)
+		},
+		transactionAsync(callback, asChild) {
+			// TODO: strict ordering
+			let txnIndex
+			let txnCallbacks
+			if (!lastQueuedTxnCallbacks) {
+				txnCallbacks = lastQueuedTxnCallbacks = [asChild ? callback : { callback, asChild }]
+				txnIndex = 0
+				lastQueuedTxnCallbacks.results = writeInstructions(8, this)()
+			} else {
+				txnCallbacks = lastQueuedTxnCallbacks
+				txnIndex = lastQueuedTxnCallbacks.push(asChild ? callback : { callback, asChild }) - 1
+			}
+			if (!nextTxnCallbacks)
+				nextTxnCallbacks = txnCallbacks
+			return lastQueuedTxnCallbacks.results.then((results) => {
+				let result = txnCallbacks[txnIndex]
+				if (result === CALLBACK_THREW)
+					throw txnCallbacks.errors[txnIndex]
+				return result
+			})
 		},
 		transactionSync(callback, abort) {
 			if (writeTxn) {

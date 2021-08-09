@@ -256,43 +256,6 @@ function open(path, options) {
 				return transactionResults[index + 1]
 			})
 		}
-		childTransaction(callback) {
-			if (useWritemap)
-				throw new Error('Child transactions are not supported in writemap mode')
-			if (writeTxn) {
-				let parentTxn = writeTxn
-				let childTxn = writeTxn = env.beginTxn(null, parentTxn)
-				try {
-					return when(callback(), (result) => {
-						writeTxn = parentTxn
-						if (result === ABORT)
-							childTxn.abort()
-						else
-							childTxn.commit()
-						return result
-					}, (error) => {
-						writeTxn = parentTxn
-						childTxn.abort()
-						throw error
-					})
-				} catch(error) {
-					writeTxn = parentTxn
-					childTxn.abort()
-					throw error
-				}
-			}
-			return this.transactionAsync(callback, true)
-		}
-		transaction(callback) {
-			if (writeTxn) {
-				// already nested in a transaction, just execute and return
-				if (useWritemap)
-					return callback()
-				else
-					return this.childTransaction(callback)
-			}
-			return this.transactionAsync(callback)
-		}
 		transactionSync(callback, abort) {
 			if (writeTxn) {
 				if (!useWritemap && !this.cache)
@@ -714,6 +677,7 @@ function open(path, options) {
 											await Promise.all(promises)
 										}
 										writeTxn = null
+										console.log('async callback resume write trhead')
 										return env.continueBatch(0)
 										function txnError(error, i) {
 											if (error.message.startsWith('MDB_MAP_FULL')) {

@@ -222,7 +222,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void Write();
     double* CompressOne(double* nextCompressible);
     void Compress();
-    MDB_txn* GetPausedTxn();
+    MDB_txn* AcquireTxn(bool onlyPaused);
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
@@ -239,6 +239,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     double* nextCompressible;
     ExecutionProgress* executionProgress;
     int progressStatus;
+    int WaitForCallbacks(MDB_txn** txn);
 };
 
 /*
@@ -260,8 +261,8 @@ private:
     // compression settings and space
     Compression *compression;
     BatchWorkerBase* batchWorker;
-    WriteWorker* writeWorker;
     WriteWorker* syncWriter;
+    bool pendingCallbacks;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -278,6 +279,7 @@ public:
     TxnWrap *currentWriteTxn;
 
     MDB_txn* currentReadTxn;
+    WriteWorker* writeWorker;
     bool readTxnRenewed;
     // Current raw batch transaction
     MDB_txn *currentBatchTxn;
@@ -426,7 +428,10 @@ public:
     */
     static NAN_METHOD(batchWrite);
     static NAN_METHOD(startWriting);
-    static NAN_METHOD(writeSync);
+#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+    static void writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
+#endif
+    static void write(const v8::FunctionCallbackInfo<v8::Value>& info);
 
     static NAN_METHOD(continueBatch);
     static NAN_METHOD(resetCurrentReadTxn);

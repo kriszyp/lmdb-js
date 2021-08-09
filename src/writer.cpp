@@ -33,16 +33,18 @@ inline value?
 #endif
 // flags:
 const int NO_INSTRUCTION_YET = 0;
-const int PUT = 10;
-const int DEL = 9;
-const int DEL_VALUE = 11;
-const int START_CONDITION_BLOCK = 5;
-const int START_CONDITION_VALUE_BLOCK = 7;
+const int PUT = 15;
+const int DEL = 13;
+const int DEL_VALUE = 14;
+const int START_CONDITION_BLOCK = 4;
+const int START_CONDITION_VALUE_BLOCK = 6;
 const int START_BLOCK = 1;
 const int BLOCK_END = 2;
 const int POINTER_NEXT = 3;
 const int USER_CALLBACK = 8;
-const int DROP_DB = 13;
+const int USER_CALLBACK_STRICT_ORDER = 0x100000;
+const int DROP_DB = 12;
+const int HAS_KEY = 4;
 const int HAS_VALUE = 2;
 const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
@@ -74,7 +76,8 @@ void WriteWorker::ContinueWrite(int rc, bool hasStarted) {
 		currentTxnWrap = envForTxn->currentWriteTxn;
 	}
 	envForTxn->currentWriteTxn = nullptr;
-	uv_mutex_lock(userCallbackLock);
+	if (rc == 0) // we are simply notifying that it can/should continue
+		uv_mutex_lock(userCallbackLock);
 	interruptionStatus = rc;
 	uv_cond_signal(userCallbackCond);
 	uv_mutex_unlock(userCallbackLock);
@@ -89,6 +92,10 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 	fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
+		userCallbackLock = new uv_mutex_t;
+		userCallbackCond = new uv_cond_t;
+		uv_mutex_init(userCallbackLock);
+		uv_cond_init(userCallbackCond);
 	}
 double* WriteWorker::CompressOne(double* nextCompressible) {
 	MDB_val value;
@@ -137,18 +144,44 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 		Compress();
 	Write();
 }
-MDB_txn* WriteWorker::GetPausedTxn() {
+MDB_txn* WriteWorker::AcquireTxn(bool onlyPaused) {
 	uv_mutex_lock(userCallbackLock);
 	MDB_txn* txn = envForTxn->currentBatchTxn;
-	uv_mutex_unlock(userCallbackLock);
 	return txn;
 }
+int WriteWorker::WaitForCallbacks(MDB_txn** txn) {
+waitForCallback:
+	int rc;
+	if (interruptionStatus == 0 && !finishedProgress)
+		uv_cond_wait(userCallbackCond, userCallbackLock);
+	if (interruptionStatus != 0 && !finishedProgress) {
+		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
+			rc = mdb_txn_commit(*txn);
+			if (rc == 0) {
+				// wait again until the sync transaction is completed
+				uv_cond_wait(userCallbackCond, userCallbackLock);
+				// now restart our transaction
+				rc = mdb_txn_begin(env, nullptr, 0, txn);
+				envForTxn->currentBatchTxn = *txn;
+				interruptionStatus = 0;
+				uv_cond_signal(userCallbackCond);
+				goto waitForCallback;
+			}
+			if (rc != 0) {
+				uv_mutex_unlock(userCallbackLock);
+				return rc;
+			}
+		}
+	}
+}
+
 void WriteWorker::Write() {
 	MDB_txn *txn;
 	MDB_val key, value;
 	uint32_t* instruction = instructions;
 	int rc, txnId;
 	bool moreProcessing = true;
+	finishedProgress = true;
 	bool compressed;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
@@ -164,10 +197,6 @@ void WriteWorker::Write() {
 		}
 		if (envForTxn) {
 			envForTxn->currentBatchTxn = txn;
-			userCallbackLock = new uv_mutex_t;
-			userCallbackCond = new uv_cond_t;
-			uv_mutex_init(userCallbackLock);
-			uv_cond_init(userCallbackCond);
 		}
 		int validatedDepth = 0;
 		double conditionalVersion, setVersion;
@@ -177,7 +206,8 @@ void WriteWorker::Write() {
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = conditionDepth == validatedDepth;
-			if ((flags & 0xf) > 4) {
+			uv_mutex_lock(userCallbackLock);
+			if (flags & HAS_KEY) {
 				// a key based instruction, get the key
 				dbi = (MDB_dbi) *instruction++;
 				key.mv_size = *instruction++;
@@ -240,7 +270,6 @@ void WriteWorker::Write() {
 					rc = 0;
 					instruction -= 2; // reset back to the previous flag as the current instruction
 					if (conditionDepth) {
-						uv_mutex_lock(userCallbackLock);
 						int nextAvailable;
 						#ifdef _WIN32
 						nextAvailable = InterlockedCompareExchange(instruction, WAITING_OPERATION, NO_INSTRUCTION_YET);
@@ -254,6 +283,7 @@ void WriteWorker::Write() {
 						continue;
 					}
 					else {
+						WaitForCallbacks(&txn);
 						goto txn_done;
 					}
 				case BLOCK_END:
@@ -286,38 +316,12 @@ void WriteWorker::Write() {
 					conditionDepth++;
 					break;
 				case USER_CALLBACK:
-					uv_mutex_lock(userCallbackLock);
 					finishedProgress = false;
 					progressStatus = 2;
 					executionProgress->Send(nullptr, 0);
-				waitForCallback:
-					if (interruptionStatus == 0)
-						uv_cond_wait(userCallbackCond, userCallbackLock);
-					if (interruptionStatus != 0 && !finishedProgress) {
-						if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-							rc = mdb_txn_commit(txn);
-							if (rc == 0) {
-								// wait again until the sync transaction is completed
-								uv_cond_wait(userCallbackCond, userCallbackLock);
-								// now restart our transaction
-								rc = mdb_txn_begin(env, nullptr, 0, &txn);
-								envForTxn->currentBatchTxn = txn;
-								interruptionStatus = 0;
-								uv_cond_signal(userCallbackCond);
-								goto waitForCallback;
-							}
-							if (rc != 0) {
-								uv_mutex_unlock(userCallbackLock);
-								return SetErrorMessage(mdb_strerror(rc));
-							}
-						}
-						else {
-							uv_mutex_unlock(userCallbackLock);
-							rc = interruptionStatus;
-							goto txn_done;
-						}
-					}
-					uv_mutex_unlock(userCallbackLock);
+					if (flags & USER_CALLBACK_STRICT_ORDER)
+						WaitForCallbacks(&txn);
+					break;
 				case DROP_DB:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
 					break;
@@ -329,6 +333,7 @@ void WriteWorker::Write() {
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			*start = flags;
+			uv_mutex_unlock(userCallbackLock);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
 		if (envForTxn) {
@@ -389,10 +394,8 @@ txn_done:
 				#endif
 			}
 		} else { // sync mode
-			if (rc)
-				return Nan::ThrowError(mdb_strerror(rc));
-			else
-				return;
+			interruptionStatus = rc;
+			return;
 		}
 		if (moreProcessing) {
 			*instruction |= TXN_DELIMITER;
@@ -425,7 +428,8 @@ void WriteWorker::HandleOKCallback() {
 	Local<v8::Value> argv[] = {
 		Nan::New<Number>(0)
 	};
-
+	if (envForTxn->writeWorker == this)
+		envForTxn->writeWorker = nullptr;
 	callback->Call(1, argv, async_resource);
 }
 
@@ -443,15 +447,33 @@ NAN_METHOD(EnvWrap::startWriting) {
     Nan::AsyncQueueWorker(worker);
 }
 
-NAN_METHOD(EnvWrap::writeSync) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    Local<Context> context = Nan::GetCurrentContext();
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
-    }
-    size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-    WriteWorker* syncWriter = ew->syncWriter;
-    if (!syncWriter)
-    	syncWriter = ew->syncWriter = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, nullptr, nullptr);
-    syncWriter->Write();
+
+#ifdef ENABLE_FAST_API
+void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
+	EnvWrap* cw = static_cast<EnvWrap*>(
+		receiver_obj->GetAlignedPointerFromInternalField(0));
+	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+	WriteWorker* syncWriter = ew->syncWriter;
+	if (!syncWriter)
+		syncWriter = ew->syncWriter = new WriteWorker(ew->env, ew, (uint32_t*)instructionAddress, nullptr, nullptr);
+	syncWriter->Write();
+	if (syncWriter.interruptionStatus)
+		options.fallback = true;
+}
+#endif
+void EnvWrap::write(
+	const v8::FunctionCallbackInfo<v8::Value>& info) {
+	v8::Local<v8::Object> instance =
+		v8::Local<v8::Object>::Cast(info.Holder());
+	EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(instance);
+	if (!ew->env) {
+		return Nan::ThrowError("The environment is already closed.");
+	}
+	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+	WriteWorker* syncWriter = ew->syncWriter;
+	if (!syncWriter)
+		syncWriter = ew->syncWriter = new WriteWorker(ew->env, ew, (uint32_t*)instructionAddress, nullptr, nullptr);
+	syncWriter->Write();
+	if (syncWriter->interruptionStatus)
+		return Nan::ThrowError(mdb_strerror(syncWriter->interruptionStatus));
 }

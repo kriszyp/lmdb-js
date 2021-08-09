@@ -441,7 +441,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 (flags & 0x4000) ? MDB_GET_BOTH : MDB_GET_BOTH_RANGE : MDB_SET_KEY);
             if (rc == MDB_NOTFOUND)
                 return 0;
-            if (flags & 0x1000 && !endKeyAddress) {
+            if (flags & 0x1000 && (!endKeyAddress || (flags & 0x4000))) {
                 size_t count;
                 rc = mdb_cursor_count(cursor, &count);
                 if (rc)

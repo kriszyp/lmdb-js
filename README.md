@@ -48,7 +48,7 @@ let myStore = open({
 await myStore.put('greeting', { someText: 'Hello, World!' });
 myStore.get('greeting').someText // 'Hello, World!'
 // or
-myStore.transactionAsync(() => {
+myStore.transaction(() => {
 	myStore.put('greeting', { someText: 'Hello, World!' });
 	myStore.get('greeting').someText // 'Hello, World!'
 });
@@ -339,6 +339,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
 * `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
 * `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
+
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
