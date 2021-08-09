@@ -80,52 +80,55 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 
 		// don't increment Position until we are sure we don't have any key writing errors
 		uint32[flagPosition + 1] = store.db.dbi
-		let keyStartPosition = (position << 3) + 12
-		let endPosition
-		try {
-			endPosition = store.writeKey(key, targetBytes, keyStartPosition)
-		} catch(error) {
-			targetBytes.fill(0, keyStartPosition)
-			throw error
-		}
-		let keySize = endPosition - keyStartPosition
-		if (keySize > MAX_KEY_SIZE) {
-			targetBytes.fill(0, keyStartPosition)
-			throw new Error('Key size is too large')
-		}
-		uint32[flagPosition + 2] = keySize
-		position = (endPosition + 16) >> 3
 		let nextCompressible
-		if (flags & 2) {
-			uint32[(position << 1) - 1] = valueBuffer.length
-			let valueArrayBuffer = valueBuffer.buffer
-			// record pointer to value buffer
-			float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
-			if (store.compression && valueBuffer.length >= store.compression.threshold) {
-				flags |= 0x100000;
-				float64[position] = 0
-				float64[position + 1] = store.compression.address
-				nextCompressible = targetBytes.buffer.address + (position << 3)
-				compressionStatus = !lastCompressibleFloat64[lastCompressiblePosition]
-				lastCompressibleFloat64[lastCompressiblePosition] = nextCompressible
-				lastCompressiblePosition = position
-				lastCompressibleFloat64 = float64
-				position += 2
-				compressionCount++
+		if (flags & 4) {
+			let keyStartPosition = (position << 3) + 12
+			let endPosition
+			try {
+				endPosition = store.writeKey(key, targetBytes, keyStartPosition)
+			} catch(error) {
+				targetBytes.fill(0, keyStartPosition)
+				throw error
 			}
-		}
-		if (ifVersion !== undefined) {
-			if (ifVersion === null)
-				flags |= 0x10
-			else {
-				flags |= 0x100
-				float64[position++] = ifVersion
+			let keySize = endPosition - keyStartPosition
+			if (keySize > MAX_KEY_SIZE) {
+				targetBytes.fill(0, keyStartPosition)
+				throw new Error('Key size is too large')
 			}
-		}
-		if (version !== undefined) {
-			flags |= 0x200
-			float64[position++] = version || 0
-		}
+			uint32[flagPosition + 2] = keySize
+			position = (endPosition + 16) >> 3
+			if (flags & 2) {
+				uint32[(position << 1) - 1] = valueBuffer.length
+				let valueArrayBuffer = valueBuffer.buffer
+				// record pointer to value buffer
+				float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+				if (store.compression && valueBuffer.length >= store.compression.threshold) {
+					flags |= 0x100000;
+					float64[position] = 0
+					float64[position + 1] = store.compression.address
+					nextCompressible = targetBytes.buffer.address + (position << 3)
+					compressionStatus = !lastCompressibleFloat64[lastCompressiblePosition]
+					lastCompressibleFloat64[lastCompressiblePosition] = nextCompressible
+					lastCompressiblePosition = position
+					lastCompressibleFloat64 = float64
+					position += 2
+					compressionCount++
+				}
+			}
+			if (ifVersion !== undefined) {
+				if (ifVersion === null)
+					flags |= 0x10
+				else {
+					flags |= 0x100
+					float64[position++] = ifVersion
+				}
+			}
+			if (version !== undefined) {
+				flags |= 0x200
+				float64[position++] = version || 0
+			}
+		} else
+			position++
 		targetBytes.position = position
 		//console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
@@ -147,7 +150,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (writeStatus) {
 				if (writeStatus & 0x20000000) { // write thread is waiting
 					console.log('resume batch thread')
-					env.continueBatch(0)
+					env.continueBatch(4)
 				} else {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
 					function startWriting() {
@@ -265,9 +268,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 	}
 	async function executeTxnCallbacks() {
-		continuedWriteTxn = env.beginTxn(true)
-		transactionResults = new Array(transactions.length)
-		results.transactionResults = transactionResults
+		let continuedWriteTxn = env.beginTxn(true)
 		let promises, i
 		for (i = 0, l = nextTxnCallbacks.length; i < l; i++) {
 			let userTxnCallback = nextTxnCallbacks[i]
@@ -279,6 +280,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					promises = null
 				}
 				let childTxn = env.writeTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)
+				
 				try {
 					let result = userTxnCallback.callback()
 					if (result && result.then) {
@@ -291,25 +293,20 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						nextTxnCallbacks[i] = result
 				} catch(error) {
 					childTxn.abort()
-					if (!txnError(error, i))
-						return
+					txnError(error, i)
 				}
 			} else {
 				env.writeTxn = writeTxn = continuedWriteTxn
 				try {
 					let result = userTxnCallback()
+					nextTxnCallbacks[i] = result
 					if (result && result.then) {
 						if (!promises)
 							promises = []
-						nextTxnCallbacks[i] = result
-						promises.push(result.catch(() => {
-							txnError(error, i)
-						}))
-					} else
-						transactionSetResults[(i << 1) + 1] = result
+						promises.push(result.catch(() => {}))
+					}
 				} catch(error) {
-					if (!txnError(error, i))
-						return
+					txnError(error, i)
 				}
 			}
 		}
@@ -319,6 +316,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		env.writeTxn = writeTxn = null
 		console.log('async callback resume write trhead')
 		nextTxnCallbacks = nextTxnCallbacks.next
+		lastQueuedTxnCallbacks = null
 		return env.continueBatch(0)
 		function txnError(error, i) {
 			(nextTxnCallbacks.errors || (nextTxnCallbacks.errors = []))[i] = error
@@ -373,7 +371,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				writeStatus = Atomics.or(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 				if (writeStatus) {
 					console.log('ifVersion resume write thread')
-					env.continueBatch(0)
+					env.continueBatch(4)
 				}
 				return promise
 			} else {
@@ -434,12 +432,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			let txnIndex
 			let txnCallbacks
 			if (!lastQueuedTxnCallbacks) {
-				txnCallbacks = lastQueuedTxnCallbacks = [asChild ? callback : { callback, asChild }]
+				txnCallbacks = lastQueuedTxnCallbacks = [asChild ? { callback, asChild } : callback]
 				txnIndex = 0
 				lastQueuedTxnCallbacks.results = writeInstructions(8, this)()
 			} else {
 				txnCallbacks = lastQueuedTxnCallbacks
-				txnIndex = lastQueuedTxnCallbacks.push(asChild ? callback : { callback, asChild }) - 1
+				txnIndex = lastQueuedTxnCallbacks.push(asChild ? { callback, asChild } : callback) - 1
 			}
 			if (!nextTxnCallbacks)
 				nextTxnCallbacks = txnCallbacks
@@ -479,10 +477,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						writeTxn = null
 					}
 				}, (error) => {
+					try { txn.abort() } catch(e) {}
 					writeTxn = null
 					throw error
 				})
 			} catch(error) {
+				try { txn.abort() } catch(e) {}
 				writeTxn = null
 				throw error
 			}

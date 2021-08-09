@@ -5,7 +5,7 @@ const { writeKey } = require('ordered-binary')
 const ITERATOR_DONE = { done: true, value: undefined }
 
 exports.addQueryMethods = function(LMDBStore, {
-	getReadTxn, getWriteTxn, Cursor, keyBytes, keyBytesView, getLastVersion
+	getReadTxn, env, Cursor, keyBytes, keyBytesView, getLastVersion
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++
@@ -68,7 +68,7 @@ exports.addQueryMethods = function(LMDBStore, {
 					try {
 						if (cursor)
 							finishCursor()
-						let writeTxn = getWriteTxn()
+						let writeTxn = env.writeTxn
 						txn = writeTxn || getReadTxn()
 						cursor = !writeTxn && db.availableCursor
 						if (cursor) {

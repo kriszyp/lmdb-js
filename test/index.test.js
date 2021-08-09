@@ -472,7 +472,7 @@ describe('lmdb-store', function() {
       expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
       expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
     });
-    it.only('async transactions', async function() {
+    it('async transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
@@ -493,7 +493,7 @@ describe('lmdb-store', function() {
       }
       await db.transactionAsync(() => {
         ranTransaction = true;
-        should.equal(db.get('key1'), 'async initial v6alue');
+        should.equal(db.get('key1'), 'async initial value');
         db.put('key1',  'async test 1');
         should.equal(db.get('key1'), 'async test 1');
         for (let { key, value } of db.getRange({start: 'key1', end: 'key1z' })) {

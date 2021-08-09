@@ -158,7 +158,7 @@ NAN_METHOD(TxnWrap::commit) {
     }
     else
         rc = mdb_txn_commit(tw->txn);
-
+    fprintf(stdout, "commit done\n");
     tw->removeFromEnvWrap();
 
     if (rc != 0) {

@@ -870,7 +870,7 @@ function open(path, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	const putSync = LMDBStore.prototype.putSync
 	const removeSync = LMDBStore.prototype.removeSync
-	addQueryMethods(LMDBStore, Object.assign({ getWriteTxn() { return writeTxn }, getReadTxn() {
+	addQueryMethods(LMDBStore, Object.assign({ env, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBytes, keyBytesView, getLastVersion }, exports))
 	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, useWritemap })

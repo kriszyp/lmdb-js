@@ -71,15 +71,18 @@ WriteWorker::~WriteWorker() {
 	uv_cond_destroy(userCallbackCond);	
 }
 void WriteWorker::ContinueWrite(int rc, bool hasStarted) {
+	fprintf(stdout, "continueWrite %u\n", rc);
 	if (hasStarted) {
 		finishedProgress = true;
 		currentTxnWrap = envForTxn->currentWriteTxn;
 	}
-	envForTxn->currentWriteTxn = nullptr;
-	if (rc == 0) // we are simply notifying that it can/should continue
+	if (rc == 4)
 		uv_mutex_lock(userCallbackLock);
+	envForTxn->currentWriteTxn = nullptr;
 	interruptionStatus = rc;
+	fprintf(stdout, "continueWrite signal %p\n", this);
 	uv_cond_signal(userCallbackCond);
+	fprintf(stdout, "continue unlock\n");
 	uv_mutex_unlock(userCallbackLock);
 }
 
@@ -145,6 +148,7 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	Write();
 }
 MDB_txn* WriteWorker::AcquireTxn(bool onlyPaused) {
+	fprintf(stdout, "acquire lock\n");
 	uv_mutex_lock(userCallbackLock);
 	MDB_txn* txn = envForTxn->currentBatchTxn;
 	return txn;
@@ -152,8 +156,10 @@ MDB_txn* WriteWorker::AcquireTxn(bool onlyPaused) {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn) {
 waitForCallback:
 	int rc;
+	fprintf(stdout, "wait for callback %p\n", this);
 	if (interruptionStatus == 0 && !finishedProgress)
 		uv_cond_wait(userCallbackCond, userCallbackLock);
+	fprintf(stdout, "callback done waiting\n");
 	if (interruptionStatus != 0 && !finishedProgress) {
 		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 			rc = mdb_txn_commit(*txn);
@@ -168,7 +174,7 @@ waitForCallback:
 				goto waitForCallback;
 			}
 			if (rc != 0) {
-				uv_mutex_unlock(userCallbackLock);
+				fprintf(stdout, "wfc unlock\n");
 				return rc;
 			}
 		}
@@ -185,9 +191,11 @@ void WriteWorker::Write() {
 	bool compressed;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
+		fprintf(stdout, "begin txn\n");
 		int conditionDepth = 0;
 		if (callback) {
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
+			fprintf(stdout, "began txn\n");
 			txnId = mdb_txn_id(txn);
 			if (rc != 0) {
 				return SetErrorMessage(mdb_strerror(rc));
@@ -206,6 +214,7 @@ void WriteWorker::Write() {
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = conditionDepth == validatedDepth;
+			fprintf(stdout, "lock %p\n",flags);
 			uv_mutex_lock(userCallbackLock);
 			if (flags & HAS_KEY) {
 				// a key based instruction, get the key
@@ -279,11 +288,14 @@ void WriteWorker::Write() {
 						//fprintf(stdout, "No instruction yet %u\n", nextAvailable);
 						if (!nextAvailable)
 							uv_cond_wait(userCallbackCond, userCallbackLock);
+						fprintf(stdout, "niy unlock\n");
+						rc = 0;
 						uv_mutex_unlock(userCallbackLock);
 						continue;
 					}
 					else {
 						WaitForCallbacks(&txn);
+						uv_mutex_unlock(userCallbackLock);
 						goto txn_done;
 					}
 				case BLOCK_END:
@@ -333,6 +345,7 @@ void WriteWorker::Write() {
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			*start = flags;
+			fprintf(stdout, "loop unlock\n");
 			uv_mutex_unlock(userCallbackLock);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
@@ -348,7 +361,7 @@ txn_done:
 				mdb_txn_abort(txn);
 			else
 				rc = mdb_txn_commit(txn);
-			//fprintf(stdout, "committed %p\n", instruction);
+			fprintf(stdout, "committed %p\n", instruction);
 
 			if (rc == 0) {
 				unsigned int envFlags;
@@ -393,6 +406,7 @@ txn_done:
 				moreProcessing = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, TXN_DELIMITER);
 				#endif
 			}
+			fprintf(stdout, "added txn delimiter %p", instruction);
 		} else { // sync mode
 			interruptionStatus = rc;
 			return;
@@ -408,10 +422,12 @@ txn_done:
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	Nan::HandleScope scope;
 	if (interruptionStatus != 0) {
+		fprintf(stdout, "progress lock\n");
 		uv_mutex_lock(userCallbackLock);
 		if (interruptionStatus != 0)
 			uv_cond_wait(userCallbackCond, userCallbackLock);
 		// aquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
+		fprintf(stdout, "progress unlock\n");
 		uv_mutex_unlock(userCallbackLock);
 	}
 	v8::Local<v8::Value> argv[] = {
