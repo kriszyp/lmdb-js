@@ -26,7 +26,7 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "recompile": "node-gyp configure && node-gyp build -d",
+    "recompile": "node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
     "test:types": "tsd",
