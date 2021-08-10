@@ -46,10 +46,10 @@ function setData(deferred) {
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  if (iteration++ % 1000 == 0) {
+  /*if (iteration++ % 1000 == 0) {
       setImmediate(() => deferred.resolve(result))
   } else
-    deferred.resolve()
+    deferred.resolve()*/
 }
 
 function getData() {
@@ -88,7 +88,7 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 var inspector = require('inspector')
-//inspector.open(9330, null, true); debugger
+inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -119,7 +119,7 @@ function setup() {
   for (let i = 0; i < total; i++) {
     lastPromise = store.put(i, data)
   }
-  return lastPromise.then(() => {
+  return lastPromise?.then(() => {
     console.log('setup completed');
   })
 }
@@ -130,16 +130,16 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    suite.add('compare keys', keyComparison);
-    suite.add('getRange', getRange);
+    //suite.add('compare keys', keyComparison);
+    //suite.add('getRange', getRange);
     suite.add('put', {
-      defer: true,
+      defer: false,
       fn: setData
     });
-    suite.add('get', getData);
+    /*suite.add('get', getData);
     suite.add('plainJSON', plainJSON);
     suite.add('getBinary', getBinary);
-    suite.add('getBinaryFast', getBinaryFast);
+    suite.add('getBinaryFast', getBinaryFast);*/
     suite.on('cycle', function (event) {
       console.log({result})
       if (result && result.then) {
@@ -152,6 +152,7 @@ cleanup(async function (err) {
     });
     suite.on('complete', async function () {
         console.log('Fastest is ' + this.filter('fastest').map('name'));
+        return
         var numCPUs = require('os').cpus().length;
         console.log('Test opening/closing threads ' + numCPUs + ' threads');
         for (var i = 0; i < numCPUs; i++) {

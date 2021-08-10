@@ -20,9 +20,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
-		dynamicBytes = Buffer.allocUnsafeSlow(8192)
-		dynamicBytes.uint32 = new Uint32Array(dynamicBytes.buffer, 0, 2048)
-		dynamicBytes.float64 = new Float64Array(dynamicBytes.buffer, 0, 1024)
+		dynamicBytes = Buffer.allocUnsafeSlow(0x10000)
+		dynamicBytes.uint32 = new Uint32Array(dynamicBytes.buffer, 0, 0x10000 >> 2)
+		dynamicBytes.uint32[0] = 0
+		dynamicBytes.float64 = new Float64Array(dynamicBytes.buffer, 0, 0x10000 >> 3)
 		dynamicBytes.buffer.address = getAddress(dynamicBytes.buffer)
 		dynamicBytes.address = dynamicBytes.buffer.address + dynamicBytes.byteOffset
 		dynamicBytes.position = 0
@@ -63,7 +64,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		} else {
 			targetBytes = dynamicBytes
 			position = targetBytes.position
-			if (position > 750) { // 6000 bytes
+			if (position > 8100) { // 6000 bytes
 				// make new buffer and make pointer to it
 				let lastBuffer = targetBytes
 				let lastPosition = targetBytes.position
@@ -138,7 +139,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		return (forceCompression) => {
-			writeStatus = Atomics.or(uint32, flagPosition, flags)
+			writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
 			/*uint32[flagPosition] = flags // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
 			writeStatus = lastUint32[lastFlagPosition]
 			while (writeStatus & STATUS_LOCKED) {
@@ -149,13 +150,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			outstandingWriteCount++
 			if (writeStatus) {
 				if (writeStatus & 0x20000000) { // write thread is waiting
-					console.log('resume batch thread')
+					console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
 					env.continueBatch(4)
 				} else {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
+					//console.log('start address ' + startAddress.toString(16))
 					function startWriting() {
 						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							console.log('finished batch', status)
+							//console.log('finished batch', status)
 							resolveWrites(true)
 							switch (status) {
 								case 0: case 1:
@@ -218,7 +220,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				}
 			}
 			outstandingWriteCount--
-			log.push(['resolution', unwrittenResolution.flag, instructionStatus])
 			unwrittenResolution.debuggingPosition = unwrittenResolution.flag
 			unwrittenResolution.flag = instructionStatus
 			unwrittenResolution.valueBuffer = null
@@ -242,7 +243,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes?
 		while (uncommittedResolution != unwrittenResolution && uncommittedResolution) {
 			let flag = uncommittedResolution.flag
-			log.push(['committed', uncommittedResolution.debuggingPosition, !!uncommittedResolution.nextResolution])
 			if (flag == 0x10000000)
 				uncommittedResolution.resolve(true)
 			else if (flag == 0x10000001)

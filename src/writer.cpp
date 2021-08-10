@@ -92,7 +92,7 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		envForTxn(envForTxn),
 		instructions(instructions),
 		nextCompressible(nextCompressibleArg) {
-	fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
+	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
 		userCallbackLock = new uv_mutex_t;
@@ -156,10 +156,10 @@ MDB_txn* WriteWorker::AcquireTxn(bool onlyPaused) {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn) {
 waitForCallback:
 	int rc;
-	fprintf(stdout, "wait for callback %p\n", this);
+	//fprintf(stdout, "wait for callback %p\n", this);
 	if (interruptionStatus == 0 && !finishedProgress)
 		uv_cond_wait(userCallbackCond, userCallbackLock);
-	fprintf(stdout, "callback done waiting\n");
+	//fprintf(stdout, "callback done waiting\n");
 	if (interruptionStatus != 0 && !finishedProgress) {
 		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 			rc = mdb_txn_commit(*txn);
@@ -191,11 +191,9 @@ void WriteWorker::Write() {
 	bool compressed;
 	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
 	do {
-		fprintf(stdout, "begin txn\n");
 		int conditionDepth = 0;
 		if (callback) {
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
-			fprintf(stdout, "began txn\n");
 			txnId = mdb_txn_id(txn);
 			if (rc != 0) {
 				return SetErrorMessage(mdb_strerror(rc));
@@ -214,7 +212,6 @@ void WriteWorker::Write() {
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = conditionDepth == validatedDepth;
-			fprintf(stdout, "lock %p\n",flags);
 			uv_mutex_lock(userCallbackLock);
 			if (flags & HAS_KEY) {
 				// a key based instruction, get the key
@@ -280,15 +277,14 @@ void WriteWorker::Write() {
 					instruction -= 2; // reset back to the previous flag as the current instruction
 					if (conditionDepth) {
 						int nextAvailable;
-						#ifdef _WIN32
+#ifdef _WIN32
 						nextAvailable = InterlockedCompareExchange(instruction, WAITING_OPERATION, NO_INSTRUCTION_YET);
-						#else
+#else
 						nextAvailable = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, WAITING_OPERATION);
-						#endif
+#endif
 						//fprintf(stdout, "No instruction yet %u\n", nextAvailable);
 						if (!nextAvailable)
 							uv_cond_wait(userCallbackCond, userCallbackLock);
-						fprintf(stdout, "niy unlock\n");
 						rc = 0;
 						uv_mutex_unlock(userCallbackLock);
 						continue;
@@ -340,12 +336,14 @@ void WriteWorker::Write() {
 				case POINTER_NEXT:
 					instruction = (uint32_t*)(size_t) * ((double*)instruction);
 					break;
+
+				default:
+					fprintf(stderr, "Unknown flags %p\n", flags);
 				}
 				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? FAILED_CONDITION : rc : 0);
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			*start = flags;
-			fprintf(stdout, "loop unlock\n");
 			uv_mutex_unlock(userCallbackLock);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
@@ -361,7 +359,7 @@ txn_done:
 				mdb_txn_abort(txn);
 			else
 				rc = mdb_txn_commit(txn);
-			fprintf(stdout, "committed %p\n", instruction);
+			//fprintf(stdout, "committed %p\n", instruction);
 
 			if (rc == 0) {
 				unsigned int envFlags;
@@ -406,7 +404,6 @@ txn_done:
 				moreProcessing = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, TXN_DELIMITER);
 				#endif
 			}
-			fprintf(stdout, "added txn delimiter %p", instruction);
 		} else { // sync mode
 			interruptionStatus = rc;
 			return;
