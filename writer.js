@@ -6,12 +6,12 @@ const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const BACKPRESSURE_THRESHOLD = 5000000
 const TXN_DELIMITER = 0x40000000
-const SYNC_PROMISE_RESULT = Promise.resolve(true)
+const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 const ABORT = {}
 const CALLBACK_THREW = {}
 exports.ABORT = ABORT
-SYNC_PROMISE_RESULT.isSync = true
+SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
@@ -135,7 +135,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		if (writeTxn) {
 			uint32[0] = flags
 			env.write(targetBytes.buffer.address)
-			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_RESULT
+			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		return (forceCompression) => {
@@ -188,24 +188,47 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				Atomics.wait(backpressure, 0, 0, 1)
 			}
 			resolveWrites()
+			let newResolution = {
+				uint32,
+				flag: flagPosition,
+				valueBuffer,
+				nextResolution: null,
+			}
+			if (!unwrittenResolution) {
+				unwrittenResolution = newResolution
+				if (!uncommittedResolution)
+					uncommittedResolution = newResolution
+			}
+			lastQueuedResolution.nextResolution = newResolution
+			lastQueuedResolution = newResolution
+			if (ifVersion === undefined) {
+				if (!commitPromise) {
+					commitPromise = new Promise((resolve, reject) => {
+						newResolution.resolve = resolve
+						newResolution.reject = reject
+					})
+					commitPromise.resolve = newResolution.resolve
+					commitPromise.reject = newResolution.reject
+				}
+				return commitPromise || (commitPromise = new Promise())
+			}
 			return new Promise((resolve, reject) => {
-				let newResolution = {
-					uint32,
-					flag: flagPosition,
-					resolve,
-					reject,
-					valueBuffer,
-					nextResolution: null,
-				}
-				if (!unwrittenResolution) {
-					unwrittenResolution = newResolution
-					if (!uncommittedResolution)
-						uncommittedResolution = newResolution
-				}
-				lastQueuedResolution.nextResolution = newResolution
-				lastQueuedResolution = newResolution
+				newResolution.resolve = resolve
+				newResolution.reject = reject
 			})
 		}
+	}
+	var lastUint32, lastFlagPosition
+	// write a flag, checking for an update from the worker thread with spin locking mechanism
+	function guardedFlagAssignment(uint32, flagPosition) {
+		uint32[flagPosition] = flags
+		let writeStatus = lastUint32[lastFlagPosition]
+		while (writeStatus & STATUS_LOCKED) { // use a spin lock to wait for worker thread to finish
+			writeStatus = lastUint32[lastFlagPosition]
+		}
+		lastUint32 = uint32
+		lastFlagPosition = flagPosition
+		return writeStatus
 	}
 	function resolveWrites(async) {
 		// clean up finished instructions
@@ -388,7 +411,13 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (writeTxn)
 				return this.put(key, value, versionOrOptions, ifVersion)
 			else
-				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_RESULT)
+				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS)
+		},
+		removeSync(key, ifVersionOrValue) {
+			if (writeTxn)
+				return this.remove(key, ifVersionOrValue)
+			else
+				return this.transactionSync(() => this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS)
 		},
 		transaction(callback) {
 			if (writeTxn) {
@@ -405,22 +434,22 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				throw new Error('Child transactions are not supported in writemap mode')
 			if (writeTxn) {
 				let parentTxn = writeTxn
-				let childTxn = writeTxn = env.beginTxn(null, parentTxn)
+				let childTxn = env.writeTxn = writeTxn = env.beginTxn(null, parentTxn)
 				try {
 					return when(callback(), (result) => {
-						writeTxn = parentTxn
+						env.writeTxn = writeTxn = parentTxn
 						if (result === ABORT)
 							childTxn.abort()
 						else
 							childTxn.commit()
 						return result
 					}, (error) => {
-						writeTxn = parentTxn
+						env.writeTxn = writeTxn = parentTxn
 						childTxn.abort()
 						throw error
 					})
 				} catch(error) {
-					writeTxn = parentTxn
+					env.writeTxn = writeTxn = parentTxn
 					childTxn.abort()
 					throw error
 				}
@@ -463,7 +492,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			let txn
 			try {
 				this.transactions++
-				txn = writeTxn = env.beginTxn()
+				txn = writeTxn = env.writeTxn = env.beginTxn()
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)
@@ -474,16 +503,16 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						}
 						return result
 					} finally {
-						writeTxn = null
+						env.writeTxn = writeTxn = null
 					}
 				}, (error) => {
 					try { txn.abort() } catch(e) {}
-					writeTxn = null
+					env.writeTxn = writeTxn = null
 					throw error
 				})
 			} catch(error) {
 				try { txn.abort() } catch(e) {}
-				writeTxn = null
+				env.writeTxn = writeTxn = null
 				throw error
 			}
 		}

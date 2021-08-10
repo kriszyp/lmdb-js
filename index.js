@@ -148,7 +148,7 @@ function open(path, options) {
 					this.db = env.openDbi(Object.assign({
 						name: dbName,
 						create: true,
-						txn: writeTxn,
+						txn: env.writeTxn,
 					}, dbOptions))
 					this.db.name = dbName || null
 				} catch(error) {
@@ -321,11 +321,11 @@ function open(path, options) {
 		}
 
 		getSizeBinaryFast(id) {
-			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
 			lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0))
 		}
 		getString(id) {
-			(writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
+			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()))
 			let string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0))
 			if (string)
 				lastSize = string.length
@@ -410,8 +410,8 @@ function open(path, options) {
 		doesExist(key, versionOrValue) {
 			let txn
 			try {
-				if (writeTxn) {
-					txn = writeTxn
+				if (env.writeTxn) {
+					txn = env.writeTxn
 				} else {
 					txn = readTxnRenewed ? readTxn : renewReadTxn()
 				}
@@ -813,7 +813,7 @@ function open(path, options) {
 			try {
 				this.db.drop({
 					justFreePages: false,
-					txn: writeTxn,
+					txn: env.writeTxn,
 				})
 			} catch(error) {
 				handleError(error, this, null, () => this.deleteDB())
@@ -823,7 +823,7 @@ function open(path, options) {
 			try {
 				this.db.drop({
 					justFreePages: true,
-					txn: writeTxn,
+					txn: env.writeTxn,
 				})
 			} catch(error) {
 				handleError(error, this, null, () => this.clear())
