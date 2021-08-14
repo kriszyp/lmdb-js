@@ -14,6 +14,7 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 * And ridiculously fast and efficient:
 
 <a href="https://github.com/kriszyp/db-benchmark"><img src="./assets/performance.png" width="500"/></a>
+
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
 This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
