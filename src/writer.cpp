@@ -51,17 +51,17 @@ const int CONDITIONAL_VERSION = 0x100;
 const int SET_VERSION = 0x200;
 const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
-const int NOT_COMPRESSED = 0x200000; // was compressible, but didn't get compressed (probably didn't meet threshold)
-const int PROCESSING = 0x200000; // finished attempt to compress
-const int COMPRESSED = 0x300000;
 const int DELETE_DATABASE = 0x400;
 const int TXN_HAD_ERROR = 0x80000000;
-const int TXN_DELIMITER = 0x40000000;
-const int WAITING_OPERATION = 0x20000000;
+const int TXN_DELIMITER = 0x20000000;
+const int TXN_COMMITTED = 0x40000000;
+const int WAITING_OPERATION = 0x400000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
+const int LOCKED = 0x200000;
 const int FAILED_CONDITION = 1;
 const int FINISHED_OPERATION = 0x10000000;
+const int BATCH_DELIMITER = 0x8000000;
 const int BAD_KEY = 3;
 const int NOT_FOUND = 1;
 
@@ -185,6 +185,7 @@ void WriteWorker::Write() {
 	MDB_txn *txn;
 	MDB_val key, value;
 	uint32_t* instruction = instructions;
+	uint32_t* lastStart;
 	int rc, txnId;
 	bool moreProcessing = true;
 	finishedProgress = true;
@@ -208,11 +209,11 @@ void WriteWorker::Write() {
 		double conditionalVersion, setVersion;
 		bool startingTransaction = true;
 		do {
-			uint32_t* start = instruction++;
+			uv_mutex_lock(userCallbackLock);
+next_inst:	uint32_t* start = instruction++;
 			uint32_t flags = *start;
 			MDB_dbi dbi;
 			bool validated = conditionDepth == validatedDepth;
-			uv_mutex_lock(userCallbackLock);
 			if (flags & HAS_KEY) {
 				// a key based instruction, get the key
 				dbi = (MDB_dbi) *instruction++;
@@ -269,37 +270,41 @@ void WriteWorker::Write() {
 				}
 			} else
 				instruction++;
-//			fprintf(stdout, "instr flags %p %p\n", start, flags);
+			//fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
-					rc = 0;
 					instruction -= 2; // reset back to the previous flag as the current instruction
-					if (conditionDepth) {
-						int nextAvailable;
+					int previousFlags;
+					// we use memory fencing here to make sure all reads and writes are ordered
 #ifdef _WIN32
-						nextAvailable = InterlockedCompareExchange(instruction, WAITING_OPERATION, NO_INSTRUCTION_YET);
+					previousFlags = InterlockedOr((LONG*)lastStart, (LONG) LOCKED);
 #else
-						nextAvailable = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, WAITING_OPERATION);
+					previousFlags = atomic_fetch_or(lastStart, LOCKED);
 #endif
-						//fprintf(stdout, "No instruction yet %u\n", nextAvailable);
-						if (!nextAvailable)
-							uv_cond_wait(userCallbackCond, userCallbackLock);
-						rc = 0;
-						uv_mutex_unlock(userCallbackLock);
-						continue;
+					rc = 0;
+					if (!*start && (interruptionStatus == 0 && !finishedProgress || conditionDepth)) {
+						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
+						fprintf(stderr, "write thread waiting %p\n", lastStart);
+						uv_cond_wait(userCallbackCond, userCallbackLock);
 					}
-					else {
-						WaitForCallbacks(&txn);
-						uv_mutex_unlock(userCallbackLock);
-						goto txn_done;
+					if (*start) {
+						fprintf(stderr, "now there is a value available %p\n", *start);
+						// the value changed while we were locking or waiting, clear the flags, we are back to running through instructions
+						*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION;
+						goto next_inst;
 					}
+					// still nothing to do, end the transaction
+					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
+					fprintf(stderr, "calling the txn down %p\n", lastStart);
+					uv_mutex_unlock(userCallbackLock);
+					goto txn_done;
 				case BLOCK_END:
 					rc = !validated;
 					conditionDepth--;
 					if (validatedDepth > conditionDepth)
 						validatedDepth--;
-					continue; // don't need to update the flags
+					goto next_inst;
 				case PUT:
 					if (flags & SET_VERSION)
 						rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
@@ -314,7 +319,7 @@ void WriteWorker::Write() {
 					break;
 				case DEL_VALUE:
 					rc = mdb_del(txn, dbi, &key, &value);
-					if ((flags & COMPRESSED) && compressed)
+					if ((flags & COMPRESSIBLE) && compressed)
 						free(value.mv_data);
 					break;
 				case START_BLOCK: case START_CONDITION_BLOCK:
@@ -335,14 +340,14 @@ void WriteWorker::Write() {
 					break;
 				case POINTER_NEXT:
 					instruction = (uint32_t*)(size_t) * ((double*)instruction);
-					break;
-
+					goto next_inst;
 				default:
 					fprintf(stderr, "Unknown flags %p\n", flags);
 				}
 				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? FAILED_CONDITION : rc : 0);
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
+			lastStart = start;
 			*start = flags;
 			uv_mutex_unlock(userCallbackLock);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
@@ -397,12 +402,22 @@ txn_done:
 			} else {
 				return SetErrorMessage(mdb_strerror(rc));
 			}
-			if (!*instruction) {
-				#ifdef _WIN32
-				moreProcessing = InterlockedCompareExchange(instruction, TXN_DELIMITER, NO_INSTRUCTION_YET);
-				#else
-				moreProcessing = atomic_compare_exchange_strong(instruction, &NO_INSTRUCTION_YET, TXN_DELIMITER);
-				#endif
+			if (*instruction) {
+				*lastStart |= TXN_COMMITTED;
+			} else {
+				int previousFlags;
+				// we use memory fencing here to make sure all reads and writes are ordered
+#ifdef _WIN32
+				previousFlags = InterlockedOr((LONG*) lastStart, LOCKED | TXN_COMMITTED);
+#else
+				previousFlags = atomic_fetch_or(lastStart, LOCKED | TXN_COMMITTED);
+#endif
+				if (*instruction) // changed while we were locking, keep running
+					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER | TXN_COMMITTED;
+				else { // really done with the batch
+					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | BATCH_DELIMITER | TXN_DELIMITER | TXN_COMMITTED;
+					moreProcessing = false;
+				}
 			}
 		} else { // sync mode
 			interruptionStatus = rc;

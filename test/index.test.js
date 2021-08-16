@@ -217,7 +217,7 @@ describe('lmdb-store', function() {
     });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this
-    it('store objects', async function() {
+    it.only('store objects', async function() {
       let dataIn = {foo: 3, bar: true}
       await db.put('key1',  dataIn);
       let dataOut = db.get('key1');

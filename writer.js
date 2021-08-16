@@ -4,8 +4,13 @@ var backpressureArray
 
 const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
+const STATUS_LOCKED = 0x200000;
+const WAITING_OPERATION = 0x400000;
 const BACKPRESSURE_THRESHOLD = 5000000
-const TXN_DELIMITER = 0x40000000
+const TXN_DELIMITER = 0x20000000
+const TXN_COMMITTED = 0x40000000
+const BATCH_DELIMITER = 0x8000000;
+
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 const ABORT = {}
@@ -31,7 +36,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	}
 	var lastCompressibleFloat64 = new Float64Array(1)
 	var lastCompressiblePosition = 0
-	var lastFlagPosition = 0
 	var lastDynamicBytes
 	var compressionCount = 0
 	var outstandingWriteCount = 0
@@ -39,6 +43,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	var abortedNonChildTransactionWarn
 	var nextTxnCallbacks
 	var lastQueuedTxnCallbacks
+	var commitPromise
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
@@ -73,7 +78,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				targetBytes = allocateInstructionBuffer()
 				position = targetBytes.position
 				lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
-				writeStatus = Atomics.or(lastUint32, lastPosition << 1, 3) // pointer instruction
+				lastUint32[lastPosition << 1] = 3 // pointer instruction
 			}
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
@@ -139,25 +144,24 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		return (forceCompression) => {
-			writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
-			/*uint32[flagPosition] = flags // write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
-			writeStatus = lastUint32[lastFlagPosition]
-			while (writeStatus & STATUS_LOCKED) {
-				writeStatus = lastUint32[lastFlagPosition]
-			}
+			//writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
+			// write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
+			writeStatus = atomicStatus(uint32, flagPosition, flags)
 			lastUint32 = uint32
-			lastFlagPosition = flagPosition*/
+			lastFlagPosition = flagPosition
 			outstandingWriteCount++
 			if (writeStatus) {
-				if (writeStatus & 0x20000000) { // write thread is waiting
+				if (writeStatus & TXN_DELIMITER)
+					commitPromise = null
+				if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 					console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
 					env.continueBatch(4)
-				} else {
+				} else if (writeStatus & BATCH_DELIMITER) {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
 					//console.log('start address ' + startAddress.toString(16))
 					function startWriting() {
 						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							//console.log('finished batch', status)
+							//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
 							resolveWrites(true)
 							switch (status) {
 								case 0: case 1:
@@ -207,10 +211,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						newResolution.resolve = resolve
 						newResolution.reject = reject
 					})
-					commitPromise.resolve = newResolution.resolve
-					commitPromise.reject = newResolution.reject
 				}
-				return commitPromise || (commitPromise = new Promise())
+				return commitPromise
 			}
 			return new Promise((resolve, reject) => {
 				newResolution.resolve = resolve
@@ -218,7 +220,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			})
 		}
 	}
-	var lastUint32, lastFlagPosition
+	var lastUint32 = new Uint32Array([BATCH_DELIMITER]), lastFlagPosition = 0
 	// write a flag, checking for an update from the worker thread with spin locking mechanism
 	function guardedFlagAssignment(uint32, flagPosition) {
 		uint32[flagPosition] = flags
@@ -234,46 +236,58 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		// clean up finished instructions
 		let instructionStatus
 		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x10000000) {
-			if (instructionStatus & 0x40000000) {
+			console.log('instructionStatus: ' + instructionStatus.toString(16))
+			if (instructionStatus & TXN_DELIMITER) {
+				let position = unwrittenResolution.flag
+				unwrittenResolution.flag = instructionStatus & 0x1000000f
 				if (instructionStatus & 0x80000000)
 					rejectCommit()
-				else {
-					instructionStatus = instructionStatus & 0x1000000f
-					resolveCommit(async)
+				else if (instructionStatus & TXN_COMMITTED) {
+					resolveCommit(async	)					
+				} else {
+					unwrittenResolution.flag = position // restore position for next iteration
+					unwrittenResolution.valueBuffer = null
+					return // revisit when it is done (but at least free the value buffer)
 				}
-			}
+			} else
+				unwrittenResolution.flag = instructionStatus
 			outstandingWriteCount--
 			unwrittenResolution.debuggingPosition = unwrittenResolution.flag
-			unwrittenResolution.flag = instructionStatus
 			unwrittenResolution.valueBuffer = null
 			unwrittenResolution.uint32 = null
 			unwrittenResolution = unwrittenResolution.nextResolution
 		}
-		if (!unwrittenResolution) {
-			if ((instructionStatus = dynamicBytes.uint32[dynamicBytes.position << 1]) & 0x40000000) {
+		/*if (!unwrittenResolution) {
+			if ((instructionStatus = lastUint32[lastFlagPosition]) & TXN_DELIMITER) {
 				if (instructionStatus & 0x80000000)
 					rejectCommit()
-				else
+				else if (instructionStatus & TXN_COMMITTED)
 					resolveCommit(async)
 			}
 			return
-		}
+		}*/
 	}
 	function resolveCommit(async) {
 		if (async)
 			resetReadTxn()
 		else
 			queueMicrotask(resetReadTxn) // TODO: only do this if there are actually committed writes?
-		while (uncommittedResolution != unwrittenResolution && uncommittedResolution) {
-			let flag = uncommittedResolution.flag
-			if (flag == 0x10000000)
-				uncommittedResolution.resolve(true)
-			else if (flag == 0x10000001)
-				uncommittedResolution.resolve(false)
-			else
-				uncommittedResolution.reject(new Error("Error occurred in write"))
-			uncommittedResolution = uncommittedResolution.nextResolution
-		}
+		do {
+			if (uncommittedResolution.resolve) {
+				let flag = uncommittedResolution.flag
+				if (flag < 0)
+					uncommittedResolution.reject(new Error("Error occurred in write"))
+				else if (flag & 1) {
+					uncommittedResolution.resolve(false)
+				} else
+					uncommittedResolution.resolve(true)
+					
+			}
+			
+			if (uncommittedResolution == unwrittenResolution) {
+				return uncommittedResolution = uncommittedResolution.nextResolution
+			}
+		} while(uncommittedResolution = uncommittedResolution.nextResolution)
 	}
 	var commitRejectPromise
 	function rejectCommit() {
@@ -289,6 +303,16 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			uncommittedResolution.reject(error)
 			uncommittedResolution = uncommittedResolution.nextResolution
 		}
+	}
+	function atomicStatus(uint32, flagPosition, newStatus) {
+		uint32[flagPosition] = newStatus
+		let writeStatus = lastUint32[lastFlagPosition]
+		while (writeStatus & STATUS_LOCKED) {
+			console.log('spin lock!')
+			writeStatus = lastUint32[lastFlagPosition]
+		}
+		console.log('writeSTatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+		return writeStatus
 	}
 	async function executeTxnCallbacks() {
 		let continuedWriteTxn = env.beginTxn(true)
@@ -390,9 +414,9 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					throw error
 				}
 				console.log('writing end of ifVersion', (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
-				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // no instruction yet for the next instruction
-				writeStatus = Atomics.or(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
-				if (writeStatus) {
+				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // clear out the next slot
+				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
+				if (writeStatus & WAITING_OPERATION) {
 					console.log('ifVersion resume write thread')
 					env.continueBatch(4)
 				}

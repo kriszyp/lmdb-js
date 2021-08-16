@@ -1217,3 +1217,16 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // Set exports
     (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }
+
+/* TODO: When we add Deno support, we need to explicitly export C functions:
+#ifdef _WIN32
+#define EXTERN __declspec(dllexport)
+# else
+#define EXTERN __attribute__((visibility("default")))
+#endif
+extern "C" EXTERN int openEnv(uint32 flags, uint8_t* instructions);
+extern "C" EXTERN int openDb(double envPointer, uint32 flags, uint8_t* instructions);
+int openDbi(double envPointer, uint32 flags, uint8_t* instructions) {
+    EnvWrap* ew = (EnvWrap*) ((size_t) envPointer);
+}
+*/
