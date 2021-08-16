@@ -191,7 +191,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressure, 0, 0, 1)
 			}
-			resolveWrites()
+			if ((outstandingWriteCount & 7) === 0)
+				resolveWrites()
 			let newResolution = {
 				uint32,
 				flag: flagPosition,

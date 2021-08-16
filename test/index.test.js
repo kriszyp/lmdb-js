@@ -217,7 +217,7 @@ describe('lmdb-store', function() {
     });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this
-    it.only('store objects', async function() {
+    it('store objects', async function() {
       let dataIn = {foo: 3, bar: true}
       await db.put('key1',  dataIn);
       let dataOut = db.get('key1');
@@ -472,7 +472,7 @@ describe('lmdb-store', function() {
       expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
       expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
     });
-    it('async transactions', async function() {
+    it.only('async transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled

@@ -344,7 +344,13 @@ next_inst:	uint32_t* start = instruction++;
 				default:
 					fprintf(stderr, "Unknown flags %p\n", flags);
 				}
-				flags = FINISHED_OPERATION | (rc ? rc == MDB_NOTFOUND ? FAILED_CONDITION : rc : 0);
+				if (rc) {
+					if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
+						fprintf(stderr, "Unknown return code %i", rc);
+					flags = FINISHED_OPERATION | FAILED_CONDITION;
+				}
+				else
+					flags = FINISHED_OPERATION;
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			lastStart = start;
@@ -360,10 +366,10 @@ txn_done:
 			}
 		}
 		if (callback) {
-			if (rc)
+			/*if (rc) // are there any return codes that would lead us to abort?
 				mdb_txn_abort(txn);
-			else
-				rc = mdb_txn_commit(txn);
+			else*/
+			rc = mdb_txn_commit(txn);
 			//fprintf(stdout, "committed %p\n", instruction);
 
 			if (rc == 0) {
@@ -420,7 +426,7 @@ txn_done:
 				}
 			}
 		} else { // sync mode
-			interruptionStatus = rc;
+			interruptionStatus = 0;
 			return;
 		}
 		if (moreProcessing) {
