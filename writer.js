@@ -238,6 +238,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		let instructionStatus
 		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x10000000) {
 			console.log('instructionStatus: ' + instructionStatus.toString(16))
+			unwrittenResolution.valueBuffer = null
 			if (instructionStatus & TXN_DELIMITER) {
 				let position = unwrittenResolution.flag
 				unwrittenResolution.flag = instructionStatus & 0x1000000f
@@ -247,14 +248,15 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					resolveCommit(async	)					
 				} else {
 					unwrittenResolution.flag = position // restore position for next iteration
-					unwrittenResolution.valueBuffer = null
 					return // revisit when it is done (but at least free the value buffer)
 				}
-			} else
+			} else {
+				if (!unwrittenResolution.nextResolution)
+					return // don't advance yet, wait to see if it a transaction delimiter that will commit
 				unwrittenResolution.flag = instructionStatus
+			}
 			outstandingWriteCount--
 			unwrittenResolution.debuggingPosition = unwrittenResolution.flag
-			unwrittenResolution.valueBuffer = null
 			unwrittenResolution.uint32 = null
 			unwrittenResolution = unwrittenResolution.nextResolution
 		}
