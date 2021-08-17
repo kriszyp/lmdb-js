@@ -270,7 +270,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			//fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -283,10 +283,10 @@ next_inst:	uint32_t* start = instruction++;
 					previousFlags = atomic_fetch_or(lastStart, LOCKED);
 #endif
 					rc = 0;
-					if (!*start && (interruptionStatus == 0 && !finishedProgress || conditionDepth)) {
+					if (!*start && (!finishedProgress || conditionDepth)) {
 						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
 						fprintf(stderr, "write thread waiting %p\n", lastStart);
-						uv_cond_wait(userCallbackCond, userCallbackLock);
+						WaitForCallbacks(&txn);
 					}
 					if (*start) {
 						fprintf(stderr, "now there is a value available %p\n", *start);
@@ -442,6 +442,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	if (interruptionStatus != 0) {
 		fprintf(stdout, "progress lock\n");
 		uv_mutex_lock(userCallbackLock);
+		fprintf(stdout, "progress got lock\n");
 		if (interruptionStatus != 0)
 			uv_cond_wait(userCallbackCond, userCallbackLock);
 		// aquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that

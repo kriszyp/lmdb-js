@@ -155,13 +155,13 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					commitPromise = null
 				if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 					console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
-					env.continueBatch(4)
+					env.continueBatch(0)
 				} else if (writeStatus & BATCH_DELIMITER) {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
-					//console.log('start address ' + startAddress.toString(16))
+					console.log('start address ' + startAddress.toString(16))
 					function startWriting() {
 						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
+							console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
 							resolveWrites(true)
 							switch (status) {
 								case 0: case 1:
@@ -222,17 +222,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		}
 	}
 	var lastUint32 = new Uint32Array([BATCH_DELIMITER]), lastFlagPosition = 0
-	// write a flag, checking for an update from the worker thread with spin locking mechanism
-	function guardedFlagAssignment(uint32, flagPosition) {
-		uint32[flagPosition] = flags
-		let writeStatus = lastUint32[lastFlagPosition]
-		while (writeStatus & STATUS_LOCKED) { // use a spin lock to wait for worker thread to finish
-			writeStatus = lastUint32[lastFlagPosition]
-		}
-		lastUint32 = uint32
-		lastFlagPosition = flagPosition
-		return writeStatus
-	}
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus
@@ -314,7 +303,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			console.log('spin lock!')
 			writeStatus = lastUint32[lastFlagPosition]
 		}
-		console.log('writeSTatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+		console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {
@@ -409,19 +398,19 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			let finishWrite = writeInstructions(4, this, key, undefined, undefined, version)
 			if (callback) {
 				let promise = finishWrite() // commit to writing the whole block in the current transaction
-				console.log('wrote start of ifVersion')
+				console.log('wrote start of ifVersion', this.path)
 				try {
 					callback()
 				} catch(error) {
 					// TODO: Restore state
 					throw error
 				}
-				console.log('writing end of ifVersion', (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
+				console.log('writing end of ifVersion', this.path, (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
 				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // clear out the next slot
 				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 				if (writeStatus & WAITING_OPERATION) {
 					console.log('ifVersion resume write thread')
-					env.continueBatch(4)
+					env.continueBatch(0)
 				}
 				return promise
 			} else {

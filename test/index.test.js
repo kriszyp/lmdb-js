@@ -465,14 +465,14 @@ describe('lmdb-store', function() {
       let entry = db.getEntry('zkey6');
       entry.value.should.equal('test');
       entry.version.should.equal(33);
-      db.putSync('zkey7', 'test', { append: true, noOverwrite: true });
-      db2.putSync('zkey6', 'test1', { appendDup: true });
-      db2.putSync('zkey6', 'test2', { appendDup: true });
-      expect(() => db.putSync('zkey5', 'test', { append: true, version: 44 })).to.throw();
-      expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
-      expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
+      should.equal(db.putSync('zkey7', 'test', { append: true, noOverwrite: true }), true);
+      should.equal(db2.putSync('zkey6', 'test1', { appendDup: true }), true);
+      should.equal(db2.putSync('zkey6', 'test2', { appendDup: true }), true);
+      should.equal(db.putSync('zkey5', 'test', { append: true, version: 44 }), false);
+      should.equal(db.putSync('zkey7', 'test', { noOverwrite: true }), false);
+      should.equal(db2.putSync('zkey6', 'test1', { noDupData: true }), false);
     });
-    it.only('async transactions', async function() {
+    it('async transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled

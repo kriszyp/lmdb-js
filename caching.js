@@ -76,7 +76,7 @@ exports.CachingStore = Store => class extends Store {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
 			let entry = this.cache.setValue(id, value, result.isSync ? 0 : -1)
 			if (version !== undefined)
-				entry.version = version
+				entry.version = typeof version === 'object' ? version.version : version
 		}
 		return result
 	}
@@ -85,8 +85,9 @@ exports.CachingStore = Store => class extends Store {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
 			if (value && typeof value === 'object') {
 				let entry = this.cache.setValue(id, value)
-				if (version !== undefined)
-					entry.version = version
+				if (version !== undefined) {
+					entry.version = typeof version === 'object' ? version.version : version
+				}
 			} else // it is possible that  a value used to exist here
 				this.cache.delete(id)
 		}

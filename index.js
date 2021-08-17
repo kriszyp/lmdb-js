@@ -7,7 +7,7 @@ Object.assign(exports, require('./native'))
 const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
 const { CachingStore, setGetLastVersion } = require('./caching')
 const { addQueryMethods } = require('./query')
-const { addWriteMethods } = require('./writer')
+const { addWriteMethods, ABORT } = require('./writer')
 const { applyKeyHandling } = require('./keys')
 const { writeKey, readKey, compareKeys } = require('ordered-binary')
 const os = require('os')
@@ -38,6 +38,7 @@ let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
 const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_BOTH_RANGE = 2, MDB_GET_CURRENT = 3, MDB_FIRST = 4, MDB_LAST = 5, MDB_NEXT = 6, MDB_NEXT_NODUP = 7, MDB_NEXT_DUP = 8, MDB_PREV = 9, MDB_PREV_NODUP = 10, MDB_PREV_DUP = 11
+exports.ABORT = ABORT
 exports.open = open
 let abortedNonChildTransactionWarn
 function open(path, options) {
