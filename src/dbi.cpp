@@ -185,7 +185,7 @@ NAN_METHOD(DbiWrap::ctor) {
         dw->ew = ew;
         dw->ew->Ref();
     }
-    if (keyType == NodeLmdbKeyType::DefaultKey) {
+    if (keyType == NodeLmdbKeyType::DefaultKey && !nameIsNull) { // use the fast compare, but can't do it if we have db table/names mixed in
         mdb_set_compare(txn, dbi, compareFast);
     }
     if (needsTransaction) {
