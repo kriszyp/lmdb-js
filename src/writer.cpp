@@ -270,7 +270,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			//fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -289,14 +289,14 @@ next_inst:	uint32_t* start = instruction++;
 						WaitForCallbacks(&txn);
 					}
 					if (*start) {
-						fprintf(stderr, "now there is a value available %p\n", *start);
+						//fprintf(stderr, "now there is a value available %p\n", *start);
 						// the value changed while we were locking or waiting, clear the flags, we are back to running through instructions
 						*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION;
 						goto next_inst;
 					}
 					// still nothing to do, end the transaction
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
-					fprintf(stderr, "calling the txn down %p\n", lastStart);
+					//fprintf(stderr, "calling the txn down %p\n", lastStart);
 					uv_mutex_unlock(userCallbackLock);
 					goto txn_done;
 				case BLOCK_END:

@@ -88,7 +88,7 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 var inspector = require('inspector')
-inspector.open(9330, null, true); debugger
+//inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
   // cleanup previous test directory

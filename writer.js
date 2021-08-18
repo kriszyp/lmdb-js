@@ -48,7 +48,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
-		let writeStatus, compressionStatus
+		let writeStatus, compressionStatus = false
 		let targetBytes, position
 		let valueBuffer
 		if (flags & 2) {
@@ -60,7 +60,9 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
 			} else if (typeof value == 'string') {
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
-			} else if (!(value instanceof Uint8Array))
+			} else if (value instanceof Uint8Array)
+				valueBuffer = value
+			else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 		}
 		if (writeTxn) {
@@ -143,10 +145,18 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			return () => (uint32[0] & 1) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS
 		}
 		uint32[position << 1] = 0 // clear out the next slot
-		return (forceCompression) => {
+		return () => {
 			//writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
 			// write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
-			writeStatus = atomicStatus(uint32, flagPosition, flags)
+			//writeStatus = atomicStatus(uint32, flagPosition, flags)
+			uint32[flagPosition] = flags
+			writeStatus = lastUint32[lastFlagPosition]
+			while (writeStatus & STATUS_LOCKED) {
+				//console.log('spin lock!')
+				writeStatus = lastUint32[lastFlagPosition]
+			}
+			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+	
 			lastUint32 = uint32
 			lastFlagPosition = flagPosition
 			outstandingWriteCount++
@@ -158,10 +168,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					env.continueBatch(0)
 				} else if (writeStatus & BATCH_DELIMITER) {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
-					console.log('start address ' + startAddress.toString(16))
+					//console.log('start address ' + startAddress.toString(16))
 					function startWriting() {
 						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
+							//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
 							resolveWrites(true)
 							switch (status) {
 								case 0: case 1:
@@ -187,6 +197,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			} else if (compressionStatus) {
 				env.compress(nextCompressible)
 			} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+				console.log('backpressure')
 				if (!backpressureArray)
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressure, 0, 0, 1)
@@ -226,7 +237,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		// clean up finished instructions
 		let instructionStatus
 		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x10000000) {
-			console.log('instructionStatus: ' + instructionStatus.toString(16))
+			//console.log('instructionStatus: ' + instructionStatus.toString(16))
 			unwrittenResolution.valueBuffer = null
 			if (instructionStatus & TXN_DELIMITER) {
 				let position = unwrittenResolution.flag
@@ -300,10 +311,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		uint32[flagPosition] = newStatus
 		let writeStatus = lastUint32[lastFlagPosition]
 		while (writeStatus & STATUS_LOCKED) {
-			console.log('spin lock!')
+			//console.log('spin lock!')
 			writeStatus = lastUint32[lastFlagPosition]
 		}
-		console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+		//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {
