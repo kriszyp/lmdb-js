@@ -157,8 +157,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn) {
 waitForCallback:
 	int rc;
 	//fprintf(stdout, "wait for callback %p\n", this);
-	if (interruptionStatus == 0 && !finishedProgress)
-		uv_cond_wait(userCallbackCond, userCallbackLock);
+	uv_cond_wait(userCallbackCond, userCallbackLock);
 	//fprintf(stdout, "callback done waiting\n");
 	if (interruptionStatus != 0 && !finishedProgress) {
 		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
@@ -288,7 +287,7 @@ next_inst:	uint32_t* start = instruction++;
 						fprintf(stderr, "write thread waiting %p\n", lastStart);
 						WaitForCallbacks(&txn);
 					}
-					if (*start) {
+					if (*start || conditionDepth) {
 						//fprintf(stderr, "now there is a value available %p\n", *start);
 						// the value changed while we were locking or waiting, clear the flags, we are back to running through instructions
 						*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION;
