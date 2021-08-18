@@ -3983,7 +3983,9 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		size_t file_size = GetFileSize(fd, &file_high);
 		file_size += (size_t) file_high << 32;
 		if (pgno * psize >= file_size) {
-			file_size = ((size_t) ((1.04 + 16 / sqrt(pgno + 128)) * pgno * psize / 0x40000 + 1)) * 0x40000;
+			auto psModifier = sqrt(pgno + 128);
+			//fprintf(stderr, "ps %d ", psModifier);
+			file_size = ((size_t) ((1.04 + 16 / psModifier) * pgno * psize / 0x40000 + 1)) * 0x40000;
 			LONG high_position = file_size >> 32;
 			if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
 				fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
