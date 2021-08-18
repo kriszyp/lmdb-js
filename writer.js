@@ -155,7 +155,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				//console.log('spin lock!')
 				writeStatus = lastUint32[lastFlagPosition]
 			}
-			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+			console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
 	
 			lastUint32 = uint32
 			lastFlagPosition = flagPosition
@@ -168,10 +168,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					env.continueBatch(0)
 				} else if (writeStatus & BATCH_DELIMITER) {
 					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
-					//console.log('start address ' + startAddress.toString(16))
+					console.log('start address ' + startAddress.toString(16), store.path)
 					function startWriting() {
 						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16))
+							console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16), store.path)
 							resolveWrites(true)
 							switch (status) {
 								case 0: case 1:
