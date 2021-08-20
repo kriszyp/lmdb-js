@@ -253,6 +253,12 @@ This will close the current store. This closes the underlying LMDB database, and
 ### `store.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
 
+### `store.getBinary(key): Buffer`
+This will retrieve the binary data at the specified key. This is just like `get`, except it will always return the value's binary representation as a buffer, rather than decoding with the store's encoding format (if there is no entry, `undefined` will still be returned).
+
+### `store.getBinaryFast(key): Buffer`
+This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations).
+
 ### `resetReadTxn(): void`
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
 
