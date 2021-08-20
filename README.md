@@ -222,7 +222,7 @@ Here are the options that can be provided to the range methods (all are optional
 * `snapshot`: Boolean indicating if a database snapshot is used for iteration (true by default).
 
 ### `store.openDB(database: string|{name:string,...})`
-LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
+LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
 const { open } = require('lmdb');
 let rootStore = open('all-my-data');
@@ -236,7 +236,7 @@ usersStore.put('some-user', { data: userInfo });
 groupsStore.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and committed in the same transaction in the next event turn.
-Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction:
+Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction):
 ```
 rootStore.transactionAsync(() => {
 	usersStore.put('some-user', { data: userInfo });
