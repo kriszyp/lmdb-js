@@ -117,8 +117,8 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 		fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
 		void* compressedData = compression->compress(&value, nullptr);
 		if (compressedData) {
-			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
+			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
 			fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
 		} else
 			fprintf(stdout, "failed to compress\n");
@@ -220,7 +220,6 @@ next_inst:	uint32_t* start = instruction++;
 				key.mv_data = instruction;
 				instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 16) & (~7));
 				if (flags & HAS_VALUE) {
-					value.mv_size = *(instruction - 1);
 					if (flags & COMPRESSIBLE) {
 						uint32_t highPointer = *(instruction + 1);
 						if (highPointer > 0x40000000) { // not compressed yet
@@ -237,16 +236,19 @@ next_inst:	uint32_t* start = instruction++;
 							CompressOne((double*)(instruction + 2));
 							while(*(instruction + 1) > 0x40000000) {
 								// compression in progress
+								fprintf(stdout, "wait on compression\n");
 								WaitOnAddress(instruction, &highPointer, 4, INFINITE);
 								//syscall(SYS_futex, instruction + 2, FUTEX_WAIT, compressionPointer, NULL, NULL, 0);
 							}
 						}
 						// compressed
 						value.mv_data = (void*)(size_t) * ((size_t*)instruction);
+						value.mv_size = *(instruction - 1);
 						instruction += 6; // skip compression pointers
 						compressed = true;
 					} else {
 						value.mv_data = (void*)(size_t) * ((double*)instruction);
+						value.mv_size = *(instruction - 1);
 						instruction += 2;
 					}
 				}
