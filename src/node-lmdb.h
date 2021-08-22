@@ -222,7 +222,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void Write();
     double* CompressOne(double* nextCompressible);
     void Compress();
-    MDB_txn* AcquireTxn(bool onlyPaused);
+    MDB_txn* AcquireTxn(bool commitSynchronously);
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
@@ -239,7 +239,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     double* nextCompressible;
     ExecutionProgress* executionProgress;
     int progressStatus;
-    int WaitForCallbacks(MDB_txn** txn);
+    int WaitForCallbacks(MDB_txn** txn, bool allowCommit);
 };
 
 /*

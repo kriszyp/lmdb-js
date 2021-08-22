@@ -72,17 +72,17 @@ WriteWorker::~WriteWorker() {
 }
 void WriteWorker::ContinueWrite(int rc, bool hasStarted) {
 	fprintf(stdout, "continueWrite %u\n", rc);
-	if (hasStarted) {
+	if (rc == 0) {
 		finishedProgress = true;
 		currentTxnWrap = envForTxn->currentWriteTxn;
 	}
-	if (rc == 4)
-		uv_mutex_lock(userCallbackLock);
 	envForTxn->currentWriteTxn = nullptr;
-	interruptionStatus = rc;
+	if (rc)
+		uv_mutex_lock(userCallbackLock);
+	interruptionStatus = 0;
 	fprintf(stdout, "continueWrite signal %p\n", this);
 	uv_cond_signal(userCallbackCond);
-	fprintf(stdout, "continue unlock\n");
+	//fprintf(stdout, "continue unlock\n");
 	uv_mutex_unlock(userCallbackLock);
 }
 
@@ -114,15 +114,19 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 	if (compression) {
 		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
 		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
-		fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
+		//fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
 		void* compressedData = compression->compress(&value, nullptr);
 		if (compressedData) {
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
 			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
-			fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
+			//fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
 		} else
 			fprintf(stdout, "failed to compress\n");
+#ifdef _WIN32
 		WakeByAddressAll(nextCompressible);
+#else
+		syscall(SYS_futex, nextCompressible, FUTEX_WAKE, 1, NULL, NULL, 0);
+#endif
 	}
 /*
 #ifdef _WIN32
@@ -135,7 +139,7 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 
 
 void WriteWorker::Compress() {
-	fprintf(stdout, "compress\n");
+	//fprintf(stdout, "compress\n");
 	while (nextCompressible) {
 		nextCompressible = CompressOne(nextCompressible);
 	}
@@ -147,35 +151,44 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 		Compress();
 	Write();
 }
-MDB_txn* WriteWorker::AcquireTxn(bool onlyPaused) {
-	fprintf(stdout, "acquire lock\n");
+MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
+	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
 	uv_mutex_lock(userCallbackLock);
+	if (commitSynchronously) {
+		interruptionStatus == INTERRUPT_BATCH;
+		uv_cond_signal(userCallbackCond);
+		uv_cond_wait(userCallbackCond, userCallbackLock);
+	}
 	MDB_txn* txn = envForTxn->currentBatchTxn;
 	return txn;
 }
-int WriteWorker::WaitForCallbacks(MDB_txn** txn) {
+int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
 waitForCallback:
 	int rc;
 	//fprintf(stdout, "wait for callback %p\n", this);
-	uv_cond_wait(userCallbackCond, userCallbackLock);
+	if (interruptionStatus != INTERRUPT_BATCH)
+		uv_cond_wait(userCallbackCond, userCallbackLock);
 	//fprintf(stdout, "callback done waiting\n");
 	if (interruptionStatus != 0 && !finishedProgress) {
 		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-			rc = mdb_txn_commit(*txn);
-			if (rc == 0) {
-				// wait again until the sync transaction is completed
-				uv_cond_wait(userCallbackCond, userCallbackLock);
-				// now restart our transaction
-				rc = mdb_txn_begin(env, nullptr, 0, txn);
-				envForTxn->currentBatchTxn = *txn;
-				interruptionStatus = 0;
+			if (allowCommit) {
+				rc = mdb_txn_commit(*txn);
+				if (rc == 0) {
+					// wait again until the sync transaction is completed
+					uv_cond_wait(userCallbackCond, userCallbackLock);
+					// now restart our transaction
+					rc = mdb_txn_begin(env, nullptr, 0, txn);
+					envForTxn->currentBatchTxn = *txn;
+					interruptionStatus = 0;
+					uv_cond_signal(userCallbackCond);
+					goto waitForCallback;
+				}
+				if (rc != 0) {
+					fprintf(stdout, "wfc unlock\n");
+					return rc;
+				}
+			} else
 				uv_cond_signal(userCallbackCond);
-				goto waitForCallback;
-			}
-			if (rc != 0) {
-				fprintf(stdout, "wfc unlock\n");
-				return rc;
-			}
 		}
 	}
 }
@@ -237,8 +250,11 @@ next_inst:	uint32_t* start = instruction++;
 							while(*(instruction + 1) > 0x40000000) {
 								// compression in progress
 								fprintf(stdout, "wait on compression\n");
+#ifdef _WIN32
 								WaitOnAddress(instruction, &highPointer, 4, INFINITE);
-								//syscall(SYS_futex, instruction + 2, FUTEX_WAIT, compressionPointer, NULL, NULL, 0);
+#else
+								syscall(SYS_futex, instruction, FUTEX_WAIT, highPointer, NULL, NULL, 0);
+#endif
 							}
 						}
 						// compressed
@@ -271,7 +287,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			//fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -287,17 +303,17 @@ next_inst:	uint32_t* start = instruction++;
 					if (!*start && (!finishedProgress || conditionDepth)) {
 						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
 						fprintf(stderr, "write thread waiting %p\n", lastStart);
-						WaitForCallbacks(&txn);
+						WaitForCallbacks(&txn, conditionDepth == 0);
 					}
 					if (*start || conditionDepth) {
-						//fprintf(stderr, "now there is a value available %p\n", *start);
+						//\\fprintf(stderr, "now there is a value available %p\n", *start);
 						// the value changed while we were locking or waiting, clear the flags, we are back to running through instructions
 						*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION;
 						goto next_inst;
 					}
 					// still nothing to do, end the transaction
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
-					fprintf(stderr, "calling the txn down %p\n", lastStart);
+					//fprintf(stderr, "calling the txn down %p\n", lastStart);
 					uv_mutex_unlock(userCallbackLock);
 					goto txn_done;
 				case BLOCK_END:
@@ -334,7 +350,7 @@ next_inst:	uint32_t* start = instruction++;
 					progressStatus = 2;
 					executionProgress->Send(nullptr, 0);
 					if (flags & USER_CALLBACK_STRICT_ORDER)
-						WaitForCallbacks(&txn);
+						WaitForCallbacks(&txn, conditionDepth == 0);
 					break;
 				case DROP_DB:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
@@ -446,7 +462,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 		fprintf(stdout, "progress got lock\n");
 		if (interruptionStatus != 0)
 			uv_cond_wait(userCallbackCond, userCallbackLock);
-		// aquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
+		// acquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
 		fprintf(stdout, "progress unlock\n");
 		uv_mutex_unlock(userCallbackLock);
 	}

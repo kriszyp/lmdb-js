@@ -15,6 +15,7 @@ const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 const ABORT = {}
 const CALLBACK_THREW = {}
+const IMMEDIATE = -1
 exports.ABORT = ABORT
 SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
@@ -39,11 +40,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 	var lastDynamicBytes
 	var compressionCount = 0
 	var outstandingWriteCount = 0
+	var startAddress = 0
 	var writeTxn = null
 	var abortedNonChildTransactionWarn
 	var nextTxnCallbacks
 	var lastQueuedTxnCallbacks
 	var commitPromise
+	var commitDelay = IMMEDIATE
+	var enqueuedStart
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
@@ -155,7 +159,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				//console.log('spin lock!')
 				writeStatus = lastUint32[lastFlagPosition]
 			}
-			console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
+			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
 	
 			lastUint32 = uint32
 			lastFlagPosition = flagPosition
@@ -164,35 +168,10 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				if (writeStatus & TXN_DELIMITER)
 					commitPromise = null
 				if (writeStatus & WAITING_OPERATION) { // write thread is waiting
-					console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
-					env.continueBatch(0)
-				} else if (writeStatus & BATCH_DELIMITER) {
-					let startAddress = targetBytes.buffer.address + (flagPosition << 2)
-					console.log('start address ' + startAddress.toString(16), store.path)
-					function startWriting() {
-						env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-							console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16), store.path)
-							resolveWrites(true)
-							switch (status) {
-								case 0: case 1:
-								break;
-								case 2:
-									executeTxnCallbacks()
-								console.log('user callback');
-								break
-								default:
-								console.error(status)
-								if (commitRejectPromise) {
-									commitRejectPromise.reject(status)
-									commitRejectPromise = null
-								}
-							}
-						})
-					}
-					if (true || commitDelay == IMMEDIATE)
-						startWriting()
-					else
-						setImmediate(startWriting)
+					//console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
+					env.continueBatch(1)
+				} else if ((writeStatus & BATCH_DELIMITER) && !startAddress) {
+					startAddress = targetBytes.buffer.address + (flagPosition << 2)
 				}
 			} else if (compressionStatus) {
 				env.compress(nextCompressible)
@@ -202,6 +181,37 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressure, 0, 0, 1)
 			}
+			if (startAddress && (flags & 8) && !enqueuedStart) {
+				//console.log('start address ' + startAddress.toString(16), store.path)
+				function startWriting() {
+					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
+						//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16), store.path)
+						resolveWrites(true)
+						switch (status) {
+							case 0: case 1:
+							break;
+							case 2:
+								executeTxnCallbacks()
+								console.log('user callback');
+							break
+							default:
+							console.error(status)
+							if (commitRejectPromise) {
+								commitRejectPromise.reject(status)
+								commitRejectPromise = null
+							}
+						}
+					})
+					startAddress = 0
+				}
+				if (commitDelay == IMMEDIATE)
+					startWriting()
+				else {
+					setImmediate(startWriting)
+					enqueuedStart = true
+				}
+			}
+
 			if ((outstandingWriteCount & 7) === 0)
 				resolveWrites()
 			let newResolution = {
@@ -421,7 +431,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 				if (writeStatus & WAITING_OPERATION) {
 					console.log('ifVersion resume write thread')
-					env.continueBatch(0)
+					env.continueBatch(1)
 				}
 				return promise
 			} else {
@@ -528,6 +538,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 							txn.commit()
 							resetReadTxn()
 						}
+
 						return result
 					} finally {
 						env.writeTxn = writeTxn = null

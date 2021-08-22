@@ -536,10 +536,12 @@ describe('lmdb-store', function() {
         db.put('async1', 'test');
         if (!ranSyncTxn) {
           ranSyncTxn = true;
-          setImmediate(() => db.transactionSync(() => {
-            order.push('s1');
-            db.put('inside-sync', 'test');
-          }));
+          setImmediate(() => {
+            db.transactionSync(() => {
+              order.push('s1');
+              db.put('inside-sync', 'test');
+            });
+          });
         }
       });
       db.put('outside-txn', 'test');

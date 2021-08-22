@@ -897,6 +897,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
         const int argc = 2;
 
         Local<Value> argv[argc] = { info.This(), info[0] };
+        //fprintf(stdout, "beginTxn %u", info[0]->IsTrue());
         maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
     }
 

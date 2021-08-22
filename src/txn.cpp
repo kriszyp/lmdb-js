@@ -95,10 +95,6 @@ NAN_METHOD(TxnWrap::ctor) {
                     auto writeWorker = ew->writeWorker;
                     if (writeWorker) {
                         parentTxn = writeWorker->AcquireTxn(true); // see if we have a paused transaction
-                        if (!parentTxn) {
-                            // notify the batch worker that we need to jump ahead of any queued transaction callbacks
-                            writeWorker->ContinueWrite(INTERRUPT_BATCH, false);
-                        }
                         // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
                     }
                 }
@@ -158,7 +154,7 @@ NAN_METHOD(TxnWrap::commit) {
     }
     else
         rc = mdb_txn_commit(tw->txn);
-    fprintf(stdout, "commit done\n");
+    //fprintf(stdout, "commit done\n");
     tw->removeFromEnvWrap();
 
     if (rc != 0) {
