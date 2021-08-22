@@ -1,6 +1,6 @@
 /*
     LZ4 HC - High Compression Mode of LZ4
-    Copyright (C) 2011-2020, Yann Collet.
+    Copyright (C) 2011-2017, Yann Collet.
 
     BSD 2-Clause License (http://www.opensource.org/licenses/bsd-license.php)
 
@@ -953,15 +953,13 @@ int LZ4_compress_HC_extStateHC (void* state, const char* src, char* dst, int src
 
 int LZ4_compress_HC(const char* src, char* dst, int srcSize, int dstCapacity, int compressionLevel)
 {
-    int cSize;
 #if defined(LZ4HC_HEAPMODE) && LZ4HC_HEAPMODE==1
     LZ4_streamHC_t* const statePtr = (LZ4_streamHC_t*)ALLOC(sizeof(LZ4_streamHC_t));
-    if (statePtr==NULL) return 0;
 #else
     LZ4_streamHC_t state;
     LZ4_streamHC_t* const statePtr = &state;
 #endif
-    cSize = LZ4_compress_HC_extStateHC(statePtr, src, dst, srcSize, dstCapacity, compressionLevel);
+    int const cSize = LZ4_compress_HC_extStateHC(statePtr, src, dst, srcSize, dstCapacity, compressionLevel);
 #if defined(LZ4HC_HEAPMODE) && LZ4HC_HEAPMODE==1
     FREEMEM(statePtr);
 #endif
@@ -1033,11 +1031,7 @@ void LZ4_resetStreamHC_fast (LZ4_streamHC_t* LZ4_streamHCPtr, int compressionLev
         LZ4_initStreamHC(LZ4_streamHCPtr, sizeof(*LZ4_streamHCPtr));
     } else {
         /* preserve end - base : can trigger clearTable's threshold */
-        if (LZ4_streamHCPtr->internal_donotuse.end != NULL) {
-            LZ4_streamHCPtr->internal_donotuse.end -= (uptrval)LZ4_streamHCPtr->internal_donotuse.base;
-        } else {
-            assert(LZ4_streamHCPtr->internal_donotuse.base == NULL);
-        }
+        LZ4_streamHCPtr->internal_donotuse.end -= (uptrval)LZ4_streamHCPtr->internal_donotuse.base;
         LZ4_streamHCPtr->internal_donotuse.base = NULL;
         LZ4_streamHCPtr->internal_donotuse.dictCtx = NULL;
     }
