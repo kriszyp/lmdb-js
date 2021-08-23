@@ -65,6 +65,7 @@ NAN_METHOD(TxnWrap::ctor) {
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     int flags = 0;
+    bool exclusive = true;
     MDB_txn *txn;
     TxnWrap *parentTw;
     if (info[1]->IsTrue() && ew->writeWorker) { // this is from a transaction callback

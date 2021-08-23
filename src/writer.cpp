@@ -155,7 +155,7 @@ MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
 	uv_mutex_lock(userCallbackLock);
 	if (commitSynchronously) {
-		interruptionStatus == INTERRUPT_BATCH;
+		interruptionStatus = INTERRUPT_BATCH;
 		uv_cond_signal(userCallbackCond);
 		uv_cond_wait(userCallbackCond, userCallbackLock);
 	}
