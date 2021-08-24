@@ -437,6 +437,20 @@ public:
     static NAN_METHOD(resetCurrentReadTxn);
 };
 
+const int TXN_ABORTABLE = 1;
+const int TXN_SYNCHRONOUS_COMMIT = 2;
+
+class TxnTracked {
+  public:
+    TxnTracked(MDB_txn *txn, unsigned int flags);
+    ~TxnTracked();
+    unsigned int flags;
+    int cursorCount;
+    bool onlyCursor;
+    MDB_txn *txn;
+    TxnTracked *parent;
+}
+
 /*
     `Txn`
     Represents a transaction running on a database environment.

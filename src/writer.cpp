@@ -162,6 +162,12 @@ MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 	MDB_txn* txn = envForTxn->currentBatchTxn;
 	return txn;
 }
+
+void WriteWorker::UnlockTxn() {
+	fprintf(stdout, "release txn\n");
+	uv_cond_signal(userCallbackCond);
+	uv_mutex_unlock(userCallbackLock);
+}
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
 waitForCallback:
 	int rc;
@@ -491,6 +497,10 @@ NAN_METHOD(EnvWrap::startWriting) {
         return Nan::ThrowError("The environment is already closed.");
     }
     size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+	if (instructionAddress == 0) {
+		ew->writeWorker->ContinueWrite();
+		return;
+	}
     size_t nextCompressible = Local<Number>::Cast(info[1])->Value();
     Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[2]));
 

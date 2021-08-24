@@ -861,7 +861,7 @@ function open(path, options) {
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures)
-					})
+					}, { abortable: false, synchronousCommit: false })
 				},
 				getStructures,
 				copyBuffers: true // need to copy any embedded buffers that are found since we use unsafe buffers

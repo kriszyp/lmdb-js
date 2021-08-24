@@ -27,6 +27,16 @@
 using namespace v8;
 using namespace node;
 
+TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
+    this->txn = txn;
+    flags = flags;
+    cursorCount = 0;
+    onlyCursor = false;
+}
+
+TxnTracked::~TxnTracked() {
+}
+
 TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
     this->env = env;
     this->txn = txn;

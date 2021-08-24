@@ -887,6 +887,43 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     Nan::MaybeLocal<Object> maybeInstance;
 
+    int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    if (!(flags & MDB_RDONLY)) {
+        EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+        MDB_env *env = ew->env;
+        unsigned int envFlags;
+        mdb_env_get_flags(env, &envFlags);
+        MDB_txn *txn;
+
+        if (env->currentWriteTxn) {
+            txn = env->currentWriteTxn.txn;
+        else if (env->currentBatchTxn) {
+            // try to acquire the txn from the current batch
+            txn = env.writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
+        }
+
+        if (txn) {
+            if (flags & TXN_ABORTABLE) {
+                if (envFlags & MDB_WRITEMAP)
+                    flags &= ~TXN_ABORTABLE;
+                else {
+                    // child txn
+                    mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
+                    TxnTracked childTxn = new TxnTracked(txn, flags);
+                    if (env->currentWriteTxn) {
+                        childTxn.parent = env->currentWriteTxn;
+                    }
+                    env->currentWriteTxn = childTxn;
+                    return;
+                }
+            }
+        } else {
+            mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
+        }
+        env->currentWriteTxn = new TxnTracked(txn, flags);
+        return;
+    }
+
     if (info.Length() > 1) {
         const int argc = 3;
 
@@ -910,6 +947,17 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     Local<Object> instance = maybeInstance.ToLocalChecked();
     info.GetReturnValue().Set(instance);
+}
+NAN_METHOD(EnvWrap::commitTxn) {
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    TxnTracked *currentTxn = env->currentTxn;
+    if ((currentTxn->flags & TXN_ABORTABLE) || !env->currentBatchTxn) {
+        mdb_txn_commit(currentTxn->txn);
+    }
+    ew->currentTxn = currentTxn->parent;
+    if (env->writeWorker) {
+        env->writeWorker->UnlockTxn();
+    }
 }
 
 NAN_METHOD(EnvWrap::openDbi) {

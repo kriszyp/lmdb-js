@@ -169,7 +169,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					commitPromise = null
 				if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 					//console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
-					env.continueBatch(1)
+					env.startWriting(0)
 				} else if ((writeStatus & BATCH_DELIMITER) && !startAddress) {
 					startAddress = targetBytes.buffer.address + (flagPosition << 2)
 				}
@@ -328,7 +328,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {
-		let continuedWriteTxn = env.beginTxn(true)
+		let continuedWriteTxn = env.beginTxn(0)
 		let promises, i
 		for (i = 0, l = nextTxnCallbacks.length; i < l; i++) {
 			let userTxnCallback = nextTxnCallbacks[i]
@@ -377,7 +377,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		console.log('async callback resume write trhead')
 		nextTxnCallbacks = nextTxnCallbacks.next
 		lastQueuedTxnCallbacks = null
-		return env.continueBatch(0)
+		return env.commitTxn()
 		function txnError(error, i) {
 			(nextTxnCallbacks.errors || (nextTxnCallbacks.errors = []))[i] = error
 			nextTxnCallbacks[i] = CALLBACK_THREW
@@ -431,7 +431,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 				if (writeStatus & WAITING_OPERATION) {
 					console.log('ifVersion resume write thread')
-					env.continueBatch(1)
+					env.startWriting(0)
 				}
 				return promise
 			} else {
@@ -448,14 +448,18 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (writeTxn)
 				return this.put(key, value, versionOrOptions, ifVersion)
 			else
-				return this.transactionSync(() => this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS)
+				return this.transactionSync(() =>
+					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS,
+					{ abortable: false })
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
 				return this.remove(key, ifVersionOrValue)
 			else
-				return this.transactionSync(() => this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS)
-		},
+				return this.transactionSync(() =>
+					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS,
+					{ abortable: false })
+			},
 		transaction(callback) {
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
@@ -514,9 +518,9 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				return result
 			})
 		},
-		transactionSync(callback, abort) {
+		transactionSync(callback, options) {
 			if (writeTxn) {
-				if (!useWritemap && !this.cache)
+				if (!useWritemap && !this.cache && !(options && options.abortable === false))
 					// already nested in a transaction, execute as child transaction (if possible) and return
 					return this.childTransaction(callback)
 				let result = callback() // else just run in current transaction
@@ -529,7 +533,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			let txn
 			try {
 				this.transactions++
-				txn = writeTxn = env.writeTxn = env.beginTxn()
+				let flags = 0
+				if (!(options && options.abortable === false))
+					flags = 1
+				if (!(options && options.synchronousCommit === false))
+					flags &= 2
+				txn = writeTxn = env.writeTxn = env.beginTxn(flags)
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)
