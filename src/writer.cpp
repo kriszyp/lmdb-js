@@ -67,20 +67,15 @@ const int NOT_FOUND = 1;
 
 
 WriteWorker::~WriteWorker() {
+	// TODO: Make sure this runs on the JS main thread, or we need to move it
+	if (envForTxn->writeWorker == this)
+		envForTxn->writeWorker = nullptr;
 	uv_mutex_destroy(userCallbackLock);
-	uv_cond_destroy(userCallbackCond);	
+	uv_cond_destroy(userCallbackCond);
 }
-void WriteWorker::ContinueWrite(int rc, bool hasStarted) {
-	fprintf(stdout, "continueWrite %u\n", rc);
-	if (rc == 0) {
-		finishedProgress = true;
-		currentTxnWrap = envForTxn->currentWriteTxn;
-	}
-	envForTxn->currentWriteTxn = nullptr;
-	if (rc)
-		uv_mutex_lock(userCallbackLock);
-	interruptionStatus = 0;
+void WriteWorker::ContinueWrite() {
 	fprintf(stdout, "continueWrite signal %p\n", this);
+	uv_mutex_lock(userCallbackLock);
 	uv_cond_signal(userCallbackCond);
 	//fprintf(stdout, "continue unlock\n");
 	uv_mutex_unlock(userCallbackLock);
@@ -153,14 +148,16 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 }
 MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
+	interruptionStatus = commitSynchronously ? INTERRUPT_BATCH : 1;
 	uv_mutex_lock(userCallbackLock);
-	if (commitSynchronously) {
-		interruptionStatus = INTERRUPT_BATCH;
-		uv_cond_signal(userCallbackCond);
-		uv_cond_wait(userCallbackCond, userCallbackLock);
-	}
-	MDB_txn* txn = envForTxn->currentBatchTxn;
-	return txn;
+	if (txn)
+		return txn;
+	// else create a new txn
+	MDB_txn* newTxn;
+	int rc = mdb_txn_begin(env, nullptr, 0, &newTxn);
+	if (rc)
+		fprintf(stderr, "Unable to start transaction %i\n", rc);
+	return newTxn;
 }
 
 void WriteWorker::UnlockTxn() {
@@ -171,36 +168,33 @@ void WriteWorker::UnlockTxn() {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
 waitForCallback:
 	int rc;
-	//fprintf(stdout, "wait for callback %p\n", this);
-	if (interruptionStatus != INTERRUPT_BATCH)
-		uv_cond_wait(userCallbackCond, userCallbackLock);
-	//fprintf(stdout, "callback done waiting\n");
-	if (interruptionStatus != 0 && !finishedProgress) {
-		if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-			if (allowCommit) {
-				rc = mdb_txn_commit(*txn);
-				if (rc == 0) {
-					// wait again until the sync transaction is completed
-					uv_cond_wait(userCallbackCond, userCallbackLock);
-					// now restart our transaction
-					rc = mdb_txn_begin(env, nullptr, 0, txn);
-					envForTxn->currentBatchTxn = *txn;
-					interruptionStatus = 0;
-					uv_cond_signal(userCallbackCond);
-					goto waitForCallback;
-				}
-				if (rc != 0) {
-					fprintf(stdout, "wfc unlock\n");
-					return rc;
-				}
-			} else
+	fprintf(stderr, "wait for callback %p\n", this);		
+	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
+		if (allowCommit) {
+			rc = mdb_txn_commit(*txn);
+			if (rc == 0) {
+				// wait again until the sync transaction is completed
+				uv_cond_wait(userCallbackCond, userCallbackLock);
+				// now restart our transaction
+				rc = mdb_txn_begin(env, nullptr, 0, txn);
+				envForTxn->currentBatchTxn = *txn;
+				interruptionStatus = 0;
 				uv_cond_signal(userCallbackCond);
-		}
+				goto waitForCallback;
+			}
+			if (rc != 0) {
+				fprintf(stdout, "wfc unlock\n");
+				return rc;
+			}
+		} else
+			uv_cond_signal(userCallbackCond);
+	} else {
+		uv_cond_wait(userCallbackCond, userCallbackLock);
 	}
+	fprintf(stderr, "callback done waiting\n");
 }
 
 void WriteWorker::Write() {
-	MDB_txn *txn;
 	MDB_val key, value;
 	uint32_t* instruction = instructions;
 	uint32_t* lastStart;
@@ -212,22 +206,20 @@ void WriteWorker::Write() {
 	do {
 		int conditionDepth = 0;
 		if (callback) {
+			uv_mutex_lock(userCallbackLock);
+fprintf(stderr, "begin txn\n");
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
 			txnId = mdb_txn_id(txn);
 			if (rc != 0) {
 				return SetErrorMessage(mdb_strerror(rc));
 			}
-		} else{
-			txn = envForTxn->currentWriteTxn->txn;
-		}
-		if (envForTxn) {
-			envForTxn->currentBatchTxn = txn;
+		} else {
+			txn = envForTxn->writeTxn->txn;
 		}
 		int validatedDepth = 0;
 		double conditionalVersion, setVersion;
 		bool startingTransaction = true;
 		do {
-			uv_mutex_lock(userCallbackLock);
 next_inst:	uint32_t* start = instruction++;
 			uint32_t flags = *start;
 			MDB_dbi dbi;
@@ -320,7 +312,6 @@ next_inst:	uint32_t* start = instruction++;
 					// still nothing to do, end the transaction
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
 					//fprintf(stderr, "calling the txn down %p\n", lastStart);
-					uv_mutex_unlock(userCallbackLock);
 					goto txn_done;
 				case BLOCK_END:
 					rc = !validated;
@@ -378,7 +369,8 @@ next_inst:	uint32_t* start = instruction++;
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			lastStart = start;
 			*start = flags;
-			uv_mutex_unlock(userCallbackLock);
+			if (interruptionStatus)
+				WaitForCallbacks(&txn, conditionDepth == 0);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
 		if (envForTxn) {
@@ -393,7 +385,9 @@ txn_done:
 				mdb_txn_abort(txn);
 			else*/
 			rc = mdb_txn_commit(txn);
-			//fprintf(stdout, "committed %p\n", instruction);
+			txn = nullptr;
+			uv_mutex_unlock(userCallbackLock);
+			fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 			if (rc == 0) {
 				unsigned int envFlags;
@@ -453,7 +447,7 @@ txn_done:
 			return;
 		}
 		if (moreProcessing) {
-			*instruction |= TXN_DELIMITER;
+//			*instruction |= TXN_DELIMITER;
 			progressStatus = 1;
 			executionProgress->Send(nullptr, 0);
 		}
@@ -475,10 +469,9 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	v8::Local<v8::Value> argv[] = {
 		Nan::New<Number>(progressStatus)
 	};
-	envForTxn->currentWriteTxn = currentTxnWrap;
 	bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
 	if (immediateContinue)
-		ContinueWrite(0, true);
+		ContinueWrite();
 }
 
 void WriteWorker::HandleOKCallback() {
@@ -486,8 +479,6 @@ void WriteWorker::HandleOKCallback() {
 	Local<v8::Value> argv[] = {
 		Nan::New<Number>(0)
 	};
-	if (envForTxn->writeWorker == this)
-		envForTxn->writeWorker = nullptr;
 	callback->Call(1, argv, async_resource);
 }
 

@@ -29,9 +29,10 @@ using namespace node;
 
 TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
     this->txn = txn;
-    flags = flags;
+    this->flags = flags;
     cursorCount = 0;
     onlyCursor = false;
+    parent = nullptr;
 }
 
 TxnTracked::~TxnTracked() {
@@ -88,6 +89,8 @@ NAN_METHOD(TxnWrap::ctor) {
             // Get flags from options
 
             setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
+        } else if (info[1]->IsNumber()) {
+            flags = info[1]->IntegerValue(Nan::GetCurrentContext()).FromJust();
         }
         MDB_txn *parentTxn;
         if (info[2]->IsObject()) {
@@ -111,6 +114,7 @@ NAN_METHOD(TxnWrap::ctor) {
                 }
             }
         }
+        fprintf(stderr, "txn_begin from txn.cpp %u\n", flags);
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
         if (rc != 0) {
             if (rc == EINVAL) {

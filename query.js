@@ -91,7 +91,7 @@ exports.addQueryMethods = function(LMDBStore, {
 								cursor.close()
 							} catch(error) { }
 						}
-						return handleError(error, this, txn, resetCursor)
+						throw error
 					}
 				}
 				resetCursor()

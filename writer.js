@@ -328,7 +328,8 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {
-		let continuedWriteTxn = env.beginTxn(0)
+		env.beginTxn(0)
+		env.writeTxn = writeTxn = true
 		let promises, i
 		for (i = 0, l = nextTxnCallbacks.length; i < l; i++) {
 			let userTxnCallback = nextTxnCallbacks[i]
@@ -339,7 +340,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					await Promise.all(promises)
 					promises = null
 				}
-				let childTxn = env.writeTxn = writeTxn = env.beginTxn(null, continuedWriteTxn)
+				env.beginTxn(1) // abortable
 				
 				try {
 					let result = userTxnCallback.callback()
@@ -347,12 +348,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						await result
 					}
 					if (result === ABORT)
-						childTxn.abort()
+						env.abortTxn()
 					else
-						childTxn.commit()
-						nextTxnCallbacks[i] = result
+						env.commitTxn()
+					nextTxnCallbacks[i] = result
 				} catch(error) {
-					childTxn.abort()
+					env.abortTxn()
 					txnError(error, i)
 				}
 			} else {
@@ -373,7 +374,7 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 		if (promises) { // finish any outstanding commit functions
 			await Promise.all(promises)
 		}
-		env.writeTxn = writeTxn = null
+		env.writeTxn = writeTxn = false
 		console.log('async callback resume write trhead')
 		nextTxnCallbacks = nextTxnCallbacks.next
 		lastQueuedTxnCallbacks = null
@@ -474,24 +475,20 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode')
 			if (writeTxn) {
-				let parentTxn = writeTxn
-				let childTxn = env.writeTxn = writeTxn = env.beginTxn(null, parentTxn)
+				env.beginTxn(1) // abortable
 				try {
 					return when(callback(), (result) => {
-						env.writeTxn = writeTxn = parentTxn
 						if (result === ABORT)
-							childTxn.abort()
+							env.abortTxn()
 						else
-							childTxn.commit()
+							env.commitTxn()
 						return result
 					}, (error) => {
-						env.writeTxn = writeTxn = parentTxn
-						childTxn.abort()
+						env.abortTxn()
 						throw error
 					})
 				} catch(error) {
-					env.writeTxn = writeTxn = parentTxn
-					childTxn.abort()
+					env.abortTxn()
 					throw error
 				}
 			}
@@ -530,7 +527,6 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 				}
 				return result
 			}
-			let txn
 			try {
 				this.transactions++
 				let flags = 0
@@ -538,13 +534,14 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 					flags = 1
 				if (!(options && options.synchronousCommit === false))
 					flags &= 2
-				txn = writeTxn = env.writeTxn = env.beginTxn(flags)
+				env.beginTxn(flags)
+				writeTxn = env.writeTxn = true
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)
-							txn.abort()
+							env.abortTxn()
 						else {
-							txn.commit()
+							env.commitTxn()
 							resetReadTxn()
 						}
 
@@ -553,12 +550,12 @@ exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, 
 						env.writeTxn = writeTxn = null
 					}
 				}, (error) => {
-					try { txn.abort() } catch(e) {}
+					try { env.abortTxn() } catch(e) {}
 					env.writeTxn = writeTxn = null
 					throw error
 				})
 			} catch(error) {
-				try { txn.abort() } catch(e) {}
+				try { env.abortTxn() } catch(e) {}
 				env.writeTxn = writeTxn = null
 				throw error
 			}

@@ -49,6 +49,7 @@ EnvWrap::EnvWrap() {
     this->currentWriteTxn = nullptr;
     this->currentBatchTxn = nullptr;
 	this->currentReadTxn = nullptr;
+    this->writeTxn = nullptr;
     this->writeWorker = nullptr;
     this->syncWriter = nullptr;
 	this->readTxnRenewed = false;
@@ -234,7 +235,7 @@ class BatchWorker : public BatchWorkerBase {
                 }
             }
         }
-
+    // TODO: we should probably use our own begin txn function in case we need to interrupt a write worker
         int rc = mdb_txn_begin(env, nullptr, 0, &txn);
         if (rc != 0) {
             return SetErrorMessage(mdb_strerror(rc));
@@ -889,18 +890,20 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     if (!(flags & MDB_RDONLY)) {
+        fprintf(stderr, "begin sync txn\n");
         EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
         MDB_env *env = ew->env;
         unsigned int envFlags;
         mdb_env_get_flags(env, &envFlags);
         MDB_txn *txn;
 
-        if (env->currentWriteTxn) {
-            txn = env->currentWriteTxn.txn;
-        else if (env->currentBatchTxn) {
+        if (ew->writeTxn)
+            txn = ew->writeTxn->txn;
+        else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
-            txn = env.writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
-        }
+            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
+        } else
+            txn = nullptr;
 
         if (txn) {
             if (flags & TXN_ABORTABLE) {
@@ -909,18 +912,16 @@ NAN_METHOD(EnvWrap::beginTxn) {
                 else {
                     // child txn
                     mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
-                    TxnTracked childTxn = new TxnTracked(txn, flags);
-                    if (env->currentWriteTxn) {
-                        childTxn.parent = env->currentWriteTxn;
-                    }
-                    env->currentWriteTxn = childTxn;
+                    TxnTracked* childTxn = new TxnTracked(txn, flags);
+                    childTxn->parent = ew->writeTxn;
+                    ew->writeTxn = childTxn;
                     return;
                 }
             }
         } else {
             mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
         }
-        env->currentWriteTxn = new TxnTracked(txn, flags);
+        ew->writeTxn = new TxnTracked(txn, flags);
         return;
     }
 
@@ -950,13 +951,14 @@ NAN_METHOD(EnvWrap::beginTxn) {
 }
 NAN_METHOD(EnvWrap::commitTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    TxnTracked *currentTxn = env->currentTxn;
-    if ((currentTxn->flags & TXN_ABORTABLE) || !env->currentBatchTxn) {
+    TxnTracked *currentTxn = ew->writeTxn;
+    if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
         mdb_txn_commit(currentTxn->txn);
     }
-    ew->currentTxn = currentTxn->parent;
-    if (env->writeWorker) {
-        env->writeWorker->UnlockTxn();
+    ew->writeTxn = currentTxn->parent;
+    delete currentTxn;
+    if (ew->writeWorker) {
+        ew->writeWorker->UnlockTxn();
     }
 }
 
@@ -1152,11 +1154,6 @@ NAN_METHOD(EnvWrap::batchWrite) {
     return;
 }
 
-NAN_METHOD(EnvWrap::continueBatch) {
-    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->writeWorker->ContinueWrite(info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust(), true);
-}
-
 NAN_METHOD(EnvWrap::resetCurrentReadTxn) {
     EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     mdb_txn_reset(ew->currentReadTxn);
@@ -1173,11 +1170,11 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "open", Nan::New<FunctionTemplate>(EnvWrap::open));
     envTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(EnvWrap::close));
     envTpl->PrototypeTemplate()->Set(isolate, "beginTxn", Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
+    envTpl->PrototypeTemplate()->Set(isolate, "commitTxn", Nan::New<FunctionTemplate>(EnvWrap::commitTxn));
     envTpl->PrototypeTemplate()->Set(isolate, "openDbi", Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(isolate, "startWriting", Nan::New<FunctionTemplate>(EnvWrap::startWriting));
-    envTpl->PrototypeTemplate()->Set(isolate, "continueBatch", Nan::New<FunctionTemplate>(EnvWrap::continueBatch));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));

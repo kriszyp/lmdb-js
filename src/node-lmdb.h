@@ -218,11 +218,13 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
 class WriteWorker : public Nan::AsyncProgressWorker {
   public:
     WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressible, Nan::Callback *callback);
-    void ContinueWrite(int rc, bool hasStarted);
+    void ContinueWrite();
     void Write();
     double* CompressOne(double* nextCompressible);
     void Compress();
+    MDB_txn* txn;
     MDB_txn* AcquireTxn(bool commitSynchronously);
+    void UnlockTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
@@ -240,6 +242,17 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     ExecutionProgress* executionProgress;
     int progressStatus;
     int WaitForCallbacks(MDB_txn** txn, bool allowCommit);
+};
+
+class TxnTracked {
+  public:
+    TxnTracked(MDB_txn *txn, unsigned int flags);
+    ~TxnTracked();
+    unsigned int flags;
+    int cursorCount;
+    bool onlyCursor;
+    MDB_txn *txn;
+    TxnTracked *parent;
 };
 
 /*
@@ -277,6 +290,7 @@ public:
     MDB_env *env;
     // Current write transaction
     TxnWrap *currentWriteTxn;
+    TxnTracked *writeTxn;
 
     MDB_txn* currentReadTxn;
     WriteWorker* writeWorker;
@@ -387,6 +401,7 @@ public:
         * readOnly: if true, the transaction is read-only
     */
     static NAN_METHOD(beginTxn);
+    static NAN_METHOD(commitTxn);
 
     /*
         Opens a database in the environment.
@@ -433,23 +448,11 @@ public:
 #endif
     static void write(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-    static NAN_METHOD(continueBatch);
     static NAN_METHOD(resetCurrentReadTxn);
 };
 
 const int TXN_ABORTABLE = 1;
 const int TXN_SYNCHRONOUS_COMMIT = 2;
-
-class TxnTracked {
-  public:
-    TxnTracked(MDB_txn *txn, unsigned int flags);
-    ~TxnTracked();
-    unsigned int flags;
-    int cursorCount;
-    bool onlyCursor;
-    MDB_txn *txn;
-    TxnTracked *parent;
-}
 
 /*
     `Txn`
