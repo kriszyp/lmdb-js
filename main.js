@@ -1,18 +1,19 @@
-const { sync: mkdirpSync } = require('mkdirp')
-const fs = require('fs')
-const { extname, basename, dirname} = require('path')
-const when  = require('./util/when')
-const EventEmitter = require('events')
-Object.assign(exports, require('./native'))
-const { Env, Cursor, Compression, getBufferForAddress, getAddress, keyValueToBuffer, bufferToKeyValue } = exports
-const { CachingStore, setGetLastVersion } = require('./caching')
-const { addQueryMethods } = require('./query')
-const { addWriteMethods, ABORT } = require('./writer')
-const { applyKeyHandling } = require('./keys')
-const { writeKey, readKey, compareKeys } = require('ordered-binary')
-const os = require('os')
+import fs from 'fs' // TODO: or Deno
+import { extname, basename, dirname} from 'path'
+import EventEmitter from 'events'
+import { Env, Cursor, Compression, getBufferForAddress, getAddress } from './native.js'
+import { CachingStore, setGetLastVersion } from './caching.js'
+import { addQueryMethods } from './query.js'
+import { addWriteMethods, ABORT } from './writer.js'
+export { ABORT } from './writer.js'
+import { applyKeyHandling } from './keys.js'
+export { toBufferKey as keyValueToBuffer, fromBufferKey as bufferToKeyValue } from 'ordered-binary'
+import { createRequire } from 'module'
+const require = createRequire(import.meta.url)
+
+import os from 'os'
 setGetLastVersion(getLastVersion)
-Uint8ArraySlice = Uint8Array.prototype.slice
+const Uint8ArraySlice = Uint8Array.prototype.slice
 const keyBytes = Buffer.allocUnsafeSlow(2048)
 const keyBuffer = keyBytes.buffer
 const keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048) // max key size is actually 1978
@@ -28,7 +29,7 @@ const READING_TNX = {
 	readOnly: true
 }
 
-const allDbs = exports.allDbs = new Map()
+export const allDbs = new Map()
 const SYNC_PROMISE_RESULT = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 SYNC_PROMISE_RESULT.isSync = true
@@ -38,10 +39,8 @@ let env
 let defaultCompression
 let lastSize, lastOffset, lastVersion
 const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_BOTH_RANGE = 2, MDB_GET_CURRENT = 3, MDB_FIRST = 4, MDB_LAST = 5, MDB_NEXT = 6, MDB_NEXT_NODUP = 7, MDB_NEXT_DUP = 8, MDB_PREV = 9, MDB_PREV_NODUP = 10, MDB_PREV_DUP = 11
-exports.ABORT = ABORT
-exports.open = open
 let abortedNonChildTransactionWarn
-function open(path, options) {
+export function open(path, options) {
 	let env = new Env()
 	let committingWrites
 	let scheduledTransactions
@@ -78,7 +77,7 @@ function open(path, options) {
 		asyncTransactionAfter = false
 	}
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
-		mkdirpSync(options.noSubdir ? dirname(path) : path)
+		fs.mkdirSync(options.noSubdir ? dirname(path) : path, { recursive: true })
 	if (options.compression) {
 		let setDefault
 		if (options.compression == true) {
@@ -87,13 +86,13 @@ function open(path, options) {
 			else
 				defaultCompression = options.compression = new Compression({
 					threshold: 1000,
-					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+					dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url)),
 				})
 				defaultCompression.threshold = 1000
 		} else {
 			let compressionOptions = Object.assign({
 				threshold: 1000,
-				dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+				dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url)),
 			}, options.compression)
 			options.compression = new Compression(compressionOptions)
 			options.compression.threshold = compressionOptions.threshold
@@ -109,12 +108,7 @@ function open(path, options) {
 	try {
 		env.open(options)
 	} catch(error) {
-		if (error.message.startsWith('MDB_INVALID')) {
-			require('./util/upgrade-lmdb').upgrade(path, options, open)
-			env = new Env()
-			env.open(options)
-		} else
-			throw error
+		throw error
 	}
 	env.readerCheck() // clear out any stale entries
 	function renewReadTxn() {
@@ -508,9 +502,9 @@ function open(path, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	const putSync = LMDBStore.prototype.putSync
 	const removeSync = LMDBStore.prototype.removeSync
-	addQueryMethods(LMDBStore, Object.assign({ env, getReadTxn() {
+	addQueryMethods(LMDBStore, { env, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
-	}, saveKey, keyBytes, keyBytesView, getLastVersion }, exports))
+	}, saveKey, keyBytes, keyBytesView, getLastVersion })
 	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, useWritemap })
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
@@ -569,14 +563,14 @@ class Entry {
 
 	}
 }
-exports.getLastEntrySize = function() {
+export function getLastEntrySize() {
 	return lastSize
 }
-function getLastVersion() {
+export function getLastVersion() {
 	return keyBytesView.getFloat64(16, true)
 }
 
-function setLastVersion(version) {
+export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true)
 }
 let saveBuffer, saveDataView, saveDataAddress
@@ -600,6 +594,3 @@ function saveKey(key, writeKey, saveTo) {
 	savePosition = (savePosition + 7) & 0xfffff8
 	return start + saveDataAddress
 }
-exports.getLastVersion = getLastVersion
-exports.setLastVersion = setLastVersion
-exports.compareKey = compareKeys

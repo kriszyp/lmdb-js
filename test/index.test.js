@@ -1,18 +1,16 @@
-'use strict';
-
-let path = require('path');
-let mkdirp = require('mkdirp');
-let rimraf = require('rimraf');
-let chai = require('chai');
+import path from 'path';
+import rimraf from 'rimraf';
+import chai from 'chai';
 let should = chai.should();
 let expect = chai.expect;
-let spawn = require('child_process').spawn;
+import { spawn } from 'child_process';
 
-let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
-const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
+import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.js';
+import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-store', function() {
-  let testDirPath = path.resolve(__dirname, './testdata-ls');
+  let dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
+  let testDirPath = path.resolve(dirName, './testdata-ls');
 
   // just to make a reasonable sized chunk of data...
   function expand(str) {

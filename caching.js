@@ -1,7 +1,7 @@
-const { WeakLRUCache } = require('weak-lru-cache')
+import { WeakLRUCache } from 'weak-lru-cache'
 let getLastVersion
 const mapGet = Map.prototype.get
-exports.CachingStore = Store => class extends Store {
+export const CachingStore = Store => class extends Store {
 	constructor(dbName, options) {
 		super(dbName, options)
 		if (!this.env.cacheCommitter) {
@@ -109,6 +109,6 @@ exports.CachingStore = Store => class extends Store {
 		throw new Error('Child transactions are not supported in caching stores')
 	}
 }
-exports.setGetLastVersion = (get) => {
+export function setGetLastVersion(get) {
 	getLastVersion = get
 }

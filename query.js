@@ -1,11 +1,11 @@
-const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
-const { getAddress } = require('./native')
-const { saveKey } = require('./keys')
-const { writeKey } = require('ordered-binary')
+import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js'
+import { getAddress, Cursor }  from './native.js'
+import { saveKey }  from './keys.js'
+import { writeKey }  from 'ordered-binary'
 const ITERATOR_DONE = { done: true, value: undefined }
 
-exports.addQueryMethods = function(LMDBStore, {
-	getReadTxn, env, Cursor, keyBytes, keyBytesView, getLastVersion
+export function addQueryMethods(LMDBStore, {
+	getReadTxn, env, keyBytes, keyBytesView, getLastVersion
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++
@@ -150,7 +150,7 @@ exports.addQueryMethods = function(LMDBStore, {
 				}
 				return {
 					next() {
-						let keySize
+						let keySize, lastSize
 						if (cursorRenewId && cursorRenewId != renewId) {
 							resetCursor()
 							keySize = position(0)

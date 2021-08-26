@@ -1,5 +1,5 @@
-const { getAddress } = require('./native')
-const when  = require('./util/when')
+import { getAddress } from './native.js'
+import { when } from './util/when.js'
 var backpressureArray
 
 const MAX_KEY_SIZE = 1978
@@ -13,15 +13,14 @@ const BATCH_DELIMITER = 0x8000000;
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
-const ABORT = {}
+export const ABORT = {}
 const CALLBACK_THREW = {}
 const IMMEDIATE = -1
-exports.ABORT = ABORT
 SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
-exports.addWriteMethods = function(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap }) {
 	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution 
 	//  stands for write instructions
 	var dynamicBytes

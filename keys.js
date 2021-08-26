@@ -1,5 +1,5 @@
-const { getAddress } = require('./native')
-const { writeKey, readKey, enableNullTermination } = require('ordered-binary')
+import { getAddress } from './native.js'
+import { writeKey, readKey, enableNullTermination } from 'ordered-binary'
 enableNullTermination()
 
 const writeUint32Key = (key, target, start) => {
@@ -19,7 +19,7 @@ const readBufferKey = (target, start, end) => {
 	return Uint8ArraySlice.call(target, start, end)
 }
 
-exports.applyKeyHandling = function(store) {
+export function applyKeyHandling(store) {
  	if (store.encoding == 'ordered-binary') {
 		store.encoder = store.decoder = {
 			encode(value) {
@@ -58,7 +58,7 @@ function allocateSaveBuffer() {
 	savePosition = 0
 
 }
-function saveKey(key, writeKey, saveTo) {
+export function saveKey(key, writeKey, saveTo) {
 	if (savePosition > 6200) {
 		allocateSaveBuffer()
 	}
@@ -69,4 +69,3 @@ function saveKey(key, writeKey, saveTo) {
 	savePosition = (savePosition + 7) & 0xfffff8
 	return start + saveDataAddress
 }
-exports.saveKey = saveKey

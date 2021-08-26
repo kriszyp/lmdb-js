@@ -1,5 +1,9 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url)
+let nativeMethods, dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
 try {
-	Object.assign(exports, require('node-gyp-build')(__dirname))
+	console.log(dirName)
+	nativeMethods = require('node-gyp-build')(dirName)
 	if (process.versions.modules == 93)
 		require('v8').setFlagsFromString('--turbo-fast-api-calls')
 } catch(error) {
@@ -7,7 +11,7 @@ try {
 		// use this abi version as the backup version without turbo-fast-api-calls enabled
 		Object.defineProperty(process.versions, 'modules', { value: '92' })
 		try {
-			Object.assign(exports, require('node-gyp-build')(__dirname))
+			nativeMethods = require('node-gyp-build')(dirName)
 		} catch(secondError) {
 			throw error
 		} finally {
@@ -16,3 +20,4 @@ try {
 	} else
 		throw error
 }
+export const { Env, Cursor, Compression, getBufferForAddress, getAddress } = nativeMethods

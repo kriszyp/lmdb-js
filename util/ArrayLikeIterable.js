@@ -1,10 +1,9 @@
-const when = require('./when')
 const SKIP = {}
 if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator')
 }
 
-class ArrayLikeIterable {
+export class ArrayLikeIterable {
 	constructor(sourceArray) {
 		if (sourceArray) {
 			this[Symbol.iterator] = sourceArray[Symbol.iterator].bind(sourceArray)
@@ -132,5 +131,3 @@ class ArrayLikeIterable {
 		return this.asArray
 	}
 }
-
-exports.ArrayLikeIterable = ArrayLikeIterable
