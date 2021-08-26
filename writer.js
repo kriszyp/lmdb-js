@@ -329,8 +329,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	async function executeTxnCallbacks() {
 		env.beginTxn(0)
 		env.writeTxn = writeTxn = true
-		let promises, i
-		for (i = 0, l = nextTxnCallbacks.length; i < l; i++) {
+		let promises
+		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
 			let userTxnCallback = nextTxnCallbacks[i]
 			let asChild = userTxnCallback.asChild
 			if (asChild) {
