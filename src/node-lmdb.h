@@ -402,6 +402,7 @@ public:
     */
     static NAN_METHOD(beginTxn);
     static NAN_METHOD(commitTxn);
+    static NAN_METHOD(abortTxn);
 
     /*
         Opens a database in the environment.

@@ -952,12 +952,32 @@ NAN_METHOD(EnvWrap::beginTxn) {
 NAN_METHOD(EnvWrap::commitTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
+    fprintf(stderr, "commitTxn\n");
     if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
+        fprintf(stderr, "txn_commit\n");
         mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
     delete currentTxn;
     if (ew->writeWorker) {
+        fprintf(stderr, "unlock txn\n");
+        ew->writeWorker->UnlockTxn();
+    }
+}
+NAN_METHOD(EnvWrap::abortTxn) {
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    TxnTracked *currentTxn = ew->writeTxn;
+    fprintf(stderr, "abortTxn\n");
+    if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
+        fprintf(stderr, "txn_abort\n");
+        mdb_txn_abort(currentTxn->txn);
+    } else {
+        Nan::ThrowError("Can not abort this transaction");
+    }
+    ew->writeTxn = currentTxn->parent;
+    delete currentTxn;
+    if (ew->writeWorker) {
+        fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
 }
@@ -1171,6 +1191,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(EnvWrap::close));
     envTpl->PrototypeTemplate()->Set(isolate, "beginTxn", Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
     envTpl->PrototypeTemplate()->Set(isolate, "commitTxn", Nan::New<FunctionTemplate>(EnvWrap::commitTxn));
+    envTpl->PrototypeTemplate()->Set(isolate, "abortTxn", Nan::New<FunctionTemplate>(EnvWrap::abortTxn));
     envTpl->PrototypeTemplate()->Set(isolate, "openDbi", Nan::New<FunctionTemplate>(EnvWrap::openDbi));
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
