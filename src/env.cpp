@@ -421,7 +421,7 @@ done:
 };
 
 MDB_txn* EnvWrap::getReadTxn() {
-    MDB_txn* txn = currentWriteTxn ? currentWriteTxn->txn : nullptr;
+    MDB_txn* txn = writeTxn ? writeTxn->txn : nullptr;
     if (txn)
         return txn;
     txn = currentReadTxn;
@@ -890,7 +890,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     if (!(flags & MDB_RDONLY)) {
-        fprintf(stderr, "begin sync txn\n");
+        //fprintf(stderr, "begin sync txn\n");
         EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
         MDB_env *env = ew->env;
         unsigned int envFlags;
@@ -902,6 +902,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
         else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
             txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
+            flags |= TXN_HAS_WORKER_LOCK;
         } else
             txn = nullptr;
 
@@ -952,17 +953,20 @@ NAN_METHOD(EnvWrap::beginTxn) {
 NAN_METHOD(EnvWrap::commitTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
-    fprintf(stderr, "commitTxn\n");
+    //fprintf(stderr, "commitTxn\n");
+    int rc = 0;
     if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
-        fprintf(stderr, "txn_commit\n");
-        mdb_txn_commit(currentTxn->txn);
+        //fprintf(stderr, "txn_commit\n");
+        rc = mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
     delete currentTxn;
-    if (ew->writeWorker) {
-        fprintf(stderr, "unlock txn\n");
+    if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
+        //fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
+    if (rc)
+        throwLmdbError(rc);
 }
 NAN_METHOD(EnvWrap::abortTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
@@ -976,7 +980,7 @@ NAN_METHOD(EnvWrap::abortTxn) {
     }
     ew->writeTxn = currentTxn->parent;
     delete currentTxn;
-    if (ew->writeWorker) {
+    if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
         fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }

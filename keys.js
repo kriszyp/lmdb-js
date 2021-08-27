@@ -42,7 +42,10 @@ export function applyKeyHandling(store) {
 	} else if (store.keyIsBuffer) {
 		store.writeKey = writeBufferKey
 		store.readKey = readBufferKey
-	}	else {
+	} else if (store.keyEncoder) {
+		store.writeKey = store.keyEncoder.writeKey
+		store.readKey = store.keyEncoder.readKey
+	} else {
 		store.writeKey = writeKey
 		store.readKey = readKey
 	}

@@ -74,11 +74,11 @@ export function addQueryMethods(LMDBStore, {
 						if (cursor) {
 							db.availableCursor = null
 							if (db.cursorTxn != txn)
-								cursor.renew(txn)
+								cursor.renew()
 							else// if (db.currentRenewId != renewId)
 								flags |= 0x2000
 						} else {
-							cursor = new Cursor(txn, db)
+							cursor = new Cursor(db)
 						}
 						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
 						if (snapshot === false) {

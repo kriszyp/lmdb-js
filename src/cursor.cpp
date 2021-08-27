@@ -38,7 +38,6 @@ CursorWrap::CursorWrap(MDB_cursor *cursor) {
 CursorWrap::~CursorWrap() {
     if (this->cursor) {
         this->dw->Unref();
-        this->tw->Unref();
         // Don't close cursor here, it is possible that the environment may already be closed, which causes it to crash
         //mdb_cursor_close(this->cursor);
     }
@@ -50,30 +49,28 @@ CursorWrap::~CursorWrap() {
 NAN_METHOD(CursorWrap::ctor) {
     Nan::HandleScope scope;
 
-    if (info.Length() < 2) {
+    if (info.Length() < 1) {
       return Nan::ThrowError("Wrong number of arguments");
     }
 
     // Extra pessimism...
     Nan::MaybeLocal<v8::Object> arg0 = Nan::To<v8::Object>(info[0]);
-    Nan::MaybeLocal<v8::Object> arg1 = Nan::To<v8::Object>(info[1]);
-    if (arg0.IsEmpty() || arg1.IsEmpty()) {
+    if (arg0.IsEmpty()) {
         return Nan::ThrowError("Invalid arguments to the Cursor constructor. First must be a Txn, second must be a Dbi.");
     }
 
-    // Unwrap Txn and Dbi
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(arg0.ToLocalChecked());
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(arg1.ToLocalChecked());
+    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(arg0.ToLocalChecked());
 
     // Get key type
-    auto keyType = keyTypeFromOptions(info[2], dw->keyType);
+    auto keyType = keyTypeFromOptions(info[1], dw->keyType);
     if (dw->keyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
         return Nan::ThrowError("You specified keyIsUint32 on the Dbi, so you can't use other key types with it.");
     }
 
     // Open the cursor
     MDB_cursor *cursor;
-    int rc = mdb_cursor_open(tw->txn, dw->dbi, &cursor);
+    MDB_txn *txn = dw->ew->getReadTxn();
+    int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
     if (rc != 0) {
         return throwLmdbError(rc);
     }
@@ -82,8 +79,7 @@ NAN_METHOD(CursorWrap::ctor) {
     CursorWrap* cw = new CursorWrap(cursor);
     cw->dw = dw;
     cw->dw->Ref();
-    cw->tw = tw;
-    cw->tw->Ref();
+    cw->txn = txn;
     cw->keyType = keyType;
     cw->Wrap(info.This());
 
@@ -99,7 +95,6 @@ NAN_METHOD(CursorWrap::close) {
     }
     mdb_cursor_close(cw->cursor);
     cw->dw->Unref();
-    cw->tw->Unref();
     cw->cursor = nullptr;
 }
 
@@ -386,9 +381,9 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     if (endKey.mv_size > 0) {
         int comparison;
         if (flags & 0x800)
-            comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
+            comparison = mdb_dcmp(txn, dw->dbi, &endKey, &data);
         else
-            comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+            comparison = mdb_cmp(txn, dw->dbi, &endKey, &key);
         if ((flags & 0x400) ? comparison >= 0 : (comparison <= 0)) {
             return 0;
         }
@@ -456,7 +451,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
                 if (rc)
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
-                else if (mdb_cmp(tw->txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
+                else if (mdb_cmp(txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
                     rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
             } else // forward, just do a get by range
                 rc = mdb_cursor_get(cursor, &key, &data, (flags & 0x4000) ? MDB_SET_KEY : MDB_SET_RANGE);
@@ -484,9 +479,9 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             if (endKey.mv_size > 0) {
                 int comparison;
                 if (flags & 0x800)
-                    comparison = mdb_dcmp(tw->txn, dw->dbi, &endKey, &data);
+                    comparison = mdb_dcmp(txn, dw->dbi, &endKey, &data);
                 else
-                    comparison = mdb_cmp(tw->txn, dw->dbi, &endKey, &key);
+                    comparison = mdb_cmp(txn, dw->dbi, &endKey, &key);
                 if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
                     return count;
                 }
@@ -562,11 +557,7 @@ void CursorWrap::iterate(
 NAN_METHOD(CursorWrap::renew) {
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
     // Unwrap Txn and Dbi
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(v8::Local<v8::Object>::Cast(info[0]));
-    cw->tw->Unref(); // no longer using the previous transaction
-    cw->tw = tw;
-    cw->tw->Ref(); // now we are using this one
-    int rc = mdb_cursor_renew(tw->txn, cw->cursor);
+    int rc = mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
     if (rc != 0) {
         return throwLmdbError(rc);
     }

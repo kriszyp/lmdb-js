@@ -454,6 +454,7 @@ public:
 
 const int TXN_ABORTABLE = 1;
 const int TXN_SYNCHRONOUS_COMMIT = 2;
+const int TXN_HAS_WORKER_LOCK = 4;
 
 /*
     `Txn`
@@ -788,7 +789,7 @@ private:
     MDB_cursor_op iteratingOp;
     int flags;
     DbiWrap *dw;
-    TxnWrap *tw;
+    MDB_txn *txn;
     
     template<size_t keyIndex, size_t optionsIndex>
     friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);

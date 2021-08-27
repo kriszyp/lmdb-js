@@ -1,7 +1,7 @@
 import fs from 'fs' // TODO: or Deno
 import { extname, basename, dirname} from 'path'
 import EventEmitter from 'events'
-import { Env, Cursor, Compression, getBufferForAddress, getAddress } from './native.js'
+import { Env, Cursor, Compression, getBufferForAddress, getAddress } from './native.mjs'
 import { CachingStore, setGetLastVersion } from './caching.js'
 import { addQueryMethods } from './query.js'
 import { addWriteMethods, ABORT } from './writer.js'

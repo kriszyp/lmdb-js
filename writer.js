@@ -328,7 +328,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	async function executeTxnCallbacks() {
 		env.beginTxn(0)
-		env.writeTxn = writeTxn = true
+		env.writeTxn = writeTxn = {}
 		let promises
 		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
 			let userTxnCallback = nextTxnCallbacks[i]
@@ -356,7 +356,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					txnError(error, i)
 				}
 			} else {
-				env.writeTxn = writeTxn = continuedWriteTxn
 				try {
 					let result = userTxnCallback()
 					nextTxnCallbacks[i] = result
@@ -534,7 +533,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (!(options && options.synchronousCommit === false))
 					flags &= 2
 				env.beginTxn(flags)
-				writeTxn = env.writeTxn = true
+				writeTxn = env.writeTxn = {}
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)

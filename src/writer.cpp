@@ -207,7 +207,6 @@ void WriteWorker::Write() {
 		int conditionDepth = 0;
 		if (callback) {
 			uv_mutex_lock(userCallbackLock);
-fprintf(stderr, "begin txn\n");
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
 			txnId = mdb_txn_id(txn);
 			if (rc != 0) {
@@ -285,7 +284,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			//fprintf(stdout, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			//fprintf(stderr, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -387,7 +386,7 @@ txn_done:
 			rc = mdb_txn_commit(txn);
 			txn = nullptr;
 			uv_mutex_unlock(userCallbackLock);
-			fprintf(stderr, "committed %p %u\n", instruction, rc);
+			//fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 			if (rc == 0) {
 				unsigned int envFlags;
