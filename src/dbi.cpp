@@ -271,8 +271,6 @@ NAN_METHOD(DbiWrap::drop) {
     int del = 1;
     int rc;
     MDB_txn *txn;
-    bool needsTransaction = true;
-    
     if (!dw->isOpen) {
         return Nan::ThrowError("The Dbi is not open, you can't drop it.");
     }
@@ -288,41 +286,14 @@ NAN_METHOD(DbiWrap::drop) {
         #else
         del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).FromJust()) : 1;
         #endif
-        
-        // User-supplied txn
-        auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
-        if (!txnObj->IsNull() && !txnObj->IsUndefined() && txnObj->IsObject()) {
-            TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(txnObj));
-            needsTransaction = false;
-            txn = tw->txn;
-        }
-    }
-
-    if (needsTransaction) {
-        // Begin transaction
-        rc = mdb_txn_begin(dw->env, nullptr, 0, &txn);
-        if (rc != 0) {
-            return throwLmdbError(rc);
-        }
     }
 
     // Drop database
-    rc = mdb_drop(txn, dw->dbi, del);
+    rc = mdb_drop(dw->ew->writeTxn->txn, dw->dbi, del);
     if (rc != 0) {
-        if (needsTransaction) {
-            mdb_txn_abort(txn);
-        }
         return throwLmdbError(rc);
     }
 
-    if (needsTransaction) {
-        // Commit transaction
-        rc = mdb_txn_commit(txn);
-        if (rc != 0) {
-            return throwLmdbError(rc);
-        }
-    }
-    
     // Only close database if del == 1
     if (del == 1) {
         dw->isOpen = false;

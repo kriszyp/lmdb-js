@@ -442,24 +442,18 @@ export function open(path, options) {
 			})
 		}
 		deleteDB() {
-			try {
+			this.transactionSync(() =>
 				this.db.drop({
-					justFreePages: false,
-					txn: env.writeTxn,
+					justFreePages: false
 				})
-			} catch(error) {
-				handleError(error, this, null, () => this.deleteDB())
-			}
+			, { abortable: false })
 		}
 		clear() {
-			try {
+			this.transactionSync(() =>
 				this.db.drop({
-					justFreePages: true,
-					txn: env.writeTxn,
+					justFreePages: true
 				})
-			} catch(error) {
-				handleError(error, this, null, () => this.clear())
-			}
+			, { abortable: false })
 			if (this.encoder && this.encoder.structures)
 				this.encoder.structures = []
 
