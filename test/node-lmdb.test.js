@@ -7,7 +7,7 @@ let expect = chai.expect;
 import { spawn } from 'child_process';
 import fs from 'fs';
 
-import * as lmdb from '../main.js';
+import * as lmdb from '../main.mjs';
 
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 

@@ -953,7 +953,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 NAN_METHOD(EnvWrap::commitTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
-    //fprintf(stderr, "commitTxn\n");
+    fprintf(stderr, "commitTxn\n");
     int rc = 0;
     if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
         //fprintf(stderr, "txn_commit\n");

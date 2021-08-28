@@ -2,12 +2,12 @@ import fs from 'fs' // TODO: or Deno
 import { extname, basename, dirname} from 'path'
 import EventEmitter from 'events'
 import { Env, Cursor, Compression, getBufferForAddress, getAddress } from './native.mjs'
-import { CachingStore, setGetLastVersion } from './caching.js'
-import { addQueryMethods } from './query.js'
-import { addWriteMethods, ABORT } from './writer.js'
-export { ABORT } from './writer.js'
-import { applyKeyHandling } from './keys.js'
-export { toBufferKey as keyValueToBuffer, fromBufferKey as bufferToKeyValue } from 'ordered-binary'
+import { CachingStore, setGetLastVersion } from './caching.mjs'
+import { addQueryMethods } from './query.mjs'
+import { addWriteMethods, ABORT } from './writer.mjs'
+export { ABORT } from './writer.mjs'
+import { applyKeyHandling } from './keys.mjs'
+export { toBufferKey as keyValueToBuffer, fromBufferKey as bufferToKeyValue } from 'ordered-binary/main.mjs'
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 

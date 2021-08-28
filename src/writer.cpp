@@ -284,7 +284,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			//fprintf(stderr, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			fprintf(stderr, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -310,7 +310,7 @@ next_inst:	uint32_t* start = instruction++;
 					}
 					// still nothing to do, end the transaction
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
-					//fprintf(stderr, "calling the txn down %p\n", lastStart);
+					fprintf(stderr, "calling the txn down %p\n", lastStart);
 					goto txn_done;
 				case BLOCK_END:
 					rc = !validated;
@@ -386,7 +386,7 @@ txn_done:
 			rc = mdb_txn_commit(txn);
 			txn = nullptr;
 			uv_mutex_unlock(userCallbackLock);
-			//fprintf(stderr, "committed %p %u\n", instruction, rc);
+			fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 			if (rc == 0) {
 				unsigned int envFlags;

@@ -5,8 +5,8 @@ let should = chai.should();
 let expect = chai.expect;
 import { spawn } from 'child_process';
 
-import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.js';
-import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
+import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.mjs';
+import { ArrayLikeIterable } from '../util/ArrayLikeIterable.mjs'
 
 describe('lmdb-store', function() {
   let dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')

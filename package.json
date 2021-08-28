@@ -16,16 +16,7 @@
   ],
   "type": "module",
   "main": "index.cjs",
-  "module": "main.js",
-  "esm": {
-    "mode": "all", "cjs":false,"force": true
-  },
-  "exports": {
-    ".": {
-      "require": "./index.cjs",
-      "import": "./main.mjs"
-    }
-  },
+  "module": "main.mjs",
   "types": "./index.d.ts",
   "tsd": {
     "directory": "test/types"

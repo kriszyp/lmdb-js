@@ -1,7 +1,7 @@
-import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js'
-import { getAddress, Cursor }  from './native.js'
-import { saveKey }  from './keys.js'
-import { writeKey }  from 'ordered-binary'
+import { ArrayLikeIterable }  from './util/ArrayLikeIterable.mjs'
+import { getAddress, Cursor }  from './native.mjs'
+import { saveKey }  from './keys.mjs'
+import { writeKey }  from 'ordered-binary/main.mjs'
 const ITERATOR_DONE = { done: true, value: undefined }
 
 export function addQueryMethods(LMDBStore, {
