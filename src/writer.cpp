@@ -29,7 +29,7 @@ inline value?
 */
 #include "node-lmdb.h"
 #ifndef _WIN32
-#include <stdatomic.h>
+#include <atomic>
 #endif
 // flags:
 const int NO_INSTRUCTION_YET = 0;
@@ -103,7 +103,7 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 #ifdef _WIN32
 	compressionPointer = InterlockedExchange64((int64_t*)nextCompressible + 1, 0);
 #else
-	compressionPointer = atomic_fetch_exchange(compressible, 0);
+	compressionPointer = std::atomic_exchange(nextCompressible, 0);
 #endif
 	compression = (Compression*)(size_t) * ((double*)&compressionPointer);
 	if (compression) {
@@ -114,20 +114,27 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 		if (compressedData) {
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
 			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
+			int status;
+#ifdef _WIN32
+			status = InterlockedExchange64((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
+#else
+			status = std::atomic_exchange((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
+#endif
+			if (status == 1) {
+				uv_mutex_lock(envForTxn->writeWorker->userCallbackLock);
+				uv_cond_signal(envForTxn->writeWorker->userCallbackCond);
+				uv_mutex_unlock(envForTxn->writeWorker->userCallbackLock);
+			}
 			//fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
 		} else
 			fprintf(stdout, "failed to compress\n");
-#ifdef _WIN32
-		WakeByAddressAll(nextCompressible);
-#else
-		syscall(SYS_futex, nextCompressible, FUTEX_WAKE, 1, NULL, NULL, 0);
-#endif
+		
 	}
 /*
 #ifdef _WIN32
 	nextCompressibleSlot = InterlockedExchange64((int64_t*)nextCompressible, 0xffffffffffffffffll);
 #else
-	nextCompressibleSlot = atomic_fetch_exchange(compressible, 0xffffffffffffffffll);
+	nextCompressibleSlot = std::atomic_exchange(nextCompressible, 0xffffffffffffffffll);
 #endif*/
 	return (double*)(size_t) * (nextCompressible + 1);
 }
@@ -238,20 +245,23 @@ next_inst:	uint32_t* start = instruction++;
 #ifdef _WIN32
 							compression = (Compression*)InterlockedExchange64((int64_t*)(instruction + 4), 0);
 #else
-							compression = atomic_fetch_exchange(instruction + 4, 0);
+							compression = std::atomic_exchange(instruction + 4, 0);
 #endif
 							if (compression) {
 								CompressOne((double*)(instruction + 2));
 							} // else it is already done now */
 							CompressOne((double*)(instruction + 2));
-							while(*(instruction + 1) > 0x40000000) {
+							if(*(instruction + 1) > 0x40000000) {
 								// compression in progress
 								fprintf(stdout, "wait on compression\n");
 #ifdef _WIN32
-								WaitOnAddress(instruction, &highPointer, 4, INFINITE);
+								int64_t fullPointer = InterlockedExchange64((int64_t*)(instruction), 1);
 #else
-								syscall(SYS_futex, instruction, FUTEX_WAIT, highPointer, NULL, NULL, 0);
+								int64_t fullPointer = std::atomic_exchange((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
 #endif
+								if(fullPointer > 0x4000000000000000ll) {
+									uv_cond_wait(userCallbackCond, userCallbackLock);
+								}
 							}
 						}
 						// compressed
@@ -294,7 +304,7 @@ next_inst:	uint32_t* start = instruction++;
 #ifdef _WIN32
 					previousFlags = InterlockedOr((LONG*)lastStart, (LONG) LOCKED);
 #else
-					previousFlags = atomic_fetch_or(lastStart, LOCKED);
+					previousFlags = std::atomic_fetch_or(lastStart, LOCKED);
 #endif
 					rc = 0;
 					if (!*start && (!finishedProgress || conditionDepth)) {
@@ -432,7 +442,7 @@ txn_done:
 #ifdef _WIN32
 				previousFlags = InterlockedOr((LONG*) lastStart, LOCKED | TXN_COMMITTED);
 #else
-				previousFlags = atomic_fetch_or(lastStart, LOCKED | TXN_COMMITTED);
+				previousFlags = std::atomic_fetch_or(lastStart, LOCKED | TXN_COMMITTED);
 #endif
 				if (*instruction) // changed while we were locking, keep running
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER | TXN_COMMITTED;

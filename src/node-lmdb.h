@@ -307,7 +307,7 @@ public:
     static void setupExports(Local<Object> exports);
     void closeEnv();
     static void SyncRunner(void* arg);
-    static int EnvWrap::BeginOrResumeSync(MDB_txn* txn);
+    static int BeginOrResumeSync(MDB_txn* txn);
 
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
