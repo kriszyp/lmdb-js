@@ -103,22 +103,22 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 #ifdef _WIN32
 	compressionPointer = InterlockedExchange64((int64_t*)nextCompressible + 1, 0);
 #else
-	compressionPointer = std::atomic_exchange(nextCompressible, 0);
+	compressionPointer = std::atomic_exchange((std::atomic_int_fast64_t*) nextCompressible, (int64_t) 0);
 #endif
 	compression = (Compression*)(size_t) * ((double*)&compressionPointer);
 	if (compression) {
 		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
 		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
 		//fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
-		void* compressedData = compression->compress(&value, nullptr);
+		argtokey_callback_t compressedData = compression->compress(&value, nullptr);
 		if (compressedData) {
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
 			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
 			int status;
 #ifdef _WIN32
-			status = InterlockedExchange64((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
+			status = InterlockedExchange64((int64_t*)(nextCompressible - 1), (int64_t)value.mv_data);
 #else
-			status = std::atomic_exchange((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
+			status = std::atomic_exchange((std::atomic_int_fast64_t *)(nextCompressible - 1), (int64_t)value.mv_data);
 #endif
 			if (status == 1) {
 				uv_mutex_lock(envForTxn->writeWorker->userCallbackLock);
@@ -134,7 +134,7 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 #ifdef _WIN32
 	nextCompressibleSlot = InterlockedExchange64((int64_t*)nextCompressible, 0xffffffffffffffffll);
 #else
-	nextCompressibleSlot = std::atomic_exchange(nextCompressible, 0xffffffffffffffffll);
+	nextCompressibleSlot = std::atomic_exchange(((std::atomic_int_fast64_t*) nextCompressible, 0xffffffffffffffffll);
 #endif*/
 	return (double*)(size_t) * (nextCompressible + 1);
 }
@@ -169,6 +169,7 @@ MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 
 void WriteWorker::UnlockTxn() {
 	fprintf(stdout, "release txn\n");
+	interruptionStatus = 0;
 	uv_cond_signal(userCallbackCond);
 	uv_mutex_unlock(userCallbackLock);
 }
@@ -257,7 +258,7 @@ next_inst:	uint32_t* start = instruction++;
 #ifdef _WIN32
 								int64_t fullPointer = InterlockedExchange64((int64_t*)(instruction), 1);
 #else
-								int64_t fullPointer = std::atomic_exchange((int64_t*)(nextCompressible - 1), (size_t)value.mv_data);
+								int64_t fullPointer = std::atomic_exchange((std::atomic_int_fast64_t*)(nextCompressible - 1), (int64_t)1);
 #endif
 								if(fullPointer > 0x4000000000000000ll) {
 									uv_cond_wait(userCallbackCond, userCallbackLock);
@@ -294,7 +295,7 @@ next_inst:	uint32_t* start = instruction++;
 				}
 			} else
 				instruction++;
-			fprintf(stderr, "instr flags %p %p %u\n", start, flags, conditionDepth);
+			//fprintf(stderr, "instr flags %p %p %u\n", start, flags, conditionDepth);
 			if (validated || !(flags & CONDITIONAL)) {
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
@@ -304,7 +305,7 @@ next_inst:	uint32_t* start = instruction++;
 #ifdef _WIN32
 					previousFlags = InterlockedOr((LONG*)lastStart, (LONG) LOCKED);
 #else
-					previousFlags = std::atomic_fetch_or(lastStart, LOCKED);
+					previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)LOCKED);
 #endif
 					rc = 0;
 					if (!*start && (!finishedProgress || conditionDepth)) {
@@ -355,8 +356,10 @@ next_inst:	uint32_t* start = instruction++;
 					finishedProgress = false;
 					progressStatus = 2;
 					executionProgress->Send(nullptr, 0);
-					if (flags & USER_CALLBACK_STRICT_ORDER)
+					if (flags & USER_CALLBACK_STRICT_ORDER) {
+						*start = FINISHED_OPERATION; // mark it as finished so it is processed
 						WaitForCallbacks(&txn, conditionDepth == 0);
+					}
 					break;
 				case DROP_DB:
 					rc = mdb_drop(txn, dbi, (flags & DELETE_DATABASE) ? 1 : 0);
@@ -442,7 +445,7 @@ txn_done:
 #ifdef _WIN32
 				previousFlags = InterlockedOr((LONG*) lastStart, LOCKED | TXN_COMMITTED);
 #else
-				previousFlags = std::atomic_fetch_or(lastStart, LOCKED | TXN_COMMITTED);
+				previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t) LOCKED | TXN_COMMITTED);
 #endif
 				if (*instruction) // changed while we were locking, keep running
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER | TXN_COMMITTED;
@@ -465,16 +468,6 @@ txn_done:
 
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	Nan::HandleScope scope;
-	if (interruptionStatus != 0) {
-		fprintf(stdout, "progress lock\n");
-		uv_mutex_lock(userCallbackLock);
-		fprintf(stdout, "progress got lock\n");
-		if (interruptionStatus != 0)
-			uv_cond_wait(userCallbackCond, userCallbackLock);
-		// acquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
-		fprintf(stdout, "progress unlock\n");
-		uv_mutex_unlock(userCallbackLock);
-	}
 	v8::Local<v8::Value> argv[] = {
 		Nan::New<Number>(progressStatus)
 	};

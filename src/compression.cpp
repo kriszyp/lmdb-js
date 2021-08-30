@@ -144,7 +144,7 @@ void Compression::expand(unsigned int size) {
     makeUnsafeBuffer();
 }
 
-argtokey_callback_t Compression::compress(MDB_val* value, argtokey_callback_t freeValue) {
+argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_val&)) {
     size_t dataLength = value->mv_size;
     char* data = (char*)value->mv_data;
     if (value->mv_size < compressionThreshold && !(value->mv_size > 0 && ((uint8_t*)data)[0] >= 250))

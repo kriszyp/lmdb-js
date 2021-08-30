@@ -42,7 +42,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var startAddress = 0
 	var writeTxn = null
 	var abortedNonChildTransactionWarn
-	var nextTxnCallbacks
+	var nextTxnCallbacks = []
 	var lastQueuedTxnCallbacks
 	var commitPromise
 	var commitDelay = IMMEDIATE
@@ -247,6 +247,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let instructionStatus
 		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flag]) & 0x10000000) {
 			//console.log('instructionStatus: ' + instructionStatus.toString(16))
+			if (unwrittenResolution.callbacks) {
+				nextTxnCallbacks.push(unwrittenResolution.callbacks)
+				unwrittenResolution.callbacks = null
+			}
 			unwrittenResolution.valueBuffer = null
 			if (instructionStatus & TXN_DELIMITER) {
 				let position = unwrittenResolution.flag
@@ -254,7 +258,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (instructionStatus & 0x80000000)
 					rejectCommit()
 				else if (instructionStatus & TXN_COMMITTED) {
-					resolveCommit(async	)					
+					resolveCommit(async)
 				} else {
 					unwrittenResolution.flag = position // restore position for next iteration
 					return // revisit when it is done (but at least free the value buffer)
@@ -330,56 +334,60 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		env.beginTxn(0)
 		env.writeTxn = writeTxn = {}
 		let promises
+		let txnCallbacks
 		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
-			let userTxnCallback = nextTxnCallbacks[i]
-			let asChild = userTxnCallback.asChild
-			if (asChild) {
-				if (promises) {
-					// must complete any outstanding transactions before proceeding
-					await Promise.all(promises)
-					promises = null
-				}
-				env.beginTxn(1) // abortable
-				
-				try {
-					let result = userTxnCallback.callback()
-					if (result && result.then) {
-						await result
+			txnCallbacks = nextTxnCallbacks[i]
+			for (let i = 0, l = txnCallbacks.length; i < l; i++) {
+				let userTxnCallback = txnCallbacks[i]
+				let asChild = userTxnCallback.asChild
+				if (asChild) {
+					if (promises) {
+						// must complete any outstanding transactions before proceeding
+						await Promise.all(promises)
+						promises = null
 					}
-					if (result === ABORT)
+					env.beginTxn(1) // abortable
+					
+					try {
+						let result = userTxnCallback.callback()
+						if (result && result.then) {
+							await result
+						}
+						if (result === ABORT)
+							env.abortTxn()
+						else
+							env.commitTxn()
+							txnCallbacks[i] = result
+					} catch(error) {
 						env.abortTxn()
-					else
-						env.commitTxn()
-					nextTxnCallbacks[i] = result
-				} catch(error) {
-					env.abortTxn()
-					txnError(error, i)
-				}
-			} else {
-				try {
-					let result = userTxnCallback()
-					nextTxnCallbacks[i] = result
-					if (result && result.then) {
-						if (!promises)
-							promises = []
-						promises.push(result.catch(() => {}))
+						txnError(error, i)
 					}
-				} catch(error) {
-					txnError(error, i)
+				} else {
+					try {
+						let result = userTxnCallback()
+						txnCallbacks[i] = result
+						if (result && result.then) {
+							if (!promises)
+								promises = []
+							promises.push(result.catch(() => {}))
+						}
+					} catch(error) {
+						txnError(error, i)
+					}
 				}
 			}
 		}
+		nextTxnCallbacks = []
 		if (promises) { // finish any outstanding commit functions
 			await Promise.all(promises)
 		}
 		env.writeTxn = writeTxn = false
 		console.log('async callback resume write trhead')
-		nextTxnCallbacks = nextTxnCallbacks.next
 		lastQueuedTxnCallbacks = null
 		return env.commitTxn()
 		function txnError(error, i) {
-			(nextTxnCallbacks.errors || (nextTxnCallbacks.errors = []))[i] = error
-			nextTxnCallbacks[i] = CALLBACK_THREW
+			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error
+			txnCallbacks[i] = CALLBACK_THREW
 		}
 	}
 	Object.assign(LMDBStore.prototype, {
@@ -496,17 +504,16 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// TODO: strict ordering
 			let txnIndex
 			let txnCallbacks
-			if (!lastQueuedTxnCallbacks) {
-				txnCallbacks = lastQueuedTxnCallbacks = [asChild ? { callback, asChild } : callback]
+			if (!lastQueuedResolution || !lastQueuedResolution.callbacks) {
+				txnCallbacks = [asChild ? { callback, asChild } : callback]
+				txnCallbacks.results = writeInstructions(8, this)()
+				lastQueuedResolution.callbacks = txnCallbacks
 				txnIndex = 0
-				lastQueuedTxnCallbacks.results = writeInstructions(8, this)()
 			} else {
-				txnCallbacks = lastQueuedTxnCallbacks
-				txnIndex = lastQueuedTxnCallbacks.push(asChild ? { callback, asChild } : callback) - 1
+				txnCallbacks = lastQueuedResolution.callbacks
+				txnIndex = txnCallbacks.push(asChild ? { callback, asChild } : callback) - 1
 			}
-			if (!nextTxnCallbacks)
-				nextTxnCallbacks = txnCallbacks
-			return lastQueuedTxnCallbacks.results.then((results) => {
+			return txnCallbacks.results.then((results) => {
 				let result = txnCallbacks[txnIndex]
 				if (result === CALLBACK_THREW)
 					throw txnCallbacks.errors[txnIndex]
@@ -531,7 +538,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (!(options && options.abortable === false))
 					flags = 1
 				if (!(options && options.synchronousCommit === false))
-					flags &= 2
+					flags |= 2
 				env.beginTxn(flags)
 				writeTxn = env.writeTxn = {}
 				return when(callback(), (result) => {

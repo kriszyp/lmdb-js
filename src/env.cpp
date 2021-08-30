@@ -890,7 +890,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     if (!(flags & MDB_RDONLY)) {
-        //fprintf(stderr, "begin sync txn\n");
+        fprintf(stderr, "begin sync txn %i\n", flags);
         EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
         MDB_env *env = ew->env;
         unsigned int envFlags;
