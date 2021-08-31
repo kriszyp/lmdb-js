@@ -329,40 +329,6 @@ export function open(path, options) {
 		resetReadTxn() {
 			resetReadTxn()
 		}
-		ifNoExists(key, callback) {
-			return this.ifVersion(key, null, callback)
-		}
-		ifVersion(key, version, callback) {
-			if (typeof version != 'number') {
-				if (version == null) {
-					if (version === null)
-						version = -4.2434325325532E-199 // NO_EXIST_VERSION
-					else {// if undefined, just do callback without any condition being added
-						callback()
-						// TODO: if we are inside another ifVersion, use that promise, or use ANY_VERSION
-						return pendingBatch ? pendingBatch.unconditionalResults : Promise.resolve(true) // be consistent in returning a promise, indicate success
-					}
-				} else {
-					throw new Error('Version must be a number or null')
-				}
-			}
-			let scheduledOperations = this.getScheduledOperations()
-			let index = scheduledOperations.push([key, version]) - 1
-			try {
-				callback()
-				let commit = this.scheduleCommit()
-				return commit.results.then((writeResults) => {
-					if (writeResults[index] === 0)
-						return true
-					if (writeResults[index] === 3) {
-						throw new Error('The key size was 0 or too large')
-					}
-					return false
-				})
-			} finally {
-				scheduledOperations.push(false) // reset condition
-			}
-		}
 		doesExist(key, versionOrValue) {
 			let txn
 			try {

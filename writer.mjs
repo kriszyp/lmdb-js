@@ -419,6 +419,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			return writeInstructions(flags, this, key, value, undefined, ifVersion)()
 		},
+		ifNoExists(key, callback) {
+			return this.ifVersion(key, null, callback)
+		},
+
 		ifVersion(key, version, callback) {
 			if (!callback) {
 				return new Batch((operations, callback) => {
