@@ -178,7 +178,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				console.log('backpressure')
 				if (!backpressureArray)
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
-				Atomics.wait(backpressure, 0, 0, 1)
+				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress && (flags & 8) && !enqueuedStart) {
 				//console.log('start address ' + startAddress.toString(16), store.path)
@@ -206,7 +206,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (commitDelay == IMMEDIATE)
 					startWriting()
 				else {
-					setImmediate(startWriting)
+					commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
 					enqueuedStart = true
 				}
 			}
@@ -420,19 +420,36 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return writeInstructions(flags, this, key, value, undefined, ifVersion)()
 		},
 		ifVersion(key, version, callback) {
-			if (writeTxn) {
-
+			if (!callback) {
+				return new Batch((operations, callback) => {
+					let promise = this.ifVersion(key, version, operations)
+					if (callback)
+						promise.then(callback)
+					return promise
+				})
 			}
-			let finishWrite = writeInstructions(4, this, key, undefined, undefined, version)
-			if (callback) {
-				let promise = finishWrite() // commit to writing the whole block in the current transaction
-				console.log('wrote start of ifVersion', this.path)
-				try {
+			if (writeTxn) {
+				if (this.doesExist(key, version)) {
 					callback()
-				} catch(error) {
-					// TODO: Restore state
-					throw error
+					return SYNC_PROMISE_SUCCESS
 				}
+				return SYNC_PROMISE_FAIL
+			}
+			let finishWrite = writeInstructions(typeof key === 'undefined' ? 1 : 4, this, key, undefined, undefined, version)
+			let promise
+			console.log('wrote start of ifVersion', this.path)
+			try {
+				if (typeof callback === 'function') {
+					promise = finishWrite() // commit to writing the whole block in the current transaction
+					callback()
+				} else {
+					for (let i = 0, l = callback.length; i < l; i++) {
+						let operation = callback[i]
+						this[operation.type](operation.key, operation.value)
+					}
+					promise = finishWrite() // finish write once all the operations have been written
+				}
+			} finally {
 				console.log('writing end of ifVersion', this.path, (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
 				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // clear out the next slot
 				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
@@ -440,17 +457,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					console.log('ifVersion resume write thread')
 					env.startWriting(0)
 				}
-				return promise
-			} else {
-				return new Batch(() => {
-					// write the end block
-					dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0
-					dynamicBytes.uint32[(dynamicBytes.position++) << 1] = 2
-					// and then write the start block to so it is enqueued atomically
-					return finishWrite()
-				})
 			}
+			return promise
 		},
+		batch(callbackOrOperations) {
+			return this.ifVersion(undefined, undefined, callbackOrOperations)
+		},
+
 		putSync(key, value, versionOrOptions, ifVersion) {
 			if (writeTxn)
 				return this.put(key, value, versionOrOptions, ifVersion)
@@ -466,14 +479,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return this.transactionSync(() =>
 					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS,
 					{ abortable: false })
-			},
-		transaction(callback) {
+		},
+		transaction(callback, options) {
+			if (options) {
+ 				if (options.synchronousStart)
+ 					return this.transactionSync(callback, options)
+ 				if (options.abortable)
+					return this.childTransaction(callback)
+			}
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
-				if (useWritemap)
-					return callback()
-				else
-					return this.childTransaction(callback)
+				return callback()
 			}
 			return this.transactionAsync(callback)
 		},
@@ -566,4 +582,23 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 		}
 	})
+	LMDBStore.prototype.del = LMDBStore.prototype.remove
+}
+
+class Batch extends Array {
+	constructor(callback) {
+		this.callback = callback
+	}
+	put(key, value) {
+		this.push({ type: 'put', key, value })
+	}
+	del(key) {
+		this.push({ type: 'del', key })
+	}
+	clear() {
+		this.splice(0, this.length)
+	}
+	write(callback) {
+		this.callback(this, callback)
+	}
 }
