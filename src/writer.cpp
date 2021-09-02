@@ -74,7 +74,7 @@ WriteWorker::~WriteWorker() {
 	uv_cond_destroy(userCallbackCond);
 }
 void WriteWorker::ContinueWrite() {
-	fprintf(stdout, "continueWrite signal %p\n", this);
+	fprintf(stderr, "continueWrite signal %p\n", this);
 	uv_mutex_lock(userCallbackLock);
 	uv_cond_signal(userCallbackCond);
 	//fprintf(stdout, "continue unlock\n");
@@ -178,6 +178,7 @@ waitForCallback:
 	int rc;
 	fprintf(stderr, "wait for callback %p\n", this);		
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
+		fprintf(stderr, "Performing batch interruption\n");
 		if (allowCommit) {
 			rc = mdb_txn_commit(*txn);
 			if (rc == 0) {
@@ -308,6 +309,7 @@ next_inst:	uint32_t* start = instruction++;
 					previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)LOCKED);
 #endif
 					rc = 0;
+					fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 					if (!*start && (!finishedProgress || conditionDepth)) {
 						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
 						fprintf(stderr, "write thread waiting %p\n", lastStart);

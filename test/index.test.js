@@ -4,6 +4,7 @@ import chai from 'chai';
 let should = chai.should();
 let expect = chai.expect;
 import { spawn } from 'child_process';
+import { unlinkSync } from 'fs'
 
 import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.mjs';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.mjs'
@@ -31,7 +32,7 @@ describe('lmdb-store', function() {
       done();
     });
   });
-  let testIteration = 1
+  let testIteration = 0
   describe('Basic use', basicTests({ }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
@@ -42,6 +43,7 @@ describe('lmdb-store', function() {
     this.timeout(1000000);
     let db, db2, db3;
     before(function() {
+      testIteration++;
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
         create: true,
@@ -53,7 +55,6 @@ describe('lmdb-store', function() {
           threshold: 256,
         },
       }, options));
-      testIteration++;
       if (!options.checkLast)
         db.clear();
       db2 = db.openDB(Object.assign({
@@ -222,6 +223,13 @@ describe('lmdb-store', function() {
       dataOut.should.deep.equal(dataIn);
       db.removeSync('not-there').should.equal(false);
     });
+    it('writes batch with callback', async function() {
+      let dataIn = {name: 'for batch 1'}
+      await db.batch(() => {
+        db.put('key1', dataIn);
+        db.put('key2', dataIn);
+      })
+    })
     it.skip('trigger sync commit', async function() {
       let dataIn = {foo: 4, bar: false}
       db.immediateBatchThreshold = 1
@@ -603,6 +611,8 @@ describe('lmdb-store', function() {
         // should have open read and cursor transactions
         db2.close();
         db.close();
+        unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
+        console.log('successfully unlinked')
         done();
       },10);
     });

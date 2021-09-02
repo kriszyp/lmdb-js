@@ -323,11 +323,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function atomicStatus(uint32, flagPosition, newStatus) {
 		uint32[flagPosition] = newStatus
 		let writeStatus = lastUint32[lastFlagPosition]
+		let spinLock = 0
 		while (writeStatus & STATUS_LOCKED) {
-			//console.log('spin lock!')
+			spinLock++
 			writeStatus = lastUint32[lastFlagPosition]
 		}
-		//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+		if (spinLock)
+			console.warn('spin lock', spinLock)
+		console.warn('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {
@@ -441,7 +444,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			let finishWrite = writeInstructions(typeof key === 'undefined' ? 1 : 4, this, key, undefined, undefined, version)
 			let promise
-			console.log('wrote start of ifVersion', this.path)
+			console.warn('wrote start of ifVersion', this.path)
 			try {
 				if (typeof callback === 'function') {
 					promise = finishWrite() // commit to writing the whole block in the current transaction
@@ -454,11 +457,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					promise = finishWrite() // finish write once all the operations have been written
 				}
 			} finally {
-				console.log('writing end of ifVersion', this.path, (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
+				console.warn('writing end of ifVersion', this.path, (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
 				dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // clear out the next slot
 				let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 				if (writeStatus & WAITING_OPERATION) {
-					console.log('ifVersion resume write thread')
+					console.warn('ifVersion resume write thread')
 					env.startWriting(0)
 				}
 			}
