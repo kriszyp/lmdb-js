@@ -424,6 +424,14 @@ describe('lmdb-store', function() {
         value.should.equal(count)
       }
       count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(2);
+
       db3.getValuesCount('key1').should.equal(3);
       db3.getValuesCount('key1', { start: 1, end: 3 }).should.equal(2);
       db3.getValuesCount('key1', { start: 2, end: 3 }).should.equal(1);

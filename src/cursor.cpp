@@ -437,7 +437,25 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             uint32_t* startValueBuffer = (uint32_t*)(*(uint64_t*)(dw->ew->keyBuffer + 2000));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
             data.mv_data = startValueBuffer + 1;
-            rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+            if (flags & 0x400) {// reverse through values
+                MDB_val firstValue = data; // save it for comparison
+                rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+                if (rc) {
+                    if (data.mv_size) {
+                        // value specified, but not found, so find key and go to last item
+                        rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+                        if (!rc)
+                            rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
+                    } // else just couldn't find the key
+                } else { // found entry
+                    if (!data.mv_size) // no value specified, so go to last value
+                        rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
+                    else if (mdb_dcmp(tw->txn, dw->dbi, &firstValue, &data)) // the range found the next value *after* the start
+                        rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV_DUP);
+                }
+            } else // forward, just do a get by range
+                rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+
             if (rc == MDB_NOTFOUND)
                 return 0;
             if (flags & 0x1000 && !endKeyAddress) {
@@ -447,8 +465,6 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                     throwLmdbError(rc);
                 return count;
             }
-            if (flags & 0x400) // reverse, get last dup
-                rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
         } else {
             if (flags & 0x400) {// reverse
                 MDB_val firstKey = key; // save it for comparison
