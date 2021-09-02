@@ -1567,7 +1567,14 @@ typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
 	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
 } MDB_pgstate;
-
+/*<lmdb-store>*/
+struct MDB_last_map {
+	struct MDB_last_map	*last_map;
+	char 			*map;
+	mdb_size_t		mapsize;
+};
+typedef struct MDB_last_map MDB_last_map;
+/*</lmdb-store>*/
 	/** The database environment. */
 struct MDB_env {
 	HANDLE		me_fd;		/**< The main data file */
@@ -1600,6 +1607,9 @@ struct MDB_env {
 	MDB_PID_T	me_pid;		/**< process ID of this env */
 	char		*me_path;		/**< path to the DB files */
 	char		*me_map;		/**< the memory map of the data file */
+/*<lmdb-store>*/
+	MDB_last_map	*me_last_map;	/**< the previous memory map of the data file after a resize */
+/*</lmdb-store>*/
 	MDB_txninfo	*me_txns;		/**< the memory map of the lock file or NULL */
 	MDB_meta	*me_metas[NUM_METAS];	/**< pointers to the two meta pages */
 	void		*me_pbuf;		/**< scratch area for DUPSORT put() */
@@ -4972,9 +4982,14 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-	/* <lmdb-store removal>  We don't unmap because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet
-		munmap(env->me_map, env->me_mapsize);
-	 	</lmdb-store removal> */
+	/* <lmdb-store removal>  We don't unmap right now because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet */
+		MDB_last_map* last_map = malloc(sizeof(MDB_last_map));
+		last_map->last_map = env->me_last_map;
+		last_map->map = env->me_map;
+		last_map->mapsize = env->me_mapsize;
+		env->me_last_map = last_map;
+		//munmap(env->me_map, env->me_mapsize);
+	 	/*</lmdb-store removal> */
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
@@ -6078,7 +6093,9 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		env->me_rpcheck = MDB_ERPAGE_SIZE/2;
 	}
 #endif
-
+	/*<lmdb-store>*/
+	env->me_last_map = NULL;
+	/*<lmdb-store>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
 	env->me_dbflags = calloc(env->me_maxdbs, sizeof(uint16_t));
@@ -6225,8 +6242,18 @@ mdb_env_close_active(MDB_env *env, int excl)
 	if (env->me_map) {
 		if (MDB_REMAPPING(env->me_flags))
 			munmap(env->me_map, NUM_METAS*env->me_psize);
-		else
+		else {
 			munmap(env->me_map, env->me_mapsize);
+			/*<lmdb-store>*/
+			MDB_last_map *last_map = env->me_last_map;
+			while(last_map) { // unmap all of the previous maps as well
+				munmap(last_map->map, last_map->mapsize);
+				MDB_last_map *last_last_map = last_map;
+				last_map = last_map->last_map;
+				free(last_last_map);
+			}
+			/*</lmdb-store>*/
+		}
 	}
 	if (env->me_mfd != INVALID_HANDLE_VALUE)
 		(void) close(env->me_mfd);
