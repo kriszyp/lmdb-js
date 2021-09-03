@@ -424,14 +424,12 @@ describe('lmdb-store', function() {
         value.should.equal(count)
       }
       count.should.equal(2);
-
-      count = 0;
-      for (let value of db3.getValues('key1', { reverse: true, start: 2 })) {
-        count++;
-        value.should.equal(3 - count);
-      }
-      count.should.equal(2);
-
+    });
+    it('should count ordered-binary dupsort query with start/end', async function() {
+      db3.put('key1',  1);
+      db3.put('key1',  2);
+      db3.put('key1',  3);
+      await db3.put('key2',  3);
       db3.getValuesCount('key1').should.equal(3);
       db3.getValuesCount('key1', { start: 1, end: 3 }).should.equal(2);
       db3.getValuesCount('key1', { start: 2, end: 3 }).should.equal(1);
@@ -440,6 +438,53 @@ describe('lmdb-store', function() {
       db3.getValuesCount('key1', { start: 1, end: 2 }).should.equal(1);
       db3.getValuesCount('key1', { start: 2, end: 2 }).should.equal(0);
       db3.getValuesCount('key1').should.equal(3);
+    });
+    it('should reverse iterate ordered-binary dupsort query with start/end', async function() {
+      db3.put('key1',  1);
+      db3.put('key1',  2);
+      db3.put('key1',  3);
+      await db3.put('key2',  3);
+      let count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2.5 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 50 })) {
+        count++;
+        value.should.equal(4 - count);
+      }
+      count.should.equal(3);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2, end: 1 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(1);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, end: 1 })) {
+        count++;
+        value.should.equal(4 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 0.5 })) {
+        count++;
+      }
+      count.should.equal(0);
+
     });
     it('doesExist', async function() {
       let data1 = {foo: 1, bar: true}
@@ -562,18 +607,15 @@ describe('lmdb-store', function() {
       should.equal(db.get('inside-sync'), 'test');
       should.equal(db.get('async2'), 'test');
     });
-    it.skip('big child transactions', async function() {
+    it('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
       if (!db.cache) {
         db.childTransaction(() => {
           let value
-          for (let i = 0; i < 4; i++) {
-            value += ' test string ' + value
-          }
-          for (let i = 0; i < 4000; i++) {
-            db.put('key' + i, value)
+          for (let i = 0; i < 5000; i++) {
+            db.put('key' + i, 'test')
           }
         })
         await db.put('key1',  'test');
