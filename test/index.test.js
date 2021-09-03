@@ -510,6 +510,33 @@ describe('lmdb-store', function() {
         lastKey = key
       }
     })
+    it('big keys', async function() {
+      let keyBase = ''
+      for (let i = 0; i < 1900; i++) {
+        keyBase += 'A'
+      }
+      let keys = []
+      let promise
+      for (let i = 40; i < 120; i++) {
+        let key = String.fromCharCode(i) + keyBase
+        keys.push(key)
+        promise = db.put(key, i)
+      }
+      await promise
+      let returnedKeys = []
+      for (let { key, value } of db.getRange({})) {
+        if (key.length > 1000) {
+          returnedKeys.push(key)
+          should.equal(key.charCodeAt(0), value)
+          should.equal(db.get(key), value)
+          promise = db.remove(key)
+        }
+      }
+      returnedKeys.should.deep.equal(keys)
+      await promise
+      should.equal(db.get(returnedKeys[0]), undefined)
+    });
+
     it('invalid key', async function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
