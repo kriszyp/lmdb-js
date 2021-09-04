@@ -175,6 +175,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			} else if (compressionStatus) {
 				env.compress(nextCompressible)
 			} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+
 				console.log('backpressure')
 				if (!backpressureArray)
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
@@ -330,7 +331,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		if (spinLock)
 			console.warn('spin lock', spinLock)
-		console.warn('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
+		//console.warn('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
 		return writeStatus
 	}
 	async function executeTxnCallbacks() {

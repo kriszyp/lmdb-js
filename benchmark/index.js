@@ -1,18 +1,15 @@
 'use strict';
-const { Worker, isMainThread, parentPort, threadId } = require('worker_threads');
-const { isMaster, fork } = require('cluster');
+import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
+import { isMaster, fork } from 'cluster';
 
-var crypto = require('crypto');
-var path = require('path');
-var testDirPath = path.resolve(__dirname, './benchdata');
-
-var fs =require('fs');
-var rimraf = require('rimraf');
-var mkdirp = require('mkdirp');
-var benchmark = require('benchmark');
+var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
+import fs from 'fs';
+import rimraf from 'rimraf';
+import mkdirp from 'mkdirp';
+import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
-const { open, compareKeys } = require('..');
+import { open } from '../main.mjs';
 var env;
 var dbi;
 var keys = [];
@@ -87,7 +84,7 @@ function plainJSON() {
 }
 
 if (isMainThread && isMaster) {
-var inspector = require('inspector')
+//var inspector = require('inspector')
 //inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
@@ -136,8 +133,8 @@ cleanup(async function (err) {
       defer: false,
       fn: setData
     });
-    /*suite.add('get', getData);
-    suite.add('plainJSON', plainJSON);
+    suite.add('get', getData);
+    /*suite.add('plainJSON', plainJSON);
     suite.add('getBinary', getBinary);
     suite.add('getBinaryFast', getBinaryFast);*/
     suite.on('cycle', function (event) {

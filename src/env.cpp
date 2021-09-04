@@ -921,6 +921,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
             }
         } else {
             mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
+            flags |= TXN_ABORTABLE;
         }
         ew->writeTxn = new TxnTracked(txn, flags);
         return;
@@ -955,14 +956,14 @@ NAN_METHOD(EnvWrap::commitTxn) {
     TxnTracked *currentTxn = ew->writeTxn;
 //    fprintf(stderr, "commitTxn\n");
     int rc = 0;
-    if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
+    if (currentTxn->flags & TXN_ABORTABLE) {
         //fprintf(stderr, "txn_commit\n");
         rc = mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
     delete currentTxn;
     if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
-        //fprintf(stderr, "unlock txn\n");
+        fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
     if (rc)
@@ -972,7 +973,7 @@ NAN_METHOD(EnvWrap::abortTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
     fprintf(stderr, "abortTxn\n");
-    if ((currentTxn->flags & TXN_ABORTABLE) || !(ew->writeWorker && ew->writeWorker->txn)) {
+    if (currentTxn->flags & TXN_ABORTABLE) {
         fprintf(stderr, "txn_abort\n");
         mdb_txn_abort(currentTxn->txn);
     } else {

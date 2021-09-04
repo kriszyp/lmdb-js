@@ -28,9 +28,7 @@
 inline value?
 */
 #include "node-lmdb.h"
-#ifndef _WIN32
 #include <atomic>
-#endif
 // flags:
 const int NO_INSTRUCTION_YET = 0;
 const int PUT = 15;
@@ -100,26 +98,18 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 	uint64_t nextCompressibleSlot;
 	Compression* compression;
 	uint64_t compressionPointer;
-#ifdef _WIN32
-	compressionPointer = InterlockedExchange64((int64_t*)nextCompressible + 1, 0);
-#else
-	compressionPointer = std::atomic_exchange((std::atomic_int_fast64_t*) nextCompressible, (int64_t) 0);
-#endif
+	compressionPointer = std::atomic_exchange((std::atomic_int_fast64_t*) nextCompressible + 1, (int64_t) 0);
 	compression = (Compression*)(size_t) * ((double*)&compressionPointer);
 	if (compression) {
 		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
 		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
-		//fprintf(stdout, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
+		fprintf(stderr, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
 		argtokey_callback_t compressedData = compression->compress(&value, nullptr);
 		if (compressedData) {
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
 			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
-			int status;
-#ifdef _WIN32
-			status = InterlockedExchange64((int64_t*)(nextCompressible - 1), (int64_t)value.mv_data);
-#else
-			status = std::atomic_exchange((std::atomic_int_fast64_t *)(nextCompressible - 1), (int64_t)value.mv_data);
-#endif
+			int64_t status = std::atomic_exchange((std::atomic_int_fast64_t *)(nextCompressible - 1), (int64_t)value.mv_data);
+			fprintf(stderr, "compression status\n");
 			if (status == 1) {
 				uv_mutex_lock(envForTxn->writeWorker->userCallbackLock);
 				uv_cond_signal(envForTxn->writeWorker->userCallbackCond);
@@ -141,7 +131,7 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 
 
 void WriteWorker::Compress() {
-	//fprintf(stdout, "compress\n");
+	fprintf(stdout, "compress\n");
 	while (nextCompressible) {
 		nextCompressible = CompressOne(nextCompressible);
 	}
@@ -155,50 +145,59 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 }
 MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
-	interruptionStatus = commitSynchronously ? INTERRUPT_BATCH : 1;
+	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	uv_mutex_lock(userCallbackLock);
-	if (txn)
+	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
+		interruptionStatus = INTERRUPT_BATCH;
+		uv_cond_signal(userCallbackCond);
+		uv_mutex_unlock(userCallbackLock);
+		return nullptr;
+	} else {
+		interruptionStatus = USER_HAS_LOCK;
 		return txn;
-	// else create a new txn
-	MDB_txn* newTxn;
-	int rc = mdb_txn_begin(env, nullptr, 0, &newTxn);
-	if (rc)
-		fprintf(stderr, "Unable to start transaction %i\n", rc);
-	return newTxn;
+	}
 }
 
 void WriteWorker::UnlockTxn() {
-	fprintf(stdout, "release txn\n");
-	interruptionStatus = 0;
-	uv_cond_signal(userCallbackCond);
-	uv_mutex_unlock(userCallbackLock);
+	fprintf(stdout, "release txn %u\n", interruptionStatus);
+	if (interruptionStatus == RESTART_WORKER_TXN) {
+		interruptionStatus = 0;
+		uv_mutex_lock(userCallbackLock);
+		uv_cond_signal(userCallbackCond);
+		uv_mutex_unlock(userCallbackLock);
+	} else if (interruptionStatus == USER_HAS_LOCK) {
+		uv_cond_signal(userCallbackCond);
+		uv_mutex_unlock(userCallbackLock);
+	}
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
 waitForCallback:
 	int rc;
-	fprintf(stderr, "wait for callback %p\n", this);		
+	fprintf(stderr, "wait for callback %p\n", this);
+	if (!finishedProgress)
+		executionProgress->Send(nullptr, 0);
+	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
+	uv_cond_wait(userCallbackCond, userCallbackLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-		fprintf(stderr, "Performing batch interruption\n");
-		if (allowCommit) {
-			rc = mdb_txn_commit(*txn);
-			if (rc == 0) {
-				// wait again until the sync transaction is completed
-				uv_cond_wait(userCallbackCond, userCallbackLock);
-				// now restart our transaction
-				rc = mdb_txn_begin(env, nullptr, 0, txn);
-				envForTxn->currentBatchTxn = *txn;
-				interruptionStatus = 0;
-				uv_cond_signal(userCallbackCond);
-				goto waitForCallback;
-			}
-			if (rc != 0) {
-				fprintf(stdout, "wfc unlock\n");
-				return rc;
-			}
-		} else
-			uv_cond_signal(userCallbackCond);
-	} else {
-		uv_cond_wait(userCallbackCond, userCallbackLock);
+		fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
+		interruptionStatus = RESTART_WORKER_TXN;
+		rc = mdb_txn_commit(*txn);
+		if (rc == 0) {
+			// wait again until the sync transaction is completed
+			fprintf(stderr, "Waiting after interruption\n");
+			uv_cond_wait(userCallbackCond, userCallbackLock);
+			// now restart our transaction
+			rc = mdb_txn_begin(env, nullptr, 0, txn);
+			fprintf(stderr, "Restarted txn after interruption\n");
+			envForTxn->currentBatchTxn = *txn;
+			interruptionStatus = 0;
+			//uv_cond_signal(userCallbackCond);
+			goto waitForCallback;
+		}
+		if (rc != 0) {
+			fprintf(stdout, "wfc unlock due to error %u\n", rc);
+			return rc;
+		}
 	}
 	fprintf(stderr, "callback done waiting\n");
 }
@@ -255,13 +254,14 @@ next_inst:	uint32_t* start = instruction++;
 							CompressOne((double*)(instruction + 2));
 							if(*(instruction + 1) > 0x40000000) {
 								// compression in progress
-								fprintf(stdout, "wait on compression\n");
+								fprintf(stderr, "wait on compression\n");
 #ifdef _WIN32
 								int64_t fullPointer = InterlockedExchange64((int64_t*)(instruction), 1);
 #else
 								int64_t fullPointer = std::atomic_exchange((std::atomic_int_fast64_t*)(nextCompressible - 1), (int64_t)1);
 #endif
 								if(fullPointer > 0x4000000000000000ll) {
+									fprintf(stderr, "really waiting on compression\n");
 									uv_cond_wait(userCallbackCond, userCallbackLock);
 								}
 							}
@@ -303,13 +303,9 @@ next_inst:	uint32_t* start = instruction++;
 					instruction -= 2; // reset back to the previous flag as the current instruction
 					int previousFlags;
 					// we use memory fencing here to make sure all reads and writes are ordered
-#ifdef _WIN32
-					previousFlags = InterlockedOr((LONG*)lastStart, (LONG) LOCKED);
-#else
 					previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)LOCKED);
-#endif
 					rc = 0;
-					fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
+					//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 					if (!*start && (!finishedProgress || conditionDepth)) {
 						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
 						fprintf(stderr, "write thread waiting %p\n", lastStart);
@@ -323,7 +319,7 @@ next_inst:	uint32_t* start = instruction++;
 					}
 					// still nothing to do, end the transaction
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER;
-					fprintf(stderr, "calling the txn down %p\n", lastStart);
+					//fprintf(stderr, "calling the txn down %p\n", lastStart);
 					goto txn_done;
 				case BLOCK_END:
 					rc = !validated;
@@ -357,7 +353,6 @@ next_inst:	uint32_t* start = instruction++;
 				case USER_CALLBACK:
 					finishedProgress = false;
 					progressStatus = 2;
-					executionProgress->Send(nullptr, 0);
 					if (flags & USER_CALLBACK_STRICT_ORDER) {
 						*start = FINISHED_OPERATION; // mark it as finished so it is processed
 						WaitForCallbacks(&txn, conditionDepth == 0);
@@ -401,7 +396,7 @@ txn_done:
 			rc = mdb_txn_commit(txn);
 			txn = nullptr;
 			uv_mutex_unlock(userCallbackLock);
-			fprintf(stderr, "committed %p %u\n", instruction, rc);
+			//fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 			if (rc == 0) {
 				unsigned int envFlags;
@@ -444,11 +439,7 @@ txn_done:
 			} else {
 				int previousFlags;
 				// we use memory fencing here to make sure all reads and writes are ordered
-#ifdef _WIN32
-				previousFlags = InterlockedOr((LONG*) lastStart, LOCKED | TXN_COMMITTED);
-#else
 				previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t) LOCKED | TXN_COMMITTED);
-#endif
 				if (*instruction) // changed while we were locking, keep running
 					*lastStart = (previousFlags & 0xf) | FINISHED_OPERATION | TXN_DELIMITER | TXN_COMMITTED;
 				else { // really done with the batch
@@ -473,6 +464,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	v8::Local<v8::Value> argv[] = {
 		Nan::New<Number>(progressStatus)
 	};
+	finishedProgress = true;
 	bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
 	if (immediateContinue)
 		ContinueWrite();
@@ -483,6 +475,7 @@ void WriteWorker::HandleOKCallback() {
 	Local<v8::Value> argv[] = {
 		Nan::New<Number>(0)
 	};
+	finishedProgress = true;
 	callback->Call(1, argv, async_resource);
 }
 
@@ -522,6 +515,7 @@ void EnvWrap::write(
 	const v8::FunctionCallbackInfo<v8::Value>& info) {
 	v8::Local<v8::Object> instance =
 		v8::Local<v8::Object>::Cast(info.Holder());
+	//fprintf(stderr,"Doing sync write\n");
 	EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(instance);
 	if (!ew->env) {
 		return Nan::ThrowError("The environment is already closed.");

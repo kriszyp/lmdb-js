@@ -201,7 +201,10 @@ struct action_t {
 };
 
 const int INTERRUPT_BATCH = 9998;
-const int RESUME_BATCH = 9999;
+const int ALLOW_COMMIT = 9997;
+const int RESTART_WORKER_TXN = 9999;
+const int RESUME_BATCH = 9996;
+const int USER_HAS_LOCK = 9995;
 
 class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:

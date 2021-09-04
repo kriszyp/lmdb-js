@@ -1,4 +1,4 @@
-import { WeakLRUCache } from 'weak-lru-cache/index.mjs'
+import { WeakLRUCache } from 'weak-lru-cache/main.mjs'
 let getLastVersion
 const mapGet = Map.prototype.get
 export const CachingStore = Store => class extends Store {
