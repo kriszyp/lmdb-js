@@ -341,7 +341,6 @@ next_inst:	uint32_t* start = instruction++;
 						free(value.mv_data);
 					break;
 				case START_BLOCK: case START_CONDITION_BLOCK:
-					rc = !validated;
 					if (validated)
 						validatedDepth++;
 					conditionDepth++;

@@ -502,8 +502,6 @@ NAN_METHOD(EnvWrap::open) {
     if (keyBytesValue->IsArrayBufferView())
         ew->keyBuffer = node::Buffer::Data(keyBytesValue);
 
-    Local<Value> onReadTxnRenew = options->Get(Nan::GetCurrentContext(), Nan::New<String>("onReadTxnRenew").ToLocalChecked()).ToLocalChecked();
-    ew->onReadTxnRenew.Reset(Local<Function>::Cast(onReadTxnRenew));
     Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
     if (winMemoryPriorityLocal->IsNumber())
         ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();

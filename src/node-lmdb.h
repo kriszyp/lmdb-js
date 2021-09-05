@@ -303,7 +303,6 @@ public:
     // What memory priority for accessing LMDB data in windows
     int winMemoryPriority;
     char* keyBuffer;
-    Nan::Persistent<Function> onReadTxnRenew;
     MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
