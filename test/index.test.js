@@ -5,12 +5,14 @@ let should = chai.should();
 let expect = chai.expect;
 import { spawn } from 'child_process';
 import { unlinkSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.mjs';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.mjs'
 
 describe('lmdb-store', function() {
-  let dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
   let testDirPath = path.resolve(dirName, './testdata-ls');
 
   // just to make a reasonable sized chunk of data...

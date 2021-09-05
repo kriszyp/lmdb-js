@@ -255,11 +255,7 @@ next_inst:	uint32_t* start = instruction++;
 							if(*(instruction + 1) > 0x40000000) {
 								// compression in progress
 								fprintf(stderr, "wait on compression\n");
-#ifdef _WIN32
-								int64_t fullPointer = InterlockedExchange64((int64_t*)(instruction), 1);
-#else
-								int64_t fullPointer = std::atomic_exchange((std::atomic_int_fast64_t*)(nextCompressible - 1), (int64_t)1);
-#endif
+								int64_t fullPointer = std::atomic_exchange((std::atomic_int_fast64_t*)instruction, (int64_t)1);
 								if(fullPointer > 0x4000000000000000ll) {
 									fprintf(stderr, "really waiting on compression\n");
 									uv_cond_wait(userCallbackCond, userCallbackLock);
