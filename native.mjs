@@ -1,6 +1,8 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url)
-let nativeMethods, dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 try {
 	console.log(dirName)
 	nativeMethods = require('node-gyp-build')(dirName)
