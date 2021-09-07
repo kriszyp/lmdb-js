@@ -86,13 +86,13 @@ export function open(path, options) {
 			else
 				defaultCompression = options.compression = new Compression({
 					threshold: 1000,
-					dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url)),
+					dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
 				})
 				defaultCompression.threshold = 1000
 		} else {
 			let compressionOptions = Object.assign({
 				threshold: 1000,
-				dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url)),
+				dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
 			}, options.compression)
 			options.compression = new Compression(compressionOptions)
 			options.compression.threshold = compressionOptions.threshold

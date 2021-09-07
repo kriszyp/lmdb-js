@@ -9,7 +9,7 @@ import mkdirp from 'mkdirp';
 import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
-import { open } from '../main.mjs';
+import { open } from '../index.js';
 var env;
 var dbi;
 var keys = [];
