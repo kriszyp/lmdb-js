@@ -205,6 +205,7 @@ waitForCallback:
 		}
 	}
 	fprintf(stderr, "callback done waiting\n");
+	return 0;
 }
 
 void WriteWorker::Write() {
