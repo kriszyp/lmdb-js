@@ -9,8 +9,8 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../main.mjs';
-import { ArrayLikeIterable } from '../util/ArrayLikeIterable.mjs'
+import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../index.js';
+import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-store', function() {
   let testDirPath = path.resolve(dirName, './testdata-ls');

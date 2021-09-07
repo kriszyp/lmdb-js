@@ -143,7 +143,7 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 		Compress();
 	Write();
 }
-MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
+MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously, int *flags) {
 	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	uv_mutex_lock(userCallbackLock);
@@ -151,9 +151,14 @@ MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
 		interruptionStatus = INTERRUPT_BATCH;
 		uv_cond_signal(userCallbackCond);
 		uv_mutex_unlock(userCallbackLock);
+		*flags |= TXN_HAS_WORKER_LOCK;
 		return nullptr;
 	} else {
 		interruptionStatus = USER_HAS_LOCK;
+		if (txn)
+			*flags |= TXN_HAS_WORKER_LOCK;
+		else
+			uv_mutex_unlock(userCallbackLock);
 		return txn;
 	}
 }

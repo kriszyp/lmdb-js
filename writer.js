@@ -1,5 +1,5 @@
-import { getAddress } from './native.mjs'
-import { when } from './util/when.mjs'
+import { getAddress } from './native.js'
+import { when } from './util/when.js'
 var backpressureArray
 
 const MAX_KEY_SIZE = 1978

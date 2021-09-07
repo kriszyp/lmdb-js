@@ -1,5 +1,5 @@
-import { getAddress } from './native.mjs'
-import { writeKey, readKey, enableNullTermination } from 'ordered-binary/main.mjs'
+import { getAddress } from './native.js'
+import { writeKey, readKey, enableNullTermination } from 'ordered-binary/index.js'
 enableNullTermination()
 
 const writeUint32Key = (key, target, start) => {

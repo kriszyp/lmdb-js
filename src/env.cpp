@@ -899,8 +899,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
             txn = ew->writeTxn->txn;
         else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
-            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
-            flags |= TXN_HAS_WORKER_LOCK;
+            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT, &flags);
         } else
             txn = nullptr;
 
@@ -959,11 +958,11 @@ NAN_METHOD(EnvWrap::commitTxn) {
         rc = mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
-    delete currentTxn;
     if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
         fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
+    delete currentTxn;
     if (rc)
         throwLmdbError(rc);
 }

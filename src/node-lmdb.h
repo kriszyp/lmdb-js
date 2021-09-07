@@ -226,7 +226,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     double* CompressOne(double* nextCompressible);
     void Compress();
     MDB_txn* txn;
-    MDB_txn* AcquireTxn(bool commitSynchronously);
+    MDB_txn* AcquireTxn(bool commitSynchronously, int *flags);
     void UnlockTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
