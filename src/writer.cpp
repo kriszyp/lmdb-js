@@ -1,21 +1,6 @@
 /* write instructions
 
 0-3 flags
-	1 - put with pointer  - 16 + key + 8? + 8? + 8
-	8 - put inline
-
-	2 - del - 16 + key + 8?
-	3 - del with value
-	3 - start block - 16 + key + 8
-	4 - user callback - 8 bytes long
-	5 - drop - 8 bytes long
-	7 - block end - 8 bytes long
-	15 - pointer to next instruction  - 16 bytes long
-	0x100 - conditional based on version
-	0x200 - version included
-	0x400 - compressible
-	0x800 - put value is inline (otherwise pointer)?
-
 4-7 dbi
 8-11 key-size
 12 ... key followed by at least 2 32-bit zeros
@@ -72,7 +57,7 @@ WriteWorker::~WriteWorker() {
 	uv_cond_destroy(userCallbackCond);
 }
 void WriteWorker::ContinueWrite() {
-	fprintf(stderr, "continueWrite signal %p\n", this);
+	//fprintf(stderr, "continueWrite signal %p\n", this);
 	uv_mutex_lock(userCallbackLock);
 	uv_cond_signal(userCallbackCond);
 	//fprintf(stdout, "continue unlock\n");
@@ -103,13 +88,13 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 	if (compression) {
 		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
 		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
-		fprintf(stderr, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
+		//fprintf(stderr, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
 		argtokey_callback_t compressedData = compression->compress(&value, nullptr);
 		if (compressedData) {
 			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
 			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
 			int64_t status = std::atomic_exchange((std::atomic_int_fast64_t *)(nextCompressible - 1), (int64_t)value.mv_data);
-			fprintf(stderr, "compression status\n");
+			//fprintf(stderr, "compression status\n");
 			if (status == 1) {
 				uv_mutex_lock(envForTxn->writeWorker->userCallbackLock);
 				uv_cond_signal(envForTxn->writeWorker->userCallbackCond);
@@ -131,7 +116,7 @@ double* WriteWorker::CompressOne(double* nextCompressible) {
 
 
 void WriteWorker::Compress() {
-	fprintf(stdout, "compress\n");
+	//fprintf(stdout, "compress\n");
 	while (nextCompressible) {
 		nextCompressible = CompressOne(nextCompressible);
 	}
@@ -154,11 +139,14 @@ MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously, int *flags) {
 		*flags |= TXN_HAS_WORKER_LOCK;
 		return nullptr;
 	} else {
+		if (interruptionStatus == RESTART_WORKER_TXN)
+			uv_cond_wait(userCallbackCond, userCallbackLock);
 		interruptionStatus = USER_HAS_LOCK;
 		if (txn)
 			*flags |= TXN_HAS_WORKER_LOCK;
-		else
+		else {
 			uv_mutex_unlock(userCallbackLock);
+		}
 		return txn;
 	}
 }
@@ -178,7 +166,7 @@ void WriteWorker::UnlockTxn() {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
 waitForCallback:
 	int rc;
-	fprintf(stderr, "wait for callback %p\n", this);
+	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
@@ -190,13 +178,14 @@ waitForCallback:
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
 			fprintf(stderr, "Waiting after interruption\n");
+			*txn = nullptr;
 			uv_cond_wait(userCallbackCond, userCallbackLock);
 			// now restart our transaction
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
 			fprintf(stderr, "Restarted txn after interruption\n");
 			envForTxn->currentBatchTxn = *txn;
 			interruptionStatus = 0;
-			//uv_cond_signal(userCallbackCond);
+			uv_cond_signal(userCallbackCond);
 			goto waitForCallback;
 		}
 		if (rc != 0) {
@@ -204,7 +193,7 @@ waitForCallback:
 			return rc;
 		}
 	}
-	fprintf(stderr, "callback done waiting\n");
+	//fprintf(stderr, "callback done waiting\n");
 	return 0;
 }
 
@@ -310,7 +299,7 @@ next_inst:	uint32_t* start = instruction++;
 					//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 					if (!*start && (!finishedProgress || conditionDepth)) {
 						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
-						fprintf(stderr, "write thread waiting %p\n", lastStart);
+						//fprintf(stderr, "write thread waiting %p\n", lastStart);
 						WaitForCallbacks(&txn, conditionDepth == 0);
 					}
 					if (*start || conditionDepth) {
@@ -324,7 +313,6 @@ next_inst:	uint32_t* start = instruction++;
 					//fprintf(stderr, "calling the txn down %p\n", lastStart);
 					goto txn_done;
 				case BLOCK_END:
-					rc = !validated;
 					conditionDepth--;
 					if (validatedDepth > conditionDepth)
 						validatedDepth--;
@@ -347,6 +335,7 @@ next_inst:	uint32_t* start = instruction++;
 						free(value.mv_data);
 					break;
 				case START_BLOCK: case START_CONDITION_BLOCK:
+					rc = validated ? 0 : MDB_NOTFOUND;
 					if (validated)
 						validatedDepth++;
 					conditionDepth++;
@@ -354,6 +343,7 @@ next_inst:	uint32_t* start = instruction++;
 				case USER_CALLBACK:
 					finishedProgress = false;
 					progressStatus = 2;
+					rc = 0;
 					if (flags & USER_CALLBACK_STRICT_ORDER) {
 						*start = FINISHED_OPERATION; // mark it as finished so it is processed
 						WaitForCallbacks(&txn, conditionDepth == 0);
@@ -378,6 +368,7 @@ next_inst:	uint32_t* start = instruction++;
 			} else
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			lastStart = start;
+			//fprintf(stderr, "finished flag %p\n", flags);
 			*start = flags;
 			if (interruptionStatus)
 				WaitForCallbacks(&txn, conditionDepth == 0);

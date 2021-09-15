@@ -179,6 +179,7 @@ describe('lmdb-store', function() {
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');
       entry.version.should.equal(53252);
+      console.log('starting ifVersion');
       (await db.ifVersion('key1', 777, () => {
         db.put('newKey', 'test', 6);
         db2.put('keyB', 'test', 6);

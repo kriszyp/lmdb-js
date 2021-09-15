@@ -7,7 +7,7 @@ import { addQueryMethods } from './query.js'
 import { addWriteMethods, ABORT } from './writer.js'
 export { ABORT } from './writer.js'
 import { applyKeyHandling } from './keys.js'
-export { toBufferKey as keyValueToBuffer, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
+export { toBufferKey as keyValueToBuffer, compareKeys, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
 

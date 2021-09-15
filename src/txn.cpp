@@ -114,7 +114,7 @@ NAN_METHOD(TxnWrap::ctor) {
                 }
             }
         }
-        fprintf(stderr, "txn_begin from txn.cpp %u\n", flags);
+        //fprintf(stderr, "txn_begin from txn.cpp %u\n", flags);
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
         if (rc != 0) {
             if (rc == EINVAL) {

@@ -6,25 +6,21 @@ export const CachingStore = Store => class extends Store {
 		super(dbName, options)
 		if (!this.env.cacheCommitter) {
 			this.env.cacheCommitter = true
-			this.on('aftercommit', ({ operations, results }) => {
-				results = results || []
-				let activeCache
-				for (let i = 0, l = operations.length; i < l; i++) {
-					let operation = operations[i]
-					if (typeof operation[1] === 'object') {
-						if (activeCache) {
-							if (results[i] === 0) {
-								let expirationPriority = ((operation[1] || 0).length || 0) >> 10
-								let entry = mapGet.call(activeCache, operation[0])
-								if (entry)
-									activeCache.used(entry, expirationPriority) // this will enter it into the LRFU
-							} else
-								activeCache.delete(operation[0]) // just delete it from the map
+			this.on('aftercommit', ({ next, last }) => {
+				do {
+					let store = next.store
+					if (store) {
+						if (next.flag & 1)
+							next.store.cache.delete(next.key) // just delete it from the map
+						else {
+							let expirationPriority = next.valueLength >> 10
+							let cache = next.store.cache
+							let entry = mapGet.call(cache, next.key)
+							if (entry)
+								cache.used(entry, expirationPriority) // this will enter it into the LRFU
 						}
-					} else if (operation && operation.length === undefined) {
-						activeCache = operation.cachingDb && operation.cachingDb.cache
 					}
-				}
+				} while (next = next.next && next != last)
 			})
 		}
 		this.db.cachingDb = this
