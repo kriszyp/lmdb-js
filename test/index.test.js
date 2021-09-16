@@ -432,6 +432,12 @@ describe('lmdb-store', function() {
         value.should.equal(count)
       }
       count.should.equal(2);
+    });
+    it('should count ordered-binary dupsort query with start/end', async function() {
+      db3.put('key1',  1);
+      db3.put('key1',  2);
+      db3.put('key1',  3);
+      await db3.put('key2',  3);
       db3.getValuesCount('key1').should.equal(3);
       db3.getValuesCount('key1', { start: 1, end: 3 }).should.equal(2);
       db3.getValuesCount('key1', { start: 2, end: 3 }).should.equal(1);
@@ -440,6 +446,53 @@ describe('lmdb-store', function() {
       db3.getValuesCount('key1', { start: 1, end: 2 }).should.equal(1);
       db3.getValuesCount('key1', { start: 2, end: 2 }).should.equal(0);
       db3.getValuesCount('key1').should.equal(3);
+    });
+    it('should reverse iterate ordered-binary dupsort query with start/end', async function() {
+      db3.put('key1',  1);
+      db3.put('key1',  2);
+      db3.put('key1',  3);
+      await db3.put('key2',  3);
+      let count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2.5 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 50 })) {
+        count++;
+        value.should.equal(4 - count);
+      }
+      count.should.equal(3);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 2, end: 1 })) {
+        count++;
+        value.should.equal(3 - count);
+      }
+      count.should.equal(1);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, end: 1 })) {
+        count++;
+        value.should.equal(4 - count);
+      }
+      count.should.equal(2);
+
+      count = 0;
+      for (let value of db3.getValues('key1', { reverse: true, start: 0.5 })) {
+        count++;
+      }
+      count.should.equal(0);
+
     });
     it('doesExist', async function() {
       let data1 = {foo: 1, bar: true}
@@ -465,6 +518,33 @@ describe('lmdb-store', function() {
         lastKey = key
       }
     })
+    it('big keys', async function() {
+      let keyBase = ''
+      for (let i = 0; i < 1900; i++) {
+        keyBase += 'A'
+      }
+      let keys = []
+      let promise
+      for (let i = 40; i < 120; i++) {
+        let key = String.fromCharCode(i) + keyBase
+        keys.push(key)
+        promise = db.put(key, i)
+      }
+      await promise
+      let returnedKeys = []
+      for (let { key, value } of db.getRange({})) {
+        if (key.length > 1000) {
+          returnedKeys.push(key)
+          should.equal(key.charCodeAt(0), value)
+          should.equal(db.get(key), value)
+          promise = db.remove(key)
+        }
+      }
+      returnedKeys.should.deep.equal(keys)
+      await promise
+      should.equal(db.get(returnedKeys[0]), undefined)
+    });
+
     it('invalid key', async function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
@@ -564,18 +644,15 @@ describe('lmdb-store', function() {
       should.equal(db.get('inside-sync'), 'test');
       should.equal(db.get('async2'), 'test');
     });
-    it.skip('big child transactions', async function() {
+    it('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
       if (!db.cache) {
         db.childTransaction(() => {
           let value
-          for (let i = 0; i < 4; i++) {
-            value += ' test string ' + value
-          }
-          for (let i = 0; i < 4000; i++) {
-            db.put('key' + i, value)
+          for (let i = 0; i < 5000; i++) {
+            db.put('key' + i, 'test')
           }
         })
         await db.put('key1',  'test');

@@ -13,6 +13,8 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 * Optional native off-main-thread compression with high-performance LZ4 compression
 * And ridiculously fast and efficient:
 
+<a href="https://github.com/kriszyp/db-benchmark"><img src="./assets/performance.png" width="700"/></a>
+
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
 This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
@@ -220,7 +222,7 @@ Here are the options that can be provided to the range methods (all are optional
 * `snapshot`: Boolean indicating if a database snapshot is used for iteration (true by default).
 
 ### `store.openDB(database: string|{name:string,...})`
-LMDB supports multiple databases per environment (an environment is a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
+LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
 const { open } = require('lmdb');
 let rootStore = open('all-my-data');
@@ -234,7 +236,7 @@ usersStore.put('some-user', { data: userInfo });
 groupsStore.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and committed in the same transaction in the next event turn.
-Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction:
+Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction):
 ```
 rootStore.transactionAsync(() => {
 	usersStore.put('some-user', { data: userInfo });
@@ -250,6 +252,12 @@ This will close the current store. This closes the underlying LMDB database, and
 
 ### `store.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
+
+### `store.getBinary(key): Buffer`
+This will retrieve the binary data at the specified key. This is just like `get`, except it will always return the value's binary representation as a buffer, rather than decoding with the store's encoding format (if there is no entry, `undefined` will still be returned).
+
+### `store.getBinaryFast(key): Buffer`
+This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations).
 
 ### `resetReadTxn(): void`
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).

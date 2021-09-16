@@ -33,7 +33,6 @@ static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
 static thread_local KeySpace* fixedKeySpace;
 
-void signalHandler(int sig);
 void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
 
