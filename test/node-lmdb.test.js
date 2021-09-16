@@ -13,7 +13,7 @@ var inspector = require('inspector')
 var lmdb = require('..');
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 
-describe('Node.js LMDB Bindings', function() {
+describe.skip('Node.js LMDB Bindings', function() {
   var testDirPath = path.resolve(__dirname, './testdata');
   var testBackupDirPath = path.resolve(__dirname, './testdata/backup');
   // just to make a reasonable sized chunk of data...
