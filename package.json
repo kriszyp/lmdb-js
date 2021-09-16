@@ -27,6 +27,7 @@
   "scripts": {
     "install": "node-gyp-build",
     "prebuild": "prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0",
+    "prepare": "prebuildify-ci download && prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0 && prebuildify --target electron@13.1.4",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build -d",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
@@ -53,6 +54,7 @@
     "jshint": "^2.12.0",
     "mocha": "^8.3.2",
     "prebuildify": "^4.2.0",
+    "prebuildify-ci": "^1.0.5",
     "rimraf": "^3.0.2",
     "tsd": "^0.14.0"
   }
