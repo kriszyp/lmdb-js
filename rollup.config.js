@@ -4,7 +4,8 @@ export default [
         output: [
             {
                 file: "dist/index.cjs",
-                format: "cjs"
+                format: "cjs",
+                sourcemap: true
             }
         ]
     }
