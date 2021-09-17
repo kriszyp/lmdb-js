@@ -13,14 +13,14 @@ export const CachingStore = Store => class extends Store {
 						if (next.flag & 1)
 							next.store.cache.delete(next.key) // just delete it from the map
 						else {
-							let expirationPriority = next.valueLength >> 10
+							let expirationPriority = next.valueSize >> 10
 							let cache = next.store.cache
 							let entry = mapGet.call(cache, next.key)
 							if (entry)
 								cache.used(entry, expirationPriority) // this will enter it into the LRFU
 						}
 					}
-				} while (next = next.next && next != last)
+				} while (next != last && (next = next.next))
 			})
 		}
 		this.db.cachingDb = this
