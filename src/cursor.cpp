@@ -445,7 +445,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 } else { // found entry
                     if (startValue.mv_size == 0) // no value specified, so go to last value
                         rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
-                    else if (mdb_dcmp(tw->txn, dw->dbi, &startValue, &data)) // the range found the next value *after* the start
+                    else if (mdb_dcmp(txn, dw->dbi, &startValue, &data)) // the range found the next value *after* the start
                         rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV_DUP);
                 }
             } else // forward, just do a get by range

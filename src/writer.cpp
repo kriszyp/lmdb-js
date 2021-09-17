@@ -159,6 +159,7 @@ void WriteWorker::UnlockTxn() {
 		uv_cond_signal(userCallbackCond);
 		uv_mutex_unlock(userCallbackLock);
 	} else if (interruptionStatus == USER_HAS_LOCK) {
+		interruptionStatus = 0;
 		uv_cond_signal(userCallbackCond);
 		uv_mutex_unlock(userCallbackLock);
 	}
@@ -370,8 +371,6 @@ next_inst:	uint32_t* start = instruction++;
 			lastStart = start;
 			//fprintf(stderr, "finished flag %p\n", flags);
 			*start = flags;
-			if (interruptionStatus)
-				WaitForCallbacks(&txn, conditionDepth == 0);
 		} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
 		if (envForTxn) {

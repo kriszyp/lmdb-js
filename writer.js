@@ -20,7 +20,7 @@ SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching }) {
 	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution 
 	//  stands for write instructions
 	var dynamicBytes
@@ -49,7 +49,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var enqueuedCommit
 	var afterCommitCallbacks = []
 	var beforeCommitCallbacks = []
-	var eventTurnBatching, enqueuedEventTurnBatch
+	var enqueuedEventTurnBatch
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
@@ -78,6 +78,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (eventTurnBatching && !enqueuedEventTurnBatch) {
 				enqueuedEventTurnBatch = setImmediate(() => {
 					enqueuedEventTurnBatch = null
+					for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
+						beforeCommitCallbacks[i]()
+					}			
 					finishBatch()
 				})
 				let finishWrite = writeInstructions(1, store)
@@ -165,10 +168,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			//writeStatus = atomicStatus(uint32, flagPosition, flags)
 			uint32[flagPosition] = flags
 			writeStatus = lastUint32[lastFlagPosition]
+			let spinLock = 0
 			while (writeStatus & STATUS_LOCKED) {
-				//console.log('spin lock!')
+				spinLock++
 				writeStatus = lastUint32[lastFlagPosition]
 			}
+			if (spinLock)
+				console.warn('spin lock', spinLock)
 			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
 	
 			lastUint32 = uint32
@@ -225,7 +231,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 			if ((outstandingWriteCount & 7) === 0)
 				resolveWrites()
-			let newResolution = store.caching ? 
+			let newResolution = store.cache ? 
 			{
 				uint32,
 				flagPosition,
@@ -319,7 +325,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					uncommittedResolution.resolve(false)
 				} else
 					uncommittedResolution.resolve(true)
-					
 			}
 			
 			if (uncommittedResolution == unwrittenResolution) {
@@ -425,7 +430,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0 // clear out the next slot
 		let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 		if (writeStatus & WAITING_OPERATION) {
-			console.warn('ifVersion resume write thread')
 			env.startWriting(0)
 		}
 	}
@@ -555,12 +559,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return this.transactionAsync(callback, true)
 		},
 		transactionAsync(callback, asChild) {
-			// TODO: strict ordering
 			let txnIndex
 			let txnCallbacks
 			if (!lastQueuedResolution || !lastQueuedResolution.callbacks) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback]
-				txnCallbacks.results = writeInstructions(8, this)()
+				txnCallbacks.results = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this)()
 				lastQueuedResolution.callbacks = txnCallbacks
 				txnIndex = 0
 			} else {

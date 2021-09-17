@@ -617,9 +617,12 @@ describe('lmdb-store', function() {
       })
     });
     it('async transaction with interrupting sync transaction default order', async function() {
-      db.strictAsyncOrder = false
+      db.strictAsyncOrder = true
       let order = []
       let ranSyncTxn
+      db.on('beforecommit', ()=> {
+        // force eventTurnBatching on
+      })
       db.transactionAsync(() => {
         order.push('a1');
         db.put('async1', 'test');
@@ -638,7 +641,7 @@ describe('lmdb-store', function() {
         order.push('a2');
         db.put('async2', 'test');
       });
-      order.should.deep.equal(['a1', 'a2', 's1']);
+      order.should.deep.equal(['a1', 's1', 'a2']);
       should.equal(db.get('async1'), 'test');
       should.equal(db.get('outside-txn'), 'test');
       should.equal(db.get('inside-sync'), 'test');

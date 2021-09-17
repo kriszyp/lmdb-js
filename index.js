@@ -465,7 +465,7 @@ export function open(path, options) {
 	addQueryMethods(LMDBStore, { env, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBytes, keyBytesView, getLastVersion })
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, useWritemap })
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, ...options })
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)

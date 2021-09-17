@@ -977,11 +977,11 @@ NAN_METHOD(EnvWrap::abortTxn) {
         Nan::ThrowError("Can not abort this transaction");
     }
     ew->writeTxn = currentTxn->parent;
-    delete currentTxn;
     if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
         fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
+    delete currentTxn;
 }
 
 NAN_METHOD(EnvWrap::openDbi) {
