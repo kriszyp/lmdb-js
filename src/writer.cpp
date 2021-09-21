@@ -57,8 +57,8 @@ WriteWorker::~WriteWorker() {
 	uv_cond_destroy(userCallbackCond);
 }
 void WriteWorker::ContinueWrite() {
-	//fprintf(stderr, "continueWrite signal %p\n", this);
 	uv_mutex_lock(userCallbackLock);
+	fprintf(stderr, "continueWrite signal %p\n", this);
 	uv_cond_signal(userCallbackCond);
 	//fprintf(stdout, "continue unlock\n");
 	uv_mutex_unlock(userCallbackLock);
@@ -164,14 +164,21 @@ void WriteWorker::UnlockTxn() {
 		uv_mutex_unlock(userCallbackLock);
 	}
 }
-int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit) {
+int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
 	int rc;
 	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
-	uv_cond_wait(userCallbackCond, userCallbackLock);
+	if (target) {
+		int delay = 1;
+		do {
+			uv_cond_timedwait(userCallbackCond, userCallbackLock, delay);
+			delay = delay << 6;
+		} while(!*target && !interruptionStatus);
+	} else
+		uv_cond_wait(userCallbackCond, userCallbackLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
@@ -293,15 +300,13 @@ next_inst:	uint32_t* start = instruction++;
 				switch (flags & 0xf) {
 				case NO_INSTRUCTION_YET:
 					instruction -= 2; // reset back to the previous flag as the current instruction
-					int previousFlags;
-					// we use memory fencing here to make sure all reads and writes are ordered
-					previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)LOCKED);
+					int previousFlags, startValue;
 					rc = 0;
 					//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
-					if (!*start && (!finishedProgress || conditionDepth)) {
-						*lastStart = (previousFlags & ~LOCKED) | WAITING_OPERATION;
-						//fprintf(stderr, "write thread waiting %p\n", lastStart);
-						WaitForCallbacks(&txn, conditionDepth == 0);
+					if (!finishedProgress || conditionDepth) {
+						previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)WAITING_OPERATION);
+						fprintf(stderr, "write thread waiting %p\n", lastStart);
+						WaitForCallbacks(&txn, conditionDepth == 0, start);
 					}
 					if (*start || conditionDepth) {
 						//\\fprintf(stderr, "now there is a value available %p\n", *start);
@@ -347,7 +352,7 @@ next_inst:	uint32_t* start = instruction++;
 					rc = 0;
 					if (flags & USER_CALLBACK_STRICT_ORDER) {
 						*start = FINISHED_OPERATION; // mark it as finished so it is processed
-						WaitForCallbacks(&txn, conditionDepth == 0);
+						WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
 					}
 					break;
 				case DROP_DB:

@@ -244,7 +244,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     double* nextCompressible;
     ExecutionProgress* executionProgress;
     int progressStatus;
-    int WaitForCallbacks(MDB_txn** txn, bool allowCommit);
+    int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
 };
 
 class TxnTracked {

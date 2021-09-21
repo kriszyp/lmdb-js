@@ -77,10 +77,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		} else {
 			if (eventTurnBatching && !enqueuedEventTurnBatch) {
 				enqueuedEventTurnBatch = setImmediate(() => {
+					try {
+						for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
+							beforeCommitCallbacks[i]()
+						}
+					} catch(error) {
+						console.error(error)
+					}
 					enqueuedEventTurnBatch = null
-					for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
-						beforeCommitCallbacks[i]()
-					}			
 					finishBatch()
 				})
 				let finishWrite = writeInstructions(1, store)
@@ -165,16 +169,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		return () => {
 			//writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
 			// write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
-			//writeStatus = atomicStatus(uint32, flagPosition, flags)
+			//Atomics.store(uint32, flagPosition, flags)
+			//writeStatus = Atomics.load(lastUint32, lastFlagPosition)
 			uint32[flagPosition] = flags
 			writeStatus = lastUint32[lastFlagPosition]
-			let spinLock = 0
-			while (writeStatus & STATUS_LOCKED) {
-				spinLock++
-				writeStatus = lastUint32[lastFlagPosition]
-			}
-			if (spinLock)
-				console.warn('spin lock', spinLock)
+			if (!store.debugLog)
+				store.debugLog = []
+			store.debugLog.push({address: targetBytes.buffer.address + (flagPosition << 2), writeStatus})
 			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
 	
 			lastUint32 = uint32
@@ -199,10 +200,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress && (flags & 8) && !enqueuedCommit) {
-				//console.log('start address ' + startAddress.toString(16), store.path)
+				console.log('start address ' + startAddress.toString(16), store.name)
 				function startWriting() {
 					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
-						//console.log('finished batch', unwrittenResolution && (unwrittenResolution.uint32[unwrittenResolution.flag]).toString(16), store.path)
+						console.log('finished batch', store.name)
 						resolveWrites(true)
 						switch (status) {
 							case 0: case 1:
