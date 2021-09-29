@@ -54,6 +54,10 @@ EnvWrap::EnvWrap() {
     this->syncWriter = nullptr;
 	this->readTxnRenewed = false;
     this->winMemoryPriority = 5;
+    this->writingLock = new uv_mutex_t;
+    this->writingCond = new uv_cond_t;
+    uv_mutex_init(this->writingLock);
+    uv_cond_init(this->writingCond);
 }
 
 EnvWrap::~EnvWrap() {
@@ -64,6 +68,9 @@ EnvWrap::~EnvWrap() {
     }
     if (this->compression)
         this->compression->Unref();
+    uv_mutex_destroy(this->writingLock);
+    uv_cond_destroy(this->writingCond);
+    
 }
 
 void EnvWrap::cleanupStrayTxns() {
@@ -1198,6 +1205,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
     envTpl->PrototypeTemplate()->Set(isolate, "batchWrite", Nan::New<FunctionTemplate>(EnvWrap::batchWrite));
     envTpl->PrototypeTemplate()->Set(isolate, "startWriting", Nan::New<FunctionTemplate>(EnvWrap::startWriting));
+    envTpl->PrototypeTemplate()->Set(isolate, "compress", Nan::New<FunctionTemplate>(EnvWrap::compress));
     envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
     envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
     envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));

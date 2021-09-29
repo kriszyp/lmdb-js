@@ -158,7 +158,7 @@ NAN_METHOD(TxnWrap::commit) {
         // else
         rc = mdb_txn_commit(tw->txn);
         
-        uv_mutex_unlock(writeWorker->userCallbackLock);
+        uv_mutex_unlock(tw->ew->writingLock);
         if (tw->parentTw == nullptr && tw->ew->currentBatchTxn != nullptr) {
             //fprintf(stderr, "committed sync txn");
 

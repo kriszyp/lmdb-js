@@ -6,7 +6,6 @@
 12 ... key followed by at least 2 32-bit zeros
 4 value-size
 8 bytes: value pointer (or value itself)
-8 next-compressible pointer?
 8 compressor pointer?
 8 bytes (optional): conditional version
 8 bytes (optional): version
@@ -53,15 +52,13 @@ WriteWorker::~WriteWorker() {
 	// TODO: Make sure this runs on the JS main thread, or we need to move it
 	if (envForTxn->writeWorker == this)
 		envForTxn->writeWorker = nullptr;
-	uv_mutex_destroy(userCallbackLock);
-	uv_cond_destroy(userCallbackCond);
 }
 void WriteWorker::ContinueWrite() {
-	uv_mutex_lock(userCallbackLock);
-	fprintf(stderr, "continueWrite signal %p\n", this);
-	uv_cond_signal(userCallbackCond);
+	uv_mutex_lock(envForTxn->writingLock);
+	//fprintf(stderr, "continueWrite signal %p\n", this);
+	uv_cond_signal(envForTxn->writingCond);
 	//fprintf(stdout, "continue unlock\n");
-	uv_mutex_unlock(userCallbackLock);
+	uv_mutex_unlock(envForTxn->writingLock);
 }
 
 WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressibleArg, Nan::Callback *callback)
@@ -73,79 +70,31 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
-		userCallbackLock = new uv_mutex_t;
-		userCallbackCond = new uv_cond_t;
-		uv_mutex_init(userCallbackLock);
-		uv_cond_init(userCallbackCond);
-	}
-double* WriteWorker::CompressOne(double* nextCompressible) {
-	MDB_val value;
-	uint64_t nextCompressibleSlot;
-	Compression* compression;
-	uint64_t compressionPointer;
-	compressionPointer = std::atomic_exchange((std::atomic_int_fast64_t*) nextCompressible + 1, (int64_t) 0);
-	compression = (Compression*)(size_t) * ((double*)&compressionPointer);
-	if (compression) {
-		value.mv_data = (void*)((size_t) * (nextCompressible - 1));
-		value.mv_size = *(((uint32_t*)nextCompressible) - 3);
-		//fprintf(stderr, "compressing %p %p %u\n", compression, value.mv_data, value.mv_size);
-		argtokey_callback_t compressedData = compression->compress(&value, nullptr);
-		if (compressedData) {
-			*(((uint32_t*)nextCompressible) - 3) = value.mv_size;
-			*((size_t*)(nextCompressible - 1)) = (size_t)value.mv_data;
-			int64_t status = std::atomic_exchange((std::atomic_int_fast64_t *)(nextCompressible - 1), (int64_t)value.mv_data);
-			//fprintf(stderr, "compression status\n");
-			if (status == 1) {
-				uv_mutex_lock(envForTxn->writeWorker->userCallbackLock);
-				uv_cond_signal(envForTxn->writeWorker->userCallbackCond);
-				uv_mutex_unlock(envForTxn->writeWorker->userCallbackLock);
-			}
-			//fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
-		} else
-			fprintf(stdout, "failed to compress\n");
 		
 	}
-/*
-#ifdef _WIN32
-	nextCompressibleSlot = InterlockedExchange64((int64_t*)nextCompressible, 0xffffffffffffffffll);
-#else
-	nextCompressibleSlot = std::atomic_exchange(((std::atomic_int_fast64_t*) nextCompressible, 0xffffffffffffffffll);
-#endif*/
-	return (double*)(size_t) * (nextCompressible + 1);
-}
-
-
-void WriteWorker::Compress() {
-	//fprintf(stdout, "compress\n");
-	while (nextCompressible) {
-		nextCompressible = CompressOne(nextCompressible);
-	}
-}
 
 void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	this->executionProgress = (ExecutionProgress*) &executionProgress;
-	if (nextCompressible)
-		Compress();
 	Write();
 }
 MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously, int *flags) {
 	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
-	uv_mutex_lock(userCallbackLock);
+	uv_mutex_lock(envForTxn->writingLock);
 	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
 		interruptionStatus = INTERRUPT_BATCH;
-		uv_cond_signal(userCallbackCond);
-		uv_mutex_unlock(userCallbackLock);
+		uv_cond_signal(envForTxn->writingCond);
+		uv_mutex_unlock(envForTxn->writingLock);
 		*flags |= TXN_HAS_WORKER_LOCK;
 		return nullptr;
 	} else {
 		if (interruptionStatus == RESTART_WORKER_TXN)
-			uv_cond_wait(userCallbackCond, userCallbackLock);
+			uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		interruptionStatus = USER_HAS_LOCK;
 		if (txn)
 			*flags |= TXN_HAS_WORKER_LOCK;
 		else {
-			uv_mutex_unlock(userCallbackLock);
+			uv_mutex_unlock(envForTxn->writingLock);
 		}
 		return txn;
 	}
@@ -155,13 +104,13 @@ void WriteWorker::UnlockTxn() {
 	fprintf(stdout, "release txn %u\n", interruptionStatus);
 	if (interruptionStatus == RESTART_WORKER_TXN) {
 		interruptionStatus = 0;
-		uv_mutex_lock(userCallbackLock);
-		uv_cond_signal(userCallbackCond);
-		uv_mutex_unlock(userCallbackLock);
+		uv_mutex_lock(envForTxn->writingLock);
+		uv_cond_signal(envForTxn->writingCond);
+		uv_mutex_unlock(envForTxn->writingLock);
 	} else if (interruptionStatus == USER_HAS_LOCK) {
 		interruptionStatus = 0;
-		uv_cond_signal(userCallbackCond);
-		uv_mutex_unlock(userCallbackLock);
+		uv_cond_signal(envForTxn->writingCond);
+		uv_mutex_unlock(envForTxn->writingLock);
 	}
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
@@ -174,11 +123,11 @@ waitForCallback:
 	if (target) {
 		int delay = 1;
 		do {
-			uv_cond_timedwait(userCallbackCond, userCallbackLock, delay);
+			uv_cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 6;
 		} while(!*target && !interruptionStatus);
 	} else
-		uv_cond_wait(userCallbackCond, userCallbackLock);
+		uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
@@ -187,13 +136,13 @@ waitForCallback:
 			// wait again until the sync transaction is completed
 			fprintf(stderr, "Waiting after interruption\n");
 			*txn = nullptr;
-			uv_cond_wait(userCallbackCond, userCallbackLock);
+			uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 			// now restart our transaction
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
 			fprintf(stderr, "Restarted txn after interruption\n");
 			envForTxn->currentBatchTxn = *txn;
 			interruptionStatus = 0;
-			uv_cond_signal(userCallbackCond);
+			uv_cond_signal(envForTxn->writingCond);
 			goto waitForCallback;
 		}
 		if (rc != 0) {
@@ -217,7 +166,7 @@ void WriteWorker::Write() {
 	do {
 		int conditionDepth = 0;
 		if (callback) {
-			uv_mutex_lock(userCallbackLock);
+			uv_mutex_lock(envForTxn->writingLock);
 			rc = mdb_txn_begin(env, nullptr, 0, &txn);
 			txnId = mdb_txn_id(txn);
 			if (rc != 0) {
@@ -244,31 +193,19 @@ next_inst:	uint32_t* start = instruction++;
 					if (flags & COMPRESSIBLE) {
 						uint32_t highPointer = *(instruction + 1);
 						if (highPointer > 0x40000000) { // not compressed yet
-/*							Compression* compression;
-							// this is the algorithm for always compressing if it is not compressed yet (rather than waiting for the other thread)
-#ifdef _WIN32
-							compression = (Compression*)InterlockedExchange64((int64_t*)(instruction + 4), 0);
-#else
-							compression = std::atomic_exchange(instruction + 4, 0);
-#endif
-							if (compression) {
-								CompressOne((double*)(instruction + 2));
-							} // else it is already done now */
-							CompressOne((double*)(instruction + 2));
-							if(*(instruction + 1) > 0x40000000) {
-								// compression in progress
+							int64_t status = std::atomic_exchange((std::atomic_int_fast64_t*)(instruction + 2), (int64_t)1);
+							if (status == 2) {
 								fprintf(stderr, "wait on compression\n");
-								int64_t fullPointer = std::atomic_exchange((std::atomic_int_fast64_t*)instruction, (int64_t)1);
-								if(fullPointer > 0x4000000000000000ll) {
-									fprintf(stderr, "really waiting on compression\n");
-									uv_cond_wait(userCallbackCond, userCallbackLock);
-								}
-							}
+								uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+							} else if (status > 2) {
+								fprintf(stderr, "doing the compression ourselves\n");
+								((Compression*) (size_t) *((double*)&status))->compressInstruction(envForTxn, (double*) (instruction + 2));
+							} // else status is 0 and compression is done
 						}
 						// compressed
 						value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 						value.mv_size = *(instruction - 1);
-						instruction += 6; // skip compression pointers
+						instruction += 4; // skip compression pointers
 						compressed = true;
 					} else {
 						value.mv_data = (void*)(size_t) * ((double*)instruction);
@@ -305,7 +242,7 @@ next_inst:	uint32_t* start = instruction++;
 					//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 					if (!finishedProgress || conditionDepth) {
 						previousFlags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) lastStart, (uint32_t)WAITING_OPERATION);
-						fprintf(stderr, "write thread waiting %p\n", lastStart);
+						//fprintf(stderr, "write thread waiting %p\n", lastStart);
 						WaitForCallbacks(&txn, conditionDepth == 0, start);
 					}
 					if (*start || conditionDepth) {
@@ -391,7 +328,7 @@ txn_done:
 			else*/
 			rc = mdb_txn_commit(txn);
 			txn = nullptr;
-			uv_mutex_unlock(userCallbackLock);
+			uv_mutex_unlock(envForTxn->writingLock);
 			//fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 			if (rc == 0) {

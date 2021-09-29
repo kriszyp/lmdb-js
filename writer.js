@@ -133,14 +133,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
 				if (store.compression && valueBuffer.length >= store.compression.threshold) {
 					flags |= 0x100000;
-					float64[position] = 0
-					float64[position + 1] = store.compression.address
-					nextCompressible = targetBytes.buffer.address + (position << 3)
-					compressionStatus = !lastCompressibleFloat64[lastCompressiblePosition]
-					lastCompressibleFloat64[lastCompressiblePosition] = nextCompressible
-					lastCompressiblePosition = position
-					lastCompressibleFloat64 = float64
-					position += 2
+					float64[position] = store.compression.address
+					if (!writeTxn)
+						env.compress(targetBytes.buffer.address + (position << 3))
+					position++
 					compressionCount++
 				}
 			}
@@ -181,18 +177,16 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			lastUint32 = uint32
 			lastFlagPosition = flagPosition
 			outstandingWriteCount++
-			if (writeStatus) {
-				if (writeStatus & TXN_DELIMITER)
-					commitPromise = null
-				if (writeStatus & WAITING_OPERATION) { // write thread is waiting
-					//console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
-					env.startWriting(0)
-				} else if ((writeStatus & BATCH_DELIMITER) && !startAddress) {
-					startAddress = targetBytes.buffer.address + (flagPosition << 2)
-				}
-			} else if (compressionStatus) {
+			if (writeStatus & TXN_DELIMITER)
+				commitPromise = null
+			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
+				//console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
+				env.startWriting(0)
+			} else if ((writeStatus & BATCH_DELIMITER) && !startAddress) {
+				startAddress = targetBytes.buffer.address + (flagPosition << 2)
+			} else if (compressionStatus && !enqueuedCommit)
 				env.compress(nextCompressible)
-			} else if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
 
 				console.log('backpressure')
 				if (!backpressureArray)

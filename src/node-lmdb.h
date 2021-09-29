@@ -224,15 +224,13 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void ContinueWrite();
     void Write();
     double* CompressOne(double* nextCompressible);
-    void Compress();
+    void Compress(double* nextCompressible);
     MDB_txn* txn;
     MDB_txn* AcquireTxn(bool commitSynchronously, int *flags);
     void UnlockTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
-    uv_mutex_t* userCallbackLock;
-    uv_cond_t* userCallbackCond;
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
@@ -294,6 +292,8 @@ public:
     // Current write transaction
     TxnWrap *currentWriteTxn;
     TxnTracked *writeTxn;
+    uv_mutex_t* writingLock;
+    uv_cond_t* writingCond;
 
     MDB_txn* currentReadTxn;
     WriteWorker* writeWorker;
@@ -446,6 +446,7 @@ public:
     */
     static NAN_METHOD(batchWrite);
     static NAN_METHOD(startWriting);
+    static NAN_METHOD(compress);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static void writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
 #endif
@@ -761,6 +762,7 @@ public:
     static thread_local LZ4_stream_t* stream;
     void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
+    int compressInstruction(EnvWrap* env, double* compressionAddress);
     void makeUnsafeBuffer();
     void expand(unsigned int size);
     static NAN_METHOD(ctor);

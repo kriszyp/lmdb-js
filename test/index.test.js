@@ -38,9 +38,9 @@ describe('lmdb-store', function() {
   describe('Basic use', basicTests({ }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
-  describe('Basic use with JSON', basicTests({ encoding: 'json' }));
-  describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
-  describe('Basic use with caching', basicTests({ cache: true }));
+  //describe('Basic use with JSON', basicTests({ encoding: 'json' }));
+  //describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
+  //describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(1000000);
     let db, db2, db3;
@@ -216,6 +216,21 @@ describe('lmdb-store', function() {
       (await db.remove('key1', 53252)).should.equal(true);
       data = db.get('key1');
       should.equal(data, undefined);
+    });
+    it.only('repeated compressions', async function() {
+      let str = expand('Hello world!')
+      db.put('key1', str, 53252);
+      let a
+      for (let i = 0; i< 2000000;i++)
+        a = i
+      db.put('key1', str, 53253);
+      db.put('key1', str, 53254);
+      console.log('wrote third')
+      await db.put('key1', str, 53255);
+      let entry = db.getEntry('key1');
+      entry.value.should.equal(str);
+      entry.version.should.equal(53255);
+      (await db.remove('key1')).should.equal(true);
     });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this

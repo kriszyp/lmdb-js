@@ -144,6 +144,30 @@ void Compression::expand(unsigned int size) {
     makeUnsafeBuffer();
 }
 
+int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
+    MDB_val value;
+    value.mv_data = (void*)((size_t) * (compressionAddress - 1));
+    value.mv_size = *(((uint32_t*)compressionAddress) - 3);
+    fprintf(stderr, "compressing %p %p %u\n", this, value.mv_data, value.mv_size);
+    argtokey_callback_t compressedData = compress(&value, nullptr);
+    if (compressedData) {
+        *(((uint32_t*)compressionAddress) - 3) = value.mv_size;
+        *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
+        int64_t status = std::atomic_exchange((std::atomic_int_fast64_t*) compressionAddress, (int64_t) 0);
+        fprintf(stderr, "compression status %u\n", status);
+        if (status == 1) {
+            uv_mutex_lock(env->writingLock);
+            uv_cond_signal(env->writingCond);
+            uv_mutex_unlock(env->writingLock);
+        }
+        fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
+        return 0;
+    } else {
+        fprintf(stdout, "failed to compress\n");
+        return 1;
+    }
+}
+
 argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_val&)) {
     size_t dataLength = value->mv_size;
     char* data = (char*)value->mv_data;
@@ -188,32 +212,19 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
         return nullptr;
     }
 }
-/*
-NAN_METHOD(Compression::startCompressing) {
-    Compression *compression = Nan::ObjectWrap::Unwrap<Compression>(info.This());
-    Local<Context> context = Nan::GetCurrentContext();
-    double compressionAddress = Local<Number>::Cast(info[0])->Value();
-    CompressionWorker* worker = new CompressionWorker(compression, compressionAddress);
-    Nan::AsyncQueueWorker(worker);
-}
 
 class CompressionWorker : public Nan::AsyncWorker {
   public:
-    CompressionWorker(Compression* compression, double compressionAddress)
-      : compression(compression), compressionAddress(compressionAddress) {}
+    CompressionWorker(EnvWrap* env, double* compressionAddress)
+      : Nan::AsyncWorker(nullptr), env(env), compressionAddress(compressionAddress) {}
+
 
     void Execute() {
-        while(compressionAddress) {
-            // TODO: Lock this as being compressed
-            double* compressionEntry = (double*) (size_t) compressionAddress;
-            compressionAddress = *compressionEntry;
-            MDB_val data;
-            data.mv_data = (void*) (size_t) *(compressionEntry + 1);
-            data.mv_size = *(((uint32_t*) compressionEntry) - 1);
-            if (compression->compress(&data, nullptr)) {
-                *(((uint32_t*) compressionEntry) - 1) = data.mv_size;
-                *((size_t*) (compressionEntry + 1)) = (size_t) data.mv_data;
-            }
+        uint64_t compressionPointer;
+        compressionPointer = std::atomic_exchange((std::atomic_int_fast64_t*) compressionAddress, (int64_t) 2);
+        if (compressionPointer > 1) {
+            Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
+            compression->compressInstruction(env, compressionAddress);
         }
     }
 
@@ -221,8 +232,14 @@ class CompressionWorker : public Nan::AsyncWorker {
     }
 
   private:
-    Compression* compression;
-    double compressionAddress;
+    EnvWrap* env;
+    double* compressionAddress;
 };
 
-*/
+NAN_METHOD(EnvWrap::compress) {
+    EnvWrap *env = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    Local<Context> context = Nan::GetCurrentContext();
+    size_t compressionAddress = Local<Number>::Cast(info[0])->Value();
+    CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress);
+    Nan::AsyncQueueWorker(worker);
+}
