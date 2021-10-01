@@ -148,19 +148,18 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
     MDB_val value;
     value.mv_data = (void*)((size_t) * (compressionAddress - 1));
     value.mv_size = *(((uint32_t*)compressionAddress) - 3);
-    fprintf(stderr, "compressing %p %p %u\n", this, value.mv_data, value.mv_size);
     argtokey_callback_t compressedData = compress(&value, nullptr);
     if (compressedData) {
         *(((uint32_t*)compressionAddress) - 3) = value.mv_size;
         *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
         int64_t status = std::atomic_exchange((std::atomic_int_fast64_t*) compressionAddress, (int64_t) 0);
-        fprintf(stderr, "compression status %u\n", status);
-        if (status == 1) {
+        if (status == 1 && env) {
             uv_mutex_lock(env->writingLock);
             uv_cond_signal(env->writingCond);
             uv_mutex_unlock(env->writingLock);
+            fprintf(stderr, "sent compression completion signal\n");
         }
-        fprintf(stdout, "compressed to %p %u\n", value.mv_data, value.mv_size);
+        fprintf(stdout, "compressed to %p %u %u %p\n", value.mv_data, value.mv_size, status, env);
         return 0;
     } else {
         fprintf(stdout, "failed to compress\n");

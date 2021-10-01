@@ -174,7 +174,7 @@ describe('lmdb-store', function() {
       entry = db.getEntry('key1');
       should.equal(entry, undefined);
     });
-    it('string with version branching', async function() {
+    it.only('string with version branching', async function() {
       await db.put('key1', 'Hello world!', 53252);
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');
@@ -217,7 +217,7 @@ describe('lmdb-store', function() {
       data = db.get('key1');
       should.equal(data, undefined);
     });
-    it.only('repeated compressions', async function() {
+    it('repeated compressions', async function() {
       let str = expand('Hello world!')
       db.put('key1', str, 53252);
       let a

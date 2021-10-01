@@ -21,7 +21,7 @@ SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
 export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching }) {
-	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution 
+	var unwrittenResolution, lastQueuedResolution = {}, uncommittedResolution
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -50,6 +50,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var afterCommitCallbacks = []
 	var beforeCommitCallbacks = []
 	var enqueuedEventTurnBatch
+	let batchDepth = 0
+	let writeBatchStart
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER
@@ -86,9 +88,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					}
 					enqueuedEventTurnBatch = null
 					finishBatch()
+					batchDepth--
+					finishWrite() // TODO: When we support delay start of batch, optionally don't delay this
 				})
 				let finishWrite = writeInstructions(1, store)
-				finishWrite() // TODO: When we support delay start of batch, delay this
+				batchDepth++
 			}
 			targetBytes = dynamicBytes
 			position = targetBytes.position
@@ -101,7 +105,21 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				targetBytes = allocateInstructionBuffer()
 				position = targetBytes.position
 				lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
-				lastUint32[lastPosition << 1] = 3 // pointer instruction
+				writeStatus = atomicStatus(lastUint32, lastPosition << 1, 3) // pointer instruction
+				let newResolution = {
+					lastUint32,
+					flagPosition: lastPosition << 1,
+					flag: 0, // TODO: eventually eliminate this, as we can probably signify success by zeroing the flagPosition
+					next: null,
+				}
+				if (!unwrittenResolution) {
+					unwrittenResolution = newResolution
+					if (!uncommittedResolution)
+						uncommittedResolution = newResolution
+				}
+				lastQueuedResolution.next = newResolution
+				lastQueuedResolution = newResolution
+	
 			}
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
@@ -163,29 +181,38 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		return () => {
-			//writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
+			if (batchDepth) {
+				// if we are in a batch, the transaction can't close, so we do the faster,
+				// but non-deterministic updates, knowing that the write thread can
+				// just poll for the status change if we miss a status update
+				writeStatus = uint32[flagPosition]
+				uint32[flagPosition] = flags
+			} else // otherwise the transaction could end at any time and we need to know the
+				// deterministically if it is ending, so we can reset the commit promise
+				// so we use the slower atomic operation
+				writeStatus = Atomics.or(uint32, flagPosition, flags) || writeStatus
 			// write flags at the end so the writer never processes mid-stream, and do so th an atomic exchanges
 			//Atomics.store(uint32, flagPosition, flags)
 			//writeStatus = Atomics.load(lastUint32, lastFlagPosition)
-			uint32[flagPosition] = flags
-			writeStatus = lastUint32[lastFlagPosition]
+			//uint32[flagPosition] = flags
+			//writeStatus = lastUint32[lastFlagPosition]
 			if (!store.debugLog)
 				store.debugLog = []
 			store.debugLog.push({address: targetBytes.buffer.address + (flagPosition << 2), writeStatus})
-			//console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path)
+			console.log('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16), store.path, batchDepth)
 	
 			lastUint32 = uint32
 			lastFlagPosition = flagPosition
 			outstandingWriteCount++
-			if (writeStatus & TXN_DELIMITER)
+			if (writeStatus & TXN_DELIMITER) {
 				commitPromise = null
+				if (!startAddress)
+					startAddress = targetBytes.buffer.address + (flagPosition << 2)
+			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
-				//console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
+				console.log('resume batch thread', targetBytes.buffer.address + (flagPosition << 2))
 				env.startWriting(0)
-			} else if ((writeStatus & BATCH_DELIMITER) && !startAddress) {
-				startAddress = targetBytes.buffer.address + (flagPosition << 2)
-			} else if (compressionStatus && !enqueuedCommit)
-				env.compress(nextCompressible)
+			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
 
 				console.log('backpressure')
@@ -194,8 +221,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress && (flags & 8) && !enqueuedCommit) {
-				console.log('start address ' + startAddress.toString(16), store.name)
 				function startWriting() {
+					console.log('start address ' + startAddress.toString(16), store.name)
 					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
 						console.log('finished batch', store.name)
 						resolveWrites(true)
@@ -252,6 +279,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			lastQueuedResolution.next = newResolution
 			lastQueuedResolution = newResolution
 			if (ifVersion === undefined) {
+				if (batchDepth)
+					return // or return a resolved promise?
 				if (!commitPromise) {
 					commitPromise = new Promise((resolve, reject) => {
 						newResolution.resolve = resolve
@@ -270,7 +299,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus
-		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flagPosition]) & 0x10000000) {
+		while (unwrittenResolution && (instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flagPosition])
+				& 0x50000000) {
 			//console.log('instructionStatus: ' + instructionStatus.toString(16))
 			if (unwrittenResolution.callbacks) {
 				nextTxnCallbacks.push(unwrittenResolution.callbacks)
@@ -287,23 +317,19 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					return // revisit when it is done (but at least free the value buffer)
 				}
 			} else {
-				if (!unwrittenResolution.next)
-					return // don't advance yet, wait to see if it a transaction delimiter that will commit
 				unwrittenResolution.flag = instructionStatus
 			}
 			outstandingWriteCount--
 			unwrittenResolution.uint32 = null
 			unwrittenResolution = unwrittenResolution.next
 		}
-		/*if (!unwrittenResolution) {
-			if ((instructionStatus = lastUint32[lastFlagPosition]) & TXN_DELIMITER) {
-				if (instructionStatus & 0x80000000)
-					rejectCommit()
-				else if (instructionStatus & TXN_COMMITTED)
-					resolveCommit(async)
-			}
-			return
-		}*/
+		if (!unwrittenResolution &&
+				(instructionStatus = dynamicBytes.uint32[dynamicBytes.position << 1])) {
+			if (instructionStatus & 0x80000000)
+				rejectCommit()
+			else if (instructionStatus & TXN_COMMITTED)
+				resolveCommit(async)
+		}
 	}
 	function resolveCommit(async) {
 		afterCommit()
@@ -322,10 +348,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					uncommittedResolution.resolve(true)
 			}
 			
-			if (uncommittedResolution == unwrittenResolution) {
-				return uncommittedResolution = uncommittedResolution.next
-			}
-		} while(uncommittedResolution = uncommittedResolution.next)
+		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != unwrittenResolution)
 	}
 	var commitRejectPromise
 	function rejectCommit() {
@@ -344,17 +367,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 	}
 	function atomicStatus(uint32, flagPosition, newStatus) {
-		uint32[flagPosition] = newStatus
-		let writeStatus = lastUint32[lastFlagPosition]
-		let spinLock = 0
-		while (writeStatus & STATUS_LOCKED) {
-			spinLock++
-			writeStatus = lastUint32[lastFlagPosition]
-		}
-		if (spinLock)
-			console.warn('spin lock', spinLock)
-		//console.warn('writeStatus: ' + writeStatus.toString(16) + ' address: ' + (lastUint32.buffer.address + (lastFlagPosition << 2)).toString(16))
-		return writeStatus
+		if (batchDepth) {
+			// if we are in a batch, the transaction can't close, so we do the faster,
+			// but non-deterministic updates, knowing that the write thread can
+			// just poll for the status change if we miss a status update
+			let writeStatus = uint32[flagPosition]
+			uint32[flagPosition] = newStatus
+			return writeStatus
+		} else // otherwise the transaction could end at any time and we need to know the
+			// deterministically if it is ending, so we can reset the commit promise
+			// so we use the slower atomic operation
+			return Atomics.or(uint32, flagPosition, newStatus)
 	}
 	function afterCommit() {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
@@ -477,23 +500,37 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 				return SYNC_PROMISE_FAIL
 			}
-			let finishWrite = writeInstructions(typeof key === 'undefined' ? 1 : 4, this, key, undefined, undefined, version)
+			let finishStartWrite = writeInstructions(typeof key === 'undefined' ? 1 : 4, this, key, undefined, undefined, version)
 			let promise
+			batchDepth++
+			if (batchDepth > 1)
+				promise = finishStartWrite()
+			else
+				writeBatchStart = () => {
+					promise = finishStartWrite()
+					writeBatchStart = null
+				}
 			//console.warn('wrote start of ifVersion', this.path)
 			try {
 				if (typeof callback === 'function') {
-					promise = finishWrite() // commit to writing the whole block in the current transaction
 					callback()
 				} else {
 					for (let i = 0, l = callback.length; i < l; i++) {
 						let operation = callback[i]
 						this[operation.type](operation.key, operation.value)
 					}
-					promise = finishWrite() // finish write once all the operations have been written
 				}
 			} finally {
 				//console.warn('writing end of ifVersion', this.path, (dynamicBytes.buffer.address + ((dynamicBytes.position + 1) << 3)).toString(16))
-				finishBatch()
+				if (!promise) {
+					finishBatch()
+					batchDepth--
+					promise = finishStartWrite() // finish write once all the operations have been written (and it hasn't been written prematurely)
+					writeBatchStart = null
+				} else {
+					batchDepth--
+					finishBatch()
+				}
 			}
 			return promise
 		},
