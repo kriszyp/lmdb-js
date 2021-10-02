@@ -174,7 +174,7 @@ describe('lmdb-store', function() {
       entry = db.getEntry('key1');
       should.equal(entry, undefined);
     });
-    it.only('string with version branching', async function() {
+    it('string with version branching', async function() {
       await db.put('key1', 'Hello world!', 53252);
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');

@@ -14,7 +14,7 @@ inline value?
 #include "node-lmdb.h"
 #include <atomic>
 // flags:
-const int NO_INSTRUCTION_YET = 0;
+const uint32_t NO_INSTRUCTION_YET = 0;
 const int PUT = 15;
 const int DEL = 13;
 const int DEL_VALUE = 14;
@@ -40,8 +40,7 @@ const int TXN_COMMITTED = 0x40000000;
 const int WAITING_OPERATION = 0x400000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
-const int LOCKED = 0x200000;
-const int FAILED_CONDITION = 1;
+const int FAILED_CONDITION = 0x200000;
 const int FINISHED_OPERATION = 0x10000000;
 const int BATCH_DELIMITER = 0x8000000;
 const int BAD_KEY = 3;
@@ -176,8 +175,10 @@ void WriteWorker::Write() {
 	int validatedDepth = 0;
 	double conditionalVersion, setVersion;
 	bool startingTransaction = true;
+	bool overlappedWord = !!callback;
+	uint32_t* start;
 	do {
-next_inst:	uint32_t* start = instruction++;
+next_inst:	start = instruction++;
 		uint32_t flags = *start;
 		MDB_dbi dbi;
 		bool validated = conditionDepth == validatedDepth;
@@ -237,18 +238,21 @@ next_inst:	uint32_t* start = instruction++;
 				instruction -= 2; // reset back to the previous flag as the current instruction
 				rc = 0;
 				//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
+				// in windows InterlockedCompareExchange might be faster
 				if (!finishedProgress || conditionDepth) {
-					flags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, (uint32_t)WAITING_OPERATION);
 					//fprintf(stderr, "write thread waiting %p\n", lastStart);
-					if (!flags)
+					if (std::atomic_compare_exchange_strong((std::atomic_uint_fast32_t*) start,
+							(uint32_t*) &flags,
+							(uint32_t)WAITING_OPERATION))
 						WaitForCallbacks(&txn, conditionDepth == 0, start);
 					goto next_inst;
 				} else {
-					flags = std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, (uint32_t)TXN_DELIMITER);
-					if (flags)
-						goto next_inst;
-					else
+					if (std::atomic_compare_exchange_strong((std::atomic_uint_fast32_t*) start,
+							(uint32_t*) &flags,
+							(uint32_t)TXN_DELIMITER))
 						goto txn_done;
+					else
+						goto next_inst;						
 				}
 			case BLOCK_END:
 				conditionDepth--;
@@ -283,7 +287,7 @@ next_inst:	uint32_t* start = instruction++;
 				progressStatus = 2;
 				rc = 0;
 				if (flags & USER_CALLBACK_STRICT_ORDER) {
-					*start = FINISHED_OPERATION; // mark it as finished so it is processed
+					std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, FINISHED_OPERATION); // mark it as finished so it is processed
 					WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
 				}
 				break;
@@ -306,7 +310,12 @@ next_inst:	uint32_t* start = instruction++;
 		} else
 			flags = FINISHED_OPERATION | FAILED_CONDITION;
 		//fprintf(stderr, "finished flag %p\n", flags);
-		*start = flags;
+		// TODO: Only use atomics for the very first instruction of an async transaction
+		if (overlappedWord) {
+			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, flags);
+			overlappedWord = false;
+		} else
+			*start |= flags;
 	} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 txn_done:
 	if (envForTxn) {
@@ -324,7 +333,7 @@ txn_done:
 
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
-		fprintf(stderr, "committed %p %u\n", instruction, rc);
+		//fprintf(stderr, "committed %p %u\n", instruction, rc);
 
 		if (rc == 0) {
 			unsigned int envFlags;
@@ -358,10 +367,12 @@ txn_done:
 				mdb_txn_commit(txn);
 			}
 		}
-	}
-	std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, (uint32_t) TXN_COMMITTED);
-	if (rc)
-		return SetErrorMessage(mdb_strerror(rc));
+		if (rc) {
+			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, rc);
+			return SetErrorMessage(mdb_strerror(rc));
+		} else
+			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, (uint32_t) TXN_COMMITTED);
+	}	
 }
 
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
