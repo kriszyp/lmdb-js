@@ -34,7 +34,9 @@
     "install": "node-gyp-build",
     "build": "node-gyp configure && node-gyp build -d && rollup -c",
     "build-js": "rollup -c",
-    "prebuild": "prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0",
+    "prebuild": "run-script-os",
+    "prebuild:darwin": "prebuildify --arch=arm64 --target 16.9.0 && prebuildify --arch=arm64 --target 14.17.6 && prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0",
+    "prebuild:default": "prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0",
     "prepare": "rollup -c && prebuildify-ci download && prebuildify --target 16.9.0 && prebuildify --target 14.17.6 && prebuildify --target 12.18.0 && prebuildify --target electron@13.1.4",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build -d",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
@@ -65,6 +67,7 @@
     "prebuildify-ci": "^1.0.5",
     "rimraf": "^3.0.2",
     "rollup": "^1.20.3",
+    "run-script-os": "^1.1.6",
     "tsd": "^0.14.0"
   },
   "bugs": {

@@ -12,9 +12,14 @@ import * as lmdb from '../main.mjs';
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 
 describe.skip('Node.js LMDB Bindings', function() {
+<<<<<<< HEAD:test/node-lmdb.old.js
   let dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
   var testDirPath = path.resolve(dirName, './testdata');
   var testBackupDirPath = path.resolve(dirName, './testdata/backup');
+=======
+  var testDirPath = path.resolve(__dirname, './testdata');
+  var testBackupDirPath = path.resolve(__dirname, './testdata/backup');
+>>>>>>> master:test/node-lmdb.test.js
   // just to make a reasonable sized chunk of data...
   function expand(str) {
     str = '(' + str + ')';

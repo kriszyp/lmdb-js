@@ -70,9 +70,10 @@ export function open(path, options) {
 		mapSize: remapChunks ? 0x10000000000000 :
 			0x20000, // Otherwise we start small with 128KB
 	}, options)
-	if (options.asyncTransactionOrder == 'before')
+	if (options.asyncTransactionOrder == 'before') {
+		console.warn('asyncTransactionOrder: "before" is deprecated')
 		asyncTransactionAfter = false
-	else if (options.asyncTransactionOrder == 'strict') {
+	} else if (options.asyncTransactionOrder == 'strict') {
 		asyncTransactionStrictOrder = true
 		asyncTransactionAfter = false
 	}
