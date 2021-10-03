@@ -125,7 +125,7 @@ waitForCallback:
 			delay = delay << 6;
 		} while(!(
 			(*target & 0xf) ||
-			allowCommit && (interruptionStatus == INTERRUPT_BATCH || finishedProgress)));
+			(allowCommit && (interruptionStatus == INTERRUPT_BATCH || finishedProgress))));
 	} else
 		uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
@@ -272,7 +272,7 @@ next_inst:	start = instruction++;
 				worker->progressStatus = 2;
 				rc = 0;
 				if (flags & USER_CALLBACK_STRICT_ORDER) {
-					std::atomic_fetch_or((std::atomic<uint32_t>*) start, FINISHED_OPERATION); // mark it as finished so it is processed
+					std::atomic_fetch_or((std::atomic<uint32_t>*) start, (uint32_t) FINISHED_OPERATION); // mark it as finished so it is processed
 					worker->WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
 				}
 				break;
@@ -368,7 +368,7 @@ void WriteWorker::Write() {
 			}
 		}
 		if (rc) {
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, rc);
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) rc);
 			return SetErrorMessage(mdb_strerror(rc));
 		} else
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
