@@ -772,7 +772,9 @@ describe('lmdb-store', function() {
       }
     });
     after(function() {
+      console.log('closing')
       db.close();
+      console.log('closed')
     });
   });
   describe('ArrayLikeIterable', function() {

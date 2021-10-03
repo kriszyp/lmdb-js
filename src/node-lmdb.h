@@ -220,29 +220,26 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
 };
 class WriteWorker : public Nan::AsyncProgressWorker {
   public:
-    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressible, Nan::Callback *callback);
+    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
     void ContinueWrite();
     void Write();
-    double* CompressOne(double* nextCompressible);
-    void Compress(double* nextCompressible);
     MDB_txn* txn;
     MDB_txn* AcquireTxn(bool commitSynchronously, int *flags);
     void UnlockTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
+    int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
     TxnWrap* currentTxnWrap;
     ~WriteWorker();
-  private:
-    MDB_env* env;
     uint32_t* instructions;
-    double* nextCompressible;
-    ExecutionProgress* executionProgress;
     int progressStatus;
-    int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
+  private:
+    ExecutionProgress* executionProgress;
+    MDB_env* env;
 };
 
 class TxnTracked {

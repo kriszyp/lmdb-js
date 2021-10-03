@@ -60,12 +60,11 @@ void WriteWorker::ContinueWrite() {
 	uv_mutex_unlock(envForTxn->writingLock);
 }
 
-WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, double* nextCompressibleArg, Nan::Callback *callback)
+WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
 		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
 		env(env),
 		envForTxn(envForTxn),
-		instructions(instructions),
-		nextCompressible(nextCompressibleArg) {
+		instructions(instructions) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
@@ -115,7 +114,7 @@ void WriteWorker::UnlockTxn() {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
 	int rc;
-	//fprintf(stderr, "wait for callback %p\n", this);
+	fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
@@ -124,7 +123,9 @@ waitForCallback:
 		do {
 			uv_cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 6;
-		} while(!*target && !interruptionStatus);
+		} while(!(
+			(*target & 0xf) ||
+			allowCommit && (interruptionStatus == INTERRUPT_BATCH || finishedProgress)));
 	} else
 		uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
@@ -149,35 +150,19 @@ waitForCallback:
 			return rc;
 		}
 	}
-	//fprintf(stderr, "callback done waiting\n");
+	fprintf(stderr, "callback done waiting\n");
 	return 0;
 }
-
-void WriteWorker::Write() {
+int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
 	MDB_val key, value;
-	uint32_t* instruction = instructions;
-	int rc, txnId;
-	bool moreProcessing = true;
-	finishedProgress = true;
-	bool compressed;
-	// we do compression in this thread to offload from main thread, but do it before transaction to minimize time that the transaction is open
+	int rc;
 	int conditionDepth = 0;
-	if (callback) {
-		uv_mutex_lock(envForTxn->writingLock);
-		rc = mdb_txn_begin(env, nullptr, 0, &txn);
-		txnId = mdb_txn_id(txn);
-		if (rc != 0) {
-			return SetErrorMessage(mdb_strerror(rc));
-		}
-	} else {
-		txn = envForTxn->writeTxn->txn;
-	}
 	int validatedDepth = 0;
 	double conditionalVersion, setVersion;
 	bool startingTransaction = true;
-	bool overlappedWord = !!callback;
+	bool overlappedWord = !!worker;
 	uint32_t* start;
-	do {
+		do {
 next_inst:	start = instruction++;
 		uint32_t flags = *start;
 		MDB_dbi dbi;
@@ -192,7 +177,7 @@ next_inst:	start = instruction++;
 				if (flags & COMPRESSIBLE) {
 					uint32_t highPointer = *(instruction + 1);
 					if (highPointer > 0x40000000) { // not compressed yet
-						int64_t status = std::atomic_exchange((std::atomic_int_fast64_t*)(instruction + 2), (int64_t)1);
+						int64_t status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
 							fprintf(stderr, "wait on compression\n");
 							uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
@@ -205,7 +190,6 @@ next_inst:	start = instruction++;
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
-					compressed = true;
 				} else {
 					value.mv_data = (void*)(size_t) * ((double*)instruction);
 					value.mv_size = *(instruction - 1);
@@ -239,19 +223,20 @@ next_inst:	start = instruction++;
 				rc = 0;
 				//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 				// in windows InterlockedCompareExchange might be faster
-				if (!finishedProgress || conditionDepth) {
+				if (!worker->finishedProgress || conditionDepth) {
 					//fprintf(stderr, "write thread waiting %p\n", lastStart);
-					if (std::atomic_compare_exchange_strong((std::atomic_uint_fast32_t*) start,
+					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)WAITING_OPERATION))
-						WaitForCallbacks(&txn, conditionDepth == 0, start);
+						worker->WaitForCallbacks(&txn, conditionDepth == 0, start);
 					goto next_inst;
 				} else {
-					if (std::atomic_compare_exchange_strong((std::atomic_uint_fast32_t*) start,
+					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
-							(uint32_t)TXN_DELIMITER))
-						goto txn_done;
-					else
+							(uint32_t)TXN_DELIMITER)) {
+						worker->instructions = start;
+						return 0;
+					} else
 						goto next_inst;						
 				}
 			case BLOCK_END:
@@ -264,7 +249,7 @@ next_inst:	start = instruction++;
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
-				if ((flags & COMPRESSIBLE) && compressed)
+				if (flags & COMPRESSIBLE)
 					free(value.mv_data);
 				//fprintf(stdout, "put %u \n", key.mv_size);
 				break;
@@ -273,7 +258,7 @@ next_inst:	start = instruction++;
 				break;
 			case DEL_VALUE:
 				rc = mdb_del(txn, dbi, &key, &value);
-				if ((flags & COMPRESSIBLE) && compressed)
+				if (flags & COMPRESSIBLE)
 					free(value.mv_data);
 				break;
 			case START_BLOCK: case START_CONDITION_BLOCK:
@@ -283,12 +268,12 @@ next_inst:	start = instruction++;
 				conditionDepth++;
 				break;
 			case USER_CALLBACK:
-				finishedProgress = false;
-				progressStatus = 2;
+				worker->finishedProgress = false;
+				worker->progressStatus = 2;
 				rc = 0;
 				if (flags & USER_CALLBACK_STRICT_ORDER) {
-					std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, FINISHED_OPERATION); // mark it as finished so it is processed
-					WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
+					std::atomic_fetch_or((std::atomic<uint32_t>*) start, FINISHED_OPERATION); // mark it as finished so it is processed
+					worker->WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
 				}
 				break;
 			case DROP_DB:
@@ -312,12 +297,27 @@ next_inst:	start = instruction++;
 		//fprintf(stderr, "finished flag %p\n", flags);
 		// TODO: Only use atomics for the very first instruction of an async transaction
 		if (overlappedWord) {
-			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, flags);
+			std::atomic_fetch_or((std::atomic<uint32_t>*) start, flags);
 			overlappedWord = false;
 		} else
 			*start |= flags;
-	} while(callback); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
-txn_done:
+	} while(worker); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
+	return rc;
+}
+
+void WriteWorker::Write() {
+	uint32_t* instruction = instructions;
+	int rc, txnId;
+	finishedProgress = true;
+	uv_mutex_lock(envForTxn->writingLock);
+	rc = mdb_txn_begin(env, nullptr, 0, &txn);
+	txnId = mdb_txn_id(txn);
+	if (rc != 0) {
+		return SetErrorMessage(mdb_strerror(rc));
+	}
+
+	DoWrites(txn, envForTxn, instructions, this);
+
 	if (envForTxn) {
 		envForTxn->currentBatchTxn= nullptr;
 		if (currentTxnWrap) {
@@ -368,11 +368,12 @@ txn_done:
 			}
 		}
 		if (rc) {
-			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, rc);
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, rc);
 			return SetErrorMessage(mdb_strerror(rc));
 		} else
-			std::atomic_fetch_or((std::atomic_uint_fast32_t*) start, (uint32_t) TXN_COMMITTED);
-	}	
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	} else
+		interruptionStatus = rc;
 }
 
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
@@ -405,10 +406,9 @@ NAN_METHOD(EnvWrap::startWriting) {
 		ew->writeWorker->ContinueWrite();
 		return;
 	}
-    size_t nextCompressible = Local<Number>::Cast(info[1])->Value();
-    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[2]));
+    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
 
-    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, (double*) nextCompressible, callback);
+    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
 	ew->writeWorker = worker;
     Nan::AsyncQueueWorker(worker);
 }
@@ -419,11 +419,8 @@ void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress,
 	EnvWrap* cw = static_cast<EnvWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
 	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-	WriteWorker* syncWriter = ew->syncWriter;
-	if (!syncWriter)
-		syncWriter = ew->syncWriter = new WriteWorker(ew->env, ew, (uint32_t*)instructionAddress, nullptr, nullptr);
-	syncWriter->Write();
-	if (syncWriter.interruptionStatus)
+	int rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		options.fallback = true;
 }
 #endif
@@ -437,10 +434,7 @@ void EnvWrap::write(
 		return Nan::ThrowError("The environment is already closed.");
 	}
 	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-	WriteWorker* syncWriter = ew->syncWriter;
-	if (!syncWriter)
-		syncWriter = ew->syncWriter = new WriteWorker(ew->env, ew, (uint32_t*)instructionAddress, nullptr, nullptr);
-	syncWriter->Write();
-	if (syncWriter->interruptionStatus)
-		return Nan::ThrowError(mdb_strerror(syncWriter->interruptionStatus));
+	int rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
+		return Nan::ThrowError(mdb_strerror(rc));
 }

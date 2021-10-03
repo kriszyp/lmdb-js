@@ -231,7 +231,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (startAddress && !enqueuedCommit) {
 				function startWriting() {
 					//console.log('start address ' + startAddress.toString(16), store.name)
-					env.startWriting(startAddress, compressionStatus ? nextCompressible : 0, (status) => {
+					env.startWriting(startAddress, (status) => {
 						//console.log('finished batch', store.name)
 						if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 							queueCommitResolution(nextResolution)
@@ -275,7 +275,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				
 			if (ifVersion === undefined) {
 				if (batchDepth > 1)
-					return // or return a resolved promise?
+					return SYNC_PROMISE_SUCCESS // or return undefined?
 				if (!commitPromise) {
 					commitPromise = new Promise((resolve, reject) => {
 						resolution.resolve = resolve
@@ -433,7 +433,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			await Promise.all(promises)
 		}
 		env.writeTxn = writeTxn = false
-		console.log('async callback resume write trhead')
+		//console.log('async callback resume write trhead')
 		lastQueuedTxnCallbacks = null
 		return env.commitTxn()
 		function txnError(error, i) {

@@ -1,6 +1,7 @@
 'use strict';
 import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
 import { isMaster, fork } from 'cluster';
+import inspector from 'inspector'
 
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
@@ -48,7 +49,15 @@ function setData(deferred) {
   } else
     deferred.resolve()*/
 }
-
+function batchData(deferred) {
+  result = store.batch(() => {
+    for (let i = 0; i < 10; i++) {
+      let key = (c += 357) % total
+      store.put(key, data)
+    }
+  })
+}
+  
 function getData() {
   result = store.get((c += 357) % total)
 }
@@ -84,7 +93,6 @@ function plainJSON() {
 }
 
 if (isMainThread && isMaster) {
-//var inspector = require('inspector')
 //inspector.open(9330, null, true); debugger
 
 function cleanup(done) {
@@ -131,7 +139,7 @@ cleanup(async function (err) {
     //suite.add('getRange', getRange);
     suite.add('put', {
       defer: false,
-      fn: setData
+      fn: batchData
     });
     suite.add('get', getData);
     /*suite.add('plainJSON', plainJSON);
