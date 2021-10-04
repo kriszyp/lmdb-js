@@ -50,6 +50,7 @@ describe('lmdb-store', function() {
         name: 'mydb3',
         create: true,
         useVersions: true,
+        batchStartThreshold: 10,
         //asyncTransactionOrder: 'strict',
         //useWritemap: true,
         //noSync: true,
@@ -675,6 +676,24 @@ describe('lmdb-store', function() {
         })
         await db.put('key1',  'test');
         should.equal(db.get('key1'), 'test');
+      }
+    });
+    it.only('mixed batches', async function() {
+      let promise
+      for (let i = 0; i < 20; i++) {
+        db.put(i, 'test')
+        promise = db.batch(() => {
+          for (let j = 0; j < 20; j++) {
+            db.put('test:' + i + '/' + j, i + j)
+          }
+        })
+      }
+      await promise
+      for (let i = 0; i < 20; i++) {
+        should.equal(db.get(i), 'test');
+        for (let j = 0; j < 20; j++) {
+          should.equal(db.get('test:' + i + '/' + j), i + j)
+        }
       }
     });
     it('read and write with binary encoding', async function() {

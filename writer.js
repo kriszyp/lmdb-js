@@ -21,7 +21,7 @@ SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold }) {
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -50,8 +50,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var afterCommitCallbacks = []
 	var beforeCommitCallbacks = []
 	var enqueuedEventTurnBatch
-	let batchDepth = 0
-	let writeBatchStart
+	var batchDepth = 0
+	var writeBatchStart, outstandingBatchCount
+	txnStartThreshold = txnStartThreshold || 5
+	batchStartThreshold = batchStartThreshold || 1000
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED
@@ -203,13 +205,16 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				// just poll for the status change if we miss a status update
 				writeStatus = uint32[flagPosition]
 				uint32[flagPosition] = flags
+				if (writeBatchStart && !writeStatus) {
+					outstandingBatchCount++
+					if (outstandingBatchCount > batchStartThreshold)
+						writeBatchStart()
+				}
 			} else // otherwise the transaction could end at any time and we need to know the
 				// deterministically if it is ending, so we can reset the commit promise
 				// so we use the slower atomic operation
 				writeStatus = Atomics.or(uint32, flagPosition, flags)
 	
-			lastUint32 = uint32
-			lastFlagPosition = flagPosition
 			outstandingWriteCount++
 			if (writeStatus & TXN_DELIMITER) {
 				commitPromise = null
@@ -222,44 +227,19 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				env.startWriting(0)
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
-
 				console.log('backpressure')
 				if (!backpressureArray)
 					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
 				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
-			if (startAddress && !enqueuedCommit) {
-				function startWriting() {
-					//console.log('start address ' + startAddress.toString(16), store.name)
-					env.startWriting(startAddress, (status) => {
-						//console.log('finished batch', store.name)
-						if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
-							queueCommitResolution(nextResolution)
-
-						resolveWrites(true)
-						switch (status) {
-							case 0: case 1:
-							break;
-							case 2:
-								executeTxnCallbacks()
-								console.log('user callback');
-							break
-							default:
-							console.error(status)
-							if (commitRejectPromise) {
-								commitRejectPromise.reject(status)
-								commitRejectPromise = null
-							}
-						}
-					})
-					startAddress = 0
-				}
-				if (commitDelay == IMMEDIATE)
+			if (startAddress) {
+				if (!enqueuedCommit) {
+					if (commitDelay == IMMEDIATE)
+						startWriting()
+					else
+						enqueuedCommit = commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
+				} else if (outstandingWriteCount > txnStartThreshold)
 					startWriting()
-				else {
-					commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
-					enqueuedCommit = true
-				}
 			}
 
 			if ((outstandingWriteCount & 7) === 0)
@@ -290,7 +270,36 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			})
 		}
 	}
-	var lastUint32 = new Uint32Array([BATCH_DELIMITER]), lastFlagPosition = 0
+	function startWriting() {
+		//console.log('start address ' + startAddress.toString(16), store.name)
+		if (enqueuedCommit) {
+			clearImmediate(enqueuedCommit)
+			enqueuedCommit = null
+		}
+		env.startWriting(startAddress, (status) => {
+			//console.log('finished batch', store.name)
+			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
+				queueCommitResolution(nextResolution)
+
+			resolveWrites(true)
+			switch (status) {
+				case 0: case 1:
+				break;
+				case 2:
+					executeTxnCallbacks()
+					console.log('user callback');
+				break
+				default:
+				console.error(status)
+				if (commitRejectPromise) {
+					commitRejectPromise.reject(status)
+					commitRejectPromise = null
+				}
+			}
+		})
+		startAddress = 0
+	}
+
 	function queueCommitResolution(resolution) {
 		if (!resolution.isTxn) {
 			resolution.isTxn = true
@@ -503,11 +512,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			batchDepth += 2
 			if (batchDepth > 2)
 				promise = finishStartWrite()
-			else
+			else {
 				writeBatchStart = () => {
-					promise = finishStartWrite()
 					writeBatchStart = null
+					promise = finishStartWrite()
 				}
+				outstandingBatchCount = 0
+			}
 			//console.warn('wrote start of ifVersion', this.path)
 			try {
 				if (typeof callback === 'function') {
