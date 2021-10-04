@@ -114,7 +114,7 @@ NAN_METHOD(TxnWrap::ctor) {
                 }
             }
         }
-        fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
+        //fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
         int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
         if (rc != 0) {
             if (rc == EINVAL) {
@@ -123,7 +123,7 @@ NAN_METHOD(TxnWrap::ctor) {
             return throwLmdbError(rc);
         }
     }
-    got_txn: TxnWrap* tw = new TxnWrap(ew->env, txn);
+    TxnWrap* tw = new TxnWrap(ew->env, txn);
 
     // Set the current write transaction
     if (0 == (flags & MDB_RDONLY)) {

@@ -221,12 +221,8 @@ describe('lmdb-store', function() {
     it('repeated compressions', async function() {
       let str = expand('Hello world!')
       db.put('key1', str, 53252);
-      let a
-      for (let i = 0; i< 2000000;i++)
-        a = i
       db.put('key1', str, 53253);
       db.put('key1', str, 53254);
-      console.log('wrote third')
       await db.put('key1', str, 53255);
       let entry = db.getEntry('key1');
       entry.value.should.equal(str);
@@ -678,7 +674,7 @@ describe('lmdb-store', function() {
         should.equal(db.get('key1'), 'test');
       }
     });
-    it.only('mixed batches', async function() {
+    it('mixed batches', async function() {
       let promise
       for (let i = 0; i < 20; i++) {
         db.put(i, 'test')

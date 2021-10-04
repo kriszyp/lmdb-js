@@ -152,14 +152,14 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
     if (compressedData) {
         *(((uint32_t*)compressionAddress) - 3) = value.mv_size;
         *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
-        int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 0);
+        int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (std::atomic<int64_t>) 0);
         if (status == 1 && env) {
             uv_mutex_lock(env->writingLock);
             uv_cond_signal(env->writingCond);
             uv_mutex_unlock(env->writingLock);
             fprintf(stderr, "sent compression completion signal\n");
         }
-        fprintf(stdout, "compressed to %p %u %u %p\n", value.mv_data, value.mv_size, status, env);
+        //fprintf(stdout, "compressed to %p %u %u %p\n", value.mv_data, value.mv_size, status, env);
         return 0;
     } else {
         fprintf(stdout, "failed to compress\n");
@@ -220,7 +220,7 @@ class CompressionWorker : public Nan::AsyncWorker {
 
     void Execute() {
         uint64_t compressionPointer;
-        compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 2);
+        compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (std::atomic<int64_t>) 2);
         if (compressionPointer > 1) {
             Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
             compression->compressInstruction(env, compressionAddress);

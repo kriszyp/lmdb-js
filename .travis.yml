@@ -8,9 +8,9 @@ addons:
     - ubuntu-toolchain-r-test
 arch:
 - amd64
-- arm64
+# - arm64
 os:
-- osx
+# - osx
 - linux
 osx_image: xcode12.5
 before_deploy:

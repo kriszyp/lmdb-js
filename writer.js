@@ -16,12 +16,11 @@ const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
 export const ABORT = {}
 const CALLBACK_THREW = {}
-const IMMEDIATE = -1
 SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold, commitDelay }) {
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -45,7 +44,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var nextTxnCallbacks = []
 	var lastQueuedTxnCallbacks
 	var commitPromise
-	var commitDelay = IMMEDIATE
+	commitDelay = commitDelay || 0
+	eventTurnBatching = eventTurnBatching === false ? false : true
 	var enqueuedCommit
 	var afterCommitCallbacks = []
 	var beforeCommitCallbacks = []
@@ -94,10 +94,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					enqueuedEventTurnBatch = null
 					finishBatch()
 					batchDepth--
-					finishWrite() // TODO: When we support delay start of batch, optionally don't delay this
+					if (writeBatchStart)
+						writeBatchStart() // TODO: When we support delay start of batch, optionally don't delay this
 				})
 				commitPromise = null // reset the commit promise, can't know if it is really a new transaction prior to finishWrite being called
-				let finishWrite = writeInstructions(1, store)
+				writeBatchStart = writeInstructions(1, store)
+				outstandingBatchCount = 0
 				batchDepth++
 			}
 			targetBytes = dynamicBytes
@@ -197,9 +199,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let resolution = nextResolution
 		resolution.next = newResolution
 		nextResolution = newResolution
+		let writtenBatchDepth = batchDepth
 
 		return () => {
-			if (batchDepth) {
+			if (writtenBatchDepth) {
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
 				// just poll for the status change if we miss a status update
@@ -207,8 +210,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				uint32[flagPosition] = flags
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount++
-					if (outstandingBatchCount > batchStartThreshold)
+					if (outstandingBatchCount > batchStartThreshold) {
+						outstandingBatchCount = 0
 						writeBatchStart()
+						writeBatchStart = null
+					}
 				}
 			} else // otherwise the transaction could end at any time and we need to know the
 				// deterministically if it is ending, so we can reset the commit promise
@@ -223,7 +229,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.buffer.address + (flagPosition << 2)
 			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
-				console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
+				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
 				env.startWriting(0)
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
@@ -233,11 +239,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress) {
-				if (!enqueuedCommit) {
-					if (commitDelay == IMMEDIATE)
-						startWriting()
-					else
-						enqueuedCommit = commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
+				if (!enqueuedCommit && txnStartThreshold) {
+					enqueuedCommit = commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
 				} else if (outstandingWriteCount > txnStartThreshold)
 					startWriting()
 			}
@@ -254,7 +257,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			lastQueuedResolution = resolution
 				
 			if (ifVersion === undefined) {
-				if (batchDepth > 1)
+				if (writtenBatchDepth > 1)
 					return SYNC_PROMISE_SUCCESS // or return undefined?
 				if (!commitPromise) {
 					commitPromise = new Promise((resolve, reject) => {
@@ -514,7 +517,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				promise = finishStartWrite()
 			else {
 				writeBatchStart = () => {
-					writeBatchStart = null
 					promise = finishStartWrite()
 				}
 				outstandingBatchCount = 0

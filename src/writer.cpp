@@ -114,7 +114,7 @@ void WriteWorker::UnlockTxn() {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
 	int rc;
-	fprintf(stderr, "wait for callback %p\n", this);
+	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
@@ -150,7 +150,7 @@ waitForCallback:
 			return rc;
 		}
 	}
-	fprintf(stderr, "callback done waiting\n");
+//	fprintf(stderr, "callback done waiting\n");
 	return 0;
 }
 int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
