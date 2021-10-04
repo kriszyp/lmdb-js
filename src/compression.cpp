@@ -24,6 +24,7 @@
 
 #include "lz4.h"
 #include "node-lmdb.h"
+#include <atomic>
 
 using namespace v8;
 using namespace node;
@@ -152,7 +153,7 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
     if (compressedData) {
         *(((uint32_t*)compressionAddress) - 3) = value.mv_size;
         *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
-        int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (std::atomic<int64_t>) 0);
+        int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 0);
         if (status == 1 && env) {
             uv_mutex_lock(env->writingLock);
             uv_cond_signal(env->writingCond);
@@ -220,7 +221,7 @@ class CompressionWorker : public Nan::AsyncWorker {
 
     void Execute() {
         uint64_t compressionPointer;
-        compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (std::atomic<int64_t>) 2);
+        compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 2);
         if (compressionPointer > 1) {
             Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
             compression->compressInstruction(env, compressionAddress);
