@@ -128,15 +128,27 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			uint32[flagPosition + 2] = keySize
 			position = (endPosition + 16) >> 3
 			if (flags & 2) {
-				uint32[(position << 1) - 1] = valueBuffer.length
-				let valueArrayBuffer = valueBuffer.buffer
-				// record pointer to value buffer
-				float64[position++] = (valueArrayBuffer.address || (valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
-				if (store.compression && valueBuffer.length >= store.compression.threshold) {
+				let start = valueBuffer.start
+				let size
+				if (start > -1) { // if we have buffers with start/end position
+					size = valueBuffer.end - start // size
+					valueBuffer.size = size
+					// record pointer to value buffer
+					float64[position] = (valueBuffer.address ||
+						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + start
+				} else {
+					size = valueBuffer.length
+					let valueArrayBuffer = valueBuffer.buffer
+					// record pointer to value buffer
+					float64[position] = (valueArrayBuffer.address ||
+						(valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+				}
+				uint32[(position++ << 1) - 1] = size
+				if (store.compression && size >= store.compression.threshold) {
 					flags |= 0x100000;
 					float64[position] = store.compression.address
 					if (!writeTxn)
-						env.compress(targetBytes.buffer.address + (position << 3))
+						env.compress(targetBytes.address + (position << 3))
 					position++
 					compressionCount++
 				}
@@ -159,7 +171,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		//console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
 			uint32[0] = flags
-			env.write(targetBytes.buffer.address)
+			env.write(targetBytes.address)
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS
 		}
 		uint32[position << 1] = 0 // clear out the next slot
@@ -172,7 +184,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let lastUint32 = targetBytes.uint32
 			targetBytes = allocateInstructionBuffer()
 			position = targetBytes.position
-			lastFloat64[lastPosition + 1] = targetBytes.buffer.address + position
+			lastFloat64[lastPosition + 1] = targetBytes.address + position
 			lastUint32[lastPosition << 1] = 3 // pointer instruction
 			//console.log('pointer from ', (lastFloat64.buffer.address + (lastPosition << 3)).toString(16), 'to', (targetBytes.buffer.address + position).toString(16), 'flag position', (uint32.buffer.address + (flagPosition << 2)).toString(16))
 			nextUint32 = targetBytes.uint32
@@ -226,7 +238,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				commitPromise = null
 				queueCommitResolution(resolution)
 				if (!startAddress)
-					startAddress = uint32.buffer.address + (flagPosition << 2)
+					startAddress = targetBytes.address + (flagPosition << 2)
 			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
