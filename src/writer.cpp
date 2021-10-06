@@ -43,8 +43,6 @@ const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 const int FAILED_CONDITION = 0x200000;
 const int FINISHED_OPERATION = 0x10000000;
 const int BATCH_DELIMITER = 0x8000000;
-const int BAD_KEY = 3;
-const int NOT_FOUND = 1;
 
 
 WriteWorker::~WriteWorker() {
@@ -151,7 +149,6 @@ int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorke
 	int conditionDepth = 0;
 	int validatedDepth = 0;
 	double conditionalVersion, setVersion;
-	bool startingTransaction = true;
 	bool overlappedWord = !!worker;
 	uint32_t* start;
 		do {
@@ -299,7 +296,6 @@ next_inst:	start = instruction++;
 }
 
 void WriteWorker::Write() {
-	uint32_t* instruction = instructions;
 	int rc, txnId;
 	finishedProgress = true;
 	uv_mutex_lock(envForTxn->writingLock);

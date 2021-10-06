@@ -270,7 +270,6 @@ NAN_METHOD(DbiWrap::drop) {
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
     int del = 1;
     int rc;
-    MDB_txn *txn;
     if (!dw->isOpen) {
         return Nan::ThrowError("The Dbi is not open, you can't drop it.");
     }

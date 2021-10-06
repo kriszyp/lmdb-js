@@ -238,7 +238,6 @@ class CompressionWorker : public Nan::AsyncWorker {
 
 NAN_METHOD(EnvWrap::compress) {
     EnvWrap *env = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    Local<Context> context = Nan::GetCurrentContext();
     size_t compressionAddress = Local<Number>::Cast(info[0])->Value();
     CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress);
     Nan::AsyncQueueWorker(worker);
