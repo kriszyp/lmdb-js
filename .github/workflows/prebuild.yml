@@ -1,4 +1,4 @@
-name: GitHub Actions Demo
+name: Test and Prebuild
 on: [push]
 jobs:
   build:
@@ -12,9 +12,7 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run prebuild
-      - run: tar --create --verbose --file="$ARCHIVE_NAME" --directory prebuilds
-        env:
-          ARCHIVE_NAME: $GITHUB_REF-$RUNNER_OS-x86.tar
+      - run: tar --create --verbose --file=${{ github.ref }}-${{ runner.os }}-x86.tar --directory prebuilds
       - name: Prebuild
         uses: softprops/action-gh-release@v1
         with:
