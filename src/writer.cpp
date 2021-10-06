@@ -60,8 +60,8 @@ void WriteWorker::ContinueWrite() {
 
 WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
 		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
-		env(env),
 		envForTxn(envForTxn),
+		env(env),
 		instructions(instructions) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
