@@ -12,9 +12,9 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run prebuild
-      - run: tar --create --verbose --file=${{ github.ref }}-${{ runner.os }}-x86.tar --directory prebuilds
+      - run: tar --create --verbose --file=prebuild-darwin-x86.tar --directory prebuilds
       - name: Prebuild
         uses: softprops/action-gh-release@v1
         with:
           files: prebuilds/**
-      - run: hexdump "prebuilds/darwin-x64/node.abi83.node" | head -10
+      - run: hexdump "prebuilds/darwin-x64/node.abi93.node" | head -10
