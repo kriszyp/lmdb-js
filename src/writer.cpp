@@ -68,48 +68,39 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
-		
+		txn = nullptr;
 	}
 
 void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	this->executionProgress = (ExecutionProgress*) &executionProgress;
 	Write();
 }
-MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously, int *flags) {
-	fprintf(stdout, "acquire lock %u\n", commitSynchronously);
+MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
+	fprintf(stderr, "acquire lock %p %u\n", this, commitSynchronously);
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	uv_mutex_lock(envForTxn->writingLock);
 	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
 		interruptionStatus = INTERRUPT_BATCH;
 		uv_cond_signal(envForTxn->writingCond);
 		uv_mutex_unlock(envForTxn->writingLock);
-		*flags |= TXN_HAS_WORKER_LOCK;
 		return nullptr;
 	} else {
 		if (interruptionStatus == RESTART_WORKER_TXN)
 			uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		interruptionStatus = USER_HAS_LOCK;
-		if (txn)
-			*flags |= TXN_HAS_WORKER_LOCK;
-		else {
-			uv_mutex_unlock(envForTxn->writingLock);
-		}
 		return txn;
 	}
 }
 
 void WriteWorker::UnlockTxn() {
-	fprintf(stdout, "release txn %u\n", interruptionStatus);
+	fprintf(stderr, "release txn %u\n", interruptionStatus);
 	if (interruptionStatus == RESTART_WORKER_TXN) {
 		interruptionStatus = 0;
 		uv_mutex_lock(envForTxn->writingLock);
-		uv_cond_signal(envForTxn->writingCond);
-		uv_mutex_unlock(envForTxn->writingLock);
-	} else if (interruptionStatus == USER_HAS_LOCK) {
-		interruptionStatus = 0;
-		uv_cond_signal(envForTxn->writingCond);
-		uv_mutex_unlock(envForTxn->writingLock);
 	}
+	interruptionStatus = 0;
+	uv_cond_signal(envForTxn->writingCond);
+	uv_mutex_unlock(envForTxn->writingLock);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
@@ -139,6 +130,7 @@ waitForCallback:
 			uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 			// now restart our transaction
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
+			this->txn = *txn;
 			fprintf(stderr, "Restarted txn after interruption\n");
 			envForTxn->currentBatchTxn = *txn;
 			interruptionStatus = 0;
@@ -188,6 +180,7 @@ next_inst:	start = instruction++;
 					}
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
+					fprintf(stderr, "compressed %p\n", value.mv_data);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {

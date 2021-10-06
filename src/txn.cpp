@@ -80,7 +80,8 @@ NAN_METHOD(TxnWrap::ctor) {
     MDB_txn *txn;
     TxnWrap *parentTw;
     if (info[1]->IsTrue() && ew->writeWorker) { // this is from a transaction callback
-        txn = ew->writeWorker->AcquireTxn(false, &flags);
+        txn = ew->writeWorker->AcquireTxn(false);
+        flags |= TXN_HAS_WORKER_LOCK;
         parentTw = nullptr;
     } else {
         if (info[1]->IsObject()) {
@@ -108,7 +109,8 @@ NAN_METHOD(TxnWrap::ctor) {
                     //fprintf(stderr, "begin sync txn");
                     auto writeWorker = ew->writeWorker;
                     if (writeWorker) {
-                        parentTxn = writeWorker->AcquireTxn(true, &flags); // see if we have a paused transaction
+                        parentTxn = writeWorker->AcquireTxn(true); // see if we have a paused transaction
+                        flags |= TXN_HAS_WORKER_LOCK;
                         // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
                     }
                 }

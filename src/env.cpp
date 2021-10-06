@@ -906,7 +906,9 @@ NAN_METHOD(EnvWrap::beginTxn) {
             txn = ew->writeTxn->txn;
         else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
-            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT, &flags);
+            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
+            flags |= TXN_HAS_WORKER_LOCK;
+            fprintf(stderr, "acquired %p %p\n", ew->writeWorker, txn);
         } else
             txn = nullptr;
 
@@ -958,7 +960,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 NAN_METHOD(EnvWrap::commitTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
-//    fprintf(stderr, "commitTxn\n");
+    //fprintf(stderr, "commitTxn %p\n", currentTxn);
     int rc = 0;
     if (currentTxn->flags & TXN_ABORTABLE) {
         //fprintf(stderr, "txn_commit\n");
