@@ -11,6 +11,7 @@ const TXN_DELIMITER = 0x20000000
 const TXN_COMMITTED = 0x40000000
 const BATCH_DELIMITER = 0x8000000
 const FAILED_CONDITION = 0x200000
+const REUSE_BUFFER_VIEW = 1000
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
@@ -68,7 +69,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// encode first in case we have to write a shared structure
 			if (store.encoder) {
 				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
-				valueBuffer = store.encoder.encode(value)
+				valueBuffer = store.encoder.encode(value, REUSE_BUFFER_VIEW)
 				if (typeof valueBuffer == 'string')
 					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
 			} else if (typeof value == 'string') {
