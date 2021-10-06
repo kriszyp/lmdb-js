@@ -13,8 +13,8 @@ jobs:
       - run: npm test
       - run: npm run prebuild
       - run: tar -cvf prebuild-darwin-x86.tar prebuilds
+      - run: hexdump "prebuilds/darwin-x64/node.abi93.node" | head -10
       - name: Prebuild
         uses: softprops/action-gh-release@v1
         with:
           files: prebuilds/**
-      - run: hexdump "prebuilds/darwin-x64/node.abi93.node" | head -10
