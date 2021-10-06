@@ -2,7 +2,7 @@ name: GitHub Actions Demo
 on: [push]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - name: Setup node
@@ -11,3 +11,10 @@ jobs:
           node-version: 16
       - run: npm install
       - run: npm test
+      - run: npm run prebuild
+      - run: tar --create --verbose --file="$ARCHIVE_NAME" --directory prebuilds
+        env: ARCHIVE_NAME="$GITHUB_REF-$RUNNER_OS-`uname -m`.tar"
+      - name: Prebuild
+        uses: softprops/action-gh-release@v1
+        files: prebuilds/**
+      - run: hexdump "prebuilds/darwin-x64/node.abi83.node" | head -10
