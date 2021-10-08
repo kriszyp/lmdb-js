@@ -20,7 +20,7 @@ const keyBuffer = keyBytes.buffer
 const keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048) // max key size is actually 1978
 keyBytes.uint32 = new Uint32Array(keyBuffer, 0, 512)
 keyBytes.float64 = new Float64Array(keyBuffer, 0, 256)
-keyBytes.address = keyBuffer.address = getAddress(keyBuffer)
+keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer)
 const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -188,7 +188,6 @@ export function open(path, options) {
 					(Object.assign(this.sharedStructuresKey ?
 					this.setupSharedStructures() : {
 						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
-						reuseBufferView: true // utilize this optimization
 					}, options, dbOptions))
 			} else if (this.encoding == 'json') {
 				this.encoder = {
@@ -459,7 +458,6 @@ export function open(path, options) {
 				},
 				getStructures,
 				copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
-				reuseBufferView: true // utilize this optimization
 			}
 		}
 	}

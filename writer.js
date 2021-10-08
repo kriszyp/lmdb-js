@@ -25,12 +25,15 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
-		dynamicBytes = Buffer.allocUnsafeSlow(0x10000)
-		dynamicBytes.uint32 = new Uint32Array(dynamicBytes.buffer, 0, 0x10000 >> 2)
-		dynamicBytes.uint32[0] = 0
-		dynamicBytes.float64 = new Float64Array(dynamicBytes.buffer, 0, 0x10000 >> 3)
-		dynamicBytes.buffer.address = getAddress(dynamicBytes.buffer)
-		dynamicBytes.address = dynamicBytes.buffer.address + dynamicBytes.byteOffset
+		let buffer = new SharedArrayBuffer(0x10000) // Must use a shared buffer to ensure GC doesn't move it around
+		dynamicBytes = Buffer.from(buffer)
+		dynamicBytes.fill(0xaa)
+		//dynamicBytes = Buffer.alloc(0x10000, 0xaa) // Buffer.allocUnsafeSlow(0x10000)
+		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, 0x10000 >> 2)
+		uint32[0] = 0
+		dynamicBytes.float64 = new Float64Array(buffer, 0, 0x10000 >> 3)
+		buffer.address = getAddress(buffer)
+		uint32.address = buffer.address + uint32.byteOffset
 		dynamicBytes.position = 0
 		return dynamicBytes
 	}
@@ -55,6 +58,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeBatchStart, outstandingBatchCount
 	txnStartThreshold = txnStartThreshold || 5
 	batchStartThreshold = batchStartThreshold || 1000
+	var debugErrorCallback
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED
@@ -149,7 +153,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					flags |= 0x100000;
 					float64[position] = store.compression.address
 					if (!writeTxn)
-						env.compress(targetBytes.address + (position << 3))
+						env.compress(uint32.address + (position << 3))
 					position++
 					compressionCount++
 				}
@@ -172,21 +176,18 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		//console.log('js write', (targetBytes.buffer.address + (flagPosition << 2)).toString(16), flags.toString(16))
 		if (writeTxn) {
 			uint32[0] = flags
-			env.write(targetBytes.address)
+			env.write(uint32.address)
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS
 		}
 		uint32[position << 1] = 0 // clear out the next slot
 		let nextUint32
 		if (position > 0x1e00) { // 61440 bytes
 			// make new buffer and make pointer to it
-			let lastBuffer = targetBytes
 			let lastPosition = position
-			let lastFloat64 = targetBytes.float64
-			let lastUint32 = targetBytes.uint32
 			targetBytes = allocateInstructionBuffer()
 			position = targetBytes.position
-			lastFloat64[lastPosition + 1] = targetBytes.address + position
-			lastUint32[lastPosition << 1] = 3 // pointer instruction
+			float64[lastPosition + 1] = targetBytes.uint32.address + position
+			uint32[lastPosition << 1] = 3 // pointer instruction
 			//console.log('pointer from ', (lastFloat64.buffer.address + (lastPosition << 3)).toString(16), 'to', (targetBytes.buffer.address + position).toString(16), 'flag position', (uint32.buffer.address + (flagPosition << 2)).toString(16))
 			nextUint32 = targetBytes.uint32
 		} else
@@ -238,8 +239,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (writeStatus & TXN_DELIMITER) {
 				commitPromise = null
 				queueCommitResolution(resolution)
-				if (!startAddress)
-					startAddress = targetBytes.address + (flagPosition << 2)
+				if (!startAddress) {
+					startAddress = uint32.address + (flagPosition << 2)
+					debugErrorCallback = (error) => {
+						debugger
+						console.log('error writing', writeStatus, uint32[flagPosition], flags, error)
+					}
+				}
 			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
@@ -253,9 +259,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			if (startAddress) {
 				if (!enqueuedCommit && txnStartThreshold) {
-					enqueuedCommit = commitDelay == 0 ? setImmediate(startWriting) : setTimeout(startWriting, commitDelay)
+					enqueuedCommit = commitDelay == 0 ? setImmediate(() => startWriting(debugErrorCallback)) : setTimeout(() => startWriting(debugErrorCallback), commitDelay)
 				} else if (outstandingWriteCount > txnStartThreshold)
-					startWriting()
+					startWriting(debugErrorCallback)
 			}
 
 			if ((outstandingWriteCount & 7) === 0)
@@ -286,7 +292,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			})
 		}
 	}
-	function startWriting() {
+	function startWriting(debugErrorCallback) {
 		//console.log('start address ' + startAddress.toString(16), store.name)
 		if (enqueuedCommit) {
 			clearImmediate(enqueuedCommit)
@@ -307,6 +313,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				break
 				default:
 				console.error(status)
+				debugErrorCallback(status)
 				if (commitRejectPromise) {
 					commitRejectPromise.reject(status)
 					commitRejectPromise = null

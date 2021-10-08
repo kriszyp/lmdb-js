@@ -158,7 +158,7 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
             uv_mutex_lock(env->writingLock);
             uv_cond_signal(env->writingCond);
             uv_mutex_unlock(env->writingLock);
-            fprintf(stderr, "sent compression completion signal\n");
+            //fprintf(stderr, "sent compression completion signal\n");
         }
         //fprintf(stdout, "compressed to %p %u %u %p\n", value.mv_data, value.mv_size, status, env);
         return 0;

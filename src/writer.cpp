@@ -100,6 +100,9 @@ void WriteWorker::UnlockTxn() {
 	uv_cond_signal(envForTxn->writingCond);
 	uv_mutex_unlock(envForTxn->writingLock);
 }
+void WriteWorker::ReportError(char* error) {
+	SetErrorMessage(error);
+}
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
 	int rc;
@@ -156,6 +159,12 @@ next_inst:	start = instruction++;
 		uint32_t flags = *start;
 		MDB_dbi dbi;
 		bool validated = conditionDepth == validatedDepth;
+		if (flags & 0xff0e0) {
+			fprintf(stderr, "Unknown flag bits %p %p\n", flags, start);
+			fprintf(stderr, "flags after message %p\n", *start);
+			worker->ReportError("Unknown flags\n");
+			return 0;
+		}
 		if (flags & HAS_KEY) {
 			// a key based instruction, get the key
 			dbi = (MDB_dbi) *instruction++;
@@ -168,16 +177,17 @@ next_inst:	start = instruction++;
 					if (highPointer > 0x40000000) { // not compressed yet
 						int64_t status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
-							fprintf(stderr, "wait on compression\n");
+							//fprintf(stderr, "wait on compression %p\n", instruction);
 							uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 						} else if (status > 2) {
-							fprintf(stderr, "doing the compression ourselves\n");
+							//fprintf(stderr, "doing the compression ourselves\n");
 							((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
 						} // else status is 0 and compression is done
 					}
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
-					fprintf(stderr, "compressed %p\n", value.mv_data);
+					if ((size_t)value.mv_data > 0x1000000000000)
+						fprintf(stderr, "compressed %p\n", value.mv_data);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {
@@ -273,11 +283,16 @@ next_inst:	start = instruction++;
 				instruction = (uint32_t*)(size_t) * ((double*)instruction);
 				goto next_inst;
 			default:
-				fprintf(stderr, "Unknown flags %p\n", flags);
+				fprintf(stderr, "Unknown flags %p %p\n", flags, start);
+				fprintf(stderr, "flags after message %p\n", *start);
+				worker->ReportError("Unknown flags\n");
+				return 0;
 			}
 			if (rc) {
-				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-					fprintf(stderr, "Unknown return code %i", rc);
+				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
+					fprintf(stderr, "Unknown return code %i %p", rc, start);
+					fprintf(stderr, "flags after return code %p\n", *start);
+				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			}
 			else
@@ -285,7 +300,6 @@ next_inst:	start = instruction++;
 		} else
 			flags = FINISHED_OPERATION | FAILED_CONDITION;
 		//fprintf(stderr, "finished flag %p\n", flags);
-		// TODO: Only use atomics for the very first instruction of an async transaction
 		if (overlappedWord) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) start, flags);
 			overlappedWord = false;

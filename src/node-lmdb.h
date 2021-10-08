@@ -230,6 +230,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
     int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
+    void ReportError(char* error);
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
