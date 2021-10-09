@@ -467,13 +467,6 @@ int EnvWrap::BeginOrResumeSync(MDB_txn* txn) {
     return rc;
 }
 
-static int OverlappingFlush(void* data) {
-    EnvWrap* ew = ((EnvWrap*) data);
-    uv_mutex_lock(flushLock);
-    uv_cond_wait(flushCond, flushLock);
-    uv_mutex_unlock(flushLock);
-    return 0;
-}
 #ifdef MDB_RPAGE_CACHE
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
 {
@@ -549,13 +542,15 @@ NAN_METHOD(EnvWrap::open) {
     Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
     if (!encryptionKey->IsUndefined()) {
         MDB_val enckey;
-        KeySpace* keySpace = new KeySpace(false);
-        rc = valueToMDBKey(encryptionKey, enckey, *keySpace);
-        if (!rc)
-            return Nan::ThrowError("Bad encryption key");
-        if (enckey.mv_size != 32) {
+        unsigned int l = Local<String>::Cast(encryptionKey)->Length();
+        enckey.mv_data = new uint8_t[l];
+        int utfWritten = 0;
+        Local<String>::Cast(encryptionKey)->WriteUtf8(Isolate::GetCurrent(),
+            (char*) enckey.mv_data, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        if (utfWritten != 32) {
             return Nan::ThrowError("Encryption key must be 32 bytes long");
         }
+        enckey.mv_size = utfWritten;
         #ifdef MDB_RPAGE_CACHE
         rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
         #else
@@ -600,7 +595,6 @@ NAN_METHOD(EnvWrap::open) {
     #endif
     if (flags & MDB_OVERLAPPINGSYNC) {
         flags |= MDB_PREVSNAPSHOT;
-        mdb_env_set_flush(ew->env, OverlappingFlush);
     }
 
     if (flags & MDB_NOLOCK) {
@@ -1109,16 +1103,12 @@ NAN_METHOD(EnvWrap::batchWrite) {
         Local<v8::Value> key = operation->Get(context, 0).ToLocalChecked();
         
         keyType = dw->keyType;
-        if (keyType == NodeLmdbKeyType::DefaultKey) {
-            keyIsValid = valueToMDBKey(key, action->key, *keySpace);
-        }
-        else {
-            argToKey(key, action->key, keyType, keyIsValid);
-            if (!keyIsValid) {
-                // argToKey already threw an error
-                delete worker;
-                return;
-            }
+
+        argToKey(key, action->key, keyType, keyIsValid);
+        if (!keyIsValid) {
+            // argToKey already threw an error
+            delete worker;
+            return;
         }
 
         // if we did not coordinate to always reference the object on the JS side, we would need this (but it is expensive):

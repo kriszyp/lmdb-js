@@ -99,8 +99,6 @@ int restoreMemoryPriority();
 #endif
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remainingBytes, bool inArray, bool throwErrors);
-bool valueToMDBKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace);
 
 NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
 NodeLmdbKeyType inferKeyType(const Local<Value> &val);
@@ -113,8 +111,6 @@ NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
 NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(setWinMemoryPriority);
-NAN_METHOD(bufferToKeyValue);
-NAN_METHOD(keyValueToBuffer);
 //NAN_METHOD(getBufferForAddress);
 NAN_METHOD(getAddress);
 
@@ -163,7 +159,6 @@ Local<Value> valToBinaryUnsafe(MDB_val &data);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
-Local<Value> MDBKeyToValue(MDB_val &data);
 void makeGlobalUnsafeBuffer(size_t size);
 
 int putWithVersion(MDB_txn *   txn,

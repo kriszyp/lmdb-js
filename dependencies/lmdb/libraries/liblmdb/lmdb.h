@@ -1046,7 +1046,6 @@ int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int mdb_env_set_encrypt(MDB_env *env, MDB_enc_func *func, const MDB_val *key, unsigned int size);
-int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func);
 
 
 	/** @brief Set checksums on an environment.
@@ -1134,6 +1133,7 @@ mdb_size_t mdb_txn_id(MDB_txn *txn);
 	 * </ul>
 	 */
 int  mdb_txn_commit(MDB_txn *txn);
+int  mdb_txn_sync(MDB_txn *txn);
 
 	/** @brief Abandon all the operations of the transaction instead of saving them.
 	 *

@@ -159,7 +159,7 @@ next_inst:	start = instruction++;
 		uint32_t flags = *start;
 		MDB_dbi dbi;
 		bool validated = conditionDepth == validatedDepth;
-		if (flags & 0xff0e0) {
+		if (flags & 0xf0c0) {
 			fprintf(stderr, "Unknown flag bits %p %p\n", flags, start);
 			fprintf(stderr, "flags after message %p\n", *start);
 			worker->ReportError("Unknown flags\n");
@@ -332,12 +332,20 @@ void WriteWorker::Write() {
 		/*if (rc) // are there any return codes that would lead us to abort?
 			mdb_txn_abort(txn);
 		else*/
+		MDB_txn* committingTxn = txn;
 		rc = mdb_txn_commit(txn);
-
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
-		//fprintf(stderr, "committed %p %u\n", instruction, rc);
+		unsigned int envFlags;
+		mdb_env_get_flags(env, &envFlags);
+		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
+			//progressStatus = 1;
+			//executionProgress->Send(nullptr, 0);
+			rc = mdb_txn_sync(committingTxn);
+		}
 
+		//fprintf(stderr, "committed %p %u\n", instructions, rc);
+/*
 		if (rc == 0) {
 			unsigned int envFlags;
 			mdb_env_get_flags(env, &envFlags);
@@ -369,7 +377,7 @@ void WriteWorker::Write() {
 				}
 				mdb_txn_commit(txn);
 			}
-		}
+		}*/
 		if (rc) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) rc);
 			return SetErrorMessage(mdb_strerror(rc));

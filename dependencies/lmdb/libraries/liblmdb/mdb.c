@@ -1650,9 +1650,11 @@ struct MDB_env {
 #ifdef MDB_USE_POSIX_MUTEX	/* Posix mutexes reside in shared mem */
 #	define		me_rmutex	me_txns->mti_rmutex /**< Shared reader lock */
 #	define		me_wmutex	me_txns->mti_wmutex /**< Shared writer lock */
+#	define		me_sync_mutex	me_txns->mti_sync_mutex /**< Shared sync lock */
 #else
 	mdb_mutex_t	me_rmutex;
 	mdb_mutex_t	me_wmutex;
+	mdb_mutex_t	me_sync_mutex;
 # if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
 	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
 	char		me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
@@ -4454,19 +4456,13 @@ mdb_txn_commit(MDB_txn *txn)
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
-	/* <lmdb-store> */
-	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
-	// flushfunc that calls back to mdb_page_flush we before and after actions
-	if (env->me_flushfunc) {
-		env->me_flushfunc(env->me_flushdata);
-	}
-	/* </lmdb-store> */
 
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC|MDB_OVERLAPPINGSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
 	if ((rc = mdb_env_write_meta(txn)))
 		goto fail;
+
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (!(env->me_flags & MDB_NOLOCK)) {
@@ -4479,6 +4475,14 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 done:
+	/* <lmdb-store> */
+	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
+	// flushfunc that calls back to mdb_page_flush we before and after actions
+	if (F_ISSET(txn->mt_flags, MDB_OVERLAPPINGSYNC)) {
+		LOCK_MUTEX(rc, env, env->me_sync_mutex);
+		end_mode &= ~MDB_END_FREE;
+	}
+	/* </lmdb-store> */
 	mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
 
@@ -4486,6 +4490,22 @@ fail:
 	mdb_txn_abort(txn);
 	return rc;
 }
+/* <lmdb-store> */
+int
+mdb_txn_sync(MDB_txn *txn) {
+/*	if (env->me_flushfunc) {
+		env->me_flushfunc(env->me_flushdata);
+	}*/
+	int rc = 0;
+	MDB_env* env = txn->mt_env;
+	rc = mdb_env_sync0(env, 0, txn->mt_next_pgno);
+	rc = mdb_env_write_meta(txn);
+	UNLOCK_MUTEX(env->me_sync_mutex);
+	// TODO: sync the meta write
+	free(txn);
+	return MDB_SUCCESS;
+}
+/* </lmdb-store> */
 
 static int ESECT mdb_env_map(MDB_env *env, void *addr);
 
@@ -4519,7 +4539,7 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 				return ENOENT;
 			if (env->me_metas[i]->mm_magic != MDB_MAGIC)
 				return MDB_INVALID;
-			if (env->me_metas[i]->mm_version != MDB_DATA_VERSION)
+			if ((env->me_metas[i]->mm_version & 0xffff) != MDB_DATA_VERSION)
 				return MDB_VERSION_MISMATCH;
 			if (i == 0 || env->me_metas[i]->mm_txnid > meta->mm_txnid)
 				*meta = *env->me_metas[i];
@@ -4567,9 +4587,9 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 			return MDB_INVALID;
 		}
 
-		if (m->mm_version != MDB_DATA_VERSION) {
+		if ((m->mm_version & 0xffff) != MDB_DATA_VERSION) {
 			DPRINTF(("database is version %u, expected version %u",
-				m->mm_version, MDB_DATA_VERSION));
+				(m->mm_version & 0xffff), MDB_DATA_VERSION));
 			return MDB_VERSION_MISMATCH;
 		}
 
@@ -4735,6 +4755,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	meta.mm_dbs[MAIN_DBI] = txn->mt_dbs[MAIN_DBI];
 	meta.mm_last_pg = txn->mt_next_pgno - 1;
 	meta.mm_txnid = txn->mt_txnid;
+	meta.mm_version = MDB_DATA_VERSION | (flags & MDB_OVERLAPPINGSYNC);
 
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
@@ -4805,8 +4826,13 @@ static MDB_meta *
 mdb_env_pick_meta(const MDB_env *env)
 {
 	MDB_meta *const *metas = env->me_metas;
-	return metas[ (metas[0]->mm_txnid < metas[1]->mm_txnid) ^
-		((env->me_flags & MDB_PREVSNAPSHOT) != 0) ];
+	//<lmdb-store>
+	int i = (metas[0]->mm_txnid < metas[1]->mm_txnid);
+	MDB_meta *latest = metas[i];
+	if ((env->me_flags & MDB_PREVSNAPSHOT) && (latest->mm_version & MDB_OVERLAPPINGSYNC))
+		return metas[i ^ 1];
+	//</lmdb-store>
+	return latest;
 }
 
 int ESECT
@@ -5813,6 +5839,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (!env->me_rmutex) goto fail_errno;
 		env->me_wmutex = CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
+		env->me_sync_mutex = CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 's'));
+		if (!env->me_sync_mutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
 		struct stat stbuf;
 		struct {
@@ -5845,6 +5873,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
+		env->me_sync_mutex = sem_open(MUTEXNAME(env, 's'), O_CREAT|O_EXCL, mode, 1);
+		if (env->me_sync_mutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
 		unsigned short vals[2] = {1, 1};
 		key_t key = ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
@@ -5868,6 +5898,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		 */
 		memset(env->me_txns->mti_rmutex, 0, sizeof(*env->me_txns->mti_rmutex));
 		memset(env->me_txns->mti_wmutex, 0, sizeof(*env->me_txns->mti_wmutex));
+		memset(env->me_txns->mti_sync_mutex, 0, sizeof(*env->me_txns->mti_sync_mutex));
 
 		if ((rc = pthread_mutexattr_init(&mattr)) != 0)
 			goto fail;
@@ -5877,6 +5908,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #endif
 		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_rmutex, &mattr);
 		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_wmutex, &mattr);
+		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_sync_mutex, &mattr);
 		pthread_mutexattr_destroy(&mattr);
 		if (rc)
 			goto fail;
@@ -5912,12 +5944,16 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (!env->me_rmutex) goto fail_errno;
 		env->me_wmutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
+		env->me_sync_mutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
+		if (!env->me_sync_mutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
 		mdb_env_mname_init(env);
 		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), 0);
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), 0);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
+		env->me_sync_mutex = sem_open(MUTEXNAME(env, 's'), 0);
+		if (env->me_sync_mutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
 		semid = env->me_txns->mti_semid;
 		semu.buf = &buf;
@@ -5932,10 +5968,13 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #ifdef MDB_USE_SYSV_SEM
 	env->me_rmutex->semid = semid;
 	env->me_wmutex->semid = semid;
+	env->me_sync_mutex->semid = semid;
 	env->me_rmutex->semnum = 0;
 	env->me_wmutex->semnum = 1;
+	env->me_sync_mutex->semnum = 1;
 	env->me_rmutex->locked = &env->me_txns->mti_rlocked;
 	env->me_wmutex->locked = &env->me_txns->mti_wlocked;
+	env->me_sync_mutex->locked = &env->me_txns->mti_sync_locked;
 #endif
 
 	return MDB_SUCCESS;
@@ -6314,6 +6353,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 			if (excl > 0) {
 				sem_unlink(MUTEXNAME(env, 'r'));
 				sem_unlink(MUTEXNAME(env, 'w'));
+				sem_unlink(MUTEXNAME(env, 's'));
 			}
 		}
 #elif defined(MDB_USE_SYSV_SEM)
@@ -6336,6 +6376,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 		if (excl > 0) {
 			pthread_mutex_destroy(env->me_txns->mti_rmutex);
 			pthread_mutex_destroy(env->me_txns->mti_wmutex);
+			pthread_mutex_destroy(env->me_txns->mti_sync_mutex);
 		}
 #endif
 		munmap((void *)env->me_txns, (env->me_maxreaders-1)*sizeof(MDB_reader)+sizeof(MDB_txninfo));
@@ -11441,8 +11482,9 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 	return MDB_SUCCESS;
 }
 
-int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func) {
+int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func, void *data) {
 	env->me_flushfunc = func;
+	env->me_flushdata = data;
 }
 
 #if MDB_RPAGE_CACHE
