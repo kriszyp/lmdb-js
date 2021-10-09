@@ -4499,6 +4499,7 @@ mdb_txn_sync(MDB_txn *txn) {
 	int rc = 0;
 	MDB_env* env = txn->mt_env;
 	rc = mdb_env_sync0(env, 0, txn->mt_next_pgno);
+	txn->mt_flags ^= MDB_OVERLAPPINGSYNC;
 	rc = mdb_env_write_meta(txn);
 	UNLOCK_MUTEX(env->me_sync_mutex);
 	// TODO: sync the meta write
@@ -4731,7 +4732,7 @@ mdb_env_write_meta(MDB_txn *txn)
 		__sync_synchronize();
 #endif
 		mp->mm_txnid = txn->mt_txnid;
-		if (!(flags & (MDB_NOMETASYNC|MDB_NOSYNC))) {
+		if (!(flags & (MDB_NOMETASYNC|MDB_NOSYNC|MDB_OVERLAPPINGSYNC))) {
 			unsigned meta_size = env->me_psize;
 			rc = (env->me_flags & MDB_MAPASYNC) ? MS_ASYNC : MS_SYNC;
 			ptr = (char *)mp - PAGEHDRSZ;
@@ -4766,7 +4767,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	 * (me_mfd goes to the same file as me_fd, but writing to it
 	 * also syncs to disk.  Avoids a separate fdatasync() call.)
 	 */
-	mfd = (flags & (MDB_NOSYNC|MDB_NOMETASYNC)) ? env->me_fd : env->me_mfd;
+	mfd = (flags & (MDB_NOSYNC|MDB_NOMETASYNC|MDB_OVERLAPPINGSYNC)) ? env->me_fd : env->me_mfd;
 #ifdef _WIN32
 	{
 		memset(&ov, 0, sizeof(ov));
@@ -6051,7 +6052,7 @@ mdb_env_envflags(MDB_env *env)
 	 */
 #define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC|MDB_NOMEMINIT)
 #define	CHANGELESS	(MDB_FIXEDMAP|MDB_NOSUBDIR|MDB_RDONLY| \
-	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS)
+	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC)
 #define EXPOSED		(CHANGEABLE|CHANGELESS | MDB_ENCRYPT)
 
 #if VALID_FLAGS & PERSISTENT_FLAGS & EXPOSED
