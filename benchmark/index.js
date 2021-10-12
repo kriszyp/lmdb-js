@@ -27,7 +27,11 @@ let data = {
   aNull: null,
   more: 'string',
 }
-
+let bigString = 'big'
+for (let i = 0; i < 12; i++) {
+  bigString += bigString
+}
+data.more = bigString
 var c = 0
 let result
 
@@ -56,6 +60,7 @@ function batchData(deferred) {
     }
   })
 }
+let lastResult
 function batchDataAdd(deferred) {
   result = store.batch(() => {
     for (let i = 0; i < 10; i++) {
@@ -63,6 +68,13 @@ function batchDataAdd(deferred) {
       store.put(key, data)
     }
   })
+  if (iteration++ % 1000 == 0) {
+    setImmediate(() => lastResult.then(() => {
+      deferred.resolve()
+    }))
+    lastResult = result
+  } else
+    deferred.resolve()
 }
 
 
@@ -148,7 +160,7 @@ cleanup(async function (err) {
     //suite.add('compare keys', keyComparison);
     //suite.add('getRange', getRange);
     suite.add('put-batch', {
-      defer: false,
+      defer: true,
       fn: batchDataAdd
     });
     suite.add('get', getData);

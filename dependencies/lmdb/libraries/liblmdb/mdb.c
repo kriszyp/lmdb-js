@@ -3044,8 +3044,10 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 					rc = ErrCode();
 			} else
 #endif
+fprintf(stderr,"s1");
 			if (MDB_FDATASYNC(env->me_fd))
 				rc = ErrCode();
+fprintf(stderr,"s2");				
 		}
 	}
 	return rc;
