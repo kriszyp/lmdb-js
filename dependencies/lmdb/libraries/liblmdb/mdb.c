@@ -893,7 +893,9 @@ typedef struct MDB_txninfo {
 #define mti_wlocked	mt2.mt2_wlocked
 #else
 		mdb_mutex_t	mt2_wmutex;
+		mdb_mutex_t	mt2_sync_mutex;
 #define mti_wmutex	mt2.mt2_wmutex
+#define mti_sync_mutex	mt2.mt2_sync_mutex
 #endif
 		char pad[(MNAME_LEN+CACHELINE-1) & ~(CACHELINE-1)];
 	} mt2;
@@ -1655,12 +1657,12 @@ struct MDB_env {
 	mdb_mutex_t	me_rmutex;
 	mdb_mutex_t	me_wmutex;
 	mdb_mutex_t	me_sync_mutex;
-	mdb_size_t me_sync_txn_id;
 # if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
 	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
 	char		me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
 # endif
 #endif
+	mdb_size_t me_sync_txn_id;
 #if MDB_RPAGE_CACHE
 	MDB_ID3L	me_rpages;	/**< like #mt_rpages, but global to env */
 	pthread_mutex_t	me_rpmutex;	/**< control access to #me_rpages */

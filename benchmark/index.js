@@ -74,7 +74,9 @@ function batchDataAdd(deferred) {
   if (outstanding < 50) {
     deferred.resolve()
   } else if (outstanding < 10000) {
-      setImmediate(() => deferred.resolve())
+      setImmediate(() => {
+        deferred.resolve()
+      })
   } else {
     console.log('delaying')
     setTimeout(() => deferred.resolve(), outstanding >> 3)
@@ -139,7 +141,7 @@ function setup() {
     //useWritemap: true,
     //noSync: true,
     //winMemoryPriority: 4,
-    //eventTurnBatching: false,
+    eventTurnBatching: false,
     overlappingSync: true,
   })
   store = rootStore.openDB('testing', {
