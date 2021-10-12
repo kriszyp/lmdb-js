@@ -39,7 +39,6 @@
   },
   "gypfile": true,
   "dependencies": {
-    "mkdirp": "^1.0.4",
     "nan": "^2.14.2",
     "node-gyp-build": "^4.2.3",
     "ordered-binary": "^1.0.0",

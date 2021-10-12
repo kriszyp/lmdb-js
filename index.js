@@ -1,4 +1,3 @@
-const { sync: mkdirpSync } = require('mkdirp')
 const fs = require('fs')
 const { extname, basename, dirname} = require('path')
 const { ArrayLikeIterable } = require('./util/ArrayLikeIterable')
@@ -94,7 +93,7 @@ function open(path, options) {
 		asyncTransactionAfter = false
 	}
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
-		mkdirpSync(options.noSubdir ? dirname(path) : path)
+		fs.mkdirSync(options.noSubdir ? dirname(path) : path, { recursive: true })
 	if (options.compression) {
 		let setDefault
 		if (options.compression == true) {

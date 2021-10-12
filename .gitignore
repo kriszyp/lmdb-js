@@ -38,6 +38,7 @@ MANIFEST
 
 # NPM dependencies
 node_modules/
+yarn.lock
 
 # Visual Studio Code directory
 .vscode

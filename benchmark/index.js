@@ -8,7 +8,6 @@ var testDirPath = path.resolve(__dirname, './benchdata');
 
 var fs =require('fs');
 var rimraf = require('rimraf');
-var mkdirp = require('mkdirp');
 var benchmark = require('benchmark');
 var suite = new benchmark.Suite();
 
@@ -30,24 +29,34 @@ let data = {
   aNull: null,
   more: 'string',
 }
+let bigString = 'big'
+for (let i = 0; i < 12; i++) {
+  bigString += bigString
+}
+console.log('bigString', bigString.length)
+data.more = bigString
 
 var c = 0
 let result
 
 let iteration = 1
+let lastResult = Promise.resolve()
 function setData(deferred) {
 /*  result = store.transactionAsync(() => {
     for (let j = 0;j<100; j++)
       store.put((c += 357) % total, data)
   })*/
-  let key = (c += 357) % total
+  let key = (c += 357)
   result = store.put(key, data)
   /*if (key % 2 == 0)
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
   if (iteration++ % 1000 == 0) {
-      setImmediate(() => deferred.resolve(result))
+    setImmediate(() => lastResult.then(() => {
+      deferred.resolve()
+    }))
+    lastResult = result
   } else
     deferred.resolve()
 }
@@ -87,9 +96,8 @@ function cleanup(done) {
       return done(err);
     }
     // setup clean directory
-    mkdirp(testDirPath).then(() => {
-      done();
-    }, error => done(error));
+    fs.mkdirSync(testDirPath, { recursive: true})
+    done();
   });
 }
 function setup() {
@@ -118,7 +126,7 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    suite.add('getRange', getRange);
+    //suite.add('getRange', getRange);
     suite.add('put', {
       defer: true,
       fn: setData
