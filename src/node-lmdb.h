@@ -113,6 +113,7 @@ NAN_METHOD(setWinMemoryLimit);
 NAN_METHOD(setWinMemoryPriority);
 //NAN_METHOD(getBufferForAddress);
 NAN_METHOD(getAddress);
+NAN_METHOD(getAddressShared);
 
 class KeySpaceHolder {
 public:

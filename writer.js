@@ -1,4 +1,4 @@
-import { getAddress } from './native.js'
+import { getAddressShared as getAddress } from './native.js'
 import { when } from './util/when.js'
 var backpressureArray
 
@@ -475,7 +475,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		env.writeTxn = writeTxn = false
 		//console.log('async callback resume write trhead')
-		lastQueuedTxnCallbacks = null
 		return env.commitTxn()
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error

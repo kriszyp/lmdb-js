@@ -51,6 +51,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     Nan::SetMethod(exports, "getAddress", getAddress);
+    Nan::SetMethod(exports, "getAddressShared", getAddressShared);
     Nan::SetMethod(exports, "setWinMemoryPriority", setWinMemoryPriority);
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // just uses the name of the last exported native function:
@@ -408,6 +409,14 @@ NAN_METHOD(getAddress) {
     info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
     #endif
 }
+NAN_METHOD(getAddressShared) {
+    #if NODE_VERSION_AT_LEAST(14,0,0)
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<SharedArrayBuffer>::Cast(info[0])->GetBackingStore()->Data()));
+    #else
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data()));
+    #endif
+}
+
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));

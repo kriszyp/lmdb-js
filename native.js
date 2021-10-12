@@ -22,4 +22,4 @@ try {
 	} else
 		throw error
 }
-export const { Env, Cursor, Compression, getBufferForAddress, getAddress } = nativeMethods
+export const { Env, Cursor, Compression, getBufferForAddress, getAddress, getAddressShared } = nativeMethods
