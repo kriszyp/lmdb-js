@@ -11,7 +11,7 @@ const TXN_DELIMITER = 0x20000000
 const TXN_COMMITTED = 0x40000000
 const BATCH_DELIMITER = 0x8000000
 const FAILED_CONDITION = 0x200000
-const REUSE_BUFFER_VIEW = 1000
+const REUSE_BUFFER_MODE = 1000
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
 const SYNC_PROMISE_FAIL = Promise.resolve(false)
@@ -37,16 +37,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		dynamicBytes.position = 0
 		return dynamicBytes
 	}
-	var lastCompressibleFloat64 = new Float64Array(1)
-	var lastCompressiblePosition = 0
-	var lastDynamicBytes
-	var compressionCount = 0
 	var outstandingWriteCount = 0
 	var startAddress = 0
 	var writeTxn = null
 	var abortedNonChildTransactionWarn
 	var nextTxnCallbacks = []
-	var lastQueuedTxnCallbacks
 	var commitPromise
 	commitDelay = commitDelay || 0
 	eventTurnBatching = eventTurnBatching === false ? false : true
@@ -66,21 +61,25 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var uncommittedResolution = { next: nextResolution }
 	var unwrittenResolution = nextResolution
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
-		let writeStatus, compressionStatus = false
+		let writeStatus
 		let targetBytes, position
 		let valueBuffer
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
-			if (store.encoder) {
-				//if (!(value instanceof Uint8Array)) TODO: in a future version, directly store buffers that are provided
-				valueBuffer = store.encoder.encode(value, REUSE_BUFFER_VIEW)
-				if (typeof valueBuffer == 'string')
-					valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
+			let encoder = store.encoder
+			if (value instanceof Uint8Array)
+				valueBuffer = value
+			else if (encoder) {
+				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
+					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE)
+				else { // various other encoders, including JSON.stringify, that might serialize to a string
+					valueBuffer = encoder.encode(value)
+					if (typeof valueBuffer == 'string')
+						valueBuffer = Buffer.from(valueBuffer) // TODO: Would be nice to write strings inline in the instructions
+				}
 			} else if (typeof value == 'string') {
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
-			} else if (value instanceof Uint8Array)
-				valueBuffer = value
-			else
+			} else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 		}
 		if (writeTxn) {
@@ -122,7 +121,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			process.exit(0)
 		}
 		uint32[flagPosition + 1] = store.db.dbi
-		let nextCompressible
 		if (flags & 4) {
 			let keyStartPosition = (position << 3) + 12
 			let endPosition
@@ -162,7 +160,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					if (!writeTxn)
 						env.compress(uint32.address + (position << 3))
 					position++
-					compressionCount++
 				}
 			}
 			if (ifVersion !== undefined) {

@@ -56,7 +56,16 @@ function batchData(deferred) {
     }
   })
 }
-  
+function batchDataAdd(deferred) {
+  result = store.batch(() => {
+    for (let i = 0; i < 10; i++) {
+      let key = (c += 357)
+      store.put(key, data)
+    }
+  })
+}
+
+
 function getData() {
   result = store.get((c += 357) % total)
 }
@@ -115,7 +124,6 @@ function setup() {
     //noSync: true,
     //winMemoryPriority: 4,
     //eventTurnBatching: false,
-    batchStartThreshold: 3,
   })
   store = rootStore.openDB('testing', {
     create: true,
@@ -139,9 +147,9 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('getRange', getRange);
-    suite.add('put', {
+    suite.add('put-batch', {
       defer: false,
-      fn: batchData
+      fn: batchDataAdd
     });
     suite.add('get', getData);
     /*suite.add('plainJSON', plainJSON);
