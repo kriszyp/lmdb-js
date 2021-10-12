@@ -4045,6 +4045,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		}
 	}
 	/* </lmdb-store addition> */
+	fprintf(stderr," %u ", pagecount);
 	if (pagecount - keep >= env->me_ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */

@@ -6,7 +6,7 @@ const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
 const STATUS_LOCKED = 0x200000;
 const WAITING_OPERATION = 0x400000;
-const BACKPRESSURE_THRESHOLD = 5000000
+const BACKPRESSURE_THRESHOLD = 30000000
 const TXN_DELIMITER = 0x20000000
 const TXN_COMMITTED = 0x40000000
 const BATCH_DELIMITER = 0x8000000
@@ -19,6 +19,7 @@ export const ABORT = {}
 const CALLBACK_THREW = {}
 SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
+//let debugLog = []
 
 var log = []
 export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold, commitDelay }) {
@@ -243,7 +244,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	
 			outstandingWriteCount++
 			if (writeStatus & TXN_DELIMITER) {
-				//console.warn('Got TXN delimiter')
+				//console.warn('Got TXN delimiter', ( uint32.address + (flagPosition << 2)).toString(16))
 				commitPromise = null
 				queueCommitResolution(resolution)
 				if (!startAddress) {
@@ -261,8 +262,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
 				console.log('backpressure')
 				if (!backpressureArray)
-					backpressureArray = new Int8Array(new SharedArrayBuffer(4), 0, 1)
-				Atomics.wait(backpressureArray, 0, 0, 1)
+					backpressureArray = new Int32Array(new SharedArrayBuffer(4), 0, 1)
+				Atomics.wait(backpressureArray, 0, 0, 100)
 			}
 			if (startAddress) {
 				if (!enqueuedCommit && txnStartThreshold) {
@@ -407,9 +408,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// if we are in a batch, the transaction can't close, so we do the faster,
 			// but non-deterministic updates, knowing that the write thread can
 			// just poll for the status change if we miss a status update
-			let writeStatus = uint32[flagPosition]
+			/*let writeStatus = uint32[flagPosition]
 			uint32[flagPosition] = newStatus
-			return writeStatus
+			return writeStatus*/
 			return Atomics.or(uint32, flagPosition, newStatus)
 		} else // otherwise the transaction could end at any time and we need to know the
 			// deterministically if it is ending, so we can reset the commit promise

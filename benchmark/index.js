@@ -28,14 +28,14 @@ let data = {
   more: 'string',
 }
 let bigString = 'big'
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 10; i++) {
   bigString += bigString
 }
-data.more = bigString
+//data.more = bigString
 var c = 0
 let result
 
-let iteration = 1
+let outstanding = 0
 function setData(deferred) {
 /*  result = store.transactionAsync(() => {
     for (let j = 0;j<100; j++)
@@ -62,19 +62,23 @@ function batchData(deferred) {
 }
 let lastResult
 function batchDataAdd(deferred) {
+  outstanding++
   result = store.batch(() => {
     for (let i = 0; i < 10; i++) {
       let key = (c += 357)
       store.put(key, data)
     }
+  }).then(() => {
+    outstanding--
   })
-  if (iteration++ % 1000 == 0) {
-    setImmediate(() => lastResult.then(() => {
-      deferred.resolve()
-    }))
-    lastResult = result
-  } else
+  if (outstanding < 50) {
     deferred.resolve()
+  } else if (outstanding < 10000) {
+      setImmediate(() => deferred.resolve())
+  } else {
+    console.log('delaying')
+    setTimeout(() => deferred.resolve(), outstanding >> 3)
+  }
 }
 
 
@@ -136,6 +140,7 @@ function setup() {
     //noSync: true,
     //winMemoryPriority: 4,
     //eventTurnBatching: false,
+    overlappingSync: true,
   })
   store = rootStore.openDB('testing', {
     create: true,

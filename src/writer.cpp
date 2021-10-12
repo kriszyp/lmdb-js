@@ -236,6 +236,7 @@ next_inst:	start = instruction++;
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)TXN_DELIMITER)) {
+						fprintf(stderr, "t");//set txn_delimiter %p\n", start);
 						worker->instructions = start;
 						return 0;
 					} else
@@ -315,7 +316,7 @@ void WriteWorker::Write() {
 	int rc, txnId;
 	finishedProgress = true;
 	unsigned int envFlags;
-	//fprintf(stderr, "ready to start writing   ");
+	fprintf(stderr, "a");//"ready to start writing   ");
 	mdb_env_get_flags(env, &envFlags);
 	uv_mutex_lock(envForTxn->writingLock);
 	rc = mdb_txn_begin(env, nullptr, envFlags & MDB_OVERLAPPINGSYNC, &txn);
