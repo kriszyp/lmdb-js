@@ -1437,7 +1437,7 @@ struct MDB_txn {
  *	@{
  */
 	/** #mdb_txn_begin() flags */
-#define MDB_TXN_BEGIN_FLAGS	(MDB_NOMETASYNC|MDB_NOSYNC|MDB_RDONLY)
+#define MDB_TXN_BEGIN_FLAGS	(MDB_NOMETASYNC|MDB_NOSYNC|MDB_RDONLY|MDB_OVERLAPPINGSYNC)
 #define MDB_TXN_NOMETASYNC	MDB_NOMETASYNC	/**< don't sync meta for this txn on commit */
 #define MDB_TXN_NOSYNC		MDB_NOSYNC	/**< don't sync this txn on commit */
 #define MDB_TXN_RDONLY		MDB_RDONLY	/**< read-only transaction */
@@ -1655,6 +1655,7 @@ struct MDB_env {
 	mdb_mutex_t	me_rmutex;
 	mdb_mutex_t	me_wmutex;
 	mdb_mutex_t	me_sync_mutex;
+	mdb_size_t me_sync_txn_id;
 # if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
 	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
 	char		me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
@@ -1670,8 +1671,6 @@ struct MDB_env {
 	unsigned short me_esumsize;	/**< size of per-page authentication data */
 	unsigned int me_rpcheck;
 
-	MDB_flush_func *me_flushfunc;	/**< flush data */
-	void *me_flushdata;	/**< flush data */
 	MDB_enc_func *me_encfunc;	/**< encrypt env data */
 	MDB_val		me_enckey;	/**< key for env encryption */
 #endif
@@ -3056,7 +3055,25 @@ int
 mdb_env_sync(MDB_env *env, int force)
 {
 	MDB_meta *m = mdb_env_pick_meta(env);
-	return mdb_env_sync0(env, force, m->mm_last_pg+1);
+	int rc = mdb_env_sync0(env, force, m->mm_last_pg+1);
+	// <lmdb-store>
+	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
+		size_t txn_id = env->me_sync_txn_id;
+		UNLOCK_MUTEX(env->me_sync_mutex);
+		// TODO: Update the flag on the existing meta block rather than starting a new transaction
+		MDB_txn* txn;
+		// must get one transaction ahead of this one for it be fully durable
+		mdb_txn_begin(env, NULL, 0, &txn);
+		if (txn_id + 1 == mdb_txn_id(txn)) {
+			fprintf(stderr, "w");
+			mdb_env_write_meta(txn);
+		} else {
+			fprintf(stderr, "e");
+		}
+		mdb_txn_end(txn, 0);
+	}
+	return rc;
+	// </lmdb-store>
 }
 
 /** Back up parent txn's cursors, then grab the originals for tracking */
@@ -3967,7 +3984,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	OVERLAPPED	*ov, *this_ov;
 	MDB_page	*wdp;
 	int async_i = 0;
-	HANDLE fd = (env->me_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
+	HANDLE fd = (txn->mt_flags & (MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) ? env->me_fd : env->me_ovfd;
 #else
 	struct iovec iov[MDB_COMMIT_PAGES];
 	HANDLE fd = env->me_fd;
@@ -4091,7 +4108,7 @@ retry_write:
 				this_ov->Internal = 0;
 				this_ov->Offset = wpos & 0xffffffff;
 				this_ov->OffsetHigh = wpos >> 16 >> 16;
-				if (!F_ISSET(env->me_flags, MDB_NOSYNC) && !this_ov->hEvent) {
+				if (!F_ISSET(txn->mt_flags, (MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) && !this_ov->hEvent) {
 					HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 					if (!event) {
 						rc = ErrCode();
@@ -4190,7 +4207,7 @@ retry_seek:
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 
 #ifdef _WIN32
-	if (!F_ISSET(env->me_flags, MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) {
+	if (!(txn->mt_flags & (MDB_NOSYNC|MDB_OVERLAPPINGSYNC))) {
 		/* Now wait for all the asynchronous/overlapped sync/write-through writes to complete.
 		* We start with the last one so that all the others should already be complete and
 		* we reduce thread suspend/resuming (in practice, typically about 99.5% of writes are
@@ -4457,7 +4474,15 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 	}
 
-	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC|MDB_OVERLAPPINGSYNC) &&
+	/* <lmdb-store> */
+	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
+	// flushfunc that calls back to mdb_page_flush we before and after actions
+	if (F_ISSET(txn->mt_flags, MDB_OVERLAPPINGSYNC)) {
+		LOCK_MUTEX(rc, env, env->me_sync_mutex);
+		env->me_sync_txn_id = txn->mt_txnid;
+	}
+	/* </lmdb-store> */
+	else if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
 	if ((rc = mdb_env_write_meta(txn)))
@@ -4475,14 +4500,6 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 done:
-	/* <lmdb-store> */
-	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
-	// flushfunc that calls back to mdb_page_flush we before and after actions
-	if (F_ISSET(txn->mt_flags, MDB_OVERLAPPINGSYNC)) {
-		LOCK_MUTEX(rc, env, env->me_sync_mutex);
-		end_mode &= ~MDB_END_FREE;
-	}
-	/* </lmdb-store> */
 	mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
 
@@ -4490,23 +4507,6 @@ fail:
 	mdb_txn_abort(txn);
 	return rc;
 }
-/* <lmdb-store> */
-int
-mdb_txn_sync(MDB_txn *txn) {
-/*	if (env->me_flushfunc) {
-		env->me_flushfunc(env->me_flushdata);
-	}*/
-	int rc = 0;
-	MDB_env* env = txn->mt_env;
-	rc = mdb_env_sync0(env, 0, txn->mt_next_pgno);
-	txn->mt_flags ^= MDB_OVERLAPPINGSYNC;
-	rc = mdb_env_write_meta(txn);
-	UNLOCK_MUTEX(env->me_sync_mutex);
-	// TODO: sync the meta write
-	free(txn);
-	return MDB_SUCCESS;
-}
-/* </lmdb-store> */
 
 static int ESECT mdb_env_map(MDB_env *env, void *addr);
 
@@ -4732,7 +4732,7 @@ mdb_env_write_meta(MDB_txn *txn)
 		__sync_synchronize();
 #endif
 		mp->mm_txnid = txn->mt_txnid;
-		if (!(flags & (MDB_NOMETASYNC|MDB_NOSYNC|MDB_OVERLAPPINGSYNC))) {
+		if (!(flags & (MDB_NOMETASYNC|MDB_NOSYNC))) {
 			unsigned meta_size = env->me_psize;
 			rc = (env->me_flags & MDB_MAPASYNC) ? MS_ASYNC : MS_SYNC;
 			ptr = (char *)mp - PAGEHDRSZ;
@@ -4767,7 +4767,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	 * (me_mfd goes to the same file as me_fd, but writing to it
 	 * also syncs to disk.  Avoids a separate fdatasync() call.)
 	 */
-	mfd = (flags & (MDB_NOSYNC|MDB_NOMETASYNC|MDB_OVERLAPPINGSYNC)) ? env->me_fd : env->me_mfd;
+	mfd = (flags & (MDB_NOSYNC|MDB_NOMETASYNC)) ? env->me_fd : env->me_mfd;
 #ifdef _WIN32
 	{
 		memset(&ov, 0, sizeof(ov));
@@ -6064,7 +6064,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 {
 	int rc, excl = -1;
 	MDB_name fname;
-
+fprintf(stderr, "env_open flags remaining %p\n", flags & ~(CHANGEABLE|CHANGELESS));
 	if (env->me_fd!=INVALID_HANDLE_VALUE || (flags & ~(CHANGEABLE|CHANGELESS)))
 		return EINVAL;
 
@@ -11481,11 +11481,6 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 	env->me_assert_func = func;
 #endif
 	return MDB_SUCCESS;
-}
-
-int mdb_env_set_flush(MDB_env *env, MDB_flush_func *func, void *data) {
-	env->me_flushfunc = func;
-	env->me_flushdata = data;
 }
 
 #if MDB_RPAGE_CACHE

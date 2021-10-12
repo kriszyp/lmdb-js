@@ -97,6 +97,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						console.error(error)
 					}
 					enqueuedEventTurnBatch = null
+					//console.log('ending event turn')
 					finishBatch()
 					batchDepth--
 					if (writeBatchStart)
@@ -113,7 +114,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
 		let flagPosition = position << 1 // flagPosition is the 32-bit word starting position
 
-		// don't increment Position until we are sure we don't have any key writing errors
+		// don't increment position until we are sure we don't have any key writing errors
+		if (!uint32) {
+			console.error('no uint32!')
+			debugger
+			console.error({writeTxn, uint32: targetBytes.uint32, float64: targetBytes.float64})
+			process.exit(0)
+		}
 		uint32[flagPosition + 1] = store.db.dbi
 		let nextCompressible
 		if (flags & 4) {
@@ -220,10 +227,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
 				// just poll for the status change if we miss a status update
-				writeStatus = uint32[flagPosition]
-				uint32[flagPosition] = flags
+				//writeStatus = uint32[flagPosition]
+				//uint32[flagPosition] = flags
+				writeStatus = Atomics.or(uint32, flagPosition, flags)
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount++
+					//console.log(outstandingBatchCount, batchStartThreshold)
 					if (outstandingBatchCount > batchStartThreshold) {
 						outstandingBatchCount = 0
 						writeBatchStart()
@@ -237,6 +246,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	
 			outstandingWriteCount++
 			if (writeStatus & TXN_DELIMITER) {
+				//console.warn('Got TXN delimiter')
 				commitPromise = null
 				queueCommitResolution(resolution)
 				if (!startAddress) {
@@ -403,6 +413,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let writeStatus = uint32[flagPosition]
 			uint32[flagPosition] = newStatus
 			return writeStatus
+			return Atomics.or(uint32, flagPosition, newStatus)
 		} else // otherwise the transaction could end at any time and we need to know the
 			// deterministically if it is ending, so we can reset the commit promise
 			// so we use the slower atomic operation

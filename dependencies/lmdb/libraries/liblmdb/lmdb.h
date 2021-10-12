@@ -293,8 +293,6 @@ typedef struct MDB_val {
 	void		*mv_data;	/**< address of the data item */
 } MDB_val;
 
-typedef int  (MDB_flush_func)(void* data);
-
 
 /** @brief A callback function used to compare two keys in a database */
 typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
@@ -1133,7 +1131,6 @@ mdb_size_t mdb_txn_id(MDB_txn *txn);
 	 * </ul>
 	 */
 int  mdb_txn_commit(MDB_txn *txn);
-int  mdb_txn_sync(MDB_txn *txn);
 
 	/** @brief Abandon all the operations of the transaction instead of saving them.
 	 *

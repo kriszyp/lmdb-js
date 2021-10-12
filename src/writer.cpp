@@ -111,10 +111,12 @@ waitForCallback:
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
 	if (target) {
-		int delay = 1;
+		uint64_t delay = 1;
 		do {
 			uv_cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
-			delay = delay << 6;
+			delay = delay << 6ll;
+			//if (delay > 5000)
+			//	fprintf(stderr, "waited, %llu %p\n", delay, *target);
 		} while(!(
 			(*target & 0xf) ||
 			(allowCommit && (interruptionStatus == INTERRUPT_BATCH || finishedProgress))));
@@ -312,8 +314,11 @@ next_inst:	start = instruction++;
 void WriteWorker::Write() {
 	int rc, txnId;
 	finishedProgress = true;
+	unsigned int envFlags;
+	//fprintf(stderr, "ready to start writing   ");
+	mdb_env_get_flags(env, &envFlags);
 	uv_mutex_lock(envForTxn->writingLock);
-	rc = mdb_txn_begin(env, nullptr, 0, &txn);
+	rc = mdb_txn_begin(env, nullptr, envFlags & MDB_OVERLAPPINGSYNC, &txn);
 	txnId = mdb_txn_id(txn);
 	if (rc != 0) {
 		return SetErrorMessage(mdb_strerror(rc));
@@ -336,15 +341,14 @@ void WriteWorker::Write() {
 		rc = mdb_txn_commit(txn);
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
-		unsigned int envFlags;
-		mdb_env_get_flags(env, &envFlags);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
-			//progressStatus = 1;
-			//executionProgress->Send(nullptr, 0);
-			rc = mdb_txn_sync(committingTxn);
+//			fprintf(stderr, "doing sync\n");
+			progressStatus = 1;
+			executionProgress->Send(nullptr, 0);
+			rc = mdb_env_sync(env, true);
 		}
 
-		//fprintf(stderr, "committed %p %u\n", instructions, rc);
+//		fprintf(stderr, "committed %p %p %u\n", instructions, envFlags, rc);
 /*
 		if (rc == 0) {
 			unsigned int envFlags;

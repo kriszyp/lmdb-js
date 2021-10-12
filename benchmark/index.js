@@ -6,7 +6,6 @@ import inspector from 'inspector'
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
 import rimraf from 'rimraf';
-import mkdirp from 'mkdirp';
 import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
@@ -81,7 +80,7 @@ function getRange() {
   let start = (c += 357) % total
   let i = 0
   for (let entry of store.getRange({
-    start,
+    start,  
     end: start + 10
   })) {
     i++
@@ -93,7 +92,9 @@ function plainJSON() {
 }
 
 if (isMainThread && isMaster) {
-//inspector.open(9330, null, true); debugger
+try{
+  inspector.open(9330, null, true); //debugger
+} catch(error) {}
 
 function cleanup(done) {
   // cleanup previous test directory
@@ -102,9 +103,8 @@ function cleanup(done) {
       return done(err);
     }
     // setup clean directory
-    mkdirp(testDirPath).then(() => {
-      done();
-    }, error => done(error));
+    fs.mkdirSync(testDirPath, { recursive: true });
+    done();
   });
 }
 function setup() {
@@ -114,6 +114,8 @@ function setup() {
     //useWritemap: true,
     //noSync: true,
     //winMemoryPriority: 4,
+    //eventTurnBatching: false,
+    batchStartThreshold: 3,
   })
   store = rootStore.openDB('testing', {
     create: true,
