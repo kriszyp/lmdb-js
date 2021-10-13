@@ -887,10 +887,12 @@ typedef struct MDB_txninfo {
 		char pad[(sizeof(MDB_txbody)+CACHELINE-1) & ~(CACHELINE-1)];
 	} mt1;
 #if !(defined(_WIN32) || defined(MDB_USE_POSIX_SEM))
-	union {
+	union { struct {
 #ifdef MDB_USE_SYSV_SEM
 		int mt2_wlocked;
+		int mt2_sync_locked;
 #define mti_wlocked	mt2.mt2_wlocked
+#define mti_sync_locked	mt2.mt2_sync_locked
 #else
 		mdb_mutex_t	mt2_wmutex;
 		mdb_mutex_t	mt2_sync_mutex;
@@ -898,7 +900,7 @@ typedef struct MDB_txninfo {
 #define mti_sync_mutex	mt2.mt2_sync_mutex
 #endif
 		char pad[(MNAME_LEN+CACHELINE-1) & ~(CACHELINE-1)];
-	} mt2;
+		};	} mt2;
 #endif
 	MDB_reader	mti_readers[1];
 } MDB_txninfo;
@@ -4858,9 +4860,11 @@ mdb_env_create(MDB_env **env)
 #ifdef MDB_USE_POSIX_SEM
 	e->me_rmutex = SEM_FAILED;
 	e->me_wmutex = SEM_FAILED;
+	e->me_sync_mutex = SEM_FAILED;
 #elif defined MDB_USE_SYSV_SEM
 	e->me_rmutex->semid = -1;
 	e->me_wmutex->semid = -1;
+	e->me_sync_mutex->semid = -1;
 #endif
 	e->me_pid = getpid();
 	GET_PAGESIZE(e->me_os_psize);
@@ -5875,6 +5879,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		 */
 		sem_unlink(MUTEXNAME(env, 'r'));
 		sem_unlink(MUTEXNAME(env, 'w'));
+		sem_unlink(MUTEXNAME(env, 's'));
 		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), O_CREAT|O_EXCL, mode, 1);
@@ -5895,6 +5900,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_txns->mti_semid = semid;
 		env->me_txns->mti_rlocked = 0;
 		env->me_txns->mti_wlocked = 0;
+		env->me_txns->mti_sync_locked = 0;
 #else	/* MDB_USE_POSIX_MUTEX: */
 		pthread_mutexattr_t mattr;
 
@@ -5950,7 +5956,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (!env->me_rmutex) goto fail_errno;
 		env->me_wmutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
-		env->me_sync_mutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
+		env->me_sync_mutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 's'));
 		if (!env->me_sync_mutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
 		mdb_env_mname_init(env);
@@ -5977,7 +5983,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	env->me_sync_mutex->semid = semid;
 	env->me_rmutex->semnum = 0;
 	env->me_wmutex->semnum = 1;
-	env->me_sync_mutex->semnum = 1;
+	env->me_sync_mutex->semnum = 2;
 	env->me_rmutex->locked = &env->me_txns->mti_rlocked;
 	env->me_wmutex->locked = &env->me_txns->mti_wlocked;
 	env->me_sync_mutex->locked = &env->me_txns->mti_sync_locked;
