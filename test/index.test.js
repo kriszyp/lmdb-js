@@ -659,6 +659,23 @@ describe('lmdb-store', function() {
       should.equal(db.get('inside-sync'), 'test');
       should.equal(db.get('async2'), 'test');
     });
+    it.only('multiple async mixed', async function() {
+      let result
+      for (let i = 0; i < 100; i++) {
+        if (i%4 < 3) {
+          db.strictAsyncOrder = i%4 == 2
+          result = db.transaction(() => {
+            db.put('foo' + i, i)
+          })
+        } else {
+          result = db.put('foo' + i, i)
+        }
+      }
+      await result
+      for (let i = 0; i < 100; i++) {
+        should.equal(db.get('foo' + i), i)
+      }
+    })
     it('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction

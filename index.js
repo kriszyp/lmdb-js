@@ -142,16 +142,12 @@ export function open(path, options) {
 				throw new Error('Database name must be supplied in name property (may be null for root database)')
 
 			const openDB = () => {
-				try {
-					this.db = env.openDbi(Object.assign({
-						name: dbName,
-						create: true,
-						txn: env.writeTxn,
-					}, dbOptions))
-					this.db.name = dbName || null
-				} catch(error) {
-					handleError(error, null, null, openDB)
-				}
+				this.db = env.openDbi(Object.assign({
+					name: dbName,
+					create: true,
+					txn: env.writeTxn,
+				}, dbOptions))
+				this.db.name = dbName || null
 			}
 			if (dbOptions.compression && !(dbOptions.compression instanceof Compression)) {
 				if (dbOptions.compression == true && options.compression)
@@ -333,31 +329,23 @@ export function open(path, options) {
 			resetReadTxn()
 		}
 		doesExist(key, versionOrValue) {
-			let txn
-			try {
-				if (env.writeTxn) {
-					txn = env.writeTxn
-				} else {
-					txn = readTxnRenewed ? readTxn : renewReadTxn()
+			if (!env.writeTxn)
+				readTxnRenewed ? readTxn : renewReadTxn()
+			if (versionOrValue === undefined) {
+				this.getSizeBinaryFast(key)
+				return lastSize !== 0xffffffff
+			}
+			else if (this.useVersions) {
+				this.getSizeBinaryFast(key)
+				return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue)
+			}
+			else {
+				if (this.encoder) {
+					versionOrValue = this.encoder.encode(versionOrValue)
 				}
-				if (versionOrValue === undefined) {
-					this.getSizeBinaryFast(key)
-					return lastSize !== 0xffffffff
-				}
-				else if (this.useVersions) {
-					this.getSizeBinaryFast(key)
-					return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue)
-				}
-				else {
-					if (this.encoder) {
-						versionOrValue = this.encoder.encode(versionOrValue)
-					}
-					if (typeof versionOrValue == 'string')
-						versionOrValue = Buffer.from(versionOrValue)
-					return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0
-				}
-			} catch(error) {
-				return handleError(error, this, txn, () => this.doesExist(key, versionOrValue))
+				if (typeof versionOrValue == 'string')
+					versionOrValue = Buffer.from(versionOrValue)
+				return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0
 			}
 		}
 		batch(operations) {
@@ -395,13 +383,7 @@ export function open(path, options) {
 			}
 		}
 		getStats() {
-			try {
-				let stats = this.db.stat(readTxnRenewed ? readTxn : renewReadTxn())
-				return stats
-			}
-			catch(error) {
-				return handleError(error, this, readTxn, () => this.getStats())
-			}
+			return this.db.stat(readTxnRenewed ? readTxn : renewReadTxn())
 		}
 		sync(callback) {
 			return env.sync(callback || function(error) {
@@ -438,14 +420,10 @@ export function open(path, options) {
 				let lastVersion // because we are doing a read here, we may need to save and restore the lastVersion from the last read
 				if (this.useVersions)
 					lastVersion = getLastVersion()
-				try {
-					let buffer = this.getBinary(this.sharedStructuresKey)
-					if (this.useVersions)
-						setLastVersion(lastVersion)
-					return buffer ? this.encoder.decode(buffer) : []
-				} catch(error) {
-					return handleError(error, this, null, getStructures)
-				}
+				let buffer = this.getBinary(this.sharedStructuresKey)
+				if (this.useVersions)
+					setLastVersion(lastVersion)
+				return buffer ? this.encoder.decode(buffer) : []
 			}
 			return {
 				saveStructures: (structures, previousLength) => {
@@ -472,31 +450,6 @@ export function open(path, options) {
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
-	function handleError(error, store, txn, retry) {
-		try {
-			if (writeTxn)
-				writeTxn.abort()
-		} catch(error) {}
-		if (writeTxn)
-			writeTxn = null
-
-		if (error.message.startsWith('MDB_') &&
-				!(error.message.startsWith('MDB_KEYEXIST') || error.message.startsWith('MDB_NOTFOUND')) ||
-				error.message == 'The transaction is already closed.') {
-			resetReadTxn() // separate out cursor-based read txns
-			try {
-				if (readTxn) {
-					readTxn.abort()
-					readTxn.isAborted = true
-				}
-			} catch(error) {}
-			readTxn = null
-		}
-		if (error.message.startsWith('MDB_PROBLEM'))
-			console.error(error)
-		error.message = 'In database ' + name + ': ' + error.message
-		throw error
-	}
 }
 
 function matches(previousVersion, ifVersion){

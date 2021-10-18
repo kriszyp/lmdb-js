@@ -4,8 +4,8 @@ var backpressureArray
 
 const MAX_KEY_SIZE = 1978
 const PROCESSING = 0x20000000
-const STATUS_LOCKED = 0x200000;
-const WAITING_OPERATION = 0x400000;
+const STATUS_LOCKED = 0x200000
+const WAITING_OPERATION = 0x400000
 const BACKPRESSURE_THRESHOLD = 30000000
 const TXN_DELIMITER = 0x20000000
 const TXN_COMMITTED = 0x40000000
@@ -29,7 +29,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let buffer = new SharedArrayBuffer(0x10000) // Must use a shared buffer to ensure GC doesn't move it around
 		dynamicBytes = Buffer.from(buffer)
 		dynamicBytes.fill(0xaa)
-		//dynamicBytes = Buffer.alloc(0x10000, 0xaa) // Buffer.allocUnsafeSlow(0x10000)
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, 0x10000 >> 2)
 		uint32[0] = 0
 		dynamicBytes.float64 = new Float64Array(buffer, 0, 0x10000 >> 3)
@@ -260,10 +259,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				env.startWriting(0)
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
-				console.log('backpressure')
 				if (!backpressureArray)
 					backpressureArray = new Int32Array(new SharedArrayBuffer(4), 0, 1)
-				Atomics.wait(backpressureArray, 0, 0, 100)
+				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress) {
 				if (!enqueuedCommit && txnStartThreshold) {
@@ -474,7 +472,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			await Promise.all(promises)
 		}
 		env.writeTxn = writeTxn = false
-		//console.log('async callback resume write trhead')
+		console.log('async callback resume write trhead')
 		return env.commitTxn()
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error
@@ -632,10 +630,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		transactionAsync(callback, asChild) {
 			let txnIndex
 			let txnCallbacks
-			if (!lastQueuedResolution || !lastQueuedResolution.callbacks) {
+			if (!nextResolution.callbacks) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback]
+				nextResolution.callbacks = txnCallbacks
 				txnCallbacks.results = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this)()
-				lastQueuedResolution.callbacks = txnCallbacks
 				txnIndex = 0
 			} else {
 				txnCallbacks = lastQueuedResolution.callbacks
