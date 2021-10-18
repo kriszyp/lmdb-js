@@ -345,6 +345,8 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
  */
 	/** mmap at a fixed address (experimental) */
 #define MDB_FIXEDMAP	0x01
+      /** Use overlapping sync approach */
+#define MDB_OVERLAPPINGSYNC		0x1000
 	/** encrypted DB - read-only flag, set by #mdb_env_set_encrypt() */
 #define MDB_ENCRYPT		0x2000U
 	/** no environment directory */
@@ -371,8 +373,6 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_PREVSNAPSHOT	0x2000000
 	/** don't use a single mmap, remap individual chunks (needs MDB_RPAGE_CACHE) */
 #define MDB_REMAP_CHUNKS	0x4000000
-      /** Use overlapping sync approach */
-#define MDB_OVERLAPPINGSYNC      0x8000000
 /** @} */
 
 /**	@defgroup	mdb_dbi_open	Database Flags

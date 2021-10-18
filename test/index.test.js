@@ -54,6 +54,7 @@ describe('lmdb-store', function() {
         //asyncTransactionOrder: 'strict',
         //useWritemap: true,
         //noSync: true,
+        overlappingSync: true,
         compression: {
           threshold: 256,
         },

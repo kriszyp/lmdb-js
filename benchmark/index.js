@@ -31,7 +31,7 @@ let bigString = 'big'
 for (let i = 0; i < 10; i++) {
   bigString += bigString
 }
-//data.more = bigString
+data.more = bigString
 var c = 0
 let result
 

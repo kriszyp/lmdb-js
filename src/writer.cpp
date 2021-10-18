@@ -317,11 +317,11 @@ void WriteWorker::Write() {
 	int rc, txnId;
 	finishedProgress = true;
 	unsigned int envFlags;
-	fprintf(stderr, "a");//"ready to start writing   ");
 	mdb_env_get_flags(env, &envFlags);
 	uv_mutex_lock(envForTxn->writingLock);
-	rc = mdb_txn_begin(env, nullptr, envFlags & MDB_OVERLAPPINGSYNC, &txn);
+	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
 	txnId = mdb_txn_id(txn);
+	fprintf(stderr, "start txn %u, ", txnId);
 	if (rc != 0) {
 		return SetErrorMessage(mdb_strerror(rc));
 	}
@@ -341,10 +341,10 @@ void WriteWorker::Write() {
 		else*/
 		MDB_txn* committingTxn = txn;
 		rc = mdb_txn_commit(txn);
+		fprintf(stderr, "committed txn %u, ", txnId);
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
-//			fprintf(stderr, "doing sync\n");
 			progressStatus = 1;
 			executionProgress->Send(nullptr, 0);
 			rc = mdb_env_sync(env, true);

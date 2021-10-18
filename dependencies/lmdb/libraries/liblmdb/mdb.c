@@ -1664,7 +1664,7 @@ struct MDB_env {
 	char		me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
 # endif
 #endif
-	mdb_size_t me_sync_txn_id;
+	mdb_size_t me_synced_txn_id;
 #if MDB_RPAGE_CACHE
 	MDB_ID3L	me_rpages;	/**< like #mt_rpages, but global to env */
 	pthread_mutex_t	me_rpmutex;	/**< control access to #me_rpages */
@@ -2557,7 +2557,9 @@ mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
 	/* <lmdb-store> */
-	txnid_t mr, oldest = txn->mt_txnid - ((txn->mt_env->me_flags & MDB_OVERLAPPINGSYNC) ? 2 : 1);
+	txnid_t mr, oldest = (txn->mt_env->me_flags & MDB_OVERLAPPINGSYNC) ?
+		txn->mt_env->me_synced_txn_id :
+		(txn->mt_txnid - 1);
 	/* </lmdb-store> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
@@ -3048,10 +3050,8 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 					rc = ErrCode();
 			} else
 #endif
-fprintf(stderr,"s1");
 			if (MDB_FDATASYNC(env->me_fd))
 				rc = ErrCode();
-fprintf(stderr,"s2");				
 		}
 	}
 	return rc;
@@ -3061,24 +3061,43 @@ int
 mdb_env_sync(MDB_env *env, int force)
 {
 	MDB_meta *m = mdb_env_pick_meta(env);
-	int rc = mdb_env_sync0(env, force, m->mm_last_pg+1);
 	// <lmdb-store>
 	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
-		size_t txn_id = env->me_sync_txn_id;
-		UNLOCK_MUTEX(env->me_sync_mutex);
-		// TODO: Update the flag on the existing meta block rather than starting a new transaction
-		MDB_txn* txn;
-		// must get one transaction ahead of this one for it be fully durable
-		mdb_txn_begin(env, NULL, 0, &txn);
-		if (txn_id + 1 == mdb_txn_id(txn)) {
-			fprintf(stderr, "w");
-			mdb_env_write_meta(txn);
-		} else {
-			fprintf(stderr, "e");
+		size_t last_txn_id = m->mm_txnid;
+		fprintf(stderr,"syncing txn %u, ", last_txn_id);
+		int rc;
+		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
+			return rc;
+		if (env->me_synced_txn_id >= last_txn_id) {
+			fprintf(stderr,"no need to sync txn %u, done\n" + last_txn_id);
+			UNLOCK_MUTEX(env->me_sync_mutex);
+			return 0;
 		}
-		mdb_txn_end(txn, 0);
+		m = mdb_env_pick_meta(env);
+		last_txn_id = m->mm_txnid;
+		MDB_txn sync_txn;
+		MDB_db dbs[2];
+		sync_txn.mt_env = env;
+		sync_txn.mt_flags = 2;
+		sync_txn.mt_dbs = dbs;
+		sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
+		sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
+		sync_txn.mt_txnid = last_txn_id;
+		sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
+		if (rc) {
+			UNLOCK_MUTEX(env->me_sync_mutex);
+			return rc;
+		}
+		rc = mdb_env_write_meta(&sync_txn);
+		if (rc == 0)
+			env->me_synced_txn_id = last_txn_id;
+		fprintf(stderr,"finished syncing txn %u, ", last_txn_id);
+		UNLOCK_MUTEX(env->me_sync_mutex);
+		return rc;
+	} else {
+		return mdb_env_sync0(env, force, m->mm_last_pg+1);
 	}
-	return rc;
 	// </lmdb-store>
 }
 
@@ -3990,7 +4009,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	OVERLAPPED	*ov, *this_ov;
 	MDB_page	*wdp;
 	int async_i = 0;
-	HANDLE fd = (txn->mt_flags & (MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) ? env->me_fd : env->me_ovfd;
+	HANDLE fd = (txn->mt_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
 #else
 	struct iovec iov[MDB_COMMIT_PAGES];
 	HANDLE fd = env->me_fd;
@@ -4018,19 +4037,21 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	
 #ifdef _WIN32
 	if (!(env->me_flags & MDB_WRITEMAP)) {
-		DWORD file_high;
-		size_t file_size = GetFileSize(fd, &file_high);
-		file_size += (size_t) file_high << 32;
-		if (pgno * psize >= file_size) {
-			file_size = ((size_t) (pgno < 100 ? 2 : pgno < 1000 ? 1.5 : pgno < 10000 ? 1.25 : pgno < 100000 ? 1.125 : 1.0625) * pgno * psize / 0x40000 + 1) * 0x40000;
-			LONG high_position = file_size >> 32;
-			if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-				fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
-			} else {
-				rc = SetEndOfFile(fd);
-				if (!rc) {
-					rc = ErrCode();
-					fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+		if (!(env->me_flags & MDB_OVERLAPPINGSYNC)) {
+			DWORD file_high;
+			size_t file_size = GetFileSize(fd, &file_high);
+			file_size += (size_t) file_high << 32;
+			if (pgno * psize >= file_size) {
+				file_size = ((size_t) (pgno < 100 ? 2 : pgno < 1000 ? 1.5 : pgno < 10000 ? 1.25 : pgno < 100000 ? 1.125 : 1.0625) * pgno * psize / 0x40000 + 1) * 0x40000;
+				LONG high_position = file_size >> 32;
+				if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+					fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
+				} else {
+					rc = SetEndOfFile(fd);
+					if (!rc) {
+						rc = ErrCode();
+						fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+					}
 				}
 			}
 		}
@@ -4115,7 +4136,7 @@ retry_write:
 				this_ov->Internal = 0;
 				this_ov->Offset = wpos & 0xffffffff;
 				this_ov->OffsetHigh = wpos >> 16 >> 16;
-				if (!F_ISSET(txn->mt_flags, (MDB_NOSYNC|MDB_OVERLAPPINGSYNC)) && !this_ov->hEvent) {
+				if (!F_ISSET(txn->mt_flags, MDB_NOSYNC) && !this_ov->hEvent) {
 					HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 					if (!event) {
 						rc = ErrCode();
@@ -4214,7 +4235,7 @@ retry_seek:
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 
 #ifdef _WIN32
-	if (!(txn->mt_flags & (MDB_NOSYNC|MDB_OVERLAPPINGSYNC))) {
+	if (!(txn->mt_flags & MDB_NOSYNC)) {
 		/* Now wait for all the asynchronous/overlapped sync/write-through writes to complete.
 		* We start with the last one so that all the others should already be complete and
 		* we reduce thread suspend/resuming (in practice, typically about 99.5% of writes are
@@ -4481,20 +4502,24 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 	}
 
-	/* <lmdb-store> */
-	// TODO: At some point, we may see if we can further consolidate lmdb-store actions into this single external
-	// flushfunc that calls back to mdb_page_flush we before and after actions
-	if (F_ISSET(txn->mt_flags, MDB_OVERLAPPINGSYNC)) {
-		LOCK_MUTEX(rc, env, env->me_sync_mutex);
-		env->me_sync_txn_id = txn->mt_txnid;
-	}
-	/* </lmdb-store> */
-	else if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
+	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
+
+	//<lmdb-store>
+	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC))
+		txn->mt_dbs[FREE_DBI].md_flags |= MDB_OVERLAPPINGSYNC;
+	else
+		txn->mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC;
+	//<//lmdb-store>
+
 	if ((rc = mdb_env_write_meta(txn)))
 		goto fail;
 
+	//<lmdb-store>
+	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
+		env->me_synced_txn_id = txn->mt_txnid;
+	//</lmdb-store>
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (!(env->me_flags & MDB_NOLOCK)) {
@@ -4763,12 +4788,15 @@ mdb_env_write_meta(MDB_txn *txn)
 	meta.mm_dbs[MAIN_DBI] = txn->mt_dbs[MAIN_DBI];
 	meta.mm_last_pg = txn->mt_next_pgno - 1;
 	meta.mm_txnid = txn->mt_txnid;
-	meta.mm_version = MDB_DATA_VERSION | (flags & MDB_OVERLAPPINGSYNC);
+	meta.mm_version = MDB_DATA_VERSION;
 
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
 	len = sizeof(MDB_meta) - off;
-	off += (char *)mp - env->me_map;
+	if (flags & 2)
+		off += (char *)env->me_metas[0] - env->me_map + (env->me_psize >> 1);
+	else
+		off += (char *)mp - env->me_map;
 
 	/* Write to the SYNC fd unless MDB_NOSYNC/MDB_NOMETASYNC.
 	 * (me_mfd goes to the same file as me_fd, but writing to it
@@ -4820,7 +4848,7 @@ done:
 	 * readers will get consistent data regardless of how fresh or
 	 * how stale their view of these values is.
 	 */
-	if (env->me_txns)
+	if (env->me_txns && !(flags & 2))
 		env->me_txns->mti_txnid = txn->mt_txnid;
 
 	return MDB_SUCCESS;
@@ -4837,8 +4865,21 @@ mdb_env_pick_meta(const MDB_env *env)
 	//<lmdb-store>
 	int i = (metas[0]->mm_txnid < metas[1]->mm_txnid);
 	MDB_meta *latest = metas[i];
-	if ((env->me_flags & MDB_PREVSNAPSHOT) && (latest->mm_version & MDB_OVERLAPPINGSYNC))
-		return metas[i ^ 1];
+	if (env->me_flags & MDB_PREVSNAPSHOT) {
+		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
+			if (latest->mm_flags & MDB_OVERLAPPINGSYNC) {
+				// find the latest sync-ed meta
+				fprintf(stderr, "Looking for last sync-ed txn from %u\n", latest->mm_txnid);
+				int offset = env->me_psize >> 1;
+				MDB_meta *latestSynced = ((MDB_meta*) (((char*)metas[0]) + offset));
+				fprintf(stderr, "Loading last sync-ed txn %u\n", latestSynced->mm_txnid);
+				if (latestSynced->mm_txnid)
+					latest = latestSynced;
+			}
+		} else {
+			latest = metas[i ^ 1];
+		}
+	}
 	//</lmdb-store>
 	return latest;
 }
