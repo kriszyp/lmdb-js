@@ -30,7 +30,7 @@ let data = {
   more: 'string',
 }
 let bigString = 'big'
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 9; i++) {
   bigString += bigString
 }
 console.log('bigString', bigString.length)
@@ -61,6 +61,13 @@ function setData(deferred) {
     deferred.resolve()
 }
 
+function syncTxn() {
+  store.transactionSync(() => {
+    for (let j = 0;j<100; j++)
+      store.put((c += 357), bigString)
+  })
+}
+  
 function getData() {
   result = store.get((c += 357) % total)
 }
@@ -104,6 +111,7 @@ function setup() {
   console.log('opening', testDirPath)
   let rootStore = open(testDirPath, {
     noMemInit: true,
+    //noSync: true,
     //winMemoryPriority: 4,
   })
   store = rootStore.openDB('testing', {
@@ -126,7 +134,8 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
-    //suite.add('getRange', getRange);
+    //suite.add('syncTxn', syncTxn);
+    suite.add('getRange', getRange);
     suite.add('put', {
       defer: true,
       fn: setData

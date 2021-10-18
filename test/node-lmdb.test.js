@@ -1,7 +1,6 @@
 'use strict';
 
 var path = require('path');
-var mkdirp = require('mkdirp');
 var rimraf = require('rimraf');
 var chai = require('chai');
 var fs = require('fs');
@@ -33,9 +32,8 @@ describe.skip('Node.js LMDB Bindings', function() {
         return done(err);
       }
       // setup clean directory
-      mkdirp(testBackupDirPath).then(() => {
-        done();
-      }, error => done(error));
+      fs.mkdirSync(testBackupDirPath, { recursive: true })
+      done();
     });
   });
   it('will construct, open and close an environment', function() {
