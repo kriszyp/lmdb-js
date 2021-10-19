@@ -427,13 +427,13 @@ export function open(path, options) {
 			}
 			return {
 				saveStructures: (structures, previousLength) => {
-					return this.transactionSync(() => {
+					return this.transactionSyncStart(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey)
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures)
-					}, { abortable: false, synchronousCommit: false })
+					})
 				},
 				getStructures,
 				copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers

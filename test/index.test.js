@@ -660,7 +660,7 @@ describe('lmdb-store', function() {
       should.equal(db.get('inside-sync'), 'test');
       should.equal(db.get('async2'), 'test');
     });
-    it.only('multiple async mixed', async function() {
+    it('multiple async mixed', async function() {
       let result
       for (let i = 0; i < 100; i++) {
         if (i%4 < 3) {
@@ -709,6 +709,33 @@ describe('lmdb-store', function() {
           should.equal(db.get('test:' + i + '/' + j), i + j)
         }
       }
+    });
+    it('batch operations', async function() {
+      let batch = db.batch()
+      batch.put('test:z', 'z')
+      batch.clear()
+      batch.put('test:a', 'a')
+      batch.put('test:b', 'b')
+      batch.put('test:c', 'c')
+      batch.del('test:c')
+      let callbacked
+      await batch.write(() => { callbacked = true })
+      should.equal(callbacked, true)
+      should.equal(db.get('test:a'), 'a')
+      should.equal(db.get('test:b'), 'b')
+      should.equal(db.get('test:c'), undefined)
+      should.equal(db.get('test:d'), undefined)
+    });
+    it('batch array', async function() {
+      await db.batch([
+        {type: 'put', key: 'test:a', value: 1 },
+        {type: 'put', key: 'test:b', value: 2 },
+        {type: 'put', key: 'test:c', value: 3 },
+        {type: 'del', key: 'test:c' },
+      ])
+      should.equal(db.get('test:a'), 1)
+      should.equal(db.get('test:b'), 2)
+      should.equal(db.get('test:c'), undefined)
     });
     it('read and write with binary encoding', async function() {
       let dbBinary = db.openDB(Object.assign({

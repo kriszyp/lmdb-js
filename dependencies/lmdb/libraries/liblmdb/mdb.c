@@ -3064,12 +3064,12 @@ mdb_env_sync(MDB_env *env, int force)
 	// <lmdb-store>
 	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 		size_t last_txn_id = m->mm_txnid;
-		fprintf(stderr,"syncing txn %u, ", last_txn_id);
+		//fprintf(stderr,"syncing txn %u, ", last_txn_id);
 		int rc;
 		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
 			return rc;
 		if (env->me_synced_txn_id >= last_txn_id) {
-			fprintf(stderr,"no need to sync txn %u, done\n" + last_txn_id);
+			fprintf(stderr,"no need to sync txn %u, done\n", last_txn_id);
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return 0;
 		}
@@ -3092,7 +3092,7 @@ mdb_env_sync(MDB_env *env, int force)
 		rc = mdb_env_write_meta(&sync_txn);
 		if (rc == 0)
 			env->me_synced_txn_id = last_txn_id;
-		fprintf(stderr,"finished syncing txn %u, ", last_txn_id);
+		//fprintf(stderr,"finished syncing txn %u, ", last_txn_id);
 		UNLOCK_MUTEX(env->me_sync_mutex);
 		return rc;
 	} else {

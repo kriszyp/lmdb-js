@@ -591,13 +591,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS,
 					{ abortable: false })
 		},
-		transaction(callback, options) {
-			if (options) {
- 				if (options.synchronousStart)
- 					return this.transactionSync(callback, options)
- 				if (options.abortable)
-					return this.childTransaction(callback)
-			}
+		transaction(callback) {
 			if (writeTxn) {
 				// already nested in a transaction, just execute and return
 				return callback()
@@ -646,9 +640,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return result
 			})
 		},
-		transactionSync(callback, options) {
+		transactionSync(callback, flags) {
 			if (writeTxn) {
-				if (!useWritemap && !this.cache && !(options && options.abortable === false))
+				if (!useWritemap && !this.cache)
 					// already nested in a transaction, execute as child transaction (if possible) and return
 					return this.childTransaction(callback)
 				let result = callback() // else just run in current transaction
@@ -660,12 +654,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			try {
 				this.transactions++
-				let flags = 0
-				if (!(options && options.abortable === false))
-					flags = 1
-				if (!(options && options.synchronousCommit === false))
-					flags |= 2
-				env.beginTxn(flags)
+				env.beginTxn(flags == undefined ? 3 : flags)
 				writeTxn = env.writeTxn = {}
 				return when(callback(), (result) => {
 					try {
@@ -675,7 +664,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							env.commitTxn()
 							resetReadTxn()
 						}
-
 						return result
 					} finally {
 						env.writeTxn = writeTxn = null
@@ -691,6 +679,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				throw error
 			}
 		},
+		transactionSyncStart(callback) {
+			return this.transactionSync(callback, 0)
+		},
 		on(event, callback) {
 			if (event == 'beforecommit') {
 				eventTurnBatching = true
@@ -704,6 +695,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 class Batch extends Array {
 	constructor(callback) {
+		super()
 		this.callback = callback
 	}
 	put(key, value) {
@@ -716,6 +708,6 @@ class Batch extends Array {
 		this.splice(0, this.length)
 	}
 	write(callback) {
-		this.callback(this, callback)
+		return this.callback(this, callback)
 	}
 }

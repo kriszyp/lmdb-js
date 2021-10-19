@@ -321,7 +321,7 @@ void WriteWorker::Write() {
 	uv_mutex_lock(envForTxn->writingLock);
 	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
 	txnId = mdb_txn_id(txn);
-	fprintf(stderr, "start txn %u, ", txnId);
+	//fprintf(stderr, "start txn %u, ", txnId);
 	if (rc != 0) {
 		return SetErrorMessage(mdb_strerror(rc));
 	}
@@ -341,7 +341,7 @@ void WriteWorker::Write() {
 		else*/
 		MDB_txn* committingTxn = txn;
 		rc = mdb_txn_commit(txn);
-		fprintf(stderr, "committed txn %u, ", txnId);
+		//fprintf(stderr, "committed txn %u, ", txnId);
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
@@ -349,41 +349,6 @@ void WriteWorker::Write() {
 			executionProgress->Send(nullptr, 0);
 			rc = mdb_env_sync(env, true);
 		}
-
-//		fprintf(stderr, "committed %p %p %u\n", instructions, envFlags, rc);
-/*
-		if (rc == 0) {
-			unsigned int envFlags;
-			mdb_env_get_flags(env, &envFlags);
-			if (envFlags & MDB_OVERLAPPINGSYNC) {
-				// successfully completed, we can now send a progress event to tell JS that the commit has been completed
-				// and that it is welcome to submit the next transaction, however the commit is not synced/flushed yet,
-				// so we continue execution to do that
-				progressStatus = 1;
-				executionProgress->Send(nullptr, 0);
-				//envForTxn->syncTxnId = txnId;
-				rc= mdb_env_sync(env, 1);
-				// signal a subsequent txn that we are synced
-				//uv_cond_signal(envForTxn->syncCond);
-				// we have sync'ed to disk, but the commit is not truly durable and available on restart yet since
-				// we always use the previous snapshot/txn, so we need to wait for completion of next transaction
-				// if (ongoing transaction)
-				// 	uv_cond_wait(envForTxn->txnCond);
-				// else // we start an empty txn to ensure this txn becomes the previous one
-				// the drawback to beginning a transaction as confirmation is that if other processes are doing multiple/large
-				// transactions, we could have a long wait here, and it is potentially better to do this in a separate thread and
-				// also poll for txn id increments that would indicate that the commit is truly durable.
-				// we also don't want to be too jumpy about making empty transactions, certainly preferable that we
-				// simply use the next transaction as confirmation of durability
-				rc = mdb_txn_begin(env, nullptr, 0, &txn);
-				int nextTxnId = mdb_txn_id(txn);
-				if (nextTxnId - 2 >= txnId) {
-					// if there has already been another transaction completed, we are truly done, abort the empty txn
-					mdb_txn_abort(txn);
-				}
-				mdb_txn_commit(txn);
-			}
-		}*/
 		if (rc) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) rc);
 			return SetErrorMessage(mdb_strerror(rc));
