@@ -3,14 +3,12 @@ import { when } from './util/when.js'
 var backpressureArray
 
 const MAX_KEY_SIZE = 1978
-const PROCESSING = 0x20000000
-const STATUS_LOCKED = 0x200000
-const WAITING_OPERATION = 0x400000
+const WAITING_OPERATION = 0x2000000
 const BACKPRESSURE_THRESHOLD = 30000000
-const TXN_DELIMITER = 0x20000000
-const TXN_COMMITTED = 0x40000000
-const BATCH_DELIMITER = 0x8000000
-const FAILED_CONDITION = 0x200000
+const TXN_DELIMITER = 0x8000000
+const TXN_COMMITTED = 0x10000000
+const TXN_FLUSHED = 0x20000000
+const FAILED_CONDITION = 0x4000000
 const REUSE_BUFFER_MODE = 1000
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true)
@@ -224,9 +222,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
 				// just poll for the status change if we miss a status update
-				//writeStatus = uint32[flagPosition]
-				//uint32[flagPosition] = flags
-				writeStatus = Atomics.or(uint32, flagPosition, flags)
+				writeStatus = uint32[flagPosition]
+				uint32[flagPosition] = flags
+				//writeStatus = Atomics.or(uint32, flagPosition, flags)
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount++
 					//console.log(outstandingBatchCount, batchStartThreshold)
@@ -344,7 +342,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		// clean up finished instructions
 		let instructionStatus
 		while ((instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flagPosition])
-				& 0x10000000) {
+				& 0x1000000) {
 			//console.log('instructionStatus: ' + instructionStatus.toString(16))
 			if (unwrittenResolution.callbacks) {
 				nextTxnCallbacks.push(unwrittenResolution.callbacks)
@@ -358,8 +356,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			unwrittenResolution = unwrittenResolution.next
 		}
 		while (txnResolution &&
-			(instructionStatus = txnResolution.uint32[txnResolution.flagPosition] & 0xc0000000)) {
-			if (instructionStatus & 0x80000000)
+			(instructionStatus = txnResolution.uint32[txnResolution.flagPosition] & 0x70000000)) {
+			if (instructionStatus & 0x40000000)
 				rejectCommit()
 			else if (instructionStatus & TXN_COMMITTED)
 				resolveCommit(async)
@@ -406,10 +404,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// if we are in a batch, the transaction can't close, so we do the faster,
 			// but non-deterministic updates, knowing that the write thread can
 			// just poll for the status change if we miss a status update
-			/*let writeStatus = uint32[flagPosition]
+			let writeStatus = uint32[flagPosition]
 			uint32[flagPosition] = newStatus
-			return writeStatus*/
-			return Atomics.or(uint32, flagPosition, newStatus)
+			return writeStatus
+			//return Atomics.or(uint32, flagPosition, newStatus)
 		} else // otherwise the transaction could end at any time and we need to know the
 			// deterministically if it is ending, so we can reset the commit promise
 			// so we use the slower atomic operation

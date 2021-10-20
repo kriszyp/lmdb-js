@@ -34,15 +34,15 @@ const int SET_VERSION = 0x200;
 const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
 const int DELETE_DATABASE = 0x400;
-const int TXN_HAD_ERROR = 0x80000000;
-const int TXN_DELIMITER = 0x20000000;
-const int TXN_COMMITTED = 0x40000000;
-const int WAITING_OPERATION = 0x400000;
+const int TXN_HAD_ERROR = 0x40000000;
+const int TXN_DELIMITER = 0x8000000;
+const int TXN_COMMITTED = 0x10000000;
+const int TXN_FLUSHED = 0x20000000;
+const int WAITING_OPERATION = 0x2000000;
 const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
-const int FAILED_CONDITION = 0x200000;
-const int FINISHED_OPERATION = 0x10000000;
-const int BATCH_DELIMITER = 0x8000000;
+const int FAILED_CONDITION = 0x4000000;
+const int FINISHED_OPERATION = 0x1000000;
 
 
 WriteWorker::~WriteWorker() {
@@ -73,25 +73,33 @@ void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	this->executionProgress = (ExecutionProgress*) &executionProgress;
 	Write();
 }
-MDB_txn* WriteWorker::AcquireTxn(bool commitSynchronously) {
-	fprintf(stderr, "acquire lock %p %u\n", this, commitSynchronously);
+MDB_txn* WriteWorker::AcquireTxn(int* flags) {
+	bool commitSynchronously = *flags & TXN_SYNCHRONOUS_COMMIT;
+	
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	uv_mutex_lock(envForTxn->writingLock);
 	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
+		fprintf(stderr, "acquire interupting lock %p %u\n", this, commitSynchronously);
 		interruptionStatus = INTERRUPT_BATCH;
 		uv_cond_signal(envForTxn->writingCond);
 		uv_mutex_unlock(envForTxn->writingLock);
+        *flags |= TXN_HAS_WORKER_LOCK;
 		return nullptr;
 	} else {
-		if (interruptionStatus == RESTART_WORKER_TXN)
-			uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-		interruptionStatus = USER_HAS_LOCK;
+		//if (interruptionStatus == RESTART_WORKER_TXN)
+		//	uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+		if (txn) {
+			interruptionStatus = USER_HAS_LOCK;
+			*flags |= TXN_HAS_WORKER_LOCK;
+		} else
+			uv_mutex_unlock(envForTxn->writingLock);
+		fprintf(stderr, "acquire lock %p %u\n", txn, commitSynchronously);
 		return txn;
 	}
 }
 
 void WriteWorker::UnlockTxn() {
-	fprintf(stderr, "release txn %u\n", interruptionStatus);
+//	fprintf(stderr, "release txn %u\n", interruptionStatus);
 	if (interruptionStatus == RESTART_WORKER_TXN) {
 		interruptionStatus = 0;
 		uv_mutex_lock(envForTxn->writingLock);
@@ -106,7 +114,7 @@ void WriteWorker::ReportError(char* error) {
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 waitForCallback:
 	int rc;
-	fprintf(stderr, "wait for callback %p\n", this);
+	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
@@ -144,8 +152,8 @@ waitForCallback:
 			fprintf(stdout, "wfc unlock due to error %u\n", rc);
 			return rc;
 		}
-	}
-	fprintf(stderr, "callback done waiting\n");
+	} else
+		interruptionStatus = 0;
 	return 0;
 }
 int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
@@ -175,9 +183,9 @@ next_inst:	start = instruction++;
 			instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 16) & (~7));
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE) {
-					uint32_t highPointer = *(instruction + 1);
-					if (highPointer > 0x40000000) { // not compressed yet
-						int64_t status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
+					int64_t status;
+					while (*(instruction + 1) > 0x40000000) { // not compressed yet
+						status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
 							//fprintf(stderr, "wait on compression %p\n", instruction);
 							uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
@@ -189,7 +197,7 @@ next_inst:	start = instruction++;
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					if ((size_t)value.mv_data > 0x1000000000000)
-						fprintf(stderr, "compressed %p\n", value.mv_data);
+						fprintf(stderr, "compressed %p %u\n", value.mv_data, status);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {
@@ -236,7 +244,7 @@ next_inst:	start = instruction++;
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)TXN_DELIMITER)) {
-						fprintf(stderr, "t");//set txn_delimiter %p\n", start);
+						//fprintf(stderr, "t");//set txn_delimiter %p\n", start);
 						worker->instructions = start;
 						return 0;
 					} else
@@ -246,6 +254,10 @@ next_inst:	start = instruction++;
 				conditionDepth--;
 				if (validatedDepth > conditionDepth)
 					validatedDepth--;
+				if (conditionDepth < 0) {
+					fprintf(stderr, "Negative condition depth");
+					return 22;
+				}
 				goto next_inst;
 			case PUT:
 				if (flags & SET_VERSION)
@@ -275,9 +287,11 @@ next_inst:	start = instruction++;
 				worker->progressStatus = 2;
 				rc = 0;
 				if (flags & USER_CALLBACK_STRICT_ORDER) {
-					fprintf(stderr, "strict order\n");
+					//fprintf(stderr, "strict order\n");
 					std::atomic_fetch_or((std::atomic<uint32_t>*) start, (uint32_t) FINISHED_OPERATION); // mark it as finished so it is processed
-					worker->WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
+					while (!worker->finishedProgress) {
+						worker->WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
+					}
 				}
 				break;
 			case DROP_DB:
@@ -290,7 +304,7 @@ next_inst:	start = instruction++;
 				fprintf(stderr, "Unknown flags %p %p\n", flags, start);
 				fprintf(stderr, "flags after message %p\n", *start);
 				worker->ReportError("Unknown flags\n");
-				return 0;
+				return 22;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
@@ -326,7 +340,7 @@ void WriteWorker::Write() {
 		return SetErrorMessage(mdb_strerror(rc));
 	}
 
-	DoWrites(txn, envForTxn, instructions, this);
+	rc = DoWrites(txn, envForTxn, instructions, this);
 
 	if (envForTxn) {
 		envForTxn->currentBatchTxn= nullptr;
@@ -340,20 +354,24 @@ void WriteWorker::Write() {
 			mdb_txn_abort(txn);
 		else*/
 		MDB_txn* committingTxn = txn;
-		rc = mdb_txn_commit(txn);
+		if (rc)
+			mdb_txn_abort(txn);
+		else
+			rc = mdb_txn_commit(txn);
 		//fprintf(stderr, "committed txn %u, ", txnId);
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 			progressStatus = 1;
 			executionProgress->Send(nullptr, 0);
 			rc = mdb_env_sync(env, true);
 		}
 		if (rc) {
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) rc);
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 			return SetErrorMessage(mdb_strerror(rc));
 		} else
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED | TXN_FLUSHED);
 	} else
 		interruptionStatus = rc;
 }
@@ -398,9 +416,8 @@ NAN_METHOD(EnvWrap::startWriting) {
 
 #ifdef ENABLE_FAST_API
 void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
-	EnvWrap* cw = static_cast<EnvWrap*>(
+	EnvWrap* ew = static_cast<EnvWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
-	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
 	int rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		options.fallback = true;
