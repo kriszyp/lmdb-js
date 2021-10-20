@@ -73,7 +73,7 @@ function batchDataAdd(deferred) {
   })
   if (outstanding < 50) {
     deferred.resolve()
-  } else if (outstanding < 10000) {
+  } else if (outstanding < 1000) {
       setImmediate(() => {
         deferred.resolve()
       })
@@ -120,7 +120,7 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 try{
-  inspector.open(9330, null, true); //debugger
+  inspector.open(9330, null, false); //debugger
 } catch(error) {}
 
 function cleanup(done) {
@@ -142,7 +142,7 @@ function setup() {
     //noSync: true,
     //winMemoryPriority: 4,
     eventTurnBatching: false,
-    overlappingSync: true,
+    //overlappingSync: true,
   })
   store = rootStore.openDB('testing', {
     create: true,

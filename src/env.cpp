@@ -961,7 +961,7 @@ NAN_METHOD(EnvWrap::commitTxn) {
     }
     ew->writeTxn = currentTxn->parent;
     if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
-        fprintf(stderr, "unlock txn\n");
+        //fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
     delete currentTxn;

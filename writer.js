@@ -51,7 +51,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeBatchStart, outstandingBatchCount
 	txnStartThreshold = txnStartThreshold || 5
 	batchStartThreshold = batchStartThreshold || 1000
-	var debugErrorCallback
 
 	allocateInstructionBuffer()
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED
@@ -246,10 +245,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				queueCommitResolution(resolution)
 				if (!startAddress) {
 					startAddress = uint32.address + (flagPosition << 2)
-					debugErrorCallback = (error) => {
-						debugger
-						console.log('error writing', writeStatus, uint32[flagPosition], flags, error)
-					}
 				}
 			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
@@ -263,9 +258,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			if (startAddress) {
 				if (!enqueuedCommit && txnStartThreshold) {
-					enqueuedCommit = commitDelay == 0 ? setImmediate(() => startWriting(debugErrorCallback)) : setTimeout(() => startWriting(debugErrorCallback), commitDelay)
+					enqueuedCommit = commitDelay == 0 ? setImmediate(() => startWriting()) : setTimeout(() => startWriting(), commitDelay)
 				} else if (outstandingWriteCount > txnStartThreshold)
-					startWriting(debugErrorCallback)
+					startWriting()
 			}
 
 			if ((outstandingWriteCount & 7) === 0)
@@ -296,7 +291,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			})
 		}
 	}
-	function startWriting(debugErrorCallback) {
+	function startWriting() {
 		//console.log('start address ' + startAddress.toString(16), store.name)
 		if (enqueuedCommit) {
 			clearImmediate(enqueuedCommit)
@@ -313,11 +308,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				break;
 				case 2:
 					executeTxnCallbacks()
-					console.log('user callback');
 				break
 				default:
 				console.error(status)
-				debugErrorCallback(status)
 				if (commitRejectPromise) {
 					commitRejectPromise.reject(status)
 					commitRejectPromise = null
@@ -392,11 +385,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			commitRejectPromise.reject = rejectFunction
 		}
 		do {
-			let flag = uncommittedResolution.flag & 0xf
-			let error = new Error("Commit failed (see commitError for details)")
-			error.commitError = commitRejectPromise
-			uncommittedResolution.reject(error)
-		} while(uncommittedResolution = uncommittedResolution.next && uncommittedResolution != txnResolution)
+			if (uncommittedResolution.reject) {
+				let flag = uncommittedResolution.flag & 0xf
+				let error = new Error("Commit failed (see commitError for details)")
+				error.commitError = commitRejectPromise
+				uncommittedResolution.reject(error)
+			}
+		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != txnResolution)
 		txnResolution = txnResolution.nextTxn
 	}
 	function atomicStatus(uint32, flagPosition, newStatus) {
@@ -470,7 +465,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			await Promise.all(promises)
 		}
 		env.writeTxn = writeTxn = false
-		console.log('async callback resume write trhead')
 		return env.commitTxn()
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error
@@ -571,6 +565,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		batch(callbackOrOperations) {
 			return this.ifVersion(undefined, undefined, callbackOrOperations)
+		},
+		_triggerError() {
+			finishBatch()
 		},
 
 		putSync(key, value, versionOrOptions, ifVersion) {

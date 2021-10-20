@@ -93,7 +93,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 			*flags |= TXN_HAS_WORKER_LOCK;
 		} else
 			uv_mutex_unlock(envForTxn->writingLock);
-		fprintf(stderr, "acquire lock %p %u\n", txn, commitSynchronously);
+		//fprintf(stderr, "acquire lock %p %u\n", txn, commitSynchronously);
 		return txn;
 	}
 }
@@ -256,7 +256,6 @@ next_inst:	start = instruction++;
 					validatedDepth--;
 				if (conditionDepth < 0) {
 					fprintf(stderr, "Negative condition depth");
-					return 22;
 				}
 				goto next_inst;
 			case PUT:

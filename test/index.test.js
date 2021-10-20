@@ -36,16 +36,18 @@ describe('lmdb-store', function() {
   });
   let testIteration = 0
   describe('Basic use', basicTests({ }));
+  describe('Basic use with overlapping sync', basicTests({ overlappingSync: true }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
-  //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
-  //describe('Basic use with JSON', basicTests({ encoding: 'json' }));
-  //describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
-  //describe('Basic use with caching', basicTests({ cache: true }));
+  describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
+  describe('Basic use with JSON', basicTests({ encoding: 'json' }));
+  describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
+  describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(1000000);
     let db, db2, db3;
     before(function() {
-      testIteration++;
+      if (!options.checkLast)
+        testIteration++;
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
         create: true,
@@ -54,7 +56,7 @@ describe('lmdb-store', function() {
         //asyncTransactionOrder: 'strict',
         //useWritemap: true,
         //noSync: true,
-        overlappingSync: true,
+        //overlappingSync: true,
         compression: {
           threshold: 256,
         },
@@ -79,9 +81,9 @@ describe('lmdb-store', function() {
     });
     if (options.checkLast) {
       it('encrypted data can not be accessed', function() {
-        let data  = db.get('key1');
+        let data = db.get('key1');
         console.log({data})
-        data.should.deep.equal({foo: 1, bar: true})
+        data.should.deep.equal('test')
       })
       return
     }
@@ -769,6 +771,9 @@ describe('lmdb-store', function() {
         // should have open read and cursor transactions
         db2.close();
         db.close();
+        if (options.encryptionKey) {
+          return done();
+        }
         unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
         console.log('successfully unlinked')
         done();
