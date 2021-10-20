@@ -183,12 +183,14 @@ next_inst:	start = instruction++;
 			instruction = (uint32_t*) (((size_t) instruction + key.mv_size + 16) & (~7));
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE) {
-					int64_t status;
-					while (*(instruction + 1) > 0x40000000) { // not compressed yet
+					int64_t status = -1;
+					if (*(instruction + 1) > 0x40000000) { // not compressed yet
 						status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
 							//fprintf(stderr, "wait on compression %p\n", instruction);
-							uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+							do {
+								uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+							} while (*(instruction + 1) > 0x40000000);
 						} else if (status > 2) {
 							//fprintf(stderr, "doing the compression ourselves\n");
 							((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));

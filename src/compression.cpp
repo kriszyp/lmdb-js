@@ -215,8 +215,8 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
 
 class CompressionWorker : public Nan::AsyncWorker {
   public:
-    CompressionWorker(EnvWrap* env, double* compressionAddress)
-      : Nan::AsyncWorker(nullptr), env(env), compressionAddress(compressionAddress) {}
+    CompressionWorker(EnvWrap* env, double* compressionAddress, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), env(env), compressionAddress(compressionAddress) {}
 
 
     void Execute() {
@@ -227,8 +227,8 @@ class CompressionWorker : public Nan::AsyncWorker {
             compression->compressInstruction(env, compressionAddress);
         }
     }
-
     void HandleOKCallback() {
+        // don't actually call the callback, no need
     }
 
   private:
@@ -239,6 +239,7 @@ class CompressionWorker : public Nan::AsyncWorker {
 NAN_METHOD(EnvWrap::compress) {
     EnvWrap *env = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     size_t compressionAddress = Local<Number>::Cast(info[0])->Value();
-    CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress);
+    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
+    CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress, callback);
     Nan::AsyncQueueWorker(worker);
 }
