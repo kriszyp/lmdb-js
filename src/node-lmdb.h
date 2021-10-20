@@ -220,7 +220,7 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     void ContinueWrite();
     void Write();
     MDB_txn* txn;
-    MDB_txn* AcquireTxn(bool commitSynchronously);
+    MDB_txn* AcquireTxn(int* flags);
     void UnlockTxn();
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);

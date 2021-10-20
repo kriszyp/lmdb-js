@@ -900,9 +900,8 @@ NAN_METHOD(EnvWrap::beginTxn) {
             txn = ew->writeTxn->txn;
         else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
-            txn = ew->writeWorker->AcquireTxn(flags & TXN_SYNCHRONOUS_COMMIT);
-            flags |= TXN_HAS_WORKER_LOCK;
-            fprintf(stderr, "acquired %p %p\n", ew->writeWorker, txn);
+            txn = ew->writeWorker->AcquireTxn(&flags);
+            //fprintf(stderr, "acquired %p %p\n", ew->writeWorker, txn);
         } else
             txn = nullptr;
 

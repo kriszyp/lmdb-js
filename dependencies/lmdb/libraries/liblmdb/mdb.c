@@ -4070,7 +4070,6 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		}
 	}
 	/* </lmdb-store addition> */
-	fprintf(stderr," %u ", pagecount);
 	if (pagecount - keep >= env->me_ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */
@@ -6116,7 +6115,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 {
 	int rc, excl = -1;
 	MDB_name fname;
-fprintf(stderr, "env_open flags remaining %p\n", flags & ~(CHANGEABLE|CHANGELESS));
 	if (env->me_fd!=INVALID_HANDLE_VALUE || (flags & ~(CHANGEABLE|CHANGELESS)))
 		return EINVAL;
 
