@@ -27,9 +27,8 @@ jobs:
     runs-on: ubuntu-18.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
-      - run: apt-get update
-      - run: apt-get install -y gcc-aarch64-linux-gnu
-      - run: apt-get install -y g++-aarch64-linux-gnu
+      - run: yum install -y gcc-aarch64-linux-gnu
+      - run: yum install -y g++-aarch64-linux-gnu
       - run: ldd --version ldd
       - uses: actions/checkout@v2
       - name: Setup node
