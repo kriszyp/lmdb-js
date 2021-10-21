@@ -110,8 +110,9 @@ describe('lmdb-store', function() {
         [ 'uid', 'I-7l9ySkD-wAOULIjOEnb', 'Rwsu6gqOw8cqdCZG5_YNF' ],
         'z'
       ]
-      for (let key of keys)
+      for (let key of keys) {
         await db.put(key, 3);
+      }
       let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: Symbol.for('A')
@@ -748,7 +749,9 @@ describe('lmdb-store', function() {
       }));
       dbBinary.put('buffer', Buffer.from('hello'));
       dbBinary.put('empty', Buffer.from([]));
-      await dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
+      let promise = dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
+      await promise
+      await promise.flushed
       dbBinary.get('buffer').toString().should.equal('hello');
       dbBinary.get('Uint8Array')[1].should.equal(2);
       dbBinary.get('empty').length.should.equal(0);

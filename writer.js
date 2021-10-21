@@ -20,7 +20,7 @@ SYNC_PROMISE_FAIL.isSync = true
 //let debugLog = []
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold, commitDelay }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay }) {
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -40,7 +40,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeTxn = null
 	var abortedNonChildTransactionWarn
 	var nextTxnCallbacks = []
-	var commitPromise
+	var commitPromise, flushPromise, flushResolvers = []
 	commitDelay = commitDelay || 0
 	eventTurnBatching = eventTurnBatching === false ? false : true
 	var enqueuedCommit
@@ -100,6 +100,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						writeBatchStart() // TODO: When we support delay start of batch, optionally don't delay this
 				})
 				commitPromise = null // reset the commit promise, can't know if it is really a new transaction prior to finishWrite being called
+				flushPromise = null
 				writeBatchStart = writeInstructions(1, store)
 				outstandingBatchCount = 0
 				batchDepth++
@@ -245,11 +246,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (writeStatus & TXN_DELIMITER) {
 				//console.warn('Got TXN delimiter', ( uint32.address + (flagPosition << 2)).toString(16))
 				commitPromise = null
+				flushPromise = null
 				queueCommitResolution(resolution)
 				if (!startAddress) {
 					startAddress = uint32.address + (flagPosition << 2)
 				}
 			}
+			if (!flushPromise && overlappingSync)
+				flushPromise = new Promise(resolve => flushResolvers.push(resolve))
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
 				env.startWriting(0)
@@ -276,7 +280,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			resolution.valueBuffer = valueBuffer
 			lastQueuedResolution = resolution
-				
+
 			if (ifVersion === undefined) {
 				if (writtenBatchDepth > 1)
 					return SYNC_PROMISE_SUCCESS // or return undefined?
@@ -285,13 +289,18 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						resolution.resolve = resolve
 						resolution.reject = reject
 					})
+					if (flushPromise)
+						commitPromise.flushed = flushPromise
 				}
 				return commitPromise
 			}
-			return new Promise((resolve, reject) => {
+			let promise = new Promise((resolve, reject) => {
 				resolution.resolve = resolve
 				resolution.reject = reject
 			})
+			if (flushPromise)
+				promise.flushed = flushPromise
+			return promise
 		}
 	}
 	function startWriting() {
@@ -300,6 +309,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			clearImmediate(enqueuedCommit)
 			enqueuedCommit = null
 		}
+		let resolvers = flushResolvers
+		flushResolvers = []
 		env.startWriting(startAddress, (status) => {
 			//console.log('finished batch', store.name)
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
@@ -307,7 +318,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 			resolveWrites(true)
 			switch (status) {
-				case 0: case 1:
+				case 0:
+					for (let i = 0; i < resolvers.length; i++)
+						resolvers[i]()
+				case 1:
 				break;
 				case 2:
 					executeTxnCallbacks()
