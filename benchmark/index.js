@@ -41,16 +41,19 @@ function setData(deferred) {
     for (let j = 0;j<100; j++)
       store.put((c += 357) % total, data)
   })*/
-  let key = (c += 357) % total
+  let key = (c += 357)
   result = store.put(key, data)
   /*if (key % 2 == 0)
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  /*if (iteration++ % 1000 == 0) {
-      setImmediate(() => deferred.resolve(result))
+  if (iteration++ % 1000 == 0) {
+    setImmediate(() => lastResult.then(() => {
+      deferred.resolve()
+    }))
+    lastResult = result
   } else
-    deferred.resolve()*/
+    deferred.resolve()
 }
 function batchData(deferred) {
   result = store.batch(() => {
@@ -83,7 +86,13 @@ function batchDataAdd(deferred) {
   }
 }
 
-
+function syncTxn() {
+  store.transactionSync(() => {
+    for (let j = 0;j<100; j++)
+      store.put((c += 357), bigString)
+  })
+}
+  
 function getData() {
   result = store.get((c += 357) % total)
 }
@@ -138,7 +147,6 @@ function setup() {
   console.log('opening', testDirPath)
   let rootStore = open(testDirPath, {
     noMemInit: true,
-    //useWritemap: true,
     //noSync: true,
     //winMemoryPriority: 4,
     eventTurnBatching: false,
@@ -165,6 +173,7 @@ cleanup(async function (err) {
     }
     await setup();
     //suite.add('compare keys', keyComparison);
+    //suite.add('syncTxn', syncTxn);
     suite.add('getRange', getRange);
     suite.add('put-batch', {
       defer: true,
