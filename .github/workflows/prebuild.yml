@@ -35,6 +35,7 @@ jobs:
         with:
           node-version: 12
       - run: npm install
+      - run: npm run prebuild
       - run: npm run prebuild-arm64
         env:
           CC: aarch64-linux-gnu-gcc
