@@ -1,7 +1,7 @@
 name: Test and Prebuild
 on: [push]
 jobs:
-  build-test:
+  build-test-prebuild:
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -11,14 +11,10 @@ jobs:
           node-version: 12
       - run: npm install
       - run: npm test
-  prebuild:
-    needs: build-test
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: macos-11
-    steps:
       - run: npm run prebuild
+        if: startsWith(github.ref, 'refs/tags/')
       - run: zip -r prebuild-darwin.zip prebuilds
-      - run: hexdump "prebuilds/darwin-x64/node.abi93.node" | head -10
+        if: startsWith(github.ref, 'refs/tags/')
       - name: Prebuild
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
