@@ -225,16 +225,6 @@ describe('lmdb-store', function() {
       dataOut.should.deep.equal(dataIn);
       db.removeSync('not-there').should.equal(false);
     });
-    it.only('store 255-length string', async () => {
-      const value = 'RRZG9A6I7xupPeOZhxcOcioFsuhszGOdyDUcbRf4Zef2kdPIfC9RaLO4jTM5JhuZvTsF09fbRHMGtqk7YAgu3vespeTe9l61ziZ6VrMnYu2CamK96wCkmz0VUXyqaiUoTPgzk414LS9yYrd5uh7w18ksJF5SlC2e91rukWvNqAZJjYN3jpkqHNOFchCwFrhbxq2Lrv1kSJPYCx9blRg2hGmYqTbElLTZHv20iNqwZeQbRMgSBPT6vnbCBPnOh1W'
-      await db.put("255chars", value)  
-      let retrieved = db.get("255chars")
-  
-      console.log("get value: ", retrieved, retrieved.length)
-  
-      console.log("original value: ", value, value.length)
-  
-    })
     it.skip('trigger sync commit', async function() {
       let dataIn = {foo: 4, bar: false}
       db.immediateBatchThreshold = 1
