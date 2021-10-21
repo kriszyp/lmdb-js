@@ -39,7 +39,8 @@ describe('lmdb-store', function() {
   //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
-  describe('Basic use with caching', basicTests({ cache: true }));
+  if (typeof WeakRef != 'undefined')
+    describe('Basic use with caching', basicTests({ cache: true }));
   function basicTests(options) { return function() {
     this.timeout(1000000);
     let db, db2, db3;
