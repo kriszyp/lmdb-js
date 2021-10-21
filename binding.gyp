@@ -46,13 +46,6 @@
             "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
           ],
-          "conditions": [
-            ["gcc_version>=7", {
-              "cflags": [
-                "-Wimplicit-fallthrough=2",
-              ],
-            }],
-          ],
           "ldflags": [
             "-fPIC",
             "-fvisibility=hidden"
