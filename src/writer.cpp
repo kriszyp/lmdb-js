@@ -11,7 +11,7 @@
 8 bytes (optional): version
 inline value?
 */
-#include "node-lmdb.h"
+#include "lmdb-store.h"
 #include <atomic>
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
@@ -52,7 +52,7 @@ WriteWorker::~WriteWorker() {
 }
 void WriteWorker::ContinueWrite() {
 	uv_mutex_lock(envForTxn->writingLock);
-	//fprintf(stderr, "continueWrite signal %p\n", this);
+	fprintf(stderr, "s");
 	uv_cond_signal(envForTxn->writingCond);
 	//fprintf(stdout, "continue unlock\n");
 	uv_mutex_unlock(envForTxn->writingLock);
@@ -187,11 +187,13 @@ next_inst:	start = instruction++;
 					if (*(instruction + 1) > 0x40000000) { // not compressed yet
 						status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
+fprintf(stderr,"w");
 							//fprintf(stderr, "wait on compression %p\n", instruction);
 							do {
 								uv_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 							} while (*(instruction + 1) > 0x40000000);
 						} else if (status > 2) {
+fprintf(stderr,"o");
 							//fprintf(stderr, "doing the compression ourselves\n");
 							((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
 						} // else status is 0 and compression is done
@@ -359,7 +361,7 @@ void WriteWorker::Write() {
 			mdb_txn_abort(txn);
 		else
 			rc = mdb_txn_commit(txn);
-		//fprintf(stderr, "committed txn %u, ", txnId);
+		fprintf(stderr, "%u ", txnId);
 		txn = nullptr;
 		uv_mutex_unlock(envForTxn->writingLock);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
@@ -403,10 +405,6 @@ NAN_METHOD(EnvWrap::startWriting) {
         return Nan::ThrowError("The environment is already closed.");
     }
     size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-	if (instructionAddress == 0) {
-		ew->writeWorker->ContinueWrite();
-		return;
-	}
     Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
 
     WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
@@ -419,7 +417,13 @@ NAN_METHOD(EnvWrap::startWriting) {
 void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
 	EnvWrap* ew = static_cast<EnvWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
-	int rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	int rc;
+	if (instructionAddress)
+		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		ew->writeWorker->ContinueWrite();
+		rc = 0;
+	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		options.fallback = true;
 }
@@ -434,7 +438,13 @@ void EnvWrap::write(
 		return Nan::ThrowError("The environment is already closed.");
 	}
 	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-	int rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	int rc;
+	if (instructionAddress)
+		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		ew->writeWorker->ContinueWrite();
+		rc = 0;
+	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return Nan::ThrowError(mdb_strerror(rc));
 }

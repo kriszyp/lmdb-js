@@ -17,6 +17,7 @@ export const ABORT = {}
 const CALLBACK_THREW = {}
 SYNC_PROMISE_SUCCESS.isSync = true
 SYNC_PROMISE_FAIL.isSync = true
+const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array
 //let debugLog = []
 
 var log = []
@@ -25,7 +26,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var dynamicBytes
 	function allocateInstructionBuffer() {
 		let buffer = new SharedArrayBuffer(0x10000) // Must use a shared buffer to ensure GC doesn't move it around
-		dynamicBytes = Buffer.from(buffer)
+		dynamicBytes = new ByteArray(buffer)
 		dynamicBytes.fill(0xaa)
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, 0x10000 >> 2)
 		uint32[0] = 0
@@ -113,10 +114,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 		// don't increment position until we are sure we don't have any key writing errors
 		if (!uint32) {
-			console.error('no uint32!')
-			debugger
-			console.error({writeTxn, uint32: targetBytes.uint32, float64: targetBytes.float64})
-			process.exit(0)
+			throw new Error('Internal buffers have been corrupted')
 		}
 		uint32[flagPosition + 1] = store.db.dbi
 		if (flags & 4) {
@@ -245,7 +243,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			outstandingWriteCount++
 			if (writeStatus & TXN_DELIMITER) {
 				//console.warn('Got TXN delimiter', ( uint32.address + (flagPosition << 2)).toString(16))
-				commitPromise = null
+				commitPromise = null // TODO: Don't reset these if this comes from the batch start operation on an event turn batch
 				flushPromise = null
 				queueCommitResolution(resolution)
 				if (!startAddress) {
@@ -256,7 +254,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve))
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
-				env.startWriting(0)
+				env.write(0)
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
 				if (!backpressureArray)
@@ -264,7 +262,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				Atomics.wait(backpressureArray, 0, 0, 1)
 			}
 			if (startAddress) {
-				if (!enqueuedCommit && txnStartThreshold) {
+				if (eventTurnBatching)
+					startWriting() // start writing immediately because this has already been batched/queued
+				else if (!enqueuedCommit && txnStartThreshold) {
 					enqueuedCommit = commitDelay == 0 ? setImmediate(() => startWriting()) : setTimeout(() => startWriting(), commitDelay)
 				} else if (outstandingWriteCount > txnStartThreshold)
 					startWriting()
@@ -493,7 +493,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2) // atomically write the end block
 		nextResolution.flagPosition += 2
 		if (writeStatus & WAITING_OPERATION) {
-			env.startWriting(0)
+			env.write(0)
 		}
 	}
 	Object.assign(LMDBStore.prototype, {
