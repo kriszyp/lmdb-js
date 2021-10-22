@@ -1,5 +1,25 @@
+#include "lmdb-store.h"
 
-// This file is part of node-lmdb, the Node.js binding for lmdb
+using namespace v8;
+using namespace node;
+
+extern "C" NODE_MODULE_EXPORT void
+NODE_MODULE_INITIALIZER(Local<Object> exports,
+                        Local<Value> module,
+                        Local<Context> context) {
+    // Initializes the module
+    // Export Env as constructor for EnvWrap
+    EnvWrap::setupExports(exports);
+
+    // Export Cursor as constructor for CursorWrap
+    CursorWrap::setupExports(exports);
+
+    // Export misc things
+    setupExportMisc(exports);
+}
+
+
+// This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license
 //
@@ -20,23 +40,3 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
-#include "node-lmdb.h"
-
-using namespace v8;
-using namespace node;
-
-extern "C" NODE_MODULE_EXPORT void
-NODE_MODULE_INITIALIZER(Local<Object> exports,
-                        Local<Value> module,
-                        Local<Context> context) {
-    // Initializes the module
-    // Export Env as constructor for EnvWrap
-    EnvWrap::setupExports(exports);
-
-    // Export Cursor as constructor for CursorWrap
-    CursorWrap::setupExports(exports);
-
-    // Export misc things
-    setupExportMisc(exports);
-}

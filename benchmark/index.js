@@ -36,6 +36,7 @@ var c = 0
 let result
 
 let outstanding = 0
+let iteration = 1
 function setData(deferred) {
 /*  result = store.transactionAsync(() => {
     for (let j = 0;j<100; j++)
@@ -74,9 +75,9 @@ function batchDataAdd(deferred) {
   }).then(() => {
     outstanding--
   })
-  if (outstanding < 50) {
+  if (outstanding < 500) {
     deferred.resolve()
-  } else if (outstanding < 1000) {
+  } else if (outstanding < 10000) {
       setImmediate(() => {
         deferred.resolve()
       })
@@ -129,7 +130,8 @@ function plainJSON() {
 
 if (isMainThread && isMaster) {
 try{
-  inspector.open(9330, null, false); //debugger
+  //inspector.open(9330, null, true); //debugger
+  //debugger
 } catch(error) {}
 
 function cleanup(done) {
@@ -149,13 +151,13 @@ function setup() {
     noMemInit: true,
     //noSync: true,
     //winMemoryPriority: 4,
-    eventTurnBatching: false,
+    //eventTurnBatching: false,
     //overlappingSync: true,
   })
   store = rootStore.openDB('testing', {
     create: true,
     sharedStructuresKey: 100000000,
-    keysUse32LE: false,
+    keyIsUint32: true,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -174,15 +176,19 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    suite.add('getRange', getRange);
-    suite.add('put-batch', {
+    //suite.add('getRange', getRange);
+    suite.add('setData', {
+      defer: true,
+      fn: setData
+    });
+    /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
     });
     suite.add('get', getData);
-    /*suite.add('plainJSON', plainJSON);
-    suite.add('getBinary', getBinary);
-    suite.add('getBinaryFast', getBinaryFast);*/
+    suite.add('plainJSON', plainJSON);
+    suite.add('getBinary', getBinary);*/
+    suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {
       console.log({result})
       if (result && result.then) {

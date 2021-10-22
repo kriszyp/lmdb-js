@@ -1,5 +1,5 @@
 
-// This file is part of node-lmdb, the Node.js binding for lmdb
+// This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
 // Copyright (c) 2021 Kristopher Tate
 // Licensed to you under the terms of the MIT license
@@ -23,7 +23,7 @@
 // THE SOFTWARE.
 
 #include "lz4.h"
-#include "node-lmdb.h"
+#include "lmdb-store.h"
 #include <atomic>
 
 using namespace v8;
@@ -155,6 +155,7 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
         *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
         int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 0);
         if (status == 1 && env) {
+fprintf(stderr,"n");
             uv_mutex_lock(env->writingLock);
             uv_cond_signal(env->writingCond);
             uv_mutex_unlock(env->writingLock);

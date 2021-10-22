@@ -1,4 +1,4 @@
-#include "node-lmdb.h"
+#include "lmdb-store.h"
 
 
 KeySpaceHolder::KeySpaceHolder() {
