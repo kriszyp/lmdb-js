@@ -342,7 +342,6 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)).
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
-* `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 * `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
 * `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
@@ -352,6 +351,8 @@ The following additional option properties are only available when creating the 
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
+* `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
+* `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
 
 #### LMDB Flags
@@ -367,6 +368,20 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * `readOnly` - Self-descriptive.
 * `mapAsync` - Not recommended, commits are already performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
+
+### Overlapping Sync Options
+The `overlappingSync` option enables a new technique for committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
+
+When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. For write operations, the returned promise will resolve when the transaction is committed. The promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
+```
+let db = open('my-db', { overlappingSync: true })
+let written = db.put(key, value);
+await written; // wait for it to be committed
+let v = db.get(key) // this value now be retrieved from the db
+await written.flushed // wait for commit to be fully flushed to disk
+```
+
+This option is probably not helpful on Windows, as Window's disk flushing operation tends to have poor performance characteristic (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms.
 
 #### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
