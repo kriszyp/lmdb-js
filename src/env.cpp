@@ -1,22 +1,17 @@
 #include "lmdb-store.h"
-
 using namespace v8;
 using namespace node;
 
 #define IGNORE_NOTFOUND    (1)
 thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
 thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
-//Nan::Persistent<Function> EnvWrap::txnCtor;
-//Nan::Persistent<Function> EnvWrap::dbiCtor;
-uv_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
+
+pthread_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
 std::vector<env_path_t> EnvWrap::envs;
 
-//uv_mutex_t* EnvWrap::syncThreadsLock = EnvWrap::initMutex();
-//std::vector<void*> EnvWrap::syncThreads;
-
-uv_mutex_t* EnvWrap::initMutex() {
-    uv_mutex_t* mutex = new uv_mutex_t;
-    uv_mutex_init(mutex);
+pthread_mutex_t* EnvWrap::initMutex() {
+    pthread_mutex_t* mutex = new pthread_mutex_t;
+    pthread_mutex_init(mutex, nullptr);
     return mutex;
 }
 
@@ -30,10 +25,10 @@ EnvWrap::EnvWrap() {
     this->syncWriter = nullptr;
 	this->readTxnRenewed = false;
     this->winMemoryPriority = 5;
-    this->writingLock = new uv_mutex_t;
-    this->writingCond = new uv_cond_t;
-    uv_mutex_init(this->writingLock);
-    uv_cond_init(this->writingCond);
+    this->writingLock = new pthread_mutex_t;
+    this->writingCond = new pthread_cond_t;
+    pthread_mutex_init(this->writingLock, nullptr);
+    pthread_cond_init(this->writingCond, nullptr);
 }
 
 EnvWrap::~EnvWrap() {
@@ -44,8 +39,8 @@ EnvWrap::~EnvWrap() {
     }
     if (this->compression)
         this->compression->Unref();
-    uv_mutex_destroy(this->writingLock);
-    uv_cond_destroy(this->writingCond);
+    pthread_mutex_destroy(this->writingLock);
+    pthread_cond_destroy(this->writingCond);
     
 }
 
@@ -168,8 +163,8 @@ BatchWorkerBase::BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn)  :
     currentTxnWrap = nullptr;    
 }
 BatchWorkerBase::~BatchWorkerBase() {
-    uv_mutex_destroy(userCallbackLock);
-    uv_cond_destroy(userCallbackCond);    
+    pthread_mutex_destroy(userCallbackLock);
+    pthread_cond_destroy(userCallbackCond);    
 }
 void BatchWorkerBase::ContinueBatch(int rc, bool hasStarted) {
     if (hasStarted) {
@@ -177,10 +172,10 @@ void BatchWorkerBase::ContinueBatch(int rc, bool hasStarted) {
         currentTxnWrap = envForTxn->currentWriteTxn;
     }
     envForTxn->currentWriteTxn = nullptr;
-    uv_mutex_lock(userCallbackLock);
+    pthread_mutex_lock(userCallbackLock);
     interruptionStatus = rc;
-    uv_cond_signal(userCallbackCond);
-    uv_mutex_unlock(userCallbackLock);
+    pthread_cond_signal(userCallbackCond);
+    pthread_mutex_unlock(userCallbackLock);
 }
 
 class BatchWorker : public BatchWorkerBase {
@@ -225,10 +220,10 @@ class BatchWorker : public BatchWorkerBase {
         }
         if (envForTxn) {
             envForTxn->currentBatchTxn = txn;
-            userCallbackLock = new uv_mutex_t;
-            userCallbackCond = new uv_cond_t;
-            uv_mutex_init(userCallbackLock);
-            uv_cond_init(userCallbackCond);
+            userCallbackLock = new pthread_mutex_t;
+            userCallbackCond = new pthread_cond_t;
+            pthread_mutex_init(userCallbackLock, nullptr);
+            pthread_cond_init(userCallbackCond, nullptr);
         }
         int validatedDepth = 0;
         int conditionDepth = 0;
@@ -246,36 +241,36 @@ class BatchWorker : public BatchWorkerBase {
                     if (validatedDepth > conditionDepth)
                         validatedDepth--;
                 } else/* if (actionType == USER_TRANSACTION_CALLBACK) */{
-                    uv_mutex_lock(userCallbackLock);
+                    pthread_mutex_lock(userCallbackLock);
                     finishedProgress = false;
                     executionProgress.Send(reinterpret_cast<const char*>(&i), sizeof(int));
 waitForCallback:
                     if (interruptionStatus == 0)
-                        uv_cond_wait(userCallbackCond, userCallbackLock);
+                        pthread_cond_wait(userCallbackCond, userCallbackLock);
                     if (interruptionStatus != 0 && !finishedProgress) {
                         if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
                             rc = mdb_txn_commit(txn);
                             if (rc == 0) {
                                 // wait again until the sync transaction is completed
-                                uv_cond_wait(userCallbackCond, userCallbackLock);
+                                pthread_cond_wait(userCallbackCond, userCallbackLock);
                                 // now restart our transaction
                                 rc = mdb_txn_begin(env, nullptr, 0, &txn);
                                 envForTxn->currentBatchTxn = txn;
                                 interruptionStatus = 0;
-                                uv_cond_signal(userCallbackCond);
+                                pthread_cond_signal(userCallbackCond);
                                 goto waitForCallback;
                             }
                             if (rc != 0) {
-                                uv_mutex_unlock(userCallbackLock);
+                                pthread_mutex_unlock(userCallbackLock);
                                 return SetErrorMessage(mdb_strerror(rc));
                             }
                         } else {
-                            uv_mutex_unlock(userCallbackLock);
+                            pthread_mutex_unlock(userCallbackLock);
                             rc = interruptionStatus;
                             goto done;
                         }
                     }
-                    uv_mutex_unlock(userCallbackLock);
+                    pthread_mutex_unlock(userCallbackLock);
                 }
                 results[i++] = SUCCESSFUL_OPERATION;
                 continue;
@@ -368,11 +363,11 @@ done:
     void HandleProgressCallback(const char* data, size_t count) {
         Nan::HandleScope scope;
         if (interruptionStatus != 0) {
-            uv_mutex_lock(userCallbackLock);
+            pthread_mutex_lock(userCallbackLock);
             if (interruptionStatus != 0)
-                uv_cond_wait(userCallbackCond, userCallbackLock);
+                pthread_cond_wait(userCallbackCond, userCallbackLock);
             // aquire the lock so that we can ensure that if it is restarting the transaction, it finishes doing that
-            uv_mutex_unlock(userCallbackLock);
+            pthread_mutex_unlock(userCallbackLock);
         }
         v8::Local<v8::Value> argv[] = {
             Nan::True()
@@ -419,28 +414,17 @@ MDB_txn* EnvWrap::getReadTxn() {
     readTxnRenewed = true;
     return txn;
 }
-static uv_cond_t* flushCond;
-static uv_mutex_t* flushLock;
+static pthread_cond_t* flushCond;
+static pthread_mutex_t* flushLock;
 
 void EnvWrap::SyncRunner(void* arg) {
     EnvWrap* ew = (EnvWrap*) arg;
     do {
         mdb_env_sync(ew->env, 1);
-        uv_mutex_lock(flushLock);
-        uv_cond_signal(flushCond);
-        uv_mutex_unlock(flushLock);        
+        pthread_mutex_lock(flushLock);
+        pthread_cond_signal(flushCond);
+        pthread_mutex_unlock(flushLock);        
     } while(false); // TODO: continually run this
-}
-
-// this is can be called when a transaction begins if there is no existing sync taking place
-int EnvWrap::BeginOrResumeSync(MDB_txn* txn) {
-    int txnId = mdb_txn_id(txn);
-    // TODO: if txnId matches the current sync, we can just let it keep going, otherwise replace it.
-    // Also the thread syncing pool is be shared across all threads
-    uv_thread_t tid;
-    // TODO: Use existing thread if available
-    int rc = /*currentThread || */uv_thread_create(&tid, SyncRunner, mdb_txn_env(txn));
-    return rc;
 }
 
 #ifdef MDB_RPAGE_CACHE
@@ -485,14 +469,14 @@ NAN_METHOD(EnvWrap::open) {
 
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     Nan::Utf8String charPath(path);
-    uv_mutex_lock(envsLock);
+    pthread_mutex_lock(envsLock);
     for (env_path_t envPath : envs) {
         char* existingPath = envPath.path;
         if (!strcmp(existingPath, *charPath)) {
             envPath.count++;
             mdb_env_close(ew->env);
             ew->env = envPath.env;
-            uv_mutex_unlock(envsLock);
+            pthread_mutex_unlock(envsLock);
             return;
         }
     }
@@ -500,7 +484,7 @@ NAN_METHOD(EnvWrap::open) {
     // Parse the maxDbs option
     rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
     if (rc != 0) {
-        uv_mutex_unlock(envsLock);
+        pthread_mutex_unlock(envsLock);
         return throwLmdbError(rc);
     }
 
@@ -510,7 +494,7 @@ NAN_METHOD(EnvWrap::open) {
         mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
         rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
         if (rc != 0) {
-            uv_mutex_unlock(envsLock);
+            pthread_mutex_unlock(envsLock);
             return throwLmdbError(rc);
         }
     }
@@ -596,7 +580,7 @@ NAN_METHOD(EnvWrap::open) {
 
     if (rc != 0) {
         mdb_env_close(ew->env);
-        uv_mutex_unlock(envsLock);
+        pthread_mutex_unlock(envsLock);
         ew->env = nullptr;
         return throwLmdbError(rc);
     }
@@ -606,7 +590,7 @@ NAN_METHOD(EnvWrap::open) {
     envPath.env = ew->env;
     envPath.count = 1;
     envs.push_back(envPath);
-    uv_mutex_unlock(envsLock);
+    pthread_mutex_unlock(envsLock);
 }
 
 NAN_METHOD(EnvWrap::resize) {
@@ -652,7 +636,7 @@ NAN_METHOD(EnvWrap::resize) {
 void EnvWrap::closeEnv() {
     cleanupStrayTxns();
 
-    uv_mutex_lock(envsLock);
+    pthread_mutex_lock(envsLock);
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
         if (envPath->env == env) {
             envPath->count--;
@@ -665,7 +649,7 @@ void EnvWrap::closeEnv() {
         }
         ++envPath;
     }
-    uv_mutex_unlock(envsLock);
+    pthread_mutex_unlock(envsLock);
 
     env = nullptr;
 
@@ -1262,18 +1246,17 @@ void EnvWrap::setupExports(Local<Object> exports) {
     (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }
 
-/* TODO: When we add Deno support, we need to explicitly export C functions:
 #ifdef _WIN32
 #define EXTERN __declspec(dllexport)
 # else
 #define EXTERN __attribute__((visibility("default")))
 #endif
-extern "C" EXTERN int openEnv(uint32 flags, uint8_t* instructions);
-extern "C" EXTERN int openDb(double envPointer, uint32 flags, uint8_t* instructions);
-int openDbi(double envPointer, uint32 flags, uint8_t* instructions) {
-    EnvWrap* ew = (EnvWrap*) ((size_t) envPointer);
+extern "C" EXTERN size_t envOpen(uint32_t flags, const uint8_t * path, size_t length);
+size_t envOpen(uint32_t flags, const uint8_t * path, size_t length) {
+	fprintf(stderr, "start!! %p %u\n", path, length);
+    EnvWrap* ew = new EnvWrap();
+    return (size_t) ew;
 }
-*/
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

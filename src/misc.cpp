@@ -547,6 +547,110 @@ size_t CustomExternalOneByteStringResource::length() const {
     return this->l;
 }
 
+
+#ifdef _WIN32
+
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+
+int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
+{
+    (void)attr;
+
+    if (mutex == NULL)
+        return 1;
+
+    InitializeCriticalSection(mutex);
+    return 0;
+}
+
+int pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+    if (mutex == NULL)
+        return 1;
+    DeleteCriticalSection(mutex);
+    return 0;
+}
+
+int pthread_mutex_lock(pthread_mutex_t *mutex)
+{
+    if (mutex == NULL)
+        return 1;
+    EnterCriticalSection(mutex);
+    return 0;
+}
+
+int pthread_mutex_unlock(pthread_mutex_t *mutex)
+{
+    if (mutex == NULL)
+        return 1;
+    LeaveCriticalSection(mutex);
+    return 0;
+}
+
+int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr)
+{
+    (void)attr;
+    if (cond == NULL)
+        return 1;
+    InitializeConditionVariable(cond);
+    return 0;
+}
+
+int pthread_cond_destroy(pthread_cond_t *cond)
+{
+    /* Windows does not have a destroy for conditionals */
+    (void)cond;
+    return 0;
+}
+
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+    if (cond == NULL || mutex == NULL)
+        return 1;
+    if (!SleepConditionVariableCS(cond, mutex, INFINITE))
+        return 1;
+    return 0;
+}
+
+int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ms)
+{
+    if (cond == NULL || mutex == NULL)
+        return 1;
+    if (!SleepConditionVariableCS(cond, mutex, ms))
+        return 1;
+    return 0;
+}
+
+int pthread_cond_signal(pthread_cond_t *cond)
+{
+    if (cond == NULL)
+        return 1;
+    WakeConditionVariable(cond);
+    return 0;
+}
+
+int pthread_cond_broadcast(pthread_cond_t *cond)
+{
+    if (cond == NULL)
+        return 1;
+    WakeAllConditionVariable(cond);
+    return 0;
+}
+
+#else
+int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
+{
+    struct timespec ts;
+    struct timeval now;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    uint64_t ns = ts.tv_nsec + cms * 10000;
+    ts.tv_sec += ns / 1000000000;
+    ts.tv_nsec += ns % 1000000000;
+    return pthread_cond_timedwait(cond, mutex, &ts);
+}
+
+#endif
+
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
 // Copyright (c) 2021 Kristopher Tate

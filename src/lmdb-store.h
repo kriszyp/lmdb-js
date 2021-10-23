@@ -43,6 +43,54 @@
 using namespace v8;
 using namespace node;
 
+
+
+#ifndef __CPTHREAD_H__
+#define __CPTHREAD_H__
+
+#ifdef _WIN32
+# include <windows.h>
+#else
+# include <pthread.h>
+#endif
+
+#ifdef _WIN32
+typedef CRITICAL_SECTION pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+typedef void pthread_condattr_t;
+typedef HANDLE pthread_t;
+typedef CONDITION_VARIABLE pthread_cond_t;
+
+
+struct timespec {
+    long tv_sec;
+    long tv_nsec;
+};
+
+#endif
+
+#ifdef _WIN32
+
+int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr);
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr);
+int pthread_cond_destroy(pthread_cond_t *cond);
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
+int pthread_cond_signal(pthread_cond_t *cond);
+int pthread_cond_broadcast(pthread_cond_t *cond);
+
+#endif
+
+unsigned int pcthread_get_num_procs();
+
+#endif /* __CPTHREAD_H__ */
+
+
+
 enum class NodeLmdbKeyType {
 
     // Invalid key (used internally by node-lmdb)
@@ -206,8 +254,8 @@ class BatchWorkerBase : public Nan::AsyncProgressWorker {
   public:
     BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
     void ContinueBatch(int rc, bool hasStarted);
-    uv_mutex_t* userCallbackLock;
-    uv_cond_t* userCallbackCond;
+    pthread_mutex_t* userCallbackLock;
+    pthread_cond_t* userCallbackCond;
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
@@ -263,9 +311,9 @@ private:
     static thread_local Nan::Persistent<Function>* txnCtor;
     // Constructor for DbiWrap
     static thread_local Nan::Persistent<Function>* dbiCtor;
-    static uv_mutex_t* envsLock;
+    static pthread_mutex_t* envsLock;
     static std::vector<env_path_t> envs;
-    static uv_mutex_t* initMutex();
+    static pthread_mutex_t* initMutex();
     // compression settings and space
     Compression *compression;
     BatchWorkerBase* batchWorker;
@@ -286,8 +334,8 @@ public:
     // Current write transaction
     TxnWrap *currentWriteTxn;
     TxnTracked *writeTxn;
-    uv_mutex_t* writingLock;
-    uv_cond_t* writingCond;
+    pthread_mutex_t* writingLock;
+    pthread_cond_t* writingCond;
 
     MDB_txn* currentReadTxn;
     WriteWorker* writeWorker;
@@ -303,7 +351,6 @@ public:
     static void setupExports(Local<Object> exports);
     void closeEnv();
     static void SyncRunner(void* arg);
-    static int BeginOrResumeSync(MDB_txn* txn);
 
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.

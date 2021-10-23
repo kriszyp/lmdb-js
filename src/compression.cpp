@@ -156,9 +156,9 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
         int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 0);
         if (status == 1 && env) {
 fprintf(stderr,"n");
-            uv_mutex_lock(env->writingLock);
-            uv_cond_signal(env->writingCond);
-            uv_mutex_unlock(env->writingLock);
+            pthread_mutex_lock(env->writingLock);
+            pthread_cond_signal(env->writingCond);
+            pthread_mutex_unlock(env->writingLock);
             //fprintf(stderr, "sent compression completion signal\n");
         }
         //fprintf(stdout, "compressed to %p %u %u %p\n", value.mv_data, value.mv_size, status, env);

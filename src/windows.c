@@ -1,7 +1,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <synchapi.h>
-
 static int initializeMemoryPriority = 1;
 static MEMORY_PRIORITY_INFORMATION lowMemPriority;
 static MEMORY_PRIORITY_INFORMATION normalMemPriority;
