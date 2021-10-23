@@ -641,7 +641,6 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
 {
     struct timespec ts;
-    struct timeval now;
     clock_gettime(CLOCK_REALTIME, &ts);
     uint64_t ns = ts.tv_nsec + cms * 10000;
     ts.tv_sec += ns / 1000000000;

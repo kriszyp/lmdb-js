@@ -79,13 +79,12 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex);
 int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr);
 int pthread_cond_destroy(pthread_cond_t *cond);
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
-int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
 int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 
 #endif
 
-unsigned int pcthread_get_num_procs();
+int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
 
 #endif /* __CPTHREAD_H__ */
 
