@@ -221,6 +221,15 @@ export function addQueryMethods(LMDBStore, {
 				}
 			}
 			return iterable
+		},
+		getMany(keys, callback) {
+			let results = new Array(keys.length)
+			for (let i = 0, l = keys.length; i < l; i++) {
+				results[i] = this.get(i)
+			}
+			if (callback)
+				callback(null, results)
+			return Promise.resolve(results) // we may eventually make this a true async operation
 		}
 
 	})

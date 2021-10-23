@@ -110,6 +110,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			position = targetBytes.position
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
+		let valueSize = 0
 		let flagPosition = position << 1 // flagPosition is the 32-bit word starting position
 
 		// don't increment position until we are sure we don't have any key writing errors
@@ -135,22 +136,20 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			position = (endPosition + 16) >> 3
 			if (flags & 2) {
 				let start = valueBuffer.start
-				let size
 				if (start > -1) { // if we have buffers with start/end position
-					size = valueBuffer.end - start // size
-					valueBuffer.size = size
+					valueSize = valueBuffer.end - start // size
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
 						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + start
 				} else {
-					size = valueBuffer.length
+					valueSize = valueBuffer.length
 					let valueArrayBuffer = valueBuffer.buffer
 					// record pointer to value buffer
 					float64[position] = (valueArrayBuffer.address ||
 						(valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
 				}
-				uint32[(position++ << 1) - 1] = size
-				if (store.compression && size >= store.compression.threshold) {
+				uint32[(position++ << 1) - 1] = valueSize
+				if (store.compression && valueSize >= store.compression.threshold) {
 					flags |= 0x100000;
 					float64[position] = store.compression.address
 					if (!writeTxn)
@@ -204,7 +203,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			next: null,
 			key,
 			store,
-			valueSize: 0,
+			valueSize,
 		} :
 		{
 			uint32: nextUint32,
@@ -218,7 +217,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		nextResolution = newResolution
 		let writtenBatchDepth = batchDepth
 
-		return () => {
+		return (callback) => {
 			if (writtenBatchDepth) {
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
@@ -227,7 +226,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				uint32[flagPosition] = flags
 				//writeStatus = Atomics.or(uint32, flagPosition, flags)
 				if (writeBatchStart && !writeStatus) {
-					outstandingBatchCount++
+					outstandingBatchCount += 1 + (valueSize >> 12)
 					//console.log(outstandingBatchCount, batchStartThreshold)
 					if (outstandingBatchCount > batchStartThreshold) {
 						outstandingBatchCount = 0
@@ -281,6 +280,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolution.valueBuffer = valueBuffer
 			lastQueuedResolution = resolution
 
+			if (callback) {
+				resolution.reject = callback
+				resolution.resolve = (value) => callback(null, value)
+				return
+			}
 			if (ifVersion === undefined) {
 				if (writtenBatchDepth > 1)
 					return SYNC_PROMISE_SUCCESS // or return undefined?
@@ -498,8 +502,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	Object.assign(LMDBStore.prototype, {
 		put(key, value, versionOrOptions, ifVersion) {
-			let sync, flags = 15
-			if (typeof versionOrOptions == 'object') {
+			let callback, flags = 15, type = typeof versionOrOptions
+			if (type == 'object') {
 				if (versionOrOptions.noOverwrite)
 					flags |= 0x10
 				if (versionOrOptions.noDupData)
@@ -509,21 +513,30 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (versionOrOptions.ifVersion != undefined)
 					ifVersion = versionsOrOptions.ifVersion
 				versionOrOptions = versionOrOptions.version
+				if (typeof ifVersion == 'function')
+					callback = ifVersion
+			} else if (type == 'function') {
+				callback = versionOrOptions
 			}
-			return writeInstructions(flags, this, key, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)()
+			return writeInstructions(flags, this, key, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)(callback)
 		},
-		remove(key, ifVersionOrValue) {
+		remove(key, ifVersionOrValue, callback) {
 			let flags = 13
 			let ifVersion, value
 			if (ifVersionOrValue !== undefined) {
 				if (this.useVersions)
 					ifVersion = ifVersionOrValue
+				else if (ifVersionOrValue == 'function')
+					callback = versionOrOptions
 				else {
 					flags = 14
 					value = ifVersionOrValue
 				}
 			}
-			return writeInstructions(flags, this, key, value, undefined, ifVersion)()
+			return writeInstructions(flags, this, key, value, undefined, ifVersion)(callback)
+		},
+		del(key, options, callback) {
+			return this.remove(key, options, callback)
 		},
 		ifNoExists(key, callback) {
 			return this.ifVersion(key, null, callback)
@@ -582,6 +595,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		batch(callbackOrOperations) {
 			return this.ifVersion(undefined, undefined, callbackOrOperations)
+		},
+		drop(callback) {
+			return writeInstructions(1024 + 12, this, undefined, undefined, undefined, undefined)(callback)
+		},
+		clearAsync(callback) {
+			return writeInstructions(12, this, undefined, undefined, undefined, undefined)(callback)
 		},
 		_triggerError() {
 			finishBatch()

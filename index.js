@@ -165,6 +165,7 @@ export function open(path, options) {
 			openDB()
 			resetReadTxn() // a read transaction becomes invalid after opening another db
 			this.name = dbName
+			this.status = 'open'
 			this.env = env
 			this.reads = 0
 			this.writes = 0
@@ -211,6 +212,12 @@ export function open(path, options) {
 				}
 				throw error
 			}
+		}
+		open(dbOptions, callback) {
+			let db = this.openDB(dbOptions)
+			if (callback)
+				callback(null, db)
+			return db
 		}
 		transactionAsync(callback, asChild) {
 			let lastOperation
@@ -370,7 +377,7 @@ export function open(path, options) {
 				}
 			}))
 		}
-		close() {
+		close(callback) {
 			this.db.close()
 			if (this.isRoot) {
 				if (readTxn) {
@@ -381,6 +388,12 @@ export function open(path, options) {
 				readTxnRenewed = null
 				env.close()
 			}
+			this.status = 'closed'
+			if (callback)
+				callback()			
+		}
+		isOperational() {
+			return this.status == 'open'
 		}
 		getStats() {
 			return this.db.stat(readTxnRenewed ? readTxn : renewReadTxn())
@@ -399,7 +412,7 @@ export function open(path, options) {
 				})
 			, { abortable: false })
 		}
-		clear() {
+		clear(callback) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
@@ -407,7 +420,8 @@ export function open(path, options) {
 			, { abortable: false })
 			if (this.encoder && this.encoder.structures)
 				this.encoder.structures = []
-
+			if (typeof callback == 'function')
+				callback(null)
 		}
 		readerCheck() {
 			return env.readerCheck()
@@ -447,6 +461,16 @@ export function open(path, options) {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBytes, keyBytesView, getLastVersion })
 	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, ...options })
+	LMDBStore.prototype.supports = {
+		permanence: true,
+		bufferKeys: true,
+		promises: true,
+		snapshots: true,
+		clear: true,
+		status: true,
+		deferredOpen: true,
+		openCallback: true,	
+	}
 	return options.cache ?
 		new (CachingStore(LMDBStore))(options.name || null, options) :
 		new LMDBStore(options.name || null, options)
