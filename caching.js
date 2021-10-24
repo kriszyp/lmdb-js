@@ -70,7 +70,7 @@ export const CachingStore = Store => class extends Store {
 		let result = super.put(id, value, version, ifVersion)
 		if (typeof id !== 'object') {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
-			let entry = this.cache.setValue(id, value, result.isSync ? 0 : -1)
+			let entry = this.cache.setValue(id, value, !result || result.isSync ? 0 : -1)
 			if (version !== undefined)
 				entry.version = typeof version === 'object' ? version.version : version
 		}

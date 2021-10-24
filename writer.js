@@ -95,8 +95,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					}
 					enqueuedEventTurnBatch = null
 					//console.log('ending event turn')
-					finishBatch()
 					batchDepth--
+					finishBatch()
 					if (writeBatchStart)
 						writeBatchStart() // TODO: When we support delay start of batch, optionally don't delay this
 				})
@@ -524,10 +524,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let flags = 13
 			let ifVersion, value
 			if (ifVersionOrValue !== undefined) {
-				if (this.useVersions)
+				if (typeof ifVersionOrValue == 'function')
+					callback = ifVersionOrValue
+				else if (this.useVersions)
 					ifVersion = ifVersionOrValue
-				else if (ifVersionOrValue == 'function')
-					callback = versionOrOptions
 				else {
 					flags = 14
 					value = ifVersionOrValue

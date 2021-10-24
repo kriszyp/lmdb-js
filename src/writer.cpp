@@ -51,11 +51,11 @@ WriteWorker::~WriteWorker() {
 		envForTxn->writeWorker = nullptr;
 }
 void WriteWorker::ContinueWrite() {
-	pthread_mutex_lock(envForTxn->writingLock);
+	// I don't think we need the mutex lock here, all the waits we are signaling have timers
+	// to proceed even they miss a signal
 	fprintf(stderr, "s");
 	pthread_cond_signal(envForTxn->writingCond);
 	//fprintf(stdout, "continue unlock\n");
-	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
 WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
@@ -122,7 +122,7 @@ waitForCallback:
 		uint64_t delay = 1;
 		do {
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
-			delay = delay << 3ll;
+			delay = delay << 1ll;
 			//if (delay > 5000)
 			//	fprintf(stderr, "waited, %llu %p\n", delay, *target);
 		} while(!(
@@ -438,12 +438,11 @@ void EnvWrap::write(
 		return Nan::ThrowError("The environment is already closed.");
 	}
 	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-	int rc;
+	int rc = 0;
 	if (instructionAddress)
 		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
-	else {
+	else if (ew->writeWorker) {
 		ew->writeWorker->ContinueWrite();
-		rc = 0;
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return Nan::ThrowError(mdb_strerror(rc));

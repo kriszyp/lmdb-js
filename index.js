@@ -10,6 +10,7 @@ import { applyKeyHandling } from './keys.js'
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
 import { createRequire } from 'module'
 import { Encoder as MsgpackrEncoder } from 'msgpackr'
+export { levelup } from './level.js'
 const require = createRequire(import.meta.url)
 
 import os from 'os'

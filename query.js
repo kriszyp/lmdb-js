@@ -9,6 +9,7 @@ export function addQueryMethods(LMDBStore, {
 }) {
 	let renewId = 1
 	LMDBStore.onReadReset = () => renewId++
+	let get = LMDBStore.prototype.get
 	Object.assign(LMDBStore.prototype, {
 		getValues(key, options) {
 			let defaultOptions = {
@@ -225,7 +226,7 @@ export function addQueryMethods(LMDBStore, {
 		getMany(keys, callback) {
 			let results = new Array(keys.length)
 			for (let i = 0, l = keys.length; i < l; i++) {
-				results[i] = this.get(i)
+				results[i] = get.call(this, keys[i])
 			}
 			if (callback)
 				callback(null, results)

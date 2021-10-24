@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } from '../index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, ABORT } from '../index.js';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-store', function() {
@@ -713,6 +713,29 @@ describe('lmdb-store', function() {
           should.equal(db.get('test:' + i + '/' + j), i + j)
         }
       }
+    });
+    it('levelup style callback', function(done) {
+      should.equal(db.isOperational(), true)
+      should.equal(db.status, 'open')
+      should.equal(db.supports.permanence, true)
+      db.put('key1', '1', (error, result) => {
+        should.equal(error, null)
+        '1'.should.equal(db.get('key1'))
+        db.del('key1', (error, result) => {
+          should.equal(error, null)
+          let leveldb = levelup(db)
+          leveldb.get('key1', (error, value) => {
+            should.equal(error.name, 'NotFoundError')
+            leveldb.put('key1', 'test', (error, value) => {
+              leveldb.getMany(['key1'], (error, values) => {
+                should.equal('test', values[0])
+                done();
+              })
+            })
+          })
+          
+        })
+      })
     });
     it('batch operations', async function() {
       let batch = db.batch()

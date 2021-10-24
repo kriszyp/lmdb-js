@@ -398,6 +398,18 @@ The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/a
 
 `beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
 
+## LevelUp
+
+If you have an existing application built on LevelUp, the lmdb-store is designed to make it easy to transition to this package, with most of the LevelUp API implemented and supported in lmdb-store. This includes the `put`, `del`, `batch`, `status`, `isOperation`, and `getMany` functions. One key difference in APIs is that LevelUp uses asynchronous callback based `get`s, but lmdb-store is so fast that it generally returns from `get` call before an an event can even be queued, consequently lmdb-store uses synchronous `get`s. However, there is a `levelup` export that can be used to generate a new store instance with LevelUp's style of API for `get` (although it still runs synchronously):
+```
+let dbLevel = levelup(db)
+dbLevel.get(id, (error, value) => {
+
+})
+// or
+dbLevel.get(id).then(...)
+```
+
 ##### Build Options
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
