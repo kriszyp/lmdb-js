@@ -931,16 +931,16 @@ NAN_METHOD(EnvWrap::commitTxn) {
 NAN_METHOD(EnvWrap::abortTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
-    fprintf(stderr, "abortTxn\n");
+    //fprintf(stderr, "abortTxn\n");
     if (currentTxn->flags & TXN_ABORTABLE) {
-        fprintf(stderr, "txn_abort\n");
+        //fprintf(stderr, "txn_abort\n");
         mdb_txn_abort(currentTxn->txn);
     } else {
         Nan::ThrowError("Can not abort this transaction");
     }
     ew->writeTxn = currentTxn->parent;
     if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
-        fprintf(stderr, "unlock txn\n");
+        //fprintf(stderr, "unlock txn\n");
         ew->writeWorker->UnlockTxn();
     }
     delete currentTxn;

@@ -3069,7 +3069,6 @@ mdb_env_sync(MDB_env *env, int force)
 		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
 			return rc;
 		if (env->me_synced_txn_id >= last_txn_id) {
-			fprintf(stderr,"no need to sync txn %u, done\n", last_txn_id);
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return 0;
 		}
@@ -4868,10 +4867,8 @@ mdb_env_pick_meta(const MDB_env *env)
 		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 			if (latest->mm_flags & MDB_OVERLAPPINGSYNC) {
 				// find the latest sync-ed meta
-				fprintf(stderr, "Looking for last sync-ed txn from %u\n", latest->mm_txnid);
 				int offset = env->me_psize >> 1;
 				MDB_meta *latestSynced = ((MDB_meta*) (((char*)metas[0]) + offset));
-				fprintf(stderr, "Loading last sync-ed txn %u\n", latestSynced->mm_txnid);
 				if (latestSynced->mm_txnid)
 					latest = latestSynced;
 			}

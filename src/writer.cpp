@@ -53,7 +53,6 @@ WriteWorker::~WriteWorker() {
 void WriteWorker::ContinueWrite() {
 	// I don't think we need the mutex lock here, all the waits we are signaling have timers
 	// to proceed even they miss a signal
-	fprintf(stderr, "s");
 	pthread_cond_signal(envForTxn->writingCond);
 	//fprintf(stdout, "continue unlock\n");
 }
@@ -187,13 +186,11 @@ next_inst:	start = instruction++;
 					if (*(instruction + 1) > 0x40000000) { // not compressed yet
 						status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 						if (status == 2) {
-fprintf(stderr,"w");
 							//fprintf(stderr, "wait on compression %p\n", instruction);
 							do {
 								pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 							} while (*(instruction + 1) > 0x40000000);
 						} else if (status > 2) {
-fprintf(stderr,"o");
 							//fprintf(stderr, "doing the compression ourselves\n");
 							((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
 						} // else status is 0 and compression is done
@@ -361,7 +358,6 @@ void WriteWorker::Write() {
 			mdb_txn_abort(txn);
 		else
 			rc = mdb_txn_commit(txn);
-		fprintf(stderr, "%u ", txnId);
 		txn = nullptr;
 		pthread_mutex_unlock(envForTxn->writingLock);
 		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
