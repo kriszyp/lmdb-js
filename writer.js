@@ -27,7 +27,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function allocateInstructionBuffer() {
 		let buffer = new SharedArrayBuffer(0x10000) // Must use a shared buffer to ensure GC doesn't move it around
 		dynamicBytes = new ByteArray(buffer)
-		dynamicBytes.fill(0xaa)
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, 0x10000 >> 2)
 		uint32[0] = 0
 		dynamicBytes.float64 = new Float64Array(buffer, 0, 0x10000 >> 3)
@@ -181,7 +180,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			env.write(uint32.address)
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS
 		}
-		uint32[position << 1] = 0 // clear out the next slot
+		// if we ever use buffers that haven't been zero'ed, need to clear out the next slot like this:
+		// uint32[position << 1] = 0 // clear out the next slot
 		let nextUint32
 		if (position > 0x1e00) { // 61440 bytes
 			// make new buffer and make pointer to it
