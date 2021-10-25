@@ -565,17 +565,12 @@ NAN_METHOD(EnvWrap::open) {
     flags |= MDB_NOTLS;
     // TODO: make file attributes configurable
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
-    if (flags & MDB_PREVSNAPSHOT) {
-        if (rc == EAGAIN) {
-            fprintf(stderr, "EAGAIN after usePreviousSnapshot, will start without\n");
-            flags &= ~MDB_PREVSNAPSHOT;
-            rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
-        } else if (!rc) {
-            fprintf(stderr, "Opened with previous snapshot, writing initial txn to clear last txn\n");
-            MDB_txn* txn;
-            mdb_txn_begin(ew->env, nullptr, 0, &txn);
-            mdb_txn_commit(txn);
-        }
+    mdb_env_get_flags(ew->env, &((unsigned int)flags));
+    if (!rc && (flags & MDB_PREVSNAPSHOT)) {
+        fprintf(stderr, "Opened with previous snapshot, writing initial txn to clear last txn\n");
+        MDB_txn* txn;
+        mdb_txn_begin(ew->env, nullptr, 0, &txn);
+        mdb_txn_commit(txn);
     }
 
     if (rc != 0) {

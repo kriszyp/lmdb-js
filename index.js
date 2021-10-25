@@ -108,12 +108,7 @@ export function open(path, options) {
 		fs.removeSync(path)
 		console.info('Removed', path)
 	}
-	let useWritemap = options.useWritemap
-	try {
-		env.open(options)
-	} catch(error) {
-		throw error
-	}
+	env.open(options)
 	env.readerCheck() // clear out any stale entries
 	function renewReadTxn() {
 		if (readTxn)

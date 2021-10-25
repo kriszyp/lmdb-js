@@ -3063,7 +3063,8 @@ mdb_env_sync(MDB_env *env, int force)
 	MDB_meta *m = mdb_env_pick_meta(env);
 	// <lmdb-store>
 	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
-		size_t last_txn_id = m->mm_txnid;
+		MDB_txninfo *ti = env->me_txns;
+		size_t last_txn_id = ti->mti_txnid;
 		//fprintf(stderr,"syncing txn %u, ", last_txn_id);
 		int rc;
 		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
@@ -3072,17 +3073,19 @@ mdb_env_sync(MDB_env *env, int force)
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return 0;
 		}
-		m = mdb_env_pick_meta(env);
-		last_txn_id = m->mm_txnid;
 		MDB_txn sync_txn;
 		MDB_db dbs[2];
-		sync_txn.mt_env = env;
-		sync_txn.mt_flags = 2;
-		sync_txn.mt_dbs = dbs;
-		sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
-		sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
-		sync_txn.mt_txnid = last_txn_id;
-		sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+		do {
+			m = mdb_env_pick_meta(env);
+			sync_txn.mt_env = env;
+			sync_txn.mt_flags = 2;
+			sync_txn.mt_dbs = dbs;
+			sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
+			sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
+			sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
+			sync_txn.mt_txnid = last_txn_id = m->mm_txnid;;
+			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
 		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
 		if (rc) {
 			UNLOCK_MUTEX(env->me_sync_mutex);
@@ -4520,13 +4523,15 @@ mdb_txn_commit(MDB_txn *txn)
 	//</lmdb-store>
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
+		//<lmdb-store> need to remove the previous snapshot flag first so that share_locks doesn't grab the previous meta
+		env->me_flags ^= MDB_PREVSNAPSHOT;
+		//</lmdb-store>
 		if (!(env->me_flags & MDB_NOLOCK)) {
 			int excl;
 			rc = mdb_env_share_locks(env, &excl);
 			if (rc)
 				goto fail;
 		}
-		env->me_flags ^= MDB_PREVSNAPSHOT;
 	}
 
 done:
@@ -4536,6 +4541,16 @@ done:
 fail:
 	mdb_txn_abort(txn);
 	return rc;
+}
+
+MDB_meta* mdb_pick_meta(const MDB_env *env, MDB_meta* a, MDB_meta* b) {
+	if (env->me_flags & MDB_PREVSNAPSHOT) {
+		if (env->me_flags & MDB_OVERLAPPINGSYNC)
+			return (a->mm_txnid + (a->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) >
+				(b->mm_txnid + (b->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) ? a : b;
+		return a->mm_txnid > b->mm_txnid ? b : a;
+	}
+	return a->mm_txnid > b->mm_txnid ? a : b;
 }
 
 static int ESECT mdb_env_map(MDB_env *env, void *addr);
@@ -4572,8 +4587,10 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 				return MDB_INVALID;
 			if ((env->me_metas[i]->mm_version & 0xffff) != MDB_DATA_VERSION)
 				return MDB_VERSION_MISMATCH;
-			if (i == 0 || env->me_metas[i]->mm_txnid > meta->mm_txnid)
+			if (i == 0)
 				*meta = *env->me_metas[i];
+			else
+				*meta = *mdb_pick_meta(env, meta, env->me_metas[i]);
 			p = (MDB_page *)((char *)p + env->me_psize);
 		}
 		return 0;
@@ -4582,8 +4599,10 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 	/* We don't know the page size yet, so use a minimum value.
 	 * Read both meta pages so we can use the latest one.
 	 */
+	int num_metas = env->me_flags & MDB_OVERLAPPINGSYNC ? 3 : NUM_METAS;
 
-	for (i=off=0; i<NUM_METAS; i++, off += meta->mm_psize) {
+	for (i=off=0; i<num_metas; i++,
+			off += env->me_flags & MDB_OVERLAPPINGSYNC ? meta->mm_psize >> 1 : meta->mm_psize) {
 #ifdef _WIN32
 		DWORD len;
 		OVERLAPPED ov;
@@ -4604,28 +4623,31 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 		}
 
 		p = (MDB_page *)&pbuf;
+		if (off == 0) {
+			if (!F_ISSET(p->mp_flags, P_META)) {
+				if (env->me_flags & MDB_RAWPART)
+					return ENOENT;
+				DPRINTF(("page %"Yu" not a meta page", p->mp_pgno));
+				return MDB_INVALID;
+			}
 
-		if (!F_ISSET(p->mp_flags, P_META)) {
-			if (env->me_flags & MDB_RAWPART)
-				return ENOENT;
-			DPRINTF(("page %"Yu" not a meta page", p->mp_pgno));
-			return MDB_INVALID;
-		}
+			m = METADATA(p);
+			if (m->mm_magic != MDB_MAGIC) {
+				DPUTS("meta has invalid magic");
+				return MDB_INVALID;
+			}
 
-		m = METADATA(p);
-		if (m->mm_magic != MDB_MAGIC) {
-			DPUTS("meta has invalid magic");
-			return MDB_INVALID;
-		}
-
-		if ((m->mm_version & 0xffff) != MDB_DATA_VERSION) {
-			DPRINTF(("database is version %u, expected version %u",
-				(m->mm_version & 0xffff), MDB_DATA_VERSION));
-			return MDB_VERSION_MISMATCH;
-		}
-
-		if (off == 0 || (prev ? m->mm_txnid < meta->mm_txnid : m->mm_txnid > meta->mm_txnid))
+			if ((m->mm_version & 0xffff) != MDB_DATA_VERSION) {
+				DPRINTF(("database is version %u, expected version %u",
+					(m->mm_version & 0xffff), MDB_DATA_VERSION));
+				return MDB_VERSION_MISMATCH;
+			}
 			*meta = *m;
+		} else {
+			m = METADATA(p);
+			*meta = *mdb_pick_meta(env, meta, m);
+		}
+		// </lmdb-store>
 	}
 	return 0;
 }
@@ -4861,20 +4883,11 @@ mdb_env_pick_meta(const MDB_env *env)
 {
 	MDB_meta *const *metas = env->me_metas;
 	//<lmdb-store>
-	int i = (metas[0]->mm_txnid < metas[1]->mm_txnid);
-	MDB_meta *latest = metas[i];
-	if (env->me_flags & MDB_PREVSNAPSHOT) {
-		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
-			if (latest->mm_flags & MDB_OVERLAPPINGSYNC) {
-				// find the latest sync-ed meta
-				int offset = env->me_psize >> 1;
-				MDB_meta *latestSynced = ((MDB_meta*) (((char*)metas[0]) + offset));
-				if (latestSynced->mm_txnid)
-					latest = latestSynced;
-			}
-		} else {
-			latest = metas[i ^ 1];
-		}
+	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
+	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
+		int offset = env->me_psize >> 1;
+		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
+		latest = mdb_pick_meta(env, latest, flushed);
 	}
 	//</lmdb-store>
 	return latest;
@@ -6211,8 +6224,15 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (rc)
 			goto leave;
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
-			rc = EAGAIN;
-			goto leave;
+			// <lmdb-store>
+			if (flags & MDB_OVERLAPPINGSYNC) {
+				flags ^= MDB_PREVSNAPSHOT;
+				env->me_flags = flags;
+			} else {
+				rc = EAGAIN;
+				goto leave;
+			}
+			// </lmdb-store>
 		}
 	}
 
