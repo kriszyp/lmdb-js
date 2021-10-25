@@ -6,7 +6,8 @@
       "enable_fast_api_calls%": "false",
       "enable_pointer_compression%": "false",
       "target%": "",
-      "build_v8_with_gn": "false"
+      "build_v8_with_gn": "false",
+      "runtime%": "node"
   },
   "targets": [
     {
@@ -76,6 +77,9 @@
         }],
         ["enable_pointer_compression=='true'", {
           "defines": ["V8_COMPRESS_POINTERS", "V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE"],
+        }],
+        ['runtime=="electron"', {
+          "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
         ["enable_fast_api_calls=='true'", {
           "defines": ["ENABLE_FAST_API=1"],

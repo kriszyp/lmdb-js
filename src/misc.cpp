@@ -379,18 +379,34 @@ NAN_METHOD(setWinMemoryPriority) {
     info.GetReturnValue().Set(array_buffer);
 }*/
 NAN_METHOD(getAddress) {
-    #if NODE_VERSION_AT_LEAST(14,0,0)
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<ArrayBuffer>::Cast(info[0])->GetBackingStore()->Data()));
+    void* address;
+    Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(info[0]);
+    #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+    // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
+    v8::Local<v8::Object> bufferView;
+    bufferView = node::Buffer::New(Isolate::GetCurrent(), buffer, 0, buffer->ByteLength()).ToLocalChecked();
+    address = node::Buffer::Data(bufferView);
+    #elif V8_MAJOR_VERSION >= 8
+    address = buffer->GetBackingStore()->Data();
     #else
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<ArrayBuffer>::Cast(info[0])->GetContents().Data()));
-    #endif
+    address = buffer->GetContents().Data()));
+    #endif;
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 NAN_METHOD(getAddressShared) {
-    #if NODE_VERSION_AT_LEAST(14,0,0)
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<SharedArrayBuffer>::Cast(info[0])->GetBackingStore()->Data()));
+    void* address;
+    #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+    // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
+    v8::Local<v8::Object> bufferView;
+    Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(info[0]);
+    bufferView = node::Buffer::New(Isolate::GetCurrent(), buffer, 0, buffer->ByteLength()).ToLocalChecked();
+    address = node::Buffer::Data(bufferView);
+    #elif V8_MAJOR_VERSION >= 8
+    address = Local<SharedArrayBuffer>::Cast(info[0])->GetBackingStore()->Data();
     #else
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data()));
-    #endif
+    address = Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data()));
+    #endif;
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 
 
