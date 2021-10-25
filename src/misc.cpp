@@ -389,8 +389,8 @@ NAN_METHOD(getAddress) {
     #elif V8_MAJOR_VERSION >= 8
     address = buffer->GetBackingStore()->Data();
     #else
-    address = buffer->GetContents().Data()));
-    #endif;
+    address = buffer->GetContents().Data();
+    #endif
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 NAN_METHOD(getAddressShared) {
@@ -404,8 +404,8 @@ NAN_METHOD(getAddressShared) {
     #elif V8_MAJOR_VERSION >= 8
     address = Local<SharedArrayBuffer>::Cast(info[0])->GetBackingStore()->Data();
     #else
-    address = Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data()));
-    #endif;
+    address = Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data();
+    #endif
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 

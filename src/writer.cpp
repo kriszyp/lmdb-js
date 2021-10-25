@@ -107,7 +107,7 @@ void WriteWorker::UnlockTxn() {
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
-void WriteWorker::ReportError(char* error) {
+void WriteWorker::ReportError(const char* error) {
 	SetErrorMessage(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
