@@ -4523,17 +4523,13 @@ mdb_txn_commit(MDB_txn *txn)
 	//</lmdb-store>
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
-		//<lmdb-store>
-		// this whole thing is probably completely unnecessary that we do meta page updating
-		// need to remove the previous snapshot flag first so that share_locks doesn't grab the previous meta
-		env->me_flags ^= MDB_PREVSNAPSHOT;
-		//</lmdb-store>
 		if (!(env->me_flags & MDB_NOLOCK)) {
 			int excl;
 			rc = mdb_env_share_locks(env, &excl);
 			if (rc)
 				goto fail;
 		}
+		env->me_flags ^= MDB_PREVSNAPSHOT;
 	}
 
 done:
@@ -6269,18 +6265,18 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 				env->me_flags = flags;
 				MDB_meta* latest = mdb_env_pick_meta(env);
 				if (latest->mm_txnid != safe_meta->mm_txnid) {
-					MDB_txn safe_txn;
+					MDB_txn rollback_txn;
 					MDB_db dbs[2];
-					safe_txn.mt_env = env;
-					safe_txn.mt_flags = 0;
-					safe_txn.mt_dbs = dbs;
-					safe_txn.mt_dbs[FREE_DBI] = safe_meta->mm_dbs[FREE_DBI];
-					safe_txn.mt_dbs[MAIN_DBI] = safe_meta->mm_dbs[MAIN_DBI];
-					safe_txn.mt_txnid = safe_meta->mm_txnid;
-					safe_txn.mt_next_pgno = safe_meta->mm_last_pg + 1;
-					mdb_env_write_meta(&safe_txn);
-					safe_txn.mt_txnid--; // overwrite both meta pages to safe meta data
-					mdb_env_write_meta(&safe_txn);
+					rollback_txn.mt_env = env;
+					rollback_txn.mt_flags = 0;
+					rollback_txn.mt_dbs = dbs;
+					rollback_txn.mt_dbs[FREE_DBI] = safe_meta->mm_dbs[FREE_DBI];
+					rollback_txn.mt_dbs[MAIN_DBI] = safe_meta->mm_dbs[MAIN_DBI];
+					rollback_txn.mt_txnid = safe_meta->mm_txnid;
+					rollback_txn.mt_next_pgno = safe_meta->mm_last_pg + 1;
+					mdb_env_write_meta(&rollback_txn);
+					rollback_txn.mt_txnid--; // overwrite both meta pages to safe meta data
+					mdb_env_write_meta(&rollback_txn);
 				}
 			}
 			rc = mdb_env_share_locks(env, &excl);

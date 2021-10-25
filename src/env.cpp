@@ -565,7 +565,7 @@ NAN_METHOD(EnvWrap::open) {
     flags |= MDB_NOTLS;
     // TODO: make file attributes configurable
     rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
-    mdb_env_get_flags(ew->env, &((unsigned int)flags));
+    mdb_env_get_flags(ew->env, (unsigned int*) &flags);
 
     if (rc != 0) {
         mdb_env_close(ew->env);

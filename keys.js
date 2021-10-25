@@ -22,20 +22,24 @@ const readBufferKey = (target, start, end) => {
 export function applyKeyHandling(store) {
  	if (store.encoding == 'ordered-binary') {
 		store.encoder = store.decoder = {
-			encode(value) {
-				if (savePosition > 6200)
-					allocateSaveBuffer()
-				let start = savePosition
-				savePosition = writeKey(value, saveBuffer, start)
-				let buffer = saveBuffer.subarray(start, savePosition)
-				savePosition = (savePosition + 7) & 0xfffff8
-				return buffer
-			},
-			decode(buffer, end) { return readKey(buffer, 0, end) },
 			writeKey,
 			readKey,
 		}
 	}
+	if (store.encoder && store.encoder.writeKey && !store.encoder.encode) {
+		store.encoder.encode = function(value) {
+			if (savePosition > 6200)
+				allocateSaveBuffer()
+			let start = savePosition
+			savePosition = writeKey(value, saveBuffer, start)
+			saveBuffer.start = start
+			saveBuffer.end = savePosition
+			savePosition = (savePosition + 7) & 0xfffff8
+			return saveBuffer
+		}
+	}
+	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
+		store.decoder.decode = function(buffer, end) { return this.readKey(buffer, 0, end) }
 	if (store.keyIsUint32) {
 		store.writeKey = writeUint32Key
 		store.readKey = readUint32Key

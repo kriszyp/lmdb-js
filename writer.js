@@ -8,6 +8,7 @@ const BACKPRESSURE_THRESHOLD = 30000000
 const TXN_DELIMITER = 0x8000000
 const TXN_COMMITTED = 0x10000000
 const TXN_FLUSHED = 0x20000000
+const TXN_FAILED = 0x40000000
 const FAILED_CONDITION = 0x4000000
 const REUSE_BUFFER_MODE = 1000
 
@@ -21,7 +22,8 @@ const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array
 //let debugLog = []
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay }) {
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap,
+	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed }) {
 	//  stands for write instructions
 	var dynamicBytes
 	function allocateInstructionBuffer() {
@@ -47,13 +49,15 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var afterCommitCallbacks = []
 	var beforeCommitCallbacks = []
 	var enqueuedEventTurnBatch
+	if (separateFlushed === undefined)
+		separateFlushed = overlappingSync
 	var batchDepth = 0
 	var writeBatchStart, outstandingBatchCount
 	txnStartThreshold = txnStartThreshold || 5
 	batchStartThreshold = batchStartThreshold || 1000
 
 	allocateInstructionBuffer()
-	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED
+	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED
 	var txnResolution, lastQueuedResolution, nextResolution = { uint32: dynamicBytes.uint32, flagPosition: 0, }
 	var uncommittedResolution = { next: nextResolution }
 	var unwrittenResolution = nextResolution
@@ -249,7 +253,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.address + (flagPosition << 2)
 				}
 			}
-			if (!flushPromise && overlappingSync)
+			if (!flushPromise && overlappingSync && separateFlushed)
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve))
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				//console.log('resume batch thread', uint32.buffer.address + (flagPosition << 2))
@@ -293,8 +297,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						resolution.resolve = resolve
 						resolution.reject = reject
 					})
-					if (flushPromise)
-						commitPromise.flushed = flushPromise
+					if (separateFlushed)
+						commitPromise.flushed = overlappingSync ? flushPromise : commitPromise
 				}
 				return commitPromise
 			}
@@ -302,8 +306,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				resolution.resolve = resolve
 				resolution.reject = reject
 			})
-			if (flushPromise)
-				promise.flushed = flushPromise
+			if (separateFlushed)
+				promise.flushed = overlappingSync ? flushPromise : promise
 			return promise
 		}
 	}
@@ -352,6 +356,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				txnResolution = resolution
 		}
 	}
+	var TXN_DONE = (separateFlushed ? TXN_COMMITTED : TXN_FLUSHED) | TXN_FAILED
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus
@@ -370,10 +375,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			unwrittenResolution = unwrittenResolution.next
 		}
 		while (txnResolution &&
-			(instructionStatus = txnResolution.uint32[txnResolution.flagPosition] & 0x70000000)) {
-			if (instructionStatus & 0x40000000)
+			(instructionStatus = txnResolution.uint32[txnResolution.flagPosition] & TXN_DONE)) {
+			if (instructionStatus & TXN_FAILED)
 				rejectCommit()
-			else if (instructionStatus & TXN_COMMITTED)
+			else
 				resolveCommit(async)
 		}
 	}

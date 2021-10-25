@@ -1,5 +1,6 @@
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb.svg?style=flat-square)](https://www.npmjs.org/package/lmdb)
+[![npm version](https://img.shields.io/npm/dw/lmdb-store)](https://www.npmjs.org/package/lmdb-store)
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
@@ -353,6 +354,7 @@ The following additional option properties are only available when creating the 
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
+* `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
 * `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-store to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transactionAsync`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
@@ -374,7 +376,7 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 ### Overlapping Sync Options
 The `overlappingSync` option enables a new technique for committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
 
-When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. For write operations, the returned promise will resolve when the transaction is committed. The promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
+When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. When enabled, the `separateFlushed` is also enabled by default and for write operations, the returned promise will resolve when the transaction is committed. The promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
 ```
 let db = open('my-db', { overlappingSync: true })
 let written = db.put(key, value);
@@ -383,7 +385,9 @@ let v = db.get(key) // this value now be retrieved from the db
 await written.flushed // wait for commit to be fully flushed to disk
 ```
 
-This option is probably not helpful on Windows, as Window's disk flushing operation tends to have poor performance characteristic (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms.
+The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use different `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
+
+Enabling `overlappingSync` option is probably not helpful on Windows, as Window's disk flushing operation tends to have poor performance characteristic (whereas Windows tends to perform well with standard transactions), but YMMV. This option may be enabled by default in the future, for non-Windows platforms.
 
 #### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:

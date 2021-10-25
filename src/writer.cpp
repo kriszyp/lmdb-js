@@ -60,8 +60,8 @@ void WriteWorker::ContinueWrite() {
 WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
 		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
 		envForTxn(envForTxn),
-		env(env),
-		instructions(instructions) {
+		instructions(instructions),
+		env(env) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		currentTxnWrap = nullptr;
@@ -343,17 +343,13 @@ void WriteWorker::Write() {
 	rc = DoWrites(txn, envForTxn, instructions, this);
 
 	if (envForTxn) {
-		envForTxn->currentBatchTxn= nullptr;
+		envForTxn->currentBatchTxn = nullptr;
 		if (currentTxnWrap) {
 			// if a transaction was wrapped, need to do clean up
 			currentTxnWrap->removeFromEnvWrap();
 		}
 	}
 	if (callback) {
-		/*if (rc) // are there any return codes that would lead us to abort?
-			mdb_txn_abort(txn);
-		else*/
-		MDB_txn* committingTxn = txn;
 		if (rc)
 			mdb_txn_abort(txn);
 		else
