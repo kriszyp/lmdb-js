@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import { unlinkSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, ABORT } from '../index.js';
@@ -58,6 +59,7 @@ describe('lmdb-store', function() {
         //useWritemap: true,
         //noSync: true,
         //overlappingSync: true,
+        keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
         },
