@@ -584,6 +584,8 @@ function open(path, options) {
 				value = this.encoder.encode(value)
 			} else if (typeof value != 'string' && !(value instanceof Uint8Array))
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
+			if (this.dupSort && value.length > 1978)
+				throw new Error('The value is larger than the maximum size (1978) for a value in a dupSort database')
 			let operations = this.getScheduledOperations()
 			let index = operations.push(ifVersion == null ? version == null ? [id, value] : [id, value, version] : [id, value, version, ifVersion]) - 1
 			// track the size of the scheduled operations (and include the approx size of the array structure too)
@@ -618,6 +620,8 @@ function open(path, options) {
 					}
 					writeTxn.putBinary(this.db, id, value, version)
 				}
+				if (this.dupSort && value.length > 1978)
+					throw new Error('The value is larger than the maximum size (1978) for a value in a dupSort database')
 				if (localTxn) {
 					writeTxn.commit()
 					writeTxn = null

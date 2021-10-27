@@ -540,6 +540,8 @@ describe('lmdb-store', function() {
     it('invalid key', async function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
       //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
+      expect(() => db.put('x'.repeat(1979), 'hello')).to.throw();
+      expect(() => db2.put('x', 'x'.repeat(1979))).to.throw();
     });
     it('put options (sync)', function() {
       db.putSync('zkey6', 'test', { append: true, version: 33 });
