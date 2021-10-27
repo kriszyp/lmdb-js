@@ -3988,7 +3988,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	n = 0;
 	
 #ifdef _WIN32
-	if (!(env->me_flags & MDB_WRITEMAP)) {
+	if (!(env->me_flags & MDB_WRITEMAP) && pagecount > 0) {
 		DWORD file_high;
 		size_t file_size = GetFileSize(fd, &file_high);
 		file_size += (size_t) file_high << 32;
