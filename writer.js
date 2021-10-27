@@ -64,7 +64,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus
 		let targetBytes, position
-		let valueBuffer
+		let valueBuffer, valueSize, valueBufferStart
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
 			let encoder = store.encoder
@@ -82,7 +82,15 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
 			} else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
-		}
+			let valueBufferStart = valueBuffer.start
+			if (valueBufferStart > -1) // if we have buffers with start/end position
+				valueSize = valueBuffer.end - valueBufferStart // size
+			else
+				valueSize = valueBuffer.length
+			if (store.dupSort && valueSize > MAX_KEY_SIZE)
+				throw new Error('The value is larger than the maximum size (' + MAX_KEY_SIZE + ') for a value in a dupSort database')
+		} else
+			valueSize = 0
 		if (writeTxn) {
 			targetBytes = fixedBuffer
 			position = 0
@@ -113,7 +121,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			position = targetBytes.position
 		}
 		let uint32 = targetBytes.uint32, float64 = targetBytes.float64
-		let valueSize = 0
 		let flagPosition = position << 1 // flagPosition is the 32-bit word starting position
 
 		// don't increment position until we are sure we don't have any key writing errors
@@ -132,20 +139,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			let keySize = endPosition - keyStartPosition
 			if (keySize > MAX_KEY_SIZE) {
-				targetBytes.fill(0, keyStartPosition)
-				throw new Error('Key size is too large')
+				targetBytes.fill(0, keyStartPosition) // restore zeros
+				throw new Error('Key size is larger than the maximum key size (' + MAX_KEY_SIZE + ')')
 			}
 			uint32[flagPosition + 2] = keySize
 			position = (endPosition + 16) >> 3
 			if (flags & 2) {
-				let start = valueBuffer.start
-				if (start > -1) { // if we have buffers with start/end position
-					valueSize = valueBuffer.end - start // size
+				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + start
+						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + valueBufferStart
 				} else {
-					valueSize = valueBuffer.length
 					let valueArrayBuffer = valueBuffer.buffer
 					// record pointer to value buffer
 					float64[position] = (valueArrayBuffer.address ||

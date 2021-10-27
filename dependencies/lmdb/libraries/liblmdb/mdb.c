@@ -4038,22 +4038,20 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	n = 0;
 	
 #ifdef _WIN32
-	if (!(env->me_flags & MDB_WRITEMAP)) {
-		if (!(env->me_flags & MDB_OVERLAPPINGSYNC)) {
-			DWORD file_high;
-			size_t file_size = GetFileSize(fd, &file_high);
-			file_size += (size_t) file_high << 32;
-			if (pgno * psize >= file_size) {
-				file_size = ((size_t) (pgno < 100 ? 2 : pgno < 1000 ? 1.5 : pgno < 10000 ? 1.25 : pgno < 100000 ? 1.125 : 1.0625) * pgno * psize / 0x40000 + 1) * 0x40000;
-				LONG high_position = file_size >> 32;
-				if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-					fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
-				} else {
-					rc = SetEndOfFile(fd);
-					if (!rc) {
-						rc = ErrCode();
-						fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
-					}
+	if (!(env->me_flags & MDB_WRITEMAP) && pagecount > 0) {
+		DWORD file_high;
+		size_t file_size = GetFileSize(fd, &file_high);
+		file_size += (size_t) file_high << 32;
+		if (pgno * psize >= file_size) {
+			file_size = ((size_t) (pgno < 100 ? 2 : pgno < 1000 ? 1.5 : pgno < 10000 ? 1.25 : pgno < 100000 ? 1.125 : 1.0625) * pgno * psize / 0x40000 + 1) * 0x40000;
+			LONG high_position = file_size >> 32;
+			if (SetFilePointer(fd, file_size & 0xffffffff, &high_position, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+				fprintf(stderr, "SetFilePointer failed: %s\n", strerror(ErrCode()));
+			} else {
+				rc = SetEndOfFile(fd);
+				if (!rc) {
+					rc = ErrCode();
+					fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
 				}
 			}
 		}
