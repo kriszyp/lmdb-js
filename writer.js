@@ -4,7 +4,7 @@ var backpressureArray
 
 const MAX_KEY_SIZE = 1978
 const WAITING_OPERATION = 0x2000000
-const BACKPRESSURE_THRESHOLD = 30000000
+const BACKPRESSURE_THRESHOLD = 50000
 const TXN_DELIMITER = 0x8000000
 const TXN_COMMITTED = 0x10000000
 const TXN_FLUSHED = 0x20000000
@@ -350,7 +350,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolution.isTxn = true
 			if (txnResolution) {
 				txnResolution.nextTxn = resolution
-				outstandingWriteCount = 0
+				//outstandingWriteCount = 0
 			}
 			else
 				txnResolution = resolution
