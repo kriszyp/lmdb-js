@@ -12,7 +12,6 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 * Automated database growth
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression
-* Minimal dependencies to ensure stability and efficient memory use
 * And ridiculously fast and efficient:
 
 <a href="https://github.com/kriszyp/db-benchmark"><img src="./assets/performance.png" width="700"/></a>
@@ -21,6 +20,8 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 
 This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
 ```npm install lmdb```
+
+This library has minimal dependencies (mostly maintained together) to ensure stability and efficient memory use. It supports both ESM and CJS usage.
 
 This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
@@ -41,9 +42,7 @@ This library provides optional compression using LZ4 that works in conjunction w
 ## Usage
 An lmdb store instance is created with by using `open` export from the main module:
 ```
-const { open } = require('lmdb');
-// or
-// import { open } from 'lmdb';
+import { open } from 'lmdb'; // or require
 let myStore = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
@@ -74,6 +73,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
 ```
+null // lowest possible value
 Symbol.for('even symbols')
 -10 // negative supported
 -1.1 // decimals supported
@@ -85,8 +85,9 @@ Symbol.for('even symbols')
 'hello'
 ['hello', 1, 'world']
 ['hello', 'world']
+Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
-You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), or use `keyIsUint32` for keys that are strictly 32-bit unsigned integers.
+You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), use `keyIsUint32` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a store, the following methods are available:
 
@@ -94,7 +95,7 @@ Once you created have a store, the following methods are available:
 This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist.
 
 ### `store.getEntry(key): any`
-This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database, and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
+This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `store.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
 
 ### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
@@ -346,6 +347,7 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
 * `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
+* `keyEncoder` - Provide a custom key encoder.
 * `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
 * `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
 
@@ -385,9 +387,13 @@ let v = db.get(key) // this value now be retrieved from the db
 await written.flushed // wait for commit to be fully flushed to disk
 ```
 
-The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use different `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
+The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set it. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use differing `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
 
-Enabling `overlappingSync` option is probably not helpful on Windows, as Window's disk flushing operation tends to have poor performance characteristic (whereas Windows tends to perform well with standard transactions), but YMMV. This option may be enabled by default in the future, for non-Windows platforms.
+Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions), but YMMV. This option may be enabled by default in the future, for non-Windows platforms, this is probably a good setting:
+```
+	overlappingSync: os.platform() != 'win32',
+	separateFlushed: true,
+```
 
 #### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
@@ -396,11 +402,16 @@ If you are using the default encoding of `'msgpack'`, the [msgpackr](https://git
 
 You can also use the CBOR format by specifying the encoding of `'cbor'` and installing the [cbor-x](https://github.com/kriszyp/cbor-x) package, which supports the same options.
 
+## Custom Key Encoding
+Custom key encoding can be useful for defining more efficient encodings of specific keys like UUIDs. Custom key encoding can be specified by providing a `keyEncoder` object with the following methods:
+* `writeKey(key, targetBuffer, startPosition)` - This should write the provided key to the target buffer and returning the end position in the buffer.
+* `readKey(sourceBuffer, start, end)` - This should read the key from the provided buffer, with provided start and end position in the buffer, returning the key.
+
 ## Events
 
 The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
-`beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
+`beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled.
 
 ## LevelUp
 
