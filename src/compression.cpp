@@ -155,7 +155,6 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
         *((size_t*)(compressionAddress - 1)) = (size_t)value.mv_data;
         int64_t status = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 0);
         if (status == 1 && env) {
-fprintf(stderr,"n");
             pthread_mutex_lock(env->writingLock);
             pthread_cond_signal(env->writingCond);
             pthread_mutex_unlock(env->writingLock);

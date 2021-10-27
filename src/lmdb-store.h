@@ -37,7 +37,11 @@
 #include "chacha8.h"
 #endif
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-#include "v8-fast-api-calls.h"
+#if NODE_VERSION_AT_LEAST(17,0,0)
+#include "../dependencies/v8/v8-fast-api-calls.h"
+#else
+#include "../dependencies/v8/v8-fast-api-calls-v16.h"
+#endif
 #endif
 
 using namespace v8;
