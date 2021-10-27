@@ -82,7 +82,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
 			} else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
-			let valueBufferStart = valueBuffer.start
+			valueBufferStart = valueBuffer.start
 			if (valueBufferStart > -1) // if we have buffers with start/end position
 				valueSize = valueBuffer.end - valueBufferStart // size
 			else
