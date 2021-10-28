@@ -3,10 +3,24 @@
 using namespace v8;
 using namespace node;
 
+int Logging::initLogging() {
+    char* logging = getenv("LMDB_STORE_LOGGING");
+    if (logging)
+        fprintf(stderr, "Start logging for lmdb-store\n");
+    return !!logging;
+}
+int Logging::debugLogging = Logging::initLogging();
+
 extern "C" NODE_MODULE_EXPORT void
-NODE_MODULE_INITIALIZER(Local<Object> exports,
-                        Local<Value> module,
-                        Local<Context> context) {
+NODE_MODULE_INITIALIZER(v8::Local<v8::Object> exports,
+                          v8::Local<v8::Value> module,
+                          v8::Local<v8::Context> context);
+NODE_MODULE_CONTEXT_AWARE_X(NODE_GYP_MODULE_NAME, NODE_MODULE_INITIALIZER, NULL, 0)
+void NODE_MODULE_INITIALIZER(v8::Local<v8::Object> exports,
+                               v8::Local<v8::Value> module,
+                               v8::Local<v8::Context> context) {
+    if (Logging::debugLogging)
+        fprintf(stderr, "Start initialization\n");
     // Initializes the module
     // Export Env as constructor for EnvWrap
     EnvWrap::setupExports(exports);
@@ -16,6 +30,8 @@ NODE_MODULE_INITIALIZER(Local<Object> exports,
 
     // Export misc things
     setupExportMisc(exports);
+    if (Logging::debugLogging)
+        fprintf(stderr, "Finished initialization\n");
 }
 
 

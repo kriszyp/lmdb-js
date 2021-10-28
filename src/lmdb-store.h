@@ -92,7 +92,11 @@ int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
 
 #endif /* __CPTHREAD_H__ */
 
-
+class Logging {
+  public:
+    static int debugLogging;
+    static int initLogging();
+};
 
 enum class NodeLmdbKeyType {
 

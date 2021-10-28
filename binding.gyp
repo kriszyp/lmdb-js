@@ -14,11 +14,11 @@
       "target_name": "lmdb-store",
       "win_delay_load_hook": "false",
       "sources": [
+        "src/lmdb-store.cpp",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
         "dependencies/lz4/lib/lz4.c",
-        "src/lmdb-store.cpp",
         "src/writer.cpp",
         "src/env.cpp",
         "src/compression.cpp",
