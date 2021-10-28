@@ -161,6 +161,14 @@ describe('lmdb-store', function() {
       let returnedKeys = Array.from(db.getKeys(options))
       returnedKeys.should.deep.equal(['0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu0mnkm8lS38yIZa4Xte3Q3JUoD84V', '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8'])
     });
+    it('clear between puts', async function() {
+      db.put('key0', 'zero')
+      db.clearAsync()
+      await db.put('key1', 'one')
+      should.equal(db.get('key0'), undefined)
+      should.equal(db.get('hello'), undefined)
+      should.equal(db.get('key1'), 'one')
+    })
     it('string', async function() {
       await db.put('key1', 'Hello world!');
       let data = db.get('key1');
