@@ -43,6 +43,12 @@
 using namespace v8;
 using namespace node;
 
+class Logging {
+  public:
+    static int debugLogging;
+    static int initLogging();
+};
+
 enum class NodeLmdbKeyType {
 
     // Invalid key (used internally by node-lmdb)

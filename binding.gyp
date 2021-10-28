@@ -10,14 +10,14 @@
   },
   "targets": [
     {
-      "target_name": "lmdb-store",
+      "target_name": "lmdb",
       "win_delay_load_hook": "false",
       "sources": [
+        "src/node-lmdb.cpp",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
         "dependencies/lz4/lib/lz4.c",
-        "src/node-lmdb.cpp",
         "src/env.cpp",
         "src/compression.cpp",
         "src/ordered-binary.cpp",
