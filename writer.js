@@ -266,7 +266,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
 				if (!backpressureArray)
 					backpressureArray = new Int32Array(new SharedArrayBuffer(4), 0, 1)
-				Atomics.wait(backpressureArray, 0, 0, 1)
+				Atomics.wait(backpressureArray, 0, 0, Math.round(outstandingWriteCount / BACKPRESSURE_THRESHOLD))
 			}
 			if (startAddress) {
 				if (eventTurnBatching)
