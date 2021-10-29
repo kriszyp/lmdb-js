@@ -11,14 +11,7 @@ int Logging::initLogging() {
 }
 int Logging::debugLogging = Logging::initLogging();
 
-extern "C" NODE_MODULE_EXPORT void
-NODE_MODULE_INITIALIZER(v8::Local<v8::Object> exports,
-                          v8::Local<v8::Value> module,
-                          v8::Local<v8::Context> context);
-NODE_MODULE_CONTEXT_AWARE_X(NODE_GYP_MODULE_NAME, NODE_MODULE_INITIALIZER, NULL, 0)
-void NODE_MODULE_INITIALIZER(v8::Local<v8::Object> exports,
-                               v8::Local<v8::Value> module,
-                               v8::Local<v8::Context> context) {
+NODE_MODULE_INIT(/* exports, module, context */) {
     if (Logging::debugLogging)
         fprintf(stderr, "Start initialization\n");
     // Initializes the module
@@ -33,8 +26,6 @@ void NODE_MODULE_INITIALIZER(v8::Local<v8::Object> exports,
     if (Logging::debugLogging)
         fprintf(stderr, "Finished initialization\n");
 }
-
-
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license

@@ -11,7 +11,7 @@
   },
   "targets": [
     {
-      "target_name": "lmdb-store",
+      "target_name": "lmdb",
       "win_delay_load_hook": "false",
       "sources": [
         "src/lmdb-store.cpp",
