@@ -198,7 +198,7 @@ next_inst:	start = instruction++;
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					if ((size_t)value.mv_data > 0x1000000000000)
-						fprintf(stderr, "compressed %p %u\n", value.mv_data, status);
+						fprintf(stderr, "compression not completed %p %u\n", value.mv_data, status);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {

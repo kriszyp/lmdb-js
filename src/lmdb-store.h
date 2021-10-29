@@ -30,7 +30,6 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <nan.h>
-#include <uv.h>
 #include "lmdb.h"
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
@@ -64,12 +63,6 @@ typedef void pthread_mutexattr_t;
 typedef void pthread_condattr_t;
 typedef HANDLE pthread_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
-
-
-struct timespec {
-    long tv_sec;
-    long tv_nsec;
-};
 
 #endif
 

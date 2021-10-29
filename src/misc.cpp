@@ -566,8 +566,6 @@ size_t CustomExternalOneByteStringResource::length() const {
 
 #ifdef _WIN32
 
-int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
-
 int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
 {
     (void)attr;
