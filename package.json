@@ -1,7 +1,7 @@
   {
-  "name": "lmdb-store",
+  "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.0.0-alpha2",
+  "version": "2.0.0-beta1",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
   "license": "MIT",
   "repository": {
