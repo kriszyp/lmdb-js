@@ -21,7 +21,7 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
 ```npm install lmdb```
 
-This library has minimal dependencies (mostly maintained together) to ensure stability and efficient memory use. It supports both ESM and CJS usage.
+This library has minimal, tightly-controlled, and maintained dependencies to ensure stability and efficient memory use. It supports both ESM and CJS usage.
 
 This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
