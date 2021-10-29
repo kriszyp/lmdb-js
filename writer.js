@@ -207,7 +207,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			uint32: nextUint32,
 			flagPosition: position << 1,
 			flag: 0, // TODO: eventually eliminate this, as we can probably signify success by zeroing the flagPosition
-			valueBuffer,
+			valueBuffer: fixedBuffer, // these are all just placeholders so that we have the right hidden class initially allocated
 			next: null,
 			key,
 			store,
@@ -217,7 +217,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			uint32: nextUint32,
 			flagPosition: position << 1,
 			flag: 0, // TODO: eventually eliminate this, as we can probably signify success by zeroing the flagPosition
-			valueBuffer,
+			valueBuffer: fixedBuffer, // these are all just placeholders so that we have the right hidden class initially allocated
 			next: null,
 		}
 		let resolution = nextResolution
