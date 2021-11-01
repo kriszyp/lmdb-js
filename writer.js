@@ -444,7 +444,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 	}
 	async function executeTxnCallbacks() {
-		env.beginTxn(0)
 		env.writeTxn = writeTxn = {}
 		let promises
 		let txnCallbacks
@@ -495,7 +494,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			await Promise.all(promises)
 		}
 		env.writeTxn = writeTxn = false
-		return env.commitTxn()
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error
 			txnCallbacks[i] = CALLBACK_THREW
@@ -605,10 +603,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		batch(callbackOrOperations) {
 			return this.ifVersion(undefined, undefined, callbackOrOperations)
 		},
-		drop(callback) {
+		deleteDB(callback) {
 			return writeInstructions(1024 + 12, this, undefined, undefined, undefined, undefined)(callback)
 		},
 		clearAsync(callback) {
+			if (this.encoder && this.encoder.structures)
+				this.encoder.structures = []
 			return writeInstructions(12, this, undefined, undefined, undefined, undefined)(callback)
 		},
 		_triggerError() {

@@ -59,20 +59,21 @@ describe('lmdb-store', function() {
         //useWritemap: true,
         //noSync: true,
         //overlappingSync: true,
+        //eventTurnBatching: false,
         keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
         },
       }, options));
       if (!options.checkLast)
-        db.clear();
+        db.clearSync();
       db2 = db.openDB(Object.assign({
         name: 'mydb4',
         create: true,
         dupSort: true,
       }));
       if (!options.checkLast)
-        db2.clear();
+        db2.clearSync();
       db3 = db.openDB({
         name: 'mydb5',
         create: true,
@@ -80,7 +81,7 @@ describe('lmdb-store', function() {
         encoding: 'ordered-binary',
       });
       if (!options.checkLast)
-        db3.clear();
+        db3.clearSync();
     });
     if (options.checkLast) {
       it('encrypted data can not be accessed', function() {
@@ -592,7 +593,7 @@ describe('lmdb-store', function() {
     });
     it('async transactions', async function() {
       let ranTransaction
-      db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
+      db.put('key1', 'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
       if (!db.cache) {
         db.childTransaction(() => {
@@ -649,9 +650,6 @@ describe('lmdb-store', function() {
       db.strictAsyncOrder = true
       let order = []
       let ranSyncTxn
-      db.on('beforecommit', ()=> {
-        // force eventTurnBatching on
-      })
       db.transactionAsync(() => {
         order.push('a1');
         db.put('async1', 'test');
@@ -680,6 +678,16 @@ describe('lmdb-store', function() {
       let result
       for (let i = 0; i < 100; i++) {
         if (i%4 < 3) {
+          if (i%8 == 1) {
+            let sync = () => db.transactionSync(() => {
+              db.put('foo' + i, i)
+            })
+            if (i%16 == 1)
+              setImmediate(sync)
+            else
+              sync()
+            continue
+          }
           db.strictAsyncOrder = i%4 == 2
           result = db.transaction(() => {
             db.put('foo' + i, i)

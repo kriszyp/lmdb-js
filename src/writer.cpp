@@ -78,31 +78,24 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	pthread_mutex_lock(envForTxn->writingLock);
 	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
-		fprintf(stderr, "acquire interupting lock %p %u\n", this, commitSynchronously);
+		//fprintf(stderr, "acquire interupting lock %p %u\n", this, commitSynchronously);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
-		pthread_mutex_unlock(envForTxn->writingLock);
-        *flags |= TXN_HAS_WORKER_LOCK;
+		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+        *flags |= TXN_FROM_WORKER;
 		return nullptr;
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
 		//	pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-		if (txn) {
-			interruptionStatus = USER_HAS_LOCK;
-			*flags |= TXN_HAS_WORKER_LOCK;
-		} else
-			pthread_mutex_unlock(envForTxn->writingLock);
+		interruptionStatus = USER_HAS_LOCK;
+		*flags |= TXN_FROM_WORKER;
 		//fprintf(stderr, "acquire lock %p %u\n", txn, commitSynchronously);
 		return txn;
 	}
 }
 
 void WriteWorker::UnlockTxn() {
-//	fprintf(stderr, "release txn %u\n", interruptionStatus);
-	if (interruptionStatus == RESTART_WORKER_TXN) {
-		interruptionStatus = 0;
-		pthread_mutex_lock(envForTxn->writingLock);
-	}
+	//fprintf(stderr, "release txn %u\n", interruptionStatus);
 	interruptionStatus = 0;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
@@ -111,11 +104,11 @@ void WriteWorker::ReportError(const char* error) {
 	SetErrorMessage(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
-waitForCallback:
 	int rc;
 	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
 		executionProgress->Send(nullptr, 0);
+	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
 	if (target) {
 		uint64_t delay = 1;
@@ -130,22 +123,21 @@ waitForCallback:
 	} else
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-		fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
+	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
-			fprintf(stderr, "Waiting after interruption\n");
-			*txn = nullptr;
+			//fprintf(stderr, "Waiting after interruption\n");
+			this->txn = *txn = nullptr;
+			pthread_cond_signal(envForTxn->writingCond);
 			pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 			// now restart our transaction
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
 			this->txn = *txn;
-			fprintf(stderr, "Restarted txn after interruption\n");
+			//fprintf(stderr, "Restarted txn after interruption\n");
 			envForTxn->currentBatchTxn = *txn;
 			interruptionStatus = 0;
-			pthread_cond_signal(envForTxn->writingCond);
-			goto waitForCallback;
 		}
 		if (rc != 0) {
 			fprintf(stdout, "wfc unlock due to error %u\n", rc);
@@ -308,7 +300,7 @@ next_inst:	start = instruction++;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
-					fprintf(stderr, "Unknown return code %i %p", rc, start);
+					fprintf(stderr, "Unknown return code %i %p %p\n", rc, start, worker);
 					fprintf(stderr, "flags after return code %p\n", *start);
 				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
@@ -376,10 +368,20 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	v8::Local<v8::Value> argv[] = {
 		Nan::New<Number>(progressStatus)
 	};
+	if (progressStatus == 1) {
+		callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+		return;
+	}
+	pthread_mutex_lock(envForTxn->writingLock);
+	while(!txn) // possible to jump in after an interrupted txn here
+		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+	envForTxn->writeTxn = new TxnTracked(txn, 0);
 	finishedProgress = true;
-	bool immediateContinue = callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
-	if (immediateContinue)
-		ContinueWrite();
+	callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+	delete envForTxn->writeTxn;
+	envForTxn->writeTxn = nullptr;
+	pthread_cond_signal(envForTxn->writingCond);
+	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
 void WriteWorker::HandleOKCallback() {

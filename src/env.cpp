@@ -850,9 +850,11 @@ NAN_METHOD(EnvWrap::beginTxn) {
         else if (ew->writeWorker) {
             // try to acquire the txn from the current batch
             txn = ew->writeWorker->AcquireTxn(&flags);
-            //fprintf(stderr, "acquired %p %p\n", ew->writeWorker, txn);
-        } else
+            //fprintf(stderr, "acquired %p %p %p\n", ew->writeWorker, txn, flags);
+        } else {
+            pthread_mutex_lock(ew->writingLock);
             txn = nullptr;
+        }
 
         if (txn) {
             if (flags & TXN_ABORTABLE) {
@@ -909,9 +911,12 @@ NAN_METHOD(EnvWrap::commitTxn) {
         rc = mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
-    if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
+    if (!ew->writeTxn) {
         //fprintf(stderr, "unlock txn\n");
-        ew->writeWorker->UnlockTxn();
+        if (ew->writeWorker)
+            ew->writeWorker->UnlockTxn();
+        else
+            pthread_mutex_unlock(ew->writingLock);
     }
     delete currentTxn;
     if (rc)
@@ -928,9 +933,12 @@ NAN_METHOD(EnvWrap::abortTxn) {
         Nan::ThrowError("Can not abort this transaction");
     }
     ew->writeTxn = currentTxn->parent;
-    if (currentTxn->flags & TXN_HAS_WORKER_LOCK) {
+    if (!ew->writeTxn) {
         //fprintf(stderr, "unlock txn\n");
-        ew->writeWorker->UnlockTxn();
+        if (ew->writeWorker)
+            ew->writeWorker->UnlockTxn();
+        else
+            pthread_mutex_unlock(ew->writingLock);
     }
     delete currentTxn;
 }

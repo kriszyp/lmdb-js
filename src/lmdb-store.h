@@ -498,7 +498,7 @@ public:
 
 const int TXN_ABORTABLE = 1;
 const int TXN_SYNCHRONOUS_COMMIT = 2;
-const int TXN_HAS_WORKER_LOCK = 4;
+const int TXN_FROM_WORKER = 4;
 
 /*
     `Txn`
