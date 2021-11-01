@@ -78,14 +78,11 @@ NAN_METHOD(TxnWrap::ctor) {
             if (0 == (flags & MDB_RDONLY)) {
                 if (ew->currentWriteTxn != nullptr)
                     return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
-                if (ew->writeWorker)
-                if (ew->currentBatchTxn != nullptr) {
-                    //fprintf(stderr, "begin sync txn");
-                    auto writeWorker = ew->writeWorker;
-                    if (writeWorker) {
-                        parentTxn = writeWorker->AcquireTxn(&flags); // see if we have a paused transaction
-                        // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
-                    }
+                //fprintf(stderr, "begin sync txn");
+                auto writeWorker = ew->writeWorker;
+                if (writeWorker) {
+                    parentTxn = writeWorker->AcquireTxn(&flags); // see if we have a paused transaction
+                    // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
                 }
             }
         }
@@ -134,13 +131,6 @@ NAN_METHOD(TxnWrap::commit) {
         rc = mdb_txn_commit(tw->txn);
         
         pthread_mutex_unlock(tw->ew->writingLock);
-        if (tw->parentTw == nullptr && tw->ew->currentBatchTxn != nullptr) {
-            //fprintf(stderr, "committed sync txn");
-
-            auto batchWorker = tw->ew->batchWorker;
-            if (batchWorker) // notify the batch worker that we are done, and it can proceed
-                batchWorker->ContinueBatch(RESUME_BATCH, false);
-        }
     }
     else
         rc = mdb_txn_commit(tw->txn);

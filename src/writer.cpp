@@ -50,12 +50,6 @@ WriteWorker::~WriteWorker() {
 	if (envForTxn->writeWorker == this)
 		envForTxn->writeWorker = nullptr;
 }
-void WriteWorker::ContinueWrite() {
-	// I don't think we need the mutex lock here, all the waits we are signaling have timers
-	// to proceed even they miss a signal
-	pthread_cond_signal(envForTxn->writingCond);
-	//fprintf(stdout, "continue unlock\n");
-}
 
 WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
 		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
@@ -64,7 +58,6 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		env(env) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
-		currentTxnWrap = nullptr;
 		txn = nullptr;
 	}
 
@@ -136,7 +129,6 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
 			this->txn = *txn;
 			//fprintf(stderr, "Restarted txn after interruption\n");
-			envForTxn->currentBatchTxn = *txn;
 			interruptionStatus = 0;
 		}
 		if (rc != 0) {
@@ -334,13 +326,6 @@ void WriteWorker::Write() {
 
 	rc = DoWrites(txn, envForTxn, instructions, this);
 
-	if (envForTxn) {
-		envForTxn->currentBatchTxn = nullptr;
-		if (currentTxnWrap) {
-			// if a transaction was wrapped, need to do clean up
-			currentTxnWrap->removeFromEnvWrap();
-		}
-	}
 	if (callback) {
 		if (rc)
 			mdb_txn_abort(txn);
@@ -415,7 +400,7 @@ void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress,
 	if (instructionAddress)
 		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
 	else {
-		ew->writeWorker->ContinueWrite();
+		pthread_cond_signal(ew->writingCond);
 		rc = 0;
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
@@ -436,7 +421,7 @@ void EnvWrap::write(
 	if (instructionAddress)
 		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
 	else if (ew->writeWorker) {
-		ew->writeWorker->ContinueWrite();
+		pthread_cond_signal(ew->writingCond);
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return Nan::ThrowError(mdb_strerror(rc));

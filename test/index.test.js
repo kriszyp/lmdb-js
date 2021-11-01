@@ -59,7 +59,7 @@ describe('lmdb-store', function() {
         //useWritemap: true,
         //noSync: true,
         //overlappingSync: true,
-        //eventTurnBatching: false,
+        eventTurnBatching: false,
         keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,

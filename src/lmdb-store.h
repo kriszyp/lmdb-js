@@ -228,44 +228,15 @@ struct env_path_t {
     int count;
 };
 
-struct action_t {
-    int actionType;
-    MDB_val key;
-    union {
-        struct {
-            DbiWrap* dw;
-        };
-        struct {
-            MDB_val data;
-            double ifVersion;
-            double version;
-            argtokey_callback_t freeValue;
-        };
-    };
-};
-
 const int INTERRUPT_BATCH = 9998;
 const int ALLOW_COMMIT = 9997;
 const int RESTART_WORKER_TXN = 9999;
 const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
 
-class BatchWorkerBase : public Nan::AsyncProgressWorker {
-  public:
-    BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
-    void ContinueBatch(int rc, bool hasStarted);
-    pthread_mutex_t* userCallbackLock;
-    pthread_cond_t* userCallbackCond;
-    int interruptionStatus;
-    bool finishedProgress;
-    EnvWrap* envForTxn;
-    TxnWrap* currentTxnWrap;
-    ~BatchWorkerBase();
-};
 class WriteWorker : public Nan::AsyncProgressWorker {
   public:
     WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
-    void ContinueWrite();
     void Write();
     MDB_txn* txn;
     MDB_txn* AcquireTxn(int* flags);
@@ -278,7 +249,6 @@ class WriteWorker : public Nan::AsyncProgressWorker {
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
-    TxnWrap* currentTxnWrap;
     ~WriteWorker();
     uint32_t* instructions;
     int progressStatus;
@@ -316,9 +286,6 @@ private:
     static pthread_mutex_t* initMutex();
     // compression settings and space
     Compression *compression;
-    BatchWorkerBase* batchWorker;
-    WriteWorker* syncWriter;
-    bool pendingCallbacks;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -340,8 +307,6 @@ public:
     MDB_txn* currentReadTxn;
     WriteWorker* writeWorker;
     bool readTxnRenewed;
-    // Current raw batch transaction
-    MDB_txn *currentBatchTxn;
     // What memory priority for accessing LMDB data in windows
     int winMemoryPriority;
     char* keyBuffer;
@@ -485,7 +450,6 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static NAN_METHOD(batchWrite);
     static NAN_METHOD(startWriting);
     static NAN_METHOD(compress);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
