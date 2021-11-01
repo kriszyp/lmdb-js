@@ -402,22 +402,30 @@ export function open(path, options) {
 			})
 		}
 		deleteDB() {
+			console.warn('deleteDB() is deprecated, use drop or dropSync instead')
+			return this.dropSync()
+		}
+		dropSync() {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: false
-				})
-			, { abortable: false })
+				}),
+			{ abortable: false })
 		}
 		clear(callback) {
+			if (typeof callback == 'function')
+				return this.clearAsync(callback)
+			console.warn('clear() is deprecated, use clearAsync or clearSync instead')
+			this.clearSync()
+		}
+		clearSync() {
+			if (this.encoder && this.encoder.structures)
+				this.encoder.structures = []
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
-				})
-			, { abortable: false })
-			if (this.encoder && this.encoder.structures)
-				this.encoder.structures = []
-			if (typeof callback == 'function')
-				callback(null)
+				}),
+			{ abortable: false })
 		}
 		readerCheck() {
 			return env.readerCheck()
