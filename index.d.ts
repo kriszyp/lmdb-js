@@ -199,9 +199,13 @@ declare namespace lmdb {
 		**/
 		deleteDB(): void
 		/**
-		* Clear all the entries from this database/store.
+		* Asynchronously clear all the entries from this database/store.
 		**/
-		clear(): void
+		clearAsync(): Promise<void>
+		/**
+		* Synchronously clear all the entries from this database/store.
+		**/
+		clearSync(): void
 		/**
 		* Check the reader locks and remove any stale reader locks. Returns the number of stale locks that were removed.
 		**/
