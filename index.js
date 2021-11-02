@@ -532,3 +532,7 @@ function saveKey(key, writeKey, saveTo) {
 	savePosition = (savePosition + 7) & 0xfffff8
 	return start + saveDataAddress
 }
+import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
+export default {
+	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, asBinary
+}
