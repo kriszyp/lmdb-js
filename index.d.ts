@@ -136,7 +136,10 @@ declare namespace lmdb {
 		**/
 		getCount(options: RangeOptions): number
 		/**
-		* @deprecated Since v1.3.0, this will be replaced with the functionality of transactionAsync in a future release
+		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
+		* and committing the transaction after the action callback completes.
+		* existing version
+		* @param action The function to execute within the transaction
 		**/
 		transaction<T>(action: () => T): T
 		/**
@@ -144,7 +147,6 @@ declare namespace lmdb {
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
-		* @param abort If true will abort the transaction when completed
 		**/
 		transactionSync<T>(action: () => T): T
 		/**
@@ -153,15 +155,12 @@ declare namespace lmdb {
 		* existing version
 		* @param action The function to execute within the transaction
 		**/
-		transactionAsync<T>(action: () => T): Promise<T>
-		/**
-		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
-		* and committing the transaction after the action callback completes.
-		* existing version
-		* @param action The function to execute within the transaction
-		* @param abort If true will abort the transaction when completed
-		**/
 		childTransaction<T>(action: () => T): Promise<T>
+		/**
+		* Execute a set of write operations that will all be batched together in next queued asynchronous transaction.
+		* @param action The function to execute with a set of write operations.
+		**/
+		batch<T>(action: () => T): Promise<T>
 		/**
 		* Execute writes actions that are all conditionally dependent on the entry with the provided key having the provided
 		* version number (checked atomically).
@@ -195,9 +194,13 @@ declare namespace lmdb {
 		*/
 		doesExist(key: K, version: number): boolean
 		/**
-		* Delete this database/store.
+		* Delete this database/store (asynchronously).
 		**/
-		deleteDB(): void
+		drop(): Promise<void>
+		/**
+		* Synchronously delete this database/store.
+		**/
+		dropSync(): void
 		/**
 		* Asynchronously clear all the entries from this database/store.
 		**/
@@ -322,6 +325,10 @@ declare namespace lmdb {
 		asArray: T[]
 	}
 	export function getLastVersion(): number
-	export function compareKey(a: Key, b: Key): number
+	export function compareKeys(a: Key, b: Key): number
+	class Binary {}
+	/* Wrap a Buffer/Uint8Array for direct assignment as a value bypassing any encoding, for put (and doesExist) operations.
+	*/
+	export function asBinary(buffer: Uint8Array): Binary
 }
 export = lmdb

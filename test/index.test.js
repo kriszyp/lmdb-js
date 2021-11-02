@@ -10,7 +10,7 @@ import { dirname } from 'path'
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, ABORT } from '../index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../index.js';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-store', function() {
@@ -253,6 +253,15 @@ describe('lmdb-store', function() {
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
       db.removeSync('not-there').should.equal(false);
+    });
+    it('store binary', async function() {
+      let dataIn = {foo: 4, bar: true}
+      let buffer = db.encoder.encode(dataIn);
+      if (typeof buffer == 'string')
+        return
+      await db.put('key1',  asBinary(buffer));
+      let dataOut = db.get('key1');
+      dataOut.should.deep.equal(dataIn);
     });
     it('writes batch with callback', async function() {
       let dataIn = {name: 'for batch 1'}

@@ -22,7 +22,7 @@ const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array
 //let debugLog = []
 
 var log = []
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap,
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, binaryBuffer,
 	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed }) {
 	//  stands for write instructions
 	var dynamicBytes
@@ -68,8 +68,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
 			let encoder = store.encoder
-			if (value instanceof Uint8Array)
-				valueBuffer = value
+			if (value && value[binaryBuffer])
+				valueBuffer = value[binaryBuffer]
 			else if (encoder) {
 				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
 					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE)
@@ -80,7 +80,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 			} else if (typeof value == 'string') {
 				valueBuffer = Buffer.from(value) // TODO: Would be nice to write strings inline in the instructions
-			} else
+			} else if (value instanceof Uint8Array)
+				valueBuffer = value
+			else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder')
 			valueBufferStart = valueBuffer.start
 			if (valueBufferStart > -1) // if we have buffers with start/end position
@@ -602,7 +604,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		batch(callbackOrOperations) {
 			return this.ifVersion(undefined, undefined, callbackOrOperations)
 		},
-		deleteDB(callback) {
+		drop(callback) {
 			return writeInstructions(1024 + 12, this, undefined, undefined, undefined, undefined)(callback)
 		},
 		clearAsync(callback) {

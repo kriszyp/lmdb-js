@@ -18,7 +18,7 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
+This library is published to the NPM package `lmdb` (and the 1.x was also published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
 
 This library has minimal, tightly-controlled, and maintained dependencies to ensure stability and efficient memory use. It supports both ESM and CJS usage.
@@ -69,6 +69,8 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
 * `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
 * `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` stores where data values are ordered, and having consistent key and value ordering is helpful.
+
+In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
 
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
@@ -227,7 +229,7 @@ Here are the options that can be provided to the range methods (all are optional
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
-const { open } = require('lmdb');
+import { open } from 'lmdb';
 let rootStore = open('all-my-data');
 let usersStore = myStore.openDB('users');
 let groupsStore = myStore.openDB('groups');
@@ -249,6 +251,13 @@ rootStore.transactionAsync(() => {
 
 ### `getLastVersion(): number`
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
+
+### `asBinary(buffer): Binary`
+This can be used to directly store a buffer or Uint8Array as a value, bypassing any encoding. If you are using a store with an encoding that isn't `binary`, setting a value with a Uint8Array will typically be encoding with encoding (for example MessagePack wraps in a header, preserving its type for `get`). However, if you want to bypass encoding, for example, if you have already encoded a value, you can use `asBinary`:
+```
+let buffer = encode(myValue) // if we have already serialized a value, perhaps to compare it or check its size
+db.put(key, asBinary(buffer)) // we can directly store the encoded value
+```
 
 ### `close(): void`
 This will close the current store. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `store.openDB`), it will close the environment (and child stores will no longer be able to interact with the database).

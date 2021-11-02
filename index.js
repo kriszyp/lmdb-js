@@ -12,6 +12,7 @@ import { createRequire } from 'module'
 import { Encoder as MsgpackrEncoder } from 'msgpackr'
 export { levelup } from './level.js'
 const require = createRequire(import.meta.url)
+const binaryBuffer = Symbol('binaryBuffer')
 
 import os from 'os'
 setGetLastVersion(getLastVersion)
@@ -343,26 +344,14 @@ export function open(path, options) {
 				return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue)
 			}
 			else {
-				if (this.encoder) {
+				if (versionOrValue && versionOrValue[binaryBuffer])
+					versionOrValue = versionOrValue[binaryBuffer]
+				else if (this.encoder)
 					versionOrValue = this.encoder.encode(versionOrValue)
-				}
 				if (typeof versionOrValue == 'string')
 					versionOrValue = Buffer.from(versionOrValue)
 				return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0
 			}
-		}
-		batch(operations) {
-			/*if (writeTxn) {
-				this.commitBatchNow(operations.map(operation => [this.db, operation.key, operation.value]))
-				return Promise.resolve(true)
-			}*/
-			let scheduledOperations = this.getScheduledOperations()
-			for (let operation of operations) {
-				let value = operation.value
-				scheduledOperations.push([operation.key, value])
-				scheduledOperations.bytes += operation.key.length + (value && value.length || 0) + 200
-			}
-			return this.scheduleCommit().unconditionalResults
 		}
 		backup(path) {
 			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
@@ -464,7 +453,7 @@ export function open(path, options) {
 	addQueryMethods(LMDBStore, { env, getReadTxn() {
 		return readTxnRenewed ? readTxn : renewReadTxn()
 	}, saveKey, keyBytes, keyBytesView, getLastVersion })
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, ...options })
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, binaryBuffer, ...options })
 	LMDBStore.prototype.supports = {
 		permanence: true,
 		bufferKeys: true,
@@ -516,6 +505,11 @@ export function getLastVersion() {
 
 export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true)
+}
+export function asBinary(buffer) {
+	return {
+		[binaryBuffer]: buffer
+	}
 }
 let saveBuffer, saveDataView, saveDataAddress
 let savePosition = 8000
