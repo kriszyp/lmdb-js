@@ -357,6 +357,8 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 		callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
 		return;
 	}
+	if (finishedProgress)
+		return;
 	pthread_mutex_lock(envForTxn->writingLock);
 	while(!txn) // possible to jump in after an interrupted txn here
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
