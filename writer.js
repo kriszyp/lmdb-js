@@ -202,7 +202,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			nextUint32 = targetBytes.uint32
 		} else
 			nextUint32 = uint32
-		let newResolution = store.cache ?
+		let resolution = nextResolution
+		// create the placeholder next resolution
+		nextResolution = resolution.next = store.cache ?
 		{
 			uint32: nextUint32,
 			flagPosition: position << 1,
@@ -220,9 +222,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			valueBuffer: fixedBuffer, // these are all just placeholders so that we have the right hidden class initially allocated
 			next: null,
 		}
-		let resolution = nextResolution
-		resolution.next = newResolution
-		nextResolution = newResolution
 		let writtenBatchDepth = batchDepth
 
 		return (callback) => {
