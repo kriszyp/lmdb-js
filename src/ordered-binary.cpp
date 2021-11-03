@@ -1,38 +1,5 @@
 #include "lmdb-store.h"
 
-
-KeySpaceHolder::KeySpaceHolder() {
-    previousSpace = nullptr;
-}
-KeySpaceHolder::KeySpaceHolder(KeySpaceHolder* existingSpace, uint8_t* existingData) {
-    previousSpace = existingSpace;
-    data = existingData;
-}
-KeySpaceHolder::~KeySpaceHolder() {
-    if (previousSpace)
-        delete previousSpace;
-    delete[] data;
-}
-
-uint8_t* KeySpace::getTarget() {
-    if (position + MDB_MAXKEYSIZE > size) {
-        if (fixedSize) {
-            Nan::ThrowError("Key is too large");
-            return nullptr;
-        } else {
-            previousSpace = new KeySpaceHolder(previousSpace, data);
-            size = size << 1; // grow on each expansion
-            data = new uint8_t[size];
-        }
-    }
-    return &data[position];
-}
-KeySpace::KeySpace(bool fixed) {
-    fixedSize = fixed;
-    position = 0;
-    size = fixed ? MDB_MAXKEYSIZE + 8 : 8192;
-    data = new uint8_t[size];
-}
 #ifdef _WIN32
 #define ntohl _byteswap_ulong
 #define htonl _byteswap_ulong

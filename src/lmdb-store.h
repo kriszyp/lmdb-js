@@ -121,7 +121,6 @@ class DbiWrap;
 class EnvWrap;
 class CursorWrap;
 class Compression;
-class KeySpace;
 
 // Exports misc stuff to the module
 void setupExportMisc(Local<Object> exports);
@@ -163,23 +162,6 @@ NAN_METHOD(setWinMemoryPriority);
 NAN_METHOD(getAddress);
 NAN_METHOD(getAddressShared);
 
-class KeySpaceHolder {
-public:
-    uint8_t* data;
-    KeySpaceHolder* previousSpace;
-    KeySpaceHolder(KeySpaceHolder* existingPreviousSpace, uint8_t* existingData);
-    KeySpaceHolder();
-    ~KeySpaceHolder();
-};
-class KeySpace : public KeySpaceHolder {
-public:
-    int position;
-    int size;
-    bool fixedSize;
-    uint8_t* getTarget();
-    KeySpace(bool fixed);
-};
-
 #ifndef thread_local
 #ifdef __GNUC__
 # define thread_local __thread
@@ -196,7 +178,6 @@ public:
 const double ANY_VERSION = -3.3434325325532E-199;
 const double NO_EXIST_VERSION = -4.2434325325532E-199;
 
-KeySpace* getFixedKeySpace();
 void setLastVersion(double version);
 
 bool valToBinaryFast(MDB_val &data);
@@ -500,12 +481,6 @@ public:
     // Constructor (not exposed)
     static NAN_METHOD(ctor);
 
-    // Helper for all the get methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
-
-    // Helper for all the put methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
-
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
@@ -530,158 +505,6 @@ public:
     */
     static NAN_METHOD(renew);
 
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database as UTF-8. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getUtf8);
-
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getString);
-
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getStringUnsafe);
-
-    /*
-        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBinary);
-
-    /*
-        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBinaryUnsafe);
-
-    /*
-        Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method will copy the value out of the database.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getNumber);
-
-    /*
-        Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method will copy the value out of the database.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBoolean);
-
-    /*
-        Puts string data (JavaScript string type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putString);
-
-    /*
-        Puts string data (JavaScript string type) into a database as UTF-8.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putUtf8);
-
-    /*
-        Puts binary data (Node.js Buffer) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putBinary);
-
-    /*
-        Puts number data (JavaScript number type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putNumber);
-
-    /*
-        Puts boolean data (JavaScript boolean type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putBoolean);
-
-    /*
-        Deletes data with the given key from the database.
-        (Wrapper for `mdb_del`)
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-    */
-    static NAN_METHOD(del);
 };
 
 /*
@@ -831,183 +654,6 @@ public:
         * Database instance object
     */
     static NAN_METHOD(close);
-
-    // Helper method for getters (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(
-        Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op,
-        argtokey_callback_t (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, bool&),
-        void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        Local<Value> (*convertFunc)(MDB_val &data));
-
-    // Helper method for getters (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentUtf8);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentString);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentStringUnsafe);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBinary);
-
-
-    /*
-        Gets the current key-data pair with zero-copy that the cursor is pointing to. Returns the current key.
-        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBinaryUnsafe);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentNumber);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBoolean);
-
-    /*
-    Is the current cursor a database
-    (Wrapper for `mdb_cursor_is_db`)
-    */
-    static NAN_METHOD(getCurrentIsDatabase);
-
-    /*
-        Asks the cursor to go to the first key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToFirst);
-
-    /*
-        Asks the cursor to go to the last key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToLast);
-
-    /*
-        Asks the cursor to go to the next key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNext);
-
-    /*
-        Asks the cursor to go to the previous key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrev);
-
-    /*
-        Asks the cursor to go to the specified key in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToKey);
-
-    /*
-        Asks the cursor to go to the first key greater than or equal to the specified parameter in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToRange);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the first occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToFirstDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the last occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToLastDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the next occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNextDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the previous occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrevDup);
-
-    /*
-        Go to the entry for next key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNextNoDup);
-
-    /*
-        Go to the entry for previous key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrevNoDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the specified key with the first data that is greater than or equal to the specified.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToDupRange);
-
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)

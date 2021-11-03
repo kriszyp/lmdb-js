@@ -766,19 +766,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // TxnWrap: Add functions to the prototype
     txnTpl->PrototypeTemplate()->Set(isolate, "commit", Nan::New<FunctionTemplate>(TxnWrap::commit));
     txnTpl->PrototypeTemplate()->Set(isolate, "abort", Nan::New<FunctionTemplate>(TxnWrap::abort));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getString", Nan::New<FunctionTemplate>(TxnWrap::getString));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getStringUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getStringUnsafe));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getUtf8", Nan::New<FunctionTemplate>(TxnWrap::getUtf8));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getBinary", Nan::New<FunctionTemplate>(TxnWrap::getBinary));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getBinaryUnsafe", Nan::New<FunctionTemplate>(TxnWrap::getBinaryUnsafe));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getNumber", Nan::New<FunctionTemplate>(TxnWrap::getNumber));
-    txnTpl->PrototypeTemplate()->Set(isolate, "getBoolean", Nan::New<FunctionTemplate>(TxnWrap::getBoolean));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putString", Nan::New<FunctionTemplate>(TxnWrap::putString));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putBinary", Nan::New<FunctionTemplate>(TxnWrap::putBinary));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putNumber", Nan::New<FunctionTemplate>(TxnWrap::putNumber));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putBoolean", Nan::New<FunctionTemplate>(TxnWrap::putBoolean));
-    txnTpl->PrototypeTemplate()->Set(isolate, "putUtf8", Nan::New<FunctionTemplate>(TxnWrap::putUtf8));
-    txnTpl->PrototypeTemplate()->Set(isolate, "del", Nan::New<FunctionTemplate>(TxnWrap::del));
     txnTpl->PrototypeTemplate()->Set(isolate, "reset", Nan::New<FunctionTemplate>(TxnWrap::reset));
     txnTpl->PrototypeTemplate()->Set(isolate, "renew", Nan::New<FunctionTemplate>(TxnWrap::renew));
     // TODO: wrap mdb_cmp too

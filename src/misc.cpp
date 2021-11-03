@@ -7,7 +7,6 @@ static thread_local size_t globalUnsafeSize;
 static thread_local Persistent<Object>* globalUnsafeBuffer;
 static thread_local double lastVersion = 0;
 static thread_local DbiWrap* currentDb = nullptr;
-static thread_local KeySpace* fixedKeySpace;
 
 void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
@@ -34,12 +33,8 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "lmdbNativeFunctions", getLastVersion);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
-    fixedKeySpace = new KeySpace(true);
 }
 
-KeySpace* getFixedKeySpace() {
-    return fixedKeySpace;
-}
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
     Local<Context> context = Nan::GetCurrentContext();
