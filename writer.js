@@ -147,18 +147,21 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			uint32[flagPosition + 2] = keySize
 			position = (endPosition + 16) >> 3
 			if (flags & 2) {
+				let mustCompress
 				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
 						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + valueBufferStart
+					mustCompress = valueBuffer[valueBufferStart] >= 254 // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer
 					// record pointer to value buffer
 					float64[position] = (valueArrayBuffer.address ||
 						(valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset
+					mustCompress = valueBuffer[0] >= 254 // this is the compression indicator, so we must compress
 				}
 				uint32[(position++ << 1) - 1] = valueSize
-				if (store.compression && valueSize >= store.compression.threshold) {
+				if (store.compression && (valueSize >= store.compression.threshold || mustCompress)) {
 					flags |= 0x100000;
 					float64[position] = store.compression.address
 					if (!writeTxn)

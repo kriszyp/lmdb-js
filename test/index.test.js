@@ -245,6 +245,14 @@ describe('lmdb-store', function() {
       entry.version.should.equal(53255);
       (await db.remove('key1')).should.equal(true);
     });
+
+    it('forced compression due to starting with 255', async function() {
+      await db.put('key1', asBinary(Buffer.from([255])));
+      let entry = db.getBinary('key1');
+      entry.length.should.equal(1);
+      entry[0].should.equal(255);
+      (await db.remove('key1')).should.equal(true);
+    });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this
     it('store objects', async function() {
