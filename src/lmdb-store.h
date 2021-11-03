@@ -145,12 +145,7 @@ int restoreMemoryPriority();
 #define restoreMemPriority(ew)
 #endif
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-
-NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
-NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
-Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(getLastVersion);
@@ -671,9 +666,6 @@ public:
     static NAN_METHOD(renew);
     //static NAN_METHOD(getStringByBinary);
 };
-
-void load32LE(MDB_val &val, uint32_t* target);
-void make32LE(MDB_val &val);
 
 // External string resource that glues MDB_val and v8::String
 class CustomExternalStringResource : public String::ExternalStringResource {

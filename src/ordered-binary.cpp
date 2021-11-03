@@ -5,49 +5,6 @@
 #define htonl _byteswap_ulong
 #endif
 
-void load32LE(MDB_val &val, uint32_t* target) {
-    // copy and swap at the same time, and guarantee null termination
-    uint32_t* source = (uint32_t*) val.mv_data;
-    unsigned int size = val.mv_size - 4;
-    *target++ = ntohl(*source++);
-    memcpy(target, source, size);
-    /*
-    uint32_t* end = source + (size >> 2);
-    for (; source < end; source++) {
-        *target = ntohl(*source);
-        target++;
-    }
-    *target = ntohl(*source << (32 - ((size & 3) << 3)));*/
-}
-
-
-void make32LE(MDB_val &val) {
-/*
-    uint8_t* bytes = (uint8_t*) val.mv_data;
-    unsigned int size = val.mv_size;
-    if (val.mv_size & 1) {
-        if (bytes[size - 1] == 0)
-            val.mv_size = --size;
-        else
-            return;
-    }
-    size = size >> 1;
-    if (((uint16_t*)bytes)[size - 1] == 0) {
-        if (((uint16_t*)bytes)[size - 2] == 0)
-            val.mv_size -= 4;
-        else
-            val.mv_size -= 2;
-    }
-*/ 
-    uint32_t* buffer = (uint32_t*) val.mv_data;
-    *buffer = htonl(*buffer);/*
-    unsigned int size = val.mv_size;
-    uint32_t* end = buffer + (size >> 2);
-    for (; buffer < end; buffer++) {
-        *buffer = htonl(*buffer);
-    }
-    *buffer = htonl(*buffer << (32 - ((size & 3) << 3)));*/
-}
 // compare items by 32-bit comparison, a is user provided and assumed to be zero terminated/padded
 // which allows us to do the full 32-bit comparisons safely
 int compareFast(const MDB_val *a, const MDB_val *b) {
