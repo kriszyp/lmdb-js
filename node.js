@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { setNativeFunctions } from './native.js'
 import fs from 'fs'
-import os from 'os'
+import { arch } from 'os'
 let nativeFunctions, dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '')
 try {
 	console.log(dirName)
@@ -26,7 +26,7 @@ try {
 		throw error
 }
 nativeFunctions.require = require
-nativeFunctions.os = os
+nativeFunctions.arch = arch
 nativeFunctions.fs = fs
 setNativeFunctions(nativeFunctions)
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'

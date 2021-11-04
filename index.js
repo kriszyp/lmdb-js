@@ -1,6 +1,6 @@
 import { extname, basename, dirname} from 'path'
 import EventEmitter from 'events'
-import { Env, Compression, getAddress, require, os, fs } from './native.js'
+import { Env, Compression, getAddress, require, arch, fs } from './native.js'
 import { CachingStore, setGetLastVersion } from './caching.js'
 import { addQueryMethods } from './query.js'
 import { addWriteMethods } from './writer.js'
@@ -46,7 +46,7 @@ export function open(path, options) {
 	}
 	let extension = extname(path)
 	let name = basename(path, extension)
-	let is32Bit = os.arch().endsWith('32')
+	let is32Bit = arch().endsWith('32')
 	let remapChunks = (options && options.remapChunks) || ((options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit) // without a known map size, we default to being able to handle large data correctly/well*/

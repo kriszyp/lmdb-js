@@ -1,13 +1,22 @@
+import { setNativeFunctions } from './native.js'
+// probably use Deno.build.os
+import { arch } from 'https://deno.land/std/node/os.ts'
 let lmdbLib = Deno.dlopen('./build/Release/lmdb-store.node', {
-	envOpen: { parameters: ['u32', 'buffer', 'usize'], result: 'usize'}
+	envOpen: { parameters: ['u32', 'buffer', 'usize'], result: 'usize'},/*
+    free: { parameters: ['buffer', 'usize'], result: 'void'},
+    getAddress: { parameters: ['buffer', 'usize'], result: 'usize'},
+    startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
+    write: { parameters: ['buffer', 'usize'], result: 'u32'},
+    getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
+    */
 })
 let b = new Uint8Array([1,2])
 console.log(symbols.envOpen(0, b, 2))
-let { Env, open } = lmdbLib.symbols
+let { envOpen, getAddress, free } = lmdbLib.symbols
 
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
-    free(address)
+    free(address, 1)
 })
 
 class CBridge {
@@ -28,7 +37,20 @@ class Env extends CBridge {
         super(symbols.Env())
     }
     open(flags, path) {
-        return open(this.address, flags, path)
+        return envOpen(this.address, flags, path)
     }
 }
 Env.addMethods('startWriting', 'write', 'openDB')
+
+class Dbi extends CBridge {
+
+}
+
+class Compression extends CBridge {
+
+}
+class Cursor extends CBridge {
+
+}
+
+setNativeFunctions({ Env, Compression, Cursor, fs: Deno, arch, getAddress, getAddressShared: getAddress })

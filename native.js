@@ -1,4 +1,4 @@
-export let Env, Compression, Cursor, getAddress, getAddressShared, require, os, fs
+export let Env, Compression, Cursor, getAddress, getAddressShared, require, arch, fs
 export function setNativeFunctions(nativeInterface) {
 	Env = nativeInterface.Env
 	Compression = nativeInterface.Compression
@@ -6,6 +6,6 @@ export function setNativeFunctions(nativeInterface) {
     getAddressShared = nativeInterface.getAddressShared
     Cursor = nativeInterface.Cursor
     require = nativeInterface.require
-    os = nativeInterface.os
+    arch = nativeInterface.arch
     fs = nativeInterface.fs
 }
