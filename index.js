@@ -1,28 +1,15 @@
-import fs from 'fs' // TODO: or Deno
 import { extname, basename, dirname} from 'path'
 import EventEmitter from 'events'
-import { Env, Cursor, Compression, getBufferForAddress, getAddress } from './native.js'
+import { Env, Compression, getAddress, require, os, fs } from './native.js'
 import { CachingStore, setGetLastVersion } from './caching.js'
 import { addQueryMethods } from './query.js'
-import { addWriteMethods, ABORT } from './writer.js'
-export { ABORT } from './writer.js'
+import { addWriteMethods } from './writer.js'
 import { applyKeyHandling } from './keys.js'
-export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
-import { createRequire } from 'module'
 import { Encoder as MsgpackrEncoder } from 'msgpackr'
-export { levelup } from './level.js'
-const require = createRequire(import.meta.url)
 const binaryBuffer = Symbol('binaryBuffer')
-
-import os from 'os'
 setGetLastVersion(getLastVersion)
 const Uint8ArraySlice = Uint8Array.prototype.slice
-const keyBytes = Buffer.allocUnsafeSlow(2048)
-const keyBuffer = keyBytes.buffer
-const keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048) // max key size is actually 1978
-keyBytes.uint32 = new Uint32Array(keyBuffer, 0, 512)
-keyBytes.float64 = new Float64Array(keyBuffer, 0, 256)
-keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer)
+let keyBytes, keyBytesView
 const buffers = []
 
 const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000 // 200MB
@@ -44,6 +31,8 @@ let lastSize, lastOffset, lastVersion
 const MDB_SET_KEY = 0, MDB_SET_RANGE = 1, MDB_GET_BOTH_RANGE = 2, MDB_GET_CURRENT = 3, MDB_FIRST = 4, MDB_LAST = 5, MDB_NEXT = 6, MDB_NEXT_NODUP = 7, MDB_NEXT_DUP = 8, MDB_PREV = 9, MDB_PREV_NODUP = 10, MDB_PREV_DUP = 11
 let abortedNonChildTransactionWarn
 export function open(path, options) {
+	if (!keyBytes)
+		allocateFixedBuffer()
 	let env = new Env()
 	let committingWrites
 	let scheduledTransactions
@@ -521,6 +510,14 @@ function allocateSaveBuffer() {
 	savePosition = 0
 
 }
+function allocateFixedBuffer() {
+	keyBytes = Buffer.allocUnsafeSlow(2048)
+	const keyBuffer = keyBytes.buffer
+	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048) // max key size is actually 1978
+	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, 512)
+	keyBytes.float64 = new Float64Array(keyBuffer, 0, 256)
+	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer)
+}
 function saveKey(key, writeKey, saveTo) {
 	if (savePosition > 6200) {
 		allocateSaveBuffer()
@@ -531,8 +528,4 @@ function saveKey(key, writeKey, saveTo) {
 	saveTo.saveBuffer = saveBuffer
 	savePosition = (savePosition + 7) & 0xfffff8
 	return start + saveDataAddress
-}
-import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js'
-export default {
-	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, asBinary
 }

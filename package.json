@@ -18,12 +18,11 @@
   "module": "index.js",
   "exports": {
     ".": {
-      "require": "./dist/index.cjs",
-      "import": "./index.js"
-    },
-    "./index.js": {
-      "require": "./dist/index.cjs",
-      "import": "./index.js"
+      "node": {
+        "require": "./dist/node.cjs",
+        "import": "./node.js"
+      },
+      "default": "./index.js"
     }
   },
   "types": "./index.d.ts",

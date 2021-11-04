@@ -10,7 +10,7 @@ import { dirname } from 'path'
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../node.js';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-store', function() {
