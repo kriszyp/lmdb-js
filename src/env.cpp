@@ -47,7 +47,6 @@ EnvWrap::EnvWrap() {
     this->currentBatchTxn = nullptr;
 	this->currentReadTxn = nullptr;
 	this->readTxnRenewed = false;
-    this->winMemoryPriority = 5;
 }
 
 EnvWrap::~EnvWrap() {
@@ -243,7 +242,6 @@ class BatchWorker : public BatchWorkerBase {
         }
         int validatedDepth = 0;
         int conditionDepth = 0;
-        lowerMemPriority(envForTxn);
         for (int i = 0; i < actionCount;) {
             action_t* action = &actions[i];
             int actionType = action->actionType;
@@ -366,7 +364,6 @@ done:
             mdb_txn_abort(txn);
         else
             rc = mdb_txn_commit(txn);
-        restoreMemPriority(envForTxn);
         if (rc != 0) {
             if ((putFlags & 1) > 0) // sync mode
                 return Nan::ThrowError(mdb_strerror(rc));
@@ -464,11 +461,6 @@ NAN_METHOD(EnvWrap::open) {
     Local<Value> keyBufferValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBuffer").ToLocalChecked()).ToLocalChecked();
     if (keyBufferValue->IsArrayBufferView())
         ew->keyBuffer = node::Buffer::Data(keyBufferValue);
-
-    Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
-    if (winMemoryPriorityLocal->IsNumber())
-        ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();
-
 
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     Nan::Utf8String charPath(path);
@@ -603,9 +595,7 @@ NAN_METHOD(EnvWrap::resize) {
     }
 
     mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    lowerMemPriority(ew);
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
-    restoreMemPriority(ew);
     if (rc == EINVAL) {
         //fprintf(stderr, "Resize failed, will try to get transaction and try again");
         MDB_txn *txn;

@@ -50,10 +50,8 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "lmdbError", lmdbError);
     Nan::SetMethod(exports, "bufferToKeyValue", bufferToKeyValue);
     Nan::SetMethod(exports, "keyValueToBuffer", keyValueToBuffer);
-    Nan::SetMethod(exports, "setWinMemoryLimit", setWinMemoryLimit);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     Nan::SetMethod(exports, "getAddress", getAddress);
-    Nan::SetMethod(exports, "setWinMemoryPriority", setWinMemoryPriority);
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // just uses the name of the last exported native function:
     Nan::SetMethod(exports, "lmdbNativeFunctions", getLastVersion);
@@ -305,13 +303,6 @@ bool valToBinaryFast(MDB_val &data) {
                 return false;
             makeGlobalUnsafeBuffer(data.mv_size * 2);
         }
-        #ifdef _WIN32
-        if (data.mv_size > THEAD_MEMORY_THRESHOLD) {
-            lowerMemPriority(dw->ew);
-            memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
-            restoreMemPriority(dw->ew);
-        } else
-        #endif
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
         if (dw->lastUnsafePtr != globalUnsafePtr) {
             if (dw->getFast)
@@ -353,13 +344,6 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
         //fprintf(stdout, "uncompressing status %X\n", statusByte);
     if (statusByte >= 250) {
         bool isValid;
-        #ifdef _WIN32
-        if (data.mv_size > THEAD_MEMORY_THRESHOLD) {
-            lowerMemPriority(dw->ew);
-            dw->compression->decompress(data, isValid, !dw->getFast);
-            restoreMemPriority(dw->ew);
-        } else
-        #endif
         dw->compression->decompress(data, isValid, !dw->getFast);
         if (!isValid)
             return false;
@@ -383,21 +367,6 @@ void setLastVersion(double version) {
 }
 NAN_METHOD(setLastVersion) {
     lastVersion = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
-}
-
-NAN_METHOD(setWinMemoryLimit) {
-    #if defined(_WIN32)
-    SIZE_T  dwMin = 204800, dwMax = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
-    if (!SetProcessWorkingSetSize(GetCurrentProcess(), dwMin, dwMax)) {
-        return throwLmdbError(GetLastError());
-    }
-    #endif
-}
-NAN_METHOD(setWinMemoryPriority) {
-    #if defined(_WIN32)
-    if (!setProcessMemoryPriority(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value()))
-        return throwLmdbError(GetLastError());
-    #endif
 }
 
 /*NAN_METHOD(getBufferForAddress) {

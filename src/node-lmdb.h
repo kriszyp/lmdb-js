@@ -91,18 +91,6 @@ void consoleLog(Local<Value> val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-#ifdef _WIN32
-extern "C" {
-int setProcessMemoryPriority(int priority);
-int lowerMemoryPriority(int priority);
-int restoreMemoryPriority();
-}
-#define lowerMemPriority(ew) if (ew->winMemoryPriority < 5) lowerMemoryPriority(ew->winMemoryPriority)
-#define restoreMemPriority(ew) if (ew->winMemoryPriority < 5) restoreMemoryPriority()
-#else
-#define lowerMemPriority(ew)
-#define restoreMemPriority(ew)
-#endif
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
 size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remainingBytes, bool inArray, bool throwErrors);
@@ -117,8 +105,6 @@ int compare32LE(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(getLastVersion);
 NAN_METHOD(setLastVersion);
 NAN_METHOD(lmdbError);
-NAN_METHOD(setWinMemoryLimit);
-NAN_METHOD(setWinMemoryPriority);
 NAN_METHOD(bufferToKeyValue);
 NAN_METHOD(keyValueToBuffer);
 //NAN_METHOD(getBufferForAddress);
@@ -260,8 +246,6 @@ public:
     bool readTxnRenewed;
     // Current raw batch transaction
     MDB_txn *currentBatchTxn;
-    // What memory priority for accessing LMDB data in windows
-    int winMemoryPriority;
     char* keyBuffer;
     MDB_txn* getReadTxn();
 
