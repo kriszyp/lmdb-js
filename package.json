@@ -19,8 +19,8 @@
   "exports": {
     ".": {
       "node": {
-        "require": "./dist/node.cjs",
-        "import": "./node.js"
+        "require": "./dist/index.cjs",
+        "import": "./node-index.js"
       },
       "default": "./index.js"
     }

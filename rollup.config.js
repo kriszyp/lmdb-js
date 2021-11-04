@@ -1,9 +1,9 @@
 export default [
     {
-        input: "node.js",
+        input: "node-index.js",
         output: [
             {
-                file: "dist/node.cjs",
+                file: "dist/index.cjs",
                 format: "cjs",
                 sourcemap: true
             }
