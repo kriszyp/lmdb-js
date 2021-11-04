@@ -18,7 +18,7 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
 This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
-```npm install lmdb```
+```npm install lmdb-store```
 
 This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
@@ -39,9 +39,9 @@ This library provides optional compression using LZ4 that works in conjunction w
 ## Usage
 An lmdb store instance is created with by using `open` export from the main module:
 ```
-const { open } = require('lmdb');
+const { open } = require('lmdb-store');
 // or
-// import { open } from 'lmdb';
+// import { open } from 'lmdb-store';
 let myStore = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
@@ -224,7 +224,7 @@ Here are the options that can be provided to the range methods (all are optional
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
-const { open } = require('lmdb');
+const { open } = require('lmdb-store');
 let rootStore = open('all-my-data');
 let usersStore = myStore.openDB('users');
 let groupsStore = myStore.openDB('groups');
