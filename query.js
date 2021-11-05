@@ -1,183 +1,183 @@
-import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js'
-import { getAddress, Cursor }  from './native.js'
-import { saveKey }  from './keys.js'
-import { writeKey }  from 'ordered-binary/index.js'
-const ITERATOR_DONE = { done: true, value: undefined }
+import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js';
+import { getAddress, Cursor }  from './native.js';
+import { saveKey }  from './keys.js';
+import { writeKey }  from 'ordered-binary/index.js';
+const ITERATOR_DONE = { done: true, value: undefined };
 
 export function addQueryMethods(LMDBStore, {
 	getReadTxn, env, keyBytes, keyBytesView, getLastVersion
 }) {
-	let renewId = 1
-	LMDBStore.onReadReset = () => renewId++
-	let get = LMDBStore.prototype.get
+	let renewId = 1;
+	LMDBStore.onReadReset = () => renewId++;
+	let get = LMDBStore.prototype.get;
 	Object.assign(LMDBStore.prototype, {
 		getValues(key, options) {
 			let defaultOptions = {
 				key,
 				valuesForKey: true
-			}
+			};
 			if (options && options.snapshot === false)
-				throw new Error('Can not disable snapshots for getValues')
-			return this.getRange(options ? Object.assign(defaultOptions, options) : defaultOptions)
+				throw new Error('Can not disable snapshots for getValues');
+			return this.getRange(options ? Object.assign(defaultOptions, options) : defaultOptions);
 		},
 		getKeys(options) {
 			if (!options)
-				options = {}
-			options.values = false
-			return this.getRange(options)
+				options = {};
+			options.values = false;
+			return this.getRange(options);
 		},
 		getCount(options) {
 			if (!options)
-				options = {}
-			options.onlyCount = true
-			return this.getRange(options)[Symbol.iterator]()
+				options = {};
+			options.onlyCount = true;
+			return this.getRange(options)[Symbol.iterator]();
 		},
 		getKeysCount(options) {
 			if (!options)
-				options = {}
-			options.onlyCount = true
-			options.values = false
-			return this.getRange(options)[Symbol.iterator]()
+				options = {};
+			options.onlyCount = true;
+			options.values = false;
+			return this.getRange(options)[Symbol.iterator]();
 		},
 		getValuesCount(key, options) {
 			if (!options)
-				options = {}
-			options.key = key
-			options.valuesForKey = true
-			options.onlyCount = true
-			return this.getRange(options)[Symbol.iterator]()
+				options = {};
+			options.key = key;
+			options.valuesForKey = true;
+			options.onlyCount = true;
+			return this.getRange(options)[Symbol.iterator]();
 		},
 		getRange(options) {
-			let iterable = new ArrayLikeIterable()
+			let iterable = new ArrayLikeIterable();
 			if (!options)
-				options = {}
-			let includeValues = options.values !== false
-			let includeVersions = options.versions
-			let valuesForKey = options.valuesForKey
-			let limit = options.limit
-			let db = this.db
-			let snapshot = options.snapshot
+				options = {};
+			let includeValues = options.values !== false;
+			let includeVersions = options.versions;
+			let valuesForKey = options.valuesForKey;
+			let limit = options.limit;
+			let db = this.db;
+			let snapshot = options.snapshot;
 			iterable[Symbol.iterator] = () => {
-				let currentKey = valuesForKey ? options.key : options.start
-				const reverse = options.reverse
-				let count = 0
-				let cursor, cursorRenewId
-				let txn
+				let currentKey = valuesForKey ? options.key : options.start;
+				const reverse = options.reverse;
+				let count = 0;
+				let cursor, cursorRenewId;
+				let txn;
 				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
-					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0)
+					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0);
 				function resetCursor() {
 					try {
 						if (cursor)
-							finishCursor()
-						let writeTxn = env.writeTxn
-						txn = writeTxn || getReadTxn()
-						cursor = !writeTxn && db.availableCursor
+							finishCursor();
+						let writeTxn = env.writeTxn;
+						txn = writeTxn || getReadTxn();
+						cursor = !writeTxn && db.availableCursor;
 						if (cursor) {
-							db.availableCursor = null
+							db.availableCursor = null;
 							if (db.cursorTxn != txn)
-								cursor.renew()
+								cursor.renew();
 							else// if (db.currentRenewId != renewId)
-								flags |= 0x2000
+								flags |= 0x2000;
 						} else {
-							cursor = new Cursor(db)
+							cursor = new Cursor(db);
 						}
-						txn.cursorCount = (txn.cursorCount || 0) + 1 // track transaction so we always use the same one
+						txn.cursorCount = (txn.cursorCount || 0) + 1; // track transaction so we always use the same one
 						if (snapshot === false) {
-							cursorRenewId = renewId // use shared read transaction
-							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1 // need to know how many are renewing cursors
+							cursorRenewId = renewId; // use shared read transaction
+							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1; // need to know how many are renewing cursors
 						}
 					} catch(error) {
 						if (cursor) {
 							try {
-								cursor.close()
+								cursor.close();
 							} catch(error) { }
 						}
-						throw error
+						throw error;
 					}
 				}
-				resetCursor()
-				let store = this
+				resetCursor();
+				let store = this;
 				if (options.onlyCount) {
-					flags |= 0x1000
-					let count = position(options.offset)
-					finishCursor()
-					return count
+					flags |= 0x1000;
+					let count = position(options.offset);
+					finishCursor();
+					return count;
 				}
 				function position(offset) {
-					let keySize = store.writeKey(currentKey, keyBytes, 0)
-					let endAddress
+					let keySize = store.writeKey(currentKey, keyBytes, 0);
+					let endAddress;
 					if (valuesForKey) {
 						if (options.start === undefined && options.end === undefined)
-							endAddress = 0
+							endAddress = 0;
 						else {
-							let startAddress
+							let startAddress;
 							if (store.encoder.writeKey) {
-								startAddress = saveKey(options.start, store.encoder.writeKey, iterable)
-								keyBytesView.setFloat64(2000, startAddress, true)
-								endAddress = saveKey(options.end, store.encoder.writeKey, iterable)
+								startAddress = saveKey(options.start, store.encoder.writeKey, iterable);
+								keyBytesView.setFloat64(2000, startAddress, true);
+								endAddress = saveKey(options.end, store.encoder.writeKey, iterable);
 							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
-								startAddress = saveKey(options.start, writeKey, iterable)
-								keyBytesView.setFloat64(2000, startAddress, true)
-								endAddress = saveKey(options.end, writeKey, iterable)
+								startAddress = saveKey(options.start, writeKey, iterable);
+								keyBytesView.setFloat64(2000, startAddress, true);
+								endAddress = saveKey(options.end, writeKey, iterable);
 							} else {
-								throw new Error('Only key-based encoding is supported for start/end values')
-								let encoded = store.encoder.encode(options.start)
-								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset)
-								startAddress = bufferAddress + encoded.byteOffset
+								throw new Error('Only key-based encoding is supported for start/end values');
+								let encoded = store.encoder.encode(options.start);
+								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset);
+								startAddress = bufferAddress + encoded.byteOffset;
 							}
 						}
 					} else
-						endAddress = saveKey(options.end, store.writeKey, iterable)
-					return cursor.position(flags, offset || 0, keySize, endAddress)
+						endAddress = saveKey(options.end, store.writeKey, iterable);
+					return cursor.position(flags, offset || 0, keySize, endAddress);
 				}
 
 				function finishCursor() {
 					if (txn.isAborted)
-						return
+						return;
 					if (cursorRenewId)
-						txn.renewingCursorCount--
+						txn.renewingCursorCount--;
 					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
-						cursor.close()
-						txn.abort() // this is no longer main read txn, abort it now that we are done
-						txn.isAborted = true
+						cursor.close();
+						txn.abort(); // this is no longer main read txn, abort it now that we are done
+						txn.isAborted = true;
 					} else {
 						if (db.availableCursor || txn != getReadTxn())
-							cursor.close()
+							cursor.close();
 						else { // try to reuse it
-							db.availableCursor = cursor
-							db.cursorTxn = txn
+							db.availableCursor = cursor;
+							db.cursorTxn = txn;
 						}
 					}
 				}
 				return {
 					next() {
-						let keySize, lastSize
+						let keySize, lastSize;
 						if (cursorRenewId && cursorRenewId != renewId) {
-							resetCursor()
-							keySize = position(0)
+							resetCursor();
+							keySize = position(0);
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
-							keySize = position(options.offset)
+							keySize = position(options.offset);
 						} else
-							keySize = cursor.iterate()
+							keySize = cursor.iterate();
 						if (keySize === 0 ||
 								(count++ >= limit)) {
-							finishCursor()
-							return ITERATOR_DONE
+							finishCursor();
+							return ITERATOR_DONE;
 						}
 						if (!valuesForKey || snapshot === false)
-							currentKey = store.readKey(keyBytes, 32, keySize + 32)
+							currentKey = store.readKey(keyBytes, 32, keySize + 32);
 						if (includeValues) {
-							let value
-							lastSize = keyBytesView.getUint32(0, true)
+							let value;
+							lastSize = keyBytesView.getUint32(0, true);
 							if (store.decoder) {
-								value = store.decoder.decode(db.unsafeBuffer, lastSize)
+								value = store.decoder.decode(db.unsafeBuffer, lastSize);
 							} else if (store.encoding == 'binary')
-								value = Uint8ArraySlice.call(db.unsafeBuffer, 0, lastSize)
+								value = Uint8ArraySlice.call(db.unsafeBuffer, 0, lastSize);
 							else {
-								value = store.db.unsafeBuffer.toString('utf8', 0, lastSize)
+								value = store.db.unsafeBuffer.toString('utf8', 0, lastSize);
 								if (store.encoding == 'json' && value)
-									value = JSON.parse(value)
+									value = JSON.parse(value);
 							}
 							if (includeVersions)
 								return {
@@ -186,52 +186,52 @@ export function addQueryMethods(LMDBStore, {
 										value,
 										version: getLastVersion()
 									}
-								}
+								};
  							else if (valuesForKey)
 								return {
 									value
-								}
+								};
 							else
 								return {
 									value: {
 										key: currentKey,
 										value,
 									}
-								}
+								};
 						} else if (includeVersions) {
 							return {
 								value: {
 									key: currentKey,
 									version: getLastVersion()
 								}
-							}
+							};
 						} else {
 							return {
 								value: currentKey
-							}
+							};
 						}
 					},
 					return() {
-						finishCursor()
-						return ITERATOR_DONE
+						finishCursor();
+						return ITERATOR_DONE;
 					},
 					throw() {
-						finishCursor()
-						return ITERATOR_DONE
+						finishCursor();
+						return ITERATOR_DONE;
 					}
-				}
-			}
-			return iterable
+				};
+			};
+			return iterable;
 		},
 		getMany(keys, callback) {
-			let results = new Array(keys.length)
+			let results = new Array(keys.length);
 			for (let i = 0, l = keys.length; i < l; i++) {
-				results[i] = get.call(this, keys[i])
+				results[i] = get.call(this, keys[i]);
 			}
 			if (callback)
-				callback(null, results)
-			return Promise.resolve(results) // we may eventually make this a true async operation
+				callback(null, results);
+			return Promise.resolve(results); // we may eventually make this a true async operation
 		}
 
-	})
+	});
 }

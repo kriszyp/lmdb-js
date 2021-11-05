@@ -1,6 +1,6 @@
-import { setNativeFunctions } from './native.js'
+import { setNativeFunctions } from './native.js';
 // probably use Deno.build.os
-import { arch } from 'https://deno.land/std/node/os.ts'
+import { arch } from 'https://deno.land/std/node/os.ts';
 let lmdbLib = Deno.dlopen('./build/Release/lmdb-store.node', {
 	envOpen: { parameters: ['u32', 'buffer', 'usize'], result: 'usize'},/*
     free: { parameters: ['buffer', 'usize'], result: 'void'},
@@ -9,38 +9,38 @@ let lmdbLib = Deno.dlopen('./build/Release/lmdb-store.node', {
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
-})
-let b = new Uint8Array([1,2])
-console.log(symbols.envOpen(0, b, 2))
-let { envOpen, getAddress, free } = lmdbLib.symbols
+});
+let b = new Uint8Array([1,2]);
+console.log(symbols.envOpen(0, b, 2));
+let { envOpen, getAddress, free } = lmdbLib.symbols;
 
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
-    free(address, 1)
-})
+    free(address, 1);
+});
 
 class CBridge {
     constructor(address) {
-        this.address = address
-        registry.register(this, address)
+        this.address = address;
+        registry.register(this, address);
     }
     static addMethods(...methods) {
         for (let method of methods) {
             this.prototype[method] = function() {
-                return symbols[method](this.address, ...arguments)
-            }
+                return symbols[method](this.address, ...arguments);
+            };
         }
     }
 }
 class Env extends CBridge {
     constructor() {
-        super(symbols.Env())
+        super(symbols.Env());
     }
     open(flags, path) {
-        return envOpen(this.address, flags, path)
+        return envOpen(this.address, flags, path);
     }
 }
-Env.addMethods('startWriting', 'write', 'openDB')
+Env.addMethods('startWriting', 'write', 'openDB');
 
 class Dbi extends CBridge {
 
@@ -53,4 +53,4 @@ class Cursor extends CBridge {
 
 }
 
-setNativeFunctions({ Env, Compression, Cursor, fs: Deno, arch, getAddress, getAddressShared: getAddress })
+setNativeFunctions({ Env, Compression, Cursor, fs: Deno, arch, getAddress, getAddressShared: getAddress });

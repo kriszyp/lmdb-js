@@ -1,27 +1,27 @@
 export function levelup(store) {
 	return Object.assign(Object.create(store), {
 		get(key, options, callback) {
-			let result = store.get(key)
+			let result = store.get(key);
 			if (typeof options == 'function')
-				callback = options
+				callback = options;
 			if (callback) {
 				if (result === undefined)
-					callback(new NotFoundError())
+					callback(new NotFoundError());
 				else
-					callback(null, result)
+					callback(null, result);
 			} else {
 				if (result === undefined)
-					return Promise.reject(new NotFoundError())
+					return Promise.reject(new NotFoundError());
 				else
-					return Promise.resolve(result)
+					return Promise.resolve(result);
 			}
 		},
-	})
+	});
 }
 class NotFoundError extends Error {
 	constructor(message) {
-		super(message)
-		this.name = 'NotFoundError'
-		this.notFound = true
+		super(message);
+		this.name = 'NotFoundError';
+		this.notFound = true;
 	}
 }
