@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-18.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
-      - run: yum install musl-libc
+      - run: yum install musl-libc-1.2.1-1.el7.x86_64.rpm
       - run: ldd --version ldd
       - uses: actions/checkout@v2
       - name: Setup node
