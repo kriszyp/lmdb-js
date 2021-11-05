@@ -22,7 +22,6 @@ EnvWrap::EnvWrap() {
     this->writeTxn = nullptr;
     this->writeWorker = nullptr;
 	this->readTxnRenewed = false;
-    this->winMemoryPriority = 5;
     this->writingLock = new pthread_mutex_t;
     this->writingCond = new pthread_cond_t;
     pthread_mutex_init(this->writingLock, nullptr);
@@ -207,11 +206,6 @@ NAN_METHOD(EnvWrap::open) {
     if (keyBytesValue->IsArrayBufferView())
         ew->keyBuffer = node::Buffer::Data(keyBytesValue);
 
-    Local<Value> winMemoryPriorityLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("winMemoryPriority").ToLocalChecked()).ToLocalChecked();
-    if (winMemoryPriorityLocal->IsNumber())
-        ew->winMemoryPriority = winMemoryPriorityLocal->IntegerValue(Nan::GetCurrentContext()).FromJust();
-
-
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     Nan::Utf8String charPath(path);
     pthread_mutex_lock(envsLock);
@@ -348,9 +342,7 @@ NAN_METHOD(EnvWrap::resize) {
     }
 
     mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    lowerMemPriority(ew);
     int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
-    restoreMemPriority(ew);
     if (rc == EINVAL) {
         //fprintf(stderr, "Resize failed, will try to get transaction and try again");
         MDB_txn *txn;

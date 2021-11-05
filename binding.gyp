@@ -26,8 +26,7 @@
         "src/misc.cpp",
         "src/txn.cpp",
         "src/dbi.cpp",
-        "src/cursor.cpp",
-        "src/windows.c"
+        "src/cursor.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
