@@ -421,7 +421,6 @@ export function open(path, options) {
 					return this.transactionSyncStart(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey)
 						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : []
-						console.log('Upgrading structures for ' + this.name + ' from ' + previousLength + '(is ' + existingStructures.length + ') to ' + structures.length + ' on ', process.pid)
 						if (existingStructures.length != previousLength)
 							return false // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures)
