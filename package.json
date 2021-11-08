@@ -12,7 +12,11 @@
     "lmdb",
     "database",
     "mdb",
-    "lightning"
+    "lightning",
+    "key-value store",
+    "storage",
+    "adapter",
+    "performance"
   ],
   "type": "module",
   "module": "index.js",
