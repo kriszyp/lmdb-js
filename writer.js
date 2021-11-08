@@ -11,6 +11,7 @@ const TXN_FLUSHED = 0x20000000;
 const TXN_FAILED = 0x40000000;
 const FAILED_CONDITION = 0x4000000;
 const REUSE_BUFFER_MODE = 1000;
+export const binaryBuffer = Symbol('binaryBuffer');
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
@@ -22,7 +23,7 @@ const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array;
 //let debugLog = []
 
 var log = [];
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, binaryBuffer,
+export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap,
 	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed }) {
 	//  stands for write instructions
 	var dynamicBytes;
@@ -152,13 +153,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
 						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + valueBufferStart;
-					mustCompress = valueBuffer[valueBufferStart] >= 254; // this is the compression indicator, so we must compress
+					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
 					float64[position] = (valueArrayBuffer.address ||
 						(valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset;
-					mustCompress = valueBuffer[0] >= 254; // this is the compression indicator, so we must compress
+					mustCompress = valueBuffer[0] >= 250; // this is the compression indicator, so we must compress
 				}
 				uint32[(position++ << 1) - 1] = valueSize;
 				if (store.compression && (valueSize >= store.compression.threshold || mustCompress)) {
@@ -754,4 +755,9 @@ class Batch extends Array {
 	write(callback) {
 		return this.callback(this, callback);
 	}
+}
+export function asBinary(buffer) {
+	return {
+		[binaryBuffer]: buffer
+	};
 }

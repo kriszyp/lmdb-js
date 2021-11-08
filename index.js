@@ -2,13 +2,11 @@ import { extname, basename, dirname} from 'path';
 import EventEmitter from 'events';
 import { Env, Compression, getAddress, require, arch, fs } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
-import { addQueryMethods } from './query.js';
+import { addQueryMethods, makeReusableBuffer } from './query.js';
 import { addWriteMethods } from './writer.js';
 import { applyKeyHandling } from './keys.js';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
-const binaryBuffer = Symbol('binaryBuffer');
 setGetLastVersion(getLastVersion);
-const Uint8ArraySlice = Uint8Array.prototype.slice;
 let keyBytes, keyBytesView;
 const buffers = [];
 
@@ -33,7 +31,6 @@ export function open(path, options) {
 	let scheduledOperations;
 	let asyncTransactionAfter = true, asyncTransactionStrictOrder;
 	let transactionWarned;
-	let readTxn, writeTxn, pendingBatch, currentCommit, runNextBatch, readTxnRenewed;
 	if (typeof path == 'object' && !options) {
 		options = path;
 		path = options.path;
@@ -71,19 +68,24 @@ export function open(path, options) {
 		if (options.compression == true) {
 			if (defaultCompression)
 				options.compression = defaultCompression;
-			else
-				defaultCompression = options.compression = new Compression({
+			else {
+				let compressionOptions = {
 					threshold: 1000,
-					dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
-				});
-				defaultCompression.threshold = 1000;
+					dictionary: fs.readFileSync(new URL('./dict/dict.txt',
+						import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
+					getValueBytes: makeReusableBuffer(0),
+				};
+				defaultCompression = options.compression = new Compression(compressionOptions);
+				Object.assign(defaultCompression, compressionOptions);
+			}
 		} else {
 			let compressionOptions = Object.assign({
 				threshold: 1000,
 				dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
+				getValueBytes: makeReusableBuffer(0),
 			}, options.compression);
 			options.compression = new Compression(compressionOptions);
-			options.compression.threshold = compressionOptions.threshold;
+			Object.assign(options.compression, compressionOptions);
 		}
 	}
 
@@ -94,26 +96,6 @@ export function open(path, options) {
 	}
 	env.open(options);
 	env.readerCheck(); // clear out any stale entries
-	function renewReadTxn() {
-		if (readTxn)
-			readTxn.renew();
-		else
-			readTxn = env.beginTxn(0x20000);
-		readTxnRenewed = setImmediate(resetReadTxn);
-		return readTxn;
-	}
-	function resetReadTxn() {
-		if (readTxnRenewed) {
-			LMDBStore.onReadReset();
-			readTxnRenewed = null;
-			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
-				readTxn.onlyCursor = true;
-				readTxn = null;
-			}
-			else
-				readTxn.reset();
-		}
-	}
 	let stores = [];
 	class LMDBStore extends EventEmitter {
 		constructor(dbName, dbOptions) {
@@ -129,21 +111,21 @@ export function open(path, options) {
 				}, dbOptions));
 				this.db.name = dbName || null;
 			};
-			if (dbOptions.compression && !(dbOptions.compression instanceof Compression)) {
-				if (dbOptions.compression == true && options.compression)
-					dbOptions.compression = options.compression; // use the parent compression if available
-				else
-					dbOptions.compression = new Compression(Object.assign({
-						threshold: 1000,
-						dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-					}), dbOptions.compression);
-			}
+			if (dbOptions.compression instanceof Compression) {
+				// do nothing, already compression object
+			} else if (dbOptions.compression && typeof dbOptions.compression == 'object')
+				dbOptions.compression = new Compression(Object.assign({
+					threshold: 1000,
+					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
+				}), dbOptions.compression);
+			else if (options.compression && dbOptions.compression !== false) 
+				dbOptions.compression = options.compression; // use the parent compression if available
 
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
 			openDB();
-			resetReadTxn(); // a read transaction becomes invalid after opening another db
+			this.resetReadTxn(); // a read transaction becomes invalid after opening another db
 			this.name = dbName;
 			this.status = 'open';
 			this.env = env;
@@ -237,105 +219,6 @@ export function open(path, options) {
 				return transactionResults[index + 1];
 			});
 		}
-		getSharedBufferForGet(id) {
-			let txn = (writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0));
-			if (lastSize === 0xffffffff) { // not found code
-				return; //undefined
-			}
-			return lastSize;
-			lastSize = keyBytesView.getUint32(0, true);
-			let bufferIndex = keyBytesView.getUint32(12, true);
-			lastOffset = keyBytesView.getUint32(8, true);
-			let buffer = buffers[bufferIndex];
-			let startOffset;
-			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
-				if (buffer)
-					env.detachBuffer(buffer.buffer);
-				startOffset = (lastOffset >>> 16) * 0x10000;
-				console.log('make buffer for address', bufferIndex * 0x100000000 + startOffset);
-				buffer = buffers[bufferIndex] = Buffer.from(getBufferForAddress(bufferIndex * 0x100000000 + startOffset));
-				buffer.startOffset = startOffset;
-			}
-			lastOffset -= startOffset;
-			return buffer;
-			return buffer.slice(lastOffset, lastOffset + lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)*/
-		}
-
-		getSizeBinaryFast(id) {
-			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
-		}
-		getString(id) {
-			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			let string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0));
-			if (string)
-				lastSize = string.length;
-			return string;
-		}
-		getBinaryFast(id) {
-			this.getSizeBinaryFast(id);
-			return lastSize === 0xffffffff ? undefined : this.db.unsafeBuffer.subarray(0, lastSize);
-		}
-		getBinary(id) {
-			this.getSizeBinaryFast(id);
-			return lastSize === 0xffffffff ? undefined : Uint8ArraySlice.call(this.db.unsafeBuffer, 0, lastSize);
-		}
-		get(id) {
-			if (this.decoder) {
-				this.getSizeBinaryFast(id);
-				return lastSize === 0xffffffff ? undefined : this.decoder.decode(this.db.unsafeBuffer, lastSize);
-			}
-			if (this.encoding == 'binary')
-				return this.getBinary(id);
-
-			let result = this.getString(id);
-			if (result) {
-				if (this.encoding == 'json')
-					return JSON.parse(result);
-			}
-			return result;
-		}
-		getEntry(id) {
-			let value = this.get(id);
-			if (value !== undefined) {
-				if (this.useVersions)
-					return {
-						value,
-						version: getLastVersion(),
-						//size: lastSize
-					};
-				else
-					return {
-						value,
-						//size: lastSize
-					};
-			}
-		}
-		resetReadTxn() {
-			resetReadTxn();
-		}
-		doesExist(key, versionOrValue) {
-			if (!env.writeTxn)
-				readTxnRenewed ? readTxn : renewReadTxn();
-			if (versionOrValue === undefined) {
-				this.getSizeBinaryFast(key);
-				return lastSize !== 0xffffffff;
-			}
-			else if (this.useVersions) {
-				this.getSizeBinaryFast(key);
-				return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue);
-			}
-			else {
-				if (versionOrValue && versionOrValue[binaryBuffer])
-					versionOrValue = versionOrValue[binaryBuffer];
-				else if (this.encoder)
-					versionOrValue = this.encoder.encode(versionOrValue);
-				if (typeof versionOrValue == 'string')
-					versionOrValue = Buffer.from(versionOrValue);
-				return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0;
-			}
-		}
 		backup(path) {
 			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
 				if (error) {
@@ -345,26 +228,8 @@ export function open(path, options) {
 				}
 			}));
 		}
-		close(callback) {
-			this.db.close();
-			if (this.isRoot) {
-				if (readTxn) {
-					try {
-						readTxn.abort();
-					} catch(error) {}
-				}
-				readTxnRenewed = null;
-				env.close();
-			}
-			this.status = 'closed';
-			if (callback)
-				callback();			
-		}
 		isOperational() {
 			return this.status == 'open';
-		}
-		getStats() {
-			return this.db.stat(readTxnRenewed ? readTxn : renewReadTxn());
 		}
 		sync(callback) {
 			return env.sync(callback || function(error) {
@@ -433,10 +298,9 @@ export function open(path, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	const putSync = LMDBStore.prototype.putSync;
 	const removeSync = LMDBStore.prototype.removeSync;
-	addQueryMethods(LMDBStore, { env, getReadTxn() {
-		return readTxnRenewed ? readTxn : renewReadTxn();
-	}, saveKey, keyBytes, keyBytesView, getLastVersion });
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes, resetReadTxn, binaryBuffer, ...options });
+	addQueryMethods(LMDBStore, { env, saveKey, keyBytes, keyBytesView, getLastVersion });
+	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes,
+		resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
 	LMDBStore.prototype.supports = {
 		permanence: true,
 		bufferKeys: true,
@@ -452,33 +316,7 @@ export function open(path, options) {
 		new LMDBStore(options.name || null, options);
 }
 
-function matches(previousVersion, ifVersion){
-	let matches;
-	if (previousVersion) {
-		if (ifVersion) {
-			matches = previousVersion == ifVersion;
-		} else {
-			matches = false;
-		}
-	} else {
-		matches = !ifVersion;
-	}
-	return matches;
-}
 
-class Entry {
-	constructor(value, version, db) {
-		this.value = value;
-		this.version = version;
-		this.db = db;
-	}
-	ifSamePut() {
-
-	}
-	ifSameRemove() {
-
-	}
-}
 export function getLastEntrySize() {
 	return lastSize;
 }
@@ -488,11 +326,6 @@ export function getLastVersion() {
 
 export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true);
-}
-export function asBinary(buffer) {
-	return {
-		[binaryBuffer]: buffer
-	};
 }
 let saveBuffer, saveDataView, saveDataAddress;
 let savePosition = 8000;

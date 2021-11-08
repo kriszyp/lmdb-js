@@ -66,7 +66,7 @@ NAN_METHOD(DbiWrap::ctor) {
     bool valuesUse32LE = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
-    Compression* compression = ew->compression;
+    Compression* compression = nullptr;
 
     if (info[1]->IsObject()) {
         Local<Object> options = Local<Object>::Cast(info[1]);
@@ -325,7 +325,7 @@ uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, 
     dw->getFast = true;
     result = getVersionAndUncompress(data, dw);
     if (result)
-        result = valToBinaryFast(data);
+        result = valToBinaryFast(data, dw);
     if (!result) {
         // this means an allocation or error needs to be thrown, so we fallback to the slow handler
         // or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
@@ -360,7 +360,7 @@ void DbiWrap::getByBinary(
             return throwLmdbError(rc);
     }   
     rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToBinaryUnsafe(data));
+    return info.GetReturnValue().Set(valToBinaryUnsafe(data, dw));
 }
 
 NAN_METHOD(DbiWrap::getStringByBinary) {
@@ -381,7 +381,10 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
             return throwLmdbError(rc);
     }
     rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToUtf8(data));
+    if (rc)
+        return info.GetReturnValue().Set(valToUtf8(data));
+    else
+        return info.GetReturnValue().Set(Nan::New<Number>(data.mv_size));
 }
 
 NAN_METHOD(DbiWrap::compareKeys) {

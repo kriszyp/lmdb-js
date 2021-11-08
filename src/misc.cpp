@@ -6,7 +6,6 @@ static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 static thread_local Persistent<Object>* globalUnsafeBuffer;
 static thread_local double lastVersion = 0;
-static thread_local DbiWrap* currentDb = nullptr;
 
 void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
@@ -20,15 +19,14 @@ void setupExportMisc(Local<Object> exports) {
     (void)versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
 
     (void)exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
-    Nan::SetMethod(exports, "getLastVersion", getLastVersion);
-    Nan::SetMethod(exports, "setLastVersion", setLastVersion);
+    Nan::SetMethod(exports, "setGlobalBuffer", setGlobalBuffer);
     Nan::SetMethod(exports, "lmdbError", lmdbError);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     Nan::SetMethod(exports, "getAddress", getAddress);
     Nan::SetMethod(exports, "getAddressShared", getAddressShared);
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // just uses the name of the last exported native function:
-    Nan::SetMethod(exports, "lmdbNativeFunctions", getLastVersion);
+    Nan::SetMethod(exports, "lmdbNativeFunctions", getAddress);
     globalUnsafeBuffer = new Persistent<Object>();
     makeGlobalUnsafeBuffer(8);
 }
@@ -133,28 +131,18 @@ void makeGlobalUnsafeBuffer(size_t size) {
     globalUnsafeBuffer->Reset(Isolate::GetCurrent(), newBuffer);
 }
 
-bool valToBinaryFast(MDB_val &data) {
-    DbiWrap* dw = currentDb;
+bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
     Compression* compression = dw->compression;
     if (compression) {
         if (data.mv_data == compression->decompressTarget) {
             // already decompressed to the target, nothing more to do
         } else {
             if (data.mv_size > compression->decompressSize) {
-                if (dw->getFast)
-                    return false;
-                else
-                    compression->expand(data.mv_size);
+                return false;
             }
             // copy into the buffer target
             memcpy(compression->decompressTarget, data.mv_data, data.mv_size);
         }
-        if (dw->lastUnsafePtr != compression->decompressTarget) {
-            if (dw->getFast)
-                return false;
-            else
-                dw->setUnsafeBuffer(compression->decompressTarget, compression->unsafeBuffer);
-        }        
     } else {
         if (data.mv_size > globalUnsafeSize) {
             // TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
@@ -162,22 +150,14 @@ bool valToBinaryFast(MDB_val &data) {
                 dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
                 return Nan::New<Number>(data.mv_size);
             }*/
-            if (dw->getFast)
-                return false;
-            makeGlobalUnsafeBuffer(data.mv_size * 2);
+            return false;
         }
         memcpy(globalUnsafePtr, data.mv_data, data.mv_size);
-        if (dw->lastUnsafePtr != globalUnsafePtr) {
-            if (dw->getFast)
-                return false;
-            else
-                dw->setUnsafeBuffer(globalUnsafePtr, *globalUnsafeBuffer);
-        }        
     }
     return true;
 }
-Local<Value> valToBinaryUnsafe(MDB_val &data) {
-    valToBinaryFast(data);
+Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw) {
+    valToBinaryFast(data, dw);
     return Nan::New<Number>(data.mv_size);
 }
 
@@ -200,7 +180,6 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
         data.mv_size -= 8;
     }
     if (data.mv_size == 0) {
-        currentDb = dw;
         return true;// successFunc(data);
     }
     unsigned char statusByte = dw->compression ? charData[0] : 0;
@@ -212,24 +191,16 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
             return false;
             //return Nan::Null();
     }
-    currentDb = dw;
     return true;
 }
 
-NAN_METHOD(getLastVersion) {
-    if (lastVersion == NO_EXIST_VERSION)
-        return info.GetReturnValue().Set(Nan::Null());
-    return info.GetReturnValue().Set(Nan::New<Number>(lastVersion));
-}
 NAN_METHOD(lmdbError) {
     throwLmdbError(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
 }
 
-void setLastVersion(double version) {
-    lastVersion = version;
-}
-NAN_METHOD(setLastVersion) {
-    lastVersion = Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
+NAN_METHOD(setGlobalBuffer) {
+    globalUnsafePtr = node::Buffer::Data(info[0]);
+    globalUnsafeSize = node::Buffer::Length(info[0]);
 }
 
 /*NAN_METHOD(getBufferForAddress) {

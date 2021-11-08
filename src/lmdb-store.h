@@ -136,8 +136,7 @@ void writeValueToEntry(const Local<Value> &str, MDB_val *val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
-NAN_METHOD(getLastVersion);
-NAN_METHOD(setLastVersion);
+NAN_METHOD(setGlobalBuffer);
 NAN_METHOD(lmdbError);
 //NAN_METHOD(getBufferForAddress);
 NAN_METHOD(getAddress);
@@ -161,12 +160,12 @@ const double NO_EXIST_VERSION = -4.2434325325532E-199;
 
 void setLastVersion(double version);
 
-bool valToBinaryFast(MDB_val &data);
+bool valToBinaryFast(MDB_val &data, DbiWrap* dw);
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
-Local<Value> valToBinaryUnsafe(MDB_val &data);
+Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
 Local<Value> valToNumber(MDB_val &data);
 Local<Value> valToBoolean(MDB_val &data);
 
@@ -573,6 +572,7 @@ public:
     void makeUnsafeBuffer();
     void expand(unsigned int size);
     static NAN_METHOD(ctor);
+    static NAN_METHOD(setBuffer);
     Compression();
     ~Compression();
     friend class EnvWrap;
@@ -639,6 +639,7 @@ public:
     */
     static NAN_METHOD(del);
 
+    static NAN_METHOD(getCurrentValue);
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);

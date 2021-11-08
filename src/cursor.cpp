@@ -122,9 +122,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	if (flags & 0x100) {
         bool result = getVersionAndUncompress(data, dw);
         if (result)
-            result = valToBinaryFast(data);
-        if (!result)
-            dw->getFast = false;
+            result = valToBinaryFast(data, dw);
 		*((size_t*)keyBuffer) = data.mv_size;
 	}
 	if (!(flags & 0x800))
@@ -300,6 +298,13 @@ void CursorWrap::iterate(
     return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
 }
 
+NAN_METHOD(CursorWrap::getCurrentValue) {
+    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
+    MDB_val key, data;
+    int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
+    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+}
+
 NAN_METHOD(CursorWrap::renew) {
     CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
     // Unwrap Txn and Dbi
@@ -317,6 +322,7 @@ void CursorWrap::setupExports(Local<Object> exports) {
     // CursorWrap: Add functions to the prototype
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("close").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::close));
     cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
+    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentValue").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentValue));
 
     Isolate *isolate = Isolate::GetCurrent();
     #ifdef ENABLE_FAST_API

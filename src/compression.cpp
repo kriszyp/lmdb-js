@@ -62,7 +62,7 @@ NAN_METHOD(Compression::ctor) {
     Compression* compression = new Compression();
     compression->dictionary = dictionary;
     compression->decompressTarget = dictionary + dictSize;
-    compression->decompressSize = 4096;
+    compression->decompressSize = 0;
     compression->acceleration = 1;
     compression->compressionThreshold = compressionThreshold;
     compression->Wrap(info.This());
@@ -86,9 +86,18 @@ void Compression::makeUnsafeBuffer() {
     unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
+NAN_METHOD(Compression::setBuffer) {
+    Compression *compression = Nan::ObjectWrap::Unwrap<Compression>(info.This());
+    unsigned int dictSize = Local<Number>::Cast(info[1])->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    compression->dictionary = node::Buffer::Data(info[0]);
+    compression->decompressTarget = compression->dictionary + dictSize;
+    compression->decompressSize = node::Buffer::Length(info[0]) - dictSize;
+}
+
 void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     uint32_t uncompressedLength;
     int compressionHeaderSize;
+    uint32_t compressedLength = data.mv_size;
     unsigned char* charData = (unsigned char*) data.mv_data;
 
     if (charData[0] == 254) {
@@ -106,19 +115,17 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
         isValid = false;
         return;
     }
+    data.mv_data = decompressTarget;
+    data.mv_size = uncompressedLength;
     //TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
     //fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
     if (uncompressedLength > decompressSize) {
-        if (canAllocate)
-            expand(uncompressedLength);
-        else {
-            isValid = false;
-            return;
-        }
+        isValid = false;
+        return;
     }
     int written = LZ4_decompress_safe_usingDict(
         (char*)charData + compressionHeaderSize, decompressTarget,
-        data.mv_size - compressionHeaderSize, uncompressedLength,
+        compressedLength - compressionHeaderSize, uncompressedLength,
         dictionary, decompressTarget - dictionary);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
@@ -128,10 +135,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
         isValid = false;
         return;
     }
-    data.mv_data = decompressTarget;
-    data.mv_size = uncompressedLength;
     isValid = true;
-
 }
 
 void Compression::expand(unsigned int size) {

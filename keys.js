@@ -39,7 +39,7 @@ export function applyKeyHandling(store) {
 		};
 	}
 	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
-		store.decoder.decode = function(buffer, end) { return this.readKey(buffer, 0, end); };
+		store.decoder.decode = function(buffer) { return this.readKey(buffer, 0, buffer.length); };
 	if (store.keyIsUint32) {
 		store.writeKey = writeUint32Key;
 		store.readKey = readUint32Key;
