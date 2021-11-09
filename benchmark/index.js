@@ -176,7 +176,7 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    //suite.add('getRange', getRange);
+    suite.add('getRange', getRange);
     suite.add('setData', {
       defer: true,
       fn: setData
@@ -184,8 +184,8 @@ cleanup(async function (err) {
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
-    });
-    suite.add('get', getData);
+    });*/
+    suite.add('get', getData);/*
     suite.add('plainJSON', plainJSON);
     suite.add('getBinary', getBinary);*/
     suite.add('getBinaryFast', getBinaryFast);

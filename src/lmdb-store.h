@@ -154,22 +154,12 @@ NAN_METHOD(getAddressShared);
 #endif
 #endif
 
-// markers for special cases
-const double ANY_VERSION = -3.3434325325532E-199;
-const double NO_EXIST_VERSION = -4.2434325325532E-199;
-
-void setLastVersion(double version);
-
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw);
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
 Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
-Local<Value> valToNumber(MDB_val &data);
-Local<Value> valToBoolean(MDB_val &data);
-
-void makeGlobalUnsafeBuffer(size_t size);
 
 int putWithVersion(MDB_txn *   txn,
         MDB_dbi     dbi,
@@ -562,15 +552,12 @@ public:
     char* decompressTarget;
     unsigned int decompressSize;
     unsigned int compressionThreshold;
-    Persistent<Object> unsafeBuffer;
     // compression acceleration (defaults to 1)
     int acceleration;
     static thread_local LZ4_stream_t* stream;
     void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     int compressInstruction(EnvWrap* env, double* compressionAddress);
-    void makeUnsafeBuffer();
-    void expand(unsigned int size);
     static NAN_METHOD(ctor);
     static NAN_METHOD(setBuffer);
     Compression();

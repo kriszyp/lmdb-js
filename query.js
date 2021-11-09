@@ -45,7 +45,7 @@ export function addQueryMethods(LMDBStore, {
 			return bytes;
 		},
 		_allocateGetBuffer(lastSize) {
-			let newLength = Math.min(Math.max(lastSize * 2, 0x10), 0xfffffff8);
+			let newLength = Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
 			let bytes;
 			if (this.compression) {
 				let dictionary = this.compression.dictionary || [];

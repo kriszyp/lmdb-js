@@ -91,6 +91,23 @@ describe('lmdb-store', function() {
       })
       return
     }
+    it('zero length values', async function() {
+      db.put(5, asBinary(Buffer.from([])));
+      await db2.put('key1', asBinary(Buffer.from([])));
+      should.equal(db.getBinary(5).length, 0);
+      should.equal(db2.getBinary('key1').length, 0);
+      db.put(5, asBinary(Buffer.from([4])));
+      db2.remove('key1');
+      await db2.put('key1', asBinary(Buffer.from([4])));
+      should.equal(db.getBinary(5).length, 1);
+      should.equal(db2.getBinary('key1').length, 1);
+      db.put(5, asBinary(Buffer.from([])));
+      db2.remove('key1');
+      await db2.put('key1', asBinary(Buffer.from([])));
+      should.equal(db.getBinary(5).length, 0);
+      should.equal(db2.getBinary('key1').length, 0);
+      await db2.remove('key1');
+    });
     it('query of keys', async function() {
       let keys = [
         Symbol.for('test'),

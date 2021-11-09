@@ -4,8 +4,6 @@
 
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
-static thread_local Persistent<Object>* globalUnsafeBuffer;
-static thread_local double lastVersion = 0;
 
 void setupExportMisc(Local<Object> exports) {
     Local<Object> versionObj = Nan::New<Object>();
@@ -27,8 +25,6 @@ void setupExportMisc(Local<Object> exports) {
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // just uses the name of the last exported native function:
     Nan::SetMethod(exports, "lmdbNativeFunctions", getAddress);
-    globalUnsafeBuffer = new Persistent<Object>();
-    makeGlobalUnsafeBuffer(8);
 }
 
 
@@ -117,20 +113,6 @@ Local<Value> valToString(MDB_val &data) {
     return str.ToLocalChecked();
 }
 
-Local<Value> valToBinary(MDB_val &data) {
-    return Nan::CopyBuffer(
-        (char*)data.mv_data,
-        data.mv_size
-    ).ToLocalChecked();
-}
-
-void makeGlobalUnsafeBuffer(size_t size) {
-    globalUnsafeSize = size;
-    Local<Object> newBuffer = Nan::NewBuffer(size).ToLocalChecked();
-    globalUnsafePtr = node::Buffer::Data(newBuffer);
-    globalUnsafeBuffer->Reset(Isolate::GetCurrent(), newBuffer);
-}
-
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
     Compression* compression = dw->compression;
     if (compression) {
@@ -161,13 +143,6 @@ Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw) {
     return Nan::New<Number>(data.mv_size);
 }
 
-Local<Value> valToNumber(MDB_val &data) {
-    return Nan::New<Number>(*((double*)data.mv_data));
-}
-
-Local<Value> valToBoolean(MDB_val &data) {
-    return Nan::New<Boolean>(*((bool*)data.mv_data));
-}
 
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
     //fprintf(stdout, "uncompressing %u\n", compressionThreshold);

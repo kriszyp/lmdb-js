@@ -47,17 +47,13 @@ NAN_METHOD(Compression::ctor) {
             }
             dictSize = node::Buffer::Length(dictionaryOption);
             dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
-            unsigned int newTotalSize = dictSize + 4096;
-            dictionary = new char[newTotalSize];
-            memcpy(dictionary, node::Buffer::Data(dictionaryOption), dictSize);
+            dictionary = node::Buffer::Data(dictionaryOption);
+
         }
         Local<Value> thresholdOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), Nan::New<String>("threshold").ToLocalChecked()).ToLocalChecked();
         if (thresholdOption->IsNumber()) {
             compressionThreshold = thresholdOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
         }
-    }
-    if (!dictionary) {
-        dictionary = new char[4096];
     }
     Compression* compression = new Compression();
     compression->dictionary = dictionary;
@@ -67,23 +63,9 @@ NAN_METHOD(Compression::ctor) {
     compression->compressionThreshold = compressionThreshold;
     compression->Wrap(info.This());
     compression->Ref();
-    compression->makeUnsafeBuffer();
     info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("address").ToLocalChecked(), Nan::New<Number>((double) (size_t) compression));
 
     return info.GetReturnValue().Set(info.This());
-}
-
-void Compression::makeUnsafeBuffer() {
-    Local<Object> newBuffer = Nan::NewBuffer(
-        decompressTarget,
-        decompressSize,
-        [](char*, void* data) {
-            // free the data once it is not used
-            //delete data;
-        },
-        dictionary
-    ).ToLocalChecked();
-    unsafeBuffer.Reset(Isolate::GetCurrent(), newBuffer);
 }
 
 NAN_METHOD(Compression::setBuffer) {
@@ -136,17 +118,6 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
         return;
     }
     isValid = true;
-}
-
-void Compression::expand(unsigned int size) {
-    unsigned int dictSize = decompressTarget - dictionary;
-    decompressSize = size * 2;
-    unsigned int newTotalSize = dictSize + decompressSize;
-    char* oldSpace = dictionary;
-    dictionary = new char[newTotalSize];
-    decompressTarget = dictionary + dictSize;
-    memcpy(dictionary, oldSpace, dictSize);
-    makeUnsafeBuffer();
 }
 
 int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
