@@ -11,7 +11,7 @@ let lmdbLib = Deno.dlopen('./build/Release/lmdb-store.node', {
     */
 });
 let b = new Uint8Array([1,2]);
-console.log(symbols.envOpen(0, b, 2));
+console.log(lmdbLib.symbols.envOpen(0, b, 2));
 let { envOpen, getAddress, free } = lmdbLib.symbols;
 
 let registry = new FinalizationRegistry(address => {
@@ -54,3 +54,12 @@ class Cursor extends CBridge {
 }
 
 setNativeFunctions({ Env, Compression, Cursor, fs: Deno, arch, getAddress, getAddressShared: getAddress });
+export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
+export { ABORT, asBinary } from './writer.js';
+export { levelup } from './level.js';
+export { open, getLastVersion } from './index.js';
+import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
+import { open, getLastVersion } from './index.js';
+export default {
+	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue
+};
