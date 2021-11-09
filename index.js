@@ -107,7 +107,6 @@ export function open(path, options) {
 				this.db = env.openDbi(Object.assign({
 					name: dbName,
 					create: true,
-					txn: env.writeTxn,
 				}, dbOptions));
 				this.db.name = dbName || null;
 			};

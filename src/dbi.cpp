@@ -100,11 +100,9 @@ NAN_METHOD(DbiWrap::ctor) {
         Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
         hasVersions = hasVersionsLocal->IsTrue();
 
-        auto txnObj = options->Get(Nan::GetCurrentContext(), Nan::New<String>("txn").ToLocalChecked()).ToLocalChecked();
-        if (!txnObj->IsNull() && !txnObj->IsUndefined() && txnObj->IsObject()) {
-            TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(txnObj));
+        if (ew->writeTxn) {
             needsTransaction = false;
-            txn = tw->txn;
+            txn = ew->writeTxn->txn;
         }
     }
     else {
