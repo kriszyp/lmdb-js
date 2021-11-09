@@ -773,7 +773,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // DbiWrap: Add functions to the prototype
     dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
     dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "dropAsync", Nan::New<FunctionTemplate>(DbiWrap::dropAsync));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
     #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
@@ -797,7 +796,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
         v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
         v8::SideEffectType::kHasNoSideEffect));
     #endif
-    dbiTpl->PrototypeTemplate()->Set(isolate, "compareKeys", Nan::New<FunctionTemplate>(DbiWrap::compareKeys));
     dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByBinary", Nan::New<FunctionTemplate>(DbiWrap::getStringByBinary));
     dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
 

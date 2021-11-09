@@ -530,14 +530,12 @@ public:
 
     */
     static NAN_METHOD(drop);
-    static NAN_METHOD(dropAsync);
 
     static NAN_METHOD(stat);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(compareKeys);
     static NAN_METHOD(getStringByBinary);
 };
 

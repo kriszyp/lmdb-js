@@ -181,46 +181,6 @@ NAN_METHOD(DbiWrap::close) {
     }
 }
 
-class DropWorker : public Nan::AsyncWorker {
-  public:
-    DropWorker(MDB_dbi dbi, MDB_env* env, int del, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), dbi(dbi), env(env), del(del) {
-      }
-    void Execute() {
-        MDB_txn *txn;
-        int rc = mdb_txn_begin(env, nullptr, 0, &txn);
-        if (!rc)
-            rc = mdb_drop(txn, dbi, del);
-        if (rc)
-            mdb_txn_abort(txn);
-        else
-            rc = mdb_txn_commit(txn);
-        if (rc)
-            SetErrorMessage(mdb_strerror(rc));
-    }
-
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-        callback->Call(1, argv, async_resource);
-    }
-  private:
-    MDB_dbi dbi;
-    MDB_env* env;
-    int del;
-};
-
-NAN_METHOD(DbiWrap::dropAsync) {
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
-    int del = info[0]->IsTrue();
-    Nan::Callback* callback = new Nan::Callback(
-      Local<v8::Function>::Cast(info[1])
-    );
-    Nan::AsyncQueueWorker(new DropWorker(dw->dbi, dw->ew->env, del, callback));
-}
-
 NAN_METHOD(DbiWrap::drop) {
     Nan::HandleScope scope;
 
@@ -366,23 +326,6 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
         return info.GetReturnValue().Set(valToUtf8(data));
     else
         return info.GetReturnValue().Set(Nan::New<Number>(data.mv_size));
-}
-
-NAN_METHOD(DbiWrap::compareKeys) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    MDB_txn* txn = dw->ew->getReadTxn();
-    MDB_val a, b;
-    a.mv_size = node::Buffer::Length(info[0]);
-    a.mv_data = node::Buffer::Data(info[0]);
-    b.mv_size = node::Buffer::Length(info[1]);
-    b.mv_data = node::Buffer::Data(info[1]);
-    int rc;
-    for (int i = 0; i < 10000; i++) {
-        rc = mdb_cmp(txn, dw->dbi, &a, &b);
-    }
-    return info.GetReturnValue().Set(Nan::New<Number>(rc));
 }
 
 // This file contains code from the node-lmdb project
