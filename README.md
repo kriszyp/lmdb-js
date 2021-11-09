@@ -18,18 +18,18 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-This library is published to the NPM package `lmdb` (and the 1.x was also published to `lmdb-store`), and can be installed with:
+This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
 
-This library has minimal, tightly-controlled, and maintained dependencies to ensure stability and efficient memory use. It supports both ESM and CJS usage.
+This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
 
-This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
+This library has formerly known as "lmdb-store", but "lmdb-js" better represents the broad purpose of being the cross-platform LMDB JavaScript adapter. This package has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
 ## Design
 
 This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
 
-`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-store` is designed for transactioSSns to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
+`lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-store` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
 With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
 
@@ -398,7 +398,7 @@ await written.flushed // wait for commit to be fully flushed to disk
 
 The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set it. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use differing `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
 
-Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions), but YMMV. This option may be enabled by default in the future, for non-Windows platforms, this is probably a good setting:
+Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have very poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms. This is probably a good setting:
 ```
 	overlappingSync: os.platform() != 'win32',
 	separateFlushed: true,
@@ -420,7 +420,7 @@ Custom key encoding can be useful for defining more efficient encodings of speci
 
 The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
-`beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled.
+`beforecommit` - This event is fired before a transaction finishes/commits. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed as the last operation(s) before the transaction commits (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled. This can be called multiples times in a transaction, but should always be called as the last operation of a transaction.
 
 ## LevelUp
 
