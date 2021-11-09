@@ -838,7 +838,7 @@ describe('lmdb-store', function() {
     it.skip('read and write with binary methods', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb6',
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
         create: true,
       }));
       dbBinary.put(3, Buffer.from('hello'));
@@ -896,7 +896,7 @@ describe('lmdb-store', function() {
     before(function() {
       db = open(testDirPath, {
         name: 'uint32',
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
         compression: true,
       });
     });
@@ -943,17 +943,17 @@ describe('lmdb-store', function() {
       const rootDb = open({
         name: `root`,
         path: testDirPath + '/test-mixedkeys.mdb',
-        keyIsUint32: false,
+        keyEncoding: 'ordered-binary',
       })
 
       intKeys = rootDb.openDB({
         name: `intKeys`,
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
       })
 
       strKeys = rootDb.openDB({
         name: `strKeys`,
-        keyIsUint32: false,
+        keyEncoding: 'ordered-binary',
       })
 
     })

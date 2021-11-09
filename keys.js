@@ -40,10 +40,10 @@ export function applyKeyHandling(store) {
 	}
 	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
 		store.decoder.decode = function(buffer) { return this.readKey(buffer, 0, buffer.length); };
-	if (store.keyIsUint32) {
+	if (store.keyIsUint32 || store.keyEncoding == 'uint32') {
 		store.writeKey = writeUint32Key;
 		store.readKey = readUint32Key;
-	} else if (store.keyIsBuffer) {
+	} else if (store.keyIsBuffer || store.keyEncoding == 'binary') {
 		store.writeKey = writeBufferKey;
 		store.readKey = readBufferKey;
 	} else if (store.keyEncoder) {

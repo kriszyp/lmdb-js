@@ -256,8 +256,7 @@ declare namespace lmdb {
 		encoding?: 'msgpack' | 'json' | 'string' | 'binary' | 'ordered-binary'
 		sharedStructuresKey?: Key
 		useVersions?: boolean
-		keyIsBuffer?: boolean
-		keyIsUint32?: boolean
+		keyEncoding?: 'uint32' | 'binary' | 'ordered-binary'
 		dupSort?: boolean
 		strictAsyncOrder?: boolean
 	}

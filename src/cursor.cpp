@@ -40,7 +40,7 @@ NAN_METHOD(CursorWrap::ctor) {
     // Get key type
     auto keyType = keyTypeFromOptions(info[1], dw->keyType);
     if (dw->keyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
-        return Nan::ThrowError("You specified keyIsUint32 on the Dbi, so you can't use other key types with it.");
+        return Nan::ThrowError("You specified uint32 keys on the Dbi, so you can't use other key types with it.");
     }
 
     // Open the cursor
