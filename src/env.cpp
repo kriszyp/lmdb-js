@@ -824,7 +824,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
 #endif
 extern "C" EXTERN size_t envOpen(uint32_t flags, const uint8_t * path, size_t length);
 size_t envOpen(uint32_t flags, const uint8_t * path, size_t length) {
-	fprintf(stderr, "start!! %p %u\n", path, length);
+//	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();
     return (size_t) ew;
 }

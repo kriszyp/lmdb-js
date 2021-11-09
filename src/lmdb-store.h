@@ -499,11 +499,7 @@ public:
     // versions stored in data
     bool hasVersions;
     // current unsafe buffer for this db
-    char* lastUnsafePtr;
     bool getFast;
-    bool keysUse32LE;
-    bool valuesUse32LE;
-    void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
 
     friend class TxnWrap;
     friend class CursorWrap;

@@ -141,20 +141,20 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 }
 int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
 	MDB_val key, value;
-	int rc;
+	int rc = 0;
 	int conditionDepth = 0;
 	int validatedDepth = 0;
-	double conditionalVersion, setVersion;
+	double conditionalVersion, setVersion = 0;
 	bool overlappedWord = !!worker;
 	uint32_t* start;
 		do {
 next_inst:	start = instruction++;
 		uint32_t flags = *start;
-		MDB_dbi dbi;
+		MDB_dbi dbi = 0;
 		bool validated = conditionDepth == validatedDepth;
 		if (flags & 0xf0c0) {
-			fprintf(stderr, "Unknown flag bits %p %p\n", flags, start);
-			fprintf(stderr, "flags after message %p\n", *start);
+			fprintf(stderr, "Unknown flag bits %p %p\n", (void*) flags, start);
+			fprintf(stderr, "flags after message %p\n", (void*) *start);
 			worker->ReportError("Unknown flags\n");
 			return 0;
 		}
@@ -182,7 +182,7 @@ next_inst:	start = instruction++;
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					if ((size_t)value.mv_data > 0x1000000000000)
-						fprintf(stderr, "compression not completed %p %u\n", value.mv_data, status);
+						fprintf(stderr, "compression not completed %p %i\n", value.mv_data, status);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {
@@ -285,15 +285,15 @@ next_inst:	start = instruction++;
 				instruction = (uint32_t*)(size_t) * ((double*)instruction);
 				goto next_inst;
 			default:
-				fprintf(stderr, "Unknown flags %p %p\n", flags, start);
-				fprintf(stderr, "flags after message %p\n", *start);
+				fprintf(stderr, "Unknown flags %p %p\n", (void*) flags, start);
+				fprintf(stderr, "flags after message %p\n", (void*) *start);
 				worker->ReportError("Unknown flags\n");
 				return 22;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
 					fprintf(stderr, "Unknown return code %i %p %p\n", rc, start, worker);
-					fprintf(stderr, "flags after return code %p\n", *start);
+					fprintf(stderr, "flags after return code %p\n", (void*) *start);
 				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			}
@@ -312,14 +312,12 @@ next_inst:	start = instruction++;
 }
 
 void WriteWorker::Write() {
-	int rc, txnId;
+	int rc;
 	finishedProgress = true;
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	pthread_mutex_lock(envForTxn->writingLock);
 	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
-	txnId = mdb_txn_id(txn);
-	//fprintf(stderr, "start txn %u, ", txnId);
 	if (rc != 0) {
 		return SetErrorMessage(mdb_strerror(rc));
 	}

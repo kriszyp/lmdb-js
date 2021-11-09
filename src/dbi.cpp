@@ -13,8 +13,6 @@ DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->compression = nullptr;
     this->isOpen = false;
     this->getFast = false;
-    this->keysUse32LE = false;
-    this->valuesUse32LE = false;
     this->ew = nullptr;
 }
 
@@ -39,15 +37,6 @@ DbiWrap::~DbiWrap() {
         this->compression->Unref();
 }
 
-void DbiWrap::setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer) {
-    if (lastUnsafePtr != unsafePtr) {
-        (void)handle()->Set(Nan::GetCurrentContext(), Nan::New<String>("unsafeBuffer").ToLocalChecked(),
-            unsafeBuffer.Get(Isolate::GetCurrent()));
-        lastUnsafePtr = unsafePtr;
-    }
-}
-
-
 NAN_METHOD(DbiWrap::ctor) {
     Nan::HandleScope scope;
 
@@ -62,8 +51,6 @@ NAN_METHOD(DbiWrap::ctor) {
     bool needsTransaction = true;
     bool isOpen = false;
     bool hasVersions = false;
-    bool keysUse32LE = false;
-    bool valuesUse32LE = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     Compression* compression = nullptr;
@@ -118,12 +105,6 @@ NAN_METHOD(DbiWrap::ctor) {
             TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(txnObj));
             needsTransaction = false;
             txn = tw->txn;
-        }
-        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("keysUse32LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
-            keysUse32LE = true;
-        }
-        if (options->Get(Nan::GetCurrentContext(), Nan::New<String>("valuesUse32LE").ToLocalChecked()).ToLocalChecked()->IsTrue()) {
-            valuesUse32LE = true;
         }
     }
     else {
