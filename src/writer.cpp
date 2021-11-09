@@ -153,8 +153,8 @@ next_inst:	start = instruction++;
 		MDB_dbi dbi = 0;
 		bool validated = conditionDepth == validatedDepth;
 		if (flags & 0xf0c0) {
-			fprintf(stderr, "Unknown flag bits %p %p\n", (void*) flags, start);
-			fprintf(stderr, "flags after message %p\n", (void*) *start);
+			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
+			fprintf(stderr, "flags after message %u\n", *start);
 			worker->ReportError("Unknown flags\n");
 			return 0;
 		}
@@ -182,7 +182,7 @@ next_inst:	start = instruction++;
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					if ((size_t)value.mv_data > 0x1000000000000)
-						fprintf(stderr, "compression not completed %p %i\n", value.mv_data, status);
+						fprintf(stderr, "compression not completed %p %i\n", value.mv_data, (int) status);
 					value.mv_size = *(instruction - 1);
 					instruction += 4; // skip compression pointers
 				} else {
@@ -285,15 +285,15 @@ next_inst:	start = instruction++;
 				instruction = (uint32_t*)(size_t) * ((double*)instruction);
 				goto next_inst;
 			default:
-				fprintf(stderr, "Unknown flags %p %p\n", (void*) flags, start);
-				fprintf(stderr, "flags after message %p\n", (void*) *start);
+				fprintf(stderr, "Unknown flags %u %p\n", flags, start);
+				fprintf(stderr, "flags after message %u\n", *start);
 				worker->ReportError("Unknown flags\n");
 				return 22;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
 					fprintf(stderr, "Unknown return code %i %p %p\n", rc, start, worker);
-					fprintf(stderr, "flags after return code %p\n", (void*) *start);
+					fprintf(stderr, "flags after return code %u\n", *start);
 				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			}

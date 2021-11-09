@@ -264,8 +264,7 @@ public:
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
     void closeEnv();
-    static void SyncRunner(void* arg);
-
+    
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)

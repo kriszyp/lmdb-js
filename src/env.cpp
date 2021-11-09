@@ -158,18 +158,6 @@ MDB_txn* EnvWrap::getReadTxn() {
     readTxnRenewed = true;
     return txn;
 }
-static pthread_cond_t* flushCond;
-static pthread_mutex_t* flushLock;
-
-void EnvWrap::SyncRunner(void* arg) {
-    EnvWrap* ew = (EnvWrap*) arg;
-    do {
-        mdb_env_sync(ew->env, 1);
-        pthread_mutex_lock(flushLock);
-        pthread_cond_signal(flushCond);
-        pthread_mutex_unlock(flushLock);        
-    } while(false); // TODO: continually run this
-}
 
 #ifdef MDB_RPAGE_CACHE
 static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int encdec)
