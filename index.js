@@ -2,8 +2,8 @@ import { extname, basename, dirname} from 'path';
 import EventEmitter from 'events';
 import { Env, Compression, getAddress, require, arch, fs } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
-import { addQueryMethods, makeReusableBuffer } from './query.js';
-import { addWriteMethods } from './writer.js';
+import { addReadMethods, makeReusableBuffer } from './read.js';
+import { addWriteMethods } from './write.js';
 import { applyKeyHandling } from './keys.js';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 setGetLastVersion(getLastVersion);
@@ -142,16 +142,24 @@ export function open(path, options) {
 				encoding: options.encoding,
 				strictAsyncOrder: options.strictAsyncOrder,
 			}, dbOptions);
-			if (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor') {
-				this.encoder = this.decoder = new (this.encoding == 'cbor' ? require('cbor-x').Encoder : MsgpackrEncoder)
-					(Object.assign(this.sharedStructuresKey ?
-					this.setupSharedStructures() : {
+			let Encoder;
+			if (this.encoder) {
+				Encoder = this.encoder.Encoder;
+			} else if (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor') {
+				Encoder = (this.encoding == 'cbor' ? require('cbor-x').Encoder : MsgpackrEncoder);
+			}
+			if (Encoder) {
+				this.encoder = new Encoder(Object.assign(
+					this.sharedStructuresKey ? this.setupSharedStructures() : {
 						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
 					}, options, dbOptions));
-			} else if (this.encoding == 'json') {
+			}
+			if (this.encoding == 'json') {
 				this.encoder = {
 					encode: JSON.stringify,
 				};
+			} else if (this.encoder) {
+				this.decoder = this.encoder
 			}
 			applyKeyHandling(this);
 			allDbs.set(dbName ? name + '-' + dbName : name, this);
@@ -277,13 +285,13 @@ export function open(path, options) {
 				let buffer = this.getBinary(this.sharedStructuresKey);
 				if (this.useVersions)
 					setLastVersion(lastVersion);
-				return buffer ? this.encoder.decode(buffer) : [];
+				return buffer ? this.decoder.decode(buffer) : [];
 			};
 			return {
 				saveStructures: (structures, previousLength) => {
 					return this.transactionSyncStart(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey);
-						let existingStructures = existingStructuresBuffer ? this.encoder.decode(existingStructuresBuffer) : [];
+						let existingStructures = existingStructuresBuffer ? this.decoder.decode(existingStructuresBuffer) : [];
 						if (existingStructures.length != previousLength)
 							return false; // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures);
@@ -297,7 +305,7 @@ export function open(path, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	const putSync = LMDBStore.prototype.putSync;
 	const removeSync = LMDBStore.prototype.removeSync;
-	addQueryMethods(LMDBStore, { env, saveKey, keyBytes, keyBytesView, getLastVersion });
+	addReadMethods(LMDBStore, { env, saveKey, keyBytes, keyBytesView, getLastVersion });
 	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes,
 		resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
 	LMDBStore.prototype.supports = {

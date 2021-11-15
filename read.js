@@ -2,13 +2,13 @@ import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js';
 import { getAddress, Cursor, setGlobalBuffer }  from './native.js';
 import { saveKey }  from './keys.js';
 import { writeKey }  from 'ordered-binary/index.js';
-import { binaryBuffer } from './writer.js';
+import { binaryBuffer } from './write.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
 let lastSize;
 
-export function addQueryMethods(LMDBStore, {
+export function addReadMethods(LMDBStore, {
 	getReadTxn, env, keyBytes, keyBytesView, getLastVersion
 }) {
 	let readTxn, readTxnRenewed;

@@ -30,7 +30,7 @@ nativeFunctions.arch = arch;
 nativeFunctions.fs = fs;
 setNativeFunctions(nativeFunctions);
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
-export { ABORT, asBinary } from './writer.js';
+export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './index.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
