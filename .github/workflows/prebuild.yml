@@ -47,7 +47,6 @@ jobs:
     runs-on: ubuntu-18.04
     container: node:14.18.0-alpine
     steps:
-      - run: ldd --version ldd
       - uses: actions/checkout@v2
       - run: npm install
       - run: npm run prebuild-musl
