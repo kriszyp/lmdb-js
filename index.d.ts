@@ -27,7 +27,7 @@ declare namespace lmdb {
 
 		/**
 		* Get the value stored by given id/key in binary format, as a temporary Buffer.
-		* This is faster, but the data is only valid until the next get operation
+		* This is faster, but the data is only valid until the next get operation (then it will be overwritten).
 		* @param id The key for the entry
 		**/
 		getBinaryFast(id: K): Buffer | undefined
@@ -136,12 +136,16 @@ declare namespace lmdb {
 		**/
 		getCount(options: RangeOptions): number
 		/**
+		 * @deprecated since version 2.0, use transaction() instead
+		 */
+		transactionAsync<T>(action: () => T): T
+		/**
 		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
 		**/
-		transaction<T>(action: () => T): T
+		transaction<T>(action: () => T): Promise<T>
 		/**
 		* Execute a transaction syncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
@@ -160,7 +164,7 @@ declare namespace lmdb {
 		* Execute a set of write operations that will all be batched together in next queued asynchronous transaction.
 		* @param action The function to execute with a set of write operations.
 		**/
-		batch<T>(action: () => T): Promise<T>
+		batch<T>(action: () => any): Promise<boolean>
 		/**
 		* Execute writes actions that are all conditionally dependent on the entry with the provided key having the provided
 		* version number (checked atomically).
@@ -194,6 +198,10 @@ declare namespace lmdb {
 		*/
 		doesExist(key: K, version: number): boolean
 		/**
+		* @deprecated since version 2.0, use drop() or dropSync() instead
+		*/
+		deleteDB(): Promise<void>
+		/**
 		* Delete this database/store (asynchronously).
 		**/
 		drop(): Promise<void>
@@ -201,6 +209,10 @@ declare namespace lmdb {
 		* Synchronously delete this database/store.
 		**/
 		dropSync(): void
+		/**
+		* @deprecated since version 2.0, use clearAsync() or clearSync() instead
+		*/
+		clear(): Promise<void>
 		/**
 		* Asynchronously clear all the entries from this database/store.
 		**/
