@@ -580,12 +580,13 @@ describe('lmdb-store', function() {
         lastKey = key
       }
     })
-    it('big keys', async function() {
+    it.only('big keys', async function() {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
         keyBase += 'A'
       }
       let keys = []
+      console.log('adding keys')
       let promise
       for (let i = 40; i < 120; i++) {
         let key = String.fromCharCode(i) + keyBase
@@ -593,6 +594,7 @@ describe('lmdb-store', function() {
         promise = db.put(key, i)
       }
       await promise
+      console.log('added keys, removing them')
       let returnedKeys = []
       for (let { key, value } of db.getRange({})) {
         if (key.length > 1000) {
@@ -604,6 +606,7 @@ describe('lmdb-store', function() {
       }
       returnedKeys.should.deep.equal(keys)
       await promise
+      console.log('removed keys')
       should.equal(db.get(returnedKeys[0]), undefined)
     });
 
