@@ -3083,7 +3083,7 @@ mdb_env_sync(MDB_env *env, int force)
 			sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
 			sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
 			sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
-			sync_txn.mt_txnid = last_txn_id = m->mm_txnid;;
+			sync_txn.mt_txnid = last_txn_id = m->mm_txnid;
 			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
 		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
 		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);

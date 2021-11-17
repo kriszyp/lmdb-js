@@ -4,9 +4,9 @@ using namespace v8;
 using namespace node;
 
 int Logging::initLogging() {
-    char* logging = getenv("LMDB_STORE_LOGGING");
+    char* logging = getenv("LMDB_JS_LOGGING");
     if (logging)
-        fprintf(stderr, "Start logging for lmdb-store\n");
+        fprintf(stderr, "Start logging for lmdb-js\n");
     return !!logging;
 }
 int Logging::debugLogging = Logging::initLogging();

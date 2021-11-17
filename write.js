@@ -50,8 +50,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var afterCommitCallbacks = [];
 	var beforeCommitCallbacks = [];
 	var enqueuedEventTurnBatch;
-	if (separateFlushed === undefined)
-		separateFlushed = overlappingSync;
 	var batchDepth = 0;
 	var writeBatchStart, outstandingBatchCount;
 	txnStartThreshold = txnStartThreshold || 5;
@@ -365,7 +363,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				txnResolution = resolution;
 		}
 	}
-	var TXN_DONE = (separateFlushed ? TXN_COMMITTED : TXN_FLUSHED) | TXN_FAILED;
+	var TXN_DONE = TXN_COMMITTED | TXN_FAILED;
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus;

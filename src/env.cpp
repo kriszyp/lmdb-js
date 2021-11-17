@@ -176,6 +176,7 @@ NAN_METHOD(EnvWrap::open) {
 
     int rc;
     int flags = 0;
+    int jsFlags = 0;
 
     // Get the wrapper
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
@@ -193,7 +194,8 @@ NAN_METHOD(EnvWrap::open) {
     Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBytes").ToLocalChecked()).ToLocalChecked();
     if (keyBytesValue->IsArrayBufferView())
         ew->keyBuffer = node::Buffer::Data(keyBytesValue);
-
+    setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
+    ew->jsFlags = jsFlags;
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     Nan::Utf8String charPath(path);
     pthread_mutex_lock(envsLock);

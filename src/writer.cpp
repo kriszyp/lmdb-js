@@ -331,17 +331,22 @@ void WriteWorker::Write() {
 			rc = mdb_txn_commit(txn);
 		txn = nullptr;
 		pthread_mutex_unlock(envForTxn->writingLock);
-		if ((envFlags & MDB_OVERLAPPINGSYNC) && rc == 0) {
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
-			progressStatus = 1;
-			executionProgress->Send(nullptr, 0);
-			rc = mdb_env_sync(env, true);
-		}
 		if (rc) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 			return SetErrorMessage(mdb_strerror(rc));
-		} else
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED | TXN_FLUSHED);
+		} else if (envFlags & MDB_OVERLAPPINGSYNC) {
+			// note that once we set the instructions byte to committed, we can *not* touch it again
+			// because JS can then GC and deallocate the buffer it references and it can segfault if we access again
+			if (envForTxn->jsFlags & SEPARATE_FLUSHED)
+				std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+			progressStatus = 1;
+			executionProgress->Send(nullptr, 0);
+			rc = mdb_env_sync(env, true);
+			if (!(envForTxn->jsFlags & SEPARATE_FLUSHED))
+				std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+		} else {
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+		}
 	} else
 		interruptionStatus = rc;
 }

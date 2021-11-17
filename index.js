@@ -61,6 +61,9 @@ export function open(path, options) {
 		asyncTransactionStrictOrder = true;
 		asyncTransactionAfter = false;
 	}
+	if (options.separateFlushed === undefined)
+		options.separateFlushed = options.overlappingSync;
+
 	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
 		fs.mkdirSync(options.noSubdir ? dirname(path) : path, { recursive: true });
 	if (options.compression) {
