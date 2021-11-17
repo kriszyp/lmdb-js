@@ -3066,10 +3066,10 @@ mdb_env_sync(MDB_env *env, int force)
 		MDB_txninfo *ti = env->me_txns;
 		size_t last_txn_id = ti->mti_txnid;
 		//fprintf(stderr,"syncing txn %u, ", last_txn_id);
-		int rc;
+		int rc = 0;
 		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
 			return rc;
-		if (env->me_synced_txn_id >= last_txn_id || 1) {
+		if (env->me_synced_txn_id >= last_txn_id) {
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return 0;
 		}
@@ -3077,21 +3077,21 @@ mdb_env_sync(MDB_env *env, int force)
 		MDB_db dbs[2];
 		do {
 			m = mdb_env_pick_meta(env);
-			sync_txn.mt_env = env;
+			/*sync_txn.mt_env = env;
 			sync_txn.mt_flags = 2;
 			sync_txn.mt_dbs = dbs;
 			sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
 			sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
 			sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
 			sync_txn.mt_txnid = last_txn_id = m->mm_txnid;
-			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+			sync_txn.mt_next_pgno = m->mm_last_pg + 1;*/
 		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
-		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
+		//rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
 		if (rc) {
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return rc;
 		}
-		rc = mdb_env_write_meta(&sync_txn);
+		//rc = mdb_env_write_meta(&sync_txn);
 		if (rc == 0)
 			env->me_synced_txn_id = last_txn_id;
 		//fprintf(stderr,"finished syncing txn %u, ", last_txn_id);

@@ -582,7 +582,7 @@ describe('lmdb-store', function() {
         lastKey = key
       }
     })
-    it.only('big keys', async function() {
+    it('big keys', async function() {
       for (let j = 0; j < 40; j++) {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
