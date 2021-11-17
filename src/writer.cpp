@@ -323,7 +323,6 @@ void WriteWorker::Write() {
 	}
 
 	rc = DoWrites(txn, envForTxn, instructions, this);
-fprintf(stderr, "did writes, will commit\n");
 	if (callback) {
 		if (rc)
 			mdb_txn_abort(txn);
@@ -335,9 +334,7 @@ fprintf(stderr, "did writes, will commit\n");
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 			progressStatus = 1;
 			executionProgress->Send(nullptr, 0);
-			fprintf(stderr, "starting sync\n");
 			rc = mdb_env_sync(env, true);
-			fprintf(stderr, "finished sync\n");
 		}
 		if (rc) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
@@ -346,7 +343,6 @@ fprintf(stderr, "did writes, will commit\n");
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED | TXN_FLUSHED);
 	} else
 		interruptionStatus = rc;
-fprintf(stderr, "finished commit\n");
 }
 
 void WriteWorker::HandleProgressCallback(const char* data, size_t count) {

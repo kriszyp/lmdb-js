@@ -27,23 +27,25 @@ describe('lmdb-store', function() {
     return str;
   }
   before(function(done) {
+    this.timeout(10000);
     // cleanup previous test directory
     rimraf(testDirPath, function(err) {
       if (err) {
         return done(err);
       }
-      done();
+      setTimeout(done, 4000);
     });
   });
   let testIteration = 0
-  describe('Basic use', basicTests({ }));
-  describe('Basic use with overlapping sync', basicTests({ overlappingSync: true }));
-  describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
+  //describe('Basic use', basicTests({ }));
+  for (let i = 0; i < 20;i++)
+  describe('Basic use with overlapping sync' + i, basicTests({ overlappingSync: true }));
+/*  describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
   describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
   if (typeof WeakRef != 'undefined')
-    describe('Basic use with caching', basicTests({ cache: true }));
+    describe('Basic use with caching', basicTests({ cache: true }));*/
   function basicTests(options) { return function() {
     this.timeout(1000000);
     let db, db2, db3;
@@ -581,12 +583,12 @@ describe('lmdb-store', function() {
       }
     })
     it.only('big keys', async function() {
+      for (let j = 0; j < 40; j++) {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
         keyBase += 'A'
       }
       let keys = []
-      console.log('adding keys')
       let promise
       for (let i = 40; i < 120; i++) {
         let key = String.fromCharCode(i) + keyBase
@@ -594,7 +596,6 @@ describe('lmdb-store', function() {
         promise = db.put(key, i)
       }
       await promise
-      console.log('added keys, removing them')
       let returnedKeys = []
       for (let { key, value } of db.getRange({})) {
         if (key.length > 1000) {
@@ -606,8 +607,8 @@ describe('lmdb-store', function() {
       }
       returnedKeys.should.deep.equal(keys)
       await promise
-      console.log('removed keys')
       should.equal(db.get(returnedKeys[0]), undefined)
+    }
     });
 
     it('invalid key', async function() {
