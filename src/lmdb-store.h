@@ -184,6 +184,7 @@ const int ALLOW_COMMIT = 9997;
 const int RESTART_WORKER_TXN = 9999;
 const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
+const int SEPARATE_FLUSHED = 1;
 
 class WriteWorker : public Nan::AsyncProgressWorker {
   public:
@@ -258,6 +259,7 @@ public:
     MDB_txn* currentReadTxn;
     WriteWorker* writeWorker;
     bool readTxnRenewed;
+    unsigned int jsFlags;
     char* keyBuffer;
     MDB_txn* getReadTxn();
 
