@@ -14,7 +14,7 @@
       "target_name": "lmdb",
       "win_delay_load_hook": "false",
       "sources": [
-        "src/lmdb-store.cpp",
+        "src/lmdb-js.cpp",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",

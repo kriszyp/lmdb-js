@@ -1571,14 +1571,14 @@ typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
 	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
 } MDB_pgstate;
-/*<lmdb-store>*/
+/*<lmdb-js>*/
 struct MDB_last_map {
 	struct MDB_last_map	*last_map;
 	char 			*map;
 	mdb_size_t		mapsize;
 };
 typedef struct MDB_last_map MDB_last_map;
-/*</lmdb-store>*/
+/*</lmdb-js>*/
 	/** The database environment. */
 struct MDB_env {
 	HANDLE		me_fd;		/**< The main data file */
@@ -1611,9 +1611,9 @@ struct MDB_env {
 	MDB_PID_T	me_pid;		/**< process ID of this env */
 	char		*me_path;		/**< path to the DB files */
 	char		*me_map;		/**< the memory map of the data file */
-/*<lmdb-store>*/
+/*<lmdb-js>*/
 	MDB_last_map	*me_last_map;	/**< the previous memory map of the data file after a resize */
-/*</lmdb-store>*/
+/*</lmdb-js>*/
 	MDB_txninfo	*me_txns;		/**< the memory map of the lock file or NULL */
 	MDB_meta	*me_metas[NUM_METAS];	/**< pointers to the two meta pages */
 	void		*me_pbuf;		/**< scratch area for DUPSORT put() */
@@ -2556,11 +2556,11 @@ static txnid_t
 mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
-	/* <lmdb-store> */
+	/* <lmdb-js> */
 	txnid_t mr, oldest = (txn->mt_env->me_flags & MDB_OVERLAPPINGSYNC) ?
 		txn->mt_env->me_synced_txn_id :
 		(txn->mt_txnid - 1);
-	/* </lmdb-store> */
+	/* </lmdb-js> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
 		for (i = txn->mt_env->me_txns->mti_numreaders; --i >= 0; ) {
@@ -2777,11 +2777,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	i = 0;
 	pgno = txn->mt_next_pgno;
 	if (pgno + num >= env->me_maxpg) {
-	/* <lmdb-store addition> */
+	/* <lmdb-js addition> */
 		size_t new_size = ((size_t) (2 * (pgno + num) * env->me_psize / 0x40000 + 1)) * 0x40000;
 //		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
 		rc = mdb_env_set_mapsize(env, new_size);
-	/* </lmdb-store addition> */
+	/* </lmdb-js addition> */
 	}
 #if defined(_WIN32) && !defined(MDB_VL32)
 	if (env->me_flags & MDB_WRITEMAP) {
@@ -3061,7 +3061,7 @@ int
 mdb_env_sync(MDB_env *env, int force)
 {
 	MDB_meta *m = mdb_env_pick_meta(env);
-	// <lmdb-store>
+	// <lmdb-js>
 	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 		MDB_txninfo *ti = env->me_txns;
 		size_t last_txn_id = ti->mti_txnid;
@@ -3100,7 +3100,7 @@ mdb_env_sync(MDB_env *env, int force)
 	} else {
 		return mdb_env_sync0(env, force, m->mm_last_pg+1);
 	}
-	// </lmdb-store>
+	// </lmdb-js>
 }
 
 /** Back up parent txn's cursors, then grab the originals for tracking */
@@ -3378,13 +3378,13 @@ mdb_txn_renew0(MDB_txn *txn)
 		DPUTS("environment had fatal error, must shutdown!");
 		rc = MDB_PANIC;
 	} else {
-		/* <lmdb-store change> */
+		/* <lmdb-js change> */
 		if (env->me_maxpg < txn->mt_next_pgno) {
 			// need to resize map
 			size_t new_size = ((size_t) (2 * (txn->mt_next_pgno) * env->me_psize / 0x40000 + 1)) * 0x40000;
 			mdb_env_set_mapsize(env, new_size);
 		}
-		/* </lmdb-store change> */
+		/* </lmdb-js change> */
 		return MDB_SUCCESS;
 	}
 	mdb_txn_end(txn, new_notls /*0 or MDB_END_SLOT*/ | MDB_END_FAIL_BEGIN);
@@ -4033,7 +4033,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
-	/* <lmdb-store addition> */
+	/* <lmdb-js addition> */
 	pgno = dl[pagecount].mid + dl_nump[pagecount];
 	n = 0;
 	
@@ -4069,7 +4069,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			}
 		}
 	}
-	/* </lmdb-store addition> */
+	/* </lmdb-js addition> */
 	if (pagecount - keep >= env->me_ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */
@@ -4505,20 +4505,20 @@ mdb_txn_commit(MDB_txn *txn)
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
 
-	//<lmdb-store>
+	//<lmdb-js>
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC))
 		txn->mt_dbs[FREE_DBI].md_flags |= MDB_OVERLAPPINGSYNC;
 	else
 		txn->mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC;
-	//<//lmdb-store>
+	//<//lmdb-js>
 
 	if ((rc = mdb_env_write_meta(txn)))
 		goto fail;
 
-	//<lmdb-store>
+	//<lmdb-js>
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
 		env->me_synced_txn_id = txn->mt_txnid;
-	//</lmdb-store>
+	//</lmdb-js>
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (!(env->me_flags & MDB_NOLOCK)) {
@@ -4646,7 +4646,7 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 			m = METADATA(p);
 			*meta = *mdb_pick_meta(env, meta, m);
 		}
-		// </lmdb-store>
+		// </lmdb-js>
 	}
 	return 0;
 }
@@ -4881,14 +4881,14 @@ static MDB_meta *
 mdb_env_pick_meta(const MDB_env *env)
 {
 	MDB_meta *const *metas = env->me_metas;
-	//<lmdb-store>
+	//<lmdb-js>
 	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
 	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
 		int offset = env->me_psize >> 1;
 		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
 		latest = mdb_pick_meta(env, latest, flushed);
 	}
-	//</lmdb-store>
+	//</lmdb-js>
 	return latest;
 }
 
@@ -5060,10 +5060,10 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		int rc;
 
 
-	/* <lmdb-store removal> 
+	/* <lmdb-js removal> 
 		if (env->me_txn) We are intentionally resizing during transactions now
 			return EINVAL;
-		</lmdb-store removal> */
+		</lmdb-js removal> */
 
 		meta = mdb_env_pick_meta(env);
 		if (!size)
@@ -5079,14 +5079,14 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-	/* <lmdb-store removal>  We don't unmap right now because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet */
+	/* <lmdb-js removal>  We don't unmap right now because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet */
 		MDB_last_map* last_map = malloc(sizeof(MDB_last_map));
 		last_map->last_map = env->me_last_map;
 		last_map->map = env->me_map;
 		last_map->mapsize = env->me_mapsize;
 		env->me_last_map = last_map;
 		//munmap(env->me_map, env->me_mapsize);
-	 	/*</lmdb-store removal> */
+	 	/*</lmdb-js removal> */
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
@@ -6204,9 +6204,9 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		env->me_rpcheck = MDB_ERPAGE_SIZE/2;
 	}
 #endif
-	/*<lmdb-store>*/
+	/*<lmdb-js>*/
 	env->me_last_map = NULL;
-	/*<lmdb-store>*/
+	/*<lmdb-js>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
 	env->me_dbflags = calloc(env->me_maxdbs, sizeof(uint16_t));
@@ -6223,10 +6223,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (rc)
 			goto leave;
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
-			// <lmdb-store>
+			// <lmdb-js>
 			flags ^= MDB_PREVSNAPSHOT;
 			env->me_flags = flags;
-			// </lmdb-store>
+			// </lmdb-js>
 		}
 	}
 
@@ -6255,7 +6255,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (rc)
 			goto leave;
 		DPRINTF(("opened dbenv %p", (void *) env));
-		// <lmdb-store>
+		// <lmdb-js>
 		if (excl > 0) {
 			if (flags & MDB_PREVSNAPSHOT) {
 				MDB_meta* safe_meta = mdb_env_pick_meta(env);
@@ -6281,7 +6281,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 			if (rc)
 				goto leave;
 		}
-		// </lmdb-store>
+		// </lmdb-js>
 		if (!(flags & MDB_RDONLY)) {
 			MDB_txn *txn;
 			int tsize = sizeof(MDB_txn), size = tsize + env->me_maxdbs *
@@ -6379,7 +6379,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 			munmap(env->me_map, NUM_METAS*env->me_psize);
 		else {
 			munmap(env->me_map, env->me_mapsize);
-			/*<lmdb-store>*/
+			/*<lmdb-js>*/
 			MDB_last_map *last_map = env->me_last_map;
 			while(last_map) { // unmap all of the previous maps as well
 				munmap(last_map->map, last_map->mapsize);
@@ -6387,7 +6387,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 				last_map = last_map->last_map;
 				free(last_last_map);
 			}
-			/*</lmdb-store>*/
+			/*</lmdb-js>*/
 		}
 	}
 	if (env->me_mfd != INVALID_HANDLE_VALUE)

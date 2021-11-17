@@ -1,4 +1,4 @@
-#include "lmdb-store.h"
+#include "lmdb-js.h"
 #include <string.h>
 #include <stdio.h>
 

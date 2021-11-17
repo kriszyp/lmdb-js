@@ -13,7 +13,7 @@ let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../node-index.js';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
-describe('lmdb-store', function() {
+describe('lmdb-js', function() {
   let testDirPath = path.resolve(dirName, './testdata-ls');
 
   // just to make a reasonable sized chunk of data...

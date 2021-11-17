@@ -1,4 +1,4 @@
-#include "lmdb-store.h"
+#include "lmdb-js.h"
 
 using namespace v8;
 using namespace node;

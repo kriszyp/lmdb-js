@@ -11,7 +11,7 @@
 8 bytes (optional): version
 inline value?
 */
-#include "lmdb-store.h"
+#include "lmdb-js.h"
 #include <atomic>
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;

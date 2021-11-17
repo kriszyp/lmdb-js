@@ -1,5 +1,5 @@
 
-// This file is part of lmdb-store
+// This file is part of lmdb-js
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license
 //

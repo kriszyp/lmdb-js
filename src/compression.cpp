@@ -23,7 +23,7 @@
 // THE SOFTWARE.
 
 #include "lz4.h"
-#include "lmdb-store.h"
+#include "lmdb-js.h"
 #include <atomic>
 
 using namespace v8;

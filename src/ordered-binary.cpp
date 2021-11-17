@@ -1,4 +1,4 @@
-#include "lmdb-store.h"
+#include "lmdb-js.h"
 
 #ifdef _WIN32
 #define ntohl _byteswap_ulong
