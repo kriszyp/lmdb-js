@@ -14,10 +14,6 @@ export function addReadMethods(LMDBStore, {
 	let readTxn, readTxnRenewed;
 	let renewId = 1;
 	Object.assign(LMDBStore.prototype, {
-		getSizeBinaryFast(id) {
-			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
-		},
 		getString(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
 			let string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0));
@@ -32,7 +28,13 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
+			try {
+				lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
+			} catch (error) {
+				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
+					error = new Error('Zero length key is not allowed in LMDB')
+				throw error
+			}
 			let compression = this.compression;
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
 			if (lastSize > bytes.maxLength) {
@@ -107,11 +109,11 @@ export function addReadMethods(LMDBStore, {
 			if (!env.writeTxn)
 				readTxnRenewed ? readTxn : renewReadTxn();
 			if (versionOrValue === undefined) {
-				this.getSizeBinaryFast(key);
+				this.getBinaryFast(key);
 				return lastSize !== 0xffffffff;
 			}
 			else if (this.useVersions) {
-				this.getSizeBinaryFast(key);
+				this.getBinaryFast(key);
 				return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue);
 			}
 			else {
