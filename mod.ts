@@ -1,7 +1,7 @@
 import { setNativeFunctions } from './native.js';
 // probably use Deno.build.os
 import { arch } from 'https://deno.land/std/node/os.ts';
-let lmdbLib = Deno.dlopen('./build/Release/lmdb-store.node', {
+let lmdbLib = Deno.dlopen('./build/Release/lmdb-js.node', {
 	envOpen: { parameters: ['u32', 'buffer', 'usize'], result: 'usize'},/*
     free: { parameters: ['buffer', 'usize'], result: 'void'},
     getAddress: { parameters: ['buffer', 'usize'], result: 'usize'},
