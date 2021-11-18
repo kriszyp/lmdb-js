@@ -1,8 +1,8 @@
-module.exports = function when(promise, callback, errback) {
+export function when(promise, callback, errback) {
   if (promise && promise.then) {
     return errback ?
       promise.then(callback, errback) :
-      promise.then(callback)
+      promise.then(callback);
   }
-  return callback(promise)
+  return callback(promise);
 }

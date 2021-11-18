@@ -45,6 +45,7 @@ yarn.lock
 .vs
 
 package-lock.json
+yarn.lock
 
 tests/db/
 .DS_Store

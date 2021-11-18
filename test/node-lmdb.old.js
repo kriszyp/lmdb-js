@@ -1,20 +1,20 @@
-'use strict';
+import path from 'path';
+import mkdirp from 'mkdirp';
+import rimraf from 'rimraf';
+import chai from 'chai';
+let should = chai.should();
+let expect = chai.expect;
+import { spawn } from 'child_process';
+import fs from 'fs';
 
-var path = require('path');
-var rimraf = require('rimraf');
-var chai = require('chai');
-var fs = require('fs');
-var should = chai.should();
-var spawn = require('child_process').spawn;
-var inspector = require('inspector')
-//inspector.open(9330, null, true)
+import * as lmdb from '../main.mjs';
 
-var lmdb = require('..');
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 
 describe.skip('Node.js LMDB Bindings', function() {
-  var testDirPath = path.resolve(__dirname, './testdata');
-  var testBackupDirPath = path.resolve(__dirname, './testdata/backup');
+  let dirName = import.meta.url.replace(/file:\/\/\//,'').replace(/\/[^/]+$/,'')
+  var testDirPath = path.resolve(dirName, './testdata');
+  var testBackupDirPath = path.resolve(dirName, './testdata/backup');
   // just to make a reasonable sized chunk of data...
   function expand(str) {
     str = '(' + str + ')';

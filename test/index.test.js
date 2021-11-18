@@ -1,18 +1,20 @@
-'use strict';
-
-let path = require('path');
-let rimraf = require('rimraf');
-let chai = require('chai');
+import path from 'path';
+import rimraf from 'rimraf';
+import chai from 'chai';
 let should = chai.should();
 let expect = chai.expect;
-let spawn = require('child_process').spawn;
+import { spawn } from 'child_process';
+import { unlinkSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
+let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-let { open, getLastVersion, bufferToKeyValue, keyValueToBuffer, ABORT } = require('..');
-const { ArrayLikeIterable } = require('../util/ArrayLikeIterable')
-//var inspector = require('inspector'); inspector.open(9330, null, true); debugger
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../node-index.js';
+import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
-describe('lmdb-store', function() {
-  let testDirPath = path.resolve(__dirname, './testdata-ls');
+describe('lmdb-js', function() {
+  let testDirPath = path.resolve(dirName, './testdata-ls');
 
   // just to make a reasonable sized chunk of data...
   function expand(str) {
@@ -33,10 +35,11 @@ describe('lmdb-store', function() {
       done();
     });
   });
-  let testIteration = 1
-  describe('Basic use', basicTests({ compression: false }));
+  let testIteration = 0
+  describe('Basic use', basicTests({ }));
+  describe('Basic use with overlapping sync', basicTests({ overlappingSync: true }));
   describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
-  //describe('Check encrypted data', basicTests({ compression: false, checkLast: true }));
+  describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
   describe('Basic use with JSON', basicTests({ encoding: 'json' }));
   describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
   if (typeof WeakRef != 'undefined')
@@ -45,27 +48,32 @@ describe('lmdb-store', function() {
     this.timeout(1000000);
     let db, db2, db3;
     before(function() {
+      if (!options.checkLast)
+        testIteration++;
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
         name: 'mydb3',
         create: true,
         useVersions: true,
+        batchStartThreshold: 10,
         //asyncTransactionOrder: 'strict',
         //useWritemap: true,
         //noSync: true,
+        //overlappingSync: true,
+        eventTurnBatching: false,
+        keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
         },
       }, options));
-      testIteration++;
       if (!options.checkLast)
-        db.clear();
+        db.clearSync();
       db2 = db.openDB(Object.assign({
         name: 'mydb4',
         create: true,
         dupSort: true,
       }));
       if (!options.checkLast)
-        db2.clear();
+        db2.clearSync();
       db3 = db.openDB({
         name: 'mydb5',
         create: true,
@@ -73,16 +81,33 @@ describe('lmdb-store', function() {
         encoding: 'ordered-binary',
       });
       if (!options.checkLast)
-        db3.clear();
+        db3.clearSync();
     });
     if (options.checkLast) {
       it('encrypted data can not be accessed', function() {
-        let data  = db.get('key1');
+        let data = db.get('key1');
         console.log({data})
-        data.should.deep.equal({foo: 1, bar: true})
+        data.should.deep.equal('test')
       })
       return
     }
+    it('zero length values', async function() {
+      db.put(5, asBinary(Buffer.from([])));
+      await db2.put('key1', asBinary(Buffer.from([])));
+      should.equal(db.getBinary(5).length, 0);
+      should.equal(db2.getBinary('key1').length, 0);
+      db.put(5, asBinary(Buffer.from([4])));
+      db2.remove('key1');
+      await db2.put('key1', asBinary(Buffer.from([4])));
+      should.equal(db.getBinary(5).length, 1);
+      should.equal(db2.getBinary('key1').length, 1);
+      db.put(5, asBinary(Buffer.from([])));
+      db2.remove('key1');
+      await db2.put('key1', asBinary(Buffer.from([])));
+      should.equal(db.getBinary(5).length, 0);
+      should.equal(db2.getBinary('key1').length, 0);
+      await db2.remove('key1');
+    });
     it('query of keys', async function() {
       let keys = [
         Symbol.for('test'),
@@ -105,8 +130,9 @@ describe('lmdb-store', function() {
         [ 'uid', 'I-7l9ySkD-wAOULIjOEnb', 'Rwsu6gqOw8cqdCZG5_YNF' ],
         'z'
       ]
-      for (let key of keys)
+      for (let key of keys) {
         await db.put(key, 3);
+      }
       let returnedKeys = []
       for (let { key, value } of db.getRange({
         start: Symbol.for('A')
@@ -153,6 +179,14 @@ describe('lmdb-store', function() {
       let returnedKeys = Array.from(db.getKeys(options))
       returnedKeys.should.deep.equal(['0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdu0mnkm8lS38yIZa4Xte3Q3JUoD84V', '0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8'])
     });
+    it('clear between puts', async function() {
+      db.put('key0', 'zero')
+      db.clearAsync()
+      await db.put('key1', 'one')
+      should.equal(db.get('key0'), undefined)
+      should.equal(db.get('hello'), undefined)
+      should.equal(db.get('key1'), 'one')
+    })
     it('string', async function() {
       await db.put('key1', 'Hello world!');
       let data = db.get('key1');
@@ -179,6 +213,7 @@ describe('lmdb-store', function() {
       let entry = db.getEntry('key1');
       entry.value.should.equal('Hello world!');
       entry.version.should.equal(53252);
+      console.log('starting ifVersion');
       (await db.ifVersion('key1', 777, () => {
         db.put('newKey', 'test', 6);
         db2.put('keyB', 'test', 6);
@@ -216,6 +251,25 @@ describe('lmdb-store', function() {
       data = db.get('key1');
       should.equal(data, undefined);
     });
+    it('repeated compressions', async function() {
+      let str = expand('Hello world!')
+      db.put('key1', str, 53252);
+      db.put('key1', str, 53253);
+      db.put('key1', str, 53254);
+      await db.put('key1', str, 53255);
+      let entry = db.getEntry('key1');
+      entry.value.should.equal(str);
+      entry.version.should.equal(53255);
+      (await db.remove('key1')).should.equal(true);
+    });
+
+    it('forced compression due to starting with 255', async function() {
+      await db.put('key1', asBinary(Buffer.from([255])));
+      let entry = db.getBinary('key1');
+      entry.length.should.equal(1);
+      entry[0].should.equal(255);
+      (await db.remove('key1')).should.equal(true);
+    });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this
     it('store objects', async function() {
@@ -225,6 +279,22 @@ describe('lmdb-store', function() {
       dataOut.should.deep.equal(dataIn);
       db.removeSync('not-there').should.equal(false);
     });
+    it('store binary', async function() {
+      let dataIn = {foo: 4, bar: true}
+      let buffer = db.encoder.encode(dataIn);
+      if (typeof buffer == 'string')
+        return
+      await db.put('key1',  asBinary(buffer));
+      let dataOut = db.get('key1');
+      dataOut.should.deep.equal(dataIn);
+    });
+    it('writes batch with callback', async function() {
+      let dataIn = {name: 'for batch 1'}
+      await db.batch(() => {
+        db.put('key1', dataIn);
+        db.put('key2', dataIn);
+      })
+    })
     it.skip('trigger sync commit', async function() {
       let dataIn = {foo: 4, bar: false}
       db.immediateBatchThreshold = 1
@@ -539,7 +609,7 @@ describe('lmdb-store', function() {
 
     it('invalid key', async function() {
       expect(() => db.get({ foo: 'bar' })).to.throw();
-      //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
+      expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
       expect(() => db.put('x'.repeat(1979), 'hello')).to.throw();
       expect(() => db2.put('x', 'x'.repeat(1979))).to.throw();
     });
@@ -548,16 +618,16 @@ describe('lmdb-store', function() {
       let entry = db.getEntry('zkey6');
       entry.value.should.equal('test');
       entry.version.should.equal(33);
-      db.putSync('zkey7', 'test', { append: true, noOverwrite: true });
-      db2.putSync('zkey6', 'test1', { appendDup: true });
-      db2.putSync('zkey6', 'test2', { appendDup: true });
-      expect(() => db.putSync('zkey5', 'test', { append: true, version: 44 })).to.throw();
-      expect(() => db.putSync('zkey7', 'test', { noOverwrite: true })).to.throw();
-      expect(() => db2.putSync('zkey6', 'test1', { noDupData: true })).to.throw();
+      should.equal(db.putSync('zkey7', 'test', { append: true, noOverwrite: true }), true);
+      should.equal(db2.putSync('zkey6', 'test1', { appendDup: true }), true);
+      should.equal(db2.putSync('zkey6', 'test2', { appendDup: true }), true);
+      should.equal(db.putSync('zkey5', 'test', { append: true, version: 44 }), false);
+      should.equal(db.putSync('zkey7', 'test', { noOverwrite: true }), false);
+      should.equal(db2.putSync('zkey6', 'test1', { noDupData: true }), false);
     });
     it('async transactions', async function() {
       let ranTransaction
-      db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
+      db.put('key1', 'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
       if (!db.cache) {
         db.childTransaction(() => {
@@ -611,31 +681,62 @@ describe('lmdb-store', function() {
       })
     });
     it('async transaction with interrupting sync transaction default order', async function() {
-      db.strictAsyncOrder = false
-      let order = []
-      let ranSyncTxn
-      db.transactionAsync(() => {
-        order.push('a1');
-        db.put('async1', 'test');
-        if (!ranSyncTxn) {
-          ranSyncTxn = true;
-          setImmediate(() => db.transactionSync(() => {
-            order.push('s1');
-            db.put('inside-sync', 'test');
-          }));
-        }
-      });
-      db.put('outside-txn', 'test');
-      await db.transactionAsync(() => {
-        order.push('a2');
-        db.put('async2', 'test');
-      });
-      order.should.deep.equal(['a1', 'a2', 's1']);
-      should.equal(db.get('async1'), 'test');
-      should.equal(db.get('outside-txn'), 'test');
-      should.equal(db.get('inside-sync'), 'test');
-      should.equal(db.get('async2'), 'test');
+      for (let i =0; i< 10;i++) {
+        db.strictAsyncOrder = true
+        let order = []
+        let ranSyncTxn
+        db.transactionAsync(() => {
+          order.push('a1');
+          db.put('async1', 'test');
+          if (!ranSyncTxn) {
+            ranSyncTxn = true;
+            setImmediate(() => {
+              db.transactionSync(() => {
+                order.push('s1');
+                db.put('inside-sync', 'test');
+              });
+            });
+          }
+        });
+        db.put('outside-txn', 'test');
+        await db.transactionAsync(() => {
+          order.push('a2');
+          db.put('async2', 'test');
+        });
+        order.should.deep.equal(['a1', 's1', 'a2']);
+        should.equal(db.get('async1'), 'test');
+        should.equal(db.get('outside-txn'), 'test');
+        should.equal(db.get('inside-sync'), 'test');
+        should.equal(db.get('async2'), 'test');
+      }
     });
+    it('multiple async mixed', async function() {
+      let result
+      for (let i = 0; i < 100; i++) {
+        if (i%4 < 3) {
+          if (i%8 == 1) {
+            let sync = () => db.transactionSync(() => {
+              db.put('foo' + i, i)
+            })
+            if (i%16 == 1)
+              setImmediate(sync)
+            else
+              sync()
+            continue
+          }
+          db.strictAsyncOrder = i%4 == 2
+          result = db.transaction(() => {
+            db.put('foo' + i, i)
+          })
+        } else {
+          result = db.put('foo' + i, i)
+        }
+      }
+      await result
+      for (let i = 0; i < 100; i++) {
+        should.equal(db.get('foo' + i), i)
+      }
+    })
     it('big child transactions', async function() {
       let ranTransaction
       db.put('key1',  'async initial value'); // should be queued for async write, but should put before queued transaction
@@ -651,6 +752,74 @@ describe('lmdb-store', function() {
         should.equal(db.get('key1'), 'test');
       }
     });
+    it('mixed batches', async function() {
+      let promise
+      for (let i = 0; i < 20; i++) {
+        db.put(i, 'test')
+        promise = db.batch(() => {
+          for (let j = 0; j < 20; j++) {
+            db.put('test:' + i + '/' + j, i + j)
+          }
+        })
+      }
+      await promise
+      for (let i = 0; i < 20; i++) {
+        should.equal(db.get(i), 'test');
+        for (let j = 0; j < 20; j++) {
+          should.equal(db.get('test:' + i + '/' + j), i + j)
+        }
+      }
+    });
+    it('levelup style callback', function(done) {
+      should.equal(db.isOperational(), true)
+      should.equal(db.status, 'open')
+      should.equal(db.supports.permanence, true)
+      db.put('key1', '1', (error, result) => {
+        should.equal(error, null)
+        '1'.should.equal(db.get('key1'))
+        db.del('key1', (error, result) => {
+          should.equal(error, null)
+          let leveldb = levelup(db)
+          leveldb.get('key1', (error, value) => {
+            should.equal(error.name, 'NotFoundError')
+            leveldb.put('key1', 'test', (error, value) => {
+              leveldb.getMany(['key1'], (error, values) => {
+                should.equal('test', values[0])
+                done();
+              })
+            })
+          })
+          
+        })
+      })
+    });
+    it('batch operations', async function() {
+      let batch = db.batch()
+      batch.put('test:z', 'z')
+      batch.clear()
+      batch.put('test:a', 'a')
+      batch.put('test:b', 'b')
+      batch.put('test:c', 'c')
+      batch.del('test:c')
+      let callbacked
+      await batch.write(() => { callbacked = true })
+      should.equal(callbacked, true)
+      should.equal(db.get('test:a'), 'a')
+      should.equal(db.get('test:b'), 'b')
+      should.equal(db.get('test:c'), undefined)
+      should.equal(db.get('test:d'), undefined)
+    });
+    it('batch array', async function() {
+      await db.batch([
+        {type: 'put', key: 'test:a', value: 1 },
+        {type: 'put', key: 'test:b', value: 2 },
+        {type: 'put', key: 'test:c', value: 3 },
+        {type: 'del', key: 'test:c' },
+      ])
+      should.equal(db.get('test:a'), 1)
+      should.equal(db.get('test:b'), 2)
+      should.equal(db.get('test:c'), undefined)
+    });
     it('read and write with binary encoding', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb5',
@@ -659,7 +828,9 @@ describe('lmdb-store', function() {
       }));
       dbBinary.put('buffer', Buffer.from('hello'));
       dbBinary.put('empty', Buffer.from([]));
-      await dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
+      let promise = dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
+      await promise
+      await promise.flushed
       dbBinary.get('buffer').toString().should.equal('hello');
       dbBinary.get('Uint8Array')[1].should.equal(2);
       dbBinary.get('empty').length.should.equal(0);
@@ -667,7 +838,7 @@ describe('lmdb-store', function() {
     it.skip('read and write with binary methods', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb6',
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
         create: true,
       }));
       dbBinary.put(3, Buffer.from('hello'));
@@ -683,6 +854,11 @@ describe('lmdb-store', function() {
         // should have open read and cursor transactions
         db2.close();
         db.close();
+        if (options.encryptionKey) {
+          return done();
+        }
+        unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
+        console.log('successfully unlinked')
         done();
       },10);
     });
@@ -720,7 +896,7 @@ describe('lmdb-store', function() {
     before(function() {
       db = open(testDirPath, {
         name: 'uint32',
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
         compression: true,
       });
     });
@@ -744,7 +920,9 @@ describe('lmdb-store', function() {
       }
     });
     after(function() {
+      console.log('closing')
       db.close();
+      console.log('closed')
     });
   });
   describe('ArrayLikeIterable', function() {
@@ -765,17 +943,17 @@ describe('lmdb-store', function() {
       const rootDb = open({
         name: `root`,
         path: testDirPath + '/test-mixedkeys.mdb',
-        keyIsUint32: false,
+        keyEncoding: 'ordered-binary',
       })
 
       intKeys = rootDb.openDB({
         name: `intKeys`,
-        keyIsUint32: true,
+        keyEncoding: 'uint32',
       })
 
       strKeys = rootDb.openDB({
         name: `strKeys`,
-        keyIsUint32: false,
+        keyEncoding: 'ordered-binary',
       })
 
     })

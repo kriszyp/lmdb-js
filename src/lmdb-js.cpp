@@ -1,13 +1,12 @@
-#include "node-lmdb.h"
-#include "node-lmdb.h"
+#include "lmdb-js.h"
 
 using namespace v8;
 using namespace node;
 
 int Logging::initLogging() {
-    char* logging = getenv("LMDB_STORE_LOGGING");
+    char* logging = getenv("LMDB_JS_LOGGING");
     if (logging)
-        fprintf(stderr, "Start logging for lmdb-store\n");
+        fprintf(stderr, "Start logging for lmdb-js\n");
     return !!logging;
 }
 int Logging::debugLogging = Logging::initLogging();
@@ -27,11 +26,6 @@ NODE_MODULE_INIT(/* exports, module, context */) {
     if (Logging::debugLogging)
         fprintf(stderr, "Finished initialization\n");
 }
-/*void TestInitialize(Local<Object> exports) {
-    fprintf(stderr, "Running non-context aware initialization\n");
-}
-NODE_MODULE(NODE_GYP_MODULE_NAME, TestInitialize)*/
-
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license

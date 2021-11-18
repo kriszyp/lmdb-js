@@ -1,9 +1,8 @@
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb.svg?style=flat-square)](https://www.npmjs.org/package/lmdb)
+[![npm version](https://img.shields.io/npm/dw/lmdb-store)](https://www.npmjs.org/package/lmdb-store)
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
-
-Version 2.0 of lmdb-store is now available and published as the [`lmdb` package](https://www.npmjs.com/package/lmdb)!
 
 This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
@@ -19,14 +18,16 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-This library, `lmdb-store` is published to the NPM package `lmdb-store` and `lmdb`, and can be installed with:
+This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
 
-This has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
+This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
+
+This library was formerly known as "lmdb-store", but "lmdb-js" better represents the broad purpose of being the cross-platform LMDB JavaScript library. This package has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
 
 ## Design
 
-This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data.
+This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data in LMDB.
 
 `lmdb-store` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-store` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
@@ -41,9 +42,7 @@ This library provides optional compression using LZ4 that works in conjunction w
 ## Usage
 An lmdb store instance is created with by using `open` export from the main module:
 ```
-const { open } = require('lmdb');
-// or
-// import { open } from 'lmdb';
+import { open } from 'lmdb'; // or require
 let myStore = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
@@ -52,7 +51,7 @@ let myStore = open({
 await myStore.put('greeting', { someText: 'Hello, World!' });
 myStore.get('greeting').someText // 'Hello, World!'
 // or
-myStore.transactionAsync(() => {
+myStore.transaction(() => {
 	myStore.put('greeting', { someText: 'Hello, World!' });
 	myStore.get('greeting').someText // 'Hello, World!'
 });
@@ -71,9 +70,12 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
 * `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` stores where data values are ordered, and having consistent key and value ordering is helpful.
 
+In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
+
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
 ```
+null // lowest possible value
 Symbol.for('even symbols')
 -10 // negative supported
 -1.1 // decimals supported
@@ -85,8 +87,9 @@ Symbol.for('even symbols')
 'hello'
 ['hello', 1, 'world']
 ['hello', 'world']
+Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
-You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), or use `keyIsUint32` for keys that are strictly 32-bit unsigned integers.
+You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), use `keyIsUint32` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a store, the following methods are available:
 
@@ -94,7 +97,7 @@ Once you created have a store, the following methods are available:
 This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist.
 
 ### `store.getEntry(key): any`
-This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database, and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
+This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `store.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
 
 ### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
@@ -226,7 +229,7 @@ Here are the options that can be provided to the range methods (all are optional
 ### `store.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
 ```
-const { open } = require('lmdb');
+import { open } from 'lmdb';
 let rootStore = open('all-my-data');
 let usersStore = myStore.openDB('users');
 let groupsStore = myStore.openDB('groups');
@@ -249,6 +252,13 @@ rootStore.transactionAsync(() => {
 ### `getLastVersion(): number`
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
 
+### `asBinary(buffer): Binary`
+This can be used to directly store a buffer or Uint8Array as a value, bypassing any encoding. If you are using a store with an encoding that isn't `binary`, setting a value with a Uint8Array will typically be encoded with the store's encoding (for example MessagePack wraps in a header, preserving its type for `get`). However, if you want to bypass encoding, for example, if you have already encoded a value, you can use `asBinary`:
+```
+let buffer = encode(myValue) // if we have already serialized a value, perhaps to compare it or check its size
+db.put(key, asBinary(buffer)) // we can directly store the encoded value
+```
+
 ### `close(): void`
 This will close the current store. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `store.openDB`), it will close the environment (and child stores will no longer be able to interact with the database).
 
@@ -259,7 +269,7 @@ This checks if an entry exists for the given key, and optionally verifies that t
 This will retrieve the binary data at the specified key. This is just like `get`, except it will always return the value's binary representation as a buffer, rather than decoding with the store's encoding format (if there is no entry, `undefined` will still be returned).
 
 ### `store.getBinaryFast(key): Buffer`
-This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations).
+This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations). Since this is a reusable buffer it also slightly differs from a typical buffer: the `length` property is set to the length of the value (what you typically want for normal usage), but the `byteLength` will be the size of the full allocated memory area for the buffer (usually much larger).
 
 ### `resetReadTxn(): void`
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
@@ -339,25 +349,34 @@ Additional databases can be opened within the main database environment with:
 `store.openDB(name, options)` or `store.openDB(options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
-* `encoding` - Sets the encoding for the database, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
+* `encoding` - Sets the encoding for the database values, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
+* `encoder` - Directly set the encoder to use. This can be an object with `encode` and `decode` methods. It can also be an object with an `Encoder` that will be called to create the encoder instance. This allows you explicitly set the encoder with an import:
+```
+import * as cbor from 'cbor-x';
+let db = open({ encoder: cbor });
+```
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)).
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
-* `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
-* `keyIsBuffer` - This will cause the database to expect and return keys as node buffers.
-* `keyIsUint32` - This will cause the database to expect and return keys as unsigned 32-bit integers.
+* `keyEncoding` - This indicates the encoding to use for the database keys, and can be `'uint32'` for unsigned 32-bit integers, `'binary'` for raw buffers/Uint8Arrays, and the default `'ordered-binary'` allows any JS primitive as a keys.
+* `keyEncoder` - Provide a custom key encoder.
 * `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
 * `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
+
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
+* `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
+* `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
+* `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-store to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transactionAsync`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
+* `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
 
 #### LMDB Flags
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>. None of these need to be set, the defaults can always be used and are generally recommended, but these are available for various needs and performance optimizations:
-* `noSync` - Doesn't sync the data to disk. This can be useful for temporary databases where durability/integrity is not necessary, and can significantly improve write performance that is I/O bound. We discourage this flag for data that needs integrity and durability in storage, since it can result in data loss/corruption if the computer crashes.
+* `noSync` - Does not explicitly flush data to disk at all. This can be useful for temporary databases where durability/integrity is not necessary, and can significantly improve write performance that is I/O bound. However, we discourage this flag for data that needs integrity and durability in storage, since it can result in data loss/corruption if the computer crashes.
 * `noMemInit` - This provides a small performance boost for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database. If you do not need to worry about unauthorized access to the db files themselves, this is recommended.
 * `remapChunks` - This a flag to specify if dynamic memory mapping should be used. Enabling this generally makes read operations a little bit slower, but frees up more mapped memory, making it friendlier to other applications. This is enabled by default on 32-bit operating systems (which require this to go beyond 4GB database size) if `mapSize` is not specified, otherwise it is disabled by default.
 * `mapSize` - This can be used to specify the initial amount of how much virtual memory address space (in bytes) to allocate for mapping to the database files. Setting a map size will typically disable `remapChunks` by default unless the size is larger than appropriate for the OS. Different OSes have different allocation limits.
@@ -369,6 +388,26 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `readOnly` - Self-descriptive.
 * `mapAsync` - Not recommended, commits are already performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
+### Overlapping Sync Options
+The `overlappingSync` option enables a new technique for committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
+
+When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. When enabled, the `separateFlushed` is also enabled by default and for write operations, the returned promise will resolve when the transaction is committed. The promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
+```
+let db = open('my-db', { overlappingSync: true })
+let written = db.put(key, value);
+await written; // wait for it to be committed
+let v = db.get(key) // this value now be retrieved from the db
+await written.flushed // wait for commit to be fully flushed to disk
+```
+
+The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set it. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use differing `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
+
+Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have very poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms. This is probably a good setting:
+```
+	overlappingSync: os.platform() != 'win32',
+	separateFlushed: true,
+```
+
 #### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
 * `structuredClone` -  This enables the structured cloning extensions that will encode object/cyclic references and additional built-in types/classes.
@@ -376,11 +415,28 @@ If you are using the default encoding of `'msgpack'`, the [msgpackr](https://git
 
 You can also use the CBOR format by specifying the encoding of `'cbor'` and installing the [cbor-x](https://github.com/kriszyp/cbor-x) package, which supports the same options.
 
+## Custom Key Encoding
+Custom key encoding can be useful for defining more efficient encodings of specific keys like UUIDs. Custom key encoding can be specified by providing a `keyEncoder` object with the following methods:
+* `writeKey(key, targetBuffer, startPosition)` - This should write the provided key to the target buffer and returning the end position in the buffer.
+* `readKey(sourceBuffer, start, end)` - This should read the key from the provided buffer, with provided start and end position in the buffer, returning the key.
+
 ## Events
 
 The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
-`beforecommit` - This event is fired before a batched operation begins to start a transaction to write all queued writes to the database. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed (this can be useful for updating a global version stamp based on all previous writes, for example).
+`beforecommit` - This event is fired before a transaction finishes/commits. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed as the last operation(s) before the transaction commits (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled. This can be called multiples times in a transaction, but should always be called as the last operation of a transaction.
+
+## LevelUp
+
+If you have an existing application built on LevelUp, the lmdb-store is designed to make it easy to transition to this package, with most of the LevelUp API implemented and supported in lmdb-store. This includes the `put`, `del`, `batch`, `status`, `isOperation`, and `getMany` functions. One key difference in APIs is that LevelUp uses asynchronous callback based `get`s, but lmdb-store is so fast that it generally returns from `get` call before an an event can even be queued, consequently lmdb-store uses synchronous `get`s. However, there is a `levelup` export that can be used to generate a new store instance with LevelUp's style of API for `get` (although it still runs synchronously):
+```
+let dbLevel = levelup(db)
+dbLevel.get(id, (error, value) => {
+
+})
+// or
+dbLevel.get(id).then(...)
+```
 
 ##### Build Options
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
@@ -390,7 +446,7 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
-`npm install --enable_fast_api_calls=true`: This will build `lmdb-store` with V8's new API for fast calls. `lmdb-store` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This is only supported in Node v16.4.0 and higher.
+`npm install --enable_fast_api_calls=true`: This will build `lmdb-store` with V8's new API for fast calls. `lmdb-store` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This is only supported in Node v17 and higher.
 
 ## Credits
 

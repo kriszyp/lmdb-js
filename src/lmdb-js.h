@@ -1,5 +1,5 @@
 
-// This file is part of lmdb-store
+// This file is part of lmdb-js
 // Copyright (c) 2013-2017 Timur Kristóf
 // Licensed to you under the terms of the MIT license
 //
@@ -30,18 +30,60 @@
 #include <node.h>
 #include <node_buffer.h>
 #include <nan.h>
-#include <uv.h>
 #include "lmdb.h"
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
 #endif
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-#include "v8-fast-api-calls.h"
+#if NODE_VERSION_AT_LEAST(17,0,0)
+#include "../dependencies/v8/v8-fast-api-calls.h"
+#else
+#include "../dependencies/v8/v8-fast-api-calls-v16.h"
+#endif
 #endif
 
 using namespace v8;
 using namespace node;
+
+
+
+#ifndef __CPTHREAD_H__
+#define __CPTHREAD_H__
+
+#ifdef _WIN32
+# include <windows.h>
+#else
+# include <pthread.h>
+#endif
+
+#ifdef _WIN32
+typedef CRITICAL_SECTION pthread_mutex_t;
+typedef void pthread_mutexattr_t;
+typedef void pthread_condattr_t;
+typedef HANDLE pthread_t;
+typedef CONDITION_VARIABLE pthread_cond_t;
+
+#endif
+
+#ifdef _WIN32
+
+int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr);
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+
+int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr);
+int pthread_cond_destroy(pthread_cond_t *cond);
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int pthread_cond_signal(pthread_cond_t *cond);
+int pthread_cond_broadcast(pthread_cond_t *cond);
+
+#endif
+
+int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
+
+#endif /* __CPTHREAD_H__ */
 
 class Logging {
   public:
@@ -79,7 +121,6 @@ class DbiWrap;
 class EnvWrap;
 class CursorWrap;
 class Compression;
-class KeySpace;
 
 // Exports misc stuff to the module
 void setupExportMisc(Local<Object> exports);
@@ -92,40 +133,14 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
-argtokey_callback_t argToKey(const Local<Value> &val, MDB_val &key, NodeLmdbKeyType keyType, bool &isValid);
-size_t valueToKey(const Local<Value> &jsKey, uint8_t* targetBytes, size_t remainingBytes, bool inArray, bool throwErrors);
-bool valueToMDBKey(const Local<Value> &key, MDB_val &val, KeySpace &keySpace);
-
-NodeLmdbKeyType inferAndValidateKeyType(const Local<Value> &key, const Local<Value> &options, NodeLmdbKeyType dbiKeyType, bool &isValid);
-NodeLmdbKeyType inferKeyType(const Local<Value> &val);
 NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
-Local<Value> keyToHandle(MDB_val &key, NodeLmdbKeyType keyType);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
-int compare32LE(const MDB_val *a, const MDB_val *b);
-NAN_METHOD(getLastVersion);
-NAN_METHOD(setLastVersion);
+int compareFast(const MDB_val *a, const MDB_val *b);
+NAN_METHOD(setGlobalBuffer);
 NAN_METHOD(lmdbError);
-NAN_METHOD(bufferToKeyValue);
-NAN_METHOD(keyValueToBuffer);
 //NAN_METHOD(getBufferForAddress);
 NAN_METHOD(getAddress);
-
-class KeySpaceHolder {
-public:
-    uint8_t* data;
-    KeySpaceHolder* previousSpace;
-    KeySpaceHolder(KeySpaceHolder* existingPreviousSpace, uint8_t* existingData);
-    KeySpaceHolder();
-    ~KeySpaceHolder();
-};
-class KeySpace : public KeySpaceHolder {
-public:
-    int position;
-    int size;
-    bool fixedSize;
-    uint8_t* getTarget();
-    KeySpace(bool fixed);
-};
+NAN_METHOD(getAddressShared);
 
 #ifndef thread_local
 #ifdef __GNUC__
@@ -139,24 +154,12 @@ public:
 #endif
 #endif
 
-// markers for special cases
-const double ANY_VERSION = -3.3434325325532E-199;
-const double NO_EXIST_VERSION = -4.2434325325532E-199;
-
-KeySpace* getFixedKeySpace();
-void setLastVersion(double version);
-
-bool valToBinaryFast(MDB_val &data);
+bool valToBinaryFast(MDB_val &data, DbiWrap* dw);
 Local<Value> valToUtf8(MDB_val &data);
 Local<Value> valToString(MDB_val &data);
 Local<Value> valToStringUnsafe(MDB_val &data);
 Local<Value> valToBinary(MDB_val &data);
-Local<Value> valToBinaryUnsafe(MDB_val &data);
-Local<Value> valToNumber(MDB_val &data);
-Local<Value> valToBoolean(MDB_val &data);
-
-Local<Value> MDBKeyToValue(MDB_val &data);
-void makeGlobalUnsafeBuffer(size_t size);
+Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
 
 int putWithVersion(MDB_txn *   txn,
         MDB_dbi     dbi,
@@ -176,36 +179,45 @@ struct env_path_t {
     int count;
 };
 
-struct action_t {
-    int actionType;
-    MDB_val key;
-    union {
-        struct {
-            DbiWrap* dw;
-        };
-        struct {
-            MDB_val data;
-            double ifVersion;
-            double version;
-            argtokey_callback_t freeValue;
-        };
-    };
-};
-
 const int INTERRUPT_BATCH = 9998;
-const int RESUME_BATCH = 9999;
+const int ALLOW_COMMIT = 9997;
+const int RESTART_WORKER_TXN = 9999;
+const int RESUME_BATCH = 9996;
+const int USER_HAS_LOCK = 9995;
+const int SEPARATE_FLUSHED = 1;
 
-class BatchWorkerBase : public Nan::AsyncProgressWorker {
+class WriteWorker : public Nan::AsyncProgressWorker {
   public:
-    BatchWorkerBase(Nan::Callback *callback, EnvWrap* envForTxn);
-    void ContinueBatch(int rc, bool hasStarted);
-    uv_mutex_t* userCallbackLock;
-    uv_cond_t* userCallbackCond;
+    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
+    void Write();
+    MDB_txn* txn;
+    MDB_txn* AcquireTxn(int* flags);
+    void UnlockTxn();
+    void Execute(const ExecutionProgress& executionProgress);
+    void HandleProgressCallback(const char* data, size_t count);
+    void HandleOKCallback();
+    int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
+    void ReportError(const char* error);
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
-    TxnWrap* currentTxnWrap;
-    ~BatchWorkerBase();
+    ~WriteWorker();
+    uint32_t* instructions;
+    int progressStatus;
+  private:
+    ExecutionProgress* executionProgress;
+    MDB_env* env;
+};
+
+class TxnTracked {
+  public:
+    TxnTracked(MDB_txn *txn, unsigned int flags);
+    ~TxnTracked();
+    unsigned int flags;
+    int cursorCount;
+    bool onlyCursor;
+    MDB_txn *txn;
+    TxnTracked *parent;
 };
 
 /*
@@ -221,12 +233,11 @@ private:
     static thread_local Nan::Persistent<Function>* txnCtor;
     // Constructor for DbiWrap
     static thread_local Nan::Persistent<Function>* dbiCtor;
-    static uv_mutex_t* envsLock;
+    static pthread_mutex_t* envsLock;
     static std::vector<env_path_t> envs;
-    static uv_mutex_t* initMutex();
+    static pthread_mutex_t* initMutex();
     // compression settings and space
     Compression *compression;
-    BatchWorkerBase* batchWorker;
 
     // Cleans up stray transactions
     void cleanupStrayTxns();
@@ -241,18 +252,21 @@ public:
     MDB_env *env;
     // Current write transaction
     TxnWrap *currentWriteTxn;
+    TxnTracked *writeTxn;
+    pthread_mutex_t* writingLock;
+    pthread_cond_t* writingCond;
 
     MDB_txn* currentReadTxn;
+    WriteWorker* writeWorker;
     bool readTxnRenewed;
-    // Current raw batch transaction
-    MDB_txn *currentBatchTxn;
+    unsigned int jsFlags;
     char* keyBuffer;
     MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
     void closeEnv();
-
+    
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)
@@ -345,6 +359,8 @@ public:
         * readOnly: if true, the transaction is read-only
     */
     static NAN_METHOD(beginTxn);
+    static NAN_METHOD(commitTxn);
+    static NAN_METHOD(abortTxn);
 
     /*
         Opens a database in the environment.
@@ -384,11 +400,19 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static NAN_METHOD(batchWrite);
+    static NAN_METHOD(startWriting);
+    static NAN_METHOD(compress);
+#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+    static void writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
+#endif
+    static void write(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-    static NAN_METHOD(continueBatch);
     static NAN_METHOD(resetCurrentReadTxn);
 };
+
+const int TXN_ABORTABLE = 1;
+const int TXN_SYNCHRONOUS_COMMIT = 2;
+const int TXN_FROM_WORKER = 4;
 
 /*
     `Txn`
@@ -405,8 +429,6 @@ private:
     EnvWrap *ew;
     // parent TW, if it is exists
     TxnWrap *parentTw;
-    // The wrapped object
-    MDB_txn *txn;
     
     // Flags used with mdb_txn_begin
     unsigned int flags;
@@ -418,17 +440,15 @@ private:
 public:
     TxnWrap(MDB_env *env, MDB_txn *txn);
     ~TxnWrap();
+
+    // The wrapped object
+    MDB_txn *txn;
+
     // Remove the current TxnWrap from its EnvWrap
     void removeFromEnvWrap();
 
     // Constructor (not exposed)
     static NAN_METHOD(ctor);
-
-    // Helper for all the get methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, Local<Value> (*successFunc)(MDB_val&));
-
-    // Helper for all the put methods (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE putCommon(Nan::NAN_METHOD_ARGS_TYPE info, void (*fillFunc)(Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&), void (*freeFunc)(MDB_val&));
 
     /*
         Commits the transaction.
@@ -454,158 +474,6 @@ public:
     */
     static NAN_METHOD(renew);
 
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database as UTF-8. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getUtf8);
-
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getString);
-
-    /*
-        Gets string data (JavaScript string type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getStringUnsafe);
-
-    /*
-        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBinary);
-
-    /*
-        Gets binary data (Node.js Buffer) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method is zero-copy and the return value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBinaryUnsafe);
-
-    /*
-        Gets number data (JavaScript number type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method will copy the value out of the database.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getNumber);
-
-    /*
-        Gets boolean data (JavaScript boolean type) associated with the given key from a database. You need to open a database in the environment to use this.
-        This method will copy the value out of the database.
-        (Wrapper for `mdb_get`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is retrieved
-    */
-    static NAN_METHOD(getBoolean);
-
-    /*
-        Puts string data (JavaScript string type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putString);
-
-    /*
-        Puts string data (JavaScript string type) into a database as UTF-8.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putUtf8);
-
-    /*
-        Puts binary data (Node.js Buffer) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putBinary);
-
-    /*
-        Puts number data (JavaScript number type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putNumber);
-
-    /*
-        Puts boolean data (JavaScript boolean type) into a database.
-        (Wrapper for `mdb_put`)
-
-        Parameters:
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-        * data to store for the given key
-    */
-    static NAN_METHOD(putBoolean);
-
-    /*
-        Deletes data with the given key from the database.
-        (Wrapper for `mdb_del`)
-
-        * database instance created with calling `openDbi()` on an `Env` instance
-        * key for which the value is stored
-    */
-    static NAN_METHOD(del);
 };
 
 /*
@@ -632,11 +500,7 @@ public:
     // versions stored in data
     bool hasVersions;
     // current unsafe buffer for this db
-    char* lastUnsafePtr;
     bool getFast;
-    bool keysUse32LE;
-    bool valuesUse32LE;
-    void setUnsafeBuffer(char* unsafePtr, const Persistent<Object> &unsafeBuffer);
 
     friend class TxnWrap;
     friend class CursorWrap;
@@ -667,15 +531,13 @@ public:
 
     */
     static NAN_METHOD(drop);
-    static NAN_METHOD(dropAsync);
 
     static NAN_METHOD(stat);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(getByPrimitive);
-    static NAN_METHOD(getStringByPrimitive);
+    static NAN_METHOD(getStringByBinary);
 };
 
 class Compression : public Nan::ObjectWrap {
@@ -685,19 +547,19 @@ public:
     char* decompressTarget;
     unsigned int decompressSize;
     unsigned int compressionThreshold;
-    Persistent<Object> unsafeBuffer;
     // compression acceleration (defaults to 1)
     int acceleration;
     static thread_local LZ4_stream_t* stream;
     void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
-    void makeUnsafeBuffer();
-    void expand(unsigned int size);
+    int compressInstruction(EnvWrap* env, double* compressionAddress);
     static NAN_METHOD(ctor);
+    static NAN_METHOD(setBuffer);
     Compression();
     ~Compression();
     friend class EnvWrap;
     friend class DbiWrap;
+    //NAN_METHOD(Compression::startCompressing);
 };
 
 /*
@@ -720,7 +582,7 @@ private:
     MDB_cursor_op iteratingOp;
     int flags;
     DbiWrap *dw;
-    TxnWrap *tw;
+    MDB_txn *txn;
     
     template<size_t keyIndex, size_t optionsIndex>
     friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
@@ -753,189 +615,13 @@ public:
         * Database instance object
     */
     static NAN_METHOD(close);
-
-    // Helper method for getters (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(
-        Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op,
-        argtokey_callback_t (*setKey)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&, bool&),
-        void (*setData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        void (*freeData)(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val&),
-        Local<Value> (*convertFunc)(MDB_val &data));
-
-    // Helper method for getters (not exposed)
-    static Nan::NAN_METHOD_RETURN_TYPE getCommon(Nan::NAN_METHOD_ARGS_TYPE info, MDB_cursor_op op);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentUtf8);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is not zero-copy and the return value will usable as long as there is a reference to it.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentString);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentStringUnsafe);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBinary);
-
-
-    /*
-        Gets the current key-data pair with zero-copy that the cursor is pointing to. Returns the current key.
-        This method is zero-copy and the value can only be used until the next put operation or until the transaction is committed or aborted.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBinaryUnsafe);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to. Returns the current key.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentNumber);
-
-    /*
-        Gets the current key-data pair that the cursor is pointing to.
-        (Wrapper for `mdb_cursor_get`)
-
-        Parameters:
-
-        * Callback that accepts the key and value
-    */
-    static NAN_METHOD(getCurrentBoolean);
-
-    /*
-    Is the current cursor a database
-    (Wrapper for `mdb_cursor_is_db`)
-    */
-    static NAN_METHOD(getCurrentIsDatabase);
-
-    /*
-        Asks the cursor to go to the first key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToFirst);
-
-    /*
-        Asks the cursor to go to the last key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToLast);
-
-    /*
-        Asks the cursor to go to the next key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNext);
-
-    /*
-        Asks the cursor to go to the previous key-data pair in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrev);
-
-    /*
-        Asks the cursor to go to the specified key in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToKey);
-
-    /*
-        Asks the cursor to go to the first key greater than or equal to the specified parameter in the database.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToRange);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the first occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToFirstDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the last occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToLastDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the next occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNextDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the previous occurence of the current key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrevDup);
-
-    /*
-        Go to the entry for next key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToNextNoDup);
-
-    /*
-        Go to the entry for previous key.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToPrevNoDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the specified key/data pair.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToDup);
-
-    /*
-        For databases with the dupSort option. Asks the cursor to go to the specified key with the first data that is greater than or equal to the specified.
-        (Wrapper for `mdb_cursor_get`)
-    */
-    static NAN_METHOD(goToDupRange);
-
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)
     */
     static NAN_METHOD(del);
 
+    static NAN_METHOD(getCurrentValue);
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
@@ -945,11 +631,8 @@ public:
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
     static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
     static NAN_METHOD(renew);
-    //static NAN_METHOD(getStringByPrimitive);
+    //static NAN_METHOD(getStringByBinary);
 };
-
-void load32LE(MDB_val &val, uint32_t* target);
-void make32LE(MDB_val &val);
 
 // External string resource that glues MDB_val and v8::String
 class CustomExternalStringResource : public String::ExternalStringResource {

@@ -293,6 +293,7 @@ typedef struct MDB_val {
 	void		*mv_data;	/**< address of the data item */
 } MDB_val;
 
+
 /** @brief A callback function used to compare two keys in a database */
 typedef int  (MDB_cmp_func)(const MDB_val *a, const MDB_val *b);
 
@@ -344,6 +345,8 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
  */
 	/** mmap at a fixed address (experimental) */
 #define MDB_FIXEDMAP	0x01
+      /** Use overlapping sync approach */
+#define MDB_OVERLAPPINGSYNC		0x1000
 	/** encrypted DB - read-only flag, set by #mdb_env_set_encrypt() */
 #define MDB_ENCRYPT		0x2000U
 	/** no environment directory */
@@ -1041,6 +1044,7 @@ int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int mdb_env_set_encrypt(MDB_env *env, MDB_enc_func *func, const MDB_val *key, unsigned int size);
+
 
 	/** @brief Set checksums on an environment.
 	 *

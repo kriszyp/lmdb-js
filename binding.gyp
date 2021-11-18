@@ -6,18 +6,20 @@
       "enable_fast_api_calls%": "false",
       "enable_pointer_compression%": "false",
       "target%": "",
-      "build_v8_with_gn": "false"
+      "build_v8_with_gn": "false",
+      "runtime%": "node"
   },
   "targets": [
     {
       "target_name": "lmdb",
       "win_delay_load_hook": "false",
       "sources": [
-        "src/node-lmdb.cpp",
+        "src/lmdb-js.cpp",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
         "dependencies/lz4/lib/lz4.c",
+        "src/writer.cpp",
         "src/env.cpp",
         "src/compression.cpp",
         "src/ordered-binary.cpp",
@@ -44,13 +46,6 @@
             "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
           ],
-          "conditions": [
-            ["gcc_version>=7", {
-              "cflags": [
-                "-Wimplicit-fallthrough=2",
-              ],
-            }],
-          ],
           "ldflags": [
             "-fPIC",
             "-fvisibility=hidden"
@@ -62,7 +57,7 @@
           ],
         }],
         ["OS=='win'", {
-            "libraries": ["ntdll.lib"]
+            "libraries": ["ntdll.lib", "synchronization.lib"]
         }],
         ["use_data_v1=='true'", {
           "sources": [
@@ -81,6 +76,9 @@
         }],
         ["enable_pointer_compression=='true'", {
           "defines": ["V8_COMPRESS_POINTERS", "V8_COMPRESS_POINTERS_IN_ISOLATE_CAGE"],
+        }],
+        ['runtime=="electron"', {
+          "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
         ["enable_fast_api_calls=='true'", {
           "defines": ["ENABLE_FAST_API=1"],

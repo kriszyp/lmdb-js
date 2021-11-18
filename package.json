@@ -1,24 +1,33 @@
-{
-  "name": "lmdb-store",
+  {
+  "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "1.6.14",
+  "version": "2.0.0",
   "description": "Simple, efficient, scalable data store wrapper for LMDB",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "http://github.com/DoctorEvidence/lmdb-store"
+    "url": "git+ssh://git@github.com/DoctorEvidence/lmdb-store.git"
   },
   "keywords": [
     "lmdb",
     "database",
     "mdb",
-    "lightning"
+    "lightning",
+    "key-value store",
+    "storage",
+    "adapter",
+    "performance"
   ],
-  "type": "commonjs",
-  "main": "./index.js",
+  "type": "module",
+  "module": "index.js",
   "exports": {
-    "import": "./index.mjs",
-    "require": "./index.js"
+    ".": {
+      "node": {
+        "require": "./dist/index.cjs",
+        "import": "./node-index.js"
+      },
+      "default": "./index.js"
+    }
   },
   "types": "./index.d.ts",
   "tsd": {
@@ -26,11 +35,14 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "prebuild": "prebuildify --target 17.0.1 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.17.0 && prebuildify --target electron@15.2.0",
-    "prebuild-musl": "prebuildify --target 17.0.1 --libc musl --tag-libc && prebuildify --target 16.9.0 --libc musl --tag-libc && prebuildify --target 14.17.6 --libc musl --tag-libc && prebuildify --target 12.22.7 --libc musl --tag-libc",
-    "prebuild-arm64": "prebuildify --arch=arm64 --target 17.0.1 --libc musl && prebuildify --arch=arm64 --target 16.9.0 && prebuildify --arch=arm64 --target 14.17.6 && prebuildify --arch=arm64 --target electron@15.2.0",
-    "before-publish": "prebuildify --target 17.0.1 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.17.0 && prebuildify --target electron@15.2.0",
-    "recompile": "node-gyp clean && node-gyp configure && node-gyp build -d",
+    "build": "node-gyp configure && node-gyp build -d && rollup -c",
+    "build-js": "rollup -c",
+    "prepare": "rollup -c",
+    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 17.1.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@15.2.0",
+    "prebuild": "prebuildify --target 17.1.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@15.2.0",
+    "prebuild-musl": "prebuildify --target 17.1.0 --libc musl --tag-libc && prebuildify --target 16.13.0 --libc musl --tag-libc && prebuildify --target 14.17.6 --libc musl --tag-libc && prebuildify --target 12.22.7 --libc musl --tag-libc",
+    "prebuild-arm64": "prebuildify --arch=arm64 --target 17.1.0 --libc musl && prebuildify --arch=arm64 --target 16.13.0 && prebuildify --arch=arm64 --target 14.17.6 && prebuildify --arch=arm64 --target electron@15.2.0",
+    "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
     "test:types": "tsd",
@@ -39,11 +51,11 @@
   },
   "gypfile": true,
   "dependencies": {
+    "msgpackr": "^1.5.0",
     "nan": "^2.14.2",
     "node-gyp-build": "^4.2.3",
-    "ordered-binary": "^1.0.0",
-    "weak-lru-cache": "^1.0.0",
-    "msgpackr": "^1.5.0"
+    "ordered-binary": "^1.1.0",
+    "weak-lru-cache": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "^16.7.10",
@@ -55,6 +67,14 @@
     "prebuildify": "^5.0.0",
     "prebuildify-ci": "^1.0.5",
     "rimraf": "^3.0.2",
+    "rollup": "^1.20.3",
     "tsd": "^0.14.0"
+  },
+  "bugs": {
+    "url": "https://github.com/DoctorEvidence/lmdb-store/issues"
+  },
+  "homepage": "https://github.com/DoctorEvidence/lmdb-store#readme",
+  "directories": {
+    "test": "tests"
   }
 }

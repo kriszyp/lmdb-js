@@ -887,16 +887,20 @@ typedef struct MDB_txninfo {
 		char pad[(sizeof(MDB_txbody)+CACHELINE-1) & ~(CACHELINE-1)];
 	} mt1;
 #if !(defined(_WIN32) || defined(MDB_USE_POSIX_SEM))
-	union {
+	union { struct {
 #ifdef MDB_USE_SYSV_SEM
 		int mt2_wlocked;
+		int mt2_sync_locked;
 #define mti_wlocked	mt2.mt2_wlocked
+#define mti_sync_locked	mt2.mt2_sync_locked
 #else
 		mdb_mutex_t	mt2_wmutex;
+		mdb_mutex_t	mt2_sync_mutex;
 #define mti_wmutex	mt2.mt2_wmutex
+#define mti_sync_mutex	mt2.mt2_sync_mutex
 #endif
 		char pad[(MNAME_LEN+CACHELINE-1) & ~(CACHELINE-1)];
-	} mt2;
+		};	} mt2;
 #endif
 	MDB_reader	mti_readers[1];
 } MDB_txninfo;
@@ -1437,7 +1441,7 @@ struct MDB_txn {
  *	@{
  */
 	/** #mdb_txn_begin() flags */
-#define MDB_TXN_BEGIN_FLAGS	(MDB_NOMETASYNC|MDB_NOSYNC|MDB_RDONLY)
+#define MDB_TXN_BEGIN_FLAGS	(MDB_NOMETASYNC|MDB_NOSYNC|MDB_RDONLY|MDB_OVERLAPPINGSYNC)
 #define MDB_TXN_NOMETASYNC	MDB_NOMETASYNC	/**< don't sync meta for this txn on commit */
 #define MDB_TXN_NOSYNC		MDB_NOSYNC	/**< don't sync this txn on commit */
 #define MDB_TXN_RDONLY		MDB_RDONLY	/**< read-only transaction */
@@ -1567,14 +1571,14 @@ typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
 	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
 } MDB_pgstate;
-/*<lmdb-store>*/
+/*<lmdb-js>*/
 struct MDB_last_map {
 	struct MDB_last_map	*last_map;
 	char 			*map;
 	mdb_size_t		mapsize;
 };
 typedef struct MDB_last_map MDB_last_map;
-/*</lmdb-store>*/
+/*</lmdb-js>*/
 	/** The database environment. */
 struct MDB_env {
 	HANDLE		me_fd;		/**< The main data file */
@@ -1607,9 +1611,9 @@ struct MDB_env {
 	MDB_PID_T	me_pid;		/**< process ID of this env */
 	char		*me_path;		/**< path to the DB files */
 	char		*me_map;		/**< the memory map of the data file */
-/*<lmdb-store>*/
+/*<lmdb-js>*/
 	MDB_last_map	*me_last_map;	/**< the previous memory map of the data file after a resize */
-/*</lmdb-store>*/
+/*</lmdb-js>*/
 	MDB_txninfo	*me_txns;		/**< the memory map of the lock file or NULL */
 	MDB_meta	*me_metas[NUM_METAS];	/**< pointers to the two meta pages */
 	void		*me_pbuf;		/**< scratch area for DUPSORT put() */
@@ -1650,14 +1654,17 @@ struct MDB_env {
 #ifdef MDB_USE_POSIX_MUTEX	/* Posix mutexes reside in shared mem */
 #	define		me_rmutex	me_txns->mti_rmutex /**< Shared reader lock */
 #	define		me_wmutex	me_txns->mti_wmutex /**< Shared writer lock */
+#	define		me_sync_mutex	me_txns->mti_sync_mutex /**< Shared sync lock */
 #else
 	mdb_mutex_t	me_rmutex;
 	mdb_mutex_t	me_wmutex;
+	mdb_mutex_t	me_sync_mutex;
 # if defined(_WIN32) || defined(MDB_USE_POSIX_SEM)
 	/** Half-initialized name of mutexes, to be completed by #MUTEXNAME() */
 	char		me_mutexname[sizeof(MUTEXNAME_PREFIX) + 11];
 # endif
 #endif
+	mdb_size_t me_synced_txn_id;
 #if MDB_RPAGE_CACHE
 	MDB_ID3L	me_rpages;	/**< like #mt_rpages, but global to env */
 	pthread_mutex_t	me_rpmutex;	/**< control access to #me_rpages */
@@ -2549,7 +2556,11 @@ static txnid_t
 mdb_find_oldest(MDB_txn *txn)
 {
 	int i;
-	txnid_t mr, oldest = txn->mt_txnid - 1;
+	/* <lmdb-js> */
+	txnid_t mr, oldest = (txn->mt_env->me_flags & MDB_OVERLAPPINGSYNC) ?
+		txn->mt_env->me_synced_txn_id :
+		(txn->mt_txnid - 1);
+	/* </lmdb-js> */
 	if (txn->mt_env->me_txns) {
 		MDB_reader *r = txn->mt_env->me_txns->mti_readers;
 		for (i = txn->mt_env->me_txns->mti_numreaders; --i >= 0; ) {
@@ -2766,11 +2777,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	i = 0;
 	pgno = txn->mt_next_pgno;
 	if (pgno + num >= env->me_maxpg) {
-	/* <lmdb-store addition> */
+	/* <lmdb-js addition> */
 		size_t new_size = ((size_t) (2 * (pgno + num) * env->me_psize / 0x40000 + 1)) * 0x40000;
 //		fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
 		rc = mdb_env_set_mapsize(env, new_size);
-	/* </lmdb-store addition> */
+	/* </lmdb-js addition> */
 	}
 #if defined(_WIN32) && !defined(MDB_VL32)
 	if (env->me_flags & MDB_WRITEMAP) {
@@ -3050,7 +3061,46 @@ int
 mdb_env_sync(MDB_env *env, int force)
 {
 	MDB_meta *m = mdb_env_pick_meta(env);
-	return mdb_env_sync0(env, force, m->mm_last_pg+1);
+	// <lmdb-js>
+	if (env->me_flags & MDB_OVERLAPPINGSYNC) {
+		MDB_txninfo *ti = env->me_txns;
+		size_t last_txn_id = ti->mti_txnid;
+		//fprintf(stderr,"syncing txn %u, ", last_txn_id);
+		int rc;
+		if (LOCK_MUTEX(rc, env, env->me_sync_mutex))
+			return rc;
+		if (env->me_synced_txn_id >= last_txn_id) {
+			UNLOCK_MUTEX(env->me_sync_mutex);
+			return 0;
+		}
+		MDB_txn sync_txn;
+		MDB_db dbs[2];
+		do {
+			m = mdb_env_pick_meta(env);
+			sync_txn.mt_env = env;
+			sync_txn.mt_flags = 2;
+			sync_txn.mt_dbs = dbs;
+			sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
+			sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
+			sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
+			sync_txn.mt_txnid = last_txn_id = m->mm_txnid;
+			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
+		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
+		if (rc) {
+			UNLOCK_MUTEX(env->me_sync_mutex);
+			return rc;
+		}
+		rc = mdb_env_write_meta(&sync_txn);
+		if (rc == 0)
+			env->me_synced_txn_id = last_txn_id;
+		//fprintf(stderr,"finished syncing txn %u, ", last_txn_id);
+		UNLOCK_MUTEX(env->me_sync_mutex);
+		return rc;
+	} else {
+		return mdb_env_sync0(env, force, m->mm_last_pg+1);
+	}
+	// </lmdb-js>
 }
 
 /** Back up parent txn's cursors, then grab the originals for tracking */
@@ -3328,13 +3378,13 @@ mdb_txn_renew0(MDB_txn *txn)
 		DPUTS("environment had fatal error, must shutdown!");
 		rc = MDB_PANIC;
 	} else {
-		/* <lmdb-store change> */
+		/* <lmdb-js change> */
 		if (env->me_maxpg < txn->mt_next_pgno) {
 			// need to resize map
 			size_t new_size = ((size_t) (2 * (txn->mt_next_pgno) * env->me_psize / 0x40000 + 1)) * 0x40000;
 			mdb_env_set_mapsize(env, new_size);
 		}
-		/* </lmdb-store change> */
+		/* </lmdb-js change> */
 		return MDB_SUCCESS;
 	}
 	mdb_txn_end(txn, new_notls /*0 or MDB_END_SLOT*/ | MDB_END_FAIL_BEGIN);
@@ -3961,7 +4011,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	OVERLAPPED	*ov, *this_ov;
 	MDB_page	*wdp;
 	int async_i = 0;
-	HANDLE fd = (env->me_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
+	HANDLE fd = (txn->mt_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
 #else
 	struct iovec iov[MDB_COMMIT_PAGES];
 	HANDLE fd = env->me_fd;
@@ -3983,7 +4033,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
-	/* <lmdb-store addition> */
+	/* <lmdb-js addition> */
 	pgno = dl[pagecount].mid + dl_nump[pagecount];
 	n = 0;
 	
@@ -4019,7 +4069,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			}
 		}
 	}
-	/* </lmdb-store addition> */
+	/* </lmdb-js addition> */
 	if (pagecount - keep >= env->me_ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */
@@ -4085,7 +4135,7 @@ retry_write:
 				this_ov->Internal = 0;
 				this_ov->Offset = wpos & 0xffffffff;
 				this_ov->OffsetHigh = wpos >> 16 >> 16;
-				if (!F_ISSET(env->me_flags, MDB_NOSYNC) && !this_ov->hEvent) {
+				if (!F_ISSET(txn->mt_flags, MDB_NOSYNC) && !this_ov->hEvent) {
 					HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
 					if (!event) {
 						rc = ErrCode();
@@ -4184,7 +4234,7 @@ retry_seek:
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 
 #ifdef _WIN32
-	if (!F_ISSET(env->me_flags, MDB_NOSYNC)) {
+	if (!(txn->mt_flags & MDB_NOSYNC)) {
 		/* Now wait for all the asynchronous/overlapped sync/write-through writes to complete.
 		* We start with the last one so that all the others should already be complete and
 		* we reduce thread suspend/resuming (in practice, typically about 99.5% of writes are
@@ -4450,11 +4500,25 @@ mdb_txn_commit(MDB_txn *txn)
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
+
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
+
+	//<lmdb-js>
+	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC))
+		txn->mt_dbs[FREE_DBI].md_flags |= MDB_OVERLAPPINGSYNC;
+	else
+		txn->mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC;
+	//<//lmdb-js>
+
 	if ((rc = mdb_env_write_meta(txn)))
 		goto fail;
+
+	//<lmdb-js>
+	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
+		env->me_synced_txn_id = txn->mt_txnid;
+	//</lmdb-js>
 	end_mode = MDB_END_COMMITTED|MDB_END_UPDATE;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (!(env->me_flags & MDB_NOLOCK)) {
@@ -4473,6 +4537,19 @@ done:
 fail:
 	mdb_txn_abort(txn);
 	return rc;
+}
+
+MDB_meta* mdb_pick_meta(const MDB_env *env, MDB_meta* a, MDB_meta* b) {
+	if (env->me_flags & MDB_PREVSNAPSHOT) {
+		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
+			if (!b->mm_txnid)
+				return a;
+			return (a->mm_txnid + (a->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) >
+				(b->mm_txnid + (b->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) ? a : b;
+		}
+		return a->mm_txnid > b->mm_txnid ? b : a;
+	}
+	return a->mm_txnid >= b->mm_txnid ? a : b;
 }
 
 static int ESECT mdb_env_map(MDB_env *env, void *addr);
@@ -4507,10 +4584,12 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 				return ENOENT;
 			if (env->me_metas[i]->mm_magic != MDB_MAGIC)
 				return MDB_INVALID;
-			if (env->me_metas[i]->mm_version != MDB_DATA_VERSION)
+			if ((env->me_metas[i]->mm_version & 0xffff) != MDB_DATA_VERSION)
 				return MDB_VERSION_MISMATCH;
-			if (i == 0 || env->me_metas[i]->mm_txnid > meta->mm_txnid)
+			if (i == 0)
 				*meta = *env->me_metas[i];
+			else
+				*meta = *mdb_pick_meta(env, meta, env->me_metas[i]);
 			p = (MDB_page *)((char *)p + env->me_psize);
 		}
 		return 0;
@@ -4519,8 +4598,10 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 	/* We don't know the page size yet, so use a minimum value.
 	 * Read both meta pages so we can use the latest one.
 	 */
+	int num_metas = env->me_flags & MDB_OVERLAPPINGSYNC ? 3 : NUM_METAS;
 
-	for (i=off=0; i<NUM_METAS; i++, off += meta->mm_psize) {
+	for (i=off=0; i<num_metas; i++,
+			off += env->me_flags & MDB_OVERLAPPINGSYNC ? meta->mm_psize >> 1 : meta->mm_psize) {
 #ifdef _WIN32
 		DWORD len;
 		OVERLAPPED ov;
@@ -4541,28 +4622,31 @@ mdb_env_read_header(MDB_env *env, int prev, MDB_meta *meta)
 		}
 
 		p = (MDB_page *)&pbuf;
+		if (off == 0) {
+			if (!F_ISSET(p->mp_flags, P_META)) {
+				if (env->me_flags & MDB_RAWPART)
+					return ENOENT;
+				DPRINTF(("page %"Yu" not a meta page", p->mp_pgno));
+				return MDB_INVALID;
+			}
 
-		if (!F_ISSET(p->mp_flags, P_META)) {
-			if (env->me_flags & MDB_RAWPART)
-				return ENOENT;
-			DPRINTF(("page %"Yu" not a meta page", p->mp_pgno));
-			return MDB_INVALID;
-		}
+			m = METADATA(p);
+			if (m->mm_magic != MDB_MAGIC) {
+				DPUTS("meta has invalid magic");
+				return MDB_INVALID;
+			}
 
-		m = METADATA(p);
-		if (m->mm_magic != MDB_MAGIC) {
-			DPUTS("meta has invalid magic");
-			return MDB_INVALID;
-		}
-
-		if (m->mm_version != MDB_DATA_VERSION) {
-			DPRINTF(("database is version %u, expected version %u",
-				m->mm_version, MDB_DATA_VERSION));
-			return MDB_VERSION_MISMATCH;
-		}
-
-		if (off == 0 || (prev ? m->mm_txnid < meta->mm_txnid : m->mm_txnid > meta->mm_txnid))
+			if ((m->mm_version & 0xffff) != MDB_DATA_VERSION) {
+				DPRINTF(("database is version %u, expected version %u",
+					(m->mm_version & 0xffff), MDB_DATA_VERSION));
+				return MDB_VERSION_MISMATCH;
+			}
 			*meta = *m;
+		} else {
+			m = METADATA(p);
+			*meta = *mdb_pick_meta(env, meta, m);
+		}
+		// </lmdb-js>
 	}
 	return 0;
 }
@@ -4723,11 +4807,15 @@ mdb_env_write_meta(MDB_txn *txn)
 	meta.mm_dbs[MAIN_DBI] = txn->mt_dbs[MAIN_DBI];
 	meta.mm_last_pg = txn->mt_next_pgno - 1;
 	meta.mm_txnid = txn->mt_txnid;
+	meta.mm_version = MDB_DATA_VERSION;
 
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
 	len = sizeof(MDB_meta) - off;
-	off += (char *)mp - env->me_map;
+	if (flags & 2)
+		off += (char *)env->me_metas[0] - env->me_map + (env->me_psize >> 1);
+	else
+		off += (char *)mp - env->me_map;
 
 	/* Write to the SYNC fd unless MDB_NOSYNC/MDB_NOMETASYNC.
 	 * (me_mfd goes to the same file as me_fd, but writing to it
@@ -4779,7 +4867,7 @@ done:
 	 * readers will get consistent data regardless of how fresh or
 	 * how stale their view of these values is.
 	 */
-	if (env->me_txns)
+	if (env->me_txns && !(flags & 2))
 		env->me_txns->mti_txnid = txn->mt_txnid;
 
 	return MDB_SUCCESS;
@@ -4793,8 +4881,15 @@ static MDB_meta *
 mdb_env_pick_meta(const MDB_env *env)
 {
 	MDB_meta *const *metas = env->me_metas;
-	return metas[ (metas[0]->mm_txnid < metas[1]->mm_txnid) ^
-		((env->me_flags & MDB_PREVSNAPSHOT) != 0) ];
+	//<lmdb-js>
+	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
+	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
+		int offset = env->me_psize >> 1;
+		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
+		latest = mdb_pick_meta(env, latest, flushed);
+	}
+	//</lmdb-js>
+	return latest;
 }
 
 int ESECT
@@ -4814,9 +4909,11 @@ mdb_env_create(MDB_env **env)
 #ifdef MDB_USE_POSIX_SEM
 	e->me_rmutex = SEM_FAILED;
 	e->me_wmutex = SEM_FAILED;
+	e->me_sync_mutex = SEM_FAILED;
 #elif defined MDB_USE_SYSV_SEM
 	e->me_rmutex->semid = -1;
 	e->me_wmutex->semid = -1;
+	e->me_sync_mutex->semid = -1;
 #endif
 	e->me_pid = getpid();
 	GET_PAGESIZE(e->me_os_psize);
@@ -4963,10 +5060,10 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		int rc;
 
 
-	/* <lmdb-store removal> 
+	/* <lmdb-js removal> 
 		if (env->me_txn) We are intentionally resizing during transactions now
 			return EINVAL;
-		</lmdb-store removal> */
+		</lmdb-js removal> */
 
 		meta = mdb_env_pick_meta(env);
 		if (!size)
@@ -4982,14 +5079,14 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_REMAP_CHUNKS this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-	/* <lmdb-store removal>  We don't unmap right now because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet */
+	/* <lmdb-js removal>  We don't unmap right now because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet */
 		MDB_last_map* last_map = malloc(sizeof(MDB_last_map));
 		last_map->last_map = env->me_last_map;
 		last_map->map = env->me_map;
 		last_map->mapsize = env->me_mapsize;
 		env->me_last_map = last_map;
 		//munmap(env->me_map, env->me_mapsize);
-	 	/*</lmdb-store removal> */
+	 	/*</lmdb-js removal> */
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);
@@ -5801,6 +5898,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (!env->me_rmutex) goto fail_errno;
 		env->me_wmutex = CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
+		env->me_sync_mutex = CreateMutexA(&mdb_all_sa, FALSE, MUTEXNAME(env, 's'));
+		if (!env->me_sync_mutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
 		struct stat stbuf;
 		struct {
@@ -5829,10 +5928,13 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		 */
 		sem_unlink(MUTEXNAME(env, 'r'));
 		sem_unlink(MUTEXNAME(env, 'w'));
+		sem_unlink(MUTEXNAME(env, 's'));
 		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
+		env->me_sync_mutex = sem_open(MUTEXNAME(env, 's'), O_CREAT|O_EXCL, mode, 1);
+		if (env->me_sync_mutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
 		unsigned short vals[2] = {1, 1};
 		key_t key = ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
@@ -5847,6 +5949,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_txns->mti_semid = semid;
 		env->me_txns->mti_rlocked = 0;
 		env->me_txns->mti_wlocked = 0;
+		env->me_txns->mti_sync_locked = 0;
 #else	/* MDB_USE_POSIX_MUTEX: */
 		pthread_mutexattr_t mattr;
 
@@ -5856,6 +5959,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		 */
 		memset(env->me_txns->mti_rmutex, 0, sizeof(*env->me_txns->mti_rmutex));
 		memset(env->me_txns->mti_wmutex, 0, sizeof(*env->me_txns->mti_wmutex));
+		memset(env->me_txns->mti_sync_mutex, 0, sizeof(*env->me_txns->mti_sync_mutex));
 
 		if ((rc = pthread_mutexattr_init(&mattr)) != 0)
 			goto fail;
@@ -5865,6 +5969,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #endif
 		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_rmutex, &mattr);
 		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_wmutex, &mattr);
+		if (!rc) rc = pthread_mutex_init(env->me_txns->mti_sync_mutex, &mattr);
 		pthread_mutexattr_destroy(&mattr);
 		if (rc)
 			goto fail;
@@ -5900,12 +6005,16 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		if (!env->me_rmutex) goto fail_errno;
 		env->me_wmutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 'w'));
 		if (!env->me_wmutex) goto fail_errno;
+		env->me_sync_mutex = OpenMutexA(SYNCHRONIZE, FALSE, MUTEXNAME(env, 's'));
+		if (!env->me_sync_mutex) goto fail_errno;
 #elif defined(MDB_USE_POSIX_SEM)
 		mdb_env_mname_init(env);
 		env->me_rmutex = sem_open(MUTEXNAME(env, 'r'), 0);
 		if (env->me_rmutex == SEM_FAILED) goto fail_errno;
 		env->me_wmutex = sem_open(MUTEXNAME(env, 'w'), 0);
 		if (env->me_wmutex == SEM_FAILED) goto fail_errno;
+		env->me_sync_mutex = sem_open(MUTEXNAME(env, 's'), 0);
+		if (env->me_sync_mutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
 		semid = env->me_txns->mti_semid;
 		semu.buf = &buf;
@@ -5920,10 +6029,13 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #ifdef MDB_USE_SYSV_SEM
 	env->me_rmutex->semid = semid;
 	env->me_wmutex->semid = semid;
+	env->me_sync_mutex->semid = semid;
 	env->me_rmutex->semnum = 0;
 	env->me_wmutex->semnum = 1;
+	env->me_sync_mutex->semnum = 2;
 	env->me_rmutex->locked = &env->me_txns->mti_rlocked;
 	env->me_wmutex->locked = &env->me_txns->mti_wlocked;
+	env->me_sync_mutex->locked = &env->me_txns->mti_sync_locked;
 #endif
 
 	return MDB_SUCCESS;
@@ -6000,7 +6112,7 @@ mdb_env_envflags(MDB_env *env)
 	 */
 #define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC|MDB_NOMEMINIT)
 #define	CHANGELESS	(MDB_FIXEDMAP|MDB_NOSUBDIR|MDB_RDONLY| \
-	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS)
+	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC)
 #define EXPOSED		(CHANGEABLE|CHANGELESS | MDB_ENCRYPT)
 
 #if VALID_FLAGS & PERSISTENT_FLAGS & EXPOSED
@@ -6012,7 +6124,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 {
 	int rc, excl = -1;
 	MDB_name fname;
-
 	if (env->me_fd!=INVALID_HANDLE_VALUE || (flags & ~(CHANGEABLE|CHANGELESS)))
 		return EINVAL;
 
@@ -6093,9 +6204,9 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		env->me_rpcheck = MDB_ERPAGE_SIZE/2;
 	}
 #endif
-	/*<lmdb-store>*/
+	/*<lmdb-js>*/
 	env->me_last_map = NULL;
-	/*<lmdb-store>*/
+	/*<lmdb-js>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
 	env->me_dbflags = calloc(env->me_maxdbs, sizeof(uint16_t));
@@ -6112,8 +6223,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (rc)
 			goto leave;
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
-			rc = EAGAIN;
-			goto leave;
+			// <lmdb-js>
+			flags ^= MDB_PREVSNAPSHOT;
+			env->me_flags = flags;
+			// </lmdb-js>
 		}
 	}
 
@@ -6142,11 +6255,33 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (rc)
 			goto leave;
 		DPRINTF(("opened dbenv %p", (void *) env));
-		if (excl > 0 && !(flags & MDB_PREVSNAPSHOT)) {
+		// <lmdb-js>
+		if (excl > 0) {
+			if (flags & MDB_PREVSNAPSHOT) {
+				MDB_meta* safe_meta = mdb_env_pick_meta(env);
+				flags &= ~MDB_PREVSNAPSHOT; // clear the flag now, so we can compare to the latest
+				env->me_flags = flags;
+				MDB_meta* latest = mdb_env_pick_meta(env);
+				if (latest->mm_txnid != safe_meta->mm_txnid) {
+					MDB_txn rollback_txn;
+					MDB_db dbs[2];
+					rollback_txn.mt_env = env;
+					rollback_txn.mt_flags = 0;
+					rollback_txn.mt_dbs = dbs;
+					rollback_txn.mt_dbs[FREE_DBI] = safe_meta->mm_dbs[FREE_DBI];
+					rollback_txn.mt_dbs[MAIN_DBI] = safe_meta->mm_dbs[MAIN_DBI];
+					rollback_txn.mt_txnid = safe_meta->mm_txnid;
+					rollback_txn.mt_next_pgno = safe_meta->mm_last_pg + 1;
+					mdb_env_write_meta(&rollback_txn);
+					rollback_txn.mt_txnid--; // overwrite both meta pages to safe meta data
+					mdb_env_write_meta(&rollback_txn);
+				}
+			}
 			rc = mdb_env_share_locks(env, &excl);
 			if (rc)
 				goto leave;
 		}
+		// </lmdb-js>
 		if (!(flags & MDB_RDONLY)) {
 			MDB_txn *txn;
 			int tsize = sizeof(MDB_txn), size = tsize + env->me_maxdbs *
@@ -6244,7 +6379,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 			munmap(env->me_map, NUM_METAS*env->me_psize);
 		else {
 			munmap(env->me_map, env->me_mapsize);
-			/*<lmdb-store>*/
+			/*<lmdb-js>*/
 			MDB_last_map *last_map = env->me_last_map;
 			while(last_map) { // unmap all of the previous maps as well
 				munmap(last_map->map, last_map->mapsize);
@@ -6252,7 +6387,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 				last_map = last_map->last_map;
 				free(last_last_map);
 			}
-			/*</lmdb-store>*/
+			/*</lmdb-js>*/
 		}
 	}
 	if (env->me_mfd != INVALID_HANDLE_VALUE)
@@ -6302,6 +6437,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 			if (excl > 0) {
 				sem_unlink(MUTEXNAME(env, 'r'));
 				sem_unlink(MUTEXNAME(env, 'w'));
+				sem_unlink(MUTEXNAME(env, 's'));
 			}
 		}
 #elif defined(MDB_USE_SYSV_SEM)
@@ -6324,6 +6460,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 		if (excl > 0) {
 			pthread_mutex_destroy(env->me_txns->mti_rmutex);
 			pthread_mutex_destroy(env->me_txns->mti_wmutex);
+			pthread_mutex_destroy(env->me_txns->mti_sync_mutex);
 		}
 #endif
 		munmap((void *)env->me_txns, (env->me_maxreaders-1)*sizeof(MDB_reader)+sizeof(MDB_txninfo));

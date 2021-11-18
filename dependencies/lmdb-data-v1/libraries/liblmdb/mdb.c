@@ -2573,11 +2573,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	i = 0;
 	pgno = txn->mt_next_pgno;
 	if (pgno + num >= env->me_maxpg) {
-/* <lmdb-store addition> */
+/* <lmdb-js addition> */
     size_t new_size = ((size_t) (2 * (pgno + num) * env->me_psize / 0x40000 + 1)) * 0x40000;
 //    fprintf(stderr, "resizing from %u to %u", env->me_mapsize, new_size);
     rc = mdb_env_set_mapsize(env, new_size);
-  /* </lmdb-store addition> */
+  /* </lmdb-js addition> */
 	}
 
 search_done:
@@ -3102,13 +3102,13 @@ mdb_txn_renew0(MDB_txn *txn)
 		DPUTS("environment had fatal error, must shutdown!");
 		rc = MDB_PANIC;
 	} else {
-    /* <lmdb-store change> */
+    /* <lmdb-js change> */
     if (env->me_maxpg < txn->mt_next_pgno) {
       // need to resize map
       size_t new_size = ((size_t) (2 * (txn->mt_next_pgno) * env->me_psize / 0x40000 + 1)) * 0x40000;
       mdb_env_set_mapsize(env, new_size);
   	}
-    /* </lmdb-store change> */
+    /* </lmdb-js change> */
 		return MDB_SUCCESS;
 	}
 	mdb_txn_end(txn, new_notls /*0 or MDB_END_SLOT*/ | MDB_END_FAIL_BEGIN);
@@ -3695,7 +3695,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		goto done;
 	}
 
-  /* <lmdb-store addition> */
+  /* <lmdb-js addition> */
   pgno = dl[pagecount].mid;
   n = 0;
   
@@ -3729,7 +3729,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
       return ErrCode();
     }
   }
-  /* </lmdb-store addition> */
+  /* </lmdb-js addition> */
 	if (pagecount - keep >= env->ovs) {
 		/* ran out of room in ov array, and re-malloc, copy handles and free previous */
 		int ovs = (pagecount - keep) * 1.5; /* provide extra padding to reduce number of re-allocations */
@@ -4594,10 +4594,10 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		void *old;
 		int rc;
 #endif
-  /* <lmdb-store removal> 
+  /* <lmdb-js removal> 
     if (env->me_txn) We are intentionally resizing during transactions now
       return EINVAL;
-    </lmdb-store removal> */
+    </lmdb-js removal> */
 		meta = mdb_env_pick_meta(env);
 		if (!size)
 			size = meta->mm_mapsize;
@@ -4611,9 +4611,9 @@ mdb_env_set_mapsize(MDB_env *env, mdb_size_t size)
 		/* For MDB_VL32 this bit is a noop since we dynamically remap
 		 * chunks of the DB anyway.
 		 */
-  /* <lmdb-store removal>  We don't unmap because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet
+  /* <lmdb-js removal>  We don't unmap because we intentionally want to leave old maps around for lingering read transactions and other threads that haven't resized yet
     munmap(env->me_map, env->me_mapsize);
-    </lmdb-store removal> */
+    </lmdb-js removal> */
 		env->me_mapsize = size;
 		old = (env->me_flags & MDB_FIXEDMAP) ? env->me_map : NULL;
 		rc = mdb_env_map(env, old);

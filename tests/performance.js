@@ -18,7 +18,7 @@ suite('performance', function() {
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
 	const lmdb = openLmdb('tests/db/test-lmdb.mdb', {
-		keyIsBuffer: true,
+		keyEncoding: 'binary',
 		winMemoryPriority: 3,
 //		mapSize: 0x10000,
 useWritemap: true,
