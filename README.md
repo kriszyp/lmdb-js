@@ -40,7 +40,7 @@ This library automatically handles automatically database growth, expanding file
 This library provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
 ## Usage
-An lmdb database instance is created with by using `open` export from the main module:
+An LMDB database instance is created by using `open` export from the main module:
 ```
 import { open } from 'lmdb'; // or require
 let myDB = open({
@@ -68,7 +68,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
 * `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
-* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` dbs where data values are ordered, and having consistent key and value ordering is helpful.
+* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` databases where data values are ordered, and having consistent key and value ordering is helpful.
 
 In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
 
@@ -89,7 +89,7 @@ Symbol.for('even symbols')
 ['hello', 'world']
 Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
-You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), use `keyIsUint32` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
+You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyEncoding: 'binary'` database option (generally slower), use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a db, the following methods are available:
 
@@ -235,13 +235,13 @@ let usersDB = myDB.openDB('users');
 let groupsDB = myDB.openDB('groups');
 let productsDB = myDB.openDB('products');
 ```
-Each of the opened/returned dbs has the same API as the default database for the environment. Each of the dbs for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two dbs with the same environment will be batched together in the same commit. For example:
+Each of the opened/returned databases has the same API as the default database for the environment. Each of the databases for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two databases with the same environment will be batched together in the same commit. For example:
 ```
 usersDB.put('some-user', { data: userInfo });
 groupsDB.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and committed in the same transaction in the next event turn.
-Also, you can start a transaction from one database and make writes from any of the dbs in that same environment (and they will be a part of the same transaction):
+Also, you can start a transaction from one database and make writes from any of the databases in that same environment (and they will be a part of the same transaction):
 ```
 rootDB.transaction(() => {
 	usersDB.put('some-user', { data: userInfo });
@@ -260,7 +260,7 @@ db.put(key, asBinary(buffer)) // we can directly store the encoded value
 ```
 
 ### `close(): void`
-This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child dbs will no longer be able to interact with the database).
+This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child databases will no longer be able to interact with the database).
 
 ### `db.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
@@ -290,7 +290,7 @@ myDB.put('key1', 'value1', 4, 3); // new version of 4, only if previous version 
 myDB.ifVersion('key1', 4, () => {
 	myDB.put('key1', 'value2', 5); // equivalent to myDB.put('key1', 'value2', 5, 4);
 	myDB.put('anotherKey', 'value', 3); // we can do other puts based on the same condition above
-	// we can make puts in other dbs (from the same database environment) based on same condition too
+	// we can make puts in other databases (from the same database environment) based on same condition too
 	myDB2.put('keyInOtherDb', 'value'); 
 });
 ```
@@ -321,7 +321,7 @@ let myDB = open('my-db', {
 Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
-This library supports caching of entries from dbs, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the database `options`.
+This library supports caching of entries from databases, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the database `options`.
 
 The weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, and `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
 
@@ -336,11 +336,11 @@ While caching can improve performance, LMDB itself is extremely fast, and for sm
 If you are using caching with a database that has versions enabled, you should use the `getEntry` method to get the `value` and `version`, as `getLastVersion` will not be reliable (only returns the version when the data is accessed from the database).
 
 ### Asynchronous Transaction Ordering
-Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transaction` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _after_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by setting the `asyncTransactionOrder` property to 'strict'.
+Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transaction` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _after_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by setting the `strictAsyncOrder ` property to `true`.
 
 However, strict ordering comes with a couple of caveats. First, because asynchronous single operations are executed on separate transaction threads, but asynchronous transaction callbacks must execute on the main JS thread, if there is a lot of frequent switching back and forth between single operations and callbacks, this can significantly reduce performance since it requires substantial thread switching and event queuing.
 
-Second, if there are asynchronous operations that have been performed, and asynchronous transaction callbacks that are waiting to be called, and a synchronous transaction is executed (`transactionSync`), this must interrupt and split the current asynchronous transaction batch, so the synchronous transaction can be executed (the synchronous transaction can not block to wait for the asynchronous if there are outstanding callbacks to execute as part of that async transaction, as that would result in a deadlock). This can potentially create an exception to the general rule that all asynchronous operations that are performed in one event turn will be part of the same transaction. Of course, each single asynchronous transaction callback is still guaranteed to execute in a single atomic transaction (and calls to `transactionSync` _during_ a asynchronous transaction callback are simply executed as part of the current transaction). With the default ordering of 'after', it is possible for the async transactions to be performed in a separate transaction than the single operations if executed. Setting the ordering to 'before' ensures they are always in the same transaction.
+Second, if there are asynchronous operations that have been performed, and asynchronous transaction callbacks that are waiting to be called, and a synchronous transaction is executed (`transactionSync`), this must interrupt and split the current asynchronous transaction batch, so the synchronous transaction can be executed (the synchronous transaction can not block to wait for the asynchronous if there are outstanding callbacks to execute as part of that async transaction, as that would result in a deadlock). This can potentially create an exception to the general rule that all asynchronous operations that are performed in one event turn will be part of the same transaction. Of course, each single asynchronous transaction callback is still guaranteed to execute in a single atomic transaction (and calls to `transactionSync` _during_ a asynchronous transaction callback are simply executed as part of the current transaction). With the default ordering of 'after', it is possible for the async transactions to be performed in a separate transaction than the single operations if executed.
 
 ### DB Options
 The open method can be used to create the main database/environment with the following signature:
@@ -366,7 +366,7 @@ let db = open({ encoder: cbor });
 
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
-* `maxDbs` - The maximum number of databases to be able to open ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
+* `maxDbs` - The maximum number of databases to be able to open within one root database/environment ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
 * `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
