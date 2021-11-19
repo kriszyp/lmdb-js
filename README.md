@@ -1,10 +1,10 @@
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb.svg?style=flat-square)](https://www.npmjs.org/package/lmdb)
-[![npm version](https://img.shields.io/npm/dw/lmdb-store)](https://www.npmjs.org/package/lmdb-store)
+[![npm downloads](https://img.shields.io/npm/dw/lmdb-store)](https://www.npmjs.org/package/lmdb)
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value store, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
@@ -40,20 +40,20 @@ This library automatically handles automatically database growth, expanding file
 This library provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
 ## Usage
-An lmdb store instance is created with by using `open` export from the main module:
+An lmdb database instance is created with by using `open` export from the main module:
 ```
 import { open } from 'lmdb'; // or require
-let myStore = open({
+let myDB = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
 	compression: true,
 });
-await myStore.put('greeting', { someText: 'Hello, World!' });
-myStore.get('greeting').someText // 'Hello, World!'
+await myDB.put('greeting', { someText: 'Hello, World!' });
+myDB.get('greeting').someText // 'Hello, World!'
 // or
-myStore.transaction(() => {
-	myStore.put('greeting', { someText: 'Hello, World!' });
-	myStore.get('greeting').someText // 'Hello, World!'
+myDB.transaction(() => {
+	myDB.put('greeting', { someText: 'Hello, World!' });
+	myDB.get('greeting').someText // 'Hello, World!'
 });
 ```
 (see database options below for more options)
@@ -68,7 +68,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
 * `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
-* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` stores where data values are ordered, and having consistent key and value ordering is helpful.
+* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` dbs where data values are ordered, and having consistent key and value ordering is helpful.
 
 In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
 
@@ -91,37 +91,37 @@ Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte 
 ```
 You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyIsBuffer` database option (generally slower), use `keyIsUint32` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
-Once you created have a store, the following methods are available:
+Once you created have a db, the following methods are available:
 
-### `store.get(key): any`
+### `db.get(key): any`
 This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist.
 
-### `store.getEntry(key): any`
-This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `store.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
+### `db.getEntry(key): any`
+This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `db.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
 
-### `store.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
+### `db.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
 
 This operation will be enqueued to be written in a batch transaction. Any other operations that occur within the current event turn (until next event after I/O by default) will also occur in the same transaction. This will return a promise for the completion of the put. The promise will resolve once the transaction has finished committing. The resolved value of the promise will be `true` if the `put` was successful, and `false` if the put did not occur due to the `ifVersion` not matching at the time of the commit. Once the promise resolves, the transaction will have been fully written to the physical storage medium (durable commit, guaranteed available in the future as far as the OS/physical storage can permit and confirm, even if there is power loss or system crash).
 
 If `put` is called inside a transaction, the put will be executed immediately in the current transaction.
 
-### `store.remove(key, valueOrIfVersion?: number): Promise<boolean>`
+### `db.remove(key, valueOrIfVersion?: number): Promise<boolean>`
 This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
 
 Again, if this is performed inside a transation, the removal will be performed in the current transaction.
 
-### `store.transactionAsync(callback: Function): Promise`
+### `db.transaction(callback: Function): Promise`
 This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple database operations atomically and isolated (fully [ACID compliant](https://en.wikipedia.org/wiki/ACID)). Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (you can call `get()` or `getRange()` without awaiting for a returned promise) in the transaction.
 
-The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current event turn, and will be executed in the order they were called. `transactionAsync` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function.
+The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current event turn, and will be executed in the order they were called. `transaction` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function.
 
 For example:
 ```
 let products = open(...);
 // decrement count if above zero
 function buyShoe() {
-	return products.transactionAsync(() => {
+	return products.transaction(() => {
 		let shoe = products.get('shoe')
 		// this is performed atomically, so we can guarantee no other processes
 		// modify this entry before we write the new value
@@ -135,35 +135,35 @@ function buyShoe() {
 }
 ```
 
-Note that `store.transactionAsync(() => store.put(...))` is functionally the same as calling `store.put(...)`, queuing the put for asynchronously being committed in transaction, except that `put` executes the db write operation entirely in separate worker thread, whereas `transactionAsync` must also synchronize the callback function in the main JS thread to execute (so it is a little bit less efficient, although still quite fast).
+Note that `db.transaction(() => db.put(...))` is functionally the same as calling `db.put(...)`, queuing the put for asynchronously being committed in transaction, except that `put` executes the database's write operation entirely in separate worker thread, whereas `transaction` must also synchronize the callback function in the main JS thread to execute (so it is a little bit less efficient, although still quite fast).
 
  Also, the callback function can be an async function (or return a promise), but this is not recommended. If the function returns a promise, this will delay/defer the commit until the callback's promise is resolved. However, while waiting for the callback to finish, other code may execute operations that would end up in the current transaction and may result in a surprising order of operations, and long running transactions are generally discouraged since they extend the single write lock.
 
-### `store.childTransaction(callback: Function): Promise`
-This will run the provided callback in a transaction much like `transactionAsync` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. This childTransaction function is not available if caching or `useWritemap` is enabled.
+### `db.childTransaction(callback: Function): Promise`
+This will run the provided callback in a transaction much like `transaction` except an explicit child transaction will be used specifically for this callback. This makes it possible for the operations to be aborted and rolled back. The callback may return the exported `ABORT` constant to abort the child transaction for this callback. Also, if the callback function throws an error (or returns a reject promise), this will also abort the child transaction. This childTransaction function is not available if caching or `useWritemap` is enabled.
 
 The `childTransaction` function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
 
-### `store.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
+### `db.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a transaction, the put will be performed in the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (often blocking the main JS thread for multiple milliseconds) than the `put` operation (typically consumes a few _microseconds_ on a worker thread). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
-### `store.removeSync(key, valueOrIfVersion?: number): boolean`
+### `db.removeSync(key, valueOrIfVersion?: number): boolean`
 This will delete the entry at the specified key. This functions like `putSync`, providing synchronous entry deletion, and uses the same arguments as `remove`. This returns `true` if there was an existing entry deleted, `false` if there was no matching entry.
 
-### `store.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
+### `db.ifVersion(key, ifVersion: number, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry to have the provided version.
 
-### `store.ifNoExists(key, callback): Promise<boolean>`
+### `db.ifNoExists(key, callback): Promise<boolean>`
 This executes a block of conditional writes, and conditionally execute any puts or removes that are called in the callback, using the provided condition that requires the provided key's entry does not exist yet.
 
-### `store.transactionSync(callback: Function)`
+### `db.transactionSync(callback: Function)`
 This will begin a synchronous transaction, executing the provided callback function, and then commit the transaction. The provided function can perform `get`s, `put`s, and `remove`s within the transaction, and the result will be committed. The `callback` function can return a promise to indicate an ongoing asynchronous transaction, but generally you want to minimize how long a transaction is open on the main thread, at least if you are potentially operating with multiple processes.
 
 The callback may return the exported `ABORT` constant, or throw an error from the callback, to abort the transaction for this callback.
 
 If this is called inside an existing transaction and child transactions are supported (no write maps or caching), this will execute as a child transaction (and can be aborted), otherwise it will simply execute as part of the existing transaction (in which case it can't be aborted).
 
-### `store.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
+### `db.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
 ```
 for (let { key, value } of db.getRange({ start, end })) {
@@ -190,10 +190,10 @@ If you want to get a true array from the range results, the `asArray` property w
 #### Snapshots
 By default a range iterator will use a database snapshot, using a single read transaction that remains open and gives a consistent view of the database at the time it was started, for the duration of iterating through the range. However, if the iteration will take place over a long period of time, keeping a read transaction open for a long time can interfere with LMDB's free space collection and reuse and increase the database size. If you will be using a long duration iterator, you can specify `snapshot: false` flag in the range options to indicate that it snapshotting is not necessary, and it can reset and renew read transactions while iterating, to allow LMDB to collect any space that was freed during iteration.
 
-### `store.getValues(key, options?: RangeOptions): Iterable<any>`
-When using a store with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
+### `db.getValues(key, options?: RangeOptions): Iterable<any>`
+When using a database with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
 ```
-let db = store.openDB('my-index', {
+let db = db.openDB('my-index', {
 	dupSort: true,
 	encoding: 'ordered-binary',
 });
@@ -213,7 +213,7 @@ for (let value of db.getValues('key1', { start: 'value1', end: 'value3'})) ...
 ```
 Using `start`/`end` is only supported if using the `ordered-binary` encoding.
 
-### `store.getKeys(options: RangeOptions): Iterable<any>`
+### `db.getKeys(options: RangeOptions): Iterable<any>`
 This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
 
 ### `RangeOptions`
@@ -226,26 +226,26 @@ Here are the options that can be provided to the range methods (all are optional
 * `versions`: Boolean indicating if versions should be included in returned entries (not by default).
 * `snapshot`: Boolean indicating if a database snapshot is used for iteration (true by default).
 
-### `store.openDB(database: string|{name:string,...})`
-LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB store with `open`, the store uses the default root database. However, you can use multiple databases per environment/file and instantiate a store for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple stores for a single environment:
+### `db.openDB(database: string|{name:string,...})`
+LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB database with `open`, the database uses the default root database. However, you can use multiple databases per environment/file and instantiate a database for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple databases for a single environment:
 ```
 import { open } from 'lmdb';
-let rootStore = open('all-my-data');
-let usersStore = myStore.openDB('users');
-let groupsStore = myStore.openDB('groups');
-let productsStore = myStore.openDB('products');
+let rootDB = open('all-my-data');
+let usersDB = myDB.openDB('users');
+let groupsDB = myDB.openDB('groups');
+let productsDB = myDB.openDB('products');
 ```
-Each of the opened/returned stores has the same API as the default store for the environment. Each of the stores for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two stores with the same environment will be batched together in the same commit. For example:
+Each of the opened/returned dbs has the same API as the default database for the environment. Each of the dbs for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two dbs with the same environment will be batched together in the same commit. For example:
 ```
-usersStore.put('some-user', { data: userInfo });
-groupsStore.put('some-group', { groupData: moreData });
+usersDB.put('some-user', { data: userInfo });
+groupsDB.put('some-group', { groupData: moreData });
 ```
 Both these puts will be batched and committed in the same transaction in the next event turn.
-Also, you can start a transaction from one store and make writes from any of the stores in that same environment (and they will be a part of the same transaction):
+Also, you can start a transaction from one database and make writes from any of the dbs in that same environment (and they will be a part of the same transaction):
 ```
-rootStore.transactionAsync(() => {
-	usersStore.put('some-user', { data: userInfo });
-	groupsStore.put('some-group', { groupData: moreData });
+rootDB.transaction(() => {
+	usersDB.put('some-user', { data: userInfo });
+	groupsDB.put('some-group', { groupData: moreData });
 });
 ```
 
@@ -253,22 +253,22 @@ rootStore.transactionAsync(() => {
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
 
 ### `asBinary(buffer): Binary`
-This can be used to directly store a buffer or Uint8Array as a value, bypassing any encoding. If you are using a store with an encoding that isn't `binary`, setting a value with a Uint8Array will typically be encoded with the store's encoding (for example MessagePack wraps in a header, preserving its type for `get`). However, if you want to bypass encoding, for example, if you have already encoded a value, you can use `asBinary`:
+This can be used to directly store a buffer or Uint8Array as a value, bypassing any encoding. If you are using a database with an encoding that isn't `binary`, setting a value with a Uint8Array will typically be encoded with the db's encoding (for example MessagePack wraps in a header, preserving its type for `get`). However, if you want to bypass encoding, for example, if you have already encoded a value, you can use `asBinary`:
 ```
 let buffer = encode(myValue) // if we have already serialized a value, perhaps to compare it or check its size
 db.put(key, asBinary(buffer)) // we can directly store the encoded value
 ```
 
 ### `close(): void`
-This will close the current store. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `store.openDB`), it will close the environment (and child stores will no longer be able to interact with the database).
+This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child dbs will no longer be able to interact with the database).
 
-### `store.doesExist(key, valueOrVersion): boolean`
+### `db.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.
 
-### `store.getBinary(key): Buffer`
-This will retrieve the binary data at the specified key. This is just like `get`, except it will always return the value's binary representation as a buffer, rather than decoding with the store's encoding format (if there is no entry, `undefined` will still be returned).
+### `db.getBinary(key): Buffer`
+This will retrieve the binary data at the specified key. This is just like `get`, except it will always return the value's binary representation as a buffer, rather than decoding with the db's encoding format (if there is no entry, `undefined` will still be returned).
 
-### `store.getBinaryFast(key): Buffer`
+### `db.getBinaryFast(key): Buffer`
 This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations). Since this is a reusable buffer it also slightly differs from a typical buffer: the `length` property is set to the length of the value (what you typically want for normal usage), but the `byteLength` will be the size of the full allocated memory area for the buffer (usually much larger).
 
 ### `resetReadTxn(): void`
@@ -277,21 +277,21 @@ Normally, this library will automatically start a reader transaction for get and
 ## Concurrency and Versioning
 LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes are accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
-let myStore = open('my-store', { useVersions: true });
+let myDB = open('my-db', { useVersions: true });
 ```
 You can set a version by using the `version` argument in `put` calls. You can later update data and ensure that the data will only be updated if the version matches the expected version by using the `ifVersion` argument. When retrieving entries, you can access the version number by calling `getLastVersion()`.
 
 You can then make conditional writes, examples:
 
 ```
-myStore.put('key1', 'value1', 4, 3); // new version of 4, only if previous version was 3
+myDB.put('key1', 'value1', 4, 3); // new version of 4, only if previous version was 3
 ```
 ```
-myStore.ifVersion('key1', 4, () => {
-	myStore.put('key1', 'value2', 5); // equivalent to myStore.put('key1', 'value2', 5, 4);
-	myStore.put('anotherKey', 'value', 3); // we can do other puts based on the same condition above
-	// we can make puts in other stores (from the same db environment) based on same condition too
-	myStore2.put('keyInOtherDb', 'value'); 
+myDB.ifVersion('key1', 4, () => {
+	myDB.put('key1', 'value2', 5); // equivalent to myDB.put('key1', 'value2', 5, 4);
+	myDB.put('anotherKey', 'value', 3); // we can do other puts based on the same condition above
+	// we can make puts in other dbs (from the same database environment) based on same condition too
+	myDB2.put('keyInOtherDb', 'value'); 
 });
 ```
 Asynchronous transactions are also a robust way to handle concurrency with multiple processes and provides a more traditional and flexible mechanism for making atomic ACID-compliant transactional data changes.
@@ -299,11 +299,11 @@ Asynchronous transactions are also a robust way to handle concurrency with multi
 ## Shared Structures
 Shared structures are mechanism for storing the structural information about objects stored in database in dedicated entry, outside of individual entries, for reuse across all of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack or CBOR encoding, using the msgpackr or cbor-x package). This is highly recommended when storing structured objects with similiar object structures (including inside of array). When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where shared structures can be stored. You can use a symbol as a metadata key, as symbols are outside of the range of the standard JS primitive values:
 ```
-let myStore = open('my-store', {
+let myDB = open('my-db', {
 	sharedStructuresKey: Symbol.for('structures')
 })
 ```
-Once shared structures has been enabled, you can store JavaScript objects just as you would normally would, and this library will automatically generate, increment, and save the structural information in the provided key to improve storage efficiency and performance. You never need to directly access this key, just be aware that that entry is being used by this library.
+Once shared structures has been enabled, you can persist JavaScript objects just as you would normally would, and this library will automatically generate, increment, and save the structural information in the provided key to improve storage efficiency and performance. You never need to directly access this key, just be aware that that entry is being used by this library.
 
 ## Compression
 This library can optionally use off-thread LZ4 compression as part of the asynchronous writes to enable efficient compression with virtually no overhead to the main thread. LZ4 decompression (in `get` and `getRange` calls) is extremely fast and generally has a low impact on performance. Compression is turned off by default, but can be turned on by setting the `compression` property when opening a database. The value of compression can be `true` or an object with compression settings, including properties:
@@ -311,7 +311,7 @@ This library can optionally use off-thread LZ4 compression as part of the asynch
 * `dictionary` - This can be buffer to use as a shared dictionary. This is defaults to a shared dictionary that helps with compressing JSON and English words in small entries. [Zstandard](https://facebook.github.io/zstd/#small-data) provides utilities for [creating your own optimized shared dictionary](https://github.com/lz4/lz4/releases/tag/v1.8.1.2).
 For example:
 ```
-let myStore = open('my-store', {
+let myDB = open('my-db', {
 	compression: {
 		threshold: 500, // compress any entry larger than 500 bytes
 		dictionary: fs.readFileSync('dict.txt') // use your own shared dictionary
@@ -321,14 +321,14 @@ let myStore = open('my-store', {
 Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
-This library supports caching of entries from stores, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the store `options`.
+This library supports caching of entries from dbs, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the database `options`.
 
 The weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, and `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
 
 Because asynchronous `put` operations immediately go in the cache (and are pinned in the cache until committed), the caching enabled, `put` values can be retrieved via `get`, immediately and synchronously after the `put` call. Without caching enabled, you need wait for the `put` promise to resolve (or use asynchronous transactions) before you can access the stored value, but the cache enables the value to be immediately without waiting for the commit to finish:
 ```
-store.put('hi', 'there');
-store.get('hi'); // can immediately access value without having to await the promise
+db.put('hi', 'there');
+db.get('hi'); // can immediately access value without having to await the promise
 ```
 
 While caching can improve performance, LMDB itself is extremely fast, and for small objects with sporadic access, caching may not improve performance. Caching tends to provide the most performance benefits for larger objects that may have more significant deserialization costs. Caching does not apply to `getRange` queries. Also note that this requires Node 14.10 or higher (or Node v13.0 with `--harmony-weak-ref` flag).
@@ -336,17 +336,17 @@ While caching can improve performance, LMDB itself is extremely fast, and for sm
 If you are using caching with a database that has versions enabled, you should use the `getEntry` method to get the `value` and `version`, as `getLastVersion` will not be reliable (only returns the version when the data is accessed from the database).
 
 ### Asynchronous Transaction Ordering
-Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transactionAsync` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _after_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by setting the `asyncTransactionOrder` property to 'strict'.
+Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transaction` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _after_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by setting the `asyncTransactionOrder` property to 'strict'.
 
 However, strict ordering comes with a couple of caveats. First, because asynchronous single operations are executed on separate transaction threads, but asynchronous transaction callbacks must execute on the main JS thread, if there is a lot of frequent switching back and forth between single operations and callbacks, this can significantly reduce performance since it requires substantial thread switching and event queuing.
 
 Second, if there are asynchronous operations that have been performed, and asynchronous transaction callbacks that are waiting to be called, and a synchronous transaction is executed (`transactionSync`), this must interrupt and split the current asynchronous transaction batch, so the synchronous transaction can be executed (the synchronous transaction can not block to wait for the asynchronous if there are outstanding callbacks to execute as part of that async transaction, as that would result in a deadlock). This can potentially create an exception to the general rule that all asynchronous operations that are performed in one event turn will be part of the same transaction. Of course, each single asynchronous transaction callback is still guaranteed to execute in a single atomic transaction (and calls to `transactionSync` _during_ a asynchronous transaction callback are simply executed as part of the current transaction). With the default ordering of 'after', it is possible for the async transactions to be performed in a separate transaction than the single operations if executed. Setting the ordering to 'before' ensures they are always in the same transaction.
 
-### Store Options
+### DB Options
 The open method can be used to create the main database/environment with the following signature:
 `open(path, options)` or `open(options)`
 Additional databases can be opened within the main database environment with:
-`store.openDB(name, options)` or `store.openDB(options)`
+`db.openDB(name, options)` or `db.openDB(options)`
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
 * `encoding` - Sets the encoding for the database values, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
@@ -370,14 +370,14 @@ The following additional option properties are only available when creating the 
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
 * `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
-* `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-js to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transactionAsync`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
+* `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-js to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transaction`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
 
 #### LMDB Flags
 In addition, the following options map to LMDB's env flags, <a href="http://www.lmdb.tech/doc/group__mdb.html">described here</a>. None of these need to be set, the defaults can always be used and are generally recommended, but these are available for various needs and performance optimizations:
 * `noSync` - Does not explicitly flush data to disk at all. This can be useful for temporary databases where durability/integrity is not necessary, and can significantly improve write performance that is I/O bound. However, we discourage this flag for data that needs integrity and durability in storage, since it can result in data loss/corruption if the computer crashes.
-* `noMemInit` - This provides a small performance boost for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database. If you do not need to worry about unauthorized access to the db files themselves, this is recommended.
+* `noMemInit` - This provides a small performance boost for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database. If you do not need to worry about unauthorized access to the database files themselves, this is recommended.
 * `remapChunks` - This a flag to specify if dynamic memory mapping should be used. Enabling this generally makes read operations a little bit slower, but frees up more mapped memory, making it friendlier to other applications. This is enabled by default on 32-bit operating systems (which require this to go beyond 4GB database size) if `mapSize` is not specified, otherwise it is disabled by default.
 * `mapSize` - This can be used to specify the initial amount of how much virtual memory address space (in bytes) to allocate for mapping to the database files. Setting a map size will typically disable `remapChunks` by default unless the size is larger than appropriate for the OS. Different OSes have different allocation limits.
 * `useWritemap` - Use writemaps, this can improve performance by reducing malloc calls and file writes, but can increase risk of a stray pointer corrupting data, and may be slower on Windows. Combined with `noSync`, normal reads/writes/transactions involve virtually zero explicit I/O calls, only modifications to memory maps that the OS persists when convenient, which may be beneficial.
@@ -409,7 +409,7 @@ Enabling `overlappingSync` option is generally not recommended on Windows, as Wi
 ```
 
 #### Serialization options
-If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide store options that are passed to msgpackr, as well. For example, these options can be potentially useful:
+If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide database options that are passed to msgpackr, as well. For example, these options can be potentially useful:
 * `structuredClone` -  This enables the structured cloning extensions that will encode object/cyclic references and additional built-in types/classes.
 * `useFloat32: 4` -  Encode floating point numbers in 32-bit format when possible.
 
@@ -428,7 +428,7 @@ The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/a
 
 ## LevelUp
 
-If you have an existing application built on LevelUp, the lmdb-js is designed to make it easy to transition to this package, with most of the LevelUp API implemented and supported in lmdb-js. This includes the `put`, `del`, `batch`, `status`, `isOperation`, and `getMany` functions. One key difference in APIs is that LevelUp uses asynchronous callback based `get`s, but lmdb-js is so fast that it generally returns from `get` call before an an event can even be queued, consequently lmdb-js uses synchronous `get`s. However, there is a `levelup` export that can be used to generate a new store instance with LevelUp's style of API for `get` (although it still runs synchronously):
+If you have an existing application built on LevelUp, the lmdb-js is designed to make it easy to transition to this package, with most of the LevelUp API implemented and supported in lmdb-js. This includes the `put`, `del`, `batch`, `status`, `isOperation`, and `getMany` functions. One key difference in APIs is that LevelUp uses asynchronous callback based `get`s, but lmdb-js is so fast that it generally returns from `get` call before an an event can even be queued, consequently lmdb-js uses synchronous `get`s. However, there is a `levelup` export that can be used to generate a new database instance with LevelUp's style of API for `get` (although it still runs synchronously):
 ```
 let dbLevel = levelup(db)
 dbLevel.get(id, (error, value) => {
@@ -442,7 +442,7 @@ dbLevel.get(id).then(...)
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
 
-On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 db environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Otherwise don't use the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of db environments (and use more databases within each environment).
+On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 database environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Otherwise don't use the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of database environments (and use more databases within each environment).
 
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 

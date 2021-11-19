@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/DoctorEvidence/lmdb-store.git"
+    "url": "git+ssh://git@github.com/DoctorEvidence/lmdb-js.git"
   },
   "keywords": [
     "lmdb",
@@ -71,9 +71,9 @@
     "tsd": "^0.14.0"
   },
   "bugs": {
-    "url": "https://github.com/DoctorEvidence/lmdb-store/issues"
+    "url": "https://github.com/DoctorEvidence/lmdb-js/issues"
   },
-  "homepage": "https://github.com/DoctorEvidence/lmdb-store#readme",
+  "homepage": "https://github.com/DoctorEvidence/lmdb-js#readme",
   "directories": {
     "test": "tests"
   }
