@@ -608,8 +608,8 @@ describe('lmdb-js', function() {
     });
 
     it('invalid key', async function() {
-      expect(() => db.get('')).to.throw();
-      expect(() => db.put('', 'test')).to.throw();
+      expect(() => db.get(Buffer.from([]))).to.throw();
+      expect(() => db.put(Buffer.from([]), 'test')).to.throw();
       expect(() => db.get({ foo: 'bar' })).to.throw();
       expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
       expect(() => db.put('x'.repeat(1979), 'hello')).to.throw();
