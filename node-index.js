@@ -7,7 +7,6 @@ import fs from 'fs';
 import { arch } from 'os';
 let nativeFunctions, dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 try {
-	console.log(dirName);
 	nativeFunctions = require('node-gyp-build')(dirName);
 	if (process.versions.modules == 93)
 		require('v8').setFlagsFromString('--turbo-fast-api-calls');
