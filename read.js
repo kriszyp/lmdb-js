@@ -114,7 +114,7 @@ export function addReadMethods(LMDBStore, {
 			}
 			else if (this.useVersions) {
 				this.getBinaryFast(key);
-				return lastSize !== 0xffffffff && matches(getLastVersion(), versionOrValue);
+				return lastSize !== 0xffffffff && getLastVersion() === versionOrValue;
 			}
 			else {
 				if (versionOrValue && versionOrValue[binaryBuffer])
@@ -418,19 +418,6 @@ export function addReadMethods(LMDBStore, {
 				readTxn.reset();
 		}
 	}
-}
-function matches(previousVersion, ifVersion){
-	let matches;
-	if (previousVersion) {
-		if (ifVersion) {
-			matches = previousVersion == ifVersion;
-		} else {
-			matches = false;
-		}
-	} else {
-		matches = !ifVersion;
-	}
-	return matches;
 }
 export function makeReusableBuffer(size) {
 	let bytes = Buffer.alloc(size)

@@ -174,7 +174,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			if (ifVersion !== undefined) {
 				if (ifVersion === null)
-					flags |= 0x10;
+					flags |= 0x10; // if it does not exist, MDB_NOOVERWRITE
 				else {
 					flags |= 0x100;
 					float64[position++] = ifVersion;
@@ -555,13 +555,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				});
 			}
 			if (writeTxn) {
-				if (this.doesExist(key, version)) {
+				if (version === undefined || this.doesExist(key, version)) {
 					callback();
 					return SYNC_PROMISE_SUCCESS;
 				}
 				return SYNC_PROMISE_FAIL;
 			}
-			let finishStartWrite = writeInstructions(typeof key === 'undefined' ? 1 : 4, this, key, undefined, undefined, version);
+			let finishStartWrite = writeInstructions(key === undefined || version === undefined ? 1 : 4, this, key, undefined, undefined, version);
 			let promise;
 			batchDepth += 2;
 			if (batchDepth > 2)
