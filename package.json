@@ -29,6 +29,19 @@
       "default": "./index.js"
     }
   },
+  "files": [
+    "/dist",
+    "/util",
+    "/dict",
+    "/dependencies",
+    "/src",
+    "/prebuilds",
+    "*.md",
+    "/*.js",
+    "index.d.ts",
+    "/*.ts",
+    "/*.gyp"
+  ],
   "types": "./index.d.ts",
   "tsd": {
     "directory": "test/types"
