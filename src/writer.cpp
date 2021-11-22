@@ -292,7 +292,11 @@ next_inst:	start = instruction++;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
-					fprintf(stderr, "Unknown return code %i %p %p\n", rc, start, worker);
+					if (worker) {
+						worker->ReportError(mdb_strerror(rc));
+					} else {
+						return rc;
+					}
 					fprintf(stderr, "flags after return code %u\n", *start);
 				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
