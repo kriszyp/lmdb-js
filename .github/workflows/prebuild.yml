@@ -45,7 +45,7 @@ jobs:
           files: prebuild-linux.tar
   build-alpine:
     runs-on: ubuntu-18.04
-    container: node:14-alpine
+    container: node:14-alpine3.14
     steps:
       - run: apk add --update util-linux
       - run: apk add --update python3
