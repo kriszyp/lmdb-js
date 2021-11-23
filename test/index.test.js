@@ -59,6 +59,8 @@ describe('lmdb-js', function() {
         //useWritemap: true,
         //noSync: true,
         //overlappingSync: true,
+        pageSize: 8192,
+        maxReaders: 100,
         eventTurnBatching: false,
         keyEncoder: orderedBinaryEncoder,
         compression: {
