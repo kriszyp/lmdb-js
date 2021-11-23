@@ -53,7 +53,7 @@ jobs:
       - run: pip3 install --no-cache --upgrade pip setuptools
       - run: apk add --update alpine-sdk
       - uses: actions/checkout@v2
-      - run: npm install
+      - run: npm install --no-optional
       - run: npm run prebuild-musl
       - run: npm test
       - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
