@@ -45,9 +45,9 @@ jobs:
           files: prebuild-linux.tar
   build-alpine:
     runs-on: ubuntu-18.04
-    container: node:12.22-alpine
+    container: node:lts-alpine3.14
     steps:
-      - run: apk add python3 py3-pip build-base
+      - run: apk add python3 pip3 alpine-sdk
       - uses: actions/checkout@v2
       - run: npm install
       - run: npm run prebuild-musl
