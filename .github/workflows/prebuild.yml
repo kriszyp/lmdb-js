@@ -47,7 +47,8 @@ jobs:
     runs-on: ubuntu-18.04
     container: node:lts-alpine3.14
     steps:
-      - run: apk add --update python3 py3-pip
+      - run: apk add --update util-linux
+      - run: apk add --update python3
       - run: python3 -m ensurepip
       - run: pip3 install --no-cache --upgrade pip setuptools
       - run: apk add --update alpine-sdk
