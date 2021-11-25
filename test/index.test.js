@@ -582,7 +582,7 @@ describe('lmdb-js', function() {
         lastKey = key
       }
     })
-    it('big keys', async function() {
+    it.only('big keys', async function() {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
         keyBase += 'A'
@@ -614,8 +614,10 @@ describe('lmdb-js', function() {
       expect(() => db.put(Buffer.from([]), 'test')).to.throw();
       expect(() => db.get({ foo: 'bar' })).to.throw();
       expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
-      expect(() => db.put('x'.repeat(1979), 'hello')).to.throw();
-      expect(() => db2.put('x', 'x'.repeat(1979))).to.throw();
+      expect(() => db.put('x'.repeat(4027), 'hello')).to.throw();
+      expect(() => db2.put('x', 'x'.repeat(4027))).to.throw();
+      Array.from(db.getRange({ start: 'x', end: Buffer.from([])}))
+      expect(() => Array.from(db.getRange({ start: 'x'.repeat(4027)}))).to.throw();
     });
     it('put options (sync)', function() {
       db.putSync('zkey6', 'test', { append: true, version: 33 });

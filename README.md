@@ -366,7 +366,8 @@ let db = open({ encoder: cbor });
 
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
-* `maxDbs` - The maximum number of databases to be able to open within one root database/environment ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)).
+* `pageSize` - This defines the page size of the database. This is 16,384 by default (previous versions defaulted to 4096). You may want to consider setting this to 32,768 for better performance on larger databases. Note that this does not affect the page size of an existing database.
+* `maxDbs` - The maximum number of databases to be able to open within one root database/environment ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)). This defaults to 12.
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
 * `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
@@ -382,7 +383,6 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `mapSize` - This can be used to specify the initial amount of how much virtual memory address space (in bytes) to allocate for mapping to the database files. Setting a map size will typically disable `remapChunks` by default unless the size is larger than appropriate for the OS. Different OSes have different allocation limits.
 * `useWritemap` - Use writemaps, this can improve performance by reducing malloc calls and file writes, but can increase risk of a stray pointer corrupting data, and may be slower on Windows. Combined with `noSync`, normal reads/writes/transactions involve virtually zero explicit I/O calls, only modifications to memory maps that the OS persists when convenient, which may be beneficial.
 * `noMetaSync` - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
-* `pageSize` - This changes the page size of the database. This is 4096 by default, and the default generally has the best performance since it aligns with normal OS page size.
 * `noReadAhead` - This disables read-ahead caching. Turning it off may help random read performance when the DB is larger than RAM and system RAM is full. However, this is not supported by all OSes, including Windows.
 * `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
 * `readOnly` - Self-descriptive.

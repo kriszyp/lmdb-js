@@ -7,9 +7,10 @@ const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
 let lastSize;
+const START_ADDRESS_POSITION = 8140;
 
 export function addReadMethods(LMDBStore, {
-	getReadTxn, env, keyBytes, keyBytesView, getLastVersion
+	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
 }) {
 	let readTxn, readTxnRenewed;
 	let renewId = 1;
@@ -228,13 +229,13 @@ export function addReadMethods(LMDBStore, {
 						else {
 							let startAddress;
 							if (store.encoder.writeKey) {
-								startAddress = saveKey(options.start, store.encoder.writeKey, iterable);
-								keyBytesView.setFloat64(2000, startAddress, true);
-								endAddress = saveKey(options.end, store.encoder.writeKey, iterable);
+								startAddress = saveKey(options.start, store.encoder.writeKey, iterable, maxKeySize);
+								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
+								endAddress = saveKey(options.end, store.encoder.writeKey, iterable, maxKeySize);
 							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
-								startAddress = saveKey(options.start, writeKey, iterable);
-								keyBytesView.setFloat64(2000, startAddress, true);
-								endAddress = saveKey(options.end, writeKey, iterable);
+								startAddress = saveKey(options.start, writeKey, iterable, maxKeySize);
+								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
+								endAddress = saveKey(options.end, writeKey, iterable, maxKeySize);
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values');
 								let encoded = store.encoder.encode(options.start);
@@ -243,7 +244,7 @@ export function addReadMethods(LMDBStore, {
 							}
 						}
 					} else
-						endAddress = saveKey(options.end, store.writeKey, iterable);
+						endAddress = saveKey(options.end, store.writeKey, iterable, maxKeySize);
 					return cursor.position(flags, offset || 0, keySize, endAddress);
 				}
 

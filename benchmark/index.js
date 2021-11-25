@@ -28,10 +28,11 @@ let data = {
   more: 'string',
 }
 let bigString = 'big'
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 9; i++) {
   bigString += bigString
 }
 //data.more = bigString
+console.log(bigString.length)
 var c = 0
 let result
 
@@ -42,19 +43,19 @@ function setData(deferred) {
     for (let j = 0;j<100; j++)
       store.put((c += 357) % total, data)
   })*/
-  let key = (c += 357)
+  let key = (c += 357) % total
   result = store.put(key, data)
   /*if (key % 2 == 0)
     result = store.put(key, data)
   else
     result = store.transactionAsync(() => store.put(key, data))*/
-  if (iteration++ % 1000 == 0) {
+ /* if (iteration++ % 200 == 0) {
     setImmediate(() => lastResult.then(() => {
       deferred.resolve()
     }))
     lastResult = result
   } else
-    deferred.resolve()
+    deferred.resolve()*/
 }
 function batchData(deferred) {
   result = store.batch(() => {
@@ -149,6 +150,7 @@ function setup() {
   console.log('opening', testDirPath)
   let rootStore = open(testDirPath, {
     noMemInit: true,
+    pageSize: 0x4000,
     //noSync: true,
     //winMemoryPriority: 4,
     //eventTurnBatching: false,
@@ -176,11 +178,11 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    suite.add('getRange', getRange);
-    suite.add('setData', {
+    //suite.add('getRange', getRange);
+    suite.add('setData', setData/*, {
       defer: true,
       fn: setData
-    });
+    }*/);
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
@@ -227,6 +229,7 @@ cleanup(async function (err) {
   let rootStore = open(testDirPath, {
     noMemInit: true,
     //winMemoryPriority: 4,
+    pageSize:8192,
   })
   store = rootStore.openDB('testing', {
     sharedStructuresKey: 100000000,

@@ -48,6 +48,7 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
+		pageSize: 16384,
 		//overlappingSync: true,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -97,7 +98,8 @@ export function open(path, options) {
 		fs.removeSync(path);
 		console.info('Removed', path);
 	}
-	env.open(options);
+	let maxKeySize = env.open(options);
+	console.log({maxKeySize})
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
 	class LMDBStore extends EventEmitter {
@@ -162,8 +164,9 @@ export function open(path, options) {
 					encode: JSON.stringify,
 				};
 			} else if (this.encoder) {
-				this.decoder = this.encoder
+				this.decoder = this.encoder;
 			}
+			this.maxKeySize = maxKeySize;
 			applyKeyHandling(this);
 			allDbs.set(dbName ? name + '-' + dbName : name, this);
 			stores.push(this);
@@ -308,8 +311,8 @@ export function open(path, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	const putSync = LMDBStore.prototype.putSync;
 	const removeSync = LMDBStore.prototype.removeSync;
-	addReadMethods(LMDBStore, { env, saveKey, keyBytes, keyBytesView, getLastVersion });
-	addWriteMethods(LMDBStore, { env, fixedBuffer: keyBytes,
+	addReadMethods(LMDBStore, { env, maxKeySize, keyBytes, keyBytesView, getLastVersion });
+	addWriteMethods(LMDBStore, { env, maxKeySize, fixedBuffer: keyBytes,
 		resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
 	LMDBStore.prototype.supports = {
 		permanence: true,
@@ -337,32 +340,13 @@ export function getLastVersion() {
 export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true);
 }
-let saveBuffer, saveDataView, saveDataAddress;
-let savePosition = 8000;
-function allocateSaveBuffer() {
-	saveBuffer = Buffer.alloc(8192);
-	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
-	saveBuffer.buffer.address = getAddress(saveBuffer.buffer);
-	saveDataAddress = saveBuffer.buffer.address + saveBuffer.byteOffset;
-	savePosition = 0;
 
-}
+const KEY_BUFFER_SIZE = 8192
 function allocateFixedBuffer() {
-	keyBytes = Buffer.allocUnsafeSlow(2048);
+	keyBytes = Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;
-	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, 2048); // max key size is actually 1978
-	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, 512);
-	keyBytes.float64 = new Float64Array(keyBuffer, 0, 256);
+	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 8122
+	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
+	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
 	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer);
-}
-function saveKey(key, writeKey, saveTo) {
-	if (savePosition > 6200) {
-		allocateSaveBuffer();
-	}
-	let start = savePosition;
-	savePosition = writeKey(key, saveBuffer, start + 4);
-	saveDataView.setUint32(start, savePosition - start - 4, true);
-	saveTo.saveBuffer = saveBuffer;
-	savePosition = (savePosition + 7) & 0xfffff8;
-	return start + saveDataAddress;
 }

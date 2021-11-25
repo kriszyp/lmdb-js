@@ -32,7 +32,7 @@
         "<!(node -e \"require('nan')\")",
         "dependencies/lz4/lib"
       ],
-      "defines": ["MDB_MAXKEYSIZE=1978"],
+      "defines": ["MDB_MAXKEYSIZE=8122"],
       "conditions": [
         ["OS=='linux'", {
           "variables": {

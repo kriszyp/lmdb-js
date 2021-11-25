@@ -28,14 +28,7 @@ export function applyKeyHandling(store) {
 	}
 	if (store.encoder && store.encoder.writeKey && !store.encoder.encode) {
 		store.encoder.encode = function(value) {
-			if (savePosition > 6200)
-				allocateSaveBuffer();
-			let start = savePosition;
-			savePosition = writeKey(value, saveBuffer, start);
-			saveBuffer.start = start;
-			saveBuffer.end = savePosition;
-			savePosition = (savePosition + 7) & 0xfffff8;
-			return saveBuffer;
+			return saveKey(value, writeKey, false, store.maxKeySize);
 		};
 	}
 	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
@@ -65,14 +58,37 @@ function allocateSaveBuffer() {
 	savePosition = 0;
 
 }
-export function saveKey(key, writeKey, saveTo) {
-	if (savePosition > 6200) {
+export function saveKey(key, writeKey, saveTo, maxKeySize) {
+	if (savePosition > 7500) {
 		allocateSaveBuffer();
 	}
 	let start = savePosition;
-	savePosition = writeKey(key, saveBuffer, start + 4);
-	saveDataView.setUint32(start, savePosition - start - 4, true);
-	saveTo.saveBuffer = saveBuffer;
-	savePosition = (savePosition + 7) & 0xfffff8;
-	return start + saveDataAddress;
+	try {
+		savePosition = writeKey(key, saveBuffer, start + 4);
+	} catch (error) {
+		saveBuffer.fill(0, start + 4); // restore zeros
+		if (error.name == 'RangeError') {
+			if (8188 - start < maxKeySize) {
+				allocateSaveBuffer(); // try again:
+				return saveKey(key, writeKey, saveTo, maxKeySize);
+			}
+			throw new Error('Key was too large, max key size is ' + maxKeySize);
+		} else
+			throw error;
+	}
+	let length = savePosition - start - 4;
+	if (length > maxKeySize) {
+		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
+	}
+	if (saveTo) {
+		saveDataView.setUint32(start, length, true); // save the length
+		saveTo.saveBuffer = saveBuffer;
+		savePosition = (savePosition + 7) & 0xfffff8;
+		return start + saveDataAddress;
+	} else {
+		saveBuffer.start = start + 4
+		saveBuffer.end = savePosition
+		savePosition = (savePosition + 7) & 0xfffff8;
+		return saveBuffer
+	}
 }

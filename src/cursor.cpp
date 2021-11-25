@@ -131,6 +131,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     return key.mv_size;
 }
 
+const int START_ADDRESS_POSITION = 8140;
 uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;
@@ -157,7 +158,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
     } else {
         if (flags & 0x800) { // only values for this key
             // take the next part of the key buffer as a pointer to starting data
-            uint32_t* startValueBuffer = (uint32_t*)(size_t)(*(double*)(dw->ew->keyBuffer + 2000));
+            uint32_t* startValueBuffer = (uint32_t*)(size_t)(*(double*)(dw->ew->keyBuffer + START_ADDRESS_POSITION));
             data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
             data.mv_data = startValueBuffer + 1;
             if (flags & 0x400) {// reverse through values
