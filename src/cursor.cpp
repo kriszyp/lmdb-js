@@ -131,7 +131,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
     return key.mv_size;
 }
 
-const int START_ADDRESS_POSITION = 8140;
+const int START_ADDRESS_POSITION = 4064;
 uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
     //char* keyBuffer = dw->ew->keyBuffer;
     MDB_val key, data;

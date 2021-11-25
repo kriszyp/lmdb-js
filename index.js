@@ -48,7 +48,7 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
-		pageSize: 16384,
+		pageSize: 8192,
 		//overlappingSync: true,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -99,7 +99,7 @@ export function open(path, options) {
 		console.info('Removed', path);
 	}
 	let maxKeySize = env.open(options);
-	maxKeySize = Math.min(maxKeySize, 8122);
+	maxKeySize = Math.min(maxKeySize, 4026);
 	console.log({maxKeySize})
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
@@ -342,7 +342,7 @@ export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true);
 }
 
-const KEY_BUFFER_SIZE = 8192
+const KEY_BUFFER_SIZE = 4096
 function allocateFixedBuffer() {
 	keyBytes = Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;

@@ -582,7 +582,7 @@ describe('lmdb-js', function() {
         lastKey = key
       }
     })
-    it.only('big keys', async function() {
+    it('big keys', async function() {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
         keyBase += 'A'
@@ -609,7 +609,7 @@ describe('lmdb-js', function() {
       should.equal(db.get(returnedKeys[0]), undefined)
     });
 
-    it('invalid key', async function() {
+    it.only('invalid key', async function() {
       expect(() => db.get(Buffer.from([]))).to.throw();
       expect(() => db.put(Buffer.from([]), 'test')).to.throw();
       expect(() => db.get({ foo: 'bar' })).to.throw();

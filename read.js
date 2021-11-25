@@ -7,7 +7,7 @@ const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
 let lastSize;
-const START_ADDRESS_POSITION = 8140;
+const START_ADDRESS_POSITION = 4064;
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion

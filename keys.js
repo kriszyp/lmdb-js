@@ -10,8 +10,6 @@ const readUint32Key = (target, start) => {
 	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true);
 };
 const writeBufferKey = (key, target, start) => {
-	if (key.length > 1978)
-		throw new Error('Key buffer is too long');
 	target.set(key, start);
 	return key.length + start;
 };
@@ -60,7 +58,7 @@ function allocateSaveBuffer() {
 
 }
 export function saveKey(key, writeKey, saveTo, maxKeySize) {
-	if (savePosition > 7500) {
+	if (savePosition > 7800) {
 		allocateSaveBuffer();
 	}
 	let start = savePosition;
