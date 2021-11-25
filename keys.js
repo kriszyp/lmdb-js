@@ -15,6 +15,7 @@ const writeBufferKey = (key, target, start) => {
 	target.set(key, start);
 	return key.length + start;
 };
+const Uint8ArraySlice = Uint8Array.prototype.slice;
 const readBufferKey = (target, start, end) => {
 	return Uint8ArraySlice.call(target, start, end);
 };

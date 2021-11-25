@@ -99,6 +99,7 @@ export function open(path, options) {
 		console.info('Removed', path);
 	}
 	let maxKeySize = env.open(options);
+	maxKeySize = Math.min(maxKeySize, 8122);
 	console.log({maxKeySize})
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
