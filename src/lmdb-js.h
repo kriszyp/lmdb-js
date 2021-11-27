@@ -261,11 +261,14 @@ public:
     bool readTxnRenewed;
     unsigned int jsFlags;
     char* keyBuffer;
+    int pageSize;
     MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
     void closeEnv();
+    int openEnv(const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
+        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
     
     /*
         Constructor of the database environment. You need to `open()` it before you can use it.
@@ -317,6 +320,7 @@ public:
         * path: path to the database environment
     */
     static NAN_METHOD(open);
+    static NAN_METHOD(getMaxKeySize);
 
     /*
         Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.

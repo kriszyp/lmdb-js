@@ -175,8 +175,6 @@ NAN_METHOD(EnvWrap::open) {
     Nan::HandleScope scope;
 
     int rc;
-    int flags = 0;
-    int jsFlags = 0;
 
     // Get the wrapper
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
@@ -185,105 +183,121 @@ NAN_METHOD(EnvWrap::open) {
         return Nan::ThrowError("The environment is already closed.");
     }
     Local<Object> options = Local<Object>::Cast(info[0]);
-    ew->compression = nullptr;
+    Local<Number> flagsValue = Local<Number>::Cast(info[1]);
+    int flags = flagsValue->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    Local<Number> jsFlagsValue = Local<Number>::Cast(info[2]);
+    int jsFlags = jsFlagsValue->IntegerValue(Nan::GetCurrentContext()).FromJust();
+
+    Compression* compression = nullptr;
     Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
     if (compressionOption->IsObject()) {
-        ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
+        compression = ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
         ew->compression->Ref();
     }
+    char* keyBuffer;
     Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBytes").ToLocalChecked()).ToLocalChecked();
     if (keyBytesValue->IsArrayBufferView())
-        ew->keyBuffer = node::Buffer::Data(keyBytesValue);
+        keyBuffer = node::Buffer::Data(keyBytesValue);
     setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
-    ew->jsFlags = jsFlags;
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
-    Nan::Utf8String charPath(path);
-    pthread_mutex_lock(envsLock);
-    for (env_path_t envPath : envs) {
-        char* existingPath = envPath.path;
-        if (!strcmp(existingPath, *charPath)) {
-            envPath.count++;
-            mdb_env_close(ew->env);
-            ew->env = envPath.env;
-            pthread_mutex_unlock(envsLock);
-            int maxKeySize = mdb_env_get_maxkeysize(ew->env);
-            info.GetReturnValue().Set(Nan::New<Number>(maxKeySize));
-            return;
-        }
-    }
-
+    int pathLength = path->Length();
+    uint8_t* pathBytes = new uint8_t[pathLength + 1];
+    int bytes = path->WriteOneByte(Isolate::GetCurrent(), pathBytes, 0, pathLength + 1, v8::String::WriteOptions::NO_OPTIONS);
+    if (bytes != pathLength)
+        fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
+    if (pathBytes[bytes])
+        fprintf(stderr, "String is not null-terminated");
     // Parse the maxDbs option
-    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxdbs, ew->env, options, 1, "maxDbs");
-    if (rc != 0) {
-        pthread_mutex_unlock(envsLock);
-        return throwLmdbError(rc);
-    }
+    int maxDbs = 12;
+    Local<Value> option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("maxDbs").ToLocalChecked()).ToLocalChecked();
+    if (option->IsNumber())
+        maxDbs = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
+
+    mdb_size_t mapSize = 0;
     // Parse the mapSize option
-    Local<Value> mapSizeOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
-    if (mapSizeOption->IsNumber()) {
-        mdb_size_t mapSizeSizeT = mapSizeOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
-        rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
-        if (rc != 0) {
-            pthread_mutex_unlock(envsLock);
-            return throwLmdbError(rc);
-        }
-    }
+    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
+    if (option->IsNumber())
+        mapSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    int pageSize = 8192;
+    // Parse the mapSize option
+    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("pageSize").ToLocalChecked()).ToLocalChecked();
+    if (option->IsNumber())
+        pageSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    int maxReaders = 126;
+    // Parse the mapSize option
+    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("maxReaders").ToLocalChecked()).ToLocalChecked();
+    if (option->IsNumber())
+        maxReaders = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
+    uint8_t* encryptKey = nullptr;
     Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
     if (!encryptionKey->IsUndefined()) {
         MDB_val enckey;
         unsigned int l = Local<String>::Cast(encryptionKey)->Length();
-        enckey.mv_data = new uint8_t[l];
+        encryptKey = new uint8_t[l];
         int utfWritten = 0;
         Local<String>::Cast(encryptionKey)->WriteUtf8(Isolate::GetCurrent(),
-            (char*) enckey.mv_data, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+            (char*) encryptKey, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten != 32) {
             return Nan::ThrowError("Encryption key must be 32 bytes long");
         }
-        enckey.mv_size = utfWritten;
         #ifdef MDB_RPAGE_CACHE
-        rc = mdb_env_set_encrypt(ew->env, encfunc, &enckey, 0);
+        if (rc != 0) {
+            return throwLmdbError(rc);
+        }        
         #else
         return Nan::ThrowError("Encryption not supported with data format version 1");
         #endif
-        if (rc != 0) {
-            return throwLmdbError(rc);
+    }
+
+    rc = ew->openEnv((const char*)pathBytes, keyBuffer, compression, jsFlags, flags, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
+    delete pathBytes;
+    if (rc < 0)
+        return throwLmdbError(rc);
+    return info.GetReturnValue().Set(Nan::New<Number>(rc));
+}
+int EnvWrap::openEnv(const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
+        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
+    fprintf(stderr, "openEnv! %u %u %s %u\n", flags, jsFlags, path, maxReaders);
+    pthread_mutex_lock(envsLock);
+    this->keyBuffer = keyBuffer;
+    this->compression = compression;
+    this->jsFlags = jsFlags;
+    MDB_env* env = this->env;
+    for (env_path_t envPath : envs) {
+        char* existingPath = envPath.path;
+        if (!strcmp(existingPath, path)) {
+            envPath.count++;
+            mdb_env_close(env);
+            this->env = envPath.env;
+            pthread_mutex_unlock(envsLock);
+            return 0;
         }
     }
-
-    // Parse the maxReaders option
-    // NOTE: mdb.c defines DEFAULT_READERS as 126
-    rc = applyUint32Setting<unsigned>(&mdb_env_set_maxreaders, ew->env, options, 126, "maxReaders");
-    if (rc != 0) {
-        return throwLmdbError(rc);
+    int rc;
+    rc = mdb_env_set_maxdbs(env, maxDbs);
+    if (rc) goto fail;
+    rc = mdb_env_set_maxreaders(env, maxReaders);
+    if (rc) goto fail;
+    rc = mdb_env_set_mapsize(env, mapSize);
+    if (rc) goto fail;
+    #ifdef MDB_RPAGE_CACHE
+    rc = mdb_env_set_pagesize(env, pageSize);
+    if (rc) goto fail;
+    #endif
+    if (encryptionKey) {
+        MDB_val enckey;
+        enckey.mv_data = encryptionKey;
+        enckey.mv_size = 32;
+        #ifdef MDB_RPAGE_CACHE
+        rc = mdb_env_set_encrypt(this->env, encfunc, &enckey, 0);
+        #else
+        rc = -1;
+        #endif
+        if (rc != 0) goto fail;
     }
 
-    #ifdef MDB_RPAGE_CACHE
-    // Parse the pageSize option
-    // default is 4096
-    rc = applyUint32Setting<int>(&mdb_env_set_pagesize, ew->env, options, 4096, "pageSize");
-    if (rc != 0) {
-        return throwLmdbError(rc);
-    }
-    #endif
-
-    // NOTE: MDB_FIXEDMAP is not exposed here since it is "highly experimental" + it is irrelevant for this use case
-    // NOTE: MDB_NOTLS is not exposed here because it is irrelevant for this use case, as node will run all this on a single thread anyway
-    setFlagFromValue(&flags, MDB_NOSUBDIR, "noSubdir", false, options);
-    setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
-    setFlagFromValue(&flags, MDB_WRITEMAP, "useWritemap", false, options);
-    setFlagFromValue(&flags, MDB_PREVSNAPSHOT, "usePreviousSnapshot", false, options);
-    setFlagFromValue(&flags, MDB_NOMEMINIT , "noMemInit", false, options);
-    setFlagFromValue(&flags, MDB_NORDAHEAD , "noReadAhead", false, options);
-    setFlagFromValue(&flags, MDB_OVERLAPPINGSYNC, "overlappingSync", false, options);
-    setFlagFromValue(&flags, MDB_NOMETASYNC, "noMetaSync", false, options);
-    setFlagFromValue(&flags, MDB_NOSYNC, "noSync", false, options);
-    setFlagFromValue(&flags, MDB_MAPASYNC, "mapAsync", false, options);
-    setFlagFromValue(&flags, MDB_NOLOCK, "unsafeNoLock", false, options);
-    #ifdef MDB_RPAGE_CACHE
-    setFlagFromValue(&flags, MDB_REMAP_CHUNKS, "remapChunks", false, options);
-    #endif
     if (flags & MDB_OVERLAPPINGSYNC) {
         flags |= MDB_PREVSNAPSHOT;
     }
@@ -295,24 +309,33 @@ NAN_METHOD(EnvWrap::open) {
     // Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
     flags |= MDB_NOTLS;
     // TODO: make file attributes configurable
-    rc = mdb_env_open(ew->env, *String::Utf8Value(Isolate::GetCurrent(), path), flags, 0664);
-    mdb_env_get_flags(ew->env, (unsigned int*) &flags);
+    // *String::Utf8Value(Isolate::GetCurrent(), path)
+    fprintf(stderr, "do open %u\n",flags);
+    rc = mdb_env_open(env, path, flags, 0664);
+    mdb_env_get_flags(env, (unsigned int*) &flags);
+    fprintf(stderr, "did open %u %u\n",flags, rc);
 
     if (rc != 0) {
-        mdb_env_close(ew->env);
-        pthread_mutex_unlock(envsLock);
-        ew->env = nullptr;
-        return throwLmdbError(rc);
+        mdb_env_close(env);
+        goto fail;
     }
-    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);
+    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, this);
     env_path_t envPath;
-    envPath.path = strdup(*charPath);
-    envPath.env = ew->env;
+    envPath.path = strdup(path);
+    envPath.env = env;
     envPath.count = 1;
     envs.push_back(envPath);
     pthread_mutex_unlock(envsLock);
-    int maxKeySize = mdb_env_get_maxkeysize(ew->env);
-    info.GetReturnValue().Set(Nan::New<Number>(maxKeySize));
+    return 0;
+
+    fail:
+    pthread_mutex_unlock(envsLock);
+    this->env = nullptr;
+    return rc;
+}
+NAN_METHOD(EnvWrap::getMaxKeySize) {
+    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+    return info.GetReturnValue().Set(Nan::New<Number>(mdb_env_get_maxkeysize(ew->env)));
 }
 
 NAN_METHOD(EnvWrap::resize) {
@@ -727,6 +750,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     // EnvWrap: Add functions to the prototype
     Isolate *isolate = Isolate::GetCurrent();
     envTpl->PrototypeTemplate()->Set(isolate, "open", Nan::New<FunctionTemplate>(EnvWrap::open));
+    envTpl->PrototypeTemplate()->Set(isolate, "getMaxKeySize", Nan::New<FunctionTemplate>(EnvWrap::getMaxKeySize));
     envTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(EnvWrap::close));
     envTpl->PrototypeTemplate()->Set(isolate, "beginTxn", Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
     envTpl->PrototypeTemplate()->Set(isolate, "commitTxn", Nan::New<FunctionTemplate>(EnvWrap::commitTxn));
@@ -814,10 +838,16 @@ void EnvWrap::setupExports(Local<Object> exports) {
 # else
 #define EXTERN __attribute__((visibility("default")))
 #endif
-extern "C" EXTERN size_t envOpen(uint32_t flags, const uint8_t * path, size_t length);
-size_t envOpen(uint32_t flags, const uint8_t * path, size_t length) {
+extern "C" EXTERN size_t envOpen(char* path, int pathSize, void* keyBuffer, int keyBufferSize, double compression, int jsFlags, int flags, int maxDbs,
+        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
+extern "C" EXTERN int getMaxKeySize(double mapRef) {
+    return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) mapRef)->env);
+}
+size_t envOpen(char* path, int pathSize, char* keyBuffer, int keyBufferSize, double compression, int jsFlags, int flags, int maxDbs,
+        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
 //	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();
+    ew->openEnv(path, keyBuffer, (Compression*) (size_t) compression, jsFlags, flags, maxDbs, maxReaders, mapSize, pageSize, encryptionKey);
     return (size_t) ew;
 }
 

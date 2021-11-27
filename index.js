@@ -1,6 +1,6 @@
 import { extname, basename, dirname} from 'path';
 import EventEmitter from 'events';
-import { Env, Compression, getAddress, require, arch, fs } from './native.js';
+import { Env, Compression, getAddress, require, arch, fs, lmdbError } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -10,12 +10,10 @@ setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
 
-const DEFAULT_SYNC_BATCH_THRESHOLD = 200000000; // 200MB
-const DEFAULT_IMMEDIATE_BATCH_THRESHOLD = 10000000; // 10MB
+// this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
+// this corresponds to the max key size for 8KB pages, which is currently the default
+const MAX_KEY_SIZE = 4026;
 const DEFAULT_COMMIT_DELAY = 0;
-const READING_TNX = {
-	readOnly: true
-};
 
 export const allDbs = new Map();
 let env;
@@ -92,14 +90,24 @@ export function open(path, options) {
 			Object.assign(options.compression, compressionOptions);
 		}
 	}
+	let flags =
+		(options.overlappingSync ? 0x1000 : 0) |
+		(options.noSubDir ? 0x4000 : 0) |
+		(options.noSync ? 0x10000 : 0) |
+		(options.readOnly ? 0x20000 : 0) |
+		(options.noMetaSync ? 0x40000 : 0) |
+		(options.useWritemap ? 0x80000 : 0) |
+		(options.mapAsync ? 0x100000 : 0) |
+		(options.noReadAhead ? 0x800000 : 0) |
+		(options.noMemInit ? 0x1000000 : 0) |
+		(options.usePreviousSnapshot ? 0x2000000 : 0) |
+		(options.remapChunks ? 0x4000000 : 0);
 
-	if (options && options.clearOnStart) {
-		console.info('Removing', path);
-		fs.removeSync(path);
-		console.info('Removed', path);
-	}
-	let maxKeySize = env.open(options);
-	maxKeySize = Math.min(maxKeySize, 4026);
+	let rc = env.open(options, flags, options.separateFlushed ? 1 : 0);
+	if (rc)
+		lmdbError(rc);
+	let maxKeySize = env.getMaxKeySize();
+	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
 	console.log({maxKeySize})
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
