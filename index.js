@@ -100,7 +100,6 @@ export function open(path, options) {
 	}
 	let maxKeySize = env.open(options);
 	maxKeySize = Math.min(maxKeySize, 4026);
-	console.log({maxKeySize})
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
 	class LMDBStore extends EventEmitter {
