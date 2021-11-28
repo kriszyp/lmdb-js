@@ -1,6 +1,4 @@
-import { getAddress } from './native.js';
-import { writeKey, readKey, enableNullTermination } from 'ordered-binary/index.js';
-enableNullTermination();
+import { getAddress, orderedBinary } from './external.js';
 
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true);
@@ -21,13 +19,13 @@ const readBufferKey = (target, start, end) => {
 export function applyKeyHandling(store) {
  	if (store.encoding == 'ordered-binary') {
 		store.encoder = store.decoder = {
-			writeKey,
-			readKey,
+			writeKey: orderedBinary.writeKey,
+			readKey: orderedBinary.readKey,
 		};
 	}
 	if (store.encoder && store.encoder.writeKey && !store.encoder.encode) {
 		store.encoder.encode = function(value) {
-			return saveKey(value, writeKey, false, store.maxKeySize);
+			return saveKey(value, this.writeKey, false, store.maxKeySize);
 		};
 	}
 	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
@@ -42,8 +40,8 @@ export function applyKeyHandling(store) {
 		store.writeKey = store.keyEncoder.writeKey;
 		store.readKey = store.keyEncoder.readKey;
 	} else {
-		store.writeKey = writeKey;
-		store.readKey = readKey;
+		store.writeKey = orderedBinary.writeKey;
+		store.readKey = orderedBinary.readKey;
 	}
 }
 

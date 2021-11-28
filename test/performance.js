@@ -24,7 +24,7 @@ console.log('opening')
 //		mapSize: 0x10000,
 //useWritemap: true,
 //noSync: true,
-		pageSize: 0x4000
+//		pageSize: 0x4000
 	})
 	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
 		encoding: 'binary',
@@ -32,7 +32,7 @@ console.log('opening')
 //		useWritemap: true,
 //		noSync: true,
 //		mapSize: 0x10000,
-		pageSize: 0x4000
+//		pageSize: 0x4000
 	})
 console.log('opened')
 	suiteSetup(() => {

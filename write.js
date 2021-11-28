@@ -1,4 +1,4 @@
-import { getAddressShared as getAddress } from './native.js';
+import { getAddressShared as getAddress } from './external.js';
 import { when } from './util/when.js';
 var backpressureArray;
 

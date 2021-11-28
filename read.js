@@ -1,7 +1,6 @@
 import { ArrayLikeIterable }  from './util/ArrayLikeIterable.js';
-import { getAddress, Cursor, setGlobalBuffer }  from './native.js';
+import { getAddress, Cursor, setGlobalBuffer, orderedBinary }  from './external.js';
 import { saveKey }  from './keys.js';
-import { writeKey }  from 'ordered-binary/index.js';
 import { binaryBuffer } from './write.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
@@ -233,9 +232,9 @@ export function addReadMethods(LMDBStore, {
 								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
 								endAddress = saveKey(options.end, store.encoder.writeKey, iterable, maxKeySize);
 							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
-								startAddress = saveKey(options.start, writeKey, iterable, maxKeySize);
+								startAddress = saveKey(options.start, orderedBinary.writeKey, iterable, maxKeySize);
 								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
-								endAddress = saveKey(options.end, writeKey, iterable, maxKeySize);
+								endAddress = saveKey(options.end, orderedBinary.writeKey, iterable, maxKeySize);
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values');
 								let encoded = store.encoder.encode(options.start);
@@ -421,7 +420,7 @@ export function addReadMethods(LMDBStore, {
 	}
 }
 export function makeReusableBuffer(size) {
-	let bytes = Buffer.alloc(size)
+	let bytes = typeof Buffer != 'undefined' ? Buffer.alloc(size) : new Uint8Array(size);
 	bytes.maxLength = size;
 	Object.defineProperty(bytes, 'length', { value: size, writable: true, configurable: true });
 	return bytes;

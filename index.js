@@ -1,11 +1,8 @@
-import { extname, basename, dirname} from 'path';
-import EventEmitter from 'events';
-import { Env, Compression, getAddress, require, arch, fs, lmdbError } from './native.js';
+import { envOpen, Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
 import { applyKeyHandling } from './keys.js';
-import { Encoder as MsgpackrEncoder } from 'msgpackr';
 setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
@@ -23,7 +20,6 @@ let abortedNonChildTransactionWarn;
 export function open(path, options) {
 	if (!keyBytes)
 		allocateFixedBuffer();
-	let env = new Env();
 	let committingWrites;
 	let scheduledTransactions;
 	let scheduledOperations;
@@ -33,8 +29,8 @@ export function open(path, options) {
 		options = path;
 		path = options.path;
 	}
-	let extension = extname(path);
-	let name = basename(path, extension);
+	let extension = pathModule.extname(path);
+	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
 	let remapChunks = (options && options.remapChunks) || ((options && options.mapSize) ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
@@ -46,7 +42,7 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
-		pageSize: 8192,
+		pageSize: options && options.noReadAhead ? 4096 : 8192,
 		//overlappingSync: true,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -63,8 +59,8 @@ export function open(path, options) {
 	if (options.separateFlushed === undefined)
 		options.separateFlushed = options.overlappingSync;
 
-	if (!fs.existsSync(options.noSubdir ? dirname(path) : path))
-		fs.mkdirSync(options.noSubdir ? dirname(path) : path, { recursive: true });
+	if (!fs.existsSync(options.noSubdir ? pathModule.dirname(path) : path))
+		fs.mkdirSync(options.noSubdir ? pathModule.dirname(path) : path, { recursive: true });
 	if (options.compression) {
 		let setDefault;
 		if (options.compression == true) {
@@ -92,7 +88,7 @@ export function open(path, options) {
 	}
 	let flags =
 		(options.overlappingSync ? 0x1000 : 0) |
-		(options.noSubDir ? 0x4000 : 0) |
+		(options.noSubdir ? 0x4000 : 0) |
 		(options.noSync ? 0x10000 : 0) |
 		(options.readOnly ? 0x20000 : 0) |
 		(options.noMetaSync ? 0x40000 : 0) |
@@ -103,9 +99,7 @@ export function open(path, options) {
 		(options.usePreviousSnapshot ? 0x2000000 : 0) |
 		(options.remapChunks ? 0x4000000 : 0);
 
-	let rc = env.open(options, flags, options.separateFlushed ? 1 : 0);
-	if (rc)
-		lmdbError(rc);
+	let env = envOpen(options, flags, options.separateFlushed ? 1 : 0);
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
 	console.log({maxKeySize})
@@ -350,9 +344,9 @@ export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true);
 }
 
-const KEY_BUFFER_SIZE = 4096
+const KEY_BUFFER_SIZE = 4096;
 function allocateFixedBuffer() {
-	keyBytes = Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE);
+	keyBytes = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE) : new Uint8Array(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;
 	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 8122
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);

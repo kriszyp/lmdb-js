@@ -1,47 +1,50 @@
-import { setNativeFunctions } from './native.js';
+import { orderedBinary, setNativeFunctions } from './external.js';
+import './deps.ts';
+orderedBinary.enableNullTermination();
 // probably use Deno.build.os
-import { arch } from 'https://deno.land/std/node/os.ts';
-let lmdbLib = Deno.dlopen('./build/Release/lmdb-js.node', {
-	envOpen: { parameters: ['u32', 'buffer', 'usize'], result: 'usize'},/*
-    free: { parameters: ['buffer', 'usize'], result: 'void'},
-    getAddress: { parameters: ['buffer', 'usize'], result: 'usize'},
+let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
+    // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
+    // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
+	//envOpen: { parameters: ['buffer', 'usize', 'usize', 'u32', 'u32', 'u32', 'u32', 'usize', 'u32', 'buffer', 'usize'], result: 'usize'},
+    freeData: { parameters: ['buffer', 'usize'], result: 'void'},
+    getAddress: { parameters: ['buffer'], result: 'usize'},/*
     startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
 let b = new Uint8Array([1,2]);
-console.log(lmdbLib.symbols.envOpen(0, b, 2));
-let { envOpen, getAddress, free } = lmdbLib.symbols;
+//console.log(lmdbLib.symbols.envOpen(0, b, 2));
+let { /*envOpen, */getAddress, freeData } = lmdbLib.symbols;
 
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
-    free(address, 1);
+    //freeData(address, 1);
 });
 
 class CBridge {
-    constructor(address) {
+    address: number;
+    constructor(address: number) {
         this.address = address;
         registry.register(this, address);
     }
-    static addMethods(...methods) {
+  /*  static addMethods(...methods: ) {
         for (let method of methods) {
             this.prototype[method] = function() {
                 return symbols[method](this.address, ...arguments);
             };
         }
-    }
+    }*/
 }
 class Env extends CBridge {
-    constructor() {
-        super(symbols.Env());
-    }
-    open(flags, path) {
-        return envOpen(this.address, flags, path);
+    open(flags: number, path: string) {
+        //this.address = envOpen(flags, path) as number;
     }
 }
-Env.addMethods('startWriting', 'write', 'openDB');
+//Env.addMethods('startWriting', 'write', 'openDB');
+function envOpen() {
 
+}
 class Dbi extends CBridge {
 
 }
@@ -53,12 +56,11 @@ class Cursor extends CBridge {
 
 }
 
-setNativeFunctions({ Env, Compression, Cursor, fs: Deno, arch, getAddress, getAddressShared: getAddress });
-export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
+setNativeFunctions({ envOpen, Compression, Cursor, getAddress, getAddressShared: getAddress });
+export const { toBufferKey: keyValueToBuffer, compareKeys, compareKeys: compareKey, fromBufferKey: bufferToKeyValue } = orderedBinary;
 export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion } from './index.js';
-import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
 import { open, getLastVersion } from './index.js';
 export default {
 	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue

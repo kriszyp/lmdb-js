@@ -233,7 +233,6 @@ NAN_METHOD(EnvWrap::open) {
     uint8_t* encryptKey = nullptr;
     Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
     if (!encryptionKey->IsUndefined()) {
-        MDB_val enckey;
         unsigned int l = Local<String>::Cast(encryptionKey)->Length();
         encryptKey = new uint8_t[l];
         int utfWritten = 0;
@@ -242,11 +241,7 @@ NAN_METHOD(EnvWrap::open) {
         if (utfWritten != 32) {
             return Nan::ThrowError("Encryption key must be 32 bytes long");
         }
-        #ifdef MDB_RPAGE_CACHE
-        if (rc != 0) {
-            return throwLmdbError(rc);
-        }        
-        #else
+        #ifndef MDB_RPAGE_CACHE
         return Nan::ThrowError("Encryption not supported with data format version 1");
         #endif
     }
@@ -843,6 +838,14 @@ extern "C" EXTERN size_t envOpen(char* path, int pathSize, void* keyBuffer, int 
 extern "C" EXTERN int getMaxKeySize(double mapRef) {
     return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) mapRef)->env);
 }
+extern "C" EXTERN void freeData(size_t ref) {
+    delete (void*) ref;
+}
+extern "C" EXTERN size_t getAddress(char* buffer) {
+    return (size_t) buffer;
+}
+
+
 size_t envOpen(char* path, int pathSize, char* keyBuffer, int keyBufferSize, double compression, int jsFlags, int flags, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
 //	fprintf(stderr, "start!! %p %u\n", path, length);

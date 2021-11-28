@@ -1,10 +1,16 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { setNativeFunctions } from './native.js';
-import fs from 'fs';
+import { dirname, default as path } from 'path';
+import EventEmitter from 'events';
+import { setExternals, setNativeFunctions } from './external.js';
 import { arch } from 'os';
+import fs from 'fs';
+import { Encoder as MsgpackrEncoder } from 'msgpackr';
+import { WeakLRUCache } from 'weak-lru-cache';
+import * as orderedBinary from 'ordered-binary/index.js';
+orderedBinary.enableNullTermination();
+
 let nativeFunctions, dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 try {
 	nativeFunctions = require('node-gyp-build')(dirName);
@@ -24,10 +30,18 @@ try {
 	} else
 		throw error;
 }
-nativeFunctions.require = require;
-nativeFunctions.arch = arch;
-nativeFunctions.fs = fs;
+nativeFunctions.envOpen = function(options, flags, jsFlags) {
+	let env = new nativeFunctions.Env();
+	let rc = env.open(options, flags, jsFlags);
+    if (rc)
+		nativeFunctions.lmdbError(rc);
+	return env;
+}
 setNativeFunctions(nativeFunctions);
+console.log({orderedBinary})
+setExternals({
+	require, arch, fs, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
+});
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
 export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
@@ -35,5 +49,5 @@ export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from '
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
 import { open, getLastVersion } from './index.js';
 export default {
-	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue
+	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, path, EventEmitter
 };
