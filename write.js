@@ -1,4 +1,4 @@
-import { getAddressShared as getAddress } from './external.js';
+import { getAddress } from './external.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -32,7 +32,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[0] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
-		buffer.address = getAddress(buffer);
+		buffer.address = getAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 0;
 		return dynamicBytes;
@@ -62,11 +62,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var unwrittenResolution = nextResolution;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus;
-		let targetBytes, position;
+		let targetBytes, position, encoder;
 		let valueBuffer, valueSize, valueBufferStart;
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
-			let encoder = store.encoder;
+			encoder = store.encoder;
 			if (value && value[binaryBuffer])
 				valueBuffer = value[binaryBuffer];
 			else if (encoder) {
@@ -153,13 +153,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer.buffer) + valueBuffer.byteOffset)) + valueBufferStart;
+						(valueBuffer.address = getAddress(valueBuffer))) + valueBufferStart;
 					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
 					float64[position] = (valueArrayBuffer.address ||
-						(valueArrayBuffer.address = getAddress(valueArrayBuffer))) + valueBuffer.byteOffset;
+						(valueArrayBuffer.address = (getAddress(valueBuffer) - valueBuffer.byteOffset)))
+							+ valueBuffer.byteOffset;
 					mustCompress = valueBuffer[0] >= 250; // this is the compression indicator, so we must compress
 				}
 				uint32[(position++ << 1) - 1] = valueSize;
@@ -192,6 +193,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (writeTxn) {
 			uint32[0] = flags;
 			env.write(uint32.address);
+			if (valueBufferStart > -1)
+				encoder.updatePosition(valueBufferStart); // we have used the buffer and no longer need it, so we can immediately reset the encoder's position to reuse that space, which can improve performance
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS;
 		}
 		// if we ever use buffers that haven't been zero'ed, need to clear out the next slot like this:

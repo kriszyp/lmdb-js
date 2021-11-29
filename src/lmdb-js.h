@@ -139,6 +139,7 @@ int compareFast(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(setGlobalBuffer);
 NAN_METHOD(lmdbError);
 //NAN_METHOD(getBufferForAddress);
+NAN_METHOD(getViewAddress);
 NAN_METHOD(getAddress);
 NAN_METHOD(getAddressShared);
 

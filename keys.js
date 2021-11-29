@@ -50,8 +50,8 @@ let savePosition = 8000;
 function allocateSaveBuffer() {
 	saveBuffer = Buffer.alloc(8192);
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
-	saveBuffer.buffer.address = getAddress(saveBuffer.buffer);
-	saveDataAddress = saveBuffer.buffer.address + saveBuffer.byteOffset;
+	saveBuffer.buffer.address = getAddress(saveBuffer);
+	saveDataAddress = saveBuffer.buffer.address;
 	savePosition = 0;
 
 }

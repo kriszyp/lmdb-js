@@ -20,7 +20,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "setGlobalBuffer", setGlobalBuffer);
     Nan::SetMethod(exports, "lmdbError", lmdbError);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
-    Nan::SetMethod(exports, "getAddress", getAddress);
+    Nan::SetMethod(exports, "getAddress", getViewAddress);
     Nan::SetMethod(exports, "getAddressShared", getAddressShared);
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // just uses the name of the last exported native function:
@@ -185,6 +185,10 @@ NAN_METHOD(setGlobalBuffer) {
     auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
     info.GetReturnValue().Set(array_buffer);
 }*/
+NAN_METHOD(getViewAddress) {
+    void* address = node::Buffer::Data(info[0]);
+    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
+}
 NAN_METHOD(getAddress) {
     void* address;
     Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(info[0]);

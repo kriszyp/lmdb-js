@@ -833,7 +833,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
 # else
 #define EXTERN __attribute__((visibility("default")))
 #endif
-extern "C" EXTERN size_t envOpen(char* path, int pathSize, void* keyBuffer, int keyBufferSize, double compression, int jsFlags, int flags, int maxDbs,
+extern "C" EXTERN size_t envOpen(char* path, char* keyBuffer, double compression, int jsFlags, int flags, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
 extern "C" EXTERN int getMaxKeySize(double mapRef) {
     return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) mapRef)->env);
@@ -846,7 +846,7 @@ extern "C" EXTERN size_t getAddress(char* buffer) {
 }
 
 
-size_t envOpen(char* path, int pathSize, char* keyBuffer, int keyBufferSize, double compression, int jsFlags, int flags, int maxDbs,
+size_t envOpen(char* path, char* keyBuffer, double compression, int jsFlags, int flags, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
 //	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();

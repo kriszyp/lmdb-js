@@ -5,7 +5,7 @@ orderedBinary.enableNullTermination();
 let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
-	//envOpen: { parameters: ['buffer', 'usize', 'usize', 'u32', 'u32', 'u32', 'u32', 'usize', 'u32', 'buffer', 'usize'], result: 'usize'},
+	envOpen: { parameters: ['buffer', 'buffer', 'f64', 'u32', 'u32', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'usize'},
     freeData: { parameters: ['buffer', 'usize'], result: 'void'},
     getAddress: { parameters: ['buffer'], result: 'usize'},/*
     startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
@@ -15,11 +15,11 @@ let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
 });
 let b = new Uint8Array([1,2]);
 //console.log(lmdbLib.symbols.envOpen(0, b, 2));
-let { /*envOpen, */getAddress, freeData } = lmdbLib.symbols;
+let { envOpen, getAddress, freeData } = lmdbLib.symbols;
 
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
-    //freeData(address, 1);
+    freeData(address, 1);
 });
 
 class CBridge {
@@ -42,9 +42,6 @@ class Env extends CBridge {
     }
 }
 //Env.addMethods('startWriting', 'write', 'openDB');
-function envOpen() {
-
-}
 class Dbi extends CBridge {
 
 }

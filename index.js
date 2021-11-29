@@ -59,7 +59,7 @@ export function open(path, options) {
 	if (options.separateFlushed === undefined)
 		options.separateFlushed = options.overlappingSync;
 
-	if (!fs.existsSync(options.noSubdir ? pathModule.dirname(path) : path))
+	if (!exists(options.noSubdir ? pathModule.dirname(path) : path))
 		fs.mkdirSync(options.noSubdir ? pathModule.dirname(path) : path, { recursive: true });
 	if (options.compression) {
 		let setDefault;
@@ -348,8 +348,20 @@ const KEY_BUFFER_SIZE = 4096;
 function allocateFixedBuffer() {
 	keyBytes = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE) : new Uint8Array(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;
-	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 8122
+	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 4026
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
 	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
-	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer);
+	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBytes);
+}
+
+function exists(path) {
+	if (fs.existsSync)
+		return fs.existsSync(path);
+	try {
+		return fs.statSync(path);
+	} catch (error) {
+//		if (error.name == 'NotFound')
+			return false
+//		throw error
+	}
 }
