@@ -45,11 +45,11 @@ jobs:
           files: prebuild-linux.tar
   build-alpine:
     runs-on: ubuntu-18.04
-    container: node:16-alpine
+    container: node:12-alpine
     steps:
       - run: apk add python3 py3-pip build-base
       - uses: actions/checkout@v2
-      - run: npm ci
+      - run: npm install
       - run: npm run prebuild-musl
       - run: npm test
       - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
