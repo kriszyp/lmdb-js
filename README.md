@@ -11,8 +11,7 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 * Iterable queries/cursors
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression <a href="https://github.com/kriszyp/db-benchmark"><img align="right" src="./assets/performance.png" width="380"/></a>
-* And ridiculously fast and efficient, with integrated (de)serialization, data retrieval can be several times than `JSON` alone
-
+* And ridiculously fast and efficient, with integrated (de)serialization, data retrieval can be several times faster than `JSON` alone
 
 `lmdb-js` is used in many heavy-use production applications, including as a high-performance cache for builds in [Parcel](https://parceljs.org/) and [Elasticsearch's Kibana](https://www.elastic.co/kibana/), as the storage layer for [HarperDB](https://harperdb.io/) and [Gatsby](https://www.gatsbyjs.com/)'s database, and for search and analytical engine for our [clinical medical research](https://drevidence.com).
 
