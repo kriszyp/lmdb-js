@@ -4,19 +4,22 @@
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for full storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
 * Iterable queries/cursors
-* Automated database growth
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression
 * And ridiculously fast and efficient:
 
-<a href="https://github.com/kriszyp/db-benchmark"><img src="./assets/performance.png" width="700"/></a>
+<a href="https://github.com/kriszyp/db-benchmark"><img src="./assets/performance.png" width="400"/></a>
 
-Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
+`lmdb-js` is used in many heavy-use production applications, including as a high-performance cache for builds in [Parcel](https://parceljs.org/) and [Elasticsearch's Kibana](https://www.elastic.co/kibana/), as the storage layer for [HarperDB](https://harperdb.io/) and [Gatsby](https://www.gatsbyjs.com/)'s database, and for search and analytical engine for our [clinical medical research](https://drevidence.com).
+<a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="60"></a>
+<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="60"></a>
+<a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="60"/></a>
+<a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60"/></a>
 
 This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
@@ -438,6 +441,10 @@ dbLevel.get(id, (error, value) => {
 dbLevel.get(id).then(...)
 ```
 
+## Benchmarks
+
+Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
+
 ##### Build Options
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
@@ -447,6 +454,11 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
 `npm install --enable_fast_api_calls=true`: This will build `lmdb-js` with V8's new API for fast calls. `lmdb-js` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This is only supported in Node v17 and higher.
+
+## Alternate Database
+The lmdb-js project is developed in conjunction with [lmdbx-js](https://github.com/kriszyp/lmdbx-js), which is based on [libmdbx](https://github.com/erthink/libmdbx), a fork of LMDB. Each of these have their own advantages:
+* lmdb-js/LMDB is great for general usage, easy to set up with automated sizing, supports encryption, and works well across all platforms.
+* lmdbx-js/libmdbx has more advanced management of free space and database sizing that can offer more performance optimizations for heavy usage. However, it may have not perform as well on Windows, and the database format is not compatible with LMDB.
 
 ## Credits
 
