@@ -15,10 +15,10 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 
 `lmdb-js` is used in many heavy-use production applications, including as a high-performance cache for builds in [Parcel](https://parceljs.org/) and [Elasticsearch's Kibana](https://www.elastic.co/kibana/), as the storage layer for [HarperDB](https://harperdb.io/) and [Gatsby](https://www.gatsbyjs.com/)'s database, and for search and analytical engine for our [clinical medical research](https://drevidence.com).
 
-<a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="40"></a>
-<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="56"></a>
-<a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="55"/></a>
-<a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60"/></a>
+<a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="40" align="right"></a>
+<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="56" align="right"></a>
+<a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="55"  align="right"/></a>
+<a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60" align="right"/></a>
 
 This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
@@ -320,7 +320,7 @@ let myDB = open('my-db', {
 	}
 })
 ```
-Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
+Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
 This library supports caching of entries from databases, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the database `options`.
@@ -368,7 +368,7 @@ let db = open({ encoder: cbor });
 
 The following additional option properties are only available when creating the main database environment (`open`):
 * `path` - This is the file path to the database environment file you will use.
-* `pageSize` - This defines the page size of the database. This is 16,384 by default (previous versions defaulted to 4096). You may want to consider setting this to 32,768 for better performance on larger databases. Note that this does not affect the page size of an existing database.
+* `pageSize` - This defines the page size of the database. This is 8,192 by default (previous versions defaulted to 4096). You may want to consider setting this to 16,384 for better performance on larger databases. Note that this does not affect the page size of an existing database.
 * `maxDbs` - The maximum number of databases to be able to open within one root database/environment ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)). This defaults to 12.
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
