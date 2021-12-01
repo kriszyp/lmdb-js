@@ -246,13 +246,14 @@ NAN_METHOD(EnvWrap::open) {
         #endif
     }
 
-    rc = ew->openEnv((const char*)pathBytes, keyBuffer, compression, jsFlags, flags, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
+    rc = ew->openEnv(flags, jsFlags, (const char*)pathBytes, keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
     delete pathBytes;
     if (rc < 0)
         return throwLmdbError(rc);
+    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);
     return info.GetReturnValue().Set(Nan::New<Number>(rc));
 }
-int EnvWrap::openEnv(const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
+int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
     fprintf(stderr, "openEnv! %u %u %s %u\n", flags, jsFlags, path, maxReaders);
     pthread_mutex_lock(envsLock);
@@ -281,7 +282,7 @@ int EnvWrap::openEnv(const char* path, char* keyBuffer, Compression* compression
     rc = mdb_env_set_pagesize(env, pageSize);
     if (rc) goto fail;
     #endif
-    if (encryptionKey) {
+    if ((size_t) encryptionKey > 100) {
         MDB_val enckey;
         enckey.mv_data = encryptionKey;
         enckey.mv_size = 32;
@@ -314,7 +315,6 @@ int EnvWrap::openEnv(const char* path, char* keyBuffer, Compression* compression
         mdb_env_close(env);
         goto fail;
     }
-    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, this);
     env_path_t envPath;
     envPath.path = strdup(path);
     envPath.env = env;
@@ -833,25 +833,45 @@ void EnvWrap::setupExports(Local<Object> exports) {
 # else
 #define EXTERN __attribute__((visibility("default")))
 #endif
-extern "C" EXTERN size_t envOpen(char* path, char* keyBuffer, double compression, int jsFlags, int flags, int maxDbs,
+extern "C" EXTERN ssize_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
-extern "C" EXTERN int getMaxKeySize(double mapRef) {
-    return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) mapRef)->env);
-}
 extern "C" EXTERN void freeData(size_t ref) {
     delete (void*) ref;
 }
 extern "C" EXTERN size_t getAddress(char* buffer) {
     return (size_t) buffer;
 }
+extern "C" EXTERN uint32_t getMaxKeySize(double ew) {
+    return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) ew)->env);
+}
+extern "C" EXTERN uint32_t readerCheck(double ew) {
+    int rc, dead;
+    rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
+    return rc || dead;
+}
+extern "C" EXTERN ssize_t openDbi(double ew, int flags, char* name) {
+    DbiWrap* dw = new DbiWrap(((EnvWrap*) (size_t) ew)->env, 0);
+    int rc = dw->open(flags, name);
+    if (rc) {
+        delete dw;
+        return rc;
+    }
+    return (ssize_t) dw;
+}
 
-
-size_t envOpen(char* path, char* keyBuffer, double compression, int jsFlags, int flags, int maxDbs,
+ssize_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
 //	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();
-    ew->openEnv(path, keyBuffer, (Compression*) (size_t) compression, jsFlags, flags, maxDbs, maxReaders, mapSize, pageSize, encryptionKey);
-    return (size_t) ew;
+    int rc = mdb_env_create(&(ew->env));
+    if (rc)
+        return rc;
+    rc = ew->openEnv(flags, jsFlags, path, keyBuffer, (Compression*) (size_t) compression,
+        maxDbs, maxReaders, mapSize, pageSize, encryptionKey);
+    if (rc)
+        return rc;
+    fprintf(stderr, "envOpen %u\n", (ssize_t) ew);
+    return (ssize_t) ew;
 }
 
 // This file contains code from the node-lmdb project

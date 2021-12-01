@@ -268,7 +268,7 @@ public:
     // Sets up exports for the Env constructor
     static void setupExports(Local<Object> exports);
     void closeEnv();
-    int openEnv(const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
+    int openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
     
     /*

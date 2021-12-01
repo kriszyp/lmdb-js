@@ -30,13 +30,7 @@ try {
 	} else
 		throw error;
 }
-nativeFunctions.envOpen = function(options, flags, jsFlags) {
-	let env = new nativeFunctions.Env();
-	let rc = env.open(options, flags, jsFlags);
-    if (rc)
-		nativeFunctions.lmdbError(rc);
-	return env;
-}
+
 setNativeFunctions(nativeFunctions);
 console.log({orderedBinary})
 setExternals({
@@ -45,9 +39,9 @@ setExternals({
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
 export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
-export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './index.js';
+export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
-import { open, getLastVersion } from './index.js';
+import { open, getLastVersion } from './open.js';
 export default {
 	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, path, EventEmitter
 };

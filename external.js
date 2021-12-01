@@ -1,7 +1,7 @@
-export let envOpen, Compression, Cursor, getAddress, getAddressShared, setGlobalBuffer,
+export let Env, Compression, Cursor, getAddress, getAddressShared, setGlobalBuffer,
     require, arch, fs, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache;
 export function setNativeFunctions(externals) {
-	envOpen = externals.envOpen;
+	Env = externals.Env;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
     getAddressShared = externals.getAddressShared;

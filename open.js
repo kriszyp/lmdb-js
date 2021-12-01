@@ -1,4 +1,4 @@
-import { envOpen, Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -13,7 +13,6 @@ const MAX_KEY_SIZE = 4026;
 const DEFAULT_COMMIT_DELAY = 0;
 
 export const allDbs = new Map();
-let env;
 let defaultCompression;
 let lastSize, lastOffset, lastVersion;
 let abortedNonChildTransactionWarn;
@@ -99,7 +98,11 @@ export function open(path, options) {
 		(options.usePreviousSnapshot ? 0x2000000 : 0) |
 		(options.remapChunks ? 0x4000000 : 0);
 
-	let env = envOpen(options, flags, options.separateFlushed ? 1 : 0);
+	let env = new Env();
+	let rc = env.open(options, flags, options.separateFlushed ? 1 : 0);
+	console.log({rc});
+    if (rc)
+		lmdbError(rc);
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
 	console.log({maxKeySize})

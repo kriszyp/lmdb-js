@@ -9,7 +9,8 @@ const TXN_COMMITTED = 0x10000000;
 const TXN_FLUSHED = 0x20000000;
 const TXN_FAILED = 0x40000000;
 const FAILED_CONDITION = 0x4000000;
-const REUSE_BUFFER_MODE = 1000;
+const REUSE_BUFFER_MODE = 512;
+const RESET_BUFFER_MODE = 1024;
 export const binaryBuffer = Symbol('binaryBuffer');
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
@@ -71,7 +72,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				valueBuffer = value[binaryBuffer];
 			else if (encoder) {
 				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
-					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE);
+					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE | (writeTxn ? RESET_BUFFER_MODE : 0)); // in addition, if we are writing sync, after using, we can immediately reset the encoder's position to reuse that space, which can improve performance
 				else { // various other encoders, including JSON.stringify, that might serialize to a string
 					valueBuffer = encoder.encode(value);
 					if (typeof valueBuffer == 'string')
@@ -193,8 +194,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (writeTxn) {
 			uint32[0] = flags;
 			env.write(uint32.address);
-			if (valueBufferStart > -1)
-				encoder.updatePosition(valueBufferStart); // we have used the buffer and no longer need it, so we can immediately reset the encoder's position to reuse that space, which can improve performance
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS;
 		}
 		// if we ever use buffers that haven't been zero'ed, need to clear out the next slot like this:
