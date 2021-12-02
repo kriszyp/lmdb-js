@@ -52,6 +52,12 @@ using namespace node;
 #define __CPTHREAD_H__
 
 #ifdef _WIN32
+#define EXTERN __declspec(dllexport)
+# else
+#define EXTERN __attribute__((visibility("default")))
+#endif
+
+#ifdef _WIN32
 # include <windows.h>
 #else
 # include <pthread.h>
@@ -93,10 +99,10 @@ class Logging {
 
 enum class NodeLmdbKeyType {
 
-    // Invalid key (used internally by node-lmdb)
+    // Invalid key (used internally by lmdb-js)
     InvalidKey = -1,
     
-    // Default key (used internally by node-lmdb)
+    // Default key (used internally by lmdb-js)
     DefaultKey = 0,
 
     // UCS-2/UTF-16 with zero terminator - Appears to V8 as string
@@ -481,6 +487,7 @@ public:
 
 };
 
+const int HAS_VERSIONS = 0x1000;
 /*
     `Dbi`
     Represents a database instance in an environment.
@@ -538,6 +545,7 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+    int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif

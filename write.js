@@ -19,6 +19,7 @@ export const ABORT = {};
 const CALLBACK_THREW = {};
 SYNC_PROMISE_SUCCESS.isSync = true;
 SYNC_PROMISE_FAIL.isSync = true;
+const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
 const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array;
 //let debugLog = []
 const WRITE_BUFFER_SIZE = 0x10000;
@@ -28,7 +29,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	//  stands for write instructions
 	var dynamicBytes;
 	function allocateInstructionBuffer() {
-		let buffer = new SharedArrayBuffer(WRITE_BUFFER_SIZE); // Must use a shared buffer to ensure GC doesn't move it around
+		// Must use a shared buffer on older node in order to use Atomics, and it is also more correct since we are 
+		// indeed accessing and modifying it from another thread (in C). However, Deno can't handle it for
+		// FFI so aliased above
+		let buffer = new LocalSharedArrayBuffer(WRITE_BUFFER_SIZE);
 		dynamicBytes = new ByteArray(buffer);
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[0] = 0;

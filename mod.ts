@@ -6,24 +6,26 @@ orderedBinary.enableNullTermination();
 let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
-	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'usize'},
+	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'i64'},
     freeData: { parameters: ['buffer', 'usize'], result: 'void'},
     getAddress: { parameters: ['buffer'], result: 'usize'},
     getMaxKeySize: { parameters: ['f64'], result: 'u32'},
+    openDbi: { parameters: ['f64', 'u32', 'buffer', 'u32', 'f64'], result: 'i64'},
+    getDbi: { parameters: ['f64'], result: 'u32'},
+    readerCheck: { parameters: ['f64'], result: 'i32'},
     /*
     startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
-let b = new Uint8Array([1,2]);
-//console.log(lmdbLib.symbols.envOpen(0, b, 2));
-let { envOpen, getAddress, freeData, getMaxKeySize } = lmdbLib.symbols;
+let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck } = lmdbLib.symbols;
 
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
 });
+console.log(import.meta)
 
 class CBridge {
     address: number;
@@ -41,27 +43,65 @@ class CBridge {
         }
     }*/
 }
+const textEncoder = new TextEncoder();
+const MAX_ERROR = 1000;
+function checkError(rc: number): number {
+    if (rc < MAX_ERROR) {
+        // TODO: Look up error and throw
+        console.log("error", rc);
+    }
+    return rc;
+}
 class Env extends CBridge {
     open(options: any, flags: number, jsFlags: number) {
-        let te = new TextEncoder();
-        let rc = envOpen(flags, jsFlags, te.encode(options.path + '\x00'), options.keyBytes, 0,
+        let rc = envOpen(flags, jsFlags, textEncoder.encode(options.path + '\x00'), options.keyBytes, 0,
             options.maxDbs || 12, options.maxReaders || 126, options.mapSize, options.pageSize, new Uint8Array(0)) as number;
         console.log('open rc', rc);
-        if (rc < 0)
-            return rc;
-        this.address = rc;
+        this.address = checkError(rc);
         registry.register(this, this.address);
         return 0;
     }
+    openDbi(options: any) {
+        let flags = (options.reverseKey ? 0x02 : 0) |
+            (options.dupSort ? 0x04 : 0) |
+            (options.dupFixed ? 0x08 : 0) |
+            (options.integerDup ? 0x20 : 0) |
+            (options.reverseDup ? 0x40 : 0) |
+            (options.create ? 0x40000 : 0) |
+            (options.useVersions ? 0x1000 : 0);
+        let keyType = (options.keyIsUint32 || options.keyEncoding == 'uint32') ? 2 :
+            (options.keyIsBuffer || options.keyEncoding == 'binary') ? 3 : 0;
+        let rc: number = openDbi(this.address, flags, textEncoder.encode(options.name + '\x00'), options.compression || 0) as number;
+        if (rc == -30798) { // MDB_NOTFOUND
+            console.log('dbi not found, need to try again with write txn');
+        }
+        return new Dbi(checkError(rc),
+            getDbi(rc) as number);
+    }
     getMaxKeySize() {
-        console.log('getMax', this.address)
         return getMaxKeySize(this.address);
+    }
+    readerCheck() {
+        return readerCheck(this.address);
+    }
+    beginTxn(flags: number) {
+
     }
 }
 //Env.addMethods('startWriting', 'write', 'openDB');
 class Dbi extends CBridge {
-
+    dbi: number;
+    constructor(address: number, dbi: number) {
+        super(address);
+        this.dbi = dbi;
+    }
 }
+class Transaction extends CBridge {
+    constructor(address: number) {
+        super(address);
+    }
+}
+
 
 class Compression extends CBridge {
 

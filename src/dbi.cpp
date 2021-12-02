@@ -164,6 +164,28 @@ NAN_METHOD(DbiWrap::ctor) {
     return info.GetReturnValue().Set(info.This());
 }
 
+int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression) {
+    MDB_txn* txn = ew->getReadTxn();
+    this->hasVersions = hasVersions;
+    this->compression = compression;
+    this->keyType = keyType;
+    flags &= ~HAS_VERSIONS;
+    if (keyType == NodeLmdbKeyType::Uint32Key)
+        flags |= MDB_INTEGERKEY;
+    int rc = mdb_dbi_open(txn, name, flags, &this->dbi);
+    if (rc)
+        return rc;
+    this->isOpen = true;
+    if (keyType == NodeLmdbKeyType::DefaultKey && name) { // use the fast compare, but can't do it if we have db table/names mixed in
+        mdb_set_compare(txn, dbi, compareFast);
+    }
+
+    return 0;
+}
+extern "C" EXTERN uint32_t getDbi(double dw) {
+    return (uint32_t) ((DbiWrap*) (size_t) dw)->dbi;
+}
+
 NAN_METHOD(DbiWrap::close) {
     Nan::HandleScope scope;
 

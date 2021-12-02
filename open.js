@@ -114,13 +114,6 @@ export function open(path, options) {
 			if (dbName === undefined)
 				throw new Error('Database name must be supplied in name property (may be null for root database)');
 
-			const openDB = () => {
-				this.db = env.openDbi(Object.assign({
-					name: dbName,
-					create: true,
-				}, dbOptions));
-				this.db.name = dbName || null;
-			};
 			if (dbOptions.compression instanceof Compression) {
 				// do nothing, already compression object
 			} else if (dbOptions.compression && typeof dbOptions.compression == 'object')
@@ -134,7 +127,12 @@ export function open(path, options) {
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
-			openDB();
+			this.ensureReadTxn();
+			this.db = env.openDbi(Object.assign({
+				name: dbName,
+				create: true,
+			}, dbOptions));
+			this.db.name = dbName || null;
 			this.resetReadTxn(); // a read transaction becomes invalid after opening another db
 			this.name = dbName;
 			this.status = 'open';

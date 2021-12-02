@@ -828,38 +828,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
     (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
 }
 
-#ifdef _WIN32
-#define EXTERN __declspec(dllexport)
-# else
-#define EXTERN __attribute__((visibility("default")))
-#endif
-extern "C" EXTERN ssize_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
-        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
-extern "C" EXTERN void freeData(size_t ref) {
-    delete (void*) ref;
-}
-extern "C" EXTERN size_t getAddress(char* buffer) {
-    return (size_t) buffer;
-}
-extern "C" EXTERN uint32_t getMaxKeySize(double ew) {
-    return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) ew)->env);
-}
-extern "C" EXTERN uint32_t readerCheck(double ew) {
-    int rc, dead;
-    rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
-    return rc || dead;
-}
-extern "C" EXTERN ssize_t openDbi(double ew, int flags, char* name) {
-    DbiWrap* dw = new DbiWrap(((EnvWrap*) (size_t) ew)->env, 0);
-    int rc = dw->open(flags, name);
-    if (rc) {
-        delete dw;
-        return rc;
-    }
-    return (ssize_t) dw;
-}
-
-ssize_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
+extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
 //	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();
@@ -873,6 +842,28 @@ ssize_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double comp
     fprintf(stderr, "envOpen %u\n", (ssize_t) ew);
     return (ssize_t) ew;
 }
+
+extern "C" EXTERN uint32_t getMaxKeySize(double ew) {
+    return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) ew)->env);
+}
+extern "C" EXTERN int32_t readerCheck(double ew) {
+    int rc, dead;
+    rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
+    return rc || dead;
+}
+extern "C" EXTERN int64_t openDbi(double ew, int flags, char* name, int keyType, double compression) {
+    DbiWrap* dw = new DbiWrap(((EnvWrap*) (size_t) ew)->env, 0);
+    if (((size_t) name) < 100) // 1 means nullptr?
+        name = nullptr;
+    int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
+        (NodeLmdbKeyType) keyType, (Compression*) (size_t) compression);
+    if (rc) {
+        delete dw;
+        return rc;
+    }
+    return (int64_t) dw;
+}
+
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

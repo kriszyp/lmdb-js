@@ -26,6 +26,12 @@ void setupExportMisc(Local<Object> exports) {
     // just uses the name of the last exported native function:
     Nan::SetMethod(exports, "lmdbNativeFunctions", getAddress);
 }
+extern "C" EXTERN void freeData(size_t ref) {
+    delete (void*) ref;
+}
+extern "C" EXTERN size_t getAddress(char* buffer) {
+    return (size_t) buffer;
+}
 
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {

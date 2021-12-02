@@ -105,6 +105,10 @@ export function addReadMethods(LMDBStore, {
 		resetReadTxn() {
 			resetReadTxn();
 		},
+		ensureReadTxn() {
+			if (!env.writeTxn && !readTxnRenewed)
+				renewReadTxn();
+		},
 		doesExist(key, versionOrValue) {
 			if (!env.writeTxn)
 				readTxnRenewed ? readTxn : renewReadTxn();
