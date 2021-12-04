@@ -1,4 +1,4 @@
-import { getAddressShared as getAddress } from './native.js';
+import { getAddressShared, getAddress } from './native.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -32,7 +32,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[0] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
-		buffer.address = getAddress(buffer);
+		buffer.address = getAddressShared(buffer);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 0;
 		return dynamicBytes;
