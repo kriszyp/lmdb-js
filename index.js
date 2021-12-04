@@ -48,7 +48,7 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
-		pageSize: 8192,
+		pageSize: 4096,
 		//overlappingSync: true,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
