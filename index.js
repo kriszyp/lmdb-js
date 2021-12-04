@@ -128,6 +128,11 @@ export function open(path, options) {
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
+
+			if (dbOptions.keyEncoding == 'uint32')
+				dbOptions.keyIsUint32 = true; // for now this ensure compatibility
+			else if (dbOptions.keyEncoding == 'binary')
+				dbOptions.keyIsBuffer = true;
 			openDB();
 			this.resetReadTxn(); // a read transaction becomes invalid after opening another db
 			this.name = dbName;
