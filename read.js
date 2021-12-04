@@ -407,7 +407,7 @@ export function addReadMethods(LMDBStore, {
 			readTxn.renew();
 		else
 			readTxn = env.beginTxn(0x20000);
-		readTxnRenewed = setImmediate(resetReadTxn);
+		readTxnRenewed = setTimeout(resetReadTxn, 0);
 		return readTxn;
 	}
 	function resetReadTxn() {

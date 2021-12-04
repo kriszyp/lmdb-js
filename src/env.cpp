@@ -851,8 +851,10 @@ extern "C" EXTERN int32_t readerCheck(double ew) {
     rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
     return rc || dead;
 }
-extern "C" EXTERN int64_t openDbi(double ew, int flags, char* name, int keyType, double compression) {
-    DbiWrap* dw = new DbiWrap(((EnvWrap*) (size_t) ew)->env, 0);
+extern "C" EXTERN int64_t openDbi(double ewPointer, int flags, char* name, int keyType, double compression) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    DbiWrap* dw = new DbiWrap(ew->env, 0);
+    dw->ew = ew;
     if (((size_t) name) < 100) // 1 means nullptr?
         name = nullptr;
     int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
@@ -862,6 +864,17 @@ extern "C" EXTERN int64_t openDbi(double ew, int flags, char* name, int keyType,
         return rc;
     }
     return (int64_t) dw;
+}
+
+extern "C" EXTERN int64_t beginTxn(double ewPointer, int flags) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    TxnWrap* tw = new TxnWrap(ew->env, nullptr);
+    int rc = tw->begin(ew, flags);
+    if (rc) {
+        delete tw;
+        return rc;
+    }
+    return (int64_t) tw;
 }
 
 

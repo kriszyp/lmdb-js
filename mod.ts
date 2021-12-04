@@ -2,8 +2,29 @@ import { orderedBinary, setNativeFunctions } from './external.js';
 import './deps.ts';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
-// https://cdn.jsdelivr.net/npm/lmdb@latest/prebuilds/win32-x64/node.abi102.node
-let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
+let version = import.meta.url.match(/@[\d\.]+/)?.[0];
+console.log({version});
+let libPath = './lmdb-store/build/Release/lmdb.node';
+let envError;
+try {
+    libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js.lib')) as string;
+} catch(error) {
+    envError = error;
+}
+const ARCH = { x86_64: 'x64', aarch64: 'arm64' }
+try {
+    Deno.statSync(libPath);
+} catch (error) {
+    let os: string = Deno.build.os;
+    os = os == 'windows' ? 'win32' : os;
+    os += '-' + ARCH[Deno.build.arch];
+    let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@latest/prebuilds/' + os + '/node.abi102.node';
+    let response = await fetch(libraryUrl);
+    let binaryLibraryBuffer = await response.arrayBuffer();    
+    Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
+}
+libPath = './lmdb-store/build/Release/lmdb.node';
+let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
 	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'i64'},
@@ -13,14 +34,18 @@ let lmdbLib = Deno.dlopen('./lmdb-store/build/Release/lmdb.node', {
     openDbi: { parameters: ['f64', 'u32', 'buffer', 'u32', 'f64'], result: 'i64'},
     getDbi: { parameters: ['f64'], result: 'u32'},
     readerCheck: { parameters: ['f64'], result: 'i32'},
+    beginTxn: { parameters: ['f64', 'u32'], result: 'i64'},
+    resetTxn: { parameters: ['f64'], result: 'void'},
+    renewTxn: { parameters: ['f64'], result: 'i32'},
+    getError: { parameters: ['i32', 'f64'], result: 'void'},
+    dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},
     /*
     startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
-let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck } = lmdbLib.symbols;
-
+let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck, beginTxn, resetTxn, renewTxn, dbiGetByBinary } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -44,6 +69,7 @@ class CBridge {
     }*/
 }
 const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 const MAX_ERROR = 1000;
 function checkError(rc: number): number {
     if (rc < MAX_ERROR) {
@@ -52,9 +78,14 @@ function checkError(rc: number): number {
     }
     return rc;
 }
+function lmdbError(rc: number) {
+    //getError(rc, keyBytes);
+    throw new Error(textDecoder.decode(keyBytes.subarray(0, keyBytes.indexOf(0))));
+}
+let keyBytes: Uint8Array;
 class Env extends CBridge {
     open(options: any, flags: number, jsFlags: number) {
-        let rc = envOpen(flags, jsFlags, textEncoder.encode(options.path + '\x00'), options.keyBytes, 0,
+        let rc = envOpen(flags, jsFlags, toCString(options.path), keyBytes = options.keyBytes, 0,
             options.maxDbs || 12, options.maxReaders || 126, options.mapSize, options.pageSize, new Uint8Array(0)) as number;
         console.log('open rc', rc);
         this.address = checkError(rc);
@@ -71,7 +102,7 @@ class Env extends CBridge {
             (options.useVersions ? 0x1000 : 0);
         let keyType = (options.keyIsUint32 || options.keyEncoding == 'uint32') ? 2 :
             (options.keyIsBuffer || options.keyEncoding == 'binary') ? 3 : 0;
-        let rc: number = openDbi(this.address, flags, textEncoder.encode(options.name + '\x00'), options.compression || 0) as number;
+        let rc: number = openDbi(this.address, flags, toCString(options.name), keyType, options.compression || 0) as number;
         if (rc == -30798) { // MDB_NOTFOUND
             console.log('dbi not found, need to try again with write txn');
         }
@@ -85,7 +116,9 @@ class Env extends CBridge {
         return readerCheck(this.address);
     }
     beginTxn(flags: number) {
-
+        console.log('bginTxn', this.address, flags)
+        let rc: number = beginTxn(this.address, flags) as number;
+        return new Transaction(checkError(rc), flags);
     }
 }
 //Env.addMethods('startWriting', 'write', 'openDB');
@@ -95,10 +128,23 @@ class Dbi extends CBridge {
         super(address);
         this.dbi = dbi;
     }
+    getByBinary(keySize: number): number {
+        return dbiGetByBinary(this.address, keySize) as number;
+    }
 }
 class Transaction extends CBridge {
-    constructor(address: number) {
+    flags: number;
+    constructor(address: number, flags: number) {
         super(address);
+        this.flags = flags;
+    }
+    reset() {
+        resetTxn(this.address);
+    }
+    renew() {
+        let rc = renewTxn(this.address) as number;
+        if (rc)
+            lmdbError(rc);
     }
 }
 
@@ -109,9 +155,39 @@ class Compression extends CBridge {
 class Cursor extends CBridge {
 
 }
+function toCString(str: string): Uint8Array {
+    return str == null ? new Uint8Array(0) : textEncoder.encode(str + '\x00');
+}
 
-setNativeFunctions({ Env, Compression, Cursor, getAddress, getAddressShared: getAddress });
+setNativeFunctions({ Env, Compression, Cursor, getAddress, getAddressShared: getAddress, lmdbError });
 export const { toBufferKey: keyValueToBuffer, compareKeys, compareKeys: compareKey, fromBufferKey: bufferToKeyValue } = orderedBinary;
 export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion } from './open.js';
+
+// inlined from https://github.com/denoland/deno_std/blob/main/node/os.ts
+function tmpdir(): string | null {
+    /* This follows the node js implementation, but has a few
+       differences:
+       * On windows, if none of the environment variables are defined,
+         we return null.
+       * On unix we use a plain Deno.env.get, instead of safeGetenv,
+         which special cases setuid binaries.
+       * Node removes a single trailing / or \, we remove all.
+    */
+    if (Deno.build.os == 'windows') {
+      const temp = Deno.env.get("TEMP") || Deno.env.get("TMP");
+      if (temp) {
+        return temp.replace(/(?<!:)[/\\]*$/, "");
+      }
+      const base = Deno.env.get("SYSTEMROOT") || Deno.env.get("WINDIR");
+      if (base) {
+        return base + "\\temp";
+      }
+      return null;
+    } else { // !isWindows
+      const temp = Deno.env.get("TMPDIR") || Deno.env.get("TMP") ||
+        Deno.env.get("TEMP") || "/tmp";
+      return temp.replace(/(?<!^)\/*$/, "");
+    }
+  }

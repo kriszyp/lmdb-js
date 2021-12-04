@@ -32,7 +32,9 @@ extern "C" EXTERN void freeData(size_t ref) {
 extern "C" EXTERN size_t getAddress(char* buffer) {
     return (size_t) buffer;
 }
-
+extern "C" EXTERN void getError(int rc, char* target) {
+    strcpy(mdb_strerror(rc), target);
+}
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
     Local<Context> context = Nan::GetCurrentContext();
@@ -225,7 +227,6 @@ NAN_METHOD(getAddressShared) {
     #endif
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
-
 
 void throwLmdbError(int rc) {
     auto err = Nan::Error(mdb_strerror(rc));

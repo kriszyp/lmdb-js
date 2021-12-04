@@ -17,7 +17,7 @@ let defaultCompression;
 let lastSize, lastOffset, lastVersion;
 let abortedNonChildTransactionWarn;
 export function open(path, options) {
-	if (!keyBytes)
+	if (!keyBytes) // TODO: Consolidate get buffer and key buffer (don't think we need both)
 		allocateFixedBuffer();
 	let committingWrites;
 	let scheduledTransactions;
@@ -41,7 +41,7 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
-		pageSize: options && options.noReadAhead ? 4096 : 8192,
+		pageSize: 4096,
 		//overlappingSync: true,
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.

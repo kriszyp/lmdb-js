@@ -457,6 +457,7 @@ public:
 
     // Remove the current TxnWrap from its EnvWrap
     void removeFromEnvWrap();
+    int begin(EnvWrap *ew, unsigned int flags);
 
     // Constructor (not exposed)
     static NAN_METHOD(ctor);
@@ -545,10 +546,11 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
-    int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression);
+    int open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
+    uint32_t DbiWrap::doGetByBinary(uint32_t keySize);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(getStringByBinary);
 };

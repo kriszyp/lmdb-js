@@ -265,34 +265,42 @@ NAN_METHOD(DbiWrap::stat) {
 }
 
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options) {
+uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize) {
 	DbiWrap* dw = static_cast<DbiWrap*>(
         receiver_obj->GetAlignedPointerFromInternalField(0));
-    EnvWrap* ew = dw->ew;
+    return dw->doGetByBinary(keySize);
+}
+#endif
+extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
+    DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
+    return dw->doGetByBinary(keySize);
+}
+
+uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
     char* keyBuffer = ew->keyBuffer;
     MDB_txn* txn = ew->getReadTxn();
     MDB_val key, data;
     key.mv_size = keySize;
     key.mv_data = (void*) keyBuffer;
 
-    int result = mdb_get(txn, dw->dbi, &key, &data);
+    int result = mdb_get(txn, dbi, &key, &data);
     if (result) {
         if (result == MDB_NOTFOUND)
             return 0xffffffff;
         // let the slow handler handle throwing errors
-        options.fallback = true;
+        //options.fallback = true;
         return result;
     }
-    dw->getFast = true;
-    result = getVersionAndUncompress(data, dw);
+    getFast = true;
+    result = getVersionAndUncompress(data, this);
     if (result)
-        result = valToBinaryFast(data, dw);
-    if (!result) {
+        result = valToBinaryFast(data, this);
+/*    if (!result) {
         // this means an allocation or error needs to be thrown, so we fallback to the slow handler
         // or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
         options.fallback = true;
-    }
-    dw->getFast = false;
+    }*/
+    getFast = false;
     /*
     alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
     *((size_t*) keyBuffer) = data.mv_size;
@@ -300,7 +308,6 @@ uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, 
     return 0;*/
     return data.mv_size;
 }
-#endif
 
 void DbiWrap::getByBinary(
   const v8::FunctionCallbackInfo<v8::Value>& info) {

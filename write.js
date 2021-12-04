@@ -279,7 +279,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (eventTurnBatching)
 					startWriting(); // start writing immediately because this has already been batched/queued
 				else if (!enqueuedCommit && txnStartThreshold) {
-					enqueuedCommit = commitDelay == 0 ? setImmediate(() => startWriting()) : setTimeout(() => startWriting(), commitDelay);
+					enqueuedCommit = (commitDelay == 0 && typeof setImmediate != 'undefined') ? setImmediate(() => startWriting()) : setTimeout(() => startWriting(), commitDelay);
 				} else if (outstandingWriteCount > txnStartThreshold)
 					startWriting();
 			}
