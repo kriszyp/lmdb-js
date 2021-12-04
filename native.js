@@ -3,7 +3,6 @@ export function setNativeFunctions(nativeInterface) {
 	Env = nativeInterface.Env;
 	Compression = nativeInterface.Compression;
 	getAddress = nativeInterface.getAddress;
-    getAddressShared = nativeInterface.getAddressShared;
     setGlobalBuffer = nativeInterface.setGlobalBuffer;
     Cursor = nativeInterface.Cursor;
     require = nativeInterface.require;

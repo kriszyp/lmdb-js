@@ -353,5 +353,5 @@ function allocateFixedBuffer() {
 	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 8122
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
 	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
-	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer);
+	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBytes);
 }
