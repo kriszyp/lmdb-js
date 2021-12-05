@@ -400,6 +400,14 @@ NAN_METHOD(EnvWrap::startWriting) {
     Nan::AsyncQueueWorker(worker);
 }
 
+extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
+	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress, nullptr);
+	ew->writeWorker = worker;
+	worker->Write();
+	return 0;
+}
+
 
 #ifdef ENABLE_FAST_API
 void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
