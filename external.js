@@ -4,7 +4,6 @@ export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
-    getAddressShared = externals.getAddressShared;
     setGlobalBuffer = externals.setGlobalBuffer;
     Cursor = externals.Cursor;
     lmdbError = externals.lmdbError;

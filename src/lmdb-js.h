@@ -193,29 +193,35 @@ const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
 const int SEPARATE_FLUSHED = 1;
 
-class WriteWorker : public Nan::AsyncProgressWorker {
+class WriteWorker {
   public:
-    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
+    WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions);
     void Write();
     MDB_txn* txn;
     MDB_txn* AcquireTxn(int* flags);
     void UnlockTxn();
-    void Execute(const ExecutionProgress& executionProgress);
-    void HandleProgressCallback(const char* data, size_t count);
-    void HandleOKCallback();
     int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
-    void ReportError(const char* error);
+    virtual void ReportError(const char* error);
+    virtual void SendUpdate();
     int interruptionStatus;
     bool finishedProgress;
     EnvWrap* envForTxn;
     ~WriteWorker();
     uint32_t* instructions;
     int progressStatus;
-  private:
-    ExecutionProgress* executionProgress;
     MDB_env* env;
 };
-
+class NanWriteWorker : public WriteWorker, public Nan::AsyncProgressWorker {
+  public:
+    NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
+    void Execute(const ExecutionProgress& executionProgress);
+    void HandleProgressCallback(const char* data, size_t count);
+    void HandleOKCallback();
+    void ReportError(const char* error);
+    void SendUpdate();
+  private:
+    ExecutionProgress* executionProgress;
+};
 class TxnTracked {
   public:
     TxnTracked(MDB_txn *txn, unsigned int flags);

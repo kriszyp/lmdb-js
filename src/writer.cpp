@@ -51,9 +51,8 @@ WriteWorker::~WriteWorker() {
 		envForTxn->writeWorker = nullptr;
 }
 
-WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
-		: Nan::AsyncProgressWorker(callback, "lmdb:write"),
-		envForTxn(envForTxn),
+WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions)
+		: envForTxn(envForTxn),
 		instructions(instructions),
 		env(env) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
@@ -61,9 +60,22 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-void WriteWorker::Execute(const ExecutionProgress& executionProgress) {
+NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
+		: Nan::AsyncProgressWorker(callback, "lmdb:write"), WriteWorker(env, envForTxn, instructions) {
+	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
+		interruptionStatus = 0;
+		txn = nullptr;
+	}
+
+void NanWriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	this->executionProgress = (ExecutionProgress*) &executionProgress;
 	Write();
+}
+void WriteWorker::SendUpdate() {
+	fprintf(stderr, "This SendUpdate does not work!\n");
+}
+void NanWriteWorker::SendUpdate() {
+	executionProgress->Send(nullptr, 0);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	bool commitSynchronously = *flags & TXN_SYNCHRONOUS_COMMIT;
@@ -94,13 +106,16 @@ void WriteWorker::UnlockTxn() {
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 void WriteWorker::ReportError(const char* error) {
+	fprintf(stderr, "Error %s\n", error);
+}
+void NanWriteWorker::ReportError(const char* error) {
 	SetErrorMessage(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
 	//fprintf(stderr, "wait for callback %p\n", this);
 	if (!finishedProgress)
-		executionProgress->Send(nullptr, 0);
+		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
 	if (target) {
@@ -323,39 +338,36 @@ void WriteWorker::Write() {
 	pthread_mutex_lock(envForTxn->writingLock);
 	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
 	if (rc != 0) {
-		return SetErrorMessage(mdb_strerror(rc));
+		return ReportError(mdb_strerror(rc));
 	}
 
 	rc = DoWrites(txn, envForTxn, instructions, this);
 
-	if (callback) {
-		if (rc)
-			mdb_txn_abort(txn);
-		else
-			rc = mdb_txn_commit(txn);
-		txn = nullptr;
-		pthread_mutex_unlock(envForTxn->writingLock);
-		if (rc) {
-			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
-			return SetErrorMessage(mdb_strerror(rc));
-		} else if (envFlags & MDB_OVERLAPPINGSYNC) {
-			// note that once we set the instructions byte to committed, we can *not* touch it again
-			// because JS can then GC and deallocate the buffer it references and it can segfault if we access again
-			if (envForTxn->jsFlags & SEPARATE_FLUSHED)
-				std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
-			progressStatus = 1;
-			executionProgress->Send(nullptr, 0);
-			rc = mdb_env_sync(env, true);
-			if (!(envForTxn->jsFlags & SEPARATE_FLUSHED))
-				std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
-		} else {
+	if (rc)
+		mdb_txn_abort(txn);
+	else
+		rc = mdb_txn_commit(txn);
+	txn = nullptr;
+	pthread_mutex_unlock(envForTxn->writingLock);
+	if (rc) {
+		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
+		return ReportError(mdb_strerror(rc));
+	} else if (envFlags & MDB_OVERLAPPINGSYNC) {
+		// note that once we set the instructions byte to committed, we can *not* touch it again
+		// because JS can then GC and deallocate the buffer it references and it can segfault if we access again
+		if (envForTxn->jsFlags & SEPARATE_FLUSHED)
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
-		}
-	} else
-		interruptionStatus = rc;
+		progressStatus = 1;
+		SendUpdate();
+		rc = mdb_env_sync(env, true);
+		if (!(envForTxn->jsFlags & SEPARATE_FLUSHED))
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	} else {
+		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	}
 }
 
-void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
+void NanWriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	Nan::HandleScope scope;
 	v8::Local<v8::Value> argv[] = {
 		Nan::New<Number>(progressStatus)
@@ -378,7 +390,7 @@ void WriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
-void WriteWorker::HandleOKCallback() {
+void NanWriteWorker::HandleOKCallback() {
 	Nan::HandleScope scope;
 	Local<v8::Value> argv[] = {
 		Nan::New<Number>(0)
@@ -395,14 +407,14 @@ NAN_METHOD(EnvWrap::startWriting) {
     size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
     Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
 
-    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
+    NanWriteWorker* worker = new NanWriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
 	ew->writeWorker = worker;
     Nan::AsyncQueueWorker(worker);
 }
 
 extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress, nullptr);
+    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
 	ew->writeWorker = worker;
 	worker->Write();
 	return 0;

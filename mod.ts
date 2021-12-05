@@ -1,29 +1,29 @@
+import { fileURLToPath } from './deps.ts';
 import { orderedBinary, setNativeFunctions } from './external.js';
-import './deps.ts';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
 let version = import.meta.url.match(/@[\d\.]+/)?.[0];
 console.log({version});
-let libPath = './lmdb-store/build/Release/lmdb.node';
+let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));;
 let envError;
-try {
-    libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js.lib')) as string;
-} catch(error) {
-    envError = error;
+if (!exists(libPath)) {
+    try {
+        libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js.lib')) as string;
+    } catch(error) {
+        envError = error;
+    }
+    const ARCH = { x86_64: 'x64', aarch64: 'arm64' }
+    if (!exists(libPath)) {
+        let os: string = Deno.build.os;
+        os = os == 'windows' ? 'win32' : os;
+        os += '-' + ARCH[Deno.build.arch];
+        let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@latest/prebuilds/' + os + '/node.abi102.node';
+        let response = await fetch(libraryUrl);
+        let binaryLibraryBuffer = await response.arrayBuffer();
+        Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
+    }
 }
-const ARCH = { x86_64: 'x64', aarch64: 'arm64' }
-try {
-    Deno.statSync(libPath);
-} catch (error) {
-    let os: string = Deno.build.os;
-    os = os == 'windows' ? 'win32' : os;
-    os += '-' + ARCH[Deno.build.arch];
-    let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@latest/prebuilds/' + os + '/node.abi102.node';
-    let response = await fetch(libraryUrl);
-    let binaryLibraryBuffer = await response.arrayBuffer();    
-    Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
-}
-libPath = './lmdb-store/build/Release/lmdb.node';
+
 let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
@@ -38,14 +38,15 @@ let lmdbLib = Deno.dlopen(libPath, {
     resetTxn: { parameters: ['f64'], result: 'void'},
     renewTxn: { parameters: ['f64'], result: 'i32'},
     getError: { parameters: ['i32', 'f64'], result: 'void'},
-    dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},
+    dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
+    startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
+    setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
     /*
-    startWriting: { parameters: ['buffer', 'usize'], nonblocking: true, result: 'u32'},
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
-let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck, beginTxn, resetTxn, renewTxn, dbiGetByBinary } = lmdbLib.symbols;
+let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck, beginTxn, resetTxn, renewTxn, dbiGetByBinary, startWriting, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -116,9 +117,11 @@ class Env extends CBridge {
         return readerCheck(this.address);
     }
     beginTxn(flags: number) {
-        console.log('bginTxn', this.address, flags)
         let rc: number = beginTxn(this.address, flags) as number;
         return new Transaction(checkError(rc), flags);
+    }
+    startWriting(instructions: number, callback: (value: number) => number) {
+        (startWriting(this.address, instructions) as Promise<number>).then(callback);
     }
 }
 //Env.addMethods('startWriting', 'write', 'openDB');
@@ -158,8 +161,11 @@ class Cursor extends CBridge {
 function toCString(str: string): Uint8Array {
     return str == null ? new Uint8Array(0) : textEncoder.encode(str + '\x00');
 }
+function setGlobalBuffer(buffer: Uint8Array) {
+    setGlobalBuffer2(buffer, buffer.length);
+}
 
-setNativeFunctions({ Env, Compression, Cursor, getAddress, getAddressShared: getAddress, lmdbError });
+setNativeFunctions({ Env, Compression, Cursor, getAddress, lmdbError, setGlobalBuffer });
 export const { toBufferKey: keyValueToBuffer, compareKeys, compareKeys: compareKey, fromBufferKey: bufferToKeyValue } = orderedBinary;
 export { ABORT, asBinary } from './write.js';
 export { levelup } from './level.js';
@@ -190,4 +196,13 @@ function tmpdir(): string | null {
         Deno.env.get("TEMP") || "/tmp";
       return temp.replace(/(?<!^)\/*$/, "");
     }
-  }
+}
+function exists(path: string): boolean {
+    try {
+        return Boolean(Deno.statSync(path));
+    } catch (error) {
+        if (error.name == 'NotFound')
+			return false
+        throw error
+    }
+}

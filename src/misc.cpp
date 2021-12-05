@@ -32,6 +32,10 @@ extern "C" EXTERN void freeData(size_t ref) {
 extern "C" EXTERN size_t getAddress(char* buffer) {
     return (size_t) buffer;
 }
+extern "C" EXTERN void setGlobalBuffer(char* buffer, size_t bufferSize) {
+    globalUnsafePtr = buffer;
+    globalUnsafeSize = bufferSize;
+}
 extern "C" EXTERN void getError(int rc, char* target) {
     strcpy(mdb_strerror(rc), target);
 }

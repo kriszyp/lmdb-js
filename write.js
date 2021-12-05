@@ -21,6 +21,7 @@ SYNC_PROMISE_SUCCESS.isSync = true;
 SYNC_PROMISE_FAIL.isSync = true;
 const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
 const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array;
+const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
 //let debugLog = []
 const WRITE_BUFFER_SIZE = 0x10000;
 var log = [];
@@ -102,7 +103,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			position = 0;
 		} else {
 			if (eventTurnBatching && !enqueuedEventTurnBatch && batchDepth == 0) {
-				enqueuedEventTurnBatch = setImmediate(() => {
+				enqueuedEventTurnBatch = queueTask(() => {
 					try {
 						for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
 							beforeCommitCallbacks[i]();

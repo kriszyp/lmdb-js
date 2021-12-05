@@ -55,7 +55,7 @@ jobs:
       - run: npm install
       - run: npm run prebuild-musl
       - run: npm test
-      - run: deno run --allow-ffi --allow-write --unstable test/deno.ts
+      - run: deno run --allow-ffi --allow-write --allow-env --unstable test/deno.ts
       - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')

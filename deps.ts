@@ -7,5 +7,6 @@ function arch() {
     return Deno.build.arch;
 }
 import * as path from 'https://deno.land/std/node/path.ts';
+export { fileURLToPath } from 'https://deno.land/std/node/url.ts';
 import { EventEmitter } from 'https://deno.land/std/node/events.ts'
 setExternals({ orderedBinary, MsgpackrEncoder, WeakLRUCache, arch, path, EventEmitter, fs: Deno });
