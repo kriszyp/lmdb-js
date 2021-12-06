@@ -1,4 +1,6 @@
 import { open } from '../mod.ts';
-setTimeout(() => {
+setTimeout(async () => {
 	let db = open('test-deno');
-}, 1000);
+	await db.put('key', 'test')
+	console.log(db.get('key'));
+}, 1);
