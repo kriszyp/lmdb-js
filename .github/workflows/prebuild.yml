@@ -45,9 +45,8 @@ jobs:
           files: prebuild-linux.tar
   build-debian-9:
     runs-on: ubuntu-18.04
-    container: node:16-stretch
+    container: node:14-stretch
     steps:
-      - run: apk add python3 py3-pip build-base
       - uses: actions/checkout@v2
       - uses: denoland/setup-deno@v1
         with:
