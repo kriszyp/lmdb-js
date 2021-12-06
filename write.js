@@ -148,7 +148,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				throw error;
 			}
 			let keySize = endPosition - keyStartPosition;
-			console.log({ keySize, maxKeySize })
 			if (keySize > maxKeySize) {
 				targetBytes.fill(0, keyStartPosition); // restore zeros
 				throw new Error('Key size is larger than the maximum key size (' + maxKeySize + ')');
