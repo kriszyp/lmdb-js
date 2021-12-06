@@ -8,7 +8,7 @@ let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url))
 let envError;
 if (!exists(libPath)) {
     try {
-        libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js.lib')) as string;
+        libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js' + (version || '') + '.lib')) as string;
     } catch(error) {
         envError = error;
     }
@@ -17,7 +17,8 @@ if (!exists(libPath)) {
         let os: string = Deno.build.os;
         os = os == 'windows' ? 'win32' : os;
         os += '-' + ARCH[Deno.build.arch];
-        let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@latest/prebuilds/' + os + '/node.abi102.node';
+        let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@' + (version || 'latest') +
+            '/prebuilds/' + os + '/node.abi102.node';
         let response = await fetch(libraryUrl);
         let binaryLibraryBuffer = await response.arrayBuffer();
         Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
