@@ -556,7 +556,7 @@ public:
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
-    uint32_t DbiWrap::doGetByBinary(uint32_t keySize);
+    uint32_t doGetByBinary(uint32_t keySize);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(getStringByBinary);
 };
