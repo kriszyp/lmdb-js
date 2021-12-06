@@ -202,18 +202,8 @@ NAN_METHOD(getViewAddress) {
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 NAN_METHOD(getAddress) {
-    void* address;
-    Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(info[0]);
-    #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
-    // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
-    v8::Local<v8::Object> bufferView;
-    bufferView = node::Buffer::New(Isolate::GetCurrent(), buffer, 0, buffer->ByteLength()).ToLocalChecked();
-    address = node::Buffer::Data(bufferView);
-    #elif V8_MAJOR_VERSION >= 8
-    address = buffer->GetBackingStore()->Data();
-    #else
-    address = buffer->GetContents().Data();
-    #endif
+    int length = node::Buffer::Length(info[0]);
+    void* address = length > 0 ? node::Buffer::Data(info[0]) : nullptr;
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 NAN_METHOD(getAddressShared) {

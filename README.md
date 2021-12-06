@@ -11,15 +11,14 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 * Iterable queries/cursors
 * Record versioning and optimistic locking for scalability/concurrency
 * Optional native off-main-thread compression with high-performance LZ4 compression <a href="https://github.com/kriszyp/db-benchmark"><img align="right" src="./assets/performance.png" width="380"/></a>
-* And ridiculously fast and efficient, with integrated (de)serialization, data retrieval can be several times than `JSON` alone
-
+* And ridiculously fast and efficient, with integrated (de)serialization, data retrieval can be several times faster than `JSON` alone
 
 `lmdb-js` is used in many heavy-use production applications, including as a high-performance cache for builds in [Parcel](https://parceljs.org/) and [Elasticsearch's Kibana](https://www.elastic.co/kibana/), as the storage layer for [HarperDB](https://harperdb.io/) and [Gatsby](https://www.gatsbyjs.com/)'s database, and for search and analytical engine for our [clinical medical research](https://drevidence.com).
 
-<a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="40"></a>
-<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="56"></a>
-<a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="55"/></a>
-<a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60"/></a>
+<a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="40" align="right"></a>
+<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="56" align="right"></a>
+<a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="55"  align="right"/></a>
+<a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60" align="right"/></a>
 
 This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
 ```npm install lmdb```
@@ -321,7 +320,7 @@ let myDB = open('my-db', {
 	}
 })
 ```
-Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you use enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
+Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
 This library supports caching of entries from databases, and uses a [LRU/LFU (LRFU) and weak-referencing caching mechanism](https://github.com/kriszyp/weak-lru-cache) for highly optimized caching and object tracking. There are several key potential benefits to using caching, including performance, key correlation with object identity, and immediate/synchronous access to saved data. Enabling caching will cache `get`s and `put`s, which can make frequent `get`s much faster. Caching is enabled by providing a truthy value for the `cache` property on the database `options`.
@@ -373,7 +372,7 @@ The following additional option properties are only available when creating the 
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
 * `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
 * `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
-* `pageSize` - This defines the page size of the database. This is 8,192 by default (LMDB and previous versions defaulted to 4,096). You may want to consider setting this to 16,384 for databases larger than available memory (and moreso if you have range queries) or 4,096 for databases that can mostly cache in memory. Note that this only effects the page size of new databases (does not affect existing databases).
+* `pageSize` - This defines the page size of the database. This is 4,096 by default. You may want to consider setting this to 8,192 for databases larger than available memory (and moreso if you have range queries) or 4,096 for databases that can mostly cache in memory. Note that this only effects the page size of new databases (does not affect existing databases).
 * `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-js to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transaction`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
 * `commitDelay` - This is the amount of time to wait (in milliseconds) for batching write operations before committing the writes (in a transaction). This defaults to 0. A delay of 0 means more immediate commits with less latency (uses `setImmediate`), but a longer delay (which uses `setTimeout`) can be more efficient at collecting more writes into a single transaction and reducing I/O load. Note that NodeJS timers only have an effective resolution of about 10ms, so a `commitDelay` of 1ms will generally wait about 10ms.
