@@ -7,6 +7,7 @@ console.log({version});
 let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));;
 let envError;
 if (!exists(libPath)) {
+    console.log({ libPath }, 'does not exist')
     try {
         libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js' + (version || '') + '.lib')) as string;
     } catch(error) {
