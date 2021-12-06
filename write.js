@@ -148,6 +148,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				throw error;
 			}
 			let keySize = endPosition - keyStartPosition;
+			console.log({ keySize, maxKeySize })
 			if (keySize > maxKeySize) {
 				targetBytes.fill(0, keyStartPosition); // restore zeros
 				throw new Error('Key size is larger than the maximum key size (' + maxKeySize + ')');
@@ -159,7 +160,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer) + valueBuffer.byteOffset)) + valueBufferStart;
+						(valueBuffer.address = getAddress(valueBuffer))) + valueBufferStart;
 					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;

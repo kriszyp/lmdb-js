@@ -609,7 +609,7 @@ describe('lmdb-js', function() {
       should.equal(db.get(returnedKeys[0]), undefined)
     });
 
-    it('invalid key', async function() {
+    it.only('invalid key', async function() {
       expect(() => db.get(Buffer.from([]))).to.throw();
       expect(() => db.put(Buffer.from([]), 'test')).to.throw();
       expect(() => db.get({ foo: 'bar' })).to.throw();
