@@ -11,8 +11,8 @@ int Logging::initLogging() {
 }
 int Logging::debugLogging = Logging::initLogging();
 
-NODE_MODULE_INIT(/* exports, module, context */) {
-    if (Logging::debugLogging)
+//NODE_MODULE_INIT(/* exports, module, context */) {
+/*    if (Logging::debugLogging)
         fprintf(stderr, "Start initialization\n");
     // Initializes the module
     // Export Env as constructor for EnvWrap
@@ -26,11 +26,6 @@ NODE_MODULE_INIT(/* exports, module, context */) {
     if (Logging::debugLogging)
         fprintf(stderr, "Finished initialization\n");
 }
-#ifndef _WIN32
-extern "C" EXTERN void node_module_register(void* mod) {
-    fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
-}
-#endif
 /* Start of converting just the init to NAPI:
 static napi_value Init(napi_env env, napi_value napi_exports) {
     v8::Local<v8::Object> exports;
