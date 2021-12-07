@@ -255,7 +255,6 @@ NAN_METHOD(EnvWrap::open) {
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
-    fprintf(stderr, "openEnv! %u %u %s %u\n", flags, jsFlags, path, maxReaders);
     pthread_mutex_lock(envsLock);
     this->keyBuffer = keyBuffer;
     this->compression = compression;
@@ -307,10 +306,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
     flags |= MDB_NOTLS;
     // TODO: make file attributes configurable
     // *String::Utf8Value(Isolate::GetCurrent(), path)
-    fprintf(stderr, "do open %u\n",flags);
     rc = mdb_env_open(env, path, flags, 0664);
     mdb_env_get_flags(env, (unsigned int*) &flags);
-    fprintf(stderr, "did open %u %u\n",flags, rc);
 
     if (rc != 0) {
         mdb_env_close(env);
@@ -588,7 +585,6 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     if (!(flags & MDB_RDONLY)) {
-        //fprintf(stderr, "begin sync txn %i\n", flags);
         EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
         MDB_env *env = ew->env;
         unsigned int envFlags;
@@ -675,12 +671,27 @@ NAN_METHOD(EnvWrap::commitTxn) {
 NAN_METHOD(EnvWrap::abortTxn) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = ew->writeTxn;
-    //fprintf(stderr, "abortTxn\n");
     if (currentTxn->flags & TXN_ABORTABLE) {
-        //fprintf(stderr, "txn_abort\n");
         mdb_txn_abort(currentTxn->txn);
     } else {
         Nan::ThrowError("Can not abort this transaction");
+    }
+    ew->writeTxn = currentTxn->parent;
+    if (!ew->writeTxn) {
+        if (ew->writeWorker)
+            ew->writeWorker->UnlockTxn();
+        else
+            pthread_mutex_unlock(ew->writingLock);
+    }
+    delete currentTxn;
+}
+extern "C" EXTERN int commitEnvTxn(double ewPointer) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    TxnTracked *currentTxn = ew->writeTxn;
+    int rc = 0;
+    if (currentTxn->flags & TXN_ABORTABLE) {
+        //fprintf(stderr, "txn_commit\n");
+        rc = mdb_txn_commit(currentTxn->txn);
     }
     ew->writeTxn = currentTxn->parent;
     if (!ew->writeTxn) {
@@ -691,7 +702,26 @@ NAN_METHOD(EnvWrap::abortTxn) {
             pthread_mutex_unlock(ew->writingLock);
     }
     delete currentTxn;
+    return rc;
 }
+extern "C" EXTERN void abortEnvTxn(double ewPointer) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    TxnTracked *currentTxn = ew->writeTxn;
+    if (currentTxn->flags & TXN_ABORTABLE) {
+        mdb_txn_abort(currentTxn->txn);
+    } else {
+        Nan::ThrowError("Can not abort this transaction");
+    }
+    ew->writeTxn = currentTxn->parent;
+    if (!ew->writeTxn) {
+        if (ew->writeWorker)
+            ew->writeWorker->UnlockTxn();
+        else
+            pthread_mutex_unlock(ew->writingLock);
+    }
+    delete currentTxn;
+}
+
 
 NAN_METHOD(EnvWrap::openDbi) {
     Nan::HandleScope scope;
@@ -831,7 +861,6 @@ void EnvWrap::setupExports(Local<Object> exports) {
 
 extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
-//	fprintf(stderr, "start!! %p %u\n", path, length);
     EnvWrap* ew = new EnvWrap();
     int rc = mdb_env_create(&(ew->env));
     if (rc)
@@ -840,7 +869,6 @@ extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyB
         maxDbs, maxReaders, mapSize, pageSize, encryptionKey);
     if (rc)
         return rc;
-    fprintf(stderr, "envOpen %u\n", (ssize_t) ew);
     return (ssize_t) ew;
 }
 

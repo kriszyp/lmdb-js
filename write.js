@@ -623,16 +623,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return this.put(key, value, versionOrOptions, ifVersion);
 			else
 				return this.transactionSync(() =>
-					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS,
-					{ abortable: false });
+					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS, 2);
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
 				return this.remove(key, ifVersionOrValue);
 			else
 				return this.transactionSync(() =>
-					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS,
-					{ abortable: false });
+					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS, 2);
 		},
 		transaction(callback) {
 			if (writeTxn) {

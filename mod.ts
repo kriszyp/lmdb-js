@@ -39,6 +39,9 @@ let lmdbLib = Deno.dlopen(libPath, {
     beginTxn: { parameters: ['f64', 'u32'], result: 'i64'},
     resetTxn: { parameters: ['f64'], result: 'void'},
     renewTxn: { parameters: ['f64'], result: 'i32'},
+    abortTxn: { parameters: ['f64'], result: 'void'},
+    commitEnvTxn: { parameters: ['f64'], result: 'i32'},
+    abortEnvTxn: { parameters: ['f64'], result: 'void'},
     getError: { parameters: ['i32', 'f64'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
     startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
@@ -48,7 +51,8 @@ let lmdbLib = Deno.dlopen(libPath, {
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
-let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck, beginTxn, resetTxn, renewTxn, dbiGetByBinary, startWriting, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
+let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -121,6 +125,12 @@ class Env extends CBridge {
         let rc: number = beginTxn(this.address, flags) as number;
         return new Transaction(checkError(rc), flags);
     }
+    commitTxn() {
+        checkError(commitEnvTxn(this.address) as number);
+    }
+    abortTxn() {
+        abortEnvTxn(this.address);
+    }
     startWriting(instructions: number, callback: (value: number) => number) {
         (startWriting(this.address, instructions) as Promise<number>).then(callback);
     }
@@ -149,6 +159,9 @@ class Transaction extends CBridge {
         let rc = renewTxn(this.address) as number;
         if (rc)
             lmdbError(rc);
+    }
+    abort() {
+        abortTxn(this.address);
     }
 }
 

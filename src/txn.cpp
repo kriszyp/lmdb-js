@@ -175,6 +175,24 @@ extern "C" EXTERN int renewTxn(double twPointer, int flags) {
     TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
     return mdb_txn_renew(tw->txn);
 }
+/*extern "C" EXTERN int commitTxn(double twPointer) {
+    TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
+    int rc;
+    WriteWorker* writeWorker = tw->ew->writeWorker;
+    if (writeWorker) {
+        rc = mdb_txn_commit(tw->txn);
+        pthread_mutex_unlock(tw->ew->writingLock);
+    }
+    else
+        rc = mdb_txn_commit(tw->txn);
+    tw->removeFromEnvWrap();
+    return rc;
+}*/
+extern "C" EXTERN void abortTxn(double twPointer) {
+    TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
+    mdb_txn_abort(tw->txn);
+    tw->removeFromEnvWrap();
+}
 
 NAN_METHOD(TxnWrap::commit) {
     Nan::HandleScope scope;
