@@ -32,7 +32,6 @@ try {
 }
 
 setNativeFunctions(nativeFunctions);
-console.log({orderedBinary})
 setExternals({
 	require, arch, fs, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
 });

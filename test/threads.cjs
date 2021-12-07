@@ -1,29 +1,22 @@
-'use strict';
-
 var assert = require('assert');
 const { Worker, isMainThread, parentPort } = require('worker_threads');
 var path = require('path');
 var numCPUs = require('os').cpus().length;
 
-var lmdb = require('..');
+const { open } = require('../dist/index.cjs');
 const MAX_DB_SIZE = 256 * 1024 * 1024;
 if (isMainThread) {
   var inspector = require('inspector')
-//  inspector.open(9331, null, true)
+//  inspector.open(9331, null, true);debugger
 
   // The main thread
 
-  var env = new lmdb.Env();
-  env.open({
+  let db = open({
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
     mapSize: MAX_DB_SIZE,
-    maxReaders: 126
-  });
-
-  var dbi = env.openDbi({
-    name: 'threads',
-    create: true
+    maxReaders: 126,
+    encoding: 'binary',
   });
 
   var workerCount = Math.min(numCPUs * 2, 20);
@@ -44,8 +37,7 @@ if (isMainThread) {
       // Once every worker has replied with a response for the value
       // we can exit the test.
       if (messages.length === workerCount) {
-        dbi.close();
-        env.close();
+        db.close();
         for (var i = 0; i < messages.length; i ++) {
           assert(messages[i] === value.toString('hex'));
         }
@@ -54,46 +46,40 @@ if (isMainThread) {
     });
   });
 
-  var txn = env.beginTxn();
+  let last
   for (var i = 0; i < workers.length; i++) {
-    txn.putBinary(dbi, 'key' + i, value);
+    last = db.put('key' + i, value);
   }
 
-  txn.commit();
-
-  for (var i = 0; i < workers.length; i++) {
-    var worker = workers[i];
-    worker.postMessage({key: 'key' + i});
-  };
+  last.then(() => {
+    for (var i = 0; i < workers.length; i++) {
+      var worker = workers[i];
+      worker.postMessage({key: 'key' + i});
+    };
+  });
 
 } else {
 
   // The worker process
-  var env = new lmdb.Env();
-  env.open({
+  let db = open({
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
     mapSize: MAX_DB_SIZE,
-    maxReaders: 126,
-    readOnly: true
+    maxReaders: 126
   });
 
-  var dbi = env.openDbi({
-    name: 'threads'
-  });
 
-  process.on('message', function(msg) {
+  process.on('message', async function(msg) {
     if (msg.key) {
-      var txn = env.beginTxn({readOnly: true});
-      var value = txn.getBinary(dbi, msg.key);
-      
+      var value = db.get(msg.key);
+      if (msg.key == 'key1')
+        await db.put(msg.key, 'updated');
       if (value === null) {
         parentPort.postMessage("");
       } else {
         parentPort.postMessage(value.toString('hex'));
       }
       
-      txn.abort();
     }
   });
 

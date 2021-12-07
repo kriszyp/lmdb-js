@@ -53,7 +53,6 @@ let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
 });
-console.log(import.meta)
 
 class CBridge {
     address: number;

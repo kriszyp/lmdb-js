@@ -8,6 +8,8 @@ import { unlinkSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
+import inspector from 'inspector'
+//inspector.open(9330, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../node-index.js';
@@ -59,7 +61,6 @@ describe('lmdb-js', function() {
         //useWritemap: true,
         //noSync: true,
         //overlappingSync: true,
-        pageSize: 8192,
         maxReaders: 100,
         eventTurnBatching: false,
         keyEncoder: orderedBinaryEncoder,
@@ -971,6 +972,22 @@ describe('lmdb-js', function() {
         lastPromise = strKeys.put(strKey, `${strKey}-value`)
       }
       await lastPromise
+    });
+  });
+  describe('Threads', function() {
+    this.timeout(10000);
+    it('will run a group of threads with read-only transactions', function(done) {
+      var child = spawn('node', [fileURLToPath(new URL('./threads.cjs', import.meta.url))]);
+      child.stdout.on('data', function(data) {
+        console.log(data.toString());
+      });
+      child.stderr.on('data', function(data) {
+        console.error(data.toString());
+      });
+      child.on('close', function(code) {
+        code.should.equal(0);
+        done();
+      });
     });
   });
 });
