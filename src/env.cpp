@@ -261,15 +261,16 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
     this->compression = compression;
     this->jsFlags = jsFlags;
     MDB_env* env = this->env;
-    for (env_path_t envPath : envs) {
-        char* existingPath = envPath.path;
+    for (auto envPath = envs.begin(); envPath != envs.end();) {
+        char* existingPath = envPath->path;
         if (!strcmp(existingPath, path)) {
-            envPath.count++;
+            envPath->count++;
             mdb_env_close(env);
-            this->env = envPath.env;
+            this->env = envPath->env;
             pthread_mutex_unlock(envsLock);
             return 0;
         }
+        ++envPath;
     }
     int rc;
     rc = mdb_env_set_maxdbs(env, maxDbs);
