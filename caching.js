@@ -1,4 +1,5 @@
 import { WeakLRUCache } from './external.js';
+import { FAILED_CONDITION } from './write.js';
 let getLastVersion;
 const mapGet = Map.prototype.get;
 export const CachingStore = Store => class extends Store {
@@ -10,14 +11,14 @@ export const CachingStore = Store => class extends Store {
 				do {
 					let store = next.store;
 					if (store) {
-						if (next.flag & 1)
+						if (next.flag & FAILED_CONDITION)
 							next.store.cache.delete(next.key); // just delete it from the map
 						else {
 							let expirationPriority = next.valueSize >> 10;
 							let cache = next.store.cache;
 							let entry = mapGet.call(cache, next.key);
 							if (entry)
-								cache.used(entry, expirationPriority); // this will enter it into the LRFU
+								cache.used(entry, expirationPriority + 4); // this will enter it into the LRFU (with a little lower priority than a read)
 						}
 					}
 				} while (next != last && (next = next.next))

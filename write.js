@@ -8,17 +8,18 @@ const TXN_DELIMITER = 0x8000000;
 const TXN_COMMITTED = 0x10000000;
 const TXN_FLUSHED = 0x20000000;
 const TXN_FAILED = 0x40000000;
-const FAILED_CONDITION = 0x4000000;
+export const FAILED_CONDITION = 0x4000000;
 const REUSE_BUFFER_MODE = 512;
 const RESET_BUFFER_MODE = 1024;
 export const binaryBuffer = Symbol('binaryBuffer');
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
-export const ABORT = {};
-const CALLBACK_THREW = {};
 SYNC_PROMISE_SUCCESS.isSync = true;
 SYNC_PROMISE_FAIL.isSync = true;
+const PROMISE_SUCCESS = Promise.resolve(true);
+export const ABORT = {};
+const CALLBACK_THREW = {};
 const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
 const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array;
 const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
@@ -303,7 +304,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			if (ifVersion === undefined) {
 				if (writtenBatchDepth > 1)
-					return SYNC_PROMISE_SUCCESS; // or return undefined?
+					return PROMISE_SUCCESS; // or return undefined?
 				if (!commitPromise) {
 					commitPromise = new Promise((resolve, reject) => {
 						resolution.resolve = resolve;
