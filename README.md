@@ -352,7 +352,7 @@ Additional databases can be opened within the main database environment with:
 If the `path` has an `.` in it, it is treated as a file name, otherwise it is treated as a directory name, where the data will be stored. The `options` argument to either of the functions should be an object, and supports the following properties, all of which are optional (except `name` if not otherwise specified):
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
 * `encoding` - Sets the encoding for the database values, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
-* `encoder` - Directly set the encoder to use or provide the settings for an encoder. This can be an object with `encode` and `decode` methods. It can also be an object with an `Encoder` that will be called to create the encoder instance. This allows you explicitly set the encoder with an import:
+* `encoder` - Directly set the encoder to use or provide the settings for an encoder. This can be an object with settings to pass to the encoder or can be an object with `encode` and `decode` methods. It can also be an object with an `Encoder` that will be called to create the encoder instance. This allows you explicitly set the encoder with an import:
 ```
 import * as cbor from 'cbor-x';
 let db = open({ encoder: cbor });
@@ -411,7 +411,7 @@ Enabling `overlappingSync` option is generally not recommended on Windows, as Wi
 ```
 
 #### Serialization options
-If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide database options that are passed to msgpackr, as well. For example, these options can be potentially useful:
+If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide encoder options that are passed to msgpackr or cbor, as well, by including them in the `encoder` property object. For example, these options can be potentially useful:
 * `structuredClone` -  This enables the structured cloning extensions that will encode object/cyclic references and additional built-in types/classes.
 * `useFloat32: 4` -  Encode floating point numbers in 32-bit format when possible.
 

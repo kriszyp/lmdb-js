@@ -150,16 +150,19 @@ export function open(path, options) {
 				strictAsyncOrder: options.strictAsyncOrder,
 			}, dbOptions);
 			let Encoder;
-			if (this.encoder) {
+			if (this.encoder && this.encoder.Encoder) {
 				Encoder = this.encoder.Encoder;
-			} else if (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor') {
+				this.encoder = null; // don't copy everything from the module
+			}
+			if (!Encoder && !(this.encoder && this.encoder.encode) && (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor')) {
 				Encoder = (this.encoding == 'cbor' ? require('cbor-x').Encoder : MsgpackrEncoder);
 			}
 			if (Encoder) {
 				this.encoder = new Encoder(Object.assign(
+					assignConstrainedProperties(['copyBuffers', 'getStructures', 'saveStructures', 'useFloat32', 'useRecords', 'structuredClone', 'variableMapSize', 'useTimestamp32', 'largeBigIntToFloat', 'encodeUndefinedAsNil', 'int64AsNumber', 'onInvalidDate', 'mapsAsObjects', 'useTag259ForMaps', 'pack'],
 					this.sharedStructuresKey ? this.setupSharedStructures() : {
 						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
-					}, options, dbOptions));
+					}, options, dbOptions), this.encoder));
 			}
 			if (this.encoding == 'json') {
 				this.encoder = {
@@ -363,4 +366,15 @@ function exists(path) {
 			return false
 //		throw error
 	}
+}
+
+function assignConstrainedProperties(allowedProperties, target) {
+	for (let i = 2; i < arguments.length; i++) {
+		let source = arguments[i];
+		for (let key in source) {
+			if (allowedProperties.includes(key))
+				target[key] = source[key];
+		}
+	}
+	return target;
 }
