@@ -11,6 +11,7 @@ jobs:
         with:
           node-version: 12
       - run: npm install
+      - run: npm run build
       - run: npm test
       - run: npm run prebuild
         if: startsWith(github.ref, 'refs/tags/')
@@ -35,6 +36,7 @@ jobs:
         with:
           node-version: 12
       - run: npm install
+      - run: npm run build
       - run: npm run prebuild
       - run: npm test
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
@@ -52,7 +54,7 @@ jobs:
         with:
           deno-version: v1.x
       - run: npm install
-      - run: npm run recompile
+      - run: npm run build
       - run: deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts
       - run: npm test
   build-alpine:
@@ -64,6 +66,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: npm install
       - run: npm run prebuild-musl
+      - run: npm run build
       - run: npm test
       - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
       - name: Prebuild
