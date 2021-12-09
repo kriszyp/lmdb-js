@@ -3,61 +3,56 @@ if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
 }
 
-export class ArrayLikeIterable {
+export class RangeIterator {
 	constructor(sourceArray) {
 		if (sourceArray) {
 			this[Symbol.iterator] = sourceArray[Symbol.iterator].bind(sourceArray);
 		}
 	}
 	map(func) {
-		let source = this;
-		let result = new ArrayLikeIterable();
-		result[Symbol.iterator] = (async) => {
-			let iterator = source[Symbol.iterator](async);
-			return {
-				next(resolvedResult) {
-					let result;
-					do {
-						let iteratorResult;
-						if (resolvedResult) {
-							iteratorResult = resolvedResult;
-							resolvedResult = null; // don't go in this branch on next iteration
-						} else {
-							iteratorResult = iterator.next();
-							if (iteratorResult.then) {
-								return iteratorResult.then(iteratorResult => this.next(iteratorResult));
-							}
-						}
-						if (iteratorResult.done === true) {
-							this.done = true;
-							return iteratorResult;
-						}
-						result = func(iteratorResult.value);
-						if (result && result.then) {
-							return result.then(result =>
-								result == SKIP ?
-									this.next() :
-									{
-										value: result
-									});
-						}
-					} while(result == SKIP)
-					return {
-						value: result
-					};
-				},
-				return() {
-					return iterator.return();
-				},
-				throw() {
-					return iterator.throw();
+		let result = new RangeIterator();
+		result.next = (resolvedResult) => {
+			let result;
+			do {
+				let iteratorResult;
+				if (resolvedResult) {
+					iteratorResult = resolvedResult;
+					resolvedResult = null; // don't go in this branch on next iteration
+				} else {
+					iteratorResult = this.next();
+					if (iteratorResult.then) {
+						return iteratorResult.then(iteratorResult => this.next(iteratorResult));
+					}
 				}
+				if (iteratorResult.done === true) {
+					this.done = true;
+					return iteratorResult;
+				}
+				result = func(iteratorResult.value);
+				if (result && result.then) {
+					return result.then(result =>
+						result == SKIP ?
+							this.next() :
+							{
+								value: result
+							});
+				}
+			} while(result == SKIP)
+			return {
+				value: result
 			};
 		};
+		result.return = () => this.return();
 		return result;
 	}
+	throw() {
+		this.return();
+	}
+	[Symbol.iterator]() {
+		return this;
+	}
 	[Symbol.asyncIterator]() {
-		return this[Symbol.iterator](true);
+		return this;
 	}
 	filter(func) {
 		return this.map(element => func(element) ? element : SKIP);
@@ -71,7 +66,7 @@ export class ArrayLikeIterable {
 		}
 	}
 	concat(secondIterable) {
-		let concatIterable = new ArrayLikeIterable();
+		let concatIterable = new RangeIterator();
 		concatIterable[Symbol.iterator] = (async) => {
 			let iterator = this[Symbol.iterator]();
 			let isFirst = true;

@@ -13,7 +13,7 @@ import inspector from 'inspector'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
-import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
+import { RangeIterator } from '../util/RangeIterator.js'
 
 describe('lmdb-js', function() {
   let testDirPath = path.resolve(dirName, './testdata-ls');
@@ -949,10 +949,10 @@ describe('lmdb-js', function() {
       console.log('closed')
     });
   });
-  describe('ArrayLikeIterable', function() {
+  describe('RangeIterator', function() {
     it('concat and iterate', async function() {
-      let a = new ArrayLikeIterable([1, 2, 3])
-      let b = new ArrayLikeIterable([4, 5, 6])
+      let a = new RangeIterator([1, 2, 3])
+      let b = new RangeIterator([4, 5, 6])
       let all = []
       for (let v of a.concat(b)) {
         all.push(v)
