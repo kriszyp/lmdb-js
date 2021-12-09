@@ -43,6 +43,7 @@ const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 // result codes:
 const int FAILED_CONDITION = 0x4000000;
 const int FINISHED_OPERATION = 0x1000000;
+const double ANY_VERSION = 3.542694326329068e-103; // special marker for any version
 
 
 WriteWorker::~WriteWorker() {
@@ -212,8 +213,9 @@ next_inst:	start = instruction++;
 				rc = mdb_get(txn, dbi, &key, &value);
 				if (rc)
 					validated = false;
-				else
+				else if (conditionalVersion != ANY_VERSION) {
 					validated = validated && conditionalVersion == *((double*)value.mv_data);
+				}
 			}
 			if (flags & SET_VERSION) {
 				setVersion = *((double*) instruction);

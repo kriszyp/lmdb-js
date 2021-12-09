@@ -36,7 +36,7 @@ setExternals({
 	require, arch, fs, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
-export { ABORT, asBinary } from './write.js';
+export { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';

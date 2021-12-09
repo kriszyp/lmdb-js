@@ -3,7 +3,7 @@ import { when } from './util/when.js';
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;
-const BACKPRESSURE_THRESHOLD = 50000;
+const BACKPRESSURE_THRESHOLD = 100000;
 const TXN_DELIMITER = 0x8000000;
 const TXN_COMMITTED = 0x10000000;
 const TXN_FLUSHED = 0x20000000;
@@ -19,6 +19,7 @@ SYNC_PROMISE_SUCCESS.isSync = true;
 SYNC_PROMISE_FAIL.isSync = true;
 const PROMISE_SUCCESS = Promise.resolve(true);
 export const ABORT = {};
+export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
 const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
 const ByteArray = typeof Buffer != 'undefined' ? Buffer.from : Uint8Array;
@@ -272,7 +273,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				env.write(0);
 			}
-			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD) {
+			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD && !writeBatchStart) {
 				if (!backpressureArray)
 					backpressureArray = new Int32Array(new SharedArrayBuffer(4), 0, 1);
 				Atomics.wait(backpressureArray, 0, 0, Math.round(outstandingWriteCount / BACKPRESSURE_THRESHOLD));
@@ -298,9 +299,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			lastQueuedResolution = resolution;
 
 			if (callback) {
-				resolution.reject = callback;
-				resolution.resolve = (value) => callback(null, value);
-				return;
+				if (callback === IF_EXISTS)
+					ifVersion = IF_EXISTS;
+				else {
+					resolution.reject = callback;
+					resolution.resolve = (value) => callback(null, value);
+					return;
+				}
 			}
 			if (ifVersion === undefined) {
 				if (writtenBatchDepth > 1)
@@ -308,6 +313,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (!commitPromise) {
 					commitPromise = new Promise((resolve, reject) => {
 						resolution.resolve = resolve;
+						resolve.unconditional = true;
 						resolution.reject = reject;
 					});
 					if (separateFlushed)
@@ -401,13 +407,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			queueMicrotask(resetReadTxn); // TODO: only do this if there are actually committed writes?
 		do {
 			if (uncommittedResolution.resolve) {
-				let flag = uncommittedResolution.flag;
-				if (flag < 0)
-					uncommittedResolution.reject(new Error("Error occurred in write"));
-				else if (flag & FAILED_CONDITION) {
-					uncommittedResolution.resolve(false);
-				} else
-					uncommittedResolution.resolve(true);
+				let resolve = uncommittedResolution.resolve;
+				if (uncommittedResolution.flag & FAILED_CONDITION && !resolve.unconditional)
+					resolve(false);
+				else
+					resolve(true);
 			}
 		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != txnResolution)
 		txnResolution = txnResolution.nextTxn;
@@ -538,6 +542,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let ifVersion, value;
 			if (ifVersionOrValue !== undefined) {
 				if (typeof ifVersionOrValue == 'function')
+					callback = ifVersionOrValue;
+				else if (ifVersionOrValue === IF_EXISTS && !callback)
+					// we have a handler for IF_EXISTS in the callback handler for remove
 					callback = ifVersionOrValue;
 				else if (this.useVersions)
 					ifVersion = ifVersionOrValue;
@@ -732,7 +739,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				afterCommitCallbacks.push(callback);
 		}
 	});
-	LMDBStore.prototype.del = LMDBStore.prototype.remove;
 }
 
 class Batch extends Array {

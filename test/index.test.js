@@ -12,7 +12,7 @@ import inspector from 'inspector'
 //inspector.open(9330, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT } from '../node-index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
 import { ArrayLikeIterable } from '../util/ArrayLikeIterable.js'
 
 describe('lmdb-js', function() {
@@ -62,7 +62,7 @@ describe('lmdb-js', function() {
         //noSync: true,
         //overlappingSync: true,
         maxReaders: 100,
-        eventTurnBatching: false,
+        eventTurnBatching: true,
         keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
@@ -240,6 +240,23 @@ describe('lmdb-js', function() {
       })
       should.equal(db.get('newKey'), 'changed')
       should.equal(result, true);
+
+      result = await db2.ifVersion('key-no-exist', IF_EXISTS, () => {
+        db.put('newKey', 'changed again', 7);
+      })
+      should.equal(db.get('newKey'), 'changed')
+      should.equal(result, false);
+
+      result = await db2.ifVersion('keyB', IF_EXISTS, () => {
+        db.put('newKey', 'changed again', 7);
+      })
+      should.equal(db.get('newKey'), 'changed again')
+      should.equal(result, true);
+
+      result = await db2.remove('key-no-exists');
+      should.equal(result, true);
+      result = await db2.remove('key-no-exists', IF_EXISTS);
+      should.equal(result, false);
     });
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
@@ -287,7 +304,7 @@ describe('lmdb-js', function() {
       let buffer = db.encoder.encode(dataIn);
       if (typeof buffer == 'string')
         return
-      await db.put('key1',  asBinary(buffer));
+      await db.put('key1', asBinary(buffer));
       let dataOut = db.get('key1');
       dataOut.should.deep.equal(dataIn);
     });
