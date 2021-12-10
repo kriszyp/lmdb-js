@@ -457,3 +457,16 @@ void EnvWrap::write(
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return Nan::ThrowError(mdb_strerror(rc));
 }
+
+extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {
+	int rc = 0;
+	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+	if (instructionAddress)
+		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*) (size_t)instructionAddress, nullptr);
+	else if (ew->writeWorker) {
+		pthread_cond_signal(ew->writingCond);
+	}
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
+		return rc;
+	return 0;
+}

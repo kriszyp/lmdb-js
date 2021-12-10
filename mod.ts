@@ -30,6 +30,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
 	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'i64'},
+    closeEnv: { parameters: ['f64'], result: 'void'},
     freeData: { parameters: ['buffer', 'usize'], result: 'void'},
     getAddress: { parameters: ['buffer'], result: 'usize'},
     getMaxKeySize: { parameters: ['f64'], result: 'u32'},
@@ -44,15 +45,18 @@ let lmdbLib = Deno.dlopen(libPath, {
     abortEnvTxn: { parameters: ['f64'], result: 'void'},
     getError: { parameters: ['i32', 'f64'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
+    openCursor: { parameters: ['f64'], result: 'f64'},
+    
     startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
+    envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
     setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
     /*
     write: { parameters: ['buffer', 'usize'], result: 'u32'},
     getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
     */
 });
-let { envOpen, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
+let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, openCursor, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -115,6 +119,9 @@ class Env extends CBridge {
         return new Dbi(checkError(rc),
             getDbi(rc) as number);
     }
+    close() {
+        closeEnv(this.address);
+    }
     getMaxKeySize() {
         return getMaxKeySize(this.address);
     }
@@ -170,7 +177,24 @@ class Compression extends CBridge {
 
 }
 class Cursor extends CBridge {
+    constructor(dbi: Dbi) {
+        super(openCursor(dbi.address) as number);
+    }
+    renew() {
 
+    }
+    position() {
+
+    }
+    iterate() {
+
+    }
+    getCurrentValue() {
+
+    }
+    close() {
+
+    }
 }
 function toCString(str: string): Uint8Array {
     return str == null ? new Uint8Array(0) : textEncoder.encode(str + '\x00');

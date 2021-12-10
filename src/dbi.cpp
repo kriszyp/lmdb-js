@@ -275,6 +275,18 @@ extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
     DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
     return dw->doGetByBinary(keySize);
 }
+extern "C" EXTERN int64_t openCursor(double dwPointer) {
+    DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
+    MDB_cursor *cursor;
+    MDB_txn *txn = dw->ew->getReadTxn();
+    int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
+    if (rc)
+        return rc;
+    CursorWrap* cw = new CursorWrap(cursor);
+    cw->keyType = dw->keyType;
+    return (int64_t) cw;
+}
+
 
 uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
     char* keyBuffer = ew->keyBuffer;

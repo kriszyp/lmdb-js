@@ -592,23 +592,23 @@ class CursorWrap : public Nan::ObjectWrap {
 
 private:
 
-    // The wrapped object
-    MDB_cursor *cursor;
-    // Stores how key is represented
-    NodeLmdbKeyType keyType;
     // Key/data pair where the cursor is at, and ending key
     MDB_val key, data, endKey;
     // Free function for the current key
     argtokey_callback_t freeKey;
-    MDB_cursor_op iteratingOp;
-    int flags;
-    DbiWrap *dw;
-    MDB_txn *txn;
-    
     template<size_t keyIndex, size_t optionsIndex>
     friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
 
 public:
+    MDB_cursor_op iteratingOp;    
+    MDB_cursor *cursor;
+    // Stores how key is represented
+    NodeLmdbKeyType keyType;
+    int flags;
+    DbiWrap *dw;
+    MDB_txn *txn;
+
+    // The wrapped object
     CursorWrap(MDB_cursor *cursor);
     ~CursorWrap();
 

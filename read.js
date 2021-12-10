@@ -1,5 +1,5 @@
 import { RangeIterator }  from './util/RangeIterator.js';
-import { getAddress, Cursor, setGlobalBuffer, orderedBinary }  from './external.js';
+import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
 import { binaryBuffer } from './write.js';
 const ITERATOR_DONE = { done: true, value: undefined };
@@ -219,6 +219,8 @@ export function addReadMethods(LMDBStore, {
 			if (options.onlyCount) {
 				flags |= 0x1000;
 				let count = position(options.offset);
+				if (count < 0)
+					lmdbError(count);
 				finishCursor();
 				return count;
 			}
@@ -256,12 +258,19 @@ export function addReadMethods(LMDBStore, {
 				if (cursorRenewId)
 					txn.renewingCursorCount--;
 				if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+					if (cursor.isClosed)
+						debugger
 					cursor.close();
+					cursor.isClosed = true;
 					txn.abort(); // this is no longer main read txn, abort it now that we are done
 					txn.isAborted = true;
 				} else {
-					if (db.availableCursor || txn != readTxn)
+					if (db.availableCursor || txn != readTxn) {
+						if (cursor.isClosed)
+							debugger
 						cursor.close();
+						cursor.isClosed = true;
+					}
 					else { // try to reuse it
 						db.availableCursor = cursor;
 						db.cursorTxn = txn;
@@ -278,8 +287,10 @@ export function addReadMethods(LMDBStore, {
 					keySize = position(options.offset);
 				} else
 					keySize = cursor.iterate();
-				if (keySize === 0 ||
+				if (keySize <= 0 ||
 						(count++ >= limit)) {
+					if (keySize < 0)
+						lmdbError(keySize);
 					finishCursor();
 					return ITERATOR_DONE;
 				}

@@ -73,6 +73,12 @@ NAN_METHOD(CursorWrap::close) {
     cw->dw->Unref();
     cw->cursor = nullptr;
 }
+extern "C" EXTERN void cursorClose(double cwPointer) {
+    CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
+    mdb_cursor_close(cw->cursor);
+    cw->cursor = nullptr;
+}
+
 
 NAN_METHOD(CursorWrap::del) {
     Nan::HandleScope scope;
@@ -104,8 +110,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
         if (lastRC == MDB_NOTFOUND)
             return 0;
         else {
-            throwLmdbError(lastRC);
-            return 0;
+            return lastRC | 0x10000000;
         }
     }   
     if (endKey.mv_size > 0) {
@@ -273,20 +278,21 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
+extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
+    CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
+    cw->flags = flags;
+    return cw->doPosition(offset, keySize, endKeyAddress);
+}
+
 #ifdef ENABLE_FAST_API
-uint32_t CursorWrap::iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options) {
+int32_t CursorWrap::iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options) {
     CursorWrap* cw = static_cast<CursorWrap*>(
         receiver_obj->GetAlignedPointerFromInternalField(0));
     DbiWrap* dw = cw->dw;
     dw->getFast = true;
     MDB_val key, data;
     int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
-    uint32_t result = cw->returnEntry(rc, key, data);
-    if (dw->getFast)
-        dw->getFast = false;
-    else
-        options.fallback = true;
-    return result;
+    return cw->returnEntry(rc, key, data);
 }
 #endif
 void CursorWrap::iterate(
@@ -297,6 +303,12 @@ void CursorWrap::iterate(
     MDB_val key, data;
     int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
     return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+}
+extern "C" EXTERN int cursorIterate(double cwPointer) {
+    CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
+    MDB_val key, data;
+    int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+    return cw->returnEntry(rc, key, data);
 }
 
 NAN_METHOD(CursorWrap::getCurrentValue) {
@@ -314,7 +326,10 @@ NAN_METHOD(CursorWrap::renew) {
         return throwLmdbError(rc);
     }
 }
-
+extern "C" EXTERN int cursorRenew(double cwPointer) {
+    CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
+    return mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
+}
 void CursorWrap::setupExports(Local<Object> exports) {
     // CursorWrap: Prepare constructor template
     Local<FunctionTemplate> cursorTpl = Nan::New<FunctionTemplate>(CursorWrap::ctor);

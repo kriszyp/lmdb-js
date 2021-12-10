@@ -388,8 +388,12 @@ void EnvWrap::closeEnv() {
     pthread_mutex_unlock(envsLock);
 
     env = nullptr;
-
 }
+extern "C" EXTERN void closeEnv(double ewPointer) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    ew->closeEnv();
+}
+
 NAN_METHOD(EnvWrap::close) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     ew->Unref();
