@@ -1,4 +1,4 @@
-import { RangeIterator }  from './util/RangeIterator.js';
+import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
 import { binaryBuffer } from './write.js';
@@ -149,14 +149,14 @@ export function addReadMethods(LMDBStore, {
 			if (!options)
 				options = {};
 			options.onlyCount = true;
-			return this.getRange(options);
+			return this.getRange(options).iterate();
 		},
 		getKeysCount(options) {
 			if (!options)
 				options = {};
 			options.onlyCount = true;
 			options.values = false;
-			return this.getRange(options);
+			return this.getRange(options).iterate();
 		},
 		getValuesCount(key, options) {
 			if (!options)
@@ -164,10 +164,10 @@ export function addReadMethods(LMDBStore, {
 			options.key = key;
 			options.valuesForKey = true;
 			options.onlyCount = true;
-			return this.getRange(options);
+			return this.getRange(options).iterate();
 		},
 		getRange(options) {
-			let iterator = new RangeIterator();
+			let iterable = new RangeIterable();
 			if (!options)
 				options = {};
 			let includeValues = options.values !== false;
@@ -177,180 +177,185 @@ export function addReadMethods(LMDBStore, {
 			let db = this.db;
 			let snapshot = options.snapshot;
 			let compression = this.compression;
-			let currentKey = valuesForKey ? options.key : options.start;
-			const reverse = options.reverse;
-			let count = 0;
-			let cursor, cursorRenewId;
-			let txn;
-			let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
-				(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0);
-			function resetCursor() {
-				try {
-					if (cursor)
-						finishCursor();
-					let writeTxn = env.writeTxn;
-					txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn());
-					cursor = !writeTxn && db.availableCursor;
-					if (cursor) {
-						db.availableCursor = null;
-						if (db.cursorTxn != txn)
-							cursor.renew();
-						else// if (db.currentRenewId != renewId)
-							flags |= 0x2000;
-					} else {
-						cursor = new Cursor(db);
-					}
-					txn.cursorCount = (txn.cursorCount || 0) + 1; // track transaction so we always use the same one
-					if (snapshot === false) {
-						cursorRenewId = renewId; // use shared read transaction
-						txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1; // need to know how many are renewing cursors
-					}
-				} catch(error) {
-					if (cursor) {
-						try {
-							cursor.close();
-						} catch(error) { }
-					}
-					throw error;
-				}
-			}
-			resetCursor();
-			let store = this;
-			if (options.onlyCount) {
-				flags |= 0x1000;
-				let count = position(options.offset);
-				if (count < 0)
-					lmdbError(count);
-				finishCursor();
-				return count;
-			}
-			function position(offset) {
-				let keySize = store.writeKey(currentKey, keyBytes, 0);
-				let endAddress;
-				if (valuesForKey) {
-					if (options.start === undefined && options.end === undefined)
-						endAddress = 0;
-					else {
-						let startAddress;
-						if (store.encoder.writeKey) {
-							startAddress = saveKey(options.start, store.encoder.writeKey, iterator, maxKeySize);
-							keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
-							endAddress = saveKey(options.end, store.encoder.writeKey, iterator, maxKeySize);
-						} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
-							startAddress = saveKey(options.start, orderedBinary.writeKey, iterator, maxKeySize);
-							keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
-							endAddress = saveKey(options.end, orderedBinary.writeKey, iterator, maxKeySize);
+			iterable.iterate = () => {
+				let currentKey = valuesForKey ? options.key : options.start;
+				const reverse = options.reverse;
+				let count = 0;
+				let cursor, cursorRenewId;
+				let txn;
+				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
+					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0);
+				function resetCursor() {
+					try {
+						if (cursor)
+							finishCursor();
+						let writeTxn = env.writeTxn;
+						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn());
+						cursor = !writeTxn && db.availableCursor;
+						if (cursor) {
+							db.availableCursor = null;
+							if (db.cursorTxn != txn) {
+								let rc = cursor.renew();
+								if (rc)
+									lmdbError(rc);
+							} else// if (db.currentRenewId != renewId)
+								flags |= 0x2000;
 						} else {
-							throw new Error('Only key-based encoding is supported for start/end values');
-							let encoded = store.encoder.encode(options.start);
-							let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset);
-							startAddress = bufferAddress + encoded.byteOffset;
+							cursor = new Cursor(db);
 						}
-					}
-				} else
-					endAddress = saveKey(options.end, store.writeKey, iterator, maxKeySize);
-				return cursor.position(flags, offset || 0, keySize, endAddress);
-			}
-
-			function finishCursor() {
-				if (txn.isAborted)
-					return;
-				if (cursorRenewId)
-					txn.renewingCursorCount--;
-				if (--txn.cursorCount <= 0 && txn.onlyCursor) {
-					if (cursor.isClosed)
-						debugger
-					cursor.close();
-					cursor.isClosed = true;
-					txn.abort(); // this is no longer main read txn, abort it now that we are done
-					txn.isAborted = true;
-				} else {
-					if (db.availableCursor || txn != readTxn) {
-						if (cursor.isClosed)
-							debugger
-						cursor.close();
-						cursor.isClosed = true;
-					}
-					else { // try to reuse it
-						db.availableCursor = cursor;
-						db.cursorTxn = txn;
+						txn.cursorCount = (txn.cursorCount || 0) + 1; // track transaction so we always use the same one
+						if (snapshot === false) {
+							cursorRenewId = renewId; // use shared read transaction
+							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1; // need to know how many are renewing cursors
+						}
+					} catch(error) {
+						if (cursor) {
+							try {
+								cursor.close();
+							} catch(error) { }
+						}
+						throw error;
 					}
 				}
-			}
-			iterator.next = () => {
-				let keySize, lastSize;
-				if (cursorRenewId && cursorRenewId != renewId) {
-					resetCursor();
-					keySize = position(0);
-				}
-				if (count === 0) { // && includeValues) // on first entry, get current value if we need to
-					keySize = position(options.offset);
-				} else
-					keySize = cursor.iterate();
-				if (keySize <= 0 ||
-						(count++ >= limit)) {
-					if (keySize < 0)
-						lmdbError(keySize);
+				resetCursor();
+				let store = this;
+				if (options.onlyCount) {
+					flags |= 0x1000;
+					let count = position(options.offset);
+					if (count < 0)
+						lmdbError(count);
 					finishCursor();
-					return ITERATOR_DONE;
+					return count;
 				}
-				if (!valuesForKey || snapshot === false)
-					currentKey = store.readKey(keyBytes, 32, keySize + 32);
-				if (includeValues) {
-					let value;
-					lastSize = keyBytesView.getUint32(0, true);
-					let bytes = compression ? compression.getValueBytes : getValueBytes;
-					if (lastSize > bytes.maxLength) {
-						bytes = store._allocateGetBuffer(lastSize);
-						cursor.getCurrentValue();
-					}
-					bytes.length = lastSize;
-					if (store.decoder) {
-						value = store.decoder.decode(bytes, lastSize);
-					} else if (store.encoding == 'binary')
-						value = Uint8ArraySlice.call(bytes, 0, lastSize);
-					else {
-						value = bytes.toString('utf8', 0, lastSize);
-						if (store.encoding == 'json' && value)
-							value = JSON.parse(value);
-					}
-					if (includeVersions)
-						return {
-							value: {
-								key: currentKey,
-								value,
-								version: getLastVersion()
+				function position(offset) {
+					let keySize = store.writeKey(currentKey, keyBytes, 0);
+					let endAddress;
+					if (valuesForKey) {
+						if (options.start === undefined && options.end === undefined)
+							endAddress = 0;
+						else {
+							let startAddress;
+							if (store.encoder.writeKey) {
+								startAddress = saveKey(options.start, store.encoder.writeKey, iterable, maxKeySize);
+								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
+								endAddress = saveKey(options.end, store.encoder.writeKey, iterable, maxKeySize);
+							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
+								startAddress = saveKey(options.start, orderedBinary.writeKey, iterable, maxKeySize);
+								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
+								endAddress = saveKey(options.end, orderedBinary.writeKey, iterable, maxKeySize);
+							} else {
+								throw new Error('Only key-based encoding is supported for start/end values');
+								let encoded = store.encoder.encode(options.start);
+								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset);
+								startAddress = bufferAddress + encoded.byteOffset;
 							}
-						};
-					else if (valuesForKey)
-						return {
-							value
-						};
-					else
-						return {
-							value: {
-								key: currentKey,
-								value,
-							}
-						};
-				} else if (includeVersions) {
-					return {
-						value: {
-							key: currentKey,
-							version: getLastVersion()
 						}
-					};
-				} else {
-					return {
-						value: currentKey
-					};
+					} else
+						endAddress = saveKey(options.end, store.writeKey, iterable, maxKeySize);
+					return cursor.position(flags, offset || 0, keySize, endAddress);
 				}
+
+				function finishCursor() {
+					if (txn.isAborted)
+						return;
+					if (cursorRenewId)
+						txn.renewingCursorCount--;
+					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+						cursor.close();
+						txn.abort(); // this is no longer main read txn, abort it now that we are done
+						txn.isAborted = true;
+					} else {
+						if (db.availableCursor || txn != readTxn)
+							cursor.close();
+						else { // try to reuse it
+							db.availableCursor = cursor;
+							db.cursorTxn = txn;
+						}
+					}
+				}
+				return {
+					next() {
+						let keySize, lastSize;
+						if (cursorRenewId && cursorRenewId != renewId) {
+							resetCursor();
+							keySize = position(0);
+						}
+						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
+							keySize = position(options.offset);
+						} else
+							keySize = cursor.iterate();
+						if (keySize <= 0 ||
+								(count++ >= limit)) {
+							if (count < 0)
+								lmdbError(count);				
+							finishCursor();
+							return ITERATOR_DONE;
+						}
+						if (!valuesForKey || snapshot === false)
+							currentKey = store.readKey(keyBytes, 32, keySize + 32);
+						if (includeValues) {
+							let value;
+							lastSize = keyBytesView.getUint32(0, true);
+							let bytes = compression ? compression.getValueBytes : getValueBytes;
+							if (lastSize > bytes.maxLength) {
+								bytes = store._allocateGetBuffer(lastSize);
+								let rc = cursor.getCurrentValue();
+								if (rc < 0)
+									lmdbError(count);
+							}
+							bytes.length = lastSize;
+							if (store.decoder) {
+								value = store.decoder.decode(bytes, lastSize);
+							} else if (store.encoding == 'binary')
+								value = Uint8ArraySlice.call(bytes, 0, lastSize);
+							else {
+								value = bytes.toString('utf8', 0, lastSize);
+								if (store.encoding == 'json' && value)
+									value = JSON.parse(value);
+							}
+							if (includeVersions)
+								return {
+									value: {
+										key: currentKey,
+										value,
+										version: getLastVersion()
+									}
+								};
+ 							else if (valuesForKey)
+								return {
+									value
+								};
+							else
+								return {
+									value: {
+										key: currentKey,
+										value,
+									}
+								};
+						} else if (includeVersions) {
+							return {
+								value: {
+									key: currentKey,
+									version: getLastVersion()
+								}
+							};
+						} else {
+							return {
+								value: currentKey
+							};
+						}
+					},
+					return() {
+						finishCursor();
+						return ITERATOR_DONE;
+					},
+					throw() {
+						finishCursor();
+						return ITERATOR_DONE;
+					}
+				};
 			};
-			iterator.return = () => {
-				finishCursor();
-				return ITERATOR_DONE;
-			};
-			return iterator;
+			return iterable;
 		},
 		getMany(keys, callback) {
 			let results = new Array(keys.length);
