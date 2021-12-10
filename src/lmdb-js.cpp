@@ -27,7 +27,7 @@ NODE_MODULE_INIT(/* exports, module, context */) {
         fprintf(stderr, "Finished initialization\n");
 }
 
-extern "C" void node_module_register(void* m) {
+extern "C" EXTERN void node_module_register(void* m) {
     fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
 }
 /* Start of converting just the init to NAPI:
