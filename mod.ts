@@ -46,7 +46,9 @@ let lmdbLib = Deno.dlopen(libPath, {
     getError: { parameters: ['i32', 'f64'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
     openCursor: { parameters: ['f64'], result: 'f64'},
-    
+    cursorRenew: { parameters: ['f64'], result: 'i32'},
+    cursorIterate: { parameters: ['f64'], result: 'i32'},
+    cursorPosition: { parameters: ['f64', 'u32', 'u32', 'u32', 'u64'], result: 'i32'},
     startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
     envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
     setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
@@ -56,7 +58,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     */
 });
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, openCursor, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, envWrite, openCursor, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -140,6 +142,9 @@ class Env extends CBridge {
     }
     startWriting(instructions: number, callback: (value: number) => number) {
         (startWriting(this.address, instructions) as Promise<number>).then(callback);
+    }
+    write(instructions: number) {
+        return checkError(envWrite(this.address, instructions) as number);
     }
 }
 //Env.addMethods('startWriting', 'write', 'openDB');
