@@ -54,7 +54,7 @@ jobs:
         with:
           deno-version: v1.x
       - run: npm install
-      - run: npm run build
+      - run: npm run recompile
       - run: deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts
       - run: npm test
   build-alpine:
