@@ -48,11 +48,11 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "build": "node-gyp configure && node-gyp build -d && rollup -c",
+    "build": "node-gyp configure && node-gyp build && rollup -c",
     "build-js": "rollup -c",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 17.2.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@15.2.0",
-    "prebuild": "prebuildify --target 17.2.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@15.2.0",
+    "prebuild-default": "prebuildify --target 17.2.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@15.2.0",
     "prebuild-musl": "prebuildify --target 17.2.0 --libc musl --tag-libc && prebuildify --target 16.13.0 --libc musl --tag-libc && prebuildify --target 14.17.6 --libc musl --tag-libc && prebuildify --target 12.22.7 --libc musl --tag-libc",
     "prebuild-arm64": "prebuildify --arch=arm64 --target 17.2.0 --libc musl && prebuildify --arch=arm64 --target 16.13.0 && prebuildify --arch=arm64 --target 14.17.6 && prebuildify --arch=arm64 --target electron@15.2.0",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
