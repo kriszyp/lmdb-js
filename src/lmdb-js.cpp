@@ -28,7 +28,7 @@ NODE_MODULE_INIT(/* exports, module, context */) {
 }
 #ifndef _WIN32
 extern "C" void node_module_register(void* m) {
-    fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
+    //fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
 }
 #endif
 /* Start of converting just the init to NAPI:
