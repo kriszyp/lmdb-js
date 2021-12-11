@@ -99,6 +99,11 @@ export class RangeIterable {
 		};
 		return concatIterable;
 	}
+	next() {
+		if (!this.iterator)
+			this.iterator = this.iterate();
+		return this.iterator.next();
+	}
 	toJSON() {
 		if (this.asArray && this.asArray.forEach) {
 			return this.asArray;

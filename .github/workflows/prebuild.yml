@@ -2,7 +2,6 @@ name: Test and Prebuild
 on: [push]
 jobs:
   build-test-macos:
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -12,6 +11,7 @@ jobs:
           node-version: 12
       - run: npm install
       - run: npm run build
+      - run: npm run deno-test
       - run: npm test
       - run: npm run prebuild-default
         if: startsWith(github.ref, 'refs/tags/')
@@ -55,7 +55,7 @@ jobs:
           deno-version: v1.x
       - run: npm install
       - run: npm run build
-      - run: deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts
+      - run: npm run deno-test
       - run: npm test
   build-alpine:
     if: startsWith(github.ref, 'refs/tags/')

@@ -2,8 +2,8 @@ import { fileURLToPath } from './deps.ts';
 import { orderedBinary, setNativeFunctions } from './external.js';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
-let version = import.meta.url.match(/@[\d\.]+/)?.[0];
-console.log({version});
+let version = import.meta.url.match(/@([^/]+)\//)?.[1];
+//console.log({version});
 let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));;
 let envError;
 if (!exists(libPath)) {
@@ -25,7 +25,6 @@ if (!exists(libPath)) {
         Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
     }
 }
-
 let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
@@ -45,10 +44,12 @@ let lmdbLib = Deno.dlopen(libPath, {
     abortEnvTxn: { parameters: ['f64'], result: 'void'},
     getError: { parameters: ['i32', 'f64'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
-    openCursor: { parameters: ['f64'], result: 'f64'},
+    openCursor: { parameters: ['f64'], result: 'i64'},
     cursorRenew: { parameters: ['f64'], result: 'i32'},
+    cursorClose: { parameters: ['f64'], result: 'i32'},
     cursorIterate: { parameters: ['f64'], result: 'i32'},
-    cursorPosition: { parameters: ['f64', 'u32', 'u32', 'u32', 'u64'], result: 'i32'},
+    cursorPosition: { parameters: ['f64', 'u32', 'u32', 'u32', 'f64'], result: 'i32'},
+    cursorCurrentValue: { parameters: ['f64'], result: 'i32'},
     startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
     envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
     setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
@@ -58,7 +59,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     */
 });
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, envWrite, openCursor, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     freeData(address, 1);
@@ -84,14 +85,15 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 const MAX_ERROR = 1000;
 function checkError(rc: number): number {
-    if (rc < MAX_ERROR) {
+    if (rc && rc < MAX_ERROR) {
         // TODO: Look up error and throw
-        console.log("error", rc);
+        lmdbError(rc);
     }
     return rc;
 }
 function lmdbError(rc: number) {
     //getError(rc, keyBytes);
+    console.error('Error', rc);
     throw new Error(textDecoder.decode(keyBytes.subarray(0, keyBytes.indexOf(0))));
 }
 let keyBytes: Uint8Array;
@@ -99,7 +101,6 @@ class Env extends CBridge {
     open(options: any, flags: number, jsFlags: number) {
         let rc = envOpen(flags, jsFlags, toCString(options.path), keyBytes = options.keyBytes, 0,
             options.maxDbs || 12, options.maxReaders || 126, options.mapSize, options.pageSize, new Uint8Array(0)) as number;
-        console.log('open rc', rc);
         this.address = checkError(rc);
         registry.register(this, this.address);
         return 0;
@@ -186,19 +187,19 @@ class Cursor extends CBridge {
         super(openCursor(dbi.address) as number);
     }
     renew() {
-
+        cursorRenew(this.address);
     }
-    position() {
-
+    position(flags: number, offset: number, keySize: number, endKeyAddress: number) {
+        return cursorPosition(this.address, flags, offset, keySize, endKeyAddress);
     }
     iterate() {
-
+        return cursorIterate(this.address);
     }
     getCurrentValue() {
-
+        return cursorCurrentValue(this.address);
     }
     close() {
-
+        return cursorClose(this.address);
     }
 }
 function toCString(str: string): Uint8Array {

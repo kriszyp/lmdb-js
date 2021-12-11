@@ -278,10 +278,10 @@ void CursorWrap::position(
     uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
     info.GetReturnValue().Set(Nan::New<Number>(result));
 }
-extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
+extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, double endKeyAddress) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
     cw->flags = flags;
-    return cw->doPosition(offset, keySize, endKeyAddress);
+    return cw->doPosition(offset, keySize, (uint64_t) endKeyAddress);
 }
 
 #ifdef ENABLE_FAST_API
@@ -316,6 +316,12 @@ NAN_METHOD(CursorWrap::getCurrentValue) {
     MDB_val key, data;
     int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
     return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+}
+extern "C" EXTERN int cursorCurrentValue(double cwPointer) {
+    CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
+    MDB_val key, data;
+    int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
+    return cw->returnEntry(rc, key, data);
 }
 
 NAN_METHOD(CursorWrap::renew) {

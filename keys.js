@@ -47,8 +47,9 @@ export function applyKeyHandling(store) {
 
 let saveBuffer, saveDataView, saveDataAddress;
 let savePosition = 8000;
+let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateSaveBuffer() {
-	saveBuffer = Buffer.alloc(8192);
+	saveBuffer = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
 	saveBuffer.buffer.address = getAddress(saveBuffer);
 	saveDataAddress = saveBuffer.buffer.address;

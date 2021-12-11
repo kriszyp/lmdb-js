@@ -284,6 +284,8 @@ extern "C" EXTERN int64_t openCursor(double dwPointer) {
         return rc;
     CursorWrap* cw = new CursorWrap(cursor);
     cw->keyType = dw->keyType;
+    cw->dw = dw;
+    cw->txn = txn;
     return (int64_t) cw;
 }
 

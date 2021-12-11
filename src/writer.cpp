@@ -419,6 +419,8 @@ extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddre
     WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
 	ew->writeWorker = worker;
 	worker->Write();
+	ew->writeWorker = nullptr;
+	delete worker;
 	return 0;
 }
 

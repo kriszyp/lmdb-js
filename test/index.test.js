@@ -161,7 +161,8 @@ describe('lmdb-js', function() {
         [ 'Test', 10010, 3 ]
       ]
       for (let key of keys)
-        await db.put(key, 3);
+        db.put(key, 3);
+      await db;
       for (let { key, value } of db.getRange({
         start: ['Test', null],
         end: ['Test', null],
@@ -330,7 +331,8 @@ describe('lmdb-js', function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
-      await db.put('key2',  data2);
+      db.put('key2',  data2);
+      await db;
       let count = 0
       for (let { key, value } of db.getRange({start:'key', end:'keyz', snapshot: !acrossTransactions})) {
         if (acrossTransactions)
@@ -350,7 +352,8 @@ describe('lmdb-js', function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
-      await db.put('key2',  data2);
+      db.put('key2',  data2);
+      await db;
       let count = 0;
       for (let { key, value } of db.getRange({start:'key', end:'keyz'})) {
         if (count > 0)
@@ -775,6 +778,21 @@ describe('lmdb-js', function() {
         await db.put('key1',  'test');
         should.equal(db.get('key1'), 'test');
       }
+    });
+    it.skip('detect write transaction with hanging cursors', async function() {
+      db.put('key1', 'value1');
+      db.put('key2', 'value2');
+      await db;
+      let iterator
+      db.transactionSync(() => {
+        iterator = db.getRange({snapshot: false})[Symbol.iterator]();
+        console.log(iterator.next());
+      });
+      console.log(iterator.next());
+      await db.transaction(() => {
+        iterator = db.getRange({})[Symbol.iterator]();
+        console.log(iterator.next());
+      });
     });
     it('mixed batches', async function() {
       let promise

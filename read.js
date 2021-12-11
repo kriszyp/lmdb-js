@@ -256,14 +256,14 @@ export function addReadMethods(LMDBStore, {
 				}
 
 				function finishCursor() {
-					if (txn.isAborted)
+					if (txn.isDone)
 						return;
 					if (cursorRenewId)
 						txn.renewingCursorCount--;
 					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
 						cursor.close();
 						txn.abort(); // this is no longer main read txn, abort it now that we are done
-						txn.isAborted = true;
+						txn.isDone = true;
 					} else {
 						if (db.availableCursor || txn != readTxn)
 							cursor.close();
@@ -419,8 +419,8 @@ export function addReadMethods(LMDBStore, {
 		return readTxn;
 	}
 	function resetReadTxn() {
+		renewId++;
 		if (readTxnRenewed) {
-			renewId++;
 			readTxnRenewed = null;
 			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true;
