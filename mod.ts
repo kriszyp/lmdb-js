@@ -4,10 +4,10 @@ orderedBinary.enableNullTermination();
 // probably use Deno.build.os
 let version = import.meta.url.match(/@([^/]+)\//)?.[1];
 //console.log({version});
-let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));;
-if (!exists(libPath)) {
+let libPath = import.meta.url.startsWith('file:') && fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));
+if (!libPath || !exists(libPath)) {
     //console.log({ libPath }, 'does not exist')
-    libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js' + (version || '') + '.lib')) as string;
+    libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js-' + (version || '') + '.lib')) as string;
     const ARCH = { x86_64: 'x64', aarch64: 'arm64' }
     if (!exists(libPath)) {
         let os: string = Deno.build.os;
@@ -16,8 +16,12 @@ if (!exists(libPath)) {
         let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@' + (version || 'latest') +
             '/prebuilds/' + os + '/node.abi102.node';
         let response = await fetch(libraryUrl);
-        let binaryLibraryBuffer = await response.arrayBuffer();
-        Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));
+        if (response.status == 200) {
+            let binaryLibraryBuffer = await response.arrayBuffer();
+            Deno.writeFileSync(libPath, new Uint8Array(binaryLibraryBuffer));            
+        } else {
+            throw new Error('Unable to fetch ' + libraryUrl + ', HTTP response: ' + response.status);
+        }
     }
 }
 let lmdbLib = Deno.dlopen(libPath, {
