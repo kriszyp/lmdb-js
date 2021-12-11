@@ -5,14 +5,9 @@ orderedBinary.enableNullTermination();
 let version = import.meta.url.match(/@([^/]+)\//)?.[1];
 //console.log({version});
 let libPath = fileURLToPath(new URL('build/Release/lmdb.node', import.meta.url));;
-let envError;
 if (!exists(libPath)) {
-    console.log({ libPath }, 'does not exist')
-    try {
-        libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js' + (version || '') + '.lib')) as string;
-    } catch(error) {
-        envError = error;
-    }
+    //console.log({ libPath }, 'does not exist')
+    libPath = (Deno.env.get('LMDB_LIB_PATH') || (tmpdir() + '/lmdb-js' + (version || '') + '.lib')) as string;
     const ARCH = { x86_64: 'x64', aarch64: 'arm64' }
     if (!exists(libPath)) {
         let os: string = Deno.build.os;

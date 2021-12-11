@@ -2,7 +2,12 @@ import { open } from '../mod.ts';
 import chai from "https://cdn.skypack.dev/chai@4.3.4?dts";
 const { assert, should } = chai;
 should();
-Deno.removeSync('test/testdata', { recursive: true });
+try {
+	Deno.removeSync('test/testdata', { recursive: true });
+} catch(error) {
+	if (error.name != 'NotFound')
+		throw error
+}
 let db = open('test/testdata');
 let tests: { name: string, test: Function }[] = [];
 let test = (name: string, test: Function) => {
