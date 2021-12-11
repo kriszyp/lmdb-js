@@ -15,6 +15,7 @@ if (!libPath || !exists(libPath)) {
         os += '-' + ARCH[Deno.build.arch];
         let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@' + (version || 'latest') +
             '/prebuilds/' + os + '/node.abi102.node';
+        console.log('Download', libraryUrl);
         let response = await fetch(libraryUrl);
         if (response.status == 200) {
             let binaryLibraryBuffer = await response.arrayBuffer();

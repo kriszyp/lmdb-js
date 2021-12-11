@@ -4,7 +4,7 @@
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most efficient NodeJS key-value/database interface that exists for storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This is an ultra-fast NodeJS and Deno interface to LMDB; probably the fastest and most efficient key-value/database interface that exists for storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
@@ -21,7 +21,11 @@ This is an ultra-fast NodeJS interface to LMDB; probably the fastest and most ef
 <a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60" align="right"/></a>
 
 This library is published to the NPM package `lmdb` (the 1.x versions were published to `lmdb-store`), and can be installed with:
-```npm install lmdb```
+
+```
+npm install lmdb
+```
+Or in Deno can be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts) (see [Deno instructions](#deno)).
 
 This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
 
@@ -31,7 +35,7 @@ This library was formerly known as "lmdb-store", but "lmdb-js" better represents
 
 This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data in LMDB.
 
-`lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than Node's event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
+`lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS and Deno code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
 With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
 
@@ -45,6 +49,7 @@ This library provides optional compression using LZ4 that works in conjunction w
 An LMDB database instance is created by using `open` export from the main module:
 ```
 import { open } from 'lmdb'; // or require
+// or in deno: import { open } from 'https://deno.land/x/lmdb/mod.ts';
 let myDB = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
@@ -69,7 +74,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `cbor` - This specifies all values use the CBOR format, which requires that the [cbor-x](https://github.com/kriszyp/cbor-x) package be installed. This package is based on [msgpackr](https://github.com/kriszyp/msgpackr) and supports all the same options.
 * `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
-* `binary` - Values are returned as (Node) buffer objects, representing the raw binary data. Note that creating buffer objects in NodeJS has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
+* `binary` - Values are returned as binary arrays (`Buffer` objects in NodeJS), representing the raw binary data. Note that creating buffer objects has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
 * `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` databases where data values are ordered, and having consistent key and value ordering is helpful.
 
 In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
@@ -91,7 +96,7 @@ Symbol.for('even symbols')
 ['hello', 'world']
 Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
-You can override the default encoding of keys, and cause keys to be returned as node buffers using the `keyEncoding: 'binary'` database option (generally slower), use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
+You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower), use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a db, the following methods are available:
 
@@ -277,7 +282,7 @@ This will retrieve the binary data at the specified key, like `getBinary`, excep
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
 
 ## Concurrency and Versioning
-LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate NodeJS isolates, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes are accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
+LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate JavaScript workers, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes are accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
 ```
 let myDB = open('my-db', { useVersions: true });
 ```
@@ -427,6 +432,20 @@ Custom key encoding can be useful for defining more efficient encodings of speci
 The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
 `beforecommit` - This event is fired before a transaction finishes/commits. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed as the last operation(s) before the transaction commits (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled. This can be called multiples times in a transaction, but should always be called as the last operation of a transaction.
+
+## Deno
+This package is supported on Deno as of v2.1, but there are some requirements and limitations. First, lmdb-js requires FFI (which is currently marked `unstable`) and several permissions to be enabled, so you need to start deno with at least these flags:
+```
+deno run --allow-ffi --unstable --allow-write --allow-read --allow-env --allow-net your-app.ts
+```
+Deno [currently doesn't provide any infrastructure for binary builds](https://github.com/denoland/deno/issues/12943), so lmdb-js will attempt to download and save the appropriate binary file on its own. If you need to manually specify a path, you can do so with the `LMDB_LIB_PATH` env variable.
+
+You can then use the library with an import of the lmdb-js module from deno.land (insert the version you want):
+```
+import { open } from 'https://deno.land/x/lmdb@<version>/mod.ts';
+```
+
+Also, lmdb-js doesn't support asynchronous transaction callbacks (`transaction` API), which can't be efficiently implemented without a resolution to this [issue](https://github.com/denoland/deno/issues/12946). You can still use the standard asynchronous put and remove methods, which will properly be committed asynchronously, as well as the synchronous transactions.
 
 ## LevelUp
 
