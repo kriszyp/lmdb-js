@@ -59,6 +59,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var beforeCommitCallbacks = [];
 	var enqueuedEventTurnBatch;
 	var batchDepth = 0;
+	var lastWritePromise;
 	var writeBatchStart, outstandingBatchCount;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
@@ -321,13 +322,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 				return commitPromise;
 			}
-			let promise = new Promise((resolve, reject) => {
+			lastWritePromise = new Promise((resolve, reject) => {
 				resolution.resolve = resolve;
 				resolution.reject = reject;
 			});
 			if (separateFlushed)
-				promise.flushed = overlappingSync ? flushPromise : promise;
-			return promise;
+				lastWritePromise.flushed = overlappingSync ? flushPromise : lastWritePromise;
+			return lastWritePromise;
 		};
 	}
 	function startWriting() {
@@ -454,7 +455,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 	}
 	async function executeTxnCallbacks() {
-		env.writeTxn = writeTxn = {};
+		env.writeTxn = writeTxn = { write: true };
 		let promises;
 		let txnCallbacks;
 		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
@@ -503,7 +504,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (promises) { // finish any outstanding commit functions
 			await Promise.all(promises);
 		}
-		env.writeTxn = writeTxn = false;
+		clearWriteTxn(null);
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error;
 			txnCallbacks[i] = CALLBACK_THREW;
@@ -516,6 +517,16 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (writeStatus & WAITING_OPERATION) {
 			env.write(0);
 		}
+	}
+	function clearWriteTxn(parentTxn) {
+		// TODO: We might actually want to track cursors in a write txn and manually
+		// close them.
+		let hasCursors = writeTxn.cursorCount > 0
+		if (hasCursors)
+			writeTxn.isDone = true;
+		env.writeTxn = writeTxn = parentTxn || null;
+		if (hasCursors)
+			console.error('Transaction was committed (or aborted) with unfinished range iterators, this is likely to cause the process to crash. Range iterators in write transactions much be finished before the transaction is finished');
 	}
 	Object.assign(LMDBStore.prototype, {
 		put(key, value, versionOrOptions, ifVersion) {
@@ -651,6 +662,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode');
 			if (writeTxn) {
+				let parentTxn = writeTxn;
+				env.writeTxn = writeTxn = { write: true };
 				env.beginTxn(1); // abortable
 				try {
 					return when(callback(), (result) => {
@@ -658,13 +671,16 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							env.abortTxn();
 						else
 							env.commitTxn();
+						clearWriteTxn(parentTxn);
 						return result;
 					}, (error) => {
 						env.abortTxn();
+						clearWriteTxn(parentTxn);
 						throw error;
 					});
 				} catch(error) {
 					env.abortTxn();
+					clearWriteTxn(parentTxn);
 					throw error;
 				}
 			}
@@ -704,7 +720,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			try {
 				this.transactions++;
 				env.beginTxn(flags == undefined ? 3 : flags);
-				writeTxn = env.writeTxn = {};
+				writeTxn = env.writeTxn = { write: true };
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)
@@ -715,21 +731,37 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						}
 						return result;
 					} finally {
-						env.writeTxn = writeTxn = null;
+						clearWriteTxn(null);
 					}
 				}, (error) => {
 					try { env.abortTxn(); } catch(e) {}
-					env.writeTxn = writeTxn = null;
+					clearWriteTxn(null);
 					throw error;
 				});
 			} catch(error) {
 				try { env.abortTxn(); } catch(e) {}
-				env.writeTxn = writeTxn = null;
+				clearWriteTxn(null);
 				throw error;
 			}
 		},
 		transactionSyncStart(callback) {
 			return this.transactionSync(callback, 0);
+		},
+		// make the db a thenable/promise-like for when the last commit is committed
+		then(onfulfilled, onrejected) {
+			if (commitPromise)
+				return commitPromise.then(onfulfilled, onrejected);
+			if (lastPromise) // always resolve to true
+				return lastPromise.then(() => onfulfilled(true), onrejected);
+			return SYNC_PROMISE_SUCCESS.then(onfulfilled, onrejected);
+		},
+		flushed: {
+			// make this a thenable for when the commit is flushed to disk
+			then(onfulfilled, onrejected) {
+				if (flushPromise)
+					return commitPromise.then(onfulfilled, onrejected);
+				return LMDBStore.prototype.then(onfulfilled, onrejected);
+			}
 		},
 		on(event, callback) {
 			if (event == 'beforecommit') {
