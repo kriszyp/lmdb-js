@@ -218,3 +218,14 @@ NAN_METHOD(EnvWrap::compress) {
     CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress, callback);
     Nan::AsyncQueueWorker(worker);
 }
+
+extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {
+    EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+    uint64_t compressionPointer;
+    double* compressionAddress = (double*) (size_t) compressionJSPointer;
+    compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 2);
+    if (compressionPointer > 1) {
+        Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
+        compression->compressInstruction(ew, compressionAddress);
+    }
+}

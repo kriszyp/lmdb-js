@@ -9,6 +9,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 12
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - run: npm install
       - run: npm run build
       - run: npm run deno-test
