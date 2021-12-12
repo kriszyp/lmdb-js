@@ -73,7 +73,7 @@ void NanWriteWorker::Execute(const ExecutionProgress& executionProgress) {
 	Write();
 }
 void WriteWorker::SendUpdate() {
-	fprintf(stderr, "This SendUpdate does not work!\n");
+	//fprintf(stderr, "This SendUpdate does not work!\n");
 }
 void NanWriteWorker::SendUpdate() {
 	executionProgress->Send(nullptr, 0);

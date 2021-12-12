@@ -893,7 +893,7 @@ extern "C" EXTERN int64_t openDbi(double ewPointer, int flags, char* name, int k
     int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
         (NodeLmdbKeyType) keyType, (Compression*) (size_t) compression);
     if (rc) {
-        delete dw;
+        // delete dw;
         return rc;
     }
     return (int64_t) dw;

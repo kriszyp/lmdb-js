@@ -178,8 +178,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					float64[position] = store.compression.address;
 					if (!writeTxn)
 						env.compress(uint32.address + (position << 3), () => {
-							// this is never actually called, just use to pin the buffer in memory until it is finished
-							console.log(float64);
+							// this is never actually called in NodeJS, just use to pin the buffer in memory until it is finished
+							// and is a no-op in Deno
 						});
 					position++;
 				}

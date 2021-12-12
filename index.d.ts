@@ -1,10 +1,8 @@
-import { EventEmitter } from 'events'
-
 declare namespace lmdb {
 	export function open<V = any, K extends Key = Key>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
 	export function open<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
 
-	class Database<V = any, K extends Key = Key> extends EventEmitter {
+	class Database<V = any, K extends Key = Key> {
 		/**
 		* Get the value stored by given id/key
 		* @param id The key for the entry
@@ -245,6 +243,10 @@ declare namespace lmdb {
 		* Close the current database.
 		**/
 		close(): void
+		/**
+		 * Add event listener
+		 */
+		on(event: 'beforecommit' | 'aftercommit', callback: (event: any) => void): void
 	}
 	/* A special value that can be returned from a transaction to indicate that the transaction should be aborted */
 	export const ABORT = 10000000000000

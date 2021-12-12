@@ -26,8 +26,8 @@ void setupExportMisc(Local<Object> exports) {
     // just uses the name of the last exported native function:
     Nan::SetMethod(exports, "lmdbNativeFunctions", getAddress);
 }
-extern "C" EXTERN void freeData(size_t ref) {
-    delete (void*) ref;
+extern "C" EXTERN void freeData(double ref) {
+    delete (void*) (size_t) ref;
 }
 extern "C" EXTERN size_t getAddress(char* buffer) {
     return (size_t) buffer;
@@ -37,7 +37,7 @@ extern "C" EXTERN void setGlobalBuffer(char* buffer, size_t bufferSize) {
     globalUnsafeSize = bufferSize;
 }
 extern "C" EXTERN void getError(int rc, char* target) {
-    strcpy(mdb_strerror(rc), target);
+    strcpy(target, mdb_strerror(rc));
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {

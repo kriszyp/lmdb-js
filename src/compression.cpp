@@ -75,6 +75,12 @@ NAN_METHOD(Compression::setBuffer) {
     compression->decompressTarget = compression->dictionary + dictSize;
     compression->decompressSize = node::Buffer::Length(info[0]) - dictSize;
 }
+extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* buffer, uint32_t bufferSize, uint32_t dictSize) {
+    Compression *compression = (Compression*) (size_t) compressionPointer;
+    compression->dictionary = buffer;
+    compression->decompressTarget = buffer + dictSize;
+    compression->decompressSize = bufferSize - dictSize;
+}
 
 void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     uint32_t uncompressedLength;
@@ -228,4 +234,17 @@ extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {
         Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
         compression->compressInstruction(ew, compressionAddress);
     }
+}
+
+extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, uint32_t threshold) {
+    dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
+    Compression* compression = new Compression();
+    if ((size_t) dictionary < 10)
+        dictionary= nullptr;
+    compression->dictionary = dictionary;
+    compression->decompressTarget = dictionary + dictSize;
+    compression->decompressSize = 0;
+    compression->acceleration = 1;
+    compression->compressionThreshold = threshold;
+    return (uint64_t) compression;
 }

@@ -1,4 +1,4 @@
-import { open } from '../mod.ts';
+import { open, IF_EXISTS, asBinary } from '../mod.ts';
 import chai from "https://cdn.skypack.dev/chai@4.3.4?dts";
 const { assert, should } = chai;
 should();
@@ -8,7 +8,20 @@ try {
 	if (error.name != 'NotFound')
 		throw error
 }
-let db = open('test/testdata');
+let db = open('test/testdata', {
+	name: 'deno-db1',
+	useVersions: true,
+	overlappingSync: true,
+	maxReaders: 100,
+	compression: {
+		threshold: 128,
+	},
+});
+let db2 = db.openDB({
+	name: 'deno-db4',
+	create: true,
+	dupSort: true,
+});
 let tests: { name: string, test: Function }[] = [];
 let test = (name: string, test: Function) => {
 	tests.push({ name, test });
@@ -92,6 +105,125 @@ test('clear between puts', async function() {
 	assert.equal(db.get('hello'), undefined)
 	assert.equal(db.get('key1'), 'one')
 });
+
+test('string', async function() {
+	await db.put('key1', 'Hello world!');
+	let data = db.get('key1');
+	data.should.equal('Hello world!');
+	await db.remove('key1')
+	let data2 = db.get('key1');
+	assert.equal(data2, undefined);
+});
+test('string with version', async function() {
+	await db.put('key1', 'Hello world!', 53252);
+	let entry = db.getEntry('key1');
+	entry.value.should.equal('Hello world!');
+	entry.version.should.equal(53252);
+	(await db.remove('key1', 33)).should.equal(false);
+	entry = db.getEntry('key1');
+	entry.value.should.equal('Hello world!');
+	entry.version.should.equal(53252);
+	(await db.remove('key1', 53252)).should.equal(true);
+	entry = db.getEntry('key1');
+	assert.equal(entry, undefined);
+});
+test('string with version branching', async function() {
+	await db.put('key1', 'Hello world!', 53252);
+	let entry = db.getEntry('key1');
+	entry.value.should.equal('Hello world!');
+	entry.version.should.equal(53252);
+	(await db.ifVersion('key1', 777, () => {
+	  db.put('newKey', 'test', 6);
+	  db2.put('keyB', 'test', 6);
+	})).should.equal(false);
+	assert.equal(db.get('newKey'), undefined);
+	assert.equal(db2.get('keyB'), undefined);
+	let result = (await db.ifVersion('key1', 53252, () => {
+	  db.put('newKey', 'test', 6);
+	  db2.put('keyB', 'test', 6);
+	}))
+	assert.equal(db.get('newKey'), 'test')
+	assert.equal(db2.get('keyB'), 'test')
+	assert.equal(result, true);
+	result = await db.ifNoExists('key1', () => {
+	  db.put('newKey', 'changed', 7);
+	})
+	assert.equal(db.get('newKey'), 'test');
+	assert.equal(result, false);
+	result = await db.ifNoExists('key-no-exist', () => {
+	  db.put('newKey', 'changed', 7);
+	})
+	assert.equal(db.get('newKey'), 'changed')
+	assert.equal(result, true);
+
+	result = await db2.ifVersion('key-no-exist', IF_EXISTS, () => {
+	  db.put('newKey', 'changed again', 7);
+	})
+	assert.equal(db.get('newKey'), 'changed')
+	assert.equal(result, false);
+
+	result = await db2.ifVersion('keyB', IF_EXISTS, () => {
+	  db.put('newKey', 'changed again', 7);
+	})
+	assert.equal(db.get('newKey'), 'changed again')
+	assert.equal(result, true);
+
+	result = await db2.remove('key-no-exists');
+	assert.equal(result, true);
+	result = await db2.remove('key-no-exists', IF_EXISTS);
+	assert.equal(result, false);
+});
+test('string with compression and versions', async function() {
+	let str = expand('Hello world!')
+	await db.put('key1', str, 53252);
+	let entry = db.getEntry('key1');
+	entry.value.should.equal(str);
+	entry.version.should.equal(53252);
+	(await db.remove('key1', 33)).should.equal(false);
+	let data = db.get('key1');
+	data.should.equal(str);
+	(await db.remove('key1', 53252)).should.equal(true);
+	data = db.get('key1');
+	assert.equal(data, undefined);
+});
+test('repeated compressions', async function() {
+	let str = expand('Hello world!')
+	db.put('key1', str, 53252);
+	db.put('key1', str, 53253);
+	db.put('key1', str, 53254);
+	await db.put('key1', str, 53255);
+	let entry = db.getEntry('key1');
+	entry.value.should.equal(str);
+	entry.version.should.equal(53255);
+	(await db.remove('key1')).should.equal(true);
+});
+
+test('forced compression due to starting with 255', async function() {
+	await db.put('key1', asBinary(new Uint8Array([255])));
+	let entry = db.getBinary('key1');
+	entry.length.should.equal(1);
+	entry[0].should.equal(255);
+	(await db.remove('key1')).should.equal(true);
+});
+test('store objects', async function() {
+	let dataIn = {foo: 3, bar: true}
+	await db.put('key1',  dataIn);
+	let dataOut = db.get('key1');
+	assert.equal(JSON.stringify(dataIn),JSON.stringify(dataOut));
+	db.removeSync('not-there').should.equal(false);
+});
+
+function expand(str: string): string {
+    str = '(' + str + ')';
+    str = str + str;
+    str = str + str;
+    str = str + str;
+    str = str + str;
+    str = str + str;
+    return str;
+}
+
+
 let hasErrors
 for (let { name, test } of tests) {
 	try {

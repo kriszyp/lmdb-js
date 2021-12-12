@@ -1,5 +1,5 @@
 import { fileURLToPath } from './deps.ts';
-import { orderedBinary, setNativeFunctions } from './external.js';
+import { orderedBinary, setNativeFunctions, instrument } from './external.js';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
 let version = import.meta.url.match(/@([^/]+)\//)?.[1];
@@ -30,7 +30,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
 	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'i64'},
     closeEnv: { parameters: ['f64'], result: 'void'},
-    freeData: { parameters: ['buffer', 'usize'], result: 'void'},
+    freeData: { parameters: ['f64'], result: 'void'},
     getAddress: { parameters: ['buffer'], result: 'usize'},
     getMaxKeySize: { parameters: ['f64'], result: 'u32'},
     openDbi: { parameters: ['f64', 'u32', 'buffer', 'u32', 'f64'], result: 'i64'},
@@ -42,7 +42,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     abortTxn: { parameters: ['f64'], result: 'void'},
     commitEnvTxn: { parameters: ['f64'], result: 'i32'},
     abortEnvTxn: { parameters: ['f64'], result: 'void'},
-    getError: { parameters: ['i32', 'f64'], result: 'void'},
+    getError: { parameters: ['i32', 'buffer'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
     openCursor: { parameters: ['f64'], result: 'i64'},
     cursorRenew: { parameters: ['f64'], result: 'i32'},
@@ -54,16 +54,17 @@ let lmdbLib = Deno.dlopen(libPath, {
     compress: { parameters: ['f64', 'f64'], nonblocking: true, result: 'void'},
     envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
     setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
-    /*
-    write: { parameters: ['buffer', 'usize'], result: 'u32'},
-    getBinary: { parameters: ['buffer', 'usize'], result: 'u32'},
-    */
+    setCompressionBuffer: { parameters: ['f64', 'buffer', 'usize', 'u32'], result: 'void'},
+    newCompression: { parameters: ['buffer', 'usize', 'u32'], result: 'u64'},
 });
+//instrument(lmdbLib.symbols);
+
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2 } = lmdbLib.symbols;
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
-    freeData(address, 1);
+    console.log('freeData',address)
+    freeData(address);
 });
 
 class CBridge {
@@ -93,9 +94,9 @@ function checkError(rc: number): number {
     return rc;
 }
 function lmdbError(rc: number) {
-    //getError(rc, keyBytes);
-    console.error('Error', rc);
-    throw new Error(textDecoder.decode(keyBytes.subarray(0, keyBytes.indexOf(0))));
+    getError(rc, keyBytes);
+    let message = textDecoder.decode(keyBytes.subarray(0, keyBytes.indexOf(0))) || ('Error code: ' + rc);
+    throw new Error(message);
 }
 let keyBytes: Uint8Array;
 class Env extends CBridge {
@@ -116,7 +117,7 @@ class Env extends CBridge {
             (options.useVersions ? 0x1000 : 0);
         let keyType = (options.keyIsUint32 || options.keyEncoding == 'uint32') ? 2 :
             (options.keyIsBuffer || options.keyEncoding == 'binary') ? 3 : 0;
-        let rc: number = openDbi(this.address, flags, toCString(options.name), keyType, options.compression || 0) as number;
+        let rc: number = openDbi(this.address, flags, toCString(options.name), keyType, options.compression?.address || 0) as number;
         if (rc == -30798) { // MDB_NOTFOUND
             console.log('dbi not found, need to try again with write txn');
         }
@@ -184,7 +185,13 @@ class Transaction extends CBridge {
 
 
 class Compression extends CBridge {
-
+    constructor(options: { dictionary: Uint8Array, threshold: number }) {
+        let dictionary = options.dictionary || new Uint8Array(0);
+        super(newCompression(dictionary, dictionary.length, options.threshold || 1000) as number);
+    }
+    setBuffer(bytes: Uint8Array, dictLength: number) {
+        setCompressionBuffer(this.address, bytes, bytes.length, dictLength);
+    }
 }
 class Cursor extends CBridge {
     constructor(dbi: Dbi) {
@@ -215,7 +222,7 @@ function setGlobalBuffer(buffer: Uint8Array) {
 
 setNativeFunctions({ Env, Compression, Cursor, getAddress, lmdbError, setGlobalBuffer });
 export const { toBufferKey: keyValueToBuffer, compareKeys, compareKeys: compareKey, fromBufferKey: bufferToKeyValue } = orderedBinary;
-export { ABORT, asBinary } from './write.js';
+export { ABORT, asBinary, IF_EXISTS } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion } from './open.js';
 

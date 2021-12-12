@@ -173,6 +173,18 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyTy
     if (keyType == NodeLmdbKeyType::Uint32Key)
         flags |= MDB_INTEGERKEY;
     int rc = mdb_dbi_open(txn, name, flags, &this->dbi);
+    if (rc == EACCES) {
+        if (!ew->writeTxn) {
+            rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
+            if (!rc) {
+                rc = mdb_dbi_open(txn, name, flags, &this->dbi);
+                if (rc)
+                    mdb_txn_abort(txn);
+                else
+                    mdb_txn_commit(txn);
+            }
+        }
+    }
     if (rc)
         return rc;
     this->isOpen = true;
