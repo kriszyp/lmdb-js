@@ -880,6 +880,27 @@ describe('lmdb-js', function() {
       dbBinary.get('Uint8Array')[1].should.equal(2);
       dbBinary.get('empty').length.should.equal(0);
     });
+    it('read and write with binary encoding of key and value', async function() {
+      let dbBinary = db.openDB({
+        name: 'mydb-binary',
+        encoding: 'binary',
+        keyEncoding: 'binary'
+      });
+      
+      let k = Buffer.from("key");
+      let v = Buffer.from("value");
+      
+      await dbBinary.put(k, v);
+      let count = 0;
+      for (let { key, value } of dbBinary.getRange({})) {
+        should.equal(key.constructor, Buffer);
+        should.equal(key.length, 3);
+        should.equal(value.constructor, Buffer);
+        should.equal(value.length, 5);
+        count++;
+      }
+      should.equal(count, 1);
+    });
     it.skip('read and write with binary methods', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb6',
