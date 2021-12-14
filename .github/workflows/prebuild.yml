@@ -2,6 +2,7 @@ name: Test and Prebuild
 on: [push]
 jobs:
   build-test-macos:
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -61,7 +62,6 @@ jobs:
       - run: npm run deno-test
       - run: npm test
   build-alpine:
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-18.04
     container: node:12-alpine
     steps:
