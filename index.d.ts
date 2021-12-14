@@ -254,11 +254,11 @@ declare namespace lmdb {
 		/**
 		* Open a database store using the provided options.
 		**/
-		openDB(options: DatabaseOptions & { name: string }): Database<V, K>
+		openDB<OV = V, OK extends Key = K>(options: DatabaseOptions & { name: string }): Database<OV, OK>
 		/**
 		* Open a database store using the provided options.
 		**/
-		openDB(dbName: string, dbOptions: DatabaseOptions): Database<V, K>
+		openDB<OV = V, OK extends Key = K>(dbName: string, dbOptions: DatabaseOptions): Database<OV, OK>
 	}
 
 	type Key = Key[] | string | symbol | number | boolean | Buffer;
