@@ -8,6 +8,8 @@ const readUint32Key = (target, start) => {
 	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true);
 };
 const writeBufferKey = (key, target, start) => {
+	if (key == null)
+		return start;
 	target.set(key, start);
 	return key.length + start;
 };
