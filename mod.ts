@@ -14,7 +14,7 @@ if (!libPath || !exists(libPath)) {
         os = os == 'windows' ? 'win32' : os;
         os += '-' + ARCH[Deno.build.arch];
         let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@' + (version || 'latest') +
-            '/prebuilds/' + os + '/node.abi102.node';
+            '/prebuilds/' + os + '/node.abi93.node';
         console.log('Download', libraryUrl);
         let response = await fetch(libraryUrl);
         if (response.status == 200) {
