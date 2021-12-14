@@ -278,7 +278,7 @@ export function addReadMethods(LMDBStore, {
 				return {
 					next() {
 						let keySize, lastSize;
-						if (cursorRenewId && cursorRenewId != renewId) {
+						if (cursorRenewId && (cursorRenewId != renewId || txn.isDone)) {
 							resetCursor();
 							keySize = position(0);
 						}
