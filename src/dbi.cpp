@@ -9,7 +9,7 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
 DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
     this->env = env;
     this->dbi = dbi;
-    this->keyType = NodeLmdbKeyType::DefaultKey;
+    this->keyType = LmdbKeyType::DefaultKey;
     this->compression = nullptr;
     this->isOpen = false;
     this->getFast = false;
@@ -41,13 +41,30 @@ NAN_METHOD(DbiWrap::ctor) {
     int txnFlags = 0;
     Local<String> name;
     bool nameIsNull = false;
-    NodeLmdbKeyType keyType = NodeLmdbKeyType::DefaultKey;
+    LmdbKeyType keyType = LmdbKeyType::DefaultKey;
     bool needsTransaction = true;
     bool isOpen = false;
     bool hasVersions = false;
 
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
     Compression* compression = nullptr;
+
+    /*
+    // TODO: Consolidate to this
+    DbiWrap* dw = new DbiWrap(ew->env, 0);
+    dw->ew = ew;
+    int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    char* name = node::Buffer::Data(info[1]);
+    LmdbKeyType keyType = (LmdbKeyType) info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    Compression* compression = (Compression*) (size_t) Local<Number>::Cast(info[3])->Value();
+    int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
+        keyType, compression);
+    if (rc) {
+        delete dw;
+        return rc;
+    }
+    return info.GetReturnValue().Set(info.This());
+*/
 
     if (info[1]->IsObject()) {
         Local<Object> options = Local<Object>::Cast(info[1]);
@@ -69,12 +86,12 @@ NAN_METHOD(DbiWrap::ctor) {
         // TODO: wrap mdb_set_dupsort
 
         keyType = keyTypeFromOptions(options);
-        if (keyType == NodeLmdbKeyType::InvalidKey) {
+        if (keyType == LmdbKeyType::InvalidKey) {
             // NOTE: Error has already been thrown inside keyTypeFromOptions
             return;
         }
         
-        if (keyType == NodeLmdbKeyType::Uint32Key) {
+        if (keyType == LmdbKeyType::Uint32Key) {
             flags |= MDB_INTEGERKEY;
         }
         Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
@@ -102,7 +119,9 @@ NAN_METHOD(DbiWrap::ctor) {
     else {
         return Nan::ThrowError("Invalid parameters.");
     }
-
+    if (info[2]->IsNumber()) {
+        keyType = (LmdbKeyType) info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    }
     if (needsTransaction) {
         // Open transaction
         rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
@@ -133,7 +152,7 @@ NAN_METHOD(DbiWrap::ctor) {
     if (isOpen) {
         dw->ew = ew;
     }
-    if (keyType == NodeLmdbKeyType::DefaultKey && !nameIsNull) { // use the fast compare, but can't do it if we have db table/names mixed in
+    if (keyType == LmdbKeyType::DefaultKey && !nameIsNull) { // use the fast compare, but can't do it if we have db table/names mixed in
         mdb_set_compare(txn, dbi, compareFast);
     }
     if (needsTransaction) {
@@ -155,13 +174,13 @@ NAN_METHOD(DbiWrap::ctor) {
     return info.GetReturnValue().Set(info.This());
 }
 
-int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression) {
+int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression) {
     MDB_txn* txn = ew->getReadTxn();
     this->hasVersions = hasVersions;
     this->compression = compression;
     this->keyType = keyType;
     flags &= ~HAS_VERSIONS;
-    if (keyType == NodeLmdbKeyType::Uint32Key)
+    if (keyType == LmdbKeyType::Uint32Key)
         flags |= MDB_INTEGERKEY;
     int rc = mdb_dbi_open(txn, name, flags, &this->dbi);
     if (rc == EACCES) {
@@ -179,7 +198,7 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyTy
     if (rc)
         return rc;
     this->isOpen = true;
-    if (keyType == NodeLmdbKeyType::DefaultKey && name) { // use the fast compare, but can't do it if we have db table/names mixed in
+    if (keyType == LmdbKeyType::DefaultKey && name) { // use the fast compare, but can't do it if we have db table/names mixed in
         mdb_set_compare(txn, dbi, compareFast);
     }
 
@@ -372,19 +391,19 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
 
 extern "C" EXTERN int prefetch(double dwPointer, double keysPointer) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-    return prefetch(dw, (uint32*)(size_t)keysPointer);
+    return dw->prefetch((uint32_t*)(size_t)keysPointer);
 }
 
-int prefetch(DbiWrap dw, uint32* keys) {
+int DbiWrap::prefetch(uint32_t* keys) {
     MDB_txn* txn;
-    mdb_txn_begin(dw->ew->env, nullptr, MDB_RDONLY, &txn);
+    mdb_txn_begin(ew->env, nullptr, MDB_RDONLY, &txn);
     MDB_val key;
     MDB_val data;
     int effected;
     while((key.mv_size = *keys++) > 0) {
         key.mv_data = (void*) keys;
         keys += key.mv_size >> 2;
-        int rc = mdb_get(txn, dw->dbi, &key, &data);
+        int rc = mdb_get(txn, dbi, &key, &data);
         if (rc == 0) {
             // access all the pages
             int pages = (data.mv_size + 0xfff) >> 12;
@@ -403,7 +422,7 @@ class PrefetchWorker : public Nan::AsyncWorker {
       : Nan::AsyncWorker(callback), dw(dw), keys(keys) {}
 
     void Execute() {
-        prefetch(dw, keys);
+        dw->prefetch(keys);
     }
 
     void HandleOKCallback() {

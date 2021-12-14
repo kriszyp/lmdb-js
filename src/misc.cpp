@@ -52,13 +52,13 @@ void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue,
     }
 }
 
-NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType) {
+LmdbKeyType keyTypeFromOptions(const Local<Value> &val, LmdbKeyType defaultKeyType) {
     if (!val->IsObject()) {
         return defaultKeyType;
     }
     auto obj = Local<Object>::Cast(val);
 
-    NodeLmdbKeyType keyType = defaultKeyType;
+    LmdbKeyType keyType = defaultKeyType;
     int keyIsUint32 = 0;
     int keyIsBuffer = 0;
     int keyIsString = 0;
@@ -70,22 +70,22 @@ NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defa
     const char *keySpecificationErrorText = "You can't specify multiple key types at once. Either set keyIsUint32, or keyIsBuffer or keyIsString (default).";
     
     if (keyIsUint32) {
-        keyType = NodeLmdbKeyType::Uint32Key;
+        keyType = LmdbKeyType::Uint32Key;
         if (keyIsBuffer || keyIsString) {
             Nan::ThrowError(keySpecificationErrorText);
-            return NodeLmdbKeyType::InvalidKey;
+            return LmdbKeyType::InvalidKey;
         }
     }
     else if (keyIsBuffer) {
-        keyType = NodeLmdbKeyType::BinaryKey;
+        keyType = LmdbKeyType::BinaryKey;
         
         if (keyIsUint32 || keyIsString) {
             Nan::ThrowError(keySpecificationErrorText);
-            return NodeLmdbKeyType::InvalidKey;
+            return LmdbKeyType::InvalidKey;
         }
     }
     else if (keyIsString) {
-        keyType = NodeLmdbKeyType::StringKey;
+        keyType = LmdbKeyType::StringKey;
     }
     
     return keyType;

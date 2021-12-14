@@ -97,7 +97,7 @@ class Logging {
     static int initLogging();
 };
 
-enum class NodeLmdbKeyType {
+enum class LmdbKeyType {
 
     // Invalid key (used internally by lmdb-js)
     InvalidKey = -1,
@@ -139,7 +139,7 @@ void consoleLog(const char *msg);
 void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
 void writeValueToEntry(const Local<Value> &str, MDB_val *val);
-NodeLmdbKeyType keyTypeFromOptions(const Local<Value> &val, NodeLmdbKeyType defaultKeyType = NodeLmdbKeyType::DefaultKey);
+LmdbKeyType keyTypeFromOptions(const Local<Value> &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(setGlobalBuffer);
@@ -503,7 +503,7 @@ const int HAS_VERSIONS = 0x1000;
 class DbiWrap : public Nan::ObjectWrap {
 public:
     // Tells how keys should be treated
-    NodeLmdbKeyType keyType;
+    LmdbKeyType keyType;
     // Stores flags set when opened
     int flags;
     // The wrapped object
@@ -553,7 +553,8 @@ public:
 
     static NAN_METHOD(stat);
     static NAN_METHOD(prefetch);
-    int open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression);
+    int prefetch(uint32_t* keys);
+    int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
 #endif
@@ -604,7 +605,7 @@ public:
     MDB_cursor_op iteratingOp;    
     MDB_cursor *cursor;
     // Stores how key is represented
-    NodeLmdbKeyType keyType;
+    LmdbKeyType keyType;
     int flags;
     DbiWrap *dw;
     MDB_txn *txn;

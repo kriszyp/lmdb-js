@@ -6,7 +6,7 @@ using namespace node;
 
 CursorWrap::CursorWrap(MDB_cursor *cursor) {
     this->cursor = cursor;
-    this->keyType = NodeLmdbKeyType::StringKey;
+    this->keyType = LmdbKeyType::StringKey;
     this->freeKey = nullptr;
     this->endKey.mv_size = 0; // indicates no end key (yet)
 }
@@ -39,7 +39,7 @@ NAN_METHOD(CursorWrap::ctor) {
 
     // Get key type
     auto keyType = keyTypeFromOptions(info[1], dw->keyType);
-    if (dw->keyType == NodeLmdbKeyType::Uint32Key && keyType != NodeLmdbKeyType::Uint32Key) {
+    if (dw->keyType == LmdbKeyType::Uint32Key && keyType != LmdbKeyType::Uint32Key) {
         return Nan::ThrowError("You specified uint32 keys on the Dbi, so you can't use other key types with it.");
     }
 
@@ -158,7 +158,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
             MDB_NEXT_NODUP;
     key.mv_size = keySize;
     key.mv_data = dw->ew->keyBuffer;
-    if (key.mv_size == 0) {
+    if (keySize == 0) {
         rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
     } else {
         if (flags & 0x800) { // only values for this key
