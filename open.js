@@ -126,16 +126,21 @@ export function open(path, options) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
 			this.ensureReadTxn();
+			let keyIsBuffer
 			if (dbOptions.keyEncoding == 'uint32') {
 				dbOptions.keyIsUint32 = true;
-			} /*else if (dbOptions.keyEncoder ? dbOptions.keyEncoder.enableNullTermination :
-					(!dbOptions.keyEncoding || dbOptions.keyEncoding == 'ordered-binary')) {
-				// use the default false comparator
-			} */else if (dbOptions.keyEncoding == 'binary')
-				dbOptions.keyIsBuffer = true;
+			} else if (dbOptions.keyEncoder) {
+				if (dbOptions.keyEncoder.enableNullTermination) {
+					dbOptions.keyEncoder.enableNullTermination()
+				}else
+					keyIsBuffer = true;
+			} else if (dbOptions.keyEncoding == 'binary') {
+				keyIsBuffer = true;
+			}
 			this.db = env.openDbi(Object.assign({
 				name: dbName,
 				create: true,
+				keyIsBuffer,
 			}, dbOptions));
 			this.db.name = dbName || null;
 			this.resetReadTxn(); // a read transaction becomes invalid after opening another db
