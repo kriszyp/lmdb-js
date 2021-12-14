@@ -8,8 +8,6 @@ const readUint32Key = (target, start) => {
 	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true);
 };
 const writeBufferKey = (key, target, start) => {
-	if (key == null)
-		return start;
 	target.set(key, start);
 	return key.length + start;
 };
@@ -56,7 +54,6 @@ function allocateSaveBuffer() {
 	saveBuffer.buffer.address = getAddress(saveBuffer);
 	saveDataAddress = saveBuffer.buffer.address;
 	savePosition = 0;
-
 }
 export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	if (savePosition > 7800) {
@@ -64,7 +61,8 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	}
 	let start = savePosition;
 	try {
-		savePosition = writeKey(key, saveBuffer, start + 4);
+		savePosition = key === undefined ? start + 4 :
+			writeKey(key, saveBuffer, start + 4);
 	} catch (error) {
 		saveBuffer.fill(0, start + 4); // restore zeros
 		if (error.name == 'RangeError') {
@@ -83,7 +81,7 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	if (saveTo) {
 		saveDataView.setUint32(start, length, true); // save the length
 		saveTo.saveBuffer = saveBuffer;
-		savePosition = (savePosition + 7) & 0xfffff8;
+		savePosition = (savePosition + 16) & 0xfffff8;
 		return start + saveDataAddress;
 	} else {
 		saveBuffer.start = start + 4
