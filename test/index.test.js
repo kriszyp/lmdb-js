@@ -869,7 +869,6 @@ describe('lmdb-js', function() {
     it('read and write with binary encoding', async function() {
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb5',
-        create: true,
         encoding: 'binary'
       }));
       dbBinary.put('buffer', Buffer.from('hello'));

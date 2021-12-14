@@ -552,6 +552,7 @@ public:
     static NAN_METHOD(drop);
 
     static NAN_METHOD(stat);
+    static NAN_METHOD(prefetch);
     int open(int flags, char* name, bool hasVersions, NodeLmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);

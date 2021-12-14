@@ -29,12 +29,6 @@ DbiWrap::~DbiWrap() {
     //
     // For this reason, we will never call mdb_dbi_close
     // NOTE: according to LMDB authors, it is perfectly fine if mdb_dbi_close is never called on an MDB_dbi
-
-    if (this->ew) {
-        this->ew->Unref();
-    }
-    if (this->compression)
-        this->compression->Unref();
 }
 
 NAN_METHOD(DbiWrap::ctor) {
@@ -138,7 +132,6 @@ NAN_METHOD(DbiWrap::ctor) {
     DbiWrap* dw = new DbiWrap(ew->env, dbi);
     if (isOpen) {
         dw->ew = ew;
-        dw->ew->Ref();
     }
     if (keyType == NodeLmdbKeyType::DefaultKey && !nameIsNull) { // use the fast compare, but can't do it if we have db table/names mixed in
         mdb_set_compare(txn, dbi, compareFast);
@@ -154,8 +147,6 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->keyType = keyType;
     dw->flags = flags;
     dw->isOpen = isOpen;
-    if (compression)
-        compression->Ref();
     dw->compression = compression;
     dw->hasVersions = hasVersions;
     dw->Wrap(info.This());
@@ -205,7 +196,6 @@ NAN_METHOD(DbiWrap::close) {
     if (dw->isOpen) {
         mdb_dbi_close(dw->env, dw->dbi);
         dw->isOpen = false;
-        dw->ew->Unref();
         dw->ew = nullptr;
     }
     else {
@@ -245,7 +235,6 @@ NAN_METHOD(DbiWrap::drop) {
     // Only close database if del == 1
     if (del == 1) {
         dw->isOpen = false;
-        dw->ew->Unref();
         dw->ew = nullptr;
     }
 }
@@ -380,6 +369,68 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
     else
         return info.GetReturnValue().Set(Nan::New<Number>(data.mv_size));
 }
+
+extern "C" EXTERN int prefetch(double dwPointer, double keysPointer) {
+	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
+    return prefetch(dw, (uint32*)(size_t)keysPointer);
+}
+
+int prefetch(DbiWrap dw, uint32* keys) {
+    MDB_txn* txn;
+    mdb_txn_begin(dw->ew->env, nullptr, MDB_RDONLY, &txn);
+    MDB_val key;
+    MDB_val data;
+    int effected;
+    while((key.mv_size = *keys++) > 0) {
+        key.mv_data = (void*) keys;
+        keys += key.mv_size >> 2;
+        int rc = mdb_get(txn, dw->dbi, &key, &data);
+        if (rc == 0) {
+            // access all the pages
+            int pages = (data.mv_size + 0xfff) >> 12;
+            for (int i = 0; i < pages; i++) {
+                effected += *(((uint8_t*)data.mv_data) + (i << 12));
+            }
+        }
+    }
+    mdb_txn_abort(txn);
+    return effected;
+}
+
+class PrefetchWorker : public Nan::AsyncWorker {
+  public:
+    PrefetchWorker(DbiWrap* dw, uint32_t* keys, Nan::Callback *callback)
+      : Nan::AsyncWorker(callback), dw(dw), keys(keys) {}
+
+    void Execute() {
+        prefetch(dw, keys);
+    }
+
+    void HandleOKCallback() {
+        Nan::HandleScope scope;
+        Local<v8::Value> argv[] = {
+            Nan::Null()
+        };
+
+        callback->Call(1, argv, async_resource);
+    }
+
+  private:
+    DbiWrap* dw;
+    uint32_t* keys;
+};
+
+NAN_METHOD(DbiWrap::prefetch) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    size_t keysAddress = Local<Number>::Cast(info[0])->Value();
+    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
+
+    PrefetchWorker* worker = new PrefetchWorker(dw, (uint32_t*) keysAddress, callback);
+    Nan::AsyncQueueWorker(worker);
+}
+
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
