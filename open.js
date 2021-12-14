@@ -126,6 +126,13 @@ export function open(path, options) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
 			this.ensureReadTxn();
+			if (dbOptions.keyEncoding == 'uint32')
+				dbOptions.keyIsUint32 = true;
+			else if (dbOptions.keyEncoder ? dbOptions.keyEncoder.enableNullTermination :
+					(!dbOptions.keyEncoding || dbOptions.keyEncoding == 'ordered-binary')) {
+				// use the default false comparator
+			} else
+				dbOptions.keyIsBuffer = true;
 			this.db = env.openDbi(Object.assign({
 				name: dbName,
 				create: true,
