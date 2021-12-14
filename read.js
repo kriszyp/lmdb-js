@@ -230,7 +230,7 @@ export function addReadMethods(LMDBStore, {
 					return count;
 				}
 				function position(offset) {
-					let keySize = store.writeKey(currentKey, keyBytes, 0);
+					let keySize = currentKey === undefined ? 0 : store.writeKey(currentKey, keyBytes, 0);
 					let endAddress;
 					if (valuesForKey) {
 						if (options.start === undefined && options.end === undefined)
@@ -359,6 +359,7 @@ export function addReadMethods(LMDBStore, {
 			};
 			return iterable;
 		},
+
 		getMany(keys, callback) {
 			let results = new Array(keys.length);
 			for (let i = 0, l = keys.length; i < l; i++) {
