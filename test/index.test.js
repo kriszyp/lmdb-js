@@ -778,20 +778,25 @@ describe('lmdb-js', function() {
         should.equal(db.get('key1'), 'test');
       }
     });
-    it.skip('detect write transaction with hanging cursors', async function() {
-      db.put('key1', 'value1');
-      db.put('key2', 'value2');
+    it('handle write transaction with hanging cursors', async function() {
+      db.put('c1', 'value1');
+      db.put('c2', 'value2');
+      db.put('c3', 'value3');
       await db;
       let iterator
       db.transactionSync(() => {
-        iterator = db.getRange({snapshot: false})[Symbol.iterator]();
-        console.log(iterator.next());
+        if (db.cache) {
+          iterator = db.getRange({ start: 'c1' })[Symbol.iterator]();
+          should.equal(iterator.next().value.value, 'value1');
+        } else {
+          db.childTransaction(() => {
+            iterator = db.getRange({ start: 'c1' })[Symbol.iterator]();
+            should.equal(iterator.next().value.value, 'value1');
+          });
+        }
+        should.equal(iterator.next().value.value, 'value2');
       });
-      console.log(iterator.next());
-      await db.transaction(() => {
-        iterator = db.getRange({})[Symbol.iterator]();
-        console.log(iterator.next());
-      });
+      should.equal(iterator.next().value.value, 'value3');
     });
     it('mixed batches', async function() {
       let promise

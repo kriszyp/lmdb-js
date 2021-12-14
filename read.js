@@ -190,6 +190,8 @@ export function addReadMethods(LMDBStore, {
 						if (cursor)
 							finishCursor();
 						let writeTxn = env.writeTxn;
+						if (writeTxn)
+							snapshot = false;
 						txn = writeTxn || (readTxnRenewed ? readTxn : renewReadTxn());
 						cursor = !writeTxn && db.availableCursor;
 						if (cursor) {
@@ -265,9 +267,9 @@ export function addReadMethods(LMDBStore, {
 						txn.abort(); // this is no longer main read txn, abort it now that we are done
 						txn.isDone = true;
 					} else {
-						if (db.availableCursor || txn != readTxn)
+						if (db.availableCursor || txn != readTxn) {
 							cursor.close();
-						else { // try to reuse it
+						} else { // try to reuse it
 							db.availableCursor = cursor;
 							db.cursorTxn = txn;
 						}

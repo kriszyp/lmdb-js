@@ -180,6 +180,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						env.compress(uint32.address + (position << 3), () => {
 							// this is never actually called in NodeJS, just use to pin the buffer in memory until it is finished
 							// and is a no-op in Deno
+							if (!float64)
+								throw new Error('No float64 available');
 						});
 					position++;
 				}
@@ -470,7 +472,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						promises = null;
 					}
 					env.beginTxn(1); // abortable
-					
+					let parentTxn = writeTxn;
+					env.writeTxn = writeTxn = { write: true };
 					try {
 						let result = userTxnCallback.callback();
 						if (result && result.then) {
@@ -480,8 +483,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							env.abortTxn();
 						else
 							env.commitTxn();
-							txnCallbacks[i] = result;
+						clearWriteTxn(parentTxn);
+						txnCallbacks[i] = result;
 					} catch(error) {
+						clearWriteTxn(parentTxn);
 						env.abortTxn();
 						txnError(error, i);
 					}
@@ -521,12 +526,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function clearWriteTxn(parentTxn) {
 		// TODO: We might actually want to track cursors in a write txn and manually
 		// close them.
-		let hasCursors = writeTxn.cursorCount > 0
-		if (hasCursors)
+		if (writeTxn.cursorCount > 0)
 			writeTxn.isDone = true;
 		env.writeTxn = writeTxn = parentTxn || null;
-		if (hasCursors)
-			console.error('Transaction was committed (or aborted) with unfinished range iterators, this is likely to cause the process to crash. Range iterators in write transactions much be finished before the transaction is finished');
 	}
 	Object.assign(LMDBStore.prototype, {
 		put(key, value, versionOrOptions, ifVersion) {
