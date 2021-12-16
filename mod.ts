@@ -56,11 +56,12 @@ let lmdbLib = Deno.dlopen(libPath, {
     setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
     setCompressionBuffer: { parameters: ['f64', 'buffer', 'usize', 'u32'], result: 'void'},
     newCompression: { parameters: ['buffer', 'usize', 'u32'], result: 'u64'},
+    prefetch: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
 });
 //instrument(lmdbLib.symbols);
 
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression } = lmdbLib.symbols;
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression, prefetch } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     console.log('freeData',address)
@@ -162,6 +163,9 @@ class Dbi extends CBridge {
     }
     getByBinary(keySize: number): number {
         return dbiGetByBinary(this.address, keySize) as number;
+    }
+    prefetch(keys: number, callback: (value: void) => void): number {
+        return prefetch(this.address, keys).then(() => callback(null)) as number;
     }
 }
 class Transaction extends CBridge {

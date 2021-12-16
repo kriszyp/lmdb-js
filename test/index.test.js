@@ -601,7 +601,7 @@ describe('lmdb-js', function() {
           throw new Error('duplicate key returned')
         lastKey = key
       }
-    })
+    });
     it('big keys', async function() {
       let keyBase = ''
       for (let i = 0; i < 1900; i++) {
@@ -627,6 +627,24 @@ describe('lmdb-js', function() {
       returnedKeys.should.deep.equal(keys)
       await promise
       should.equal(db.get(returnedKeys[0]), undefined)
+    });
+    it('prefetch', async function() {
+      await new Promise(resolve => db.prefetch(['key1', 'key2'], resolve));
+      console.log('done with first')
+      let key = ''
+      for (let i = 0; i < 1900; i++) {
+        key += 'A'
+      }
+      let keys = []
+      for (let i = 0; i < 20; i++) {
+        keys.push(key)
+      }
+      let value = keys.join(',')
+      await db.put(key, value);
+      await db.prefetch(keys);
+      let values = await db.getMany(keys);
+      should.equal(values.length, 20);
+      should.equal(values[3], value);
     });
 
     it('invalid key', async function() {

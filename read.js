@@ -2,6 +2,7 @@ import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
 import { binaryBuffer } from './write.js';
+import { buffer } from 'stream/consumers';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
@@ -361,13 +362,18 @@ export function addReadMethods(LMDBStore, {
 		},
 
 		getMany(keys, callback) {
-			let results = new Array(keys.length);
-			for (let i = 0, l = keys.length; i < l; i++) {
-				results[i] = get.call(this, keys[i]);
-			}
-			if (callback)
+			// this is an asynchronous get for multiple keys. It actually works by prefetching asynchronously,
+			// allowing a separate to absorb the potentially largest cost: hard page faults (and disk I/O).
+			// And then we just do standard sync gets (to deserialized data) to fulfil the callback/promise
+			// once the prefetch occurs
+			this.prefetch(keys, () => {
+				let results = new Array(keys.length);
+				for (let i = 0, l = keys.length; i < l; i++) {
+					results[i] = get.call(this, keys[i]);
+				}
 				callback(null, results);
-			return Promise.resolve(results); // we may eventually make this a true async operation
+			});
+			return callback ? undefined : new Promise(resolve => callback = (error, results) => resolve(results));
 		},
 		getSharedBufferForGet(id) {
 			let txn = (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
@@ -392,6 +398,31 @@ export function addReadMethods(LMDBStore, {
 			lastOffset -= startOffset;
 			return buffer;
 			return buffer.slice(lastOffset, lastOffset + lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)*/
+		},
+		prefetch(keys, callback) {
+			let buffers = [];
+			let startPosition;
+			let bufferHolder = {};
+			let lastBuffer;
+			for (let key of keys) {
+				let position = saveKey(key, this.writeKey, bufferHolder, maxKeySize);
+				if (!startPosition)
+					startPosition = position;
+				if (bufferHolder.saveBuffer != lastBuffer) {
+					buffers.push(bufferHolder);
+					lastBuffer = bufferHolder.saveBuffer;
+					bufferHolder = { saveBuffer: lastBuffer };
+				}
+			}
+			saveKey(undefined, this.writeKey, bufferHolder, maxKeySize);
+			this.db.prefetch(startPosition, (error) => {
+				if (error)
+					console.error('Error with prefetch', buffers, bufferHolder); // partly exists to keep the buffers pinned in memory
+				else
+					callback(null);
+			});
+			if (!callback)
+				return new Promise(resolve => callback = resolve);
 		},
 		close(callback) {
 			this.db.close();

@@ -45,14 +45,17 @@ export function applyKeyHandling(store) {
 	}
 }
 
-let saveBuffer, saveDataView, saveDataAddress;
+let saveBuffer, saveDataView = { setFloat64() {}, setUint32() {} }, saveDataAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateSaveBuffer() {
 	saveBuffer = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
-	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
 	saveBuffer.buffer.address = getAddress(saveBuffer);
 	saveDataAddress = saveBuffer.buffer.address;
+	// TODO: Conditionally only do this for key sequences?
+	saveDataView.setUint32(savePosition, 0xffffffff);
+	saveDataView.setFloat64(savePosition + 4, saveDataAddress, true); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
+	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
 	savePosition = 0;
 }
 export function saveKey(key, writeKey, saveTo, maxKeySize) {
@@ -81,12 +84,12 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	if (saveTo) {
 		saveDataView.setUint32(start, length, true); // save the length
 		saveTo.saveBuffer = saveBuffer;
-		savePosition = (savePosition + 16) & 0xfffff8;
+		savePosition = (savePosition + 12) & 0xfffffc;
 		return start + saveDataAddress;
 	} else {
-		saveBuffer.start = start + 4
-		saveBuffer.end = savePosition
-		savePosition = (savePosition + 7) & 0xfffff8;
-		return saveBuffer
+		saveBuffer.start = start + 4;
+		saveBuffer.end = savePosition;
+		savePosition = (savePosition + 7) & 0xfffff8; // full 64-bit word alignment since these are usually copied
+		return saveBuffer;
 	}
 }

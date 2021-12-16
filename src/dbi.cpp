@@ -399,14 +399,23 @@ int DbiWrap::prefetch(uint32_t* keys) {
     mdb_txn_begin(ew->env, nullptr, MDB_RDONLY, &txn);
     MDB_val key;
     MDB_val data;
-    int effected;
+    int effected = 0;
     while((key.mv_size = *keys++) > 0) {
+        if (key.mv_size == 0xffffffff) {
+            // it is a pointer to a new buffer
+            keys = (uint32_t*) (size_t) *((double*) keys); // read as a double pointer
+            key.mv_size = *keys++;
+            if (key.mv_size == 0)
+                break;
+        }
         key.mv_data = (void*) keys;
-        keys += key.mv_size >> 2;
+        keys += (key.mv_size + 12) >> 2;
         int rc = mdb_get(txn, dbi, &key, &data);
         if (rc == 0) {
-            // access all the pages
+            // access one byte from each of the pages to ensure they are in the OS cache,
+            // potentially triggering the hard page fault in this thread
             int pages = (data.mv_size + 0xfff) >> 12;
+            // TODO: Adjust this for the page headers, I believe that makes the first page slightly less 4KB.
             for (int i = 0; i < pages; i++) {
                 effected += *(((uint8_t*)data.mv_data) + (i << 12));
             }
