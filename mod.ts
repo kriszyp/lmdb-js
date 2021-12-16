@@ -164,8 +164,8 @@ class Dbi extends CBridge {
     getByBinary(keySize: number): number {
         return dbiGetByBinary(this.address, keySize) as number;
     }
-    prefetch(keys: number, callback: (value: void) => void): number {
-        return prefetch(this.address, keys).then(() => callback(null)) as number;
+    prefetch(keys: number, callback: () => void): void {
+        (prefetch(this.address, keys) as Promise<number>).then(() => callback());
     }
 }
 class Transaction extends CBridge {
