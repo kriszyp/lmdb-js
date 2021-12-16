@@ -31,6 +31,22 @@ declare namespace lmdb {
 		getBinaryFast(id: K): Buffer | undefined
 
 		/**
+		* Asynchronously fetch the values stored by the given ids and accesses all 
+		* pages to ensure that any hard page faults and disk I/O are performed
+		* asynchronously in a separate thread. Once completed, synchronous
+		* gets to the same entries will most likely be in memory and fast.
+		* @param ids The keys for the entries to prefetch
+		**/
+		prefetch(ids: K[], callback?: Function): Promise<void>
+
+		/**
+		* Asynchronously get the values stored by the given ids and return the
+		* values in array corresponding to the array of ids.
+		* @param ids The keys for the entries to get
+		**/
+		getMany(ids: K[], callback?: (error: any, values: V[]) => any): Promise<V[]>
+
+		/**
 		* Store the provided value, using the provided id/key
 		* @param id The key for the entry
 		* @param value The value to store
