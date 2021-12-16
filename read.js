@@ -2,7 +2,6 @@ import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
 import { binaryBuffer } from './write.js';
-import { buffer } from 'stream/consumers';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
