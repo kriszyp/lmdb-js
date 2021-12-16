@@ -28,12 +28,12 @@ if (!libPath || !exists(libPath)) {
 let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
-	envOpen: { parameters: ['u32', 'u32', 'buffer', 'buffer', 'f64', 'u32', 'u32', 'usize', 'u32', 'buffer'], result: 'i64'},
+	envOpen: { parameters: ['u32', 'u32', 'pointer', 'pointer', 'f64', 'u32', 'u32', 'usize', 'u32', 'pointer'], result: 'i64'},
     closeEnv: { parameters: ['f64'], result: 'void'},
     freeData: { parameters: ['f64'], result: 'void'},
-    getAddress: { parameters: ['buffer'], result: 'usize'},
+    getAddress: { parameters: ['pointer'], result: 'usize'},
     getMaxKeySize: { parameters: ['f64'], result: 'u32'},
-    openDbi: { parameters: ['f64', 'u32', 'buffer', 'u32', 'f64'], result: 'i64'},
+    openDbi: { parameters: ['f64', 'u32', 'pointer', 'u32', 'f64'], result: 'i64'},
     getDbi: { parameters: ['f64'], result: 'u32'},
     readerCheck: { parameters: ['f64'], result: 'i32'},
     beginTxn: { parameters: ['f64', 'u32'], result: 'i64'},
@@ -42,7 +42,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     abortTxn: { parameters: ['f64'], result: 'void'},
     commitEnvTxn: { parameters: ['f64'], result: 'i32'},
     abortEnvTxn: { parameters: ['f64'], result: 'void'},
-    getError: { parameters: ['i32', 'buffer'], result: 'void'},
+    getError: { parameters: ['i32', 'pointer'], result: 'void'},
     dbiGetByBinary: { parameters: ['f64', 'u32'], result: 'u32'},    
     openCursor: { parameters: ['f64'], result: 'i64'},
     cursorRenew: { parameters: ['f64'], result: 'i32'},
@@ -53,9 +53,9 @@ let lmdbLib = Deno.dlopen(libPath, {
     startWriting: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
     compress: { parameters: ['f64', 'f64'], nonblocking: true, result: 'void'},
     envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
-    setGlobalBuffer: { parameters: ['buffer', 'usize'], result: 'void'},
-    setCompressionBuffer: { parameters: ['f64', 'buffer', 'usize', 'u32'], result: 'void'},
-    newCompression: { parameters: ['buffer', 'usize', 'u32'], result: 'u64'},
+    setGlobalBuffer: { parameters: ['pointer', 'usize'], result: 'void'},
+    setCompressionBuffer: { parameters: ['f64', 'pointer', 'usize', 'u32'], result: 'void'},
+    newCompression: { parameters: ['pointer', 'usize', 'u32'], result: 'u64'},
     prefetch: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
 });
 //instrument(lmdbLib.symbols);
