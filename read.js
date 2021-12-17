@@ -1,7 +1,6 @@
 import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
-import { binaryBuffer } from './write.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
@@ -121,8 +120,8 @@ export function addReadMethods(LMDBStore, {
 				return lastSize !== 0xffffffff && getLastVersion() === versionOrValue;
 			}
 			else {
-				if (versionOrValue && versionOrValue[binaryBuffer])
-					versionOrValue = versionOrValue[binaryBuffer];
+				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
+					versionOrValue = versionOrValue['\x10binary-data\x02'];
 				else if (this.encoder)
 					versionOrValue = this.encoder.encode(versionOrValue);
 				if (typeof versionOrValue == 'string')

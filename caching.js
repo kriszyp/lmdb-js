@@ -1,5 +1,5 @@
 import { WeakLRUCache } from './external.js';
-import { FAILED_CONDITION, binaryBuffer } from './write.js';
+import { FAILED_CONDITION } from './write.js';
 let getLastVersion;
 const mapGet = Map.prototype.get;
 export const CachingStore = Store => class extends Store {
@@ -69,7 +69,7 @@ export const CachingStore = Store => class extends Store {
 	put(id, value, version, ifVersion) {
 		let result = super.put(id, value, version, ifVersion);
 		if (typeof id !== 'object') {
-			if (value && value[binaryBuffer]) {
+			if (value && value['\x10binary-data\x02']) {
 				// don't cache binary data, since it will be decoded on get
 				this.cache.delete(id);
 				return result;

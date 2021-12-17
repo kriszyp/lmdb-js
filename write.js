@@ -11,7 +11,6 @@ const TXN_FAILED = 0x40000000;
 export const FAILED_CONDITION = 0x4000000;
 const REUSE_BUFFER_MODE = 512;
 const RESET_BUFFER_MODE = 1024;
-export const binaryBuffer = Symbol('binaryBuffer');
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
@@ -76,8 +75,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
 			encoder = store.encoder;
-			if (value && value[binaryBuffer])
-				valueBuffer = value[binaryBuffer];
+			if (value && value['\x10binary-data\x02'])
+				valueBuffer = value['\x10binary-data\x02'];
 			else if (encoder) {
 				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
 					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE | (writeTxn ? RESET_BUFFER_MODE : 0)); // in addition, if we are writing sync, after using, we can immediately reset the encoder's position to reuse that space, which can improve performance
@@ -795,6 +794,6 @@ class Batch extends Array {
 }
 export function asBinary(buffer) {
 	return {
-		[binaryBuffer]: buffer
+		['\x10binary-data\x02']: buffer
 	};
 }
