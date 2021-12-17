@@ -21,10 +21,9 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "lmdbError", lmdbError);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
     Nan::SetMethod(exports, "getAddress", getViewAddress);
-    Nan::SetMethod(exports, "getAddressShared", getAddressShared);
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
-    // just uses the name of the last exported native function:
-    Nan::SetMethod(exports, "lmdbNativeFunctions", getAddress);
+    // often just uses the name of the last exported native function:
+    Nan::SetMethod(exports, "lmdbNativeFunctions", lmdbNativeFunctions);
 }
 extern "C" EXTERN void freeData(double ref) {
     delete (void*) (size_t) ref;
@@ -206,20 +205,8 @@ NAN_METHOD(getAddress) {
     void* address = length > 0 ? node::Buffer::Data(info[0]) : nullptr;
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
-NAN_METHOD(getAddressShared) {
-    void* address;
-    #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
-    // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
-    v8::Local<v8::Object> bufferView;
-    Local<ArrayBuffer> buffer = Local<ArrayBuffer>::Cast(info[0]);
-    bufferView = node::Buffer::New(Isolate::GetCurrent(), buffer, 0, buffer->ByteLength()).ToLocalChecked();
-    address = node::Buffer::Data(bufferView);
-    #elif V8_MAJOR_VERSION >= 8
-    address = Local<SharedArrayBuffer>::Cast(info[0])->GetBackingStore()->Data();
-    #else
-    address = Local<SharedArrayBuffer>::Cast(info[0])->GetContents().Data();
-    #endif
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
+NAN_METHOD(lmdbNativeFunctions) {
+    // no-op, just doing this to give a label to the native functions
 }
 
 void throwLmdbError(int rc) {
