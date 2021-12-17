@@ -399,7 +399,14 @@ int DbiWrap::prefetch(uint32_t* keys) {
     mdb_txn_begin(ew->env, nullptr, MDB_RDONLY, &txn);
     MDB_val key;
     MDB_val data;
+    unsigned int flags;
+    mdb_dbi_flags(txn, dbi, &flags);
+    bool dupSort = flags & MDB_DUPSORT;
     int effected = 0;
+    MDB_cursor *cursor;
+    int rc = mdb_cursor_open(txn, dbi, &cursor);
+    if (rc)
+        return rc;
     while((key.mv_size = *keys++) > 0) {
         if (key.mv_size == 0xffffffff) {
             // it is a pointer to a new buffer
@@ -410,8 +417,8 @@ int DbiWrap::prefetch(uint32_t* keys) {
         }
         key.mv_data = (void*) keys;
         keys += (key.mv_size + 12) >> 2;
-        int rc = mdb_get(txn, dbi, &key, &data);
-        if (rc == 0) {
+        int rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+        while (!rc) {
             // access one byte from each of the pages to ensure they are in the OS cache,
             // potentially triggering the hard page fault in this thread
             int pages = (data.mv_size + 0xfff) >> 12;
@@ -419,8 +426,13 @@ int DbiWrap::prefetch(uint32_t* keys) {
             for (int i = 0; i < pages; i++) {
                 effected += *(((uint8_t*)data.mv_data) + (i << 12));
             }
+            if (dupSort) // in dupsort databases, access the rest of the values
+                rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_DUP);
+            else
+                rc = 1; // done
         }
     }
+    mdb_cursor_close(cursor);
     mdb_txn_abort(txn);
     return effected;
 }
