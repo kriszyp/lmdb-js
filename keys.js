@@ -69,7 +69,7 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	} catch (error) {
 		saveBuffer.fill(0, start + 4); // restore zeros
 		if (error.name == 'RangeError') {
-			if (8188 - start < maxKeySize) {
+			if (8180 - start < maxKeySize) {
 				allocateSaveBuffer(); // try again:
 				return saveKey(key, writeKey, saveTo, maxKeySize);
 			}
@@ -80,6 +80,11 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	let length = savePosition - start - 4;
 	if (length > maxKeySize) {
 		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
+	}
+	if (savePosition >= 8180) { // need to reserve enough room at the end for pointers
+		savePosition = start // reset position
+		allocateSaveBuffer(); // try again:
+		return saveKey(key, writeKey, saveTo, maxKeySize);
 	}
 	if (saveTo) {
 		saveDataView.setUint32(start, length, true); // save the length
