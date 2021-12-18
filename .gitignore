@@ -48,4 +48,5 @@ yarn.lock
 yarn.lock
 
 tests/db/
+test/db/
 .DS_Store

@@ -14,19 +14,21 @@ var getRandomBuffer = () => {
 	return randomBuffer
 }
 suite('performance', function() {
-	removeSync('tests/db')
+	//removeSync('tests/db')
 
 //	const level = openLevel('tests/db/test-level')
 console.log('opening')
-	const lmdb = openLmdb('tests/db/test-lmdb.mdb', {
+	const lmdb = openLmdb('test/db/test-lmdb.mdb', {
 		keyEncoding: 'binary',
+		compression: true,
+		overlappingSync: true,
 //		winMemoryPriority: 3,
 //		mapSize: 0x10000,
 //useWritemap: true,
 //noSync: true,
 //		pageSize: 0x4000
 	})
-	const db2 = openLmdb('tests/db/test-lmdb2.mdb', {
+	const db2 = openLmdb('test/db/test-lmdb2.mdb', {
 		encoding: 'binary',
 //		winMemoryPriority: 3,
 //		useWritemap: true,
@@ -72,28 +74,33 @@ console.log('opened')
 		}
 		return level.batch(operations)
 	})*/
-	test('lmdb-write', () => {
+	test('lmdb-write', async function() {
+		this.timeout(100000)
+		try {
 		let last
 		console.log('starting')
 		let cpuStart = process.cpuUsage()
 		let start = Date.now()
-		for (let i = 0; i < 30; i++) {
+		for (let i = 0; i < 60; i++) {
 			let start = Date.now()
 			let actionTime
 			let cpuStart = process.cpuUsage()
 			for (let k = 0; k < 10; k++) {
-				lmdb.transactionSync(() => {
+				let lastKey
+				await lmdb.transaction(() => {
 					for (let j = 0; j < 40; j++) {
-						let buffer = Buffer.allocUnsafe(4)
+						let buffer = lastKey = Buffer.allocUnsafe(4)
 						buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
-						last= lmdb.putSync(buffer, sampleBuffer/*.slice(0, Math.round(Math.random() * (i * 100 + j)))*/)
+						last= lmdb.put(buffer, sampleBuffer/*.slice(0, Math.round(Math.random() * (i * 100 + j)))*/)
 					}
+					if (i == 22)
+						process.exit(0)
 					actionTime = Date.now() - start
 				})
 				for (let i = 0; i < 100; i++) {
 						let buffer = Buffer.allocUnsafe(4)
 						buffer.writeInt32BE(Math.round(Math.random() * 0x7fffffff))
-					global.test = lmdb.get(buffer)
+					global.test = lmdb.get(lastKey)
 				}
 			}
 			let duration = Date.now() - start
@@ -111,7 +118,9 @@ console.log('opened')
 			count++
 		}
 		console.log('entries', count, 'time to read', Date.now() - start)
-		debugger
+	} catch(error){
+		console.error(error)
+	}
 		return last
 	})
 	test('lmdb-read', () => {
