@@ -26,7 +26,7 @@ void setupExportMisc(Local<Object> exports) {
     Nan::SetMethod(exports, "lmdbNativeFunctions", lmdbNativeFunctions);
 }
 extern "C" EXTERN void freeData(double ref) {
-    delete (void*) (size_t) ref;
+    delete (char*) (size_t) ref;
 }
 extern "C" EXTERN size_t getAddress(char* buffer) {
     return (size_t) buffer;
