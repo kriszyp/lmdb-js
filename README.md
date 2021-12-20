@@ -266,8 +266,8 @@ let buffer = encode(myValue) // if we have already serialized a value, perhaps t
 db.put(key, asBinary(buffer)) // we can directly store the encoded value
 ```
 
-### `close(): void`
-This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child databases will no longer be able to interact with the database).
+### `close(): Promise`
+This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child databases will no longer be able to interact with the database). This is asynchronous, waiting for any outstanding transactions to finish before closing the database.
 
 ### `db.doesExist(key, valueOrVersion): boolean`
 This checks if an entry exists for the given key, and optionally verifies that the version or value exists. If this is a `dupSort` enabled database, you can provide the key and value to check if that key/value entry exists. If you are using a versioned database, you can provide a version number to verify if the entry for the provided key has the specific version number. This returns true if the entry does exist.

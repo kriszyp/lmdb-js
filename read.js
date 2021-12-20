@@ -423,16 +423,24 @@ export function addReadMethods(LMDBStore, {
 				return new Promise(resolve => callback = resolve);
 		},
 		close(callback) {
+			this.status = 'closing';
+			if (this.isRoot) {
+				if (readTxn) {
+					try {
+						readTxn.abort();
+					} catch(error) {}
+				}
+				readTxn = {
+					renew() {
+						throw new Error('Can not read from a closed database');
+					}
+				};
+				readTxnRenewed = null;
+			}
 			let txnPromise = this._waitForTxns();
 			const doClose = () => {
 				this.db.close();
 				if (this.isRoot) {
-					if (readTxn) {
-						try {
-							readTxn.abort();
-						} catch(error) {}
-					}
-					readTxnRenewed = null;
 					env.close();
 				}
 				this.status = 'closed';

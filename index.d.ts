@@ -258,7 +258,7 @@ declare namespace lmdb {
 		/**
 		* Close the current database.
 		**/
-		close(): void
+		close(): Promise<void>
 		/**
 		 * Add event listener
 		 */
