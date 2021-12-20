@@ -107,9 +107,11 @@ void WriteWorker::UnlockTxn() {
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 void WriteWorker::ReportError(const char* error) {
+	hasError = true;
 	fprintf(stderr, "Error %s\n", error);
 }
 void NanWriteWorker::ReportError(const char* error) {
+	hasError = true;
 	SetErrorMessage(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
@@ -314,7 +316,6 @@ next_inst:	start = instruction++;
 					} else {
 						return rc;
 					}
-					fprintf(stderr, "flags after return code %u\n", *start);
 				}
 				flags = FINISHED_OPERATION | FAILED_CONDITION;
 			}
@@ -342,18 +343,20 @@ void WriteWorker::Write() {
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
-
+	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 
-	if (rc)
+	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
 	txn = nullptr;
 	pthread_mutex_unlock(envForTxn->writingLock);
-	if (rc) {
+	if (rc || hasError) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
-		return ReportError(mdb_strerror(rc));
+		if (rc)
+			ReportError(mdb_strerror(rc));
+		return;
 	} else if (envFlags & MDB_OVERLAPPINGSYNC) {
 		// note that once we set the instructions byte to committed, we can *not* touch it again
 		// because JS can then GC and deallocate the buffer it references and it can segfault if we access again

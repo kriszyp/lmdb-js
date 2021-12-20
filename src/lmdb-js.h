@@ -205,6 +205,7 @@ class WriteWorker {
     virtual void SendUpdate();
     int interruptionStatus;
     bool finishedProgress;
+    bool hasError;
     EnvWrap* envForTxn;
     ~WriteWorker();
     uint32_t* instructions;
