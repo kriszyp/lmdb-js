@@ -933,11 +933,12 @@ describe('lmdb-js', function() {
     after(function(done) {
       db.get('key1');
       let iterator = db.getRange({})[Symbol.iterator]()
-      setTimeout(() => {
+      setTimeout(async () => {
         db.get('key1');
-        // should have open read and cursor transactions
-        db2.close();
-        db.close();
+        db.put('another', 'something');
+        // should have open read, write, and cursor transactions
+        await db2.close();
+        await db.close();
         if (options.encryptionKey) {
           return done();
         }

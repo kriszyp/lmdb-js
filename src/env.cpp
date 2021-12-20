@@ -370,6 +370,8 @@ NAN_METHOD(EnvWrap::resize) {
 }
 
 void EnvWrap::closeEnv() {
+    if (!env)
+        return;
     cleanupStrayTxns();
 
     pthread_mutex_lock(envsLock);

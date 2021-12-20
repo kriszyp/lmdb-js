@@ -423,19 +423,28 @@ export function addReadMethods(LMDBStore, {
 				return new Promise(resolve => callback = resolve);
 		},
 		close(callback) {
-			this.db.close();
-			if (this.isRoot) {
-				if (readTxn) {
-					try {
-						readTxn.abort();
-					} catch(error) {}
+			let txnPromise = this._waitForTxns();
+			const doClose = () => {
+				this.db.close();
+				if (this.isRoot) {
+					if (readTxn) {
+						try {
+							readTxn.abort();
+						} catch(error) {}
+					}
+					readTxnRenewed = null;
+					env.close();
 				}
-				readTxnRenewed = null;
-				env.close();
+				this.status = 'closed';
+				if (callback)
+					callback();
 			}
-			this.status = 'closed';
-			if (callback)
-				callback();			
+			if (txnPromise)
+				return txnPromise.then(doClose);
+			else {
+				doClose();
+				return Promise.resolve();
+			}
 		},
 		getStats() {
 			return this.db.stat(readTxnRenewed ? readTxn : renewReadTxn());

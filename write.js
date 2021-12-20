@@ -764,6 +764,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return LMDBStore.prototype.then(onfulfilled, onrejected);
 			}
 		},
+		_waitForTxns(resolvedPromise) {
+			// wait for all txns to finish, checking again after the current txn is done
+			let finalPromise = flushPromise || commitPromise || lastPromise;
+			if (finalPromise && resolvedPromise != finalPromise) {
+				return finalPromise.then(() => this._waitForTxns(finalPromise), () => this._waitForTxns(finalPromise));
+			}
+		},
 		on(event, callback) {
 			if (event == 'beforecommit') {
 				eventTurnBatching = true;
