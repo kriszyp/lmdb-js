@@ -752,8 +752,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		then(onfulfilled, onrejected) {
 			if (commitPromise)
 				return commitPromise.then(onfulfilled, onrejected);
-			if (lastPromise) // always resolve to true
-				return lastPromise.then(() => onfulfilled(true), onrejected);
+			if (lastWritePromise) // always resolve to true
+				return lastWritePromise.then(() => onfulfilled(true), onrejected);
 			return SYNC_PROMISE_SUCCESS.then(onfulfilled, onrejected);
 		},
 		flushed: {
@@ -766,7 +766,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		_waitForTxns(resolvedPromise) {
 			// wait for all txns to finish, checking again after the current txn is done
-			let finalPromise = flushPromise || commitPromise || lastPromise;
+			let finalPromise = flushPromise || commitPromise || lastWritePromise;
 			if (finalPromise && resolvedPromise != finalPromise) {
 				return finalPromise.then(() => this._waitForTxns(finalPromise), () => this._waitForTxns(finalPromise));
 			}

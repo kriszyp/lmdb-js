@@ -95,6 +95,7 @@ describe('lmdb-js', function() {
       return
     }
     it('zero length values', async function() {
+      await db; // should be able to await db even if nothing has happened
       db.put(5, asBinary(Buffer.from([])));
       await db2.put('key1', asBinary(Buffer.from([])));
       should.equal(db.getBinary(5).length, 0);
