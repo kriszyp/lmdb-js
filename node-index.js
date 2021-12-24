@@ -8,7 +8,7 @@ import { arch } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
-import * as orderedBinary from 'ordered-binary/index.js';
+import * as orderedBinary from 'ordered-binary';
 orderedBinary.enableNullTermination();
 
 let nativeFunctions, dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
