@@ -931,6 +931,29 @@ describe('lmdb-js', function() {
       console.log(dbBinary.getBinaryLocation(3))
       console.log(dbBinary.getBinaryLocation(4))
     });
+    it('open and close with compression', async function() {
+      let data = ''
+      for (let i = 0; i < 100; i++) {
+        data += Math.random()
+      }
+      for (let i = 0; i < 100; i++) {
+        let db = open(testDirPath + '/test-close.mdb', {
+//          name: 'test-close',
+          compression: true,
+          overlappingSync: true,
+        });
+        let v = db.get('key')
+        v = db.get('key1')
+        v = db.get('key2')
+        v = db.get('key3')
+        db.put('key', data);
+        let promise = db.close();
+        db.put('key1', data);
+        await db.put('key2', data);
+        db.put('key3', data);
+        await promise;
+      }
+    })
     after(function(done) {
       db.get('key1');
       let iterator = db.getRange({})[Symbol.iterator]()
