@@ -197,10 +197,6 @@ NAN_METHOD(setGlobalBuffer) {
     info.GetReturnValue().Set(array_buffer);
 }*/
 NAN_METHOD(getViewAddress) {
-    void* address = node::Buffer::Data(info[0]);
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
-}
-NAN_METHOD(getAddress) {
     int length = node::Buffer::Length(info[0]);
     void* address = length > 0 ? node::Buffer::Data(info[0]) : nullptr;
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
