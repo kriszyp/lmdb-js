@@ -372,8 +372,8 @@ NAN_METHOD(EnvWrap::resize) {
 void EnvWrap::closeEnv() {
     if (!env)
         return;
+    node::RemoveEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, this);
     cleanupStrayTxns();
-
     pthread_mutex_lock(envsLock);
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
         if (envPath->env == env) {
