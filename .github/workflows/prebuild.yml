@@ -24,4 +24,5 @@ jobs:
       - name: Prebuild
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: arm64
           files: prebuild-alpine-arm64.tar
