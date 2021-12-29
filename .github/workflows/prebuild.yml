@@ -3,9 +3,10 @@ on: [push]
 jobs:
   build-alpine-arm64:
     runs-on: ubuntu-18.04
-    container: quay.io/pypa/manylinux_2_24_x86_64
+    container: node:17
     steps:
       - run: apt-get update
+      - run: apt-get -y install build-essential python
       - uses: nao20010128nao/musl-cross-compilers@v0.5
         with:
           target: aarch64-linux-musl
