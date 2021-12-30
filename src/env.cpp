@@ -196,8 +196,9 @@ NAN_METHOD(EnvWrap::open) {
     }
     char* keyBuffer;
     Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBytes").ToLocalChecked()).ToLocalChecked();
-    if (keyBytesValue->IsArrayBufferView())
-        keyBuffer = node::Buffer::Data(keyBytesValue);
+    if (!keyBytesValue->IsArrayBufferView())
+        fprintf(stderr, "Invalid key buffer\n");
+    keyBuffer = node::Buffer::Data(keyBytesValue);
     setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
     int pathLength = path->Length();

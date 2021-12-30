@@ -207,7 +207,7 @@ class WriteWorker {
     bool finishedProgress;
     bool hasError;
     EnvWrap* envForTxn;
-    ~WriteWorker();
+    virtual ~WriteWorker();
     uint32_t* instructions;
     int progressStatus;
     MDB_env* env;
