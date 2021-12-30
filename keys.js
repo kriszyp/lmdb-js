@@ -81,7 +81,7 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 	if (length > maxKeySize) {
 		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
 	}
-	if (savePosition >= 8180) { // need to reserve enough room at the end for pointers
+	if (savePosition >= 8160) { // need to reserve enough room at the end for pointers
 		savePosition = start // reset position
 		allocateSaveBuffer(); // try again:
 		return saveKey(key, writeKey, saveTo, maxKeySize);
