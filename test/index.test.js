@@ -1077,8 +1077,21 @@ describe('lmdb-js', function() {
     });
   });
   describe('Threads', function() {
-    this.timeout(10000);
-    it('will run a group of threads with read-only transactions', function(done) {
+    this.timeout(100000);
+    it.only('will run a group of threads with read-only transactions', function(done) {
+      let count = 0;
+      const doTest = () => {
+        console.log('thread test', count);
+        testThreads(() => {
+          if (count++ < 100)
+            doTest();
+          else
+            done();
+        });
+      };
+      doTest();
+    });
+    function testThreads(done) {
       var child = spawn('node', [fileURLToPath(new URL('./threads.cjs', import.meta.url))]);
       child.stdout.on('data', function(data) {
         console.log(data.toString());
@@ -1090,7 +1103,7 @@ describe('lmdb-js', function() {
         code.should.equal(0);
         done();
       });
-    });
+    }
   });
 });
 
