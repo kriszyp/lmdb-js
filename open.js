@@ -100,7 +100,7 @@ export function open(path, options) {
 
 	let env = new Env();
 	let rc = env.open(options, flags, options.separateFlushed ? 1 : 0);
-    if (rc)
+   if (rc)
 		lmdbError(rc);
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
