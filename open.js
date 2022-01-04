@@ -128,36 +128,29 @@ export function open(path, options) {
 			// make sure we are using a fresh read txn, so we don't want to share with a cursor txn
 			this.resetReadTxn();
 			this.ensureReadTxn();
-			let keyIsBuffer
+			let keyIsBuffer = dbOptions.keyIsBuffer
 			if (dbOptions.keyEncoding == 'uint32') {
 				dbOptions.keyIsUint32 = true;
 			} else if (dbOptions.keyEncoder) {
 				if (dbOptions.keyEncoder.enableNullTermination) {
 					dbOptions.keyEncoder.enableNullTermination()
-				}else
+				} else
 					keyIsBuffer = true;
 			} else if (dbOptions.keyEncoding == 'binary') {
 				keyIsBuffer = true;
 			}
-			dbOptions = Object.assign({
-				name: dbName,
-				create: true,
-				keyIsBuffer,
-			}, dbOptions);
 			let flags = (dbOptions.reverseKey ? 0x02 : 0) |
 				(dbOptions.dupSort ? 0x04 : 0) |
 				(dbOptions.dupFixed ? 0x10 : 0) |
 				(dbOptions.integerDup ? 0x20 : 0) |
 				(dbOptions.reverseDup ? 0x40 : 0) |
 				(dbOptions.useVersions ? 0x1000 : 0);
-			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 :
-				(dbOptions.keyIsBuffer || dbOptions.keyEncoding == 'binary') ? 3 : 0;
+			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
 			if (keyType == 2)
 				flags |= 0x08; // integer key
-			let compressionAddress = dbOptions.compression?.address || 0;
 			this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
 			if (!this.db) {// not found
-				if (dbOptions.create && !options.readOnly) {
+				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
 						this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
@@ -215,7 +208,7 @@ export function open(path, options) {
 		openDB(dbName, dbOptions) {
 			if (typeof dbName == 'object' && !dbOptions) {
 				dbOptions = dbName;
-				dbName = options.name;
+				dbName = dbOptions.name;
 			} else
 				dbOptions = dbOptions || {};
 			try {

@@ -53,7 +53,7 @@ describe('lmdb-js', function() {
       if (!options.checkLast)
         testIteration++;
       db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
-        name: 'mydb3',
+        name: 'mydb1',
         create: true,
         useVersions: true,
         batchStartThreshold: 10,
@@ -71,14 +71,14 @@ describe('lmdb-js', function() {
       if (!options.checkLast)
         db.clearSync();
       db2 = db.openDB(Object.assign({
-        name: 'mydb4',
+        name: 'mydb2',
         create: true,
         dupSort: true,
       }));
       if (!options.checkLast)
         db2.clearSync();
       db3 = db.openDB({
-        name: 'mydb5',
+        name: 'mydb3',
         create: true,
         dupSort: true,
         encoding: 'ordered-binary',

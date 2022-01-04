@@ -36,21 +36,23 @@ NAN_METHOD(DbiWrap::ctor) {
     DbiWrap* dw = new DbiWrap(ew->env, 0);
     dw->ew = ew;
     int flags = info[1]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    bool nameIsNull = info[2]->IsNull();
-    Local<String> name = Local<String>::Cast(info[2]);
-    #if NODE_VERSION_AT_LEAST(12,0,0)
-    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name);
-    #else
-    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(name);
-    #endif
+    char* nameBytes;
+    if (info[2]->IsString()) {
+        Local<String> name = Local<String>::Cast(info[2]);
+        nameBytes = new char[name->Length() * 3 + 1];
+        name->WriteUtf8(Isolate::GetCurrent(), nameBytes, -1);
+    } else
+        nameBytes = nullptr;
     LmdbKeyType keyType = (LmdbKeyType) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     Compression* compression;
     if (info[4]->IsObject())
         compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(info[4]).ToLocalChecked());
     else
         compression = nullptr;
-    int rc = dw->open(flags & ~HAS_VERSIONS, nameString, flags & HAS_VERSIONS,
+    int rc = dw->open(flags & ~HAS_VERSIONS, nameBytes, flags & HAS_VERSIONS,
         keyType, compression);
+    if (nameBytes)
+        delete nameBytes;
     if (rc) {
         if (rc == MDB_NOTFOUND)
             dw->dbi = (MDB_dbi) 0xffffffff;
@@ -62,123 +64,6 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->Wrap(info.This());
     info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dw->dbi));
     return info.GetReturnValue().Set(info.This());
-/*
-
-    if (info[1]->IsObject()) {
-        Local<Object> options = Local<Object>::Cast(info[1]);
-        nameIsNull = options->Get(Nan::GetCurrentContext(), Nan::New<String>("name").ToLocalChecked()).ToLocalChecked()->IsNull();
-        name = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("name").ToLocalChecked()).ToLocalChecked());
-
-        // Get flags from options
-
-        // NOTE: mdb_set_relfunc is not exposed because MDB_FIXEDMAP is "highly experimental"
-        // NOTE: mdb_set_relctx is not exposed because MDB_FIXEDMAP is "highly experimental"
-        setFlagFromValue(&flags, MDB_REVERSEKEY, "reverseKey", false, options);
-        setFlagFromValue(&flags, MDB_DUPSORT, "dupSort", false, options);
-        setFlagFromValue(&flags, MDB_DUPFIXED, "dupFixed", false, options);
-        setFlagFromValue(&flags, MDB_INTEGERDUP, "integerDup", false, options);
-        setFlagFromValue(&flags, MDB_REVERSEDUP, "reverseDup", false, options);
-        setFlagFromValue(&flags, MDB_CREATE, "create", false, options);
-
-        // TODO: wrap mdb_set_compare
-        // TODO: wrap mdb_set_dupsort
-
-        keyType = keyTypeFromOptions(options);
-        if (keyType == LmdbKeyType::InvalidKey) {
-            // NOTE: Error has already been thrown inside keyTypeFromOptions
-            return;
-        }
-        
-        if (keyType == LmdbKeyType::Uint32Key) {
-            flags |= MDB_INTEGERKEY;
-        }
-        Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
-        if (compressionOption->IsObject()) {
-            compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(compressionOption).ToLocalChecked());
-        }
-
-        // Set flags for txn used to open database
-        Local<Value> create = options->Get(Nan::GetCurrentContext(), Nan::New<String>("create").ToLocalChecked()).ToLocalChecked();
-        #if NODE_VERSION_AT_LEAST(12,0,0)
-        if (create->IsBoolean() ? !create->BooleanValue(Isolate::GetCurrent()) : true) {
-        #else
-        if (create->IsBoolean() ? !create->BooleanValue(Nan::GetCurrentContext()).FromJust() : true) {
-        #endif
-            txnFlags |= MDB_RDONLY;
-        }
-        Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
-        hasVersions = hasVersionsLocal->IsTrue();
-    }
-    else {
-        return Nan::ThrowError("Invalid parameters.");
-    }
-    if (info[2]->IsNumber()) {
-        keyType = (LmdbKeyType) info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    }
-    #if NODE_VERSION_AT_LEAST(12,0,0)
-    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name);
-    #else
-    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(name);
-    #endif
-    if (ew->writeTxn && ew->writeTxn->txn) {
-        needsTransaction = false;
-        txn = ew->writeTxn->txn;
-    } else {
-        txn = ew->getReadTxn();
-    }
-    
-    rc = mdb_dbi_open(txn, nameString, flags, &dbi);
-    if (rc) {
-        if (rc == EACCES && needsTransaction) {
-            // Open transaction
-            rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
-            if (rc != 0) {
-                // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
-                return throwLmdbError(rc);
-            }
-
-            // Open database
-            // NOTE: nullptr in place of the name means using the unnamed database.
-            rc = mdb_dbi_open(txn, nameString, flags, &dbi);
-            if (rc != 0) {
-                mdb_txn_abort(txn);
-                return throwLmdbError(rc);
-            }
-            else {
-                isOpen = true;
-            }
-        } else {
-            return throwLmdbError(rc);
-        }
-    } else {
-        needsTransaction = false;
-        isOpen = true;
-    }
-    // Create wrapper
-    DbiWrap* dw = new DbiWrap(ew->env, dbi);
-    if (isOpen) {
-        dw->ew = ew;
-    }
-    if (keyType == LmdbKeyType::DefaultKey && !nameIsNull) { // use the fast compare, but can't do it if we have db table/names mixed in
-        mdb_set_compare(txn, dbi, compareFast);
-    }
-    if (needsTransaction) {
-        // Commit transaction
-        rc = mdb_txn_commit(txn);
-        if (rc != 0) {
-            return throwLmdbError(rc);
-        }
-    }
-
-    dw->keyType = keyType;
-    dw->flags = flags;
-    dw->isOpen = isOpen;
-    dw->compression = compression;
-    dw->hasVersions = hasVersions;
-    dw->Wrap(info.This());
-    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dbi));
-
-    return info.GetReturnValue().Set(info.This());*/
 }
 
 int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression) {
