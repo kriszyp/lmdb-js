@@ -109,19 +109,10 @@ class Env extends CBridge {
         registry.register(this, this.address);
         return 0;
     }
-    openDbi(options: any) {
-        let flags = (options.reverseKey ? 0x02 : 0) |
-            (options.dupSort ? 0x04 : 0) |
-            (options.dupFixed ? 0x08 : 0) |
-            (options.integerDup ? 0x20 : 0) |
-            (options.reverseDup ? 0x40 : 0) |
-            (options.create ? 0x40000 : 0) |
-            (options.useVersions ? 0x1000 : 0);
-        let keyType = (options.keyIsUint32 || options.keyEncoding == 'uint32') ? 2 :
-            (options.keyIsBuffer || options.keyEncoding == 'binary') ? 3 : 0;
-        let rc: number = openDbi(this.address, flags, toCString(options.name), keyType, options.compression?.address || 0) as number;
+    openDbi(flags: number, name: string, keyType: number, compression: Compression) {
+        let rc: number = openDbi(this.address, flags, toCString(name), keyType, compression?.address || 0) as number;
         if (rc == -30798) { // MDB_NOTFOUND
-            console.log('dbi not found, need to try again with write txn');
+            return;
         }
         return new Dbi(checkError(rc),
             getDbi(rc) as number);

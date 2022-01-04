@@ -35,7 +35,7 @@ export function open(path, options) {
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({
-		path,
+		path: path || '.',
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
@@ -125,6 +125,8 @@ export function open(path, options) {
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
+			// make sure we are using a fresh read txn, so we don't want to share with a cursor txn
+			this.resetReadTxn();
 			this.ensureReadTxn();
 			let keyIsBuffer
 			if (dbOptions.keyEncoding == 'uint32') {
@@ -137,13 +139,35 @@ export function open(path, options) {
 			} else if (dbOptions.keyEncoding == 'binary') {
 				keyIsBuffer = true;
 			}
-			this.db = env.openDbi(Object.assign({
+			dbOptions = Object.assign({
 				name: dbName,
 				create: true,
 				keyIsBuffer,
-			}, dbOptions));
+			}, dbOptions);
+			let flags = (dbOptions.reverseKey ? 0x02 : 0) |
+				(dbOptions.dupSort ? 0x04 : 0) |
+				(dbOptions.dupFixed ? 0x10 : 0) |
+				(dbOptions.integerDup ? 0x20 : 0) |
+				(dbOptions.reverseDup ? 0x40 : 0) |
+				(dbOptions.useVersions ? 0x1000 : 0);
+			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 :
+				(dbOptions.keyIsBuffer || dbOptions.keyEncoding == 'binary') ? 3 : 0;
+			if (keyType == 2)
+				flags |= 0x08; // integer key
+			let compressionAddress = dbOptions.compression?.address || 0;
+			this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
+			if (!this.db) {// not found
+				if (dbOptions.create && !options.readOnly) {
+					flags |= 0x40000; // add create flag
+					this.transactionSync(() => {
+						this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
+					});
+				} else {
+					return; // return undefined to indicate it could not be found
+				}
+			}
 			this.db.name = dbName || null;
-			this.resetReadTxn(true); // a read transaction becomes invalid after opening another db
+			this.resetReadTxn(true); // current read transaction becomes invalid after opening another db
 			this.name = dbName;
 			this.status = 'open';
 			this.env = env;
@@ -329,8 +353,9 @@ export function open(path, options) {
 	const putSync = LMDBStore.prototype.putSync;
 	const removeSync = LMDBStore.prototype.removeSync;
 	addReadMethods(LMDBStore, { env, maxKeySize, keyBytes, keyBytesView, getLastVersion });
-	addWriteMethods(LMDBStore, { env, maxKeySize, fixedBuffer: keyBytes,
-		resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
+	if (!options.readOnly)
+		addWriteMethods(LMDBStore, { env, maxKeySize, fixedBuffer: keyBytes,
+			resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
 	LMDBStore.prototype.supports = {
 		permanence: true,
 		bufferKeys: true,

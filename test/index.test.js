@@ -350,7 +350,7 @@ describe('lmdb-js', function() {
       should.equal(count >= 2, true);
       should.equal(db.getCount({start:'key', end:'keyz'}) >= 2, true);
     }}
-    it.only('should iterate over query', iterateQuery(false));
+    it('should iterate over query', iterateQuery(false));
     it('should iterate over query, across transactions', iterateQuery(true));
     it('should break out of query', async function() {
       let data1 = {foo: 1, bar: true}
