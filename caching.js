@@ -27,6 +27,9 @@ export const CachingStore = Store => class extends Store {
 		this.db.cachingDb = this;
 		this.cache = new WeakLRUCache(options.cache);
 	}
+	get isCaching() {
+		return true
+	}
 	get(id, cacheMode) {
 		let value = this.cache.getValue(id);
 		if (value !== undefined)

@@ -140,11 +140,6 @@ NAN_METHOD(DbiWrap::stat) {
     Nan::HandleScope scope;
 
     DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
-
-    if (info.Length() != 1) {
-        return Nan::ThrowError("dbi.stat should be called with a single argument which is a txn.");
-    }
-
     MDB_stat stat;
     mdb_stat(dw->ew->getReadTxn(), dw->dbi, &stat);
 

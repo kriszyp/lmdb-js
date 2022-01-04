@@ -148,12 +148,12 @@ export function open(path, options) {
 			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
 			if (keyType == 2)
 				flags |= 0x08; // integer key
-			this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
+			this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
 			if (!this.db) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
-						this.db = env.openDbi(flags, dbOptions.name, keyType, dbOptions.compression);
+						this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
 					});
 				} else {
 					return; // return undefined to indicate it could not be found
