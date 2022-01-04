@@ -101,8 +101,8 @@ export function addReadMethods(LMDBStore, {
 					};
 			}
 		},
-		resetReadTxn() {
-			resetReadTxn();
+		resetReadTxn(hardReset) {
+			resetReadTxn(hardReset);
 		},
 		ensureReadTxn() {
 			if (!env.writeTxn && !readTxnRenewed)
@@ -462,12 +462,27 @@ export function addReadMethods(LMDBStore, {
 	function renewReadTxn() {
 		if (readTxn)
 			readTxn.renew();
-		else
-			readTxn = env.beginTxn(0x20000);
+		else {
+			let retries = 0;
+			let waitArray;
+			do {
+				try {
+					readTxn = env.beginTxn(0x20000);
+					break;
+				} catch (error) {
+					if (error.message.includes('temporarily')) {
+						if (!waitArray)
+							waitArray = new Int32Array(new SharedArrayBuffer(4), 0, 1);
+						Atomics.wait(waitArray, 0, 0, retries * 2);
+					} else
+						throw error;
+				}
+			} while (retries++ < 100);
+		}
 		readTxnRenewed = setTimeout(resetReadTxn, 0);
 		return readTxn;
 	}
-	function resetReadTxn() {
+	function resetReadTxn(hardReset) {
 		renewId++;
 		if (readTxnRenewed) {
 			readTxnRenewed = null;
@@ -475,7 +490,10 @@ export function addReadMethods(LMDBStore, {
 				readTxn.onlyCursor = true;
 				readTxn = null;
 			}
-			else
+			else if (hardReset === true) {
+				readTxn.commit();
+				readTxn = null;
+			} else
 				readTxn.reset();
 		}
 	}

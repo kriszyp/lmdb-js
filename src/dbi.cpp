@@ -35,7 +35,7 @@ NAN_METHOD(DbiWrap::ctor) {
     Nan::HandleScope scope;
 
     MDB_dbi dbi;
-    MDB_txn *txn;
+    MDB_txn *txn = nullptr;
     int rc;
     int flags = 0;
     int txnFlags = 0;
@@ -110,11 +110,6 @@ NAN_METHOD(DbiWrap::ctor) {
         }
         Local<Value> hasVersionsLocal = options->Get(Nan::GetCurrentContext(), Nan::New<String>("useVersions").ToLocalChecked()).ToLocalChecked();
         hasVersions = hasVersionsLocal->IsTrue();
-
-        if (ew->writeTxn) {
-            needsTransaction = false;
-            txn = ew->writeTxn->txn;
-        }
     }
     else {
         return Nan::ThrowError("Invalid parameters.");
@@ -122,29 +117,43 @@ NAN_METHOD(DbiWrap::ctor) {
     if (info[2]->IsNumber()) {
         keyType = (LmdbKeyType) info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     }
-    if (needsTransaction) {
-        // Open transaction
-        rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
-        if (rc != 0) {
-            // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
+    #if NODE_VERSION_AT_LEAST(12,0,0)
+    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name);
+    #else
+    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(name);
+    #endif
+    if (ew->writeTxn && ew->writeTxn->txn) {
+        needsTransaction = false;
+        txn = ew->writeTxn->txn;
+    } else {
+        txn = ew->getReadTxn();
+    }
+    
+    rc = mdb_dbi_open(txn, nameString, flags, &dbi);
+    if (rc) {
+        if (rc == EACCES && needsTransaction) {
+            // Open transaction
+            rc = mdb_txn_begin(ew->env, nullptr, txnFlags, &txn);
+            if (rc != 0) {
+                // No need to call mdb_txn_abort, because mdb_txn_begin already cleans up after itself
+                return throwLmdbError(rc);
+            }
+
+            // Open database
+            // NOTE: nullptr in place of the name means using the unnamed database.
+            rc = mdb_dbi_open(txn, nameString, flags, &dbi);
+            if (rc != 0) {
+                mdb_txn_abort(txn);
+                return throwLmdbError(rc);
+            }
+            else {
+                isOpen = true;
+            }
+        } else {
             return throwLmdbError(rc);
         }
-    }
-
-    // Open database
-    // NOTE: nullptr in place of the name means using the unnamed database.
-    #if NODE_VERSION_AT_LEAST(12,0,0)
-    rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name), flags, &dbi);
-    #else
-    rc = mdb_dbi_open(txn, nameIsNull ? nullptr : *String::Utf8Value(name), flags, &dbi);
-    #endif
-    if (rc != 0) {
-        if (needsTransaction) {
-            mdb_txn_abort(txn);
-        }
-        return throwLmdbError(rc);
-    }
-    else {
+    } else {
+        needsTransaction = false;
         isOpen = true;
     }
     // Create wrapper

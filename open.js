@@ -143,7 +143,7 @@ export function open(path, options) {
 				keyIsBuffer,
 			}, dbOptions));
 			this.db.name = dbName || null;
-			this.resetReadTxn(); // a read transaction becomes invalid after opening another db
+			this.resetReadTxn(true); // a read transaction becomes invalid after opening another db
 			this.name = dbName;
 			this.status = 'open';
 			this.env = env;
