@@ -455,7 +455,8 @@ export function addReadMethods(LMDBStore, {
 			}
 		},
 		getStats() {
-			return this.db.stat(readTxnRenewed ? readTxn : renewReadTxn());
+			readTxnRenewed ? readTxn : renewReadTxn();
+			return this.db.stat();
 		}
 	});
 	let get = LMDBStore.prototype.get;

@@ -32,39 +32,37 @@ DbiWrap::~DbiWrap() {
 }
 
 NAN_METHOD(DbiWrap::ctor) {
-    Nan::HandleScope scope;
-
-    MDB_dbi dbi;
-    MDB_txn *txn = nullptr;
-    int rc;
-    int flags = 0;
-    int txnFlags = 0;
-    Local<String> name;
-    bool nameIsNull = false;
-    LmdbKeyType keyType = LmdbKeyType::DefaultKey;
-    bool needsTransaction = true;
-    bool isOpen = false;
-    bool hasVersions = false;
-
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
-    Compression* compression = nullptr;
-
-    /*
-    // TODO: Consolidate to this
     DbiWrap* dw = new DbiWrap(ew->env, 0);
     dw->ew = ew;
-    int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    char* name = node::Buffer::Data(info[1]);
-    LmdbKeyType keyType = (LmdbKeyType) info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    Compression* compression = (Compression*) (size_t) Local<Number>::Cast(info[3])->Value();
-    int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
+    int flags = info[1]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    bool nameIsNull = info[2]->IsNull();
+    Local<String> name = Local<String>::Cast(info[2]);
+    #if NODE_VERSION_AT_LEAST(12,0,0)
+    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(Isolate::GetCurrent(), name);
+    #else
+    char* nameString = nameIsNull ? nullptr : *String::Utf8Value(name);
+    #endif
+    LmdbKeyType keyType = (LmdbKeyType) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    Compression* compression;
+    if (info[4]->IsObject())
+        compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(info[4]).ToLocalChecked());
+    else
+        compression = nullptr;
+    int rc = dw->open(flags & ~HAS_VERSIONS, nameString, flags & HAS_VERSIONS,
         keyType, compression);
     if (rc) {
-        delete dw;
-        return rc;
+        if (rc == MDB_NOTFOUND)
+            dw->dbi = (MDB_dbi) 0xffffffff;
+        else {
+            delete dw;
+            return throwLmdbError(rc);
+        }
     }
+    dw->Wrap(info.This());
+    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dw->dbi));
     return info.GetReturnValue().Set(info.This());
-*/
+/*
 
     if (info[1]->IsObject()) {
         Local<Object> options = Local<Object>::Cast(info[1]);
@@ -180,7 +178,7 @@ NAN_METHOD(DbiWrap::ctor) {
     dw->Wrap(info.This());
     info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dbi));
 
-    return info.GetReturnValue().Set(info.This());
+    return info.GetReturnValue().Set(info.This());*/
 }
 
 int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression) {
@@ -188,29 +186,15 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, 
     this->hasVersions = hasVersions;
     this->compression = compression;
     this->keyType = keyType;
+    this->flags = flags;
     flags &= ~HAS_VERSIONS;
-    if (keyType == LmdbKeyType::Uint32Key)
-        flags |= MDB_INTEGERKEY;
     int rc = mdb_dbi_open(txn, name, flags, &this->dbi);
-    if (rc == EACCES) {
-        if (!ew->writeTxn) {
-            rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
-            if (!rc) {
-                rc = mdb_dbi_open(txn, name, flags, &this->dbi);
-                if (rc)
-                    mdb_txn_abort(txn);
-                else
-                    mdb_txn_commit(txn);
-            }
-        }
-    }
     if (rc)
         return rc;
     this->isOpen = true;
     if (keyType == LmdbKeyType::DefaultKey && name) { // use the fast compare, but can't do it if we have db table/names mixed in
         mdb_set_compare(txn, dbi, compareFast);
     }
-
     return 0;
 }
 extern "C" EXTERN uint32_t getDbi(double dw) {
@@ -276,10 +260,8 @@ NAN_METHOD(DbiWrap::stat) {
         return Nan::ThrowError("dbi.stat should be called with a single argument which is a txn.");
     }
 
-    TxnWrap *txn = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[0]));
-
     MDB_stat stat;
-    mdb_stat(txn->txn, dw->dbi, &stat);
+    mdb_stat(dw->ew->getReadTxn(), dw->dbi, &stat);
 
     Local<Context> context = Nan::GetCurrentContext();
     Local<Object> obj = Nan::New<Object>();

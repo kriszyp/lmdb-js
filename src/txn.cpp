@@ -40,8 +40,6 @@ void TxnWrap::removeFromEnvWrap() {
                 ew->readTxns.erase(it);
             }
         }
-        
-        this->ew->Unref();
         this->ew = nullptr;
     }
     this->txn = nullptr;
@@ -108,7 +106,6 @@ NAN_METHOD(TxnWrap::ctor) {
     tw->parentTw = parentTw;
     tw->flags = flags;
     tw->ew = ew;
-    tw->ew->Ref();
     tw->Wrap(info.This());
 
     return info.GetReturnValue().Set(info.This());
@@ -163,6 +160,7 @@ int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
     else {
         ew->readTxns.push_back(this);
         ew->currentReadTxn = txn;
+        ew->readTxnRenewed = true;
     }
     this->parentTw = parentTw;
     return 0;
@@ -178,11 +176,13 @@ extern "C" EXTERN int renewTxn(double twPointer, int flags) {
 extern "C" EXTERN int commitTxn(double twPointer) {
     TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
     int rc = mdb_txn_commit(tw->txn);
+    tw->removeFromEnvWrap();
     return rc;
 }
 extern "C" EXTERN void abortTxn(double twPointer) {
     TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
     mdb_txn_abort(tw->txn);
+    tw->removeFromEnvWrap();
 }
 
 NAN_METHOD(TxnWrap::commit) {
