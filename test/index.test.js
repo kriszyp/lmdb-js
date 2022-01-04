@@ -328,13 +328,16 @@ describe('lmdb-js', function() {
       dataOut.should.deep.equal(dataIn);
     });
     function iterateQuery(acrossTransactions) { return async () => {
+      console.log('puts')
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
       db.put('key2',  data2);
       await db;
+      console.log('put done')
       let count = 0
       for (let { key, value } of db.getRange({start:'key', end:'keyz', snapshot: !acrossTransactions})) {
+        console.log('iterate', key)
         if (acrossTransactions)
           await delay(10)
         count++
@@ -343,6 +346,7 @@ describe('lmdb-js', function() {
           case 'key2': data2.should.deep.equal(value); break;
         }
       }
+      console.log('done iterate')
       should.equal(count >= 2, true);
       should.equal(db.getCount({start:'key', end:'keyz'}) >= 2, true);
     }}
@@ -505,7 +509,7 @@ describe('lmdb-js', function() {
       db2.getValuesCount('key0').should.equal(0);
       db2.getCount({start: 'key1', end: 'key3'}).should.equal(3);
     });
-    it('should iterate over ordered-binary dupsort query with start/end', async function() {
+    it.skip('should iterate over ordered-binary dupsort query with start/end', async function() {
       console.log('puts')
       db3.put('key1',  1);
       db3.put('key1',  2);
