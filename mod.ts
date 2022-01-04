@@ -40,6 +40,7 @@ let lmdbLib = Deno.dlopen(libPath, {
     resetTxn: { parameters: ['f64'], result: 'void'},
     renewTxn: { parameters: ['f64'], result: 'i32'},
     abortTxn: { parameters: ['f64'], result: 'void'},
+    commitTxn: { parameters: ['f64'], result: 'i32'},
     commitEnvTxn: { parameters: ['f64'], result: 'i32'},
     abortEnvTxn: { parameters: ['f64'], result: 'void'},
     getError: { parameters: ['i32', 'pointer'], result: 'void'},
@@ -61,7 +62,7 @@ let lmdbLib = Deno.dlopen(libPath, {
 //instrument(lmdbLib.symbols);
 
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
-    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression, prefetch } = lmdbLib.symbols;
+    commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, commitTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression, prefetch } = lmdbLib.symbols;
 let registry = new FinalizationRegistry(address => {
     // when an object is GC'ed, free it in C.
     console.log('freeData',address)
@@ -184,6 +185,9 @@ class Transaction extends CBridge {
     }
     abort() {
         abortTxn(this.address);
+    }
+    commit() {
+        commitTxn(this.address);
     }
 }
 
