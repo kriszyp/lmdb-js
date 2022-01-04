@@ -452,6 +452,7 @@ describe('lmdb-js', function() {
       it3.return()
     });
     it('should iterate over dupsort query, with removal', async function() {
+      console.log('puts')
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: true}
@@ -469,6 +470,7 @@ describe('lmdb-js', function() {
         }
       }
       count.should.equal(3);
+      console.log('db2.getValuesCount')
       db2.getValuesCount('key1').should.equal(3);
       await db2.remove('key1',  data2);
       count = 0;
@@ -480,6 +482,7 @@ describe('lmdb-js', function() {
         }
       }
       count.should.equal(2)
+      console.log('db2.getValuesCount')
       db2.getValuesCount('key1').should.equal(2);
       count = 0;
       for (let value of db2.getValues('key1', { reverse: true })) {
@@ -490,6 +493,7 @@ describe('lmdb-js', function() {
         }
       }
       count.should.equal(2);
+      console.log('db2.getValuesCount')
       db2.getValuesCount('key1').should.equal(2);
 
       count = 0;
@@ -497,21 +501,26 @@ describe('lmdb-js', function() {
         count++;
       }
       count.should.equal(0);
+      console.log('db2.getValuesCount0')
       db2.getValuesCount('key0').should.equal(0);
       db2.getCount({start: 'key1', end: 'key3'}).should.equal(3);
     });
     it('should iterate over ordered-binary dupsort query with start/end', async function() {
+      console.log('puts')
       db3.put('key1',  1);
       db3.put('key1',  2);
       db3.put('key1',  3);
       await db3.put('key2',  3);
       let count = 0;
+      console.log('db2.getValues')
+
       for (let value of db3.getValues('key1', { start: 1 })) {
         count++
         value.should.equal(count)
       }
       count.should.equal(3);
       count = 0;
+      console.log('db2.getValues2')
       for (let value of db3.getValues('key1', { end: 3 })) {
         count++
         value.should.equal(count)
