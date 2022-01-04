@@ -117,7 +117,10 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
         dictionary, decompressTarget - dictionary);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
-        fprintf(stderr, "Failed to decompress data %u %u %u %u %u %u %u %u\n", compressionHeaderSize, uncompressedLength, charData[0], charData[1], charData[2], charData[3], charData[4], charData[5]);
+        fprintf(stderr, "Failed to decompress data %u %u bytes:\n", compressionHeaderSize, uncompressedLength);
+        for (int i = 0; i < compressedLength; i++) {
+            fprintf(stderr, "%u ", charData[i]);
+        }
         if (canAllocate)
             Nan::ThrowError("Failed to decompress data");
         isValid = false;

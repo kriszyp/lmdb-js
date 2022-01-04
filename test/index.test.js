@@ -936,7 +936,7 @@ describe('lmdb-js', function() {
       for (let i = 0; i < 100; i++) {
         data += Math.random()
       }
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 10; i++) {
         let db = open(testDirPath + '/test-close.mdb', {
 //          name: 'test-close',
           compression: true,
