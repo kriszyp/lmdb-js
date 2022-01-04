@@ -337,7 +337,7 @@ describe('lmdb-js', function() {
       console.log('put done')
       let count = 0
       for (let { key, value } of db.getRange({start:'key', end:'keyz', snapshot: !acrossTransactions})) {
-        console.log('iterate', key)
+        console.log('iterate', key, value)
         if (acrossTransactions)
           await delay(10)
         count++
@@ -350,7 +350,7 @@ describe('lmdb-js', function() {
       should.equal(count >= 2, true);
       should.equal(db.getCount({start:'key', end:'keyz'}) >= 2, true);
     }}
-    it('should iterate over query', iterateQuery(false));
+    it.only('should iterate over query', iterateQuery(false));
     it('should iterate over query, across transactions', iterateQuery(true));
     it('should break out of query', async function() {
       let data1 = {foo: 1, bar: true}
