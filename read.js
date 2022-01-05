@@ -105,7 +105,8 @@ export function addReadMethods(LMDBStore, {
 			resetReadTxn();
 		},
 		_commitReadTxn() {
-			readTxn.commit();
+			if (readTxn)
+				readTxn.commit();
 			readTxnRenewed = null;
 			readTxn = null;
 		},
