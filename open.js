@@ -28,6 +28,7 @@ export function open(path, options) {
 		options = path;
 		path = options.path;
 	}
+	path = path || '.'
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
@@ -35,7 +36,7 @@ export function open(path, options) {
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({
-		path: path || '.',
+		path,
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
