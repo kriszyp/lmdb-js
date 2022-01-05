@@ -63,7 +63,7 @@ NAN_METHOD(Compression::ctor) {
     compression->compressionThreshold = compressionThreshold;
     compression->Wrap(info.This());
     compression->Ref();
-    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("address").ToLocalChecked(), Nan::New<Number>((double) (size_t) compression));
+    (void)info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("address").ToLocalChecked(), Nan::New<Number>((double) (size_t) compression));
 
     return info.GetReturnValue().Set(info.This());
 }
@@ -118,7 +118,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
         fprintf(stderr, "Failed to decompress data %u %u bytes:\n", compressionHeaderSize, uncompressedLength);
-        for (int i = 0; i < compressedLength; i++) {
+        for (uint32_t i = 0; i < compressedLength; i++) {
             fprintf(stderr, "%u ", charData[i]);
         }
         if (canAllocate)

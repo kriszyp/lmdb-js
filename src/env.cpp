@@ -248,7 +248,7 @@ NAN_METHOD(EnvWrap::open) {
     }
 
     rc = ew->openEnv(flags, jsFlags, (const char*)pathBytes, keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
-    delete pathBytes;
+    delete[] pathBytes;
     if (rc < 0)
         return throwLmdbError(rc);
     node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);

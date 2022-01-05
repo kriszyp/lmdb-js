@@ -162,7 +162,6 @@ int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
         ew->currentReadTxn = txn;
         ew->readTxnRenewed = true;
     }
-    this->parentTw = parentTw;
     return 0;
 }
 extern "C" EXTERN void resetTxn(double twPointer, int flags) {

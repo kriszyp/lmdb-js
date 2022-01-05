@@ -62,7 +62,7 @@ NAN_METHOD(DbiWrap::ctor) {
         }
     }
     dw->Wrap(info.This());
-    info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dw->dbi));
+    (void)info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dw->dbi));
     return info.GetReturnValue().Set(info.This());
 }
 
