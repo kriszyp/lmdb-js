@@ -149,6 +149,7 @@ export function open(path, options) {
 			if (keyType == 2)
 				flags |= 0x08; // integer key
 			this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
 			if (!this.db) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
@@ -160,7 +161,6 @@ export function open(path, options) {
 				}
 			}
 			this.db.name = dbName || null;
-			this.resetReadTxn(true); // current read transaction becomes invalid after opening another db
 			this.name = dbName;
 			this.status = 'open';
 			this.env = env;

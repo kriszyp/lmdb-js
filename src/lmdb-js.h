@@ -486,7 +486,7 @@ public:
         (Wrapper for `mdb_txn_reset`)
     */
     static NAN_METHOD(reset);
-
+    void reset();
     /*
         Renews a read-only transaction after it has been reset.
         (Wrapper for `mdb_txn_renew`)

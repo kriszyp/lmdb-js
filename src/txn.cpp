@@ -167,7 +167,7 @@ int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
 }
 extern "C" EXTERN void resetTxn(double twPointer, int flags) {
     TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-    mdb_txn_reset(tw->txn);
+    tw->reset();
 }
 extern "C" EXTERN int renewTxn(double twPointer, int flags) {
     TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
@@ -234,8 +234,11 @@ NAN_METHOD(TxnWrap::reset) {
     if (!tw->txn) {
         return Nan::ThrowError("The transaction is already closed.");
     }
-    tw->ew->readTxnRenewed = false;
-    mdb_txn_reset(tw->txn);
+    tw->reset();
+}
+void TxnWrap::reset() {
+    ew->readTxnRenewed = false;
+    mdb_txn_reset(txn);
 }
 
 NAN_METHOD(TxnWrap::renew) {

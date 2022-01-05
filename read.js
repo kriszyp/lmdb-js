@@ -101,8 +101,13 @@ export function addReadMethods(LMDBStore, {
 					};
 			}
 		},
-		resetReadTxn(hardReset) {
-			resetReadTxn(hardReset);
+		resetReadTxn() {
+			resetReadTxn();
+		},
+		_commitReadTxn() {
+			readTxn.commit();
+			readTxnRenewed = null;
+			readTxn = null;
 		},
 		ensureReadTxn() {
 			if (!env.writeTxn && !readTxnRenewed)
@@ -463,8 +468,6 @@ export function addReadMethods(LMDBStore, {
 	let get = LMDBStore.prototype.get;
 	function renewReadTxn() {
 		if (!readTxn) {
-		//	readTxn.renew();
-		//else {
 			let retries = 0;
 			let waitArray;
 			do {
@@ -490,10 +493,6 @@ export function addReadMethods(LMDBStore, {
 			readTxnRenewed = null;
 			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true;
-				readTxn = null;
-			}
-			else if (hardReset === true) {
-				readTxn.commit();
 				readTxn = null;
 			} else
 				readTxn.reset();
