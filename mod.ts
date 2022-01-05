@@ -28,7 +28,7 @@ if (!libPath || !exists(libPath)) {
 let lmdbLib = Deno.dlopen(libPath, {
     // const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
     // int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey
-	envOpen: { parameters: ['u32', 'u32', 'pointer', 'pointer', 'f64', 'u32', 'u32', 'usize', 'u32', 'pointer'], result: 'i64'},
+	envOpen: { parameters: ['u32', 'u32', 'pointer', 'pointer', 'f64', 'u32', 'u32', 'f64', 'u32', 'pointer'], result: 'i64'},
     closeEnv: { parameters: ['f64'], result: 'void'},
     freeData: { parameters: ['f64'], result: 'void'},
     getAddress: { parameters: ['pointer'], result: 'usize'},

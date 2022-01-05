@@ -871,13 +871,13 @@ void EnvWrap::setupExports(Local<Object> exports) {
 }
 
 extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
-        int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
+        int maxReaders, double mapSize, int pageSize, char* encryptionKey) {
     EnvWrap* ew = new EnvWrap();
     int rc = mdb_env_create(&(ew->env));
     if (rc)
         return rc;
     rc = ew->openEnv(flags, jsFlags, path, keyBuffer, (Compression*) (size_t) compression,
-        maxDbs, maxReaders, mapSize, pageSize, encryptionKey);
+        maxDbs, maxReaders, (mdb_size_t) mapSize, pageSize, encryptionKey);
     if (rc)
         return rc;
     return (ssize_t) ew;
