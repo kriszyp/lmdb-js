@@ -195,12 +195,7 @@ export function addReadMethods(LMDBStore, {
 						cursor = !writeTxn && db.availableCursor;
 						if (cursor) {
 							db.availableCursor = null;
-							if (db.cursorTxn != txn) {
-								let rc = cursor.renew();
-								if (rc)
-									lmdbError(rc);
-							} else// if (db.currentRenewId != renewId)
-								flags |= 0x2000;
+							flags |= 0x2000;
 						} else {
 							cursor = new Cursor(db);
 						}
@@ -292,8 +287,14 @@ export function addReadMethods(LMDBStore, {
 							finishCursor();
 							return ITERATOR_DONE;
 						}
-						if (!valuesForKey || snapshot === false)
+						if (!valuesForKey || snapshot === false) {
+							if (keySize > 20000) {
+								if (keySize > 0x1000000)
+									lmdbError(keySize - 0x100000000)
+								throw new Error('Invalid key size ' + keySize.toString(16))
+							}
 							currentKey = store.readKey(keyBytes, 32, keySize + 32);
+						}
 						if (includeValues) {
 							let value;
 							lastSize = keyBytesView.getUint32(0, true);
@@ -461,9 +462,9 @@ export function addReadMethods(LMDBStore, {
 	});
 	let get = LMDBStore.prototype.get;
 	function renewReadTxn() {
-		if (readTxn)
-			readTxn.renew();
-		else {
+		if (!readTxn) {
+		//	readTxn.renew();
+		//else {
 			let retries = 0;
 			let waitArray;
 			do {
