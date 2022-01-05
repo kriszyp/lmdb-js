@@ -33,8 +33,6 @@ jobs:
     runs-on: ubuntu-18.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
-      - run: echo ${PWD}
-      - run: apk add build-base python3
       - uses: actions/checkout@v2
       - name: Setup node
         uses: actions/setup-node@v2
