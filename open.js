@@ -329,11 +329,13 @@ export function open(path, options) {
 				return buffer ? this.decoder.decode(buffer) : [];
 			};
 			return {
-				saveStructures: (structures, previousLength) => {
+				saveStructures: (structures, isCompatible) => {
 					return this.transactionSyncStart(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey);
 						let existingStructures = existingStructuresBuffer ? this.decoder.decode(existingStructuresBuffer) : [];
-						if (existingStructures.length != previousLength)
+						if (typeof isCompatible == 'function' ?
+								!isCompatible(existingStructures) :
+								(existingStructures.length != isCompatible))
 							return false; // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures);
 					});
