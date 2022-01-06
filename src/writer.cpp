@@ -212,11 +212,12 @@ next_inst:	start = instruction++;
 			if (flags & CONDITIONAL_VERSION) {
 				conditionalVersion = *((double*) instruction);
 				instruction += 2;
-				rc = mdb_get(txn, dbi, &key, &value);
+				MDB_val conditionalValue;
+				rc = mdb_get(txn, dbi, &key, &conditionalValue);
 				if (rc)
 					validated = false;
 				else if (conditionalVersion != ANY_VERSION) {
-					validated = validated && conditionalVersion == *((double*)value.mv_data);
+					validated = validated && conditionalVersion == *((double*)conditionalValue.mv_data);
 				}
 			}
 			if (flags & SET_VERSION) {

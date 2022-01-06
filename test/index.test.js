@@ -14,6 +14,7 @@ let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
 import { RangeIterable } from '../util/RangeIterable.js'
+import { assert } from 'console';
 
 describe('lmdb-js', function() {
   let testDirPath = path.resolve(dirName, './testdata-ls');
@@ -315,6 +316,16 @@ describe('lmdb-js', function() {
         db.put('key1', dataIn);
         db.put('key2', dataIn);
       })
+    })
+    it('conditional put', async function() {
+      if (db.encoding == 'ordered-binary')
+        return;
+      const key = 'test';
+      await db.put(key, { a: 1, b: 2 }, 1);
+      db.getEntry(key);
+      await db.put(key, { a: 2, b: 3 }, 2, 1);
+      const entry2 = db.get(key);
+      should.equal(entry2.a, 2);
     })
     it.skip('trigger sync commit', async function() {
       let dataIn = {foo: 4, bar: false}
