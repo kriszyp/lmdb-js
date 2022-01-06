@@ -304,8 +304,12 @@ export function open(path, options) {
 			this.clearSync();
 		}
 		clearSync() {
-			if (this.encoder && this.encoder.structures)
-				this.encoder.structures = [];
+			if (this.encoder) {
+				if (this.encoder.clearSharedData)
+					this.encoder.clearSharedData()
+				else if (this.encoder.structures)
+					this.encoder.structures = []
+			}
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
