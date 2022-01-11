@@ -35,11 +35,11 @@ setNativeFunctions(nativeFunctions);
 setExternals({
 	require, arch, fs, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
 });
-export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
+export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
-import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary/index.js';
+import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, getLastVersion } from './open.js';
 export default {
 	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, path, EventEmitter
