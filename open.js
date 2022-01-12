@@ -330,7 +330,7 @@ export function open(path, options) {
 				let buffer = this.getBinary(this.sharedStructuresKey);
 				if (this.useVersions)
 					setLastVersion(lastVersion);
-				return buffer ? this.decoder.decode(buffer) : [];
+				return buffer && this.decoder.decode(buffer);
 			};
 			return {
 				saveStructures: (structures, isCompatible) => {
