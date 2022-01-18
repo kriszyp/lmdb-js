@@ -959,9 +959,9 @@ describe('lmdb-js', function() {
         v = db.get('key3')
         db.put('key', data);
         let promise = db.close();
-        db.put('key1', data);
-        await db.put('key2', data);
-        db.put('key3', data);
+ //       db.put('key1', data);
+  //      await db.put('key2', data);
+//        db.put('key3', data);
         await promise;
       }
     })

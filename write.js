@@ -768,11 +768,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return LMDBStore.prototype.then(onfulfilled, onrejected);
 			}
 		},
-		_waitForTxns(resolvedPromise) {
+		_endWrites(resolvedPromise) {
+			this.put = this.remove = this.del = this.batch = this.removeSync = this.putSync = this.transactionAsync = this.drop = this.clearAsync = () => { throw new Error('Database is closed') };
 			// wait for all txns to finish, checking again after the current txn is done
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
 			if (finalPromise && resolvedPromise != finalPromise) {
-				return finalPromise.then(() => this._waitForTxns(finalPromise), () => this._waitForTxns(finalPromise));
+				return finalPromise.then(() => this._endWrites(finalPromise), () => this._endWrites(finalPromise));
 			}
 		},
 		on(event, callback) {

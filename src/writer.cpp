@@ -185,18 +185,16 @@ next_inst:	start = instruction++;
 			if (flags & HAS_VALUE) {
 				if (flags & COMPRESSIBLE) {
 					int64_t status = -1;
-					if (*(instruction + 1) > 0x40000000) { // not compressed yet
-						status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
-						if (status == 2) {
-							//fprintf(stderr, "wait on compression %p\n", instruction);
-							do {
-								pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-							} while (*(instruction + 1) > 0x40000000);
-						} else if (status > 2) {
-							//fprintf(stderr, "doing the compression ourselves\n");
-							((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
-						} // else status is 0 and compression is done
-					}
+					status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
+					if (status == 2) {
+						//fprintf(stderr, "wait on compression %p\n", instruction);
+						do {
+							pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+						} while (std::atomic_load((std::atomic<int64_t>*)(instruction + 2)));
+					} else if (status > 2) {
+						//fprintf(stderr, "doing the compression ourselves\n");
+						((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
+					} // else status is 0 and compression is done
 					// compressed
 					value.mv_data = (void*)(size_t) * ((size_t*)instruction);
 					if ((size_t)value.mv_data > 0x1000000000000)

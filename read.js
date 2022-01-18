@@ -444,7 +444,7 @@ export function addReadMethods(LMDBStore, {
 				};
 				readTxnRenewed = null;
 			}
-			let txnPromise = this._waitForTxns();
+			let txnPromise = this._endWrites();
 			const doClose = () => {
 				this.db.close();
 				if (this.isRoot) {
