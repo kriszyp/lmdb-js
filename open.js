@@ -339,7 +339,7 @@ export function open(path, options) {
 						let existingStructures = existingStructuresBuffer && this.decoder.decode(existingStructuresBuffer);
 						if (typeof isCompatible == 'function' ?
 								!isCompatible(existingStructures) :
-								(!existingStructures || existingStructures.length != isCompatible))
+								(existingStructures && existingStructures.length != isCompatible))
 							return false; // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures);
 					});
