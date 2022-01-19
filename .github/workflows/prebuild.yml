@@ -43,6 +43,9 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm run prebuild-libc
+      - run: ls
+      - run: ls prebuilds
+      - run: ls prebuilds/linux-x64
       - run: cp prebuilds/linux-x64/node.abi93.libc.node prebuilds/linux-x64/node.abi92.libc.node
       - run: npm run prebuildify
         env:
