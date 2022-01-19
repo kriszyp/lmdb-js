@@ -336,10 +336,10 @@ export function open(path, options) {
 				saveStructures: (structures, isCompatible) => {
 					return this.transactionSyncStart(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey);
-						let existingStructures = existingStructuresBuffer ? this.decoder.decode(existingStructuresBuffer) : [];
+						let existingStructures = existingStructuresBuffer && this.decoder.decode(existingStructuresBuffer);
 						if (typeof isCompatible == 'function' ?
 								!isCompatible(existingStructures) :
-								(existingStructures.length != isCompatible))
+								(!existingStructures || existingStructures.length != isCompatible))
 							return false; // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures);
 					});
