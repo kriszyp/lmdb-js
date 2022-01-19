@@ -3,12 +3,23 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
-      "enable_fast_api_calls%": "false",
       "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
       "runtime%": "node"
   },
+  "conditions": [
+    ['OS=="win"', {
+      "variables": {
+        "enable_fast_api_calls%": "<!(echo %ENABLE_FAST_API_CALLS%)",
+      }
+    }],
+    ['OS!="win"', {
+      "variables": {
+        "enable_fast_api_calls%": "<!(echo $ENABLE_FAST_API_CALLS)",
+      }
+    }]
+  ],
   "targets": [
     {
       "target_name": "lmdb",

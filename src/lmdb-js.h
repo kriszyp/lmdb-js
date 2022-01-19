@@ -557,7 +557,7 @@ public:
     int prefetch(uint32_t* keys);
     int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-    static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize, FastApiCallbackOptions& options);
+    static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize);
 #endif
     uint32_t doGetByBinary(uint32_t keySize);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
@@ -649,7 +649,7 @@ public:
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
-    static uint32_t iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options);
+    static int32_t iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options);
 #endif
     static void position(const v8::FunctionCallbackInfo<v8::Value>& info);    
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
