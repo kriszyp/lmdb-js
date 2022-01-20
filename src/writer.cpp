@@ -234,10 +234,8 @@ next_inst:	start = instruction++;
 			case NO_INSTRUCTION_YET:
 				instruction -= 2; // reset back to the previous flag as the current instruction
 				rc = 0;
-				//fprintf(stderr, "no instruction yet %p %u\n", start, conditionDepth);
 				// in windows InterlockedCompareExchange might be faster
 				if (!worker->finishedProgress || conditionDepth) {
-					//fprintf(stderr, "write thread waiting %p\n", lastStart);
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)WAITING_OPERATION))
@@ -247,7 +245,6 @@ next_inst:	start = instruction++;
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)TXN_DELIMITER)) {
-						//fprintf(stderr, "t");//set txn_delimiter %p\n", start);
 						worker->instructions = start;
 						return 0;
 					} else
@@ -289,7 +286,6 @@ next_inst:	start = instruction++;
 				worker->progressStatus = 2;
 				rc = 0;
 				if (flags & USER_CALLBACK_STRICT_ORDER) {
-					//fprintf(stderr, "strict order\n");
 					std::atomic_fetch_or((std::atomic<uint32_t>*) start, (uint32_t) FINISHED_OPERATION); // mark it as finished so it is processed
 					while (!worker->finishedProgress) {
 						worker->WaitForCallbacks(&txn, conditionDepth == 0, nullptr);
