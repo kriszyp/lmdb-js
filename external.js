@@ -18,13 +18,3 @@ export function setExternals(externals) {
     MsgpackrEncoder = externals.MsgpackrEncoder;
     WeakLRUCache = externals.WeakLRUCache;
 }
-export function instrument(symbols) {
-    for (let key in symbols) {
-        let func = symbols[key];
-        symbols[key] = function() {
-            console.log('start', key);
-            return func.apply(this, arguments);
-        }
-    }
-    
-}

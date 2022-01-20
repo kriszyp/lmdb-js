@@ -1,5 +1,5 @@
 import { fileURLToPath } from './deps.ts';
-import { orderedBinary, setNativeFunctions, instrument } from './external.js';
+import { orderedBinary, setNativeFunctions } from './external.js';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
 let version = import.meta.url.match(/@([^/]+)\//)?.[1];
@@ -14,7 +14,7 @@ if (!libPath || !exists(libPath)) {
         os = os == 'windows' ? 'win32' : os;
         os += '-' + ARCH[Deno.build.arch];
         let libraryUrl = 'https://cdn.jsdelivr.net/npm/lmdb@' + (version || 'latest') +
-            '/prebuilds/' + os + '/node.abi93.node';
+            '/prebuilds/' + os + '/node.abi93' + (os == 'win32' ? '' : '.glibc') + '.node';
         console.log('Download', libraryUrl);
         let response = await fetch(libraryUrl);
         if (response.status == 200) {
@@ -59,11 +59,10 @@ let lmdbLib = Deno.dlopen(libPath, {
     newCompression: { parameters: ['pointer', 'usize', 'u32'], result: 'u64'},
     prefetch: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
 });
-//instrument(lmdbLib.symbols);
 
 let { envOpen, closeEnv, getAddress, freeData, getMaxKeySize, openDbi, getDbi, readerCheck,
     commitEnvTxn, abortEnvTxn, beginTxn, resetTxn, renewTxn, abortTxn, commitTxn, dbiGetByBinary, startWriting, compress, envWrite, openCursor, cursorRenew, cursorClose, cursorIterate, cursorPosition, cursorCurrentValue, setGlobalBuffer: setGlobalBuffer2, setCompressionBuffer, getError, newCompression, prefetch } = lmdbLib.symbols;
-let registry = new FinalizationRegistry(address => {
+let registry = new FinalizationRegistry<number>(address => {
     // when an object is GC'ed, free it in C.
     freeData(address);
 });
