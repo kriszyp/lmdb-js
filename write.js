@@ -48,6 +48,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var outstandingWriteCount = 0;
 	var startAddress = 0;
 	var writeTxn = null;
+	var committed;
 	var abortedNonChildTransactionWarn;
 	var nextTxnCallbacks = [];
 	var commitPromise, flushPromise, flushResolvers = [];
@@ -753,19 +754,21 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return this.transactionSync(callback, 0);
 		},
 		// make the db a thenable/promise-like for when the last commit is committed
-		then(onfulfilled, onrejected) {
-			if (commitPromise)
-				return commitPromise.then(onfulfilled, onrejected);
-			if (lastWritePromise) // always resolve to true
-				return lastWritePromise.then(() => onfulfilled(true), onrejected);
-			return SYNC_PROMISE_SUCCESS.then(onfulfilled, onrejected);
+		committed: committed = {
+			then(onfulfilled, onrejected) {
+				if (commitPromise)
+					return commitPromise.then(onfulfilled, onrejected);
+				if (lastWritePromise) // always resolve to true
+					return lastWritePromise.then(() => onfulfilled(true), onrejected);
+				return SYNC_PROMISE_SUCCESS.then(onfulfilled, onrejected);
+			}
 		},
 		flushed: {
 			// make this a thenable for when the commit is flushed to disk
 			then(onfulfilled, onrejected) {
 				if (flushPromise)
-					return commitPromise.then(onfulfilled, onrejected);
-				return LMDBStore.prototype.then(onfulfilled, onrejected);
+					return flushPromise.then(onfulfilled, onrejected);
+				return committed.then(onfulfilled, onrejected);
 			}
 		},
 		_endWrites(resolvedPromise) {

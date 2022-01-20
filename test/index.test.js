@@ -96,7 +96,7 @@ describe('lmdb-js', function() {
       return
     }
     it('zero length values', async function() {
-      await db; // should be able to await db even if nothing has happened
+      await db.committed // should be able to await db even if nothing has happened
       db.put(5, asBinary(Buffer.from([])));
       await db2.put('key1', asBinary(Buffer.from([])));
       should.equal(db.getBinary(5).length, 0);
@@ -164,7 +164,7 @@ describe('lmdb-js', function() {
       ]
       for (let key of keys)
         db.put(key, 3);
-      await db;
+      await db.committed
       for (let { key, value } of db.getRange({
         start: ['Test', null],
         end: ['Test', null],
@@ -343,7 +343,7 @@ describe('lmdb-js', function() {
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
       db.put('key2',  data2);
-      await db;
+      await db.committed
       let count = 0
       for (let { key, value } of db.getRange({start:'key', end:'keyz', snapshot: !acrossTransactions})) {
         if (acrossTransactions)
@@ -364,7 +364,7 @@ describe('lmdb-js', function() {
       let data2 = {foo: 2, bar: false}
       db.put('key1',  data1);
       db.put('key2',  data2);
-      await db;
+      await db.committed
       let count = 0;
       for (let { key, value } of db.getRange({start:'key', end:'keyz'})) {
         if (count > 0)
@@ -812,7 +812,7 @@ describe('lmdb-js', function() {
       db.put('c1', 'value1');
       db.put('c2', 'value2');
       db.put('c3', 'value3');
-      await db;
+      await db.committed
       let iterator
       db.transactionSync(() => {
         if (db.cache) {
