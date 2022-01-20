@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.1.6",
+  "version": "2.1.4",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -52,7 +52,8 @@
     "build": "node-gyp configure && node-gyp build && rollup -c",
     "build-js": "rollup -c",
     "prepare": "rollup -c",
-    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 17.3.0 && prebuildify --target 16.13.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@16.0.2 && copy prebuilds/win32-x64/node.abi93.node prebuilds/win32-x64/node.abi92.node && set ENABLE_FAST_API_CALLS=true&& prebuildify --target 16.13.0",
+    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 17.3.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@16.0.2 && prebuildify --target 16.13.0",
+    "before-publish-with-fast": "rollup -c && prebuildify-ci download && prebuildify --target 17.3.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.22.7 && prebuildify --target electron@16.0.2 && set ENABLE_FAST_API_CALLS=true&& prebuildify --target 16.13.0",
     "prebuild-libc": "prebuildify --target 17.3.0 --tag-libc && prebuildify --target 16.13.0 --tag-libc && prebuildify --target 15.5.0 --tag-libc && prebuildify --target 14.17.6 --tag-libc && prebuildify --target 12.22.7 --tag-libc && prebuildify --target electron@16.0.2 --tag-libc",
     "prebuildify": "prebuildify",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
