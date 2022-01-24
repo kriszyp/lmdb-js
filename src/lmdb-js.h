@@ -228,8 +228,6 @@ class TxnTracked {
     TxnTracked(MDB_txn *txn, unsigned int flags);
     ~TxnTracked();
     unsigned int flags;
-    int cursorCount;
-    bool onlyCursor;
     MDB_txn *txn;
     TxnTracked *parent;
 };

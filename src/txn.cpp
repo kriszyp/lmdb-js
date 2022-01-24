@@ -6,8 +6,6 @@ using namespace node;
 TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
     this->txn = txn;
     this->flags = flags;
-    cursorCount = 0;
-    onlyCursor = false;
     parent = nullptr;
 }
 
