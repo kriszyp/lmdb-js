@@ -1,4 +1,4 @@
-import { WeakLRUCache } from './external.js';
+import { WeakLRUCache, clearKeptObjects } from './external.js';
 import { FAILED_CONDITION } from './write.js';
 let getLastVersion;
 const mapGet = Map.prototype.get;
@@ -25,6 +25,8 @@ export const CachingStore = Store => class extends Store {
 			});
 		}
 		this.db.cachingDb = this;
+		if (options.cache.clearKeptInterval)
+			options.cache.clearKeptObjects = clearKeptObjects;
 		this.cache = new WeakLRUCache(options.cache);
 	}
 	get isCaching() {
