@@ -149,7 +149,8 @@ export function open(path, options) {
 			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
 			if (keyType == 2)
 				flags |= 0x08; // integer key
-			this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
+				this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
 			if (!this.db) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
@@ -207,6 +208,8 @@ export function open(path, options) {
 			stores.push(this);
 		}
 		openDB(dbName, dbOptions) {
+			if (this.dupSort && this.name == null)
+				throw new Error('Can not open named databases if the main database is dupSort')
 			if (typeof dbName == 'object' && !dbOptions) {
 				dbOptions = dbName;
 				dbName = dbOptions.name;
