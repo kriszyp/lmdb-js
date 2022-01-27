@@ -4,7 +4,6 @@ import { saveKey }  from './keys.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = makeReusableBuffer(0);
-let lastSize;
 const START_ADDRESS_POSITION = 4064;
 
 export function addReadMethods(LMDBStore, {
@@ -22,13 +21,13 @@ export function addReadMethods(LMDBStore, {
 				string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0));
 			}
 			if (string)
-				lastSize = string.length;
+				this.lastSize = string.length;
 			return string;
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
 			try {
-				lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
+				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
 			} catch (error) {
 				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
 					error = new Error('Zero length key is not allowed in LMDB')
@@ -36,13 +35,13 @@ export function addReadMethods(LMDBStore, {
 			}
 			let compression = this.compression;
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
-			if (lastSize > bytes.maxLength) {
-				if (lastSize === 0xffffffff)
+			if (this.lastSize > bytes.maxLength) {
+				if (this.lastSize === 0xffffffff)
 					return;
-				bytes = this._allocateGetBuffer(lastSize);
-				lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
+				bytes = this._allocateGetBuffer(this.lastSize);
+				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
 			}
-			bytes.length = lastSize;
+			bytes.length = this.lastSize;
 			return bytes;
 		},
 		_allocateGetBuffer(lastSize) {
@@ -68,7 +67,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinary(id) {
 			let fastBuffer = this.getBinaryFast(id);
-			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, lastSize);
+			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);
 		},
 		get(id) {
 			if (this.decoder) {
@@ -92,12 +91,12 @@ export function addReadMethods(LMDBStore, {
 					return {
 						value,
 						version: getLastVersion(),
-						//size: lastSize
+						//size: this.lastSize
 					};
 				else
 					return {
 						value,
-						//size: lastSize
+						//size: this.lastSize
 					};
 			}
 		},
@@ -119,11 +118,11 @@ export function addReadMethods(LMDBStore, {
 				readTxnRenewed ? readTxn : renewReadTxn();
 			if (versionOrValue === undefined) {
 				this.getBinaryFast(key);
-				return lastSize !== 0xffffffff;
+				return this.lastSize !== 0xffffffff;
 			}
 			else if (this.useVersions) {
 				this.getBinaryFast(key);
-				return lastSize !== 0xffffffff && getLastVersion() === versionOrValue;
+				return this.lastSize !== 0xffffffff && getLastVersion() === versionOrValue;
 			}
 			else {
 				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
@@ -382,17 +381,17 @@ export function addReadMethods(LMDBStore, {
 		},
 		getSharedBufferForGet(id) {
 			let txn = (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
-			lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0));
-			if (lastSize === 0xffffffff) { // not found code
+			this.lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0));
+			if (this.lastSize === 0xffffffff) { // not found code
 				return; //undefined
 			}
-			return lastSize;
-			lastSize = keyBytesView.getUint32(0, true);
+			return this.lastSize;
+			this.lastSize = keyBytesView.getUint32(0, true);
 			let bufferIndex = keyBytesView.getUint32(12, true);
 			lastOffset = keyBytesView.getUint32(8, true);
 			let buffer = buffers[bufferIndex];
 			let startOffset;
-			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + lastSize > startOffset + 0x100000000)) {
+			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + this.lastSize > startOffset + 0x100000000)) {
 				if (buffer)
 					env.detachBuffer(buffer.buffer);
 				startOffset = (lastOffset >>> 16) * 0x10000;
@@ -402,7 +401,7 @@ export function addReadMethods(LMDBStore, {
 			}
 			lastOffset -= startOffset;
 			return buffer;
-			return buffer.slice(lastOffset, lastOffset + lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + lastSize)*/
+			return buffer.slice(lastOffset, lastOffset + this.lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + this.lastSize)*/
 		},
 		prefetch(keys, callback) {
 			let buffers = [];
