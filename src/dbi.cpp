@@ -257,7 +257,7 @@ NAN_METHOD(DbiWrap::getSharedByBinary) {
                                            data.mv_size,
                                            [](char *, void *) {
             // Data belongs to LMDB, we shouldn't free it here
-        }, nullptr));
+        }, nullptr).ToLocalChecked());
 }
 
 NAN_METHOD(DbiWrap::getStringByBinary) {
