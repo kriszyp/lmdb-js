@@ -561,6 +561,7 @@ public:
     uint32_t doGetByBinary(uint32_t keySize);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
     static NAN_METHOD(getStringByBinary);
+    static NAN_METHOD(getSharedByBinary);
 };
 
 class Compression : public Nan::ObjectWrap {

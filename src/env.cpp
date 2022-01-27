@@ -852,6 +852,7 @@ void EnvWrap::setupExports(Local<Object> exports) {
         v8::SideEffectType::kHasNoSideEffect));
     #endif
     dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByBinary", Nan::New<FunctionTemplate>(DbiWrap::getStringByBinary));
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getSharedByBinary", Nan::New<FunctionTemplate>(DbiWrap::getSharedByBinary));
     dbiTpl->PrototypeTemplate()->Set(isolate, "prefetch", Nan::New<FunctionTemplate>(DbiWrap::prefetch));
 
 

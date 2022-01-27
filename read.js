@@ -38,6 +38,11 @@ export function addReadMethods(LMDBStore, {
 			if (this.lastSize > bytes.maxLength) {
 				if (this.lastSize === 0xffffffff)
 					return;
+				if (this.lastSize >= 0x10000 && !compression && this.db.getSharedByBinary) {
+					if (this.lastShared)
+						env.detachBuffer(this.lastShared)
+					return this.lastShared = this.db.getSharedByBinary(this.writeKey(id, keyBytes, 0));
+				}
 				bytes = this._allocateGetBuffer(this.lastSize);
 				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
 			}
