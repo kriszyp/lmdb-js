@@ -44,7 +44,7 @@ declare namespace lmdb {
 		* values in array corresponding to the array of ids.
 		* @param ids The keys for the entries to get
 		**/
-		getMany(ids: K[], callback?: (error: any, values: V[]) => any): Promise<V[]>
+		getMany(ids: K[], callback?: (error: any, values: V[]) => any): Promise<(V | undefined)[]>
 
 		/**
 		* Store the provided value, using the provided id/key
