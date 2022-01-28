@@ -9,7 +9,7 @@ const START_ADDRESS_POSITION = 4064;
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
 }) {
-	let readTxn, readTxnRenewed;
+	let readTxn, readTxnRenewed, returnNullWhenBig = false;
 	let renewId = 1;
 	Object.assign(LMDBStore.prototype, {
 		getString(id) {
@@ -38,6 +38,8 @@ export function addReadMethods(LMDBStore, {
 			if (this.lastSize > bytes.maxLength) {
 				if (this.lastSize === 0xffffffff)
 					return;
+				if (returnNullWhenBig && this.lastSize >= 0x10000)
+					return null;
 				if (this.lastSize >= 0x10000 && !compression && this.db.getSharedByBinary) {
 					if (this.lastShared)
 						env.detachBuffer(this.lastShared.buffer)
@@ -49,8 +51,8 @@ export function addReadMethods(LMDBStore, {
 			bytes.length = this.lastSize;
 			return bytes;
 		},
-		_allocateGetBuffer(lastSize) {
-			let newLength = Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
+		_allocateGetBuffer(lastSize, exactSize) {
+			let newLength = exactSize ? lastSize : Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
 			let bytes;
 			if (this.compression) {
 				let dictionary = this.compression.dictionary || [];
@@ -58,6 +60,7 @@ export function addReadMethods(LMDBStore, {
 				bytes = makeReusableBuffer(newLength + dictLength);
 				bytes.set(dictionary) // copy dictionary into start
 				this.compression.setBuffer(bytes, dictLength);
+				this.compression.fullBytes = bytes;
 				// the section after the dictionary is the target area for get values
 				bytes = bytes.subarray(dictLength);
 				bytes.maxLength = newLength;
@@ -71,8 +74,34 @@ export function addReadMethods(LMDBStore, {
 			return bytes;
 		},
 		getBinary(id) {
-			let fastBuffer = this.getBinaryFast(id);
-			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);
+			let bytesToRestore, compressionBytesToRestore;
+			try {
+				returnNullWhenBig = true;
+				let fastBuffer = this.getBinaryFast(id);
+				if (fastBuffer === null) {
+					if (this.compression) {
+						bytesToRestore = this.compression.getValueBytes;
+						compressionBytesToRestore = this.compression.fullBytes;
+					} else
+						bytesToRestore = getValueBytes;
+					// allocate buffer specifically for this get
+					this._allocateGetBuffer(this.lastSize, true);
+					return this.getBinaryFast(id);
+				}
+				return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);
+			} finally {
+				returnNullWhenBig = false;
+				if (bytesToRestore) {
+					if (compressionBytesToRestore) {
+						this.compression.setBuffer(compressionBytesToRestore, compressionBytesToRestore.length - bytesToRestore.length);
+						this.compression.fullBytes = compressionBytesToRestore;
+						this.compression.getValueBytes = bytesToRestore;
+					} else {
+						setGlobalBuffer(bytesToRestore);
+						getValueBytes = bytesToRestore;
+					}
+				}
+			}
 		},
 		get(id) {
 			if (this.decoder) {
