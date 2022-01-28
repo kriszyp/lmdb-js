@@ -93,9 +93,11 @@ export function addReadMethods(LMDBStore, {
 				returnNullWhenBig = false;
 				if (bytesToRestore) {
 					if (compressionBytesToRestore) {
-						this.compression.setBuffer(compressionBytesToRestore, compressionBytesToRestore.length - bytesToRestore.length);
-						this.compression.fullBytes = compressionBytesToRestore;
-						this.compression.getValueBytes = bytesToRestore;
+						let compression = this.compression;
+						let dictLength = (compression.dictionary.length >> 3) << 3;
+						compression.setBuffer(compressionBytesToRestore, dictLength);
+						compression.fullBytes = compressionBytesToRestore;
+						compression.getValueBytes = bytesToRestore;
 					} else {
 						setGlobalBuffer(bytesToRestore);
 						getValueBytes = bytesToRestore;
