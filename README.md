@@ -374,7 +374,7 @@ let db = open({ encoder: cbor });
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `keyEncoding` - This indicates the encoding to use for the database keys, and can be `'uint32'` for unsigned 32-bit integers, `'binary'` for raw buffers/Uint8Arrays, and the default `'ordered-binary'` allows any JS primitive as a keys.
 * `keyEncoder` - Provide a custom key encoder.
-* `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`.
+* `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`. Note that you can not set this flag on the unnamed/main database and also have named databases.
 * `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
 
 The following additional option properties are only available when creating the main database environment (`open`):
