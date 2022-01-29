@@ -90,7 +90,6 @@ describe('lmdb-js', function() {
     if (options.checkLast) {
       it('encrypted data can not be accessed', function() {
         let data = db.get('key1');
-        console.log({data})
         data.should.deep.equal('test')
       })
       return
@@ -642,7 +641,6 @@ describe('lmdb-js', function() {
     });
     it('prefetch', async function() {
       await new Promise(resolve => db.prefetch(['key1', 'key2'], resolve));
-      console.log('done with first')
       let key = ''
       for (let i = 0; i < 1900; i++) {
         key += 'A'
@@ -985,7 +983,6 @@ describe('lmdb-js', function() {
           return done();
         }
         unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
-        console.log('successfully unlinked')
         done();
       },10);
     });
@@ -1047,9 +1044,7 @@ describe('lmdb-js', function() {
       }
     });
     after(function() {
-      console.log('closing')
       db.close();
-      console.log('closed')
     });
   });
   describe('RangeIterable', function() {
