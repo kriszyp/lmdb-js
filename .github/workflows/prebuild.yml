@@ -62,7 +62,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
+          deno-version: v1.18.0
       - run: npm install
       - run: npm run build
       - run: npm run deno-test
