@@ -926,6 +926,9 @@ extern "C" EXTERN int64_t beginTxn(double ewPointer, int flags) {
     }
     return (int64_t) tw;
 }
+extern "C" EXTERN int32_t envSync(double ew) {
+    return mdb_env_sync(((EnvWrap*) (size_t) ew)->env, 1);
+}
 
 
 // This file contains code from the node-lmdb project
