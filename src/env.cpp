@@ -30,10 +30,7 @@ EnvWrap::EnvWrap() {
 
 EnvWrap::~EnvWrap() {
     // Close if not closed already
-    if (this->env) {
-        this->cleanupStrayTxns();
-        mdb_env_close(env);
-    }
+    closeEnv();
     if (this->compression)
         this->compression->Unref();
     pthread_mutex_destroy(this->writingLock);
@@ -370,6 +367,10 @@ NAN_METHOD(EnvWrap::resize) {
     }
 }
 
+#ifdef _WIN32
+#define unlink DeleteFileA
+#endif
+
 void EnvWrap::closeEnv() {
     if (!env)
         return;
@@ -381,8 +382,14 @@ void EnvWrap::closeEnv() {
             envPath->count--;
             if (envPath->count <= 0) {
                 // last thread using it, we can really close it now
-                envs.erase(envPath);
                 mdb_env_close(env);
+                if (jsFlags & DELETE_ON_CLOSE) {
+                    fprintf(stderr, "Delete on close %s!\n", envPath->path);
+                    unlink(envPath->path);
+                    unlink(strcat(envPath->path, "-lock"));
+                    fprintf(stderr, "Deleted on close!\n");
+                }
+                envs.erase(envPath);
             }
             break;
         }

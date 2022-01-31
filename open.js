@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -28,7 +28,14 @@ export function open(path, options) {
 		options = path;
 		path = options.path;
 	}
-	path = path || '.'
+	if (!path) {
+		if (!options)
+			options = {}
+		options.deleteOnClose = true;
+		options.noSync = true;
+		path = tmpdir() + '/' + Math.random().toString().slice(2) + '.mdb'
+	}
+	console.log({path})
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
@@ -100,7 +107,9 @@ export function open(path, options) {
 		(options.remapChunks ? 0x4000000 : 0);
 
 	let env = new Env();
-	let rc = env.open(options, flags, options.separateFlushed ? 1 : 0);
+	let jsFlags = (options.separateFlushed ? 1 : 0) |
+		(options.deleteOnClose ? 2 : 0)
+	let rc = env.open(options, flags, jsFlags);
     if (rc)
 		lmdbError(rc);
 	let maxKeySize = env.getMaxKeySize();

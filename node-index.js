@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, default as path } from 'path';
 import EventEmitter from 'events';
 import { setExternals, setNativeFunctions } from './external.js';
-import { arch } from 'os';
+import { arch, tmpdir } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
@@ -15,7 +15,7 @@ let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 setNativeFunctions(require('node-gyp-build')(dirName));
 setExternals({
-	require, arch, fs, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
+	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
