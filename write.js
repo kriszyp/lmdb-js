@@ -355,10 +355,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							committedFlushResolvers.push(...resolvers)
 						else {
 							committedFlushResolvers = resolvers
-							lastSync.then(() => {
-								let delay = Math.min(Date.now() - start, maxFlushDelay)
-								console.log('flush delay:', delay)
-					setTimeout(() => {
+							let delay = Math.min(Date.now() - start, maxFlushDelay)
+							console.log('flush delay:', delay)
+							setTimeout(() => lastSync.then(() => {
 								let resolvers = committedFlushResolvers
 								committedFlushResolvers = null
 								lastSync = new Promise((resolve) => {
@@ -368,8 +367,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 										resolve();
 									});
 								});
-							}, delay)
-							});
+							}), delay);
 						}
 					}
 				case 1:
