@@ -53,7 +53,7 @@ describe('lmdb-js', function() {
     before(function() {
       if (!options.checkLast)
         testIteration++;
-      db = open(testDirPath + '/test-' + testIteration + '.mdb', Object.assign({
+      db = open(Object.assign({
         name: 'mydb1',
         create: true,
         useVersions: true,
@@ -979,10 +979,11 @@ describe('lmdb-js', function() {
         // should have open read, write, and cursor transactions
         await db2.close();
         await db.close();
+        console.log('done')
         if (options.encryptionKey) {
           return done();
         }
-        unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
+        //unlinkSync(testDirPath + '/test-' + testIteration + '.mdb');
         done();
       },10);
     });

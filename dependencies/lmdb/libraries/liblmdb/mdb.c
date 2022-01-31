@@ -6425,6 +6425,7 @@ mdb_env_close_active(MDB_env *env, int excl)
 		if (env->me_rmutex) {
 			CloseHandle(env->me_rmutex);
 			if (env->me_wmutex) CloseHandle(env->me_wmutex);
+			if (env->me_sync_mutex) CloseHandle(env->me_sync_mutex);
 		}
 		/* Windows automatically destroys the mutexes when
 		 * the last handle closes.
@@ -6434,6 +6435,8 @@ mdb_env_close_active(MDB_env *env, int excl)
 			sem_close(env->me_rmutex);
 			if (env->me_wmutex != SEM_FAILED)
 				sem_close(env->me_wmutex);
+			if (env->me_sync_mutex != SEM_FAILED)
+				sem_close(env->me_sync_mutex);
 			/* If we have the filelock:  If we are the
 			 * only remaining user, clean up semaphores.
 			 */

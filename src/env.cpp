@@ -369,6 +369,8 @@ NAN_METHOD(EnvWrap::resize) {
 
 #ifdef _WIN32
 #define unlink DeleteFileA
+#else
+#include <unistd.h>
 #endif
 
 void EnvWrap::closeEnv() {
