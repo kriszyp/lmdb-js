@@ -174,6 +174,11 @@ typedef SSIZE_T	ssize_t;
 #elif defined(__ANDROID__)
 # define MDB_FDATASYNC		fsync
 #endif
+#if defined(__APPLE__)
+# define MDB_FDATASYNC(fd)		fprintf(stderr, "full sync code: %u", fcntl(fd, F_FULLFSYNC)) && \
+	fcntl(fd, 85 /* F_BARRIERFSYNC */) &&  /* fsync + barrier */ \
+  	fsync(fd)
+#endif
 
 #ifndef _WIN32
 #include <pthread.h>
