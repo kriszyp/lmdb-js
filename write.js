@@ -27,7 +27,7 @@ const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout
 const WRITE_BUFFER_SIZE = 0x10000;
 var log = [];
 export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, maxKeySize,
-	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed }) {
+	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed, maxFlushDelay }) {
 	//  stands for write instructions
 	var dynamicBytes;
 	function allocateInstructionBuffer() {
@@ -63,6 +63,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeBatchStart, outstandingBatchCount;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
+	maxFlushDelay = maxFlushDelay || 2000;
 
 	allocateInstructionBuffer();
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
@@ -333,6 +334,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return lastWritePromise;
 		};
 	}
+	let committedFlushResolvers, lastSync = Promise.resolve()
 	function startWriting() {
 		if (enqueuedCommit) {
 			clearImmediate(enqueuedCommit);
@@ -340,6 +342,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		let resolvers = flushResolvers;
 		flushResolvers = [];
+		let start = Date.now();
 		env.startWriting(startAddress, (status) => {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
@@ -347,8 +350,28 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					for (let i = 0; i < resolvers.length; i++)
-						resolvers[i]();
+					if (resolvers.length > 0) {
+						if (committedFlushResolvers)
+							committedFlushResolvers.push(...resolvers)
+						else {
+							committedFlushResolvers = resolvers
+							lastSync.then(() => {
+								let delay = Math.min(Date.now() - start, maxFlushDelay)
+								console.log('flush delay:', delay)
+					setTimeout(() => {
+								let resolvers = committedFlushResolvers
+								committedFlushResolvers = null
+								lastSync = new Promise((resolve) => {
+									env.sync(() => {
+										for (let i = 0; i < resolvers.length; i++)
+											resolvers[i]();
+										resolve();
+									});
+								});
+							}, delay)
+							});
+						}
+					}
 				case 1:
 				break;
 				case 2:
