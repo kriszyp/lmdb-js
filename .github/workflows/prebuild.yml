@@ -2,7 +2,7 @@ name: Test and Prebuild
 on: [push]
 jobs:
   build-test-macos:
-    #if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2

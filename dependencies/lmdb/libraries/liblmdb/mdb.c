@@ -175,7 +175,7 @@ typedef SSIZE_T	ssize_t;
 # define MDB_FDATASYNC		fsync
 #endif
 #if defined(__APPLE__)
-# define MDB_FDATASYNC(fd)		fprintf(stderr, "full sync code: %u", fcntl(fd, F_FULLFSYNC)) && \
+# define MDB_FDATASYNC(fd)		fcntl(fd, F_FULLFSYNC) && \
 	fcntl(fd, 85 /* F_BARRIERFSYNC */) &&  /* fsync + barrier */ \
   	fsync(fd)
 #endif
