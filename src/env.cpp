@@ -368,6 +368,7 @@ NAN_METHOD(EnvWrap::resize) {
 }
 
 #ifdef _WIN32
+// TODO: I think we should switch to DeleteFileW (but have to convert to UTF16)
 #define unlink DeleteFileA
 #else
 #include <unistd.h>

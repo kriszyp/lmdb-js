@@ -30,10 +30,10 @@ export function open(path, options) {
 	}
 	if (!path) {
 		if (!options)
-			options = {}
+			options = {};
 		options.deleteOnClose = true;
 		options.noSync = true;
-		path = tmpdir() + '/' + Math.random().toString().slice(2) + '.mdb'
+		path = tmpdir() + '/' + Math.random().toString().slice(2,10) + '.mdb'
 	}
 	console.log({path})
 	let extension = pathModule.extname(path);
