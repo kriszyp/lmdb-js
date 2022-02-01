@@ -385,12 +385,14 @@ void EnvWrap::closeEnv() {
             envPath->count--;
             if (envPath->count <= 0) {
                 // last thread using it, we can really close it now
+/*                unsigned int envFlags; // I don't know if there would be any benefit to more aggressively trying to sync before closing
+                mdb_env_get_flags(env, &envFlags);
+                if (envFlags & MDB_OVERLAPPINGSYNC)
+                    mdb_env_sync(env, 1);*/
                 mdb_env_close(env);
                 if (jsFlags & DELETE_ON_CLOSE) {
-                    fprintf(stderr, "Delete on close %s!\n", envPath->path);
                     unlink(envPath->path);
                     unlink(strcat(envPath->path, "-lock"));
-                    fprintf(stderr, "Deleted on close!\n");
                 }
                 envs.erase(envPath);
             }

@@ -356,7 +356,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							committedFlushResolvers = resolvers
 							let delay = Math.min(Date.now() - start, maxFlushDelay)
-							console.log('flush delay:', delay)
 							setTimeout(() => lastSync.then(() => {
 								let resolvers = committedFlushResolvers
 								committedFlushResolvers = null

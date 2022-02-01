@@ -33,9 +33,8 @@ export function open(path, options) {
 			options = {};
 		options.deleteOnClose = true;
 		options.noSync = true;
-		path = tmpdir() + '/' + Math.random().toString().slice(2,10) + '.mdb'
+		path = tmpdir() + '/' + Math.floor(Math.random() * 2821109907455).toString(36) + '.mdb'
 	}
-	console.log({path})
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
