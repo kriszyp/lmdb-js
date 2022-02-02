@@ -352,8 +352,6 @@ void WriteWorker::Write() {
 		if (rc)
 			ReportError(mdb_strerror(rc));
 		return;
-	} else if ((envFlags & MDB_OVERLAPPINGSYNC) && !(envForTxn->jsFlags & SEPARATE_FLUSHED)) {
-		rc = mdb_env_sync(env, true);
 	}
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
