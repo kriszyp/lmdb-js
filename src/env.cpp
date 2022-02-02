@@ -392,7 +392,7 @@ void EnvWrap::closeEnv() {
                 mdb_env_close(env);
                 if (jsFlags & DELETE_ON_CLOSE) {
                     unlink(envPath->path);
-                    unlink(strcat(envPath->path, "-lock"));
+                    //unlink(strcat(envPath->path, "-lock"));
                 }
                 envs.erase(envPath);
             }
