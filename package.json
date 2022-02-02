@@ -65,11 +65,11 @@
   },
   "gypfile": true,
   "dependencies": {
-    "msgpackr": "^1.5.2",
+    "msgpackr": "^1.5.3",
     "nan": "^2.14.2",
     "node-gyp-build": "^4.2.3",
-    "ordered-binary": "^1.2.3",
-    "weak-lru-cache": "^1.2.1"
+    "ordered-binary": "^1.2.4",
+    "weak-lru-cache": "^1.2.2"
   },
   "devDependencies": {
     "@types/node": "^16.7.10",
