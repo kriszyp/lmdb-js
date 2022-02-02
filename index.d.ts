@@ -285,7 +285,7 @@ declare namespace lmdb {
 
 	interface DatabaseOptions {
 		name?: string
-		cache?: boolean
+		cache?: boolean | {}
 		compression?: boolean | CompressionOptions
 		encoding?: 'msgpack' | 'json' | 'string' | 'binary' | 'ordered-binary'
 		sharedStructuresKey?: Key
