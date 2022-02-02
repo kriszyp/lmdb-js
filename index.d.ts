@@ -277,7 +277,7 @@ declare namespace lmdb {
 		openDB<OV = V, OK extends Key = K>(dbName: string, dbOptions: DatabaseOptions): Database<OV, OK>
 	}
 
-	type Key = Key[] | string | symbol | number | boolean | Buffer;
+	type Key = Key[] | string | symbol | number | boolean | Uint8Array;
 
 	interface DatabaseOptions {
 		name?: string

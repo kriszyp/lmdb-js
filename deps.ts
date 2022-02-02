@@ -9,4 +9,7 @@ function arch() {
 import * as path from 'https://deno.land/std/node/path.ts';
 export { fileURLToPath } from 'https://deno.land/std/node/url.ts';
 import { EventEmitter } from 'https://deno.land/std/node/events.ts'
-setExternals({ orderedBinary, MsgpackrEncoder, WeakLRUCache, arch, path, EventEmitter, fs: Deno });
+let os: string = Deno.build.os
+if (os == 'windows')
+    os = 'win32'
+setExternals({ orderedBinary, MsgpackrEncoder, WeakLRUCache, arch, path, EventEmitter, fs: Deno, os });

@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir, os } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -49,7 +49,8 @@ export function open(path, options) {
 		remapChunks,
 		keyBytes,
 		pageSize: 4096,
-		//overlappingSync: true,
+		overlappingSync: (options && options.noSync) ? false : os != 'win32',
+		separateFlushed: !(options && (options.noSync || options.overlappingSync == false)),
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
