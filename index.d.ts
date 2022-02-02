@@ -235,6 +235,10 @@ declare namespace lmdb {
 		* Synchronously clear all the entries from this database/store.
 		**/
 		clearSync(): void
+		/** A promise-like object that resolves when previous writes have been committed.  */
+		committed: Promise<boolean>
+		/** A promise-like object that resolves when previous writes have been committed and fully flushed/synced to disk/storage.  */
+		flushed: Promise<boolean>
 		/**
 		* Check the reader locks and remove any stale reader locks. Returns the number of stale locks that were removed.
 		**/

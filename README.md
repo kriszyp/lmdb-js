@@ -151,6 +151,13 @@ This will run the provided callback in a transaction much like `transaction` exc
 
 The `childTransaction` function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
 
+
+### `db.committed: Promise`
+This is a promise-like object that resolves when all previous writes have been committed.
+
+### `db.flushed: Promise`
+This is a promise-like object that resolves when all previous writes have been committed and fully flushed/synced to disk/storage.
+
 ### `db.putSync(key, value, versionOrOptions?: number | PutOptions): boolean`
 This will set the provided value at the specified key, but will do so synchronously. If this is called inside of a transaction, the put will be performed in the current transaction. If not, a transaction will be started, the put will be executed, the transaction will be committed, and then the function will return. We do not recommend this be used for any high-frequency operations as it can be vastly slower (often blocking the main JS thread for multiple milliseconds) than the `put` operation (typically consumes a few _microseconds_ on a worker thread). The third argument may be a version number or an options object that supports `append`, `appendDup`, `noOverwrite`, `noDupData`, and `version` for corresponding LMDB put flags.
 
@@ -370,7 +377,7 @@ let db = open({ encoder: cbor });
 ```
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
-* `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)).
+* `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)). For long-running synchronous operations, it is recommended that you set the `clearKeptInterval` (a value of 100 is a good choice).
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `keyEncoding` - This indicates the encoding to use for the database keys, and can be `'uint32'` for unsigned 32-bit integers, `'binary'` for raw buffers/Uint8Arrays, and the default `'ordered-binary'` allows any JS primitive as a keys.
 * `keyEncoder` - Provide a custom key encoder.
@@ -381,8 +388,8 @@ The following additional option properties are only available when creating the 
 * `path` - This is the file path to the database environment file you will use.
 * `maxDbs` - The maximum number of databases to be able to open within one root database/environment ([there is some extra overhead if this is set very high](http://www.lmdb.tech/doc/group__mdb.html#gaa2fc2f1f37cb1115e733b62cab2fcdbc)). This defaults to 12.
 * `maxReaders` - The maximum number of concurrent read transactions (readers) to be able to open ([more information](http://www.lmdb.tech/doc/group__mdb.html#gae687966c24b790630be2a41573fe40e2)).
-* `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is discussed in more detail below.
-* `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise.
+* `overlappingSync` - This enables committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed and defaults to being enabled. This option is discussed in more detail below.
+* `separateFlushed` - Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a `flushed` property on the commit promise. Note that you can alternately use the `flushed` property on the database.
 * `pageSize` - This defines the page size of the database. This is 4,096 by default. You may want to consider setting this to 8,192 for databases larger than available memory (and moreso if you have range queries) or 4,096 for databases that can mostly cache in memory. Note that this only effects the page size of new databases (does not affect existing databases).
 * `eventTurnBatching` - This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction. Disabling this allows lmdb-js to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with `transaction`, `batch`, `ifVersion`). If this is disabled (set to `false`), you can control how many writes can occur before starting a transaction with `txnStartThreshold` (allow a transaction will still be started at the next event turn if the threshold is not met). Disabling event turn batching (and using lower `txnStartThreshold` values) can facilitate a faster response time to write operations. `txnStartThreshold` defaults to 5.
 * `encryptionKey` - This enables encryption, and the provided value is the key that is used for encryption. This may be a buffer or string, but must be 32 bytes/characters long. This uses the Chacha8 cipher for fast and secure on-disk encryption of data.
@@ -402,24 +409,18 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `mapAsync` - Not recommended, commits are already performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 
 ### Overlapping Sync Options
-The `overlappingSync` option enables a new technique for committing transactions where LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
+The `overlappingSync` option enables transactions to be committed such that LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is enabled by default on non-Windows operating systems. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
 
-When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. When enabled, the `separateFlushed` is also enabled by default and for write operations, the returned promise will resolve when the transaction is committed. The promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
+When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. The write actions return a promise for when they are committed. The database includes a `flushed` property with a promise-like object that resolves when the last commit is fully flushed/synced to disk and is durable. Alternately, the `separateFlushed` option can be enabled and for write operations, the returned promise will still resolve when the transaction is committed and the promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
 ```
-let db = open('my-db', { overlappingSync: true })
+let db = open('my-db', { overlappingSync: true });
 let written = db.put(key, value);
 await written; // wait for it to be committed
 let v = db.get(key) // this value now be retrieved from the db
-await written.flushed // wait for commit to be fully flushed to disk
+await db.flushed // wait for last commit to be fully flushed to disk
 ```
 
-The `separateFlushed` defaults to whatever `overlappedSync` was set to. However, you can explicitly set it. If you want to use `overlappingSync`, but have all write operations resolve when the transaction is fully flushed and durable, you can set `separateFlushed` to `false`. Alternately, if you want to use differing `overlappingSync` settings, but also have a `flushed` promise, you can set `separateFlushed` to `true`.
-
-Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have very poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms. This is probably a good setting:
-```
-	overlappingSync: os.platform() != 'win32',
-	separateFlushed: true,
-```
+Enabling `overlappingSync` option is generally not recommended on Windows, as Window's disk flushing operation tends to have very poor performance characteristics on larger databases (whereas Windows tends to perform well with standard transactions). This option may be enabled by default in the future, for non-Windows platforms.
 
 #### Serialization options
 If you are using the default encoding of `'msgpack'`, the [msgpackr](https://github.com/kriszyp/msgpackr) package is used for serialization and deserialization. You can provide encoder options that are passed to msgpackr or cbor, as well, by including them in the `encoder` property object. For example, these options can be potentially useful:

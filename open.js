@@ -50,7 +50,6 @@ export function open(path, options) {
 		keyBytes,
 		pageSize: 4096,
 		overlappingSync: (options && options.noSync) ? false : os != 'win32',
-		separateFlushed: !(options && (options.noSync || options.overlappingSync == false)),
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
@@ -63,8 +62,6 @@ export function open(path, options) {
 		asyncTransactionStrictOrder = true;
 		asyncTransactionAfter = false;
 	}
-	if (options.separateFlushed === undefined)
-		options.separateFlushed = options.overlappingSync;
 
 	if (!exists(options.noSubdir ? pathModule.dirname(path) : path))
 		fs.mkdirSync(options.noSubdir ? pathModule.dirname(path) : path, { recursive: true });

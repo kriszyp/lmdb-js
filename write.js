@@ -272,7 +272,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.address + (flagPosition << 2);
 				}
 			}
-			if (!flushPromise && overlappingSync && separateFlushed)
+			if (!flushPromise && overlappingSync)
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve));
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				env.write(0);
