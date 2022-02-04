@@ -49,7 +49,7 @@ export function open(path, options) {
 		remapChunks,
 		keyBytes,
 		pageSize: 4096,
-		overlappingSync: (options && options.noSync) ? false : os != 'win32',
+		overlappingSync: (options && (options.noSync || options.readOnly)) ? false : os != 'win32',
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :

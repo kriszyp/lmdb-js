@@ -15,7 +15,10 @@ let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 setNativeFunctions(require('node-gyp-build')(dirName));
 setExternals({
-	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary, EventEmitter, os: platform(),
+	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
+	EventEmitter, os: platform(), onExit(callback) {
+		process.on('exit', callback);
+	}
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';

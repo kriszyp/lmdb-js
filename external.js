@@ -1,5 +1,5 @@
 export let Env, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
-	require, arch, fs, os, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache;
+	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache;
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Compression = externals.Compression;
@@ -22,4 +22,5 @@ export function setExternals(externals) {
 	WeakLRUCache = externals.WeakLRUCache;
 	tmpdir = externals.tmpdir;
    os = externals.os;
+	onExit = externals.onExit;
 }

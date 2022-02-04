@@ -383,12 +383,12 @@ void EnvWrap::closeEnv() {
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
         if (envPath->env == env) {
             envPath->count--;
+            unsigned int envFlags; // I don't know if there would be any benefit to more aggressively trying to sync before closing
+            mdb_env_get_flags(env, &envFlags);
+            if (envFlags & MDB_OVERLAPPINGSYNC)
+                mdb_env_sync(env, 1);
             if (envPath->count <= 0) {
                 // last thread using it, we can really close it now
-/*                unsigned int envFlags; // I don't know if there would be any benefit to more aggressively trying to sync before closing
-                mdb_env_get_flags(env, &envFlags);
-                if (envFlags & MDB_OVERLAPPINGSYNC)
-                    mdb_env_sync(env, 1);*/
                 mdb_env_close(env);
                 if (jsFlags & DELETE_ON_CLOSE) {
                     unlink(envPath->path);
@@ -772,16 +772,22 @@ NAN_METHOD(EnvWrap::sync) {
     if (!ew->env) {
         return Nan::ThrowError("The environment is already closed.");
     }
+    if (info.Length() > 0) {
+        Nan::Callback* callback = new Nan::Callback(
+        Local<v8::Function>::Cast(info[0])
+        );
 
-    Nan::Callback* callback = new Nan::Callback(
-      Local<v8::Function>::Cast(info[0])
-    );
+        SyncWorker* worker = new SyncWorker(
+        ew->env, callback
+        );
 
-    SyncWorker* worker = new SyncWorker(
-      ew->env, callback
-    );
-
-    Nan::AsyncQueueWorker(worker);
+        Nan::AsyncQueueWorker(worker);
+    } else {
+        int rc = mdb_env_sync(ew->env, 1);
+        if (rc != 0) {
+            throwLmdbError(rc);
+        }
+    }
     return;
 }
 
