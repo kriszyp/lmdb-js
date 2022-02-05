@@ -64,32 +64,27 @@ export function open(path, options) {
 	}
 
 	if (!exists(options.noSubdir ? pathModule.dirname(path) : path))
-		fs.mkdirSync(options.noSubdir ? pathModule.dirname(path) : path, { recursive: true });
-	if (options.compression) {
-		let setDefault;
-		if (options.compression == true) {
-			if (defaultCompression)
-				options.compression = defaultCompression;
-			else {
-				let compressionOptions = {
-					threshold: 1000,
-					dictionary: fs.readFileSync(new URL('./dict/dict.txt',
-						import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
-					getValueBytes: makeReusableBuffer(0),
-				};
-				defaultCompression = options.compression = new Compression(compressionOptions);
-				Object.assign(defaultCompression, compressionOptions);
-			}
-		} else {
-			let compressionOptions = Object.assign({
-				threshold: 1000,
-				dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
-				getValueBytes: makeReusableBuffer(0),
-			}, options.compression);
-			options.compression = new Compression(compressionOptions);
-			Object.assign(options.compression, compressionOptions);
-		}
+		fs.mkdirSync(options.noSubdir ? pathModule.dirname(path) : path, { recursive: true }
+		);
+	function makeCompression(compressionOptions) {
+		if (compressionOptions instanceof Compression)
+			return compressionOptions;
+		let useDefault = typeof compressionOptions != 'object';
+		if (useDefault && defaultCompression)
+			return defaultCompression;
+		compressionOptions = Object.assign({
+			threshold: 1000,
+			dictionary: fs.readFileSync(new URL('./dict/dict.txt', import.meta.url.replace(/dist[\\\/]index.cjs$/, ''))),
+			getValueBytes: makeReusableBuffer(0),
+		}, compressionOptions);
+		let compression = Object.assign(new Compression(compressionOptions), compressionOptions);
+		if (useDefault)
+			defaultCompression = compression;
+		return compression;
 	}
+
+	if (options.compression)
+		options.compression = makeCompression(options.compression);
 	let flags =
 		(options.overlappingSync ? 0x1000 : 0) |
 		(options.noSubdir ? 0x4000 : 0) |
@@ -107,7 +102,7 @@ export function open(path, options) {
 	let jsFlags = (options.separateFlushed ? 1 : 0) |
 		(options.deleteOnClose ? 2 : 0)
 	let rc = env.open(options, flags, jsFlags);
-    if (rc)
+   if (rc)
 		lmdbError(rc);
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
@@ -119,15 +114,10 @@ export function open(path, options) {
 			if (dbName === undefined)
 				throw new Error('Database name must be supplied in name property (may be null for root database)');
 
-			if (dbOptions.compression instanceof Compression) {
-				// do nothing, already compression object
-			} else if (dbOptions.compression && typeof dbOptions.compression == 'object')
-				dbOptions.compression = new Compression(Object.assign({
-					threshold: 1000,
-					dictionary: fs.readFileSync(require.resolve('./dict/dict.txt')),
-				}), dbOptions.compression);
-			else if (options.compression && dbOptions.compression !== false) 
+			if (options.compression && dbOptions.compression !== false && typeof dbOptions.compression != 'object')
 				dbOptions.compression = options.compression; // use the parent compression if available
+			else if (dbOptions.compression)
+				dbOptions.compression = makeCompression(dbOptions.compression);
 
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');

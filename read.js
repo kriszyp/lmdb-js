@@ -36,16 +36,21 @@ export function addReadMethods(LMDBStore, {
 			let compression = this.compression;
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
 			if (this.lastSize > bytes.maxLength) {
+				// this means we the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				if (this.lastSize === 0xffffffff)
 					return;
 				if (returnNullWhenBig && this.lastSize >= 0x10000)
+					 // used by getBinary to indicate it should create a dedicated buffer to receive this
 					return null;
 				if (this.lastSize >= 0x10000 && !compression && this.db.getSharedByBinary) {
-					if (this.lastShared)
+					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
+					if (this.lastShared) // we have to detach the last one, or else could crash due to two buffers pointing at same location
 						env.detachBuffer(this.lastShared.buffer)
 					return this.lastShared = this.db.getSharedByBinary(this.writeKey(id, keyBytes, 0));
 				}
+				// grow our shared/static buffer to accomodate the size of the data
 				bytes = this._allocateGetBuffer(this.lastSize);
+				// and try again
 				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
 			}
 			bytes.length = this.lastSize;

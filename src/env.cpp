@@ -383,7 +383,7 @@ void EnvWrap::closeEnv() {
     for (auto envPath = envs.begin(); envPath != envs.end(); ) {
         if (envPath->env == env) {
             envPath->count--;
-            unsigned int envFlags; // I don't know if there would be any benefit to more aggressively trying to sync before closing
+            unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
             mdb_env_get_flags(env, &envFlags);
             if (envFlags & MDB_OVERLAPPINGSYNC)
                 mdb_env_sync(env, 1);

@@ -907,7 +907,9 @@ describe('lmdb-js', function() {
       let promise = dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
       await promise
       await promise.flushed
+      dbBinary.get('big')[3].should.equal(3);
       dbBinary.get('buffer').toString().should.equal('hello');
+      dbBinary.get('big')[3].should.equal(3);
       dbBinary.get('Uint8Array')[1].should.equal(2);
       dbBinary.get('empty').length.should.equal(0);
 
@@ -938,17 +940,7 @@ describe('lmdb-js', function() {
       }
       should.equal(count, 1);
     });
-    it.skip('read and write with binary methods', async function() {
-      let dbBinary = db.openDB(Object.assign({
-        name: 'mydb6',
-        keyEncoding: 'uint32',
-        create: true,
-      }));
-      dbBinary.put(3, Buffer.from('hello'));
-      await dbBinary.put(4, new Uint8Array([1,2,3]));
-      console.log(dbBinary.getBinaryLocation(3))
-      console.log(dbBinary.getBinaryLocation(4))
-    });
+
     it('open and close with compression', async function() {
       let data = ''
       for (let i = 0; i < 100; i++) {
