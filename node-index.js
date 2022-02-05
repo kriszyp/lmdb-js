@@ -17,6 +17,8 @@ setNativeFunctions(require('node-gyp-build')(dirName));
 setExternals({
 	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
 	EventEmitter, os: platform(), onExit(callback) {
+		if (process.getMaxListeners() < process.listenerCount('exit') + 8)
+			process.setMaxListeners(process.listenerCount('exit') + 8);
 		process.on('exit', callback);
 	}
 });

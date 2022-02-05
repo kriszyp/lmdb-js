@@ -80,7 +80,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinary(id) {
 			let fastBuffer = this.getBinaryFast(id);
-			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, lastSize);/*
+			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);/*
 			let bytesToRestore, compressionBytesToRestore;
 			try {
 				returnNullWhenBig = true;
