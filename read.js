@@ -39,9 +39,9 @@ export function addReadMethods(LMDBStore, {
 				// this means we the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				if (this.lastSize === 0xffffffff)
 					return;
-				if (returnNullWhenBig && this.lastSize >= 0x10000)
+				/*if (returnNullWhenBig && this.lastSize >= 0x10000)
 					 // used by getBinary to indicate it should create a dedicated buffer to receive this
-					return null;
+					return null;*/
 				if (this.lastSize >= 0x10000 && !compression && this.db.getSharedByBinary) {
 					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
 					if (this.lastShared) // we have to detach the last one, or else could crash due to two buffers pointing at same location
@@ -79,6 +79,8 @@ export function addReadMethods(LMDBStore, {
 			return bytes;
 		},
 		getBinary(id) {
+			let fastBuffer = this.getBinaryFast(id);
+			return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, lastSize);/*
 			let bytesToRestore, compressionBytesToRestore;
 			try {
 				returnNullWhenBig = true;
@@ -108,7 +110,7 @@ export function addReadMethods(LMDBStore, {
 						getValueBytes = bytesToRestore;
 					}
 				}
-			}
+			}*/
 		},
 		get(id) {
 			if (this.decoder) {
