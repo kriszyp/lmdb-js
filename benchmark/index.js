@@ -28,10 +28,10 @@ let data = {
   more: 'string',
 }
 let bigString = 'big'
-for (let i = 0; i < 9; i++) {
+for (let i = 0; i < 15; i++) {
   bigString += bigString
 }
-//data.more = bigString
+data.more = bigString
 console.log(bigString.length)
 var c = 0
 let result
@@ -151,6 +151,7 @@ function setup() {
   let rootStore = open(testDirPath, {
     noMemInit: true,
     pageSize: 0x4000,
+    compression: true,
     //noSync: true,
     //winMemoryPriority: 4,
     //eventTurnBatching: false,
@@ -160,6 +161,7 @@ function setup() {
     create: true,
     sharedStructuresKey: 100000000,
     keyIsUint32: true,
+    compression: true,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -186,10 +188,12 @@ cleanup(async function (err) {
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
-    });*/
-    suite.add('get', getData);/*
-    suite.add('plainJSON', plainJSON);
-    suite.add('getBinary', getBinary);*/
+    });
+    suite.add('get', getData);*/
+    //suite.add('plainJSON', plainJSON);
+    
+    suite.add('getBinary', getBinary);
+    //test
     suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {
       console.log({result})

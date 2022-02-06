@@ -568,7 +568,7 @@ public:
 class Compression : public Nan::ObjectWrap {
 public:
     char* dictionary;
-    char* decompressBlock;
+    unsigned int dictionarySize;
     char* decompressTarget;
     unsigned int decompressSize;
     unsigned int compressionThreshold;

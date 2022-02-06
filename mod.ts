@@ -55,7 +55,7 @@ let lmdbLib = Deno.dlopen(libPath, {
 	compress: { parameters: ['f64', 'f64'], nonblocking: true, result: 'void'},
 	envWrite: { parameters: ['f64', 'f64'], result: 'i32'},
 	setGlobalBuffer: { parameters: ['pointer', 'usize'], result: 'void'},
-	setCompressionBuffer: { parameters: ['f64', 'pointer', 'usize', 'u32'], result: 'void'},
+	setCompressionBuffer: { parameters: ['f64', 'pointer', 'u32', 'pointer', 'u32'], result: 'void'},
 	newCompression: { parameters: ['pointer', 'usize', 'u32'], result: 'u64'},
 	prefetch: { parameters: ['f64', 'f64'], nonblocking: true, result: 'i32'},
     envSync: { parameters: ['f64'], nonblocking: true, result: 'i32'},
@@ -197,8 +197,8 @@ class Compression extends CBridge {
 		let dictionary = options.dictionary || new Uint8Array(0);
 		super(newCompression(dictionary, dictionary.length, options.threshold || 1000) as number);
 	}
-	setBuffer(bytes: Uint8Array, dictLength: number) {
-		setCompressionBuffer(this.address, bytes, bytes.length, dictLength);
+	setBuffer(target: Uint8Array, targetLength: number, dictionary: Uint8Array, dictLength: number) {
+		setCompressionBuffer(this.address, target, targetLength, dictionary, dictLength);
 	}
 }
 class Cursor extends CBridge {

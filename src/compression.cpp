@@ -57,6 +57,7 @@ NAN_METHOD(Compression::ctor) {
     }
     Compression* compression = new Compression();
     compression->dictionary = dictionary;
+    compression->dictionarySize = dictSize;
     compression->decompressTarget = dictionary + dictSize;
     compression->decompressSize = 0;
     compression->acceleration = 1;
@@ -70,16 +71,17 @@ NAN_METHOD(Compression::ctor) {
 
 NAN_METHOD(Compression::setBuffer) {
     Compression *compression = Nan::ObjectWrap::Unwrap<Compression>(info.This());
-    unsigned int dictSize = Local<Number>::Cast(info[1])->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    compression->dictionary = node::Buffer::Data(info[0]);
-    compression->decompressTarget = compression->dictionary + dictSize;
-    compression->decompressSize = node::Buffer::Length(info[0]) - dictSize;
+    compression->decompressTarget = node::Buffer::Data(info[0]);
+    compression->decompressSize = Local<Number>::Cast(info[1])->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    compression->dictionary = node::Buffer::Data(info[2]);
+    compression->dictionarySize = Local<Number>::Cast(info[3])->IntegerValue(Nan::GetCurrentContext()).FromJust();
 }
-extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* buffer, uint32_t bufferSize, uint32_t dictSize) {
+extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* decompressTarget, uint32_t decompressSize, char* dictionary, uint32_t dictSize) {
     Compression *compression = (Compression*) (size_t) compressionPointer;
-    compression->dictionary = buffer;
-    compression->decompressTarget = buffer + dictSize;
-    compression->decompressSize = bufferSize - dictSize;
+    compression->dictionary = dictionary;
+    compression->decompressTarget = decompressTarget;
+    compression->decompressSize = decompressSize;
+    compression->dictionarySize = dictSize;
 }
 
 void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
@@ -113,8 +115,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
     }
     int written = LZ4_decompress_safe_usingDict(
         (char*)charData + compressionHeaderSize, decompressTarget,
-        compressedLength - compressionHeaderSize, uncompressedLength,
-        dictionary, decompressTarget - dictionary);
+        compressedLength - compressionHeaderSize, decompressSize,
+        dictionary, dictionarySize);
     //fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
     if (written < 0) {
         fprintf(stderr, "Failed to decompress data %u %u bytes:\n", compressionHeaderSize, uncompressedLength);
@@ -164,7 +166,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
     //fprintf(stdout, "compressing %u\n", dataLength);
     if (!stream)
         stream = LZ4_createStream();
-    LZ4_loadDict(stream, dictionary, decompressTarget - dictionary);
+    LZ4_loadDict(stream, dictionary, dictionarySize);
     int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
     if (compressedSize > 0) {
         if (freeValue)
