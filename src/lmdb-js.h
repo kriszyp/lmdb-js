@@ -567,7 +567,8 @@ public:
 
 class Compression : public Nan::ObjectWrap {
 public:
-    char* dictionary;
+    char* dictionary; // dictionary to use to decompress
+    char* compressDictionary; // separate dictionary to use to compress since the decompression dictionary can move around in the main thread
     unsigned int dictionarySize;
     char* decompressTarget;
     unsigned int decompressSize;

@@ -56,7 +56,7 @@ NAN_METHOD(Compression::ctor) {
         }
     }
     Compression* compression = new Compression();
-    compression->dictionary = dictionary;
+    compression->dictionary = compression->compressDictionary = dictionary;
     compression->dictionarySize = dictSize;
     compression->decompressTarget = dictionary + dictSize;
     compression->decompressSize = 0;
@@ -166,7 +166,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
     //fprintf(stdout, "compressing %u\n", dataLength);
     if (!stream)
         stream = LZ4_createStream();
-    LZ4_loadDict(stream, dictionary, dictionarySize);
+    LZ4_loadDict(stream, compressDictionary, dictionarySize);
     int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
     if (compressedSize > 0) {
         if (freeValue)
@@ -246,7 +246,8 @@ extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, u
     Compression* compression = new Compression();
     if ((size_t) dictionary < 10)
         dictionary= nullptr;
-    compression->dictionary = dictionary;
+    compression->dictionary = compression->compressDictionary = dictionary;
+    compression->dictionarySize = dictSize;
     compression->decompressTarget = dictionary + dictSize;
     compression->decompressSize = 0;
     compression->acceleration = 1;
