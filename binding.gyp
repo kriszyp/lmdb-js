@@ -41,9 +41,10 @@
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
+        "<!(node -p \"require('node-addon-api').include_dir\")",
         "dependencies/lz4/lib"
       ],
-      "defines": ["MDB_MAXKEYSIZE=0"],
+      "defines": ["MDB_MAXKEYSIZE=0", "NAPI_DISABLE_CPP_EXCEPTIONS" ],
       "conditions": [
         ["OS=='linux'", {
           "variables": {

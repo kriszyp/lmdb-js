@@ -67,6 +67,7 @@
   "dependencies": {
     "msgpackr": "^1.5.4",
     "nan": "^2.14.2",
+    "node-addon-api": "^4.3.0",
     "node-gyp-build": "^4.2.3",
     "ordered-binary": "^1.2.4",
     "weak-lru-cache": "^1.2.2"

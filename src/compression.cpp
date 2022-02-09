@@ -40,7 +40,7 @@ NAN_METHOD(Compression::ctor) {
     char* dictionary = nullptr;
     unsigned int dictSize = 0;
     if (info[0]->IsObject()) {
-        Local<Value> dictionaryOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), Nan::New<String>("dictionary").ToLocalChecked()).ToLocalChecked();
+        Local<Value> dictionaryOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), String::New(env, "dictionary")).ToLocalChecked();
         if (!dictionaryOption->IsUndefined()) {
             if (!node::Buffer::HasInstance(dictionaryOption)) {
                 return Nan::ThrowError("Dictionary must be a buffer");
@@ -50,7 +50,7 @@ NAN_METHOD(Compression::ctor) {
             dictionary = node::Buffer::Data(dictionaryOption);
 
         }
-        Local<Value> thresholdOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), Nan::New<String>("threshold").ToLocalChecked()).ToLocalChecked();
+        Local<Value> thresholdOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), String::New(env, "threshold")).ToLocalChecked();
         if (thresholdOption->IsNumber()) {
             compressionThreshold = thresholdOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
         }
@@ -64,7 +64,7 @@ NAN_METHOD(Compression::ctor) {
     compression->compressionThreshold = compressionThreshold;
     compression->Wrap(info.This());
     compression->Ref();
-    (void)info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("address").ToLocalChecked(), Nan::New<Number>((double) (size_t) compression));
+    (void)info.This()->Set(Nan::GetCurrentContext(), String::New(env, "address"), Nan::New<Number>((double) (size_t) compression));
 
     return info.GetReturnValue().Set(info.This());
 }

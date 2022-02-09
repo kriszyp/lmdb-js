@@ -1,10 +1,10 @@
 #include "lmdb-js.h"
-using namespace v8;
+using namespace napi;
 using namespace node;
 
 #define IGNORE_NOTFOUND    (1)
-thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
-thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
+//thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
+//thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
 
 pthread_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
 std::vector<env_path_t> EnvWrap::envs;
@@ -15,7 +15,16 @@ pthread_mutex_t* EnvWrap::initMutex() {
     return mutex;
 }
 
-EnvWrap::EnvWrap() {
+EnvWrap::EnvWrap(const CallbackInfo& info) {
+    Env napiEnv = info.Env();
+    int rc;
+    rc = mdb_env_create(&(this->env));
+
+    if (rc != 0) {
+        mdb_env_close(this->env);
+        return throwLmdbError(info.Env(), rc);
+    }
+
     this->env = nullptr;
     this->currentWriteTxn = nullptr;
 	this->currentReadTxn = nullptr;
@@ -50,29 +59,10 @@ void EnvWrap::cleanupStrayTxns() {
     }
 }
 
-NAN_METHOD(EnvWrap::ctor) {
-    Nan::HandleScope scope;
-
-    int rc;
-
-    EnvWrap* ew = new EnvWrap();
-    rc = mdb_env_create(&(ew->env));
-
-    if (rc != 0) {
-        mdb_env_close(ew->env);
-        return throwLmdbError(rc);
-    }
-
-    ew->Wrap(info.This());
-    ew->Ref();
-
-    return info.GetReturnValue().Set(info.This());
-}
-
 template<class T>
 int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
     int rc;
-    const Local<Value> value = options->Get(Nan::GetCurrentContext(), Nan::New<String>(keyName).ToLocalChecked()).ToLocalChecked();
+    const Local<Value> value = options->Get(Nan::GetCurrentContext(), String::New(env, keyName)).ToLocalChecked();
     if (value->IsUint32()) {
         rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).FromJust());
     }
@@ -83,10 +73,10 @@ int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options
     return rc;
 }
 
-class SyncWorker : public Nan::AsyncWorker {
+class SyncWorker : public AsyncWorker {
   public:
-    SyncWorker(MDB_env* env, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), env(env) {}
+    SyncWorker(MDB_env* env, Function *callback)
+      : AsyncWorker(callback), env(env) {}
 
     void Execute() {
         int rc = mdb_env_sync(env, 1);
@@ -95,8 +85,7 @@ class SyncWorker : public Nan::AsyncWorker {
         }
     }
 
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
+    void OnOK() {
         Local<v8::Value> argv[] = {
             Nan::Null()
         };
@@ -108,10 +97,10 @@ class SyncWorker : public Nan::AsyncWorker {
     MDB_env* env;
 };
 
-class CopyWorker : public Nan::AsyncWorker {
+class CopyWorker : public AsyncWorker {
   public:
-    CopyWorker(MDB_env* env, char* inPath, int flags, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), env(env), path(strdup(inPath)), flags(flags) {
+    CopyWorker(MDB_env* env, char* inPath, int flags, Function *callback)
+      : AsyncWorker(callback), env(env), path(strdup(inPath)), flags(flags) {
       }
     ~CopyWorker() {
         free(path);
@@ -125,8 +114,7 @@ class CopyWorker : public Nan::AsyncWorker {
         }
     }
 
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
+    void OnOK() {
         Local<v8::Value> argv[] = {
             Nan::Null()
         };
@@ -149,7 +137,7 @@ MDB_txn* EnvWrap::getReadTxn() {
     if (txn)
         mdb_txn_renew(txn);
     else {
-        Nan::ThrowError("No current read transaction available");
+        throwError("No current read transaction available");
         return nullptr;
     }
     readTxnRenewed = true;
@@ -168,16 +156,12 @@ void cleanup(void* data) {
     ((EnvWrap*) data)->closeEnv();
 }
 
-NAN_METHOD(EnvWrap::open) {
-    Nan::HandleScope scope;
-
+napi_value EnvWrap::open(const CallbackInfo& info) {
     int rc;
 
     // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
     Local<Object> options = Local<Object>::Cast(info[0]);
     Local<Number> flagsValue = Local<Number>::Cast(info[1]);
@@ -186,18 +170,18 @@ NAN_METHOD(EnvWrap::open) {
     int jsFlags = jsFlagsValue->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
     Compression* compression = nullptr;
-    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), Nan::New<String>("compression").ToLocalChecked()).ToLocalChecked();
+    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), String::New(env, "compression")).ToLocalChecked();
     if (compressionOption->IsObject()) {
-        compression = ew->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
-        ew->compression->Ref();
+        compression = this->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
+        this->compression->Ref();
     }
     char* keyBuffer;
-    Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), Nan::New<String>("keyBytes").ToLocalChecked()).ToLocalChecked();
+    Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), String::New(env, "keyBytes")).ToLocalChecked();
     if (!keyBytesValue->IsArrayBufferView())
         fprintf(stderr, "Invalid key buffer\n");
     keyBuffer = node::Buffer::Data(keyBytesValue);
     setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
-    Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
+    Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), String::New(env, "path")).ToLocalChecked());
     int pathLength = path->Length();
     uint8_t* pathBytes = new uint8_t[pathLength + 1];
     int bytes = path->WriteOneByte(Isolate::GetCurrent(), pathBytes, 0, pathLength + 1, v8::String::WriteOptions::NO_OPTIONS);
@@ -207,29 +191,29 @@ NAN_METHOD(EnvWrap::open) {
         fprintf(stderr, "String is not null-terminated");
     // Parse the maxDbs option
     int maxDbs = 12;
-    Local<Value> option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("maxDbs").ToLocalChecked()).ToLocalChecked();
+    Local<Value> option = options->Get(Nan::GetCurrentContext(), String::New(env, "maxDbs")).ToLocalChecked();
     if (option->IsNumber())
         maxDbs = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
 
     mdb_size_t mapSize = 0;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("mapSize").ToLocalChecked()).ToLocalChecked();
+    option = options->Get(Nan::GetCurrentContext(), String::New(env, "mapSize")).ToLocalChecked();
     if (option->IsNumber())
         mapSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
     int pageSize = 8192;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("pageSize").ToLocalChecked()).ToLocalChecked();
+    option = options->Get(Nan::GetCurrentContext(), String::New(env, "pageSize")).ToLocalChecked();
     if (option->IsNumber())
         pageSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
     int maxReaders = 126;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("maxReaders").ToLocalChecked()).ToLocalChecked();
+    option = options->Get(Nan::GetCurrentContext(), String::New(env, "maxReaders")).ToLocalChecked();
     if (option->IsNumber())
         maxReaders = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
 
     uint8_t* encryptKey = nullptr;
-    Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), Nan::New<String>("encryptionKey").ToLocalChecked()).ToLocalChecked();
+    Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), String::New(env, "encryptionKey")).ToLocalChecked();
     if (!encryptionKey->IsUndefined()) {
         unsigned int l = Local<String>::Cast(encryptionKey)->Length();
         encryptKey = new uint8_t[l];
@@ -237,17 +221,17 @@ NAN_METHOD(EnvWrap::open) {
         Local<String>::Cast(encryptionKey)->WriteUtf8(Isolate::GetCurrent(),
             (char*) encryptKey, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten != 32) {
-            return Nan::ThrowError("Encryption key must be 32 bytes long");
+            return throwError("Encryption key must be 32 bytes long");
         }
         #ifndef MDB_RPAGE_CACHE
-        return Nan::ThrowError("Encryption not supported with data format version 1");
+        return throwError("Encryption not supported with data format version 1");
         #endif
     }
 
-    rc = ew->openEnv(flags, jsFlags, (const char*)pathBytes, keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
+    rc = this->openEnv(flags, jsFlags, (const char*)pathBytes, keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
     delete[] pathBytes;
     if (rc < 0)
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);
     return info.GetReturnValue().Set(Nan::New<Number>(rc));
 }
@@ -324,48 +308,10 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
     this->env = nullptr;
     return rc;
 }
-NAN_METHOD(EnvWrap::getMaxKeySize) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    return info.GetReturnValue().Set(Nan::New<Number>(mdb_env_get_maxkeysize(ew->env)));
+napi_value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
+    return Number::New(mdb_env_get_maxkeysize(this->env));
 }
 
-NAN_METHOD(EnvWrap::resize) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
-    }
-
-    // Check that the correct number/type of arguments was given.
-    if (info.Length() != 1 || !info[0]->IsNumber()) {
-        return Nan::ThrowError("Call env.resize() with exactly one argument which is a number.");
-    }
-
-    // Since this function may only be called if no transactions are active in this process, check this condition.
-    if (ew->currentWriteTxn/* || ew->readTxns.size()*/) {
-        return Nan::ThrowError("Only call env.resize() when there are no active transactions. Please close all transactions before calling env.resize().");
-    }
-
-    mdb_size_t mapSizeSizeT = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    int rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
-    if (rc == EINVAL) {
-        //fprintf(stderr, "Resize failed, will try to get transaction and try again");
-        MDB_txn *txn;
-        rc = mdb_txn_begin(ew->env, nullptr, 0, &txn);
-        if (rc != 0)
-            return throwLmdbError(rc);
-        rc = mdb_txn_commit(txn);
-        if (rc != 0)
-            return throwLmdbError(rc);
-        rc = mdb_env_set_mapsize(ew->env, mapSizeSizeT);
-    }
-    if (rc != 0) {
-        return throwLmdbError(rc);
-    }
-}
 
 #ifdef _WIN32
 // TODO: I think we should switch to DeleteFileW (but have to convert to UTF16)
@@ -406,171 +352,124 @@ void EnvWrap::closeEnv() {
 }
 extern "C" EXTERN void closeEnv(double ewPointer) {
     EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-    ew->closeEnv();
+    this->closeEnv();
 }
 
-NAN_METHOD(EnvWrap::close) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    ew->Unref();
-
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::close(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
-    ew->closeEnv();
+    this->closeEnv();
 }
 
-NAN_METHOD(EnvWrap::stat) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::stat(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
-
-    int rc;
+     int rc;
     MDB_stat stat;
 
-    rc = mdb_env_stat(ew->env, &stat);
+    rc = mdb_env_stat(this->env, &stat);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
-
-    Local<Context> context = Nan::GetCurrentContext();
-    Local<Object> obj = Nan::New<Object>();
-    (void)obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
-    (void)obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
-    (void)obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
-    (void)obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
-    (void)obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
-    (void)obj->Set(context, Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
-
-    info.GetReturnValue().Set(obj);
+    Object stats = Object::New(info.Env());
+    stats.Set("pageSize", Number::New(info.Env(), stat.ms_psize));
+    stats.Set("treeDepth", Number::New(info.Env(), stat.ms_depth));
+    stats.Set("treeBranchPageCount", Number::New(info.Env(), stat.ms_branch_pages));
+    stats.Set("treeLeafPageCount", Number::New(info.Env(), stat.ms_leaf_pages));
+    stats.Set("entryCount", Number::New(info.Env(), stat.ms_entries));
+    stats.Set("overflowPages", Number::New(info.Env(), stat.ms_overflow_pages));
+    return stats;
 }
 
-NAN_METHOD(EnvWrap::freeStat) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::freeStat(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
-
-    if (info.Length() != 1) {
-        return Nan::ThrowError("env.freeStat should be called with a single argument which is a txn.");
-    }
-
-    TxnWrap *txn = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[0]));
-
     int rc;
     MDB_stat stat;
 
     rc = mdb_stat(txn->txn, 0, &stat);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
-
-    Local<Context> context = Nan::GetCurrentContext();
-    Local<Object> obj = Nan::New<Object>();
-    (void)obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
-    (void)obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
-    (void)obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
-    (void)obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
-    (void)obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
-    (void)obj->Set(context, Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
-
-    info.GetReturnValue().Set(obj);
+    Object stats = Object::New(info.Env());
+    stats.Set("pageSize", Number::New(info.Env(), stat.ms_psize));
+    stats.Set("treeDepth", Number::New(info.Env(), stat.ms_depth));
+    stats.Set("treeBranchPageCount", Number::New(info.Env(), stat.ms_branch_pages));
+    stats.Set("treeLeafPageCount", Number::New(info.Env(), stat.ms_leaf_pages));
+    stats.Set("entryCount", Number::New(info.Env(), stat.ms_entries));
+    stats.Set("overflowPages", Number::New(info.Env(), stat.ms_overflow_pages));
+    return stats;
 }
 
-NAN_METHOD(EnvWrap::info) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::info(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
-
     int rc;
     MDB_envinfo envinfo;
 
-    rc = mdb_env_info(ew->env, &envinfo);
+    rc = mdb_env_info(this->env, &envinfo);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
-
-    Local<Context> context = Nan::GetCurrentContext();
-    Local<Object> obj = Nan::New<Object>();
-    (void)obj->Set(context, Nan::New<String>("mapAddress").ToLocalChecked(), Nan::New<Number>((uint64_t) envinfo.me_mapaddr));
-    (void)obj->Set(context, Nan::New<String>("mapSize").ToLocalChecked(), Nan::New<Number>(envinfo.me_mapsize));
-    (void)obj->Set(context, Nan::New<String>("lastPageNumber").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_pgno));
-    (void)obj->Set(context, Nan::New<String>("lastTxnId").ToLocalChecked(), Nan::New<Number>(envinfo.me_last_txnid));
-    (void)obj->Set(context, Nan::New<String>("maxReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_maxreaders));
-    (void)obj->Set(context, Nan::New<String>("numReaders").ToLocalChecked(), Nan::New<Number>(envinfo.me_numreaders));
-
-    info.GetReturnValue().Set(obj);
+    Object stats = Object::New(info.Env());
+    stats.Set("mapAddress", Number::New(info.Env(), envinfo.me_mapaddr));
+    stats.Set("mapSize", Number::New(info.Env(), envinfo.me_mapsize));
+    stats.Set("lastPageNumber", Number::New(info.Env(), envinfo.me_last_txnid));
+    stats.Set("lastTxnId", Number::New(info.Env(), envinfo.ms_leaf_pages));
+    stats.Set("maxReaders", Number::New(info.Env(), envinfo.me_maxreaders));
+    stats.Set("numReaders", Number::New(info.Env(), envinfo.me_numreaders));
+    return stats;
 }
 
-NAN_METHOD(EnvWrap::readerCheck) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::readerCheck(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
 
     int rc, dead;
-    rc = mdb_reader_check(ew->env, &dead);
+    rc = mdb_reader_check(this->env, &dead);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
-
-    info.GetReturnValue().Set(Nan::New<Number>(dead));
+    return Number::New(dead);
 }
 
-Local<Array> readerStrings;
+napi_array readerStrings;
 MDB_msg_func* printReaders = ([](const char* message, void* ctx) -> int {
-    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), Nan::New<String>(message).ToLocalChecked()).ToChecked();
+    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), String::New(env, message)).ToChecked();
     return 0;
 });
 
-NAN_METHOD(EnvWrap::readerList) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::readerList(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
 
-    readerStrings = Nan::New<Array>(0);
+    napi_create_array(info.Env(), &readerStrings);
     int rc;
-    rc = mdb_reader_list(ew->env, printReaders, nullptr);
+    rc = mdb_reader_list(this->env, printReaders, nullptr);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
-    info.GetReturnValue().Set(readerStrings);
+    return readerStrings;
 }
 
 
-NAN_METHOD(EnvWrap::copy) {
-    Nan::HandleScope scope;
-
-    // Get the wrapper
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+napi_value EnvWrap::copy(const CallbackInfo& info) {
+    if (!this->env) {
+        return throwError("The environment is already closed.");
     }
 
     // Check that the correct number/type of arguments was given.
     if (!info[0]->IsString()) {
-        return Nan::ThrowError("Call env.copy(path, compact?, callback) with a file path.");
+        return throwError("Call env.copy(path, compact?, callback) with a file path.");
     }
     if (!info[info.Length() - 1]->IsFunction()) {
-        return Nan::ThrowError("Call env.copy(path, compact?, callback) with a file path.");
+        return throwError("Call env.copy(path, compact?, callback) with a file path.");
     }
     Nan::Utf8String path(info[0].As<String>());
 
@@ -579,45 +478,45 @@ NAN_METHOD(EnvWrap::copy) {
         flags = MDB_CP_COMPACT;
     }
 
-    Nan::Callback* callback = new Nan::Callback(
+    Function* callback = new Function(
       Local<v8::Function>::Cast(info[info.Length()  > 2 ? 2 : 1])
     );
 
     CopyWorker* worker = new CopyWorker(
-      ew->env, *path, flags, callback
+      this->env, *path, flags, callback
     );
 
-    Nan::AsyncQueueWorker(worker);
+    AsyncQueueWorker(worker);
 }
 
-NAN_METHOD(EnvWrap::detachBuffer) {
-    Nan::HandleScope scope;
+napi_value EnvWrap::detachBuffer(const CallbackInfo& info) {
+
     #if NODE_VERSION_AT_LEAST(12,0,0)
     Local<v8::ArrayBuffer>::Cast(info[0])->Detach();
     #endif
 }
 
-NAN_METHOD(EnvWrap::beginTxn) {
-    Nan::HandleScope scope;
+napi_value EnvWrap::beginTxn(const CallbackInfo& info) {
+
 
     Nan::MaybeLocal<Object> maybeInstance;
 
     int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
     if (!(flags & MDB_RDONLY)) {
         EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-        MDB_env *env = ew->env;
+        MDB_env *env = this->env;
         unsigned int envFlags;
         mdb_env_get_flags(env, &envFlags);
         MDB_txn *txn;
 
-        if (ew->writeTxn)
-            txn = ew->writeTxn->txn;
-        else if (ew->writeWorker) {
+        if (this->writeTxn)
+            txn = this->writeTxn->txn;
+        else if (this->writeWorker) {
             // try to acquire the txn from the current batch
-            txn = ew->writeWorker->AcquireTxn(&flags);
-            //fprintf(stderr, "acquired %p %p %p\n", ew->writeWorker, txn, flags);
+            txn = this->writeWorker->AcquireTxn(&flags);
+            //fprintf(stderr, "acquired %p %p %p\n", this->writeWorker, txn, flags);
         } else {
-            pthread_mutex_lock(ew->writingLock);
+            pthread_mutex_lock(this->writingLock);
             txn = nullptr;
         }
 
@@ -629,8 +528,8 @@ NAN_METHOD(EnvWrap::beginTxn) {
                     // child txn
                     mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
                     TxnTracked* childTxn = new TxnTracked(txn, flags);
-                    childTxn->parent = ew->writeTxn;
-                    ew->writeTxn = childTxn;
+                    childTxn->parent = this->writeTxn;
+                    this->writeTxn = childTxn;
                     return;
                 }
             }
@@ -638,7 +537,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
             mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
             flags |= TXN_ABORTABLE;
         }
-        ew->writeTxn = new TxnTracked(txn, flags);
+        this->writeTxn = new TxnTracked(txn, flags);
         return;
     }
 
@@ -658,7 +557,7 @@ NAN_METHOD(EnvWrap::beginTxn) {
 
     // Check if txn could be created
     if ((maybeInstance.IsEmpty())) {
-        // The maybeInstance is empty because the txnCtor called Nan::ThrowError.
+        // The maybeInstance is empty because the txnCtor called throwError.
         // No need to call that here again, the user will get the error thrown there.
         return;
     }
@@ -666,41 +565,41 @@ NAN_METHOD(EnvWrap::beginTxn) {
     Local<Object> instance = maybeInstance.ToLocalChecked();
     info.GetReturnValue().Set(instance);
 }
-NAN_METHOD(EnvWrap::commitTxn) {
+napi_value EnvWrap::commitTxn(const CallbackInfo& info) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    TxnTracked *currentTxn = ew->writeTxn;
+    TxnTracked *currentTxn = this->writeTxn;
     //fprintf(stderr, "commitTxn %p\n", currentTxn);
     int rc = 0;
     if (currentTxn->flags & TXN_ABORTABLE) {
         //fprintf(stderr, "txn_commit\n");
         rc = mdb_txn_commit(currentTxn->txn);
     }
-    ew->writeTxn = currentTxn->parent;
-    if (!ew->writeTxn) {
+    this->writeTxn = currentTxn->parent;
+    if (!this->writeTxn) {
         //fprintf(stderr, "unlock txn\n");
-        if (ew->writeWorker)
-            ew->writeWorker->UnlockTxn();
+        if (this->writeWorker)
+            this->writeWorker->UnlockTxn();
         else
-            pthread_mutex_unlock(ew->writingLock);
+            pthread_mutex_unlock(this->writingLock);
     }
     delete currentTxn;
     if (rc)
-        throwLmdbError(rc);
+        throwLmdbError(info.Env(), rc);
 }
-NAN_METHOD(EnvWrap::abortTxn) {
+napi_value EnvWrap::abortTxn(const CallbackInfo& info) {
     EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    TxnTracked *currentTxn = ew->writeTxn;
+    TxnTracked *currentTxn = this->writeTxn;
     if (currentTxn->flags & TXN_ABORTABLE) {
         mdb_txn_abort(currentTxn->txn);
     } else {
-        Nan::ThrowError("Can not abort this transaction");
+        throwError("Can not abort this transaction");
     }
-    ew->writeTxn = currentTxn->parent;
-    if (!ew->writeTxn) {
-        if (ew->writeWorker)
-            ew->writeWorker->UnlockTxn();
+    this->writeTxn = currentTxn->parent;
+    if (!this->writeTxn) {
+        if (this->writeWorker)
+            this->writeWorker->UnlockTxn();
         else
-            pthread_mutex_unlock(ew->writingLock);
+            pthread_mutex_unlock(this->writingLock);
     }
     delete currentTxn;
 }
@@ -729,7 +628,7 @@ extern "C" EXTERN void abortEnvTxn(double ewPointer) {
     if (currentTxn->flags & TXN_ABORTABLE) {
         mdb_txn_abort(currentTxn->txn);
     } else {
-        Nan::ThrowError("Can not abort this transaction");
+        throwError("Can not abort this transaction");
     }
     ew->writeTxn = currentTxn->parent;
     if (!ew->writeTxn) {
@@ -742,8 +641,8 @@ extern "C" EXTERN void abortEnvTxn(double ewPointer) {
 }
 
 
-NAN_METHOD(EnvWrap::openDbi) {
-    Nan::HandleScope scope;
+napi_value EnvWrap::openDbi(const CallbackInfo& info) {
+
 
     const unsigned argc = 5;
     Local<Value> argv[argc] = { info.This(), info[0], info[1], info[2], info[3] };
@@ -751,7 +650,7 @@ NAN_METHOD(EnvWrap::openDbi) {
 
     // Check if database could be opened
     if ((maybeInstance.IsEmpty())) {
-        // The maybeInstance is empty because the dbiCtor called Nan::ThrowError.
+        // The maybeInstance is empty because the dbiCtor called throwError.
         // No need to call that here again, the user will get the error thrown there.
         return;
     }
@@ -764,16 +663,13 @@ NAN_METHOD(EnvWrap::openDbi) {
         info.GetReturnValue().Set(instance);
 }
 
-NAN_METHOD(EnvWrap::sync) {
-    Nan::HandleScope scope;
-
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+napi_value EnvWrap::sync(const CallbackInfo& info) {
 
     if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+        return throwError("The environment is already closed.");
     }
     if (info.Length() > 0) {
-        Nan::Callback* callback = new Nan::Callback(
+        Function* callback = new Function(
         Local<v8::Function>::Cast(info[0])
         );
 
@@ -781,112 +677,109 @@ NAN_METHOD(EnvWrap::sync) {
         ew->env, callback
         );
 
-        Nan::AsyncQueueWorker(worker);
+        AsyncQueueWorker(worker);
     } else {
         int rc = mdb_env_sync(ew->env, 1);
         if (rc != 0) {
-            throwLmdbError(rc);
+            throwLmdbError(info.Env(), rc);
         }
     }
     return;
 }
 
-NAN_METHOD(EnvWrap::resetCurrentReadTxn) {
-    EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
+napi_value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
     mdb_txn_reset(ew->currentReadTxn);
     ew->readTxnRenewed = false;
 }
 
-void EnvWrap::setupExports(Local<Object> exports) {
+void EnvWrap::setupExports(Env env, Object exports) {
     // EnvWrap: Prepare constructor template
-    Local<FunctionTemplate> envTpl = Nan::New<FunctionTemplate>(EnvWrap::ctor);
-    envTpl->SetClassName(Nan::New<String>("Env").ToLocalChecked());
-    envTpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // EnvWrap: Add functions to the prototype
-    Isolate *isolate = Isolate::GetCurrent();
-    envTpl->PrototypeTemplate()->Set(isolate, "open", Nan::New<FunctionTemplate>(EnvWrap::open));
-    envTpl->PrototypeTemplate()->Set(isolate, "getMaxKeySize", Nan::New<FunctionTemplate>(EnvWrap::getMaxKeySize));
-    envTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(EnvWrap::close));
-    envTpl->PrototypeTemplate()->Set(isolate, "beginTxn", Nan::New<FunctionTemplate>(EnvWrap::beginTxn));
-    envTpl->PrototypeTemplate()->Set(isolate, "commitTxn", Nan::New<FunctionTemplate>(EnvWrap::commitTxn));
-    envTpl->PrototypeTemplate()->Set(isolate, "abortTxn", Nan::New<FunctionTemplate>(EnvWrap::abortTxn));
-    envTpl->PrototypeTemplate()->Set(isolate, "openDbi", Nan::New<FunctionTemplate>(EnvWrap::openDbi));
-    envTpl->PrototypeTemplate()->Set(isolate, "sync", Nan::New<FunctionTemplate>(EnvWrap::sync));
-    envTpl->PrototypeTemplate()->Set(isolate, "startWriting", Nan::New<FunctionTemplate>(EnvWrap::startWriting));
-    envTpl->PrototypeTemplate()->Set(isolate, "compress", Nan::New<FunctionTemplate>(EnvWrap::compress));
-    envTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(EnvWrap::stat));
-    envTpl->PrototypeTemplate()->Set(isolate, "freeStat", Nan::New<FunctionTemplate>(EnvWrap::freeStat));
-    envTpl->PrototypeTemplate()->Set(isolate, "info", Nan::New<FunctionTemplate>(EnvWrap::info));
-    envTpl->PrototypeTemplate()->Set(isolate, "readerCheck", Nan::New<FunctionTemplate>(EnvWrap::readerCheck));
-    envTpl->PrototypeTemplate()->Set(isolate, "readerList", Nan::New<FunctionTemplate>(EnvWrap::readerList));
-    envTpl->PrototypeTemplate()->Set(isolate, "resize", Nan::New<FunctionTemplate>(EnvWrap::resize));
-    envTpl->PrototypeTemplate()->Set(isolate, "copy", Nan::New<FunctionTemplate>(EnvWrap::copy));
-    envTpl->PrototypeTemplate()->Set(isolate, "detachBuffer", Nan::New<FunctionTemplate>(EnvWrap::detachBuffer));
-    envTpl->PrototypeTemplate()->Set(isolate, "resetCurrentReadTxn", Nan::New<FunctionTemplate>(EnvWrap::resetCurrentReadTxn));
+    Function EnvClass = DefineClass(env, "Env", {
+        EnvWrap::InstanceMethod("open", &EnvWrap::open),
+        EnvWrap::InstanceMethod("getMaxKeySize", &EnvWrap::getMaxKeySize),
+        EnvWrap::InstanceMethod("close", &EnvWrap::close),
+        EnvWrap::InstanceMethod("beginTxn", &EnvWrap::beginTxn),
+        EnvWrap::InstanceMethod("commitTxn", &EnvWrap::commitTxn),
+        EnvWrap::InstanceMethod("abortTxn", &EnvWrap::abortTxn),
+        EnvWrap::InstanceMethod("openDbi", &EnvWrap::openDbi),
+        EnvWrap::InstanceMethod("sync", &EnvWrap::sync),
+        EnvWrap::InstanceMethod("startWriting", &EnvWrap::startWriting),
+        EnvWrap::InstanceMethod("compress", &EnvWrap::compress),
+        EnvWrap::InstanceMethod("stat", &EnvWrap::stat),
+        EnvWrap::InstanceMethod("freeStat", &EnvWrap::freeStat),
+        EnvWrap::InstanceMethod("info", &EnvWrap::info),
+        EnvWrap::InstanceMethod("readerCheck", &EnvWrap::readerCheck),
+        EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
+        EnvWrap::InstanceMethod("resize", &EnvWrap::resize),
+        EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
+        EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
+        EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
+    });
+    //envTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    exports.Set("Env", EnvClass);
 
     // TxnWrap: Prepare constructor template
-    Local<FunctionTemplate> txnTpl = Nan::New<FunctionTemplate>(TxnWrap::ctor);
-    txnTpl->SetClassName(Nan::New<String>("Txn").ToLocalChecked());
-    txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // TxnWrap: Add functions to the prototype
-    txnTpl->PrototypeTemplate()->Set(isolate, "commit", Nan::New<FunctionTemplate>(TxnWrap::commit));
-    txnTpl->PrototypeTemplate()->Set(isolate, "abort", Nan::New<FunctionTemplate>(TxnWrap::abort));
-    txnTpl->PrototypeTemplate()->Set(isolate, "reset", Nan::New<FunctionTemplate>(TxnWrap::reset));
-    txnTpl->PrototypeTemplate()->Set(isolate, "renew", Nan::New<FunctionTemplate>(TxnWrap::renew));
+    Function TxnClass = DefineClass(env, "Txn", {
+        // TxnWrap: Add functions to the prototype
+        TxnWrap::InstanceMethod("commit", &TxnWrap::commit),
+        TxnWrap::InstanceMethod("abort", &TxnWrap::abort),
+        TxnWrap::InstanceMethod("reset", &TxnWrap::reset),
+        TxnWrap::InstanceMethod("renew", &TxnWrap::renew),
+    });
+    exports.Set("Txn", TxnClass);
+    //txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
+
     // TODO: wrap mdb_cmp too
     // TODO: wrap mdb_dcmp too
     // TxnWrap: Get constructor
-    EnvWrap::txnCtor = new Nan::Persistent<Function>();
-    EnvWrap::txnCtor->Reset( txnTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    /*EnvWrap::txnCtor = new Nan::Persistent<Function>();
+    EnvWrap::txnCtor->Reset( txnTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());*/
+    Function DbiClass = DefineClass(env, "Dbi", {
 
-    // DbiWrap: Prepare constructor template
-    Local<FunctionTemplate> dbiTpl = Nan::New<FunctionTemplate>(DbiWrap::ctor);
-    dbiTpl->SetClassName(Nan::New<String>("Dbi").ToLocalChecked());
-    dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
-    // DbiWrap: Add functions to the prototype
-    dbiTpl->PrototypeTemplate()->Set(isolate, "close", Nan::New<FunctionTemplate>(DbiWrap::close));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "drop", Nan::New<FunctionTemplate>(DbiWrap::drop));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "stat", Nan::New<FunctionTemplate>(DbiWrap::stat));
+        // DbiWrap: Prepare constructor template
+        // DbiWrap: Add functions to the prototype
+        TxnWrap::InstanceMethod("close", &DbiWrap::close),
+        TxnWrap::InstanceMethod("drop", &DbiWrap::drop),
+        TxnWrap::InstanceMethod("stat", &DbiWrap::stat),
+        TxnWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
+        TxnWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
+        TxnWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
+
+    });
     #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
-    dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
+    TxnWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
     auto writeFast = CFunction::Make(EnvWrap::writeFast);
-    envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
+    EnvWrap::InstanceMethod("write", v8::FunctionTemplate::New(
         isolate, EnvWrap::write, v8::Local<v8::Value>(),
         v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
         v8::SideEffectType::kHasNoSideEffect, &writeFast));
 
     #else
-    dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
+    TxnWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect));
-    envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
+    EnvWrap::InstanceMethod("write", v8::FunctionTemplate::New(
         isolate, EnvWrap::write, v8::Local<v8::Value>(),
         v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
         v8::SideEffectType::kHasNoSideEffect));
     #endif
-    dbiTpl->PrototypeTemplate()->Set(isolate, "getStringByBinary", Nan::New<FunctionTemplate>(DbiWrap::getStringByBinary));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "getSharedByBinary", Nan::New<FunctionTemplate>(DbiWrap::getSharedByBinary));
-    dbiTpl->PrototypeTemplate()->Set(isolate, "prefetch", Nan::New<FunctionTemplate>(DbiWrap::prefetch));
+//    dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 
     // TODO: wrap mdb_stat too
     // DbiWrap: Get constructor
-    EnvWrap::dbiCtor = new Nan::Persistent<Function>();
-    EnvWrap::dbiCtor->Reset( dbiTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
-
-    Local<FunctionTemplate> compressionTpl = Nan::New<FunctionTemplate>(Compression::ctor);
-    compressionTpl->SetClassName(Nan::New<String>("Compression").ToLocalChecked());
-    compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
-    compressionTpl->PrototypeTemplate()->Set(isolate, "setBuffer", Nan::New<FunctionTemplate>(Compression::setBuffer));
-    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Compression").ToLocalChecked(), compressionTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
-
-    // Set exports
-    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Env").ToLocalChecked(), envTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+    /*EnvWrap::dbiCtor = napi_create_reference(env, new Nan::Persistent<Function>());
+    EnvWrap::dbiCtor->Reset( dbiTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());*/
+    Function CompressionClass = DefineClass(env, "Compression", {
+        CompressionWrap::InstanceMethod("setBuffer", &Compression::setBuffer),
+    });
+    exports.Set("Compression", CompressionClass);
+//    compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
 }
 
 extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,

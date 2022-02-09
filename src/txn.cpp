@@ -88,7 +88,7 @@ NAN_METHOD(TxnWrap::ctor) {
             if (rc == EINVAL) {
                 return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)");
             }
-            return throwLmdbError(rc);
+            return throwLmdbError(info.Env(), rc);
         }
     }
     TxnWrap* tw = new TxnWrap(ew->env, txn);
@@ -206,7 +206,7 @@ NAN_METHOD(TxnWrap::commit) {
     tw->removeFromEnvWrap();
 
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 }
 
@@ -249,7 +249,7 @@ NAN_METHOD(TxnWrap::renew) {
 
     int rc = mdb_txn_renew(tw->txn);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 }
 

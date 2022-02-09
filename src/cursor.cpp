@@ -48,7 +48,7 @@ NAN_METHOD(CursorWrap::ctor) {
     MDB_txn *txn = dw->ew->getReadTxn();
     int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 
     // Create wrapper
@@ -102,7 +102,7 @@ NAN_METHOD(CursorWrap::del) {
 
     int rc = mdb_cursor_del(cw->cursor, flags);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 }
 int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
@@ -192,7 +192,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 size_t count;
                 rc = mdb_cursor_count(cursor, &count);
                 if (rc)
-                    throwLmdbError(rc);
+                    throwLmdbError(info.Env(), rc);
                 return count;
             }
         } else {
@@ -240,7 +240,7 @@ uint32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endK
                 size_t countForKey;
                 rc = mdb_cursor_count(cursor, &countForKey);
                 if (rc)
-                    throwLmdbError(rc);
+                    throwLmdbError(info.Env(), rc);
                 count += countForKey;
             } else
                 count++;
@@ -329,25 +329,24 @@ NAN_METHOD(CursorWrap::renew) {
     // Unwrap Txn and Dbi
     int rc = mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 }
 extern "C" EXTERN int cursorRenew(double cwPointer) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
     return mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
 }
-void CursorWrap::setupExports(Local<Object> exports) {
+void CursorWrap::setupExports(Env env, Object exports) {
     // CursorWrap: Prepare constructor template
-    Local<FunctionTemplate> cursorTpl = Nan::New<FunctionTemplate>(CursorWrap::ctor);
-    cursorTpl->SetClassName(Nan::New<String>("Cursor").ToLocalChecked());
-    cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
+    Function CursorClass = DefineClass(env, "Cursor", {
     // CursorWrap: Add functions to the prototype
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("close").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::close));
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("del").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::del));
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("getCurrentValue").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::getCurrentValue));
+        CursorWrap::InstanceMethod("close", &CursorWrap::close),
+        CursorWrap::InstanceMethod("del", &CursorWrap::del),
+        CursorWrap::InstanceMethod("getCurrentValue", &CursorWrap::getCurrentValue),
+        CursorWrap::InstanceMethod("renew", &CursorWrap::renew),
 
-    Isolate *isolate = Isolate::GetCurrent();
     #ifdef ENABLE_FAST_API
+    Isolate *isolate = Isolate::GetCurrent();
     auto positionFast = CFunction::Make(CursorWrap::positionFast);
     cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
           isolate, CursorWrap::position, v8::Local<v8::Value>(),
@@ -360,21 +359,13 @@ void CursorWrap::setupExports(Local<Object> exports) {
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &iterateFast));
     #else
-    cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
-          isolate, CursorWrap::position, v8::Local<v8::Value>(),
-          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect));
-
-    cursorTpl->PrototypeTemplate()->Set(isolate, "iterate", v8::FunctionTemplate::New(
-          isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
-          v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-          v8::SideEffectType::kHasNoSideEffect));
+        CursorWrap::InstanceMethod("position", &CursorWrap::position),
+        CursorWrap::InstanceMethod("iterate", &CursorWrap::iterate),
     #endif
+    });
+    exports.Set("Cursor", CursorClass);
 
-    cursorTpl->PrototypeTemplate()->Set(Nan::New<String>("renew").ToLocalChecked(), Nan::New<FunctionTemplate>(CursorWrap::renew));
-
-    // Set exports
-    (void)exports->Set(Nan::GetCurrentContext(), Nan::New<String>("Cursor").ToLocalChecked(), cursorTpl->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());
+//    cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
 }
 
 // This file contains code from the node-lmdb project

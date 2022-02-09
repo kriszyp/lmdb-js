@@ -4,17 +4,48 @@
 using namespace v8;
 using namespace node;
 
-void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
 
-DbiWrap::DbiWrap(MDB_env *env, MDB_dbi dbi) {
-    this->env = env;
-    this->dbi = dbi;
+DbiWrap::DbiWrap() {
+    this->dbi = 0;
     this->keyType = LmdbKeyType::DefaultKey;
     this->compression = nullptr;
     this->isOpen = false;
     this->getFast = false;
     this->ew = nullptr;
+    EnvWrap *ew;
+    napi_unwrap(info.Env(), info[0], &ew);
+    this->env = ew->env;
+    this->ew = ew;
+    int flags = info[1].As<Number>();
+    char* nameBytes;
+    if (info[2].IsString()) {
+        int maxLength = info[2].As<String>().Length() * 3 + 1;
+        nameBytes = new char[maxLength];
+        napi_get_value_string_utf8(info.Env(), info[2], nameBytes, maxLength, &maxLength);
+    } else
+        nameBytes = nullptr;
+    LmdbKeyType keyType = (LmdbKeyType) info[1].As<Number>();
+    Compression* compression;
+    if (info[4]->IsObject())
+        napi_unwrap(info.Env(), info[0], &compression);
+    else
+        compression = nullptr;
+    int rc = this->open(flags & ~HAS_VERSIONS, nameBytes, flags & HAS_VERSIONS,
+        keyType, compression);
+    if (nameBytes)
+        delete nameBytes;
+    if (rc) {
+        if (rc == MDB_NOTFOUND)
+            this->dbi = (MDB_dbi) 0xffffffff;
+        else {
+            //delete this;
+            return throwLmdbError(info.Env(), rc);
+        }
+    }
+    info.This().Set("dbi", Number::New(this->dbi));
 }
+
 
 DbiWrap::~DbiWrap() {
     // Imagine the following JS:
@@ -31,40 +62,6 @@ DbiWrap::~DbiWrap() {
     // NOTE: according to LMDB authors, it is perfectly fine if mdb_dbi_close is never called on an MDB_dbi
 }
 
-NAN_METHOD(DbiWrap::ctor) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
-    DbiWrap* dw = new DbiWrap(ew->env, 0);
-    dw->ew = ew;
-    int flags = info[1]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    char* nameBytes;
-    if (info[2]->IsString()) {
-        Local<String> name = Local<String>::Cast(info[2]);
-        nameBytes = new char[name->Length() * 3 + 1];
-        name->WriteUtf8(Isolate::GetCurrent(), nameBytes, -1);
-    } else
-        nameBytes = nullptr;
-    LmdbKeyType keyType = (LmdbKeyType) info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    Compression* compression;
-    if (info[4]->IsObject())
-        compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<v8::Object>(info[4]).ToLocalChecked());
-    else
-        compression = nullptr;
-    int rc = dw->open(flags & ~HAS_VERSIONS, nameBytes, flags & HAS_VERSIONS,
-        keyType, compression);
-    if (nameBytes)
-        delete nameBytes;
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            dw->dbi = (MDB_dbi) 0xffffffff;
-        else {
-            delete dw;
-            return throwLmdbError(rc);
-        }
-    }
-    dw->Wrap(info.This());
-    (void)info.This()->Set(Nan::GetCurrentContext(), Nan::New<String>("dbi").ToLocalChecked(), Nan::New<Number>(dw->dbi));
-    return info.GetReturnValue().Set(info.This());
-}
 
 int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression) {
     MDB_txn* txn = ew->getReadTxn();
@@ -86,47 +83,37 @@ extern "C" EXTERN uint32_t getDbi(double dw) {
     return (uint32_t) ((DbiWrap*) (size_t) dw)->dbi;
 }
 
-NAN_METHOD(DbiWrap::close) {
-    Nan::HandleScope scope;
-
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
-    if (dw->isOpen) {
-        mdb_dbi_close(dw->env, dw->dbi);
-        dw->isOpen = false;
-        dw->ew = nullptr;
+napi_value DbiWrap::close(const Napi::CallbackInfo& info) {
+    if (this->isOpen) {
+        mdb_dbi_close(this->env, this->dbi);
+        this->isOpen = false;
+        this->ew = nullptr;
     }
     else {
         return Nan::ThrowError("The Dbi is not open, you can't close it.");
     }
 }
 
-NAN_METHOD(DbiWrap::drop) {
-    Nan::HandleScope scope;
-
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
+napi_value DbiWrap::drop(const Napi::CallbackInfo& info) {
     int del = 1;
     int rc;
-    if (!dw->isOpen) {
+    if (!this->isOpen) {
         return Nan::ThrowError("The Dbi is not open, you can't drop it.");
     }
 
     // Check if the database should be deleted
-    if (info.Length() == 1 && info[0]->IsObject()) {
-        Local<Object> options = Local<Object>::Cast(info[0]);
+    if (info.Length() == 1 && info[0].IsObject()) {
+        Object options = info[0].As<Object>();
         
         // Just free pages
-        Local<Value> opt = options->Get(Nan::GetCurrentContext(), Nan::New<String>("justFreePages").ToLocalChecked()).ToLocalChecked();
-        #if NODE_VERSION_AT_LEAST(12,0,0)
-        del = opt->IsBoolean() ? !(opt->BooleanValue(Isolate::GetCurrent())) : 1;
-        #else
-        del = opt->IsBoolean() ? !(opt->BooleanValue(Nan::GetCurrentContext()).FromJust()) : 1;
-        #endif
+        Value opt = options.Get("justFreePages");
+        del = opt.IsBoolean() ? !opt.BooleanValue() : 1;
     }
 
     // Drop database
     rc = mdb_drop(dw->ew->writeTxn->txn, dw->dbi, del);
     if (rc != 0) {
-        return throwLmdbError(rc);
+        return throwLmdbError(info.Env(), rc);
     }
 
     // Only close database if del == 1
@@ -136,23 +123,17 @@ NAN_METHOD(DbiWrap::drop) {
     }
 }
 
-NAN_METHOD(DbiWrap::stat) {
-    Nan::HandleScope scope;
-
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(info.This());
+napi_value DbiWrap::stat(const Napi::CallbackInfo& info) {
     MDB_stat stat;
-    mdb_stat(dw->ew->getReadTxn(), dw->dbi, &stat);
-
-    Local<Context> context = Nan::GetCurrentContext();
-    Local<Object> obj = Nan::New<Object>();
-    (void)obj->Set(context, Nan::New<String>("pageSize").ToLocalChecked(), Nan::New<Number>(stat.ms_psize));
-    (void)obj->Set(context, Nan::New<String>("treeDepth").ToLocalChecked(), Nan::New<Number>(stat.ms_depth));
-    (void)obj->Set(context, Nan::New<String>("treeBranchPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_branch_pages));
-    (void)obj->Set(context, Nan::New<String>("treeLeafPageCount").ToLocalChecked(), Nan::New<Number>(stat.ms_leaf_pages));
-    (void)obj->Set(context, Nan::New<String>("entryCount").ToLocalChecked(), Nan::New<Number>(stat.ms_entries));
-    (void)obj->Set(context, Nan::New<String>("overflowPages").ToLocalChecked(), Nan::New<Number>(stat.ms_overflow_pages));
-
-    info.GetReturnValue().Set(obj);
+    mdb_stat(this->ew->getReadTxn(), dw->dbi, &stat);
+    Object stats = Object::New(info.Env());
+    stats.Set("pageSize", Number::New(info.Env(), stat.ms_psize));
+    stats.Set("treeDepth", Number::New(info.Env(), stat.ms_depth));
+    stats.Set("treeBranchPageCount", Number::New(info.Env(), stat.ms_branch_pages));
+    stats.Set("treeLeafPageCount", Number::New(info.Env(), stat.ms_leaf_pages));
+    stats.Set("entryCount", Number::New(info.Env(), stat.ms_entries));
+    stats.Set("overflowPages", Number::New(info.Env(), stat.ms_overflow_pages));
+    return stats;
 }
 
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
@@ -214,58 +195,50 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
     return data.mv_size;
 }
 
-void DbiWrap::getByBinary(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_txn* txn = dw->ew->getReadTxn();
+void DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
+    char* keyBuffer = this->ew->keyBuffer;
+    MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
     key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
     key.mv_data = (void*) keyBuffer;
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    int rc = mdb_get(txn, this->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
             return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
         else
-            return throwLmdbError(rc);
+            return throwLmdbError(info.Env(), rc);
     }   
-    rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToBinaryUnsafe(data, dw));
+    rc = getVersionAndUncompress(data, this);
+    return info.GetReturnValue().Set(valToBinaryUnsafe(data, this));
 }
-NAN_METHOD(DbiWrap::getSharedByBinary) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_txn* txn = dw->ew->getReadTxn();
+napi_value DbiWrap::getSharedByBinary(const Napi::CallbackInfo& info) {
+    char* keyBuffer = this->ew->keyBuffer;
+    MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
     key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
     key.mv_data = (void*) keyBuffer;
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    int rc = mdb_get(txn, this->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
             return info.GetReturnValue().Set(Nan::Undefined());
         else
-            return throwLmdbError(rc);
+            return throwLmdbError(info.Env(), rc);
     }   
-    rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(Nan::NewBuffer((char*) data.mv_data,
-                                           data.mv_size,
+    rc = getVersionAndUncompress(data, this);
+    napi_value buffer;
+    napi_create_external_buffer(info.Env(), data.mv_size,
+        (char*) data.mv_data,              
                                            [](char *, void *) {
             // Data belongs to LMDB, we shouldn't free it here
-        }, nullptr).ToLocalChecked());
+        }, nullptr, &buffer);
+    return buffer;
 }
 
-NAN_METHOD(DbiWrap::getStringByBinary) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_txn* txn = dw->ew->getReadTxn();
+napi_value DbiWrap::getStringByBinary(const Napi::CallbackInfo& info) {
+    char* keyBuffer = this->ew->keyBuffer;
+    MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
     key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
@@ -275,9 +248,9 @@ NAN_METHOD(DbiWrap::getStringByBinary) {
         if (rc == MDB_NOTFOUND)
             return info.GetReturnValue().Set(Nan::Undefined());
         else
-            return throwLmdbError(rc);
+            return throwLmdbError(info.Env(), rc);
     }
-    rc = getVersionAndUncompress(data, dw);
+    rc = getVersionAndUncompress(data, this);
     if (rc)
         return info.GetReturnValue().Set(valToUtf8(data));
     else
@@ -332,22 +305,17 @@ int DbiWrap::prefetch(uint32_t* keys) {
     return effected;
 }
 
-class PrefetchWorker : public Nan::AsyncWorker {
+class PrefetchWorker : public AsyncWorker {
   public:
-    PrefetchWorker(DbiWrap* dw, uint32_t* keys, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), dw(dw), keys(keys) {}
+    PrefetchWorker(DbiWrap* dw, uint32_t* keys, Function& callback)
+      : AsyncWorker(callback), dw(dw), keys(keys) {}
 
     void Execute() {
         dw->prefetch(keys);
     }
 
-    void HandleOKCallback() {
-        Nan::HandleScope scope;
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-
-        callback->Call(1, argv, async_resource);
+    void OnOK() {
+        Callback().Call({Env().Null()});
     }
 
   private:
@@ -355,15 +323,10 @@ class PrefetchWorker : public Nan::AsyncWorker {
     uint32_t* keys;
 };
 
-NAN_METHOD(DbiWrap::prefetch) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
-    size_t keysAddress = Local<Number>::Cast(info[0])->Value();
-    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
-
-    PrefetchWorker* worker = new PrefetchWorker(dw, (uint32_t*) keysAddress, callback);
-    Nan::AsyncQueueWorker(worker);
+void DbiWrap::prefetch(const Napi::CallbackInfo& info) {
+    size_t keysAddress = info[0].As<Number>();
+    PrefetchWorker* worker = new PrefetchWorker(dw, (uint32_t*) keysAddress, info[1].As<Function>());
+    worker->Queue();
 }
 
 

@@ -11,12 +11,12 @@ void setupExportMisc(Local<Object> exports) {
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
     Local<Context> context = Nan::GetCurrentContext();
-    (void)versionObj->Set(context, Nan::New<String>("versionString").ToLocalChecked(), Nan::New<String>(str).ToLocalChecked());
-    (void)versionObj->Set(context, Nan::New<String>("major").ToLocalChecked(), Nan::New<Integer>(major));
-    (void)versionObj->Set(context, Nan::New<String>("minor").ToLocalChecked(), Nan::New<Integer>(minor));
-    (void)versionObj->Set(context, Nan::New<String>("patch").ToLocalChecked(), Nan::New<Integer>(patch));
+    (void)versionObj->Set(context, String::New(env, "versionString"), String::New(env, str));
+    (void)versionObj->Set(context, String::New(env, "major"), Nan::New<Integer>(major));
+    (void)versionObj->Set(context, String::New(env, "minor"), Nan::New<Integer>(minor));
+    (void)versionObj->Set(context, String::New(env, "patch"), Nan::New<Integer>(patch));
 
-    (void)exports->Set(context, Nan::New<String>("version").ToLocalChecked(), versionObj);
+    (void)exports->Set(context, String::New(env, "version"), versionObj);
     Nan::SetMethod(exports, "setGlobalBuffer", setGlobalBuffer);
     Nan::SetMethod(exports, "lmdbError", lmdbError);
     //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
@@ -40,9 +40,17 @@ extern "C" EXTERN void getError(int rc, char* target) {
     strcpy(target, mdb_strerror(rc));
 }
 
+void throwError(const char* message) {
+    v8::Isolate::GetCurrent()->ThrowException(String::New(env, message));
+}
+
+v8::Local<v8::String> String::New(env, const char* str) {
+    return v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), str).ToLocalChecked();
+}
+
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
     Local<Context> context = Nan::GetCurrentContext();
-    Local<Value> opt = options->Get(context, Nan::New<String>(name).ToLocalChecked()).ToLocalChecked();
+    Local<Value> opt = options->Get(context, String::New(env, name)).ToLocalChecked();
     #if NODE_VERSION_AT_LEAST(12,0,0)
     if (opt->IsBoolean() ? opt->BooleanValue(Isolate::GetCurrent()) : defaultValue) {
     #else
@@ -182,7 +190,7 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 }
 
 NAN_METHOD(lmdbError) {
-    throwLmdbError(Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+    throwLmdbError(info.Env(), Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
 }
 
 NAN_METHOD(setGlobalBuffer) {
@@ -212,7 +220,7 @@ NAN_METHOD(lmdbNativeFunctions) {
     // no-op, just doing this to give a label to the native functions
 }
 
-void throwLmdbError(int rc) {
+void throwLmdbError(Env env, int rc) {
     auto err = Nan::Error(mdb_strerror(rc));
     (void)err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
     return Nan::ThrowError(err);
@@ -220,7 +228,7 @@ void throwLmdbError(int rc) {
 
 void consoleLog(const char *msg) {
     Local<String> str = Nan::New("console.log('").ToLocalChecked();
-    //str = String::Concat(str, Nan::New<String>(msg).ToLocalChecked());
+    //str = String::Concat(str, String::New(env, msg));
     //str = String::Concat(str, Nan::New("');").ToLocalChecked());
 
     Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
@@ -228,7 +236,7 @@ void consoleLog(const char *msg) {
 }
 
 void consoleLog(Local<Value> val) {
-    Local<String> str = Nan::New<String>("console.log('").ToLocalChecked();
+    Local<String> str = String::New(env, "console.log('");
     //str = String::Concat(str, Local<String>::Cast(val));
     //str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
 

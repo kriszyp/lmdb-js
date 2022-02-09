@@ -27,6 +27,10 @@
 #include <vector>
 #include <algorithm>
 #include <v8.h>
+#define NAPI_VERSION 4
+#include <napi.h>
+#include <node_api.h>
+
 #include <node.h>
 #include <node_buffer.h>
 #include <nan.h>
@@ -43,7 +47,7 @@
 #endif
 #endif
 
-using namespace v8;
+using namespace Napi;
 using namespace node;
 
 
@@ -129,17 +133,17 @@ class CursorWrap;
 class Compression;
 
 // Exports misc stuff to the module
-void setupExportMisc(Local<Object> exports);
+void setupExportMisc(Env env, Object exports);
 
 // Helper callback
 typedef void (*argtokey_callback_t)(MDB_val &key);
 
-void consoleLog(Local<Value> val);
+void consoleLog(Value val);
 void consoleLog(const char *msg);
 void consoleLogN(int n);
-void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options);
-void writeValueToEntry(const Local<Value> &str, MDB_val *val);
-LmdbKeyType keyTypeFromOptions(const Local<Value> &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
+void writeValueToEntry(const Value &str, MDB_val *val);
+LmdbKeyType keyTypeFromOptions(const Value &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
 NAN_METHOD(setGlobalBuffer);
@@ -163,11 +167,11 @@ NAN_METHOD(lmdbNativeFunctions);
 #endif
 
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw);
-Local<Value> valToUtf8(MDB_val &data);
-Local<Value> valToString(MDB_val &data);
-Local<Value> valToStringUnsafe(MDB_val &data);
-Local<Value> valToBinary(MDB_val &data);
-Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
+Value valToUtf8(MDB_val &data);
+Value valToString(MDB_val &data);
+Value valToStringUnsafe(MDB_val &data);
+Value valToBinary(MDB_val &data);
+Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
 
 int putWithVersion(MDB_txn *   txn,
         MDB_dbi     dbi,
@@ -175,7 +179,7 @@ int putWithVersion(MDB_txn *   txn,
         MDB_val *   data,
         unsigned int    flags, double version);
 
-void throwLmdbError(int rc);
+void throwLmdbError(Env env, int rc);
 
 class TxnWrap;
 class DbiWrap;
@@ -214,9 +218,9 @@ class WriteWorker {
     int progressStatus;
     MDB_env* env;
 };
-class NanWriteWorker : public WriteWorker, public Nan::AsyncProgressWorker {
+class NanWriteWorker : public WriteWorker, public AsyncProgressWorker {
   public:
-    NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback);
+    NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Callback *callback);
     void Execute(const ExecutionProgress& executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
     void HandleOKCallback();
@@ -239,14 +243,14 @@ class TxnTracked {
     Represents a database environment.
     (Wrapper for `MDB_env`)
 */
-class EnvWrap : public Nan::ObjectWrap {
+class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
     // List of open read transactions
     std::vector<TxnWrap*> readTxns;
     // Constructor for TxnWrap
-    static thread_local Nan::Persistent<Function>* txnCtor;
+    static thread_local napi_ref* txnCtor;
     // Constructor for DbiWrap
-    static thread_local Nan::Persistent<Function>* dbiCtor;
+    static thread_local napi_ref* dbiCtor;
     static pthread_mutex_t* envsLock;
     static std::vector<env_path_t> envs;
     static pthread_mutex_t* initMutex();
@@ -260,7 +264,7 @@ private:
     friend class DbiWrap;
 
 public:
-    EnvWrap();
+    EnvWrap(const CallbackInfo&);
     ~EnvWrap();
     // The wrapped object
     MDB_env *env;
@@ -279,7 +283,7 @@ public:
     MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
-    static void setupExports(Local<Object> exports);
+    static void setupExports(Env env, Object exports);
     void closeEnv();
     int openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
@@ -288,35 +292,35 @@ public:
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)
     */
-    static NAN_METHOD(ctor);
+    napi_value ctor(const Napi::CallbackInfo& info);
     
     /*
         Gets statistics about the database environment.
     */
-    static NAN_METHOD(stat);
+    napi_value stat(const Napi::CallbackInfo& info);
 
     /*
         Gets statistics about the free space database
     */
-    static NAN_METHOD(freeStat);
+    napi_value freeStat(const Napi::CallbackInfo& info);
     
     /*
         Detaches a buffer from the backing store
     */
-    static NAN_METHOD(detachBuffer);
+    napi_value detachBuffer(const Napi::CallbackInfo& info);
 
     /*
         Gets information about the database environment.
     */
-    static NAN_METHOD(info);
+    napi_value info(const Napi::CallbackInfo& info);
     /*
         Check for stale readers
     */
-    static NAN_METHOD(readerCheck);
+    napi_value readerCheck(const Napi::CallbackInfo& info);
     /*
         Print a list of readers
     */
-    static NAN_METHOD(readerList);
+    napi_value readerList(const Napi::CallbackInfo& info);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
@@ -333,8 +337,8 @@ public:
         * mapSize: maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
         * path: path to the database environment
     */
-    static NAN_METHOD(open);
-    static NAN_METHOD(getMaxKeySize);
+    napi_value open(const Napi::CallbackInfo& info);
+    napi_value getMaxKeySize(const Napi::CallbackInfo& info);
 
     /*
         Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.
@@ -344,7 +348,7 @@ public:
 
         * maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
     */
-    static NAN_METHOD(resize);
+    napi_value resize(const Napi::CallbackInfo& info);
 
     /*
         Copies the database environment to a file.
@@ -356,13 +360,13 @@ public:
         * compact (optional) - Copy using compact setting
         * callback - Callback when finished (this is performed asynchronously)
     */
-    static NAN_METHOD(copy);    
+    napi_value copy(const Napi::CallbackInfo& info);    
 
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */
-    static NAN_METHOD(close);
+    napi_value close(const Napi::CallbackInfo& info);
 
     /*
         Starts a new transaction in the environment.
@@ -376,9 +380,9 @@ public:
 
         * readOnly: if true, the transaction is read-only
     */
-    static NAN_METHOD(beginTxn);
-    static NAN_METHOD(commitTxn);
-    static NAN_METHOD(abortTxn);
+    napi_value beginTxn(const Napi::CallbackInfo& info);
+    napi_value commitTxn(const Napi::CallbackInfo& info);
+    napi_value abortTxn(const Napi::CallbackInfo& info);
 
     /*
         Opens a database in the environment.
@@ -399,7 +403,7 @@ public:
         * integerDup: duplicate data items are also integers, and should be sorted as such
         * reverseDup: duplicate data items should be compared as strings in reverse order
     */
-    static NAN_METHOD(openDbi);
+    napi_value openDbi(const Napi::CallbackInfo& info);
 
     /*
         Flushes all data to the disk asynchronously.
@@ -409,7 +413,7 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static NAN_METHOD(sync);
+    napi_value sync(const Napi::CallbackInfo& info);
 
     /*
         Performs a set of operations asynchronously, automatically wrapping it in its own transaction
@@ -418,14 +422,14 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    static NAN_METHOD(startWriting);
-    static NAN_METHOD(compress);
+    napi_value startWriting(const Napi::CallbackInfo& info);
+    napi_value compress(const Napi::CallbackInfo& info);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-    static void writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
+    static void writeFast(Object receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
 #endif
     static void write(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-    static NAN_METHOD(resetCurrentReadTxn);
+    napi_value resetCurrentReadTxn(const Napi::CallbackInfo& info);
 };
 
 const int TXN_ABORTABLE = 1;
@@ -437,7 +441,7 @@ const int TXN_FROM_WORKER = 4;
     Represents a transaction running on a database environment.
     (Wrapper for `MDB_txn`)
 */
-class TxnWrap : public Nan::ObjectWrap {
+class TxnWrap : public ObjectWrap<TxnWrap> {
 private:
 
     // Reference to the MDB_env of the wrapped MDB_txn
@@ -467,31 +471,31 @@ public:
     int begin(EnvWrap *ew, unsigned int flags);
 
     // Constructor (not exposed)
-    static NAN_METHOD(ctor);
+    napi_value ctor(const Napi::CallbackInfo& info);
 
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
     */
-    static NAN_METHOD(commit);
+    napi_value commit(const Napi::CallbackInfo& info);
 
     /*
         Aborts the transaction.
         (Wrapper for `mdb_txn_abort`)
     */
-    static NAN_METHOD(abort);
+    napi_value abort(const Napi::CallbackInfo& info);
 
     /*
         Aborts a read-only transaction but makes it renewable with `renew`.
         (Wrapper for `mdb_txn_reset`)
     */
-    static NAN_METHOD(reset);
+    napi_value reset(const Napi::CallbackInfo& info);
     void reset();
     /*
         Renews a read-only transaction after it has been reset.
         (Wrapper for `mdb_txn_renew`)
     */
-    static NAN_METHOD(renew);
+    napi_value renew(const Napi::CallbackInfo& info);
 
 };
 
@@ -501,7 +505,7 @@ const int HAS_VERSIONS = 0x1000;
     Represents a database instance in an environment.
     (Wrapper for `MDB_dbi`)
 */
-class DbiWrap : public Nan::ObjectWrap {
+class DbiWrap : public ObjectWrap<DbiWrap> {
 public:
     // Tells how keys should be treated
     LmdbKeyType keyType;
@@ -530,13 +534,13 @@ public:
     ~DbiWrap();
 
     // Constructor (not exposed)
-    static NAN_METHOD(ctor);
+    napi_value ctor(const Napi::CallbackInfo& info);
 
     /*
         Closes the database instance.
         Wrapper for `mdb_dbi_close`)
     */
-    static NAN_METHOD(close);
+    napi_value close(const Napi::CallbackInfo& info);
 
     /*
         Drops the database instance, either deleting it completely (default) or just freeing its pages.
@@ -550,22 +554,22 @@ public:
         * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
 
     */
-    static NAN_METHOD(drop);
+    napi_value drop(const Napi::CallbackInfo& info);
 
-    static NAN_METHOD(stat);
-    static NAN_METHOD(prefetch);
+    napi_value stat(const Napi::CallbackInfo& info);
+    napi_value prefetch(const Napi::CallbackInfo& info);
     int prefetch(uint32_t* keys);
     int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-    static uint32_t getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize);
+    static uint32_t getByBinaryFast(Object receiver_obj, uint32_t keySize);
 #endif
     uint32_t doGetByBinary(uint32_t keySize);
     static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    static NAN_METHOD(getStringByBinary);
-    static NAN_METHOD(getSharedByBinary);
+    napi_value getStringByBinary(const Napi::CallbackInfo& info);
+    napi_value getSharedByBinary(const Napi::CallbackInfo& info);
 };
 
-class Compression : public Nan::ObjectWrap {
+class Compression : public ObjectWrap<Compression> {
 public:
     char* dictionary; // dictionary to use to decompress
     char* compressDictionary; // separate dictionary to use to compress since the decompression dictionary can move around in the main thread
@@ -579,8 +583,8 @@ public:
     void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     int compressInstruction(EnvWrap* env, double* compressionAddress);
-    static NAN_METHOD(ctor);
-    static NAN_METHOD(setBuffer);
+    napi_value ctor(const Napi::CallbackInfo& info);
+    napi_value setBuffer(const Napi::CallbackInfo& info);
     Compression();
     ~Compression();
     friend class EnvWrap;
@@ -593,7 +597,7 @@ public:
     Represents a cursor instance that is assigned to a transaction and a database instance
     (Wrapper for `MDB_cursor`)
 */
-class CursorWrap : public Nan::ObjectWrap {
+class CursorWrap : public ObjectWrap<CursorWrap> {
 
 private:
 
@@ -602,7 +606,7 @@ private:
     // Free function for the current key
     argtokey_callback_t freeKey;
     template<size_t keyIndex, size_t optionsIndex>
-    friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, Nan::NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
+    friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
 
 public:
     MDB_cursor_op iteratingOp;    
@@ -618,7 +622,7 @@ public:
     ~CursorWrap();
 
     // Sets up exports for the Cursor constructor
-    static void setupExports(Local<Object> exports);
+    static void setupExports(Env env, Object exports);
 
     /*
         Opens a new cursor for the specified transaction and database instance.
@@ -629,7 +633,7 @@ public:
         * Transaction object
         * Database instance object
     */
-    static NAN_METHOD(ctor);
+    napi_value ctor(const Napi::CallbackInfo& info);
 
     /*
         Closes the cursor.
@@ -640,57 +644,22 @@ public:
         * Transaction object
         * Database instance object
     */
-    static NAN_METHOD(close);
+    napi_value close(const Napi::CallbackInfo& info);
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)
     */
-    static NAN_METHOD(del);
+    napi_value del(const Napi::CallbackInfo& info);
 
-    static NAN_METHOD(getCurrentValue);
+    napi_value getCurrentValue(const Napi::CallbackInfo& info);
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-    static uint32_t positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
-    static int32_t iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options);
+    static uint32_t positionFast(Object receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
+    static int32_t iterateFast(Object receiver_obj, FastApiCallbackOptions& options);
 #endif
     static void position(const v8::FunctionCallbackInfo<v8::Value>& info);    
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
     static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
-    static NAN_METHOD(renew);
-    //static NAN_METHOD(getStringByBinary);
+    napi_value renew(const Napi::CallbackInfo& info);
+    //napi_value getStringByBinary(const Napi::CallbackInfo& info);
 };
-
-// External string resource that glues MDB_val and v8::String
-class CustomExternalStringResource : public String::ExternalStringResource {
-private:
-    const uint16_t *d;
-    size_t l;
-
-public:
-    CustomExternalStringResource(MDB_val *val);
-    ~CustomExternalStringResource();
-
-    void Dispose();
-    const uint16_t *data() const;
-    size_t length() const;
-
-    static void writeTo(Local<String> str, MDB_val *val);
-};
-
-class CustomExternalOneByteStringResource : public String::ExternalOneByteStringResource {
-private:
-    const char *d;
-    size_t l;
-
-public:
-    CustomExternalOneByteStringResource(MDB_val *val);
-    ~CustomExternalOneByteStringResource();
-
-    void Dispose();
-    const char *data() const;
-    size_t length() const;
-
-};
-
-
-#endif // NODE_LMDB_H
