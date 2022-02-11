@@ -1,5 +1,5 @@
 export let Env, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
-	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache;
+	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap;
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Compression = externals.Compression;

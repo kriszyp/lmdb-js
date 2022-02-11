@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir, os } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir, os, setEnvMap, getEnvMap } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -6,9 +6,13 @@ import { applyKeyHandling } from './keys.js';
 setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
+if (globalThis.__lmdb_envs__)
+	setEnvMap(globalThis.__lmdb_envs__());
+else
+	globalThis.__lmdb_envs__ = getEnvMap;
 
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
-// this corresponds to the max key size for 8KB pages, which is currently the default
+// this corresponds to the max key size for 8KB pages
 const MAX_KEY_SIZE = 4026;
 const DEFAULT_COMMIT_DELAY = 0;
 
