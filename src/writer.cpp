@@ -61,8 +61,8 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
-		: WriteWorker(env, envForTxn, instructions), Nan::AsyncProgressWorker(callback, "lmdb:write") {
+NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function *callback)
+		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		txn = nullptr;
@@ -356,13 +356,9 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void NanWriteWorker::HandleProgressCallback(const char* data, size_t count) {
-	Nan::HandleScope scope;
-	v8::Local<v8::Value> argv[] = {
-		Nan::New<Number>(progressStatus)
-	};
+void NanWriteWorker::OnProgressCallback(const char* data, size_t count) {
 	if (progressStatus == 1) {
-		callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+		Callback.Call({ Number::New(Env(), progressStatus)});
 		return;
 	}
 	if (finishedProgress)
@@ -379,31 +375,24 @@ void NanWriteWorker::HandleProgressCallback(const char* data, size_t count) {
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
-void NanWriteWorker::HandleOKCallback() {
-	Nan::HandleScope scope;
-	Local<v8::Value> argv[] = {
-		Nan::New<Number>(0)
-	};
+void NanWriteWorker::OnOK() {
 	finishedProgress = true;
-	callback->Call(1, argv, async_resource);
+	Callback.Call({ Number::New(Env(), 0)});
 }
 
-NAN_METHOD(EnvWrap::startWriting) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
+Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
+    if (!this->env) {
+    	return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
     }
-    size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
-
-    NanWriteWorker* worker = new NanWriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
+    size_t instructionAddress = info[0].As<Number>();
+    NanWriteWorker* worker = new NanWriteWorker(ew->env, ew, (uint32_t*) instructionAddress, info[0].As<Function>());
 	ew->writeWorker = worker;
-    Nan::AsyncQueueWorker(worker);
+    worker->Queue();
 }
 
 extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-   WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
+	WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
 	ew->writeWorker = worker;
 	worker->Write();
 	ew->writeWorker = nullptr;
@@ -431,20 +420,22 @@ void EnvWrap::write(
 	const v8::FunctionCallbackInfo<v8::Value>& info) {
 	v8::Local<v8::Object> instance =
 		v8::Local<v8::Object>::Cast(info.Holder());
+	instance->write(info);
+}
+napi_value EnvWrap::write(const CallbackInfo& info) {
 	//fprintf(stderr,"Doing sync write\n");
-	EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(instance);
-	if (!ew->env) {
-		return Nan::ThrowError("The environment is already closed.");
+	if (!this->env) {
+		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
 	}
 	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
 	int rc = 0;
 	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
-	else if (ew->writeWorker) {
-		pthread_cond_signal(ew->writingCond);
+		rc = DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);
+	else if (this->writeWorker) {
+		pthread_cond_signal(this->writingCond);
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return Nan::ThrowError(mdb_strerror(rc));
+		return throwLmdbError(info.Env(), mdb_strerror(rc));
 }
 
 extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {

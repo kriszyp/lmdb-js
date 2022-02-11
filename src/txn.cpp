@@ -1,7 +1,6 @@
 #include "lmdb-js.h"
 
-using namespace v8;
-using namespace node;
+using namespace Napi;
 
 TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
     this->txn = txn;
@@ -12,11 +11,68 @@ TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
 TxnTracked::~TxnTracked() {
 }
 
-TxnWrap::TxnWrap(MDB_env *env, MDB_txn *txn) {
-    this->env = env;
-    this->txn = txn;
-    this->flags = 0;
-    this->ew = nullptr;
+TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
+    EnvWrap *ew;
+    napi_unwrap(info.Env(), info[0], &ew);
+    int flags = 0;
+    MDB_txn *txn;
+    TxnWrap *parentTw;
+    if (info[1].IsTrue() && ew->writeWorker) { // this is from a transaction callback
+        txn = ew->writeWorker->AcquireTxn(&flags);
+        parentTw = nullptr;
+    } else {
+        if (info[1].IsObject()) {
+            Object options = info[1].As<Object>();
+
+            // Get flags from options
+
+            setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
+        } else if (info[1].IsNumber()) {
+            flags = info[1].As<Number>();
+        }
+        MDB_txn *parentTxn;
+        if (info[2].IsObject()) {
+            napi_unwrap(info.Env(), info[2], &parentTw);
+            parentTxn = parentTw->txn;
+        } else {
+            parentTxn = nullptr;
+            parentTw = nullptr;
+            // Check existence of current write transaction
+            if (0 == (flags & MDB_RDONLY)) {
+                if (ew->currentWriteTxn != nullptr)
+                    return Error::New(info.Env(), "You have already opened a write transaction in the current process, can't open a second one.").ThrowAsJavaScriptException();
+                //fprintf(stderr, "begin sync txn");
+                auto writeWorker = ew->writeWorker;
+                if (writeWorker) {
+                    parentTxn = writeWorker->AcquireTxn(&flags); // see if we have a paused transaction
+                    // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
+                }
+            }
+        }
+        //fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
+        int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
+        if (rc != 0) {
+            if (rc == EINVAL) {
+                return Error::New(info.Env(), "Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)").ThrowAsJavaScriptException();
+            }
+            return throwLmdbError(info.Env(), rc);
+        }
+    }
+    TxnWrap* tw = new TxnWrap(ew->env, txn);
+
+    // Set the current write transaction
+    if (0 == (flags & MDB_RDONLY)) {
+        ew->currentWriteTxn = tw;
+    }
+    else {
+        ew->readTxns.push_back(tw);
+        ew->currentReadTxn = txn;
+    }
+    this->parentTw = parentTw;
+    this->flags = flags;
+    this->ew = ew;
+    this->Wrap(info.This());
+    this->env = ew->env;
 }
 
 TxnWrap::~TxnWrap() {
@@ -41,72 +97,6 @@ void TxnWrap::removeFromEnvWrap() {
         this->ew = nullptr;
     }
     this->txn = nullptr;
-}
-
-NAN_METHOD(TxnWrap::ctor) {
-    Nan::HandleScope scope;
-
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(Local<Object>::Cast(info[0]));
-    int flags = 0;
-    MDB_txn *txn;
-    TxnWrap *parentTw;
-    if (info[1]->IsTrue() && ew->writeWorker) { // this is from a transaction callback
-        txn = ew->writeWorker->AcquireTxn(&flags);
-        parentTw = nullptr;
-    } else {
-        if (info[1]->IsObject()) {
-            Local<Object> options = Local<Object>::Cast(info[1]);
-
-            // Get flags from options
-
-            setFlagFromValue(&flags, MDB_RDONLY, "readOnly", false, options);
-        } else if (info[1]->IsNumber()) {
-            flags = info[1]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-        }
-        MDB_txn *parentTxn;
-        if (info[2]->IsObject()) {
-            parentTw = Nan::ObjectWrap::Unwrap<TxnWrap>(Local<Object>::Cast(info[2]));
-            parentTxn = parentTw->txn;
-        } else {
-            parentTxn = nullptr;
-            parentTw = nullptr;
-            // Check existence of current write transaction
-            if (0 == (flags & MDB_RDONLY)) {
-                if (ew->currentWriteTxn != nullptr)
-                    return Nan::ThrowError("You have already opened a write transaction in the current process, can't open a second one.");
-                //fprintf(stderr, "begin sync txn");
-                auto writeWorker = ew->writeWorker;
-                if (writeWorker) {
-                    parentTxn = writeWorker->AcquireTxn(&flags); // see if we have a paused transaction
-                    // else we create a child transaction from the current batch transaction. TODO: Except in WRITEMAP mode, where we need to indicate that the transaction should not be committed
-                }
-            }
-        }
-        //fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
-        int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
-        if (rc != 0) {
-            if (rc == EINVAL) {
-                return Nan::ThrowError("Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)");
-            }
-            return throwLmdbError(info.Env(), rc);
-        }
-    }
-    TxnWrap* tw = new TxnWrap(ew->env, txn);
-
-    // Set the current write transaction
-    if (0 == (flags & MDB_RDONLY)) {
-        ew->currentWriteTxn = tw;
-    }
-    else {
-        ew->readTxns.push_back(tw);
-        ew->currentReadTxn = txn;
-    }
-    tw->parentTw = parentTw;
-    tw->flags = flags;
-    tw->ew = ew;
-    tw->Wrap(info.This());
-
-    return info.GetReturnValue().Set(info.This());
 }
 
 int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
@@ -181,73 +171,55 @@ extern "C" EXTERN void abortTxn(double twPointer) {
     mdb_txn_abort(tw->txn);
     tw->removeFromEnvWrap();
 }
+Value TxnWrap::commit(const Napi::CallbackInfo& info) {
 
-NAN_METHOD(TxnWrap::commit) {
-    Nan::HandleScope scope;
-
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-
-    if (!tw->txn) {
-        return Nan::ThrowError("The transaction is already closed.");
+    if (!this->txn) {
+        return Error::New(info.Env(), "The transaction is already closed.").ThrowAsJavaScriptException();
     }
     int rc;
-    WriteWorker* writeWorker = tw->ew->writeWorker;
+    WriteWorker* writeWorker = this->ew->writeWorker;
     if (writeWorker) {
         // if (writeWorker->txn && env->writeMap)
         // rc = 0
         // else
-        rc = mdb_txn_commit(tw->txn);
+        rc = mdb_txn_commit(this->txn);
         
-        pthread_mutex_unlock(tw->ew->writingLock);
+        pthread_mutex_unlock(this->ew->writingLock);
     }
     else
-        rc = mdb_txn_commit(tw->txn);
+        rc = mdb_txn_commit(this->txn);
     //fprintf(stdout, "commit done\n");
-    tw->removeFromEnvWrap();
+    this->removeFromEnvWrap();
 
     if (rc != 0) {
         return throwLmdbError(info.Env(), rc);
     }
 }
 
-NAN_METHOD(TxnWrap::abort) {
-    Nan::HandleScope scope;
-
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-
-    if (!tw->txn) {
-        return Nan::ThrowError("The transaction is already closed.");
+Value TxnWrap::abort(const Napi::CallbackInfo& info) {
+    if (!this->txn) {
+        return Error::New(info.Env(), "The transaction is already closed.").ThrowAsJavaScriptException();
     }
 
-    mdb_txn_abort(tw->txn);
-    tw->removeFromEnvWrap();
+    mdb_txn_abort(this->txn);
+    this->removeFromEnvWrap();
 }
-
-NAN_METHOD(TxnWrap::reset) {
-    Nan::HandleScope scope;
-
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-
-    if (!tw->txn) {
-        return Nan::ThrowError("The transaction is already closed.");
+Value TxnWrap::reset(const Napi::CallbackInfo& info) {
+    if (!this->txn) {
+        return Error::New(info.Env(), "The transaction is already closed.").ThrowAsJavaScriptException();
     }
-    tw->reset();
+    this->reset();
 }
 void TxnWrap::reset() {
     ew->readTxnRenewed = false;
     mdb_txn_reset(txn);
 }
-
-NAN_METHOD(TxnWrap::renew) {
-    Nan::HandleScope scope;
-
-    TxnWrap *tw = Nan::ObjectWrap::Unwrap<TxnWrap>(info.This());
-
-    if (!tw->txn) {
-        return Nan::ThrowError("The transaction is already closed.");
+Value TxnWrap::renew(const Napi::CallbackInfo& info) {
+    if (!this->txn) {
+        return Error::New(info.Env(), "The transaction is already closed.").ThrowAsJavaScriptException();
     }
 
-    int rc = mdb_txn_renew(tw->txn);
+    int rc = mdb_txn_renew(this->txn);
     if (rc != 0) {
         return throwLmdbError(info.Env(), rc);
     }

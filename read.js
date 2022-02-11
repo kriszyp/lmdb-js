@@ -1,5 +1,5 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
+import { getAddress, Cursor, Txn, setGlobalBuffer, orderedBinary, lmdbError }  from './external.js';
 import { saveKey }  from './keys.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
@@ -516,7 +516,7 @@ export function addReadMethods(LMDBStore, {
 			let waitArray;
 			do {
 				try {
-					readTxn = env.beginTxn(0x20000);
+					readTxn = new Txn(env, 0x20000);
 					break;
 				} catch (error) {
 					if (error.message.includes('temporarily')) {

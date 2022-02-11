@@ -2,6 +2,7 @@ export let Env, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuff
 	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap;
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
+	Txn = externals.Txn;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
 	clearKeptObjects = externals.clearKeptObjects;

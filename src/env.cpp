@@ -70,11 +70,7 @@ class SyncWorker : public AsyncWorker {
     }
 
     void OnOK() {
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-
-        callback->Call(1, argv, async_resource);
+        Callback->Call({Env().Null()});
     }
 
   private:
@@ -99,11 +95,7 @@ class CopyWorker : public AsyncWorker {
     }
 
     void OnOK() {
-        Local<v8::Value> argv[] = {
-            Nan::Null()
-        };
-
-        callback->Call(1, argv, async_resource);
+        Callback->Call({Env().Null()});
     }
 
   private:
@@ -422,7 +414,7 @@ napi_value EnvWrap::readerCheck(const CallbackInfo& info) {
 
 napi_array readerStrings;
 MDB_msg_func* printReaders = ([](const char* message, void* ctx) -> int {
-    readerStrings->Set(Nan::GetCurrentContext(), readerStrings->Length(), String::New(env, message)).ToChecked();
+    readerStrings.Set(readerStrings.Length(), String::New(env, message));
     return 0;
 });
 
@@ -453,18 +445,20 @@ napi_value EnvWrap::copy(const CallbackInfo& info) {
     if (!info[info.Length() - 1].IsFunction()) {
         return napi_throw_error(info.Env(), nullptr, "Call env.copy(path, compact?, callback) with a file path.");
     }
-    Nan::Utf8String path(info[0].As<String>());
+    String path = options.Get("path").As<String>();
+    int pathLength = path.Length();
+    uint8_t* pathBytes = new uint8_t[pathLength + 1];
+    napi_get_value_string_utf8(info.Env(), path, pathBytes, pathLength + 1);
 
     int flags = 0;
     if (info.Length() > 1 && info[1].IsTrue()) {
         flags = MDB_CP_COMPACT;
     }
 
-
     CopyWorker* worker = new CopyWorker(
-      this->env, *path, flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
+      this->env, pathBytes, flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
     );
-    worker.Queue();
+    worker->Queue();
 }
 
 napi_value EnvWrap::detachBuffer(const CallbackInfo& info) {
@@ -475,13 +469,8 @@ napi_value EnvWrap::detachBuffer(const CallbackInfo& info) {
 }
 
 napi_value EnvWrap::beginTxn(const CallbackInfo& info) {
-
-
-    Nan::MaybeLocal<Object> maybeInstance;
-
-    int flags = info[0]->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    int flags = info[0].As<Number>();
     if (!(flags & MDB_RDONLY)) {
-        EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
         MDB_env *env = this->env;
         unsigned int envFlags;
         mdb_env_get_flags(env, &envFlags);
@@ -521,30 +510,13 @@ napi_value EnvWrap::beginTxn(const CallbackInfo& info) {
 
     if (info.Length() > 1) {
         const int argc = 3;
-
-        Local<Value> argv[argc] = { info.This(), info[0], info[1] };
-        maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
-
+        fprintf(stderr, "Invalid number of arguments");
     } else {
         const int argc = 2;
-
-        Local<Value> argv[argc] = { info.This(), info[0] };
-        //fprintf(stdout, "beginTxn %u", info[0]->IsTrue());
-        maybeInstance = Nan::NewInstance(Nan::New(*txnCtor), argc, argv);
+        fprintf(stderr, "Invalid number of arguments");
     }
-
-    // Check if txn could be created
-    if ((maybeInstance.IsEmpty())) {
-        // The maybeInstance is empty because the txnCtor called throwError.
-        // No need to call that here again, the user will get the error thrown there.
-        return;
-    }
-
-    Local<Object> instance = maybeInstance.ToLocalChecked();
-    info.GetReturnValue().Set(instance);
 }
 napi_value EnvWrap::commitTxn(const CallbackInfo& info) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = this->writeTxn;
     //fprintf(stderr, "commitTxn %p\n", currentTxn);
     int rc = 0;
@@ -565,7 +537,6 @@ napi_value EnvWrap::commitTxn(const CallbackInfo& info) {
         throwLmdbError(info.Env(), rc);
 }
 napi_value EnvWrap::abortTxn(const CallbackInfo& info) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
     TxnTracked *currentTxn = this->writeTxn;
     if (currentTxn->flags & TXN_ABORTABLE) {
         mdb_txn_abort(currentTxn->txn);
@@ -647,15 +618,8 @@ napi_value EnvWrap::sync(const CallbackInfo& info) {
         return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
     if (info.Length() > 0) {
-        Function* callback = new Function(
-        Local<v8::Function>::Cast(info[0])
-        );
-
-        SyncWorker* worker = new SyncWorker(
-        this->env, callback
-        );
-
-        AsyncQueueWorker(worker);
+        SyncWorker* worker = new SyncWorker(this->env, info[0].As<Function>());
+        worker->Queue();
     } else {
         int rc = mdb_env_sync(this->env, 1);
         if (rc != 0) {
