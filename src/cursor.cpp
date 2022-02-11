@@ -1,14 +1,34 @@
 #include "lmdb-js.h"
 #include <string.h>
 
-using namespace v8;
-using namespace node;
+using namespace Napi;
 
-CursorWrap::CursorWrap(MDB_cursor *cursor) {
-    this->cursor = cursor;
+CursorWrap::CursorWrap(const CallbackInfo& info) {
     this->keyType = LmdbKeyType::StringKey;
     this->freeKey = nullptr;
     this->endKey.mv_size = 0; // indicates no end key (yet)
+    if (info.Length() < 1) {
+      return Nan::ThrowError("Wrong number of arguments");
+    }
+
+    DbiWrap *dw;
+    napi_unwrap(info.Env(), info[0], &dw);
+
+    // Open the cursor
+    MDB_cursor *cursor;
+    MDB_txn *txn = dw->ew->getReadTxn();
+    int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
+    if (rc != 0) {
+        return throwLmdbError(info.Env(), rc);
+    }
+
+    this->cursor = cursor;
+    this->dw = dw;
+    this->txn = txn;
+    this->keyType = keyType;
+    this->Wrap(info.This());
+
+    return info.GetReturnValue().Set(info.This());
 }
 
 CursorWrap::~CursorWrap() {
@@ -22,56 +42,13 @@ CursorWrap::~CursorWrap() {
     }
 }
 
-NAN_METHOD(CursorWrap::ctor) {
-    Nan::HandleScope scope;
-
-    if (info.Length() < 1) {
-      return Nan::ThrowError("Wrong number of arguments");
+napi_value CursorWrap::close(const CallbackInfo& info) {
+    if (!this->cursor) {
+      return ThrowError(info.Env(), "cursor.close: Attempt to close a closed cursor!");
     }
-
-    // Extra pessimism...
-    Nan::MaybeLocal<v8::Object> arg0 = Nan::To<v8::Object>(info[0]);
-    if (arg0.IsEmpty()) {
-        return Nan::ThrowError("Invalid arguments to the Cursor constructor. First must be a Txn, second must be a Dbi.");
-    }
-
-    DbiWrap *dw = Nan::ObjectWrap::Unwrap<DbiWrap>(arg0.ToLocalChecked());
-
-    // Get key type
-    auto keyType = keyTypeFromOptions(info[1], dw->keyType);
-    if (dw->keyType == LmdbKeyType::Uint32Key && keyType != LmdbKeyType::Uint32Key) {
-        return Nan::ThrowError("You specified uint32 keys on the Dbi, so you can't use other key types with it.");
-    }
-
-    // Open the cursor
-    MDB_cursor *cursor;
-    MDB_txn *txn = dw->ew->getReadTxn();
-    int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
-    if (rc != 0) {
-        return throwLmdbError(info.Env(), rc);
-    }
-
-    // Create wrapper
-    CursorWrap* cw = new CursorWrap(cursor);
-    cw->dw = dw;
-    cw->dw->Ref();
-    cw->txn = txn;
-    cw->keyType = keyType;
-    cw->Wrap(info.This());
-
-    return info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(CursorWrap::close) {
-    Nan::HandleScope scope;
-
-    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
-    if (!cw->cursor) {
-      return Nan::ThrowError("cursor.close: Attempt to close a closed cursor!");
-    }
-    mdb_cursor_close(cw->cursor);
-    cw->dw->Unref();
-    cw->cursor = nullptr;
+    mdb_cursor_close(this->cursor);
+    this->dw->Unref();
+    this->cursor = nullptr;
 }
 extern "C" EXTERN void cursorClose(double cwPointer) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -79,28 +56,19 @@ extern "C" EXTERN void cursorClose(double cwPointer) {
     cw->cursor = nullptr;
 }
 
-
-NAN_METHOD(CursorWrap::del) {
-    Nan::HandleScope scope;
-
-    if (info.Length() != 0 && info.Length() != 1) {
-        return Nan::ThrowError("cursor.del: Incorrect number of arguments provided, arguments: options (optional).");
-    }
-
+napi_value CursorWrap::del(const CallbackInfo& info) {
     int flags = 0;
 
     if (info.Length() == 1) {
-        if (!info[0]->IsObject()) {
+        if (!info[0].IsObject()) {
             return Nan::ThrowError("cursor.del: Invalid options argument. It should be an object.");
         }
         
-        auto options = Nan::To<v8::Object>(info[0]).ToLocalChecked();
+        auto options = info[0].As<Object>();
         setFlagFromValue(&flags, MDB_NODUPDATA, "noDupData", false, options);
     }
 
-    CursorWrap *cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.This());
-
-    int rc = mdb_cursor_del(cw->cursor, flags);
+    int rc = mdb_cursor_del(this->cursor, flags);
     if (rc != 0) {
         return throwLmdbError(info.Env(), rc);
     }
@@ -266,17 +234,13 @@ uint32_t CursorWrap::positionFast(Local<Object> receiver_obj, uint32_t flags, ui
     return result;
 }
 #endif
-void CursorWrap::position(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
-    cw->flags = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    uint32_t offset = info[1]->Uint32Value(Nan::GetCurrentContext()).FromJust();
-    uint32_t keySize = info[2]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    uint64_t endKeyAddress = info[3]->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    uint32_t result = cw->doPosition(offset, keySize, endKeyAddress);
-    info.GetReturnValue().Set(Nan::New<Number>(result));
+Napi::Value CursorWrap::position(const CallbackInfo& info) {
+    this->flags = info[0]->As<Number>();
+    uint32_t offset = info[1]->As<Number>();
+    uint32_t keySize = info[2]->As<Number>();
+    uint64_t endKeyAddress = info[3]->As<Number>();
+    uint32_t result = this->doPosition(offset, keySize, endKeyAddress);
+    return Number::New(result);
 }
 extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, double endKeyAddress) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -295,14 +259,10 @@ int32_t CursorWrap::iterateFast(Local<Object> receiver_obj, FastApiCallbackOptio
     return cw->returnEntry(rc, key, data);
 }
 #endif
-void CursorWrap::iterate(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.Holder());
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(instance);
+Napi::Value CursorWrap::iterate(const CallbackInfo& info) {
     MDB_val key, data;
-    int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
-    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+    int rc = mdb_cursor_get(this->cursor, &key, &data, this->iteratingOp);
+    return Number:New(info.Env(), this->returnEntry(rc, key, data));
 }
 extern "C" EXTERN int cursorIterate(double cwPointer) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -310,12 +270,10 @@ extern "C" EXTERN int cursorIterate(double cwPointer) {
     int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
     return cw->returnEntry(rc, key, data);
 }
-
-NAN_METHOD(CursorWrap::getCurrentValue) {
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
+napi_value CursorWrap::getCurrentValue(const CallbackInfo& info) {
     MDB_val key, data;
-    int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
-    return info.GetReturnValue().Set(Nan::New<Number>(cw->returnEntry(rc, key, data)));
+    int rc = mdb_cursor_get(this->cursor, &key, &data, MDB_GET_CURRENT);
+    return Number:New(info.Env(), this->returnEntry(rc, key, data));
 }
 extern "C" EXTERN int cursorCurrentValue(double cwPointer) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -323,11 +281,8 @@ extern "C" EXTERN int cursorCurrentValue(double cwPointer) {
     int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
     return cw->returnEntry(rc, key, data);
 }
-
-NAN_METHOD(CursorWrap::renew) {
-    CursorWrap* cw = Nan::ObjectWrap::Unwrap<CursorWrap>(info.Holder());
-    // Unwrap Txn and Dbi
-    int rc = mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
+Napi::Value CursorWrap::renew(const CallbackInfo& info) {
+    int rc = mdb_cursor_renew(this->txn = this->dw->ew->getReadTxn(), this->cursor);
     if (rc != 0) {
         return throwLmdbError(info.Env(), rc);
     }
@@ -336,7 +291,7 @@ extern "C" EXTERN int cursorRenew(double cwPointer) {
     CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
     return mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
 }
-void CursorWrap::setupExports(Env env, Object exports) {
+void CursorWrap::setupExports(Napi::Env env, Object exports) {
     // CursorWrap: Prepare constructor template
     Function CursorClass = DefineClass(env, "Cursor", {
     // CursorWrap: Add functions to the prototype

@@ -48,9 +48,6 @@
 #endif
 
 using namespace Napi;
-using namespace node;
-
-
 
 #ifndef __CPTHREAD_H__
 #define __CPTHREAD_H__
@@ -218,17 +215,17 @@ class WriteWorker {
     int progressStatus;
     MDB_env* env;
 };
-class NanWriteWorker : public WriteWorker, public AsyncProgressWorker {
+/*class NanWriteWorker : public WriteWorker, public AsyncProgressWorker<NanWriteWorker> {
   public:
-    NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Callback *callback);
-    void Execute(const ExecutionProgress& executionProgress);
+    NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function *callback);
+    void Execute(ExecutionProgress executionProgress);
     void HandleProgressCallback(const char* data, size_t count);
-    void HandleOKCallback();
+    void OnOK();
     void ReportError(const char* error);
     void SendUpdate();
   private:
     ExecutionProgress* executionProgress;
-};
+};*/
 class TxnTracked {
   public:
     TxnTracked(MDB_txn *txn, unsigned int flags);
@@ -283,7 +280,7 @@ public:
     MDB_txn* getReadTxn();
 
     // Sets up exports for the Env constructor
-    static void setupExports(Env env, Object exports);
+    static void setupExports(Napi::Env env, Object exports);
     void closeEnv();
     int openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
@@ -292,35 +289,35 @@ public:
         Constructor of the database environment. You need to `open()` it before you can use it.
         (Wrapper for `mdb_env_create`)
     */
-    napi_value ctor(const Napi::CallbackInfo& info);
+    napi_value ctor(const CallbackInfo& info);
     
     /*
         Gets statistics about the database environment.
     */
-    napi_value stat(const Napi::CallbackInfo& info);
+    napi_value stat(const CallbackInfo& info);
 
     /*
         Gets statistics about the free space database
     */
-    napi_value freeStat(const Napi::CallbackInfo& info);
+    napi_value freeStat(const CallbackInfo& info);
     
     /*
         Detaches a buffer from the backing store
     */
-    napi_value detachBuffer(const Napi::CallbackInfo& info);
+    napi_value detachBuffer(const CallbackInfo& info);
 
     /*
         Gets information about the database environment.
     */
-    napi_value info(const Napi::CallbackInfo& info);
+    napi_value info(const CallbackInfo& info);
     /*
         Check for stale readers
     */
-    napi_value readerCheck(const Napi::CallbackInfo& info);
+    napi_value readerCheck(const CallbackInfo& info);
     /*
         Print a list of readers
     */
-    napi_value readerList(const Napi::CallbackInfo& info);
+    napi_value readerList(const CallbackInfo& info);
 
     /*
         Opens the database environment with the specified options. The options will be used to configure the environment before opening it.
@@ -337,8 +334,8 @@ public:
         * mapSize: maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
         * path: path to the database environment
     */
-    napi_value open(const Napi::CallbackInfo& info);
-    napi_value getMaxKeySize(const Napi::CallbackInfo& info);
+    napi_value open(const CallbackInfo& info);
+    napi_value getMaxKeySize(const CallbackInfo& info);
 
     /*
         Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.
@@ -348,7 +345,7 @@ public:
 
         * maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
     */
-    napi_value resize(const Napi::CallbackInfo& info);
+    napi_value resize(const CallbackInfo& info);
 
     /*
         Copies the database environment to a file.
@@ -360,13 +357,13 @@ public:
         * compact (optional) - Copy using compact setting
         * callback - Callback when finished (this is performed asynchronously)
     */
-    napi_value copy(const Napi::CallbackInfo& info);    
+    napi_value copy(const CallbackInfo& info);    
 
     /*
         Closes the database environment.
         (Wrapper for `mdb_env_close`)
     */
-    napi_value close(const Napi::CallbackInfo& info);
+    napi_value close(const CallbackInfo& info);
 
     /*
         Starts a new transaction in the environment.
@@ -380,9 +377,9 @@ public:
 
         * readOnly: if true, the transaction is read-only
     */
-    napi_value beginTxn(const Napi::CallbackInfo& info);
-    napi_value commitTxn(const Napi::CallbackInfo& info);
-    napi_value abortTxn(const Napi::CallbackInfo& info);
+    napi_value beginTxn(const CallbackInfo& info);
+    napi_value commitTxn(const CallbackInfo& info);
+    napi_value abortTxn(const CallbackInfo& info);
 
     /*
         Opens a database in the environment.
@@ -403,7 +400,7 @@ public:
         * integerDup: duplicate data items are also integers, and should be sorted as such
         * reverseDup: duplicate data items should be compared as strings in reverse order
     */
-    napi_value openDbi(const Napi::CallbackInfo& info);
+    napi_value openDbi(const CallbackInfo& info);
 
     /*
         Flushes all data to the disk asynchronously.
@@ -413,7 +410,7 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    napi_value sync(const Napi::CallbackInfo& info);
+    napi_value sync(const CallbackInfo& info);
 
     /*
         Performs a set of operations asynchronously, automatically wrapping it in its own transaction
@@ -422,14 +419,14 @@ public:
 
         * Callback to be executed after the sync is complete.
     */
-    napi_value startWriting(const Napi::CallbackInfo& info);
-    napi_value compress(const Napi::CallbackInfo& info);
+    napi_value startWriting(const CallbackInfo& info);
+    napi_value compress(const CallbackInfo& info);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static void writeFast(Object receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
 #endif
-    static void write(const v8::FunctionCallbackInfo<v8::Value>& info);
+    static void write(const CallbackInfo& info);
 
-    napi_value resetCurrentReadTxn(const Napi::CallbackInfo& info);
+    napi_value resetCurrentReadTxn(const CallbackInfo& info);
 };
 
 const int TXN_ABORTABLE = 1;
@@ -471,31 +468,31 @@ public:
     int begin(EnvWrap *ew, unsigned int flags);
 
     // Constructor (not exposed)
-    napi_value ctor(const Napi::CallbackInfo& info);
+    napi_value ctor(const CallbackInfo& info);
 
     /*
         Commits the transaction.
         (Wrapper for `mdb_txn_commit`)
     */
-    napi_value commit(const Napi::CallbackInfo& info);
+    napi_value commit(const CallbackInfo& info);
 
     /*
         Aborts the transaction.
         (Wrapper for `mdb_txn_abort`)
     */
-    napi_value abort(const Napi::CallbackInfo& info);
+    napi_value abort(const CallbackInfo& info);
 
     /*
         Aborts a read-only transaction but makes it renewable with `renew`.
         (Wrapper for `mdb_txn_reset`)
     */
-    napi_value reset(const Napi::CallbackInfo& info);
+    napi_value reset(const CallbackInfo& info);
     void reset();
     /*
         Renews a read-only transaction after it has been reset.
         (Wrapper for `mdb_txn_renew`)
     */
-    napi_value renew(const Napi::CallbackInfo& info);
+    napi_value renew(const CallbackInfo& info);
 
 };
 
@@ -534,13 +531,13 @@ public:
     ~DbiWrap();
 
     // Constructor (not exposed)
-    napi_value ctor(const Napi::CallbackInfo& info);
+    napi_value ctor(const CallbackInfo& info);
 
     /*
         Closes the database instance.
         Wrapper for `mdb_dbi_close`)
     */
-    napi_value close(const Napi::CallbackInfo& info);
+    napi_value close(const CallbackInfo& info);
 
     /*
         Drops the database instance, either deleting it completely (default) or just freeing its pages.
@@ -554,19 +551,19 @@ public:
         * justFreePages - indicates that the database pages need to be freed but the database shouldn't be deleted
 
     */
-    napi_value drop(const Napi::CallbackInfo& info);
+    napi_value drop(const CallbackInfo& info);
 
-    napi_value stat(const Napi::CallbackInfo& info);
-    napi_value prefetch(const Napi::CallbackInfo& info);
+    napi_value stat(const CallbackInfo& info);
+    napi_value prefetch(const CallbackInfo& info);
     int prefetch(uint32_t* keys);
     int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t getByBinaryFast(Object receiver_obj, uint32_t keySize);
 #endif
     uint32_t doGetByBinary(uint32_t keySize);
-    static void getByBinary(const v8::FunctionCallbackInfo<v8::Value>& info);
-    napi_value getStringByBinary(const Napi::CallbackInfo& info);
-    napi_value getSharedByBinary(const Napi::CallbackInfo& info);
+    static void getByBinary(const CallbackInfo& info);
+    napi_value getStringByBinary(const CallbackInfo& info);
+    napi_value getSharedByBinary(const CallbackInfo& info);
 };
 
 class Compression : public ObjectWrap<Compression> {
@@ -583,8 +580,8 @@ public:
     void decompress(MDB_val& data, bool &isValid, bool canAllocate);
     argtokey_callback_t compress(MDB_val* value, argtokey_callback_t freeValue);
     int compressInstruction(EnvWrap* env, double* compressionAddress);
-    napi_value ctor(const Napi::CallbackInfo& info);
-    napi_value setBuffer(const Napi::CallbackInfo& info);
+    napi_value ctor(const CallbackInfo& info);
+    napi_value setBuffer(const CallbackInfo& info);
     Compression();
     ~Compression();
     friend class EnvWrap;
@@ -605,8 +602,6 @@ private:
     MDB_val key, data, endKey;
     // Free function for the current key
     argtokey_callback_t freeKey;
-    template<size_t keyIndex, size_t optionsIndex>
-    friend argtokey_callback_t cursorArgToKey(CursorWrap* cw, NAN_METHOD_ARGS_TYPE info, MDB_val &key, bool &keyIsValid);
 
 public:
     MDB_cursor_op iteratingOp;    
@@ -622,7 +617,7 @@ public:
     ~CursorWrap();
 
     // Sets up exports for the Cursor constructor
-    static void setupExports(Env env, Object exports);
+    static void setupExports(Napi::Env env, Object exports);
 
     /*
         Opens a new cursor for the specified transaction and database instance.
@@ -633,7 +628,7 @@ public:
         * Transaction object
         * Database instance object
     */
-    napi_value ctor(const Napi::CallbackInfo& info);
+    napi_value ctor(const CallbackInfo& info);
 
     /*
         Closes the cursor.
@@ -644,22 +639,24 @@ public:
         * Transaction object
         * Database instance object
     */
-    napi_value close(const Napi::CallbackInfo& info);
+    napi_value close(const CallbackInfo& info);
     /*
         Deletes the key/data pair to which the cursor refers.
         (Wrapper for `mdb_cursor_del`)
     */
-    napi_value del(const Napi::CallbackInfo& info);
+    napi_value del(const CallbackInfo& info);
 
-    napi_value getCurrentValue(const Napi::CallbackInfo& info);
+    napi_value getCurrentValue(const CallbackInfo& info);
     int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
 #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     static uint32_t positionFast(Object receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
     static int32_t iterateFast(Object receiver_obj, FastApiCallbackOptions& options);
 #endif
-    static void position(const v8::FunctionCallbackInfo<v8::Value>& info);    
+    Napi::Value position(const CallbackInfo& info);    
     uint32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
-    static void iterate(const v8::FunctionCallbackInfo<v8::Value>& info);    
-    napi_value renew(const Napi::CallbackInfo& info);
-    //napi_value getStringByBinary(const Napi::CallbackInfo& info);
+    Napi::Value iterate(const CallbackInfo& info);    
+    Napi::Value renew(const CallbackInfo& info);
+    //napi_value getStringByBinary(const CallbackInfo& info);
 };
+
+#endif // NODE_LMDB_H

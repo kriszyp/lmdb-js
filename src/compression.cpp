@@ -30,51 +30,40 @@ using namespace v8;
 using namespace node;
 
 thread_local LZ4_stream_t* Compression::stream = nullptr;
-Compression::Compression() {
-}
-Compression::~Compression() {
-    delete dictionary;
-}
-NAN_METHOD(Compression::ctor) {
+Compression::Compression(const CallbackInfo& info) {
     unsigned int compressionThreshold = 1000;
     char* dictionary = nullptr;
     unsigned int dictSize = 0;
-    if (info[0]->IsObject()) {
-        Local<Value> dictionaryOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), String::New(env, "dictionary")).ToLocalChecked();
-        if (!dictionaryOption->IsUndefined()) {
-            if (!node::Buffer::HasInstance(dictionaryOption)) {
-                return Nan::ThrowError("Dictionary must be a buffer");
-            }
-            dictSize = node::Buffer::Length(dictionaryOption);
-            dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
-            dictionary = node::Buffer::Data(dictionaryOption);
-
+    if (info[0].IsObject()) {
+        Value dictionaryOption = info[0].As<Object>().Get("dictionary");
+        if (!dictionaryOption.IsUndefined()) {
+            if (!dictionaryOption.IsTypedArray())
+                return throwError(info.Env(), "Dictionary must be a buffer");
+            napi_get_typedarray_info(info.Env(), dictionaryOption, nullptr, &dictSize, &dictionary, nullptr, nullptr);
+            dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned            
         }
-        Local<Value> thresholdOption = Nan::To<v8::Object>(info[0]).ToLocalChecked()->Get(Nan::GetCurrentContext(), String::New(env, "threshold")).ToLocalChecked();
-        if (thresholdOption->IsNumber()) {
-            compressionThreshold = thresholdOption->IntegerValue(Nan::GetCurrentContext()).FromJust();
+        Value thresholdOption = info[0].As<Object>().Get("threshold");
+        if (thresholdOption.IsNumber()) {
+            compressionThreshold = thresholdOption.As<Number>();
         }
     }
     Compression* compression = new Compression();
-    compression->dictionary = compression->compressDictionary = dictionary;
-    compression->dictionarySize = dictSize;
-    compression->decompressTarget = dictionary + dictSize;
-    compression->decompressSize = 0;
-    compression->acceleration = 1;
-    compression->compressionThreshold = compressionThreshold;
-    compression->Wrap(info.This());
-    compression->Ref();
-    (void)info.This()->Set(Nan::GetCurrentContext(), String::New(env, "address"), Nan::New<Number>((double) (size_t) compression));
-
-    return info.GetReturnValue().Set(info.This());
+    this->dictionary = this->compressDictionary = dictionary;
+    this->dictionarySize = dictSize;
+    this->decompressTarget = dictionary + dictSize;
+    this->decompressSize = 0;
+    this->acceleration = 1;
+    this->compressionThreshold = compressionThreshold;
+    this->Wrap(info.This());
+    this->Ref();
+    info.This().Set("address", Number::New((double) (size_t) compression));
 }
 
-NAN_METHOD(Compression::setBuffer) {
-    Compression *compression = Nan::ObjectWrap::Unwrap<Compression>(info.This());
-    compression->decompressTarget = node::Buffer::Data(info[0]);
-    compression->decompressSize = Local<Number>::Cast(info[1])->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    compression->dictionary = node::Buffer::Data(info[2]);
-    compression->dictionarySize = Local<Number>::Cast(info[3])->IntegerValue(Nan::GetCurrentContext()).FromJust();
+napi_value Compression::setBuffer(const CallbackInfo& info) {
+    napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &this->decompressTarget, nullptr, nullptr);
+    this->decompressSize = info[1].As<Number>();
+    napi_get_typedarray_info(info.Env(), info[2], nullptr, nullptr, &this->dictionary, nullptr, nullptr);
+    this->dictionarySize = info[3].As<Number>();
 }
 extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* decompressTarget, uint32_t decompressSize, char* dictionary, uint32_t dictSize) {
     Compression *compression = (Compression*) (size_t) compressionPointer;
@@ -199,10 +188,10 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
     }
 }
 
-class CompressionWorker : public Nan::AsyncWorker {
+class CompressionWorker : public AsyncWorker {
   public:
     CompressionWorker(EnvWrap* env, double* compressionAddress, Nan::Callback *callback)
-      : Nan::AsyncWorker(callback), env(env), compressionAddress(compressionAddress) {}
+      : AsyncWorker(callback), env(env), compressionAddress(compressionAddress) {}
 
 
     void Execute() {
@@ -213,7 +202,7 @@ class CompressionWorker : public Nan::AsyncWorker {
             compression->compressInstruction(env, compressionAddress);
         }
     }
-    void HandleOKCallback() {
+    void OnOK() {
         // don't actually call the callback, no need
     }
 
@@ -222,12 +211,10 @@ class CompressionWorker : public Nan::AsyncWorker {
     double* compressionAddress;
 };
 
-NAN_METHOD(EnvWrap::compress) {
-    EnvWrap *env = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    size_t compressionAddress = Local<Number>::Cast(info[0])->Value();
-    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
-    CompressionWorker* worker = new CompressionWorker(env, (double*) compressionAddress, callback);
-    Nan::AsyncQueueWorker(worker);
+napi_value EnvWrap::compress(const CallbackInfo& info) {
+    size_t compressionAddress = info[0].As<Number>();
+    CompressionWorker* worker = new CompressionWorker(this, (double*) compressionAddress, info[1].As<Function>());
+    worker->Queue();
 }
 
 extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {

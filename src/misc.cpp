@@ -2,29 +2,29 @@
 #include <string.h>
 #include <stdio.h>
 
+using namespace Napi;
+
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 
-void setupExportMisc(Local<Object> exports) {
-    Local<Object> versionObj = Nan::New<Object>();
+void setupExportMisc(Napi::Env env, Object exports) {
+    Object versionObj = Object::New(env);
 
     int major, minor, patch;
     char *str = mdb_version(&major, &minor, &patch);
-    Local<Context> context = Nan::GetCurrentContext();
-    (void)versionObj->Set(context, String::New(env, "versionString"), String::New(env, str));
-    (void)versionObj->Set(context, String::New(env, "major"), Nan::New<Integer>(major));
-    (void)versionObj->Set(context, String::New(env, "minor"), Nan::New<Integer>(minor));
-    (void)versionObj->Set(context, String::New(env, "patch"), Nan::New<Integer>(patch));
-
-    (void)exports->Set(context, String::New(env, "version"), versionObj);
-    Nan::SetMethod(exports, "setGlobalBuffer", setGlobalBuffer);
-    Nan::SetMethod(exports, "lmdbError", lmdbError);
-    //Nan::SetMethod(exports, "getBufferForAddress", getBufferForAddress);
-    Nan::SetMethod(exports, "getAddress", getViewAddress);
-    Nan::SetMethod(exports, "clearKeptObjects", clearKeptObjects);
+    versionObj.Set("versionString", String::New(env, str));
+    versionObj.Set("major", Number::New(env, major));
+    versionObj.Set("minor", Number::New(env, minor));
+    versionObj.Set("patch", Number::New(env, patch));
+    exports.Set("version", versionObj);
+    exports.Set("setGlobalBuffer", Function::New(env, setGlobalBuffer));
+    exports.Set("lmdbError", Function::New(env, lmdbError));
+    //exports.Set("getBufferForAddress", Function::New(env, getBufferForAddress));
+    exports.Set("getAddress", Function::New(env, getViewAddress));
+    exports.Set("clearKeptObjects", Function::New(env, clearKeptObjects));
     // this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
     // often just uses the name of the last exported native function:
-    Nan::SetMethod(exports, "lmdbNativeFunctions", lmdbNativeFunctions);
+    //exports.Set("lmdbNativeFunctions", lmdbNativeFunctions);
 }
 extern "C" EXTERN void freeData(double ref) {
     delete (char*) (size_t) ref;
@@ -48,74 +48,29 @@ v8::Local<v8::String> String::New(env, const char* str) {
     return v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), str).ToLocalChecked();
 }
 
-void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Local<Object> options) {
-    Local<Context> context = Nan::GetCurrentContext();
-    Local<Value> opt = options->Get(context, String::New(env, name)).ToLocalChecked();
-    #if NODE_VERSION_AT_LEAST(12,0,0)
-    if (opt->IsBoolean() ? opt->BooleanValue(Isolate::GetCurrent()) : defaultValue) {
-    #else
-    if (opt->IsBoolean() ? opt->BooleanValue(context).FromJust() : defaultValue) {
-    #endif
+void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
+    Value opt = options.Get(name);
+    if (opt.IsBoolean() ? opt.BooleanValue() : defaultValue)
         *flags |= flag;
-    }
 }
 
-LmdbKeyType keyTypeFromOptions(const Local<Value> &val, LmdbKeyType defaultKeyType) {
-    if (!val->IsObject()) {
-        return defaultKeyType;
-    }
-    auto obj = Local<Object>::Cast(val);
-
-    LmdbKeyType keyType = defaultKeyType;
-    int keyIsUint32 = 0;
-    int keyIsBuffer = 0;
-    int keyIsString = 0;
-    
-    setFlagFromValue(&keyIsUint32, 1, "keyIsUint32", false, obj);
-    setFlagFromValue(&keyIsString, 1, "keyIsString", false, obj);
-    setFlagFromValue(&keyIsBuffer, 1, "keyIsBuffer", false, obj);
-    
-    const char *keySpecificationErrorText = "You can't specify multiple key types at once. Either set keyIsUint32, or keyIsBuffer or keyIsString (default).";
-    
-    if (keyIsUint32) {
-        keyType = LmdbKeyType::Uint32Key;
-        if (keyIsBuffer || keyIsString) {
-            Nan::ThrowError(keySpecificationErrorText);
-            return LmdbKeyType::InvalidKey;
-        }
-    }
-    else if (keyIsBuffer) {
-        keyType = LmdbKeyType::BinaryKey;
-        
-        if (keyIsUint32 || keyIsString) {
-            Nan::ThrowError(keySpecificationErrorText);
-            return LmdbKeyType::InvalidKey;
-        }
-    }
-    else if (keyIsString) {
-        keyType = LmdbKeyType::StringKey;
-    }
-    
-    return keyType;
-}
-Local<Value> valToStringUnsafe(MDB_val &data) {
+Value valToStringUnsafe(MDB_val &data) {
     auto resource = new CustomExternalOneByteStringResource(&data);
     auto str = Nan::New<v8::String>(resource);
 
     return str.ToLocalChecked();
 }
 
-Local<Value> valToUtf8(MDB_val &data) {
+Value valToUtf8(MDB_val &data, Env env) {
     //const uint8_t *buffer = (const uint8_t*)(data.mv_data);
     //Isolate *isolate = Isolate::GetCurrent();
     //auto str = v8::String::NewFromOneByte(isolate, buffer, v8::NewStringType::kNormal, data.mv_size);
-    const char *buffer = (const char*)(data.mv_data);
-    auto str = Nan::New<v8::String>(buffer, data.mv_size);
-
-    return str.ToLocalChecked();
+    napi_value string;
+    napi_create_string_utf8(env, (const char*)(data.mv_data), data.mv_size, &string);
+    return string;
 }
 
-Local<Value> valToString(MDB_val &data) {
+Value valToString(MDB_val &data) {
     // UTF-16 buffer
     const uint16_t *buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
     // Number of UTF-16 code points
@@ -128,9 +83,9 @@ Local<Value> valToString(MDB_val &data) {
     }
     
     size_t length = n - 1;
-    auto str = Nan::New<v8::String>(buffer, length);
-
-    return str.ToLocalChecked();
+    napi_value string;
+    napi_create_string_utf16(env, (const char*)(data.mv_data), length, &string);
+    return string;
 }
 
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
@@ -158,9 +113,11 @@ bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
     }
     return true;
 }
-Local<Value> valToBinaryUnsafe(MDB_val &data, DbiWrap* dw) {
+Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env) {
     valToBinaryFast(data, dw);
-    return Nan::New<Number>(data.mv_size);
+    napi_value size;
+    napi_create_uint32(env, data.mv_size, size);
+    return size;
 }
 
 
@@ -189,59 +146,42 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
     return true;
 }
 
-NAN_METHOD(lmdbError) {
+Value lmdbError(const CallbackInfo& info) {
     throwLmdbError(info.Env(), Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
 }
 
-NAN_METHOD(setGlobalBuffer) {
-    globalUnsafePtr = node::Buffer::Data(info[0]);
-    globalUnsafeSize = node::Buffer::Length(info[0]);
+Value setGlobalBuffer(const CallbackInfo& info) {
+    napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, &globalUnsafePtr);
 }
 
-/*NAN_METHOD(getBufferForAddress) {
+/*Value getBufferForAddress) {
     char* address = (char*) (size_t) Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value();
     std::unique_ptr<v8::BackingStore> backing = v8::ArrayBuffer::NewBackingStore(
     address, 0x100000000, [](void*, size_t, void*){}, nullptr);
     auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
     info.GetReturnValue().Set(array_buffer);
 }*/
-NAN_METHOD(getViewAddress) {
-    int length = node::Buffer::Length(info[0]);
-    void* address = length > 0 ? node::Buffer::Data(info[0]) : nullptr;
-    info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
+Value getViewAddress(const CallbackInfo& info) {
+    void* data;
+    napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &data);
+    napi_value address;
+    napi_create_int64(info.Env(), (int64_t) data, &address);
+    return address;
 }
-NAN_METHOD(clearKeptObjects) {
+Value clearKeptObjects(const CallbackInfo& info) {
     #if NODE_VERSION_AT_LEAST(12,0,0)
     Isolate::GetCurrent()->ClearKeptObjects();
     #endif
 }
 
-NAN_METHOD(lmdbNativeFunctions) {
+Value lmdbNativeFunctions(const CallbackInfo& info) {
     // no-op, just doing this to give a label to the native functions
 }
 
-void throwLmdbError(Env env, int rc) {
-    auto err = Nan::Error(mdb_strerror(rc));
-    (void)err.As<Object>()->Set(Nan::GetCurrentContext(), Nan::New("code").ToLocalChecked(), Nan::New(rc));
-    return Nan::ThrowError(err);
-}
-
-void consoleLog(const char *msg) {
-    Local<String> str = Nan::New("console.log('").ToLocalChecked();
-    //str = String::Concat(str, String::New(env, msg));
-    //str = String::Concat(str, Nan::New("');").ToLocalChecked());
-
-    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
-    Nan::RunScript(script);
-}
-
-void consoleLog(Local<Value> val) {
-    Local<String> str = String::New(env, "console.log('");
-    //str = String::Concat(str, Local<String>::Cast(val));
-    //str = String::Concat(str, Nan::New<String>("');").ToLocalChecked());
-
-    Local<Script> script = Nan::CompileScript(str).ToLocalChecked();
-    Nan::RunScript(script);
+void throwLmdbError(Napi::Env env, int rc) {
+    Error error = Error::New(env, mdb_strerror(rc));
+    error.Set("code", Number::New(rc));
+    error.ThrowAsJavaScriptException();
 }
 
 void consoleLogN(int n) {
@@ -249,39 +189,6 @@ void consoleLogN(int n) {
     memset(c, 0, 20 * sizeof(char));
     sprintf(c, "%d", n);
     consoleLog(c);
-}
-
-void writeValueToEntry(const Local<Value> &value, MDB_val *val) {
-    if (value->IsString()) {
-        Local<String> str = Local<String>::Cast(value);
-        int strLength = str->Length();
-        // an optimized guess at buffer length that works >99% of time and has good byte alignment
-        int byteLength = str->IsOneByte() ? strLength :
-            (((strLength >> 3) + ((strLength + 116) >> 6)) << 3);
-        char *data = new char[byteLength];
-        int utfWritten = 0;
-#if NODE_VERSION_AT_LEAST(11,0,0)
-        int bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
-#else
-        int bytes = str->WriteUtf8(data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
-#endif        
-        if (utfWritten < strLength) {
-            // we didn't allocate enough memory, need to expand
-            delete[] data;
-            byteLength = strLength * 3;
-            data = new char[byteLength];
-#if NODE_VERSION_AT_LEAST(11,0,0)
-            bytes = str->WriteUtf8(Isolate::GetCurrent(), data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
-#else
-            bytes = str->WriteUtf8(data, byteLength, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
-#endif        
-        }
-        val->mv_data = data;
-        val->mv_size = bytes;
-        //fprintf(stdout, "size of data with string %u header size %u\n", val->mv_size, headerSize);
-    } else {
-        Nan::ThrowError("Unknown value type");
-    }
 }
 
 int putWithVersion(MDB_txn *   txn,

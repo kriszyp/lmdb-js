@@ -403,7 +403,7 @@ NAN_METHOD(EnvWrap::startWriting) {
 
 extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
+   WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
 	ew->writeWorker = worker;
 	worker->Write();
 	ew->writeWorker = nullptr;

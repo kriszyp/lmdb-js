@@ -1,8 +1,7 @@
 #include "lmdb-js.h"
 #include <cstdio>
 
-using namespace v8;
-using namespace node;
+using namespace Napi;
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
 
@@ -83,22 +82,22 @@ extern "C" EXTERN uint32_t getDbi(double dw) {
     return (uint32_t) ((DbiWrap*) (size_t) dw)->dbi;
 }
 
-napi_value DbiWrap::close(const Napi::CallbackInfo& info) {
+Value DbiWrap::close(const Napi::CallbackInfo& info) {
     if (this->isOpen) {
         mdb_dbi_close(this->env, this->dbi);
         this->isOpen = false;
         this->ew = nullptr;
     }
     else {
-        return Nan::ThrowError("The Dbi is not open, you can't close it.");
+        return Error::New(info.Env(), "The Dbi is not open, you can't close it.").ThrowAsJavaScriptException();
     }
 }
 
-napi_value DbiWrap::drop(const Napi::CallbackInfo& info) {
+Value DbiWrap::drop(const Napi::CallbackInfo& info) {
     int del = 1;
     int rc;
     if (!this->isOpen) {
-        return Nan::ThrowError("The Dbi is not open, you can't drop it.");
+        return Error::New(info.Env(), "The Dbi is not open, you can't drop it.").ThrowAsJavaScriptException();
     }
 
     // Check if the database should be deleted
@@ -123,7 +122,7 @@ napi_value DbiWrap::drop(const Napi::CallbackInfo& info) {
     }
 }
 
-napi_value DbiWrap::stat(const Napi::CallbackInfo& info) {
+Value DbiWrap::stat(const Napi::CallbackInfo& info) {
     MDB_stat stat;
     mdb_stat(this->ew->getReadTxn(), dw->dbi, &stat);
     Object stats = Object::New(info.Env());
@@ -195,66 +194,65 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
     return data.mv_size;
 }
 
-void DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
+Value DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
     char* keyBuffer = this->ew->keyBuffer;
     MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
-    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_size = info[0].As<Number>()
     key.mv_data = (void*) keyBuffer;
     int rc = mdb_get(txn, this->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+            return Number::New(0xffffffff);
         else
             return throwLmdbError(info.Env(), rc);
     }   
     rc = getVersionAndUncompress(data, this);
-    return info.GetReturnValue().Set(valToBinaryUnsafe(data, this));
+    return valToBinaryUnsafe(data, this);
 }
-napi_value DbiWrap::getSharedByBinary(const Napi::CallbackInfo& info) {
+Value DbiWrap::getSharedByBinary(const Napi::CallbackInfo& info) {
     char* keyBuffer = this->ew->keyBuffer;
     MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
-    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_size = info[0].As<Number>()
     key.mv_data = (void*) keyBuffer;
     int rc = mdb_get(txn, this->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::Undefined());
+            return Napi::Env::Undefined();
         else
             return throwLmdbError(info.Env(), rc);
-    }   
+    }
     rc = getVersionAndUncompress(data, this);
     napi_value buffer;
     napi_create_external_buffer(info.Env(), data.mv_size,
-        (char*) data.mv_data,              
-                                           [](char *, void *) {
+        (char*) data.mv_data, [](char *, void *) {
             // Data belongs to LMDB, we shouldn't free it here
         }, nullptr, &buffer);
-    return buffer;
+    return Value(info.Env(), buffer);
 }
 
-napi_value DbiWrap::getStringByBinary(const Napi::CallbackInfo& info) {
+Value DbiWrap::getStringByBinary(const Napi::CallbackInfo& info) {
     char* keyBuffer = this->ew->keyBuffer;
     MDB_txn* txn = this->ew->getReadTxn();
     MDB_val key;
     MDB_val data;
-    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_size = info[0].As<Number>()
     key.mv_data = (void*) keyBuffer;
     int rc = mdb_get(txn, dw->dbi, &key, &data);
     if (rc) {
         if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(Nan::Undefined());
+            return Napi::Env::Undefined();
         else
             return throwLmdbError(info.Env(), rc);
     }
     rc = getVersionAndUncompress(data, this);
     if (rc)
-        return info.GetReturnValue().Set(valToUtf8(data));
+        return valToUtf8(info.Env(), data);
     else
-        return info.GetReturnValue().Set(Nan::New<Number>(data.mv_size));
+        return Number::New(info.Env(), data.mv_size);
 }
 
 extern "C" EXTERN int prefetch(double dwPointer, double keysPointer) {
@@ -323,7 +321,7 @@ class PrefetchWorker : public AsyncWorker {
     uint32_t* keys;
 };
 
-void DbiWrap::prefetch(const Napi::CallbackInfo& info) {
+Value DbiWrap::prefetch(const Napi::CallbackInfo& info) {
     size_t keysAddress = info[0].As<Number>();
     PrefetchWorker* worker = new PrefetchWorker(dw, (uint32_t*) keysAddress, info[1].As<Function>());
     worker->Queue();

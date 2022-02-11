@@ -1,6 +1,5 @@
 #include "lmdb-js.h"
-using namespace napi;
-using namespace node;
+using namespace Napi;
 
 #define IGNORE_NOTFOUND    (1)
 //thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
@@ -16,7 +15,6 @@ pthread_mutex_t* EnvWrap::initMutex() {
 }
 
 EnvWrap::EnvWrap(const CallbackInfo& info) {
-    Env napiEnv = info.Env();
     int rc;
     rc = mdb_env_create(&(this->env));
 
@@ -57,20 +55,6 @@ void EnvWrap::cleanupStrayTxns() {
         mdb_txn_abort(tw->txn);
         tw->removeFromEnvWrap();
     }
-}
-
-template<class T>
-int applyUint32Setting(int (*f)(MDB_env *, T), MDB_env* e, Local<Object> options, T dflt, const char* keyName) {
-    int rc;
-    const Local<Value> value = options->Get(Nan::GetCurrentContext(), String::New(env, keyName)).ToLocalChecked();
-    if (value->IsUint32()) {
-        rc = f(e, value->Uint32Value(Nan::GetCurrentContext()).FromJust());
-    }
-    else {
-        rc = f(e, dflt);
-    }
-
-    return rc;
 }
 
 class SyncWorker : public AsyncWorker {
@@ -137,7 +121,7 @@ MDB_txn* EnvWrap::getReadTxn() {
     if (txn)
         mdb_txn_renew(txn);
     else {
-        throwError("No current read transaction available");
+        napi_throw_error(info.Env(), nullptr, "No current read transaction available");
         return nullptr;
     }
     readTxnRenewed = true;
@@ -161,70 +145,68 @@ napi_value EnvWrap::open(const CallbackInfo& info) {
 
     // Get the wrapper
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
-    Local<Object> options = Local<Object>::Cast(info[0]);
-    Local<Number> flagsValue = Local<Number>::Cast(info[1]);
-    int flags = flagsValue->IntegerValue(Nan::GetCurrentContext()).FromJust();
-    Local<Number> jsFlagsValue = Local<Number>::Cast(info[2]);
-    int jsFlags = jsFlagsValue->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    Object options = info[0].As<Object>();
+    int flags = info[1].As<Number>();
+    int jsFlags = info[2].As<Number>();
 
     Compression* compression = nullptr;
-    Local<Value> compressionOption = options->Get(Nan::GetCurrentContext(), String::New(env, "compression")).ToLocalChecked();
-    if (compressionOption->IsObject()) {
-        compression = this->compression = Nan::ObjectWrap::Unwrap<Compression>(Nan::To<Object>(compressionOption).ToLocalChecked());
+    Value compressionOption = options.Get("compression");
+    if (compressionOption.IsObject()) {
+        napi_unwrap(info.Env(), compressionOption, &compression);
+        this->compression = compression;
         this->compression->Ref();
     }
     char* keyBuffer;
-    Local<Value> keyBytesValue = options->Get(Nan::GetCurrentContext(), String::New(env, "keyBytes")).ToLocalChecked();
-    if (!keyBytesValue->IsArrayBufferView())
+    Value keyBytesValue = options.Get("keyBytes");
+    if (!keyBytesValue.IsArrayBufferView())
         fprintf(stderr, "Invalid key buffer\n");
-    keyBuffer = node::Buffer::Data(keyBytesValue);
+    int keyBufferLength;
+    napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
     setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
-    Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), String::New(env, "path")).ToLocalChecked());
-    int pathLength = path->Length();
+    String path = options.Get("path").As<String>();
+    int pathLength = path.Length();
     uint8_t* pathBytes = new uint8_t[pathLength + 1];
-    int bytes = path->WriteOneByte(Isolate::GetCurrent(), pathBytes, 0, pathLength + 1, v8::String::WriteOptions::NO_OPTIONS);
+    napi_get_value_string_utf8(info.Env(), path, pathBytes, pathLength + 1);
     if (bytes != pathLength)
         fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
     if (pathBytes[bytes])
         fprintf(stderr, "String is not null-terminated");
     // Parse the maxDbs option
     int maxDbs = 12;
-    Local<Value> option = options->Get(Nan::GetCurrentContext(), String::New(env, "maxDbs")).ToLocalChecked();
-    if (option->IsNumber())
-        maxDbs = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
-
+    Value option = options.Get("maxDbs");
+    if (option.IsNumber())
+        maxDbs = option.As<Number>();
 
     mdb_size_t mapSize = 0;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), String::New(env, "mapSize")).ToLocalChecked();
-    if (option->IsNumber())
-        mapSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    option = options.Get("mapSize");
+    if (option.IsNumber())
+        mapSize = option.As<Number>();
     int pageSize = 8192;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), String::New(env, "pageSize")).ToLocalChecked();
-    if (option->IsNumber())
-        pageSize = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    option = options.Get("pageSize");
+    if (option.IsNumber())
+        pageSize = option.As<Number>();
     int maxReaders = 126;
     // Parse the mapSize option
-    option = options->Get(Nan::GetCurrentContext(), String::New(env, "maxReaders")).ToLocalChecked();
-    if (option->IsNumber())
-        maxReaders = option->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    option = options.Get("maxReaders");
+    if (option.IsNumber())
+        maxReaders = option.As<Number>();
 
     uint8_t* encryptKey = nullptr;
-    Local<Value> encryptionKey = options->Get(Nan::GetCurrentContext(), String::New(env, "encryptionKey")).ToLocalChecked();
+    Value encryptionKey = options.Get("encryptionKey");
     if (!encryptionKey->IsUndefined()) {
         unsigned int l = Local<String>::Cast(encryptionKey)->Length();
         encryptKey = new uint8_t[l];
         int utfWritten = 0;
-        Local<String>::Cast(encryptionKey)->WriteUtf8(Isolate::GetCurrent(),
-            (char*) encryptKey, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
+        napi_get_value_string_utf8(info.Env(), encryptionKey, encryptKey, l, &utfWritten);
         if (utfWritten != 32) {
-            return throwError("Encryption key must be 32 bytes long");
+            return napi_throw_error(info.Env(), nullptr, "Encryption key must be 32 bytes long");
         }
         #ifndef MDB_RPAGE_CACHE
-        return throwError("Encryption not supported with data format version 1");
+        return napi_throw_error(info.Env(), nullptr, "Encryption not supported with data format version 1");
         #endif
     }
 
@@ -232,8 +214,8 @@ napi_value EnvWrap::open(const CallbackInfo& info) {
     delete[] pathBytes;
     if (rc < 0)
         return throwLmdbError(info.Env(), rc);
-    node::AddEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, ew);
-    return info.GetReturnValue().Set(Nan::New<Number>(rc));
+    napi_add_env_cleanup_hook(info.Env(), cleanup, ew);
+    return rc;
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
         int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
@@ -357,14 +339,14 @@ extern "C" EXTERN void closeEnv(double ewPointer) {
 
 napi_value EnvWrap::close(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
     this->closeEnv();
 }
 
 napi_value EnvWrap::stat(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
      int rc;
     MDB_stat stat;
@@ -385,7 +367,7 @@ napi_value EnvWrap::stat(const CallbackInfo& info) {
 
 napi_value EnvWrap::freeStat(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
     int rc;
     MDB_stat stat;
@@ -406,7 +388,7 @@ napi_value EnvWrap::freeStat(const CallbackInfo& info) {
 
 napi_value EnvWrap::info(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
     int rc;
     MDB_envinfo envinfo;
@@ -427,7 +409,7 @@ napi_value EnvWrap::info(const CallbackInfo& info) {
 
 napi_value EnvWrap::readerCheck(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
 
     int rc, dead;
@@ -446,7 +428,7 @@ MDB_msg_func* printReaders = ([](const char* message, void* ctx) -> int {
 
 napi_value EnvWrap::readerList(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
 
     napi_create_array(info.Env(), &readerStrings);
@@ -461,32 +443,28 @@ napi_value EnvWrap::readerList(const CallbackInfo& info) {
 
 napi_value EnvWrap::copy(const CallbackInfo& info) {
     if (!this->env) {
-        return throwError("The environment is already closed.");
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
 
     // Check that the correct number/type of arguments was given.
-    if (!info[0]->IsString()) {
-        return throwError("Call env.copy(path, compact?, callback) with a file path.");
+    if (!info[0].IsString()) {
+        return napi_throw_error(info.Env(), nullptr, "Call env.copy(path, compact?, callback) with a file path.");
     }
-    if (!info[info.Length() - 1]->IsFunction()) {
-        return throwError("Call env.copy(path, compact?, callback) with a file path.");
+    if (!info[info.Length() - 1].IsFunction()) {
+        return napi_throw_error(info.Env(), nullptr, "Call env.copy(path, compact?, callback) with a file path.");
     }
     Nan::Utf8String path(info[0].As<String>());
 
     int flags = 0;
-    if (info.Length() > 1 && info[1]->IsTrue()) {
+    if (info.Length() > 1 && info[1].IsTrue()) {
         flags = MDB_CP_COMPACT;
     }
 
-    Function* callback = new Function(
-      Local<v8::Function>::Cast(info[info.Length()  > 2 ? 2 : 1])
-    );
 
     CopyWorker* worker = new CopyWorker(
-      this->env, *path, flags, callback
+      this->env, *path, flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
     );
-
-    AsyncQueueWorker(worker);
+    worker.Queue();
 }
 
 napi_value EnvWrap::detachBuffer(const CallbackInfo& info) {
@@ -592,7 +570,7 @@ napi_value EnvWrap::abortTxn(const CallbackInfo& info) {
     if (currentTxn->flags & TXN_ABORTABLE) {
         mdb_txn_abort(currentTxn->txn);
     } else {
-        throwError("Can not abort this transaction");
+        napi_throw_error(info.Env(), nullptr, "Can not abort this transaction");
     }
     this->writeTxn = currentTxn->parent;
     if (!this->writeTxn) {
@@ -628,7 +606,7 @@ extern "C" EXTERN void abortEnvTxn(double ewPointer) {
     if (currentTxn->flags & TXN_ABORTABLE) {
         mdb_txn_abort(currentTxn->txn);
     } else {
-        throwError("Can not abort this transaction");
+        napi_throw_error(info.Env(), nullptr, "Can not abort this transaction");
     }
     ew->writeTxn = currentTxn->parent;
     if (!ew->writeTxn) {
@@ -641,7 +619,7 @@ extern "C" EXTERN void abortEnvTxn(double ewPointer) {
 }
 
 
-napi_value EnvWrap::openDbi(const CallbackInfo& info) {
+/*napi_value EnvWrap::openDbi(const CallbackInfo& info) {
 
 
     const unsigned argc = 5;
@@ -661,12 +639,12 @@ napi_value EnvWrap::openDbi(const CallbackInfo& info) {
         info.GetReturnValue().Set(Nan::Undefined());
     else
         info.GetReturnValue().Set(instance);
-}
+}*/
 
 napi_value EnvWrap::sync(const CallbackInfo& info) {
 
-    if (!ew->env) {
-        return throwError("The environment is already closed.");
+    if (!this->env) {
+        return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
     }
     if (info.Length() > 0) {
         Function* callback = new Function(
@@ -674,12 +652,12 @@ napi_value EnvWrap::sync(const CallbackInfo& info) {
         );
 
         SyncWorker* worker = new SyncWorker(
-        ew->env, callback
+        this->env, callback
         );
 
         AsyncQueueWorker(worker);
     } else {
-        int rc = mdb_env_sync(ew->env, 1);
+        int rc = mdb_env_sync(this->env, 1);
         if (rc != 0) {
             throwLmdbError(info.Env(), rc);
         }
@@ -688,8 +666,8 @@ napi_value EnvWrap::sync(const CallbackInfo& info) {
 }
 
 napi_value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
-    mdb_txn_reset(ew->currentReadTxn);
-    ew->readTxnRenewed = false;
+    mdb_txn_reset(this->currentReadTxn);
+    this->readTxnRenewed = false;
 }
 
 void EnvWrap::setupExports(Env env, Object exports) {
@@ -748,18 +726,18 @@ void EnvWrap::setupExports(Env env, Object exports) {
     });
     #if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
     auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
-    TxnWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
+    dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect, &getFast));
     auto writeFast = CFunction::Make(EnvWrap::writeFast);
-    EnvWrap::InstanceMethod("write", v8::FunctionTemplate::New(
+    envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
         isolate, EnvWrap::write, v8::Local<v8::Value>(),
         v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
         v8::SideEffectType::kHasNoSideEffect, &writeFast));
 
     #else
-    TxnWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
+    DbiWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
           isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
           v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
           v8::SideEffectType::kHasNoSideEffect));
