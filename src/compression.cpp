@@ -59,7 +59,7 @@ Compression::Compression(const CallbackInfo& info) {
     info.This().Set("address", Number::New((double) (size_t) compression));
 }
 
-napi_value Compression::setBuffer(const CallbackInfo& info) {
+Napi::Value Compression::setBuffer(const CallbackInfo& info) {
     napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &this->decompressTarget, nullptr, nullptr);
     this->decompressSize = info[1].As<Number>();
     napi_get_typedarray_info(info.Env(), info[2], nullptr, nullptr, &this->dictionary, nullptr, nullptr);
@@ -190,7 +190,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
 
 class CompressionWorker : public AsyncWorker {
   public:
-    CompressionWorker(EnvWrap* env, double* compressionAddress, Nan::Callback *callback)
+    CompressionWorker(EnvWrap* env, double* compressionAddress, Function *callback)
       : AsyncWorker(callback), env(env), compressionAddress(compressionAddress) {}
 
 
@@ -211,7 +211,7 @@ class CompressionWorker : public AsyncWorker {
     double* compressionAddress;
 };
 
-napi_value EnvWrap::compress(const CallbackInfo& info) {
+Napi::Value EnvWrap::compress(const CallbackInfo& info) {
     size_t compressionAddress = info[0].As<Number>();
     CompressionWorker* worker = new CompressionWorker(this, (double*) compressionAddress, info[1].As<Function>());
     worker->Queue();
@@ -240,4 +240,12 @@ extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, u
     compression->acceleration = 1;
     compression->compressionThreshold = threshold;
     return (uint64_t) compression;
+}
+
+void Compression::setupExports(Napi::Env env, Object exports) {
+    Function CompressionClass = DefineClass(env, "Compression", {
+		Compression::InstanceMethod("setBuffer", &Compression::setBuffer),
+	});
+	exports.Set("Compression", CompressionClass);
+//	compressionTpl->InstanceTemplate()->SetInternalFieldCount(1);
 }

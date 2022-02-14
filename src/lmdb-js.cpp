@@ -4,38 +4,37 @@ using namespace v8;
 using namespace node;
 
 int Logging::initLogging() {
-    char* logging = getenv("LMDB_JS_LOGGING");
-    if (logging)
-        fprintf(stderr, "Start logging for lmdb-js\n");
-    return !!logging;
+	char* logging = getenv("LMDB_JS_LOGGING");
+	if (logging)
+		fprintf(stderr, "Start logging for lmdb-js\n");
+	return !!logging;
 }
 int Logging::debugLogging = Logging::initLogging();
 
-NODE_MODULE_INIT(/* exports, module, context */) {
-    if (Logging::debugLogging)
-        fprintf(stderr, "Start initialization\n");
-    // Initializes the module
-    // Export Env as constructor for EnvWrap
-    EnvWrap::setupExports(exports);
+NAPI_MODULE_INIT(/* exports, module, context */) {
+	if (Logging::debugLogging)
+		fprintf(stderr, "Start initialization\n");
+	// Initializes the module
+	// Export Env as constructor for EnvWrap
+	EnvWrap::setupExports(env, exports);
 
-    // Export Cursor as constructor for CursorWrap
-    CursorWrap::setupExports(exports);
+	// Export Cursor as constructor for CursorWrap
+	CursorWrap::setupExports(env, exports);
+    TxnWrap::setupExports(env, exports);
+    DbiWrap::setupExports(env, exports);
+    CursorWrap::setupExports(env, exports);
+    Compression::setupExports(env, exports);
 
-    // Export misc things
-    setupExportMisc(exports);
-    if (Logging::debugLogging)
-        fprintf(stderr, "Finished initialization\n");
+	// Export misc things
+	setupExportMisc(env, exports);
+	if (Logging::debugLogging)
+		fprintf(stderr, "Finished initialization\n");
 }
 #ifndef _WIN32
 extern "C" void node_module_register(void* m) {
-    //fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
+	//fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
 }
 #endif
-/* Start of converting just the init to NAPI:
-static napi_value Init(napi_env env, napi_value napi_exports) {
-    v8::Local<v8::Object> exports;
-    memcpy(static_cast<void*>(&exports), &napi_exports, sizeof(napi_exports));
-*/
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

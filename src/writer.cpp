@@ -88,7 +88,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-        *flags |= TXN_FROM_WORKER;
+		*flags |= TXN_FROM_WORKER;
 		return nullptr;
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
@@ -356,7 +356,7 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void NanWriteWorker::OnProgressCallback(const char* data, size_t count) {
+void NanWriteWorker::OnProgress(const char* data, size_t count) {
 	if (progressStatus == 1) {
 		Callback.Call({ Number::New(Env(), progressStatus)});
 		return;
@@ -381,13 +381,13 @@ void NanWriteWorker::OnOK() {
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
-    if (!this->env) {
-    	return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
-    }
-    size_t instructionAddress = info[0].As<Number>();
-    NanWriteWorker* worker = new NanWriteWorker(ew->env, ew, (uint32_t*) instructionAddress, info[0].As<Function>());
-	ew->writeWorker = worker;
-    worker->Queue();
+	if (!this->env) {
+		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
+	}
+	size_t instructionAddress = info[0].As<Number>().Int64Value();
+	NanWriteWorker* worker = new NanWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[0].As<Function>());
+	this->writeWorker = worker;
+	worker->Queue();
 }
 
 extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
@@ -415,19 +415,19 @@ void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress,
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		options.fallback = true;
 }
-#endif
 void EnvWrap::write(
 	const v8::FunctionCallbackInfo<v8::Value>& info) {
 	v8::Local<v8::Object> instance =
 		v8::Local<v8::Object>::Cast(info.Holder());
 	instance->write(info);
 }
-napi_value EnvWrap::write(const CallbackInfo& info) {
+#endif
+Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	//fprintf(stderr,"Doing sync write\n");
 	if (!this->env) {
 		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
 	}
-	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+	size_t instructionAddress = info[0].As<Number>();
 	int rc = 0;
 	if (instructionAddress)
 		rc = DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);

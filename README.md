@@ -482,8 +482,8 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 ## Alternate Database
 The lmdb-js project is developed in conjunction with [lmdbx-js](https://github.com/kriszyp/lmdbx-js), which is based on [libmdbx](https://github.com/erthink/libmdbx), a fork of LMDB. Each of these have their own advantages:
-* lmdb-js/LMDB is great for general usage, easy to set up with automated sizing, supports encryption, and works well across all platforms.
-* lmdbx-js/libmdbx has more advanced management of free space and database sizing that can offer more performance optimizations for heavy usage. However, it may have not perform as well on Windows, and the database format is not compatible with LMDB.
+* lmdb-js/LMDB is great for general usage, has very high performance, easy to set up with automated sizing, supports encryption, and works well across all platforms.
+* lmdbx-js/libmdbx has more advanced management of free space and database sizing that can offer more performance optimizations for situations that require intense free space reclamation. However, in my experience lmdb-js has better performance than lmdbx-js, and the database format is not compatible with LMDB.
 
 ## Credits
 
