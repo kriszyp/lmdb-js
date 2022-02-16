@@ -150,7 +150,7 @@ export function open(path, options) {
 			if (keyType == 2)
 				flags |= 0x08; // integer key
 			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
-				this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
 			if (!this.db) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
