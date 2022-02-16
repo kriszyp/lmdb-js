@@ -14,13 +14,14 @@ pthread_mutex_t* EnvWrap::initMutex() {
 	return mutex;
 }
 
-EnvWrap::EnvWrap(const CallbackInfo& info) {
+EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
 	rc = mdb_env_create(&(this->env));
 
 	if (rc != 0) {
 		mdb_env_close(this->env);
-		return throwLmdbError(info.Env(), rc);
+		throwLmdbError(info.Env(), rc);
+		return;
 	}
 
 	this->env = nullptr;
@@ -60,17 +61,17 @@ void EnvWrap::cleanupStrayTxns() {
 class SyncWorker : public AsyncWorker {
   public:
 	SyncWorker(MDB_env* env, Function& callback)
-	  : AsyncWorker(callback), env(env) {}
+	 : AsyncWorker(callback), env(env) {}
 
 	void Execute() {
 		int rc = mdb_env_sync(env, 1);
 		if (rc != 0) {
-			SetErrorMessage(mdb_strerror(rc));
+			SetError(mdb_strerror(rc));
 		}
 	}
 
 	void OnOK() {
-		Callback->Call({Env().Null()});
+		Callback.Call({Env().Null()});
 	}
 
   private:
@@ -79,18 +80,18 @@ class SyncWorker : public AsyncWorker {
 
 class CopyWorker : public AsyncWorker {
   public:
-	CopyWorker(MDB_env* env, std::string inPath, int flags, Function *callback)
-	  : AsyncWorker(callback), env(env), path(strdup(inPath)), flags(flags) {
-	  }
+	CopyWorker(MDB_env* env, std::string inPath, int flags, Function& callback)
+	 : AsyncWorker(callback), env(env), path(inPath), flags(flags) {
+	 }
 	~CopyWorker() {
-		free(path);
+		//free(path);
 	}
 
 	void Execute() {
 		int rc = mdb_env_copy2(env, path.c_str(), flags);
 		if (rc != 0) {
 			fprintf(stderr, "Error on copy code: %u\n", rc);
-			SetErrorMessage("Error on copy");
+			SetError("Error on copy");
 		}
 	}
 
@@ -113,7 +114,7 @@ MDB_txn* EnvWrap::getReadTxn() {
 	if (txn)
 		mdb_txn_renew(txn);
 	else {
-		napi_throw_error(info.Env(), nullptr, "No current read transaction available");
+		throwError(info.Env(), "No current read transaction available");
 		return nullptr;
 	}
 	readTxnRenewed = true;
@@ -137,7 +138,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 
 	// Get the wrapper
 	if (!this->env) {
-		return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
+		return throwError(info.Env(), "The environment is already closed.");
 	}
 	Object options = info[0].As<Object>();
 	int flags = info[1].As<Number>();
@@ -146,25 +147,24 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	Compression* compression = nullptr;
 	Napi::Value compressionOption = options.Get("compression");
 	if (compressionOption.IsObject()) {
-		napi_unwrap(info.Env(), compressionOption, &compression);
+		napi_unwrap(info.Env(), compressionOption, &(void*)compression);
 		this->compression = compression;
 		this->compression->Ref();
 	}
-	char* keyBuffer;
+	void* keyBuffer;
 	Napi::Value keyBytesValue = options.Get("keyBytes");
-	if (!keyBytesValue.IsArrayBufferView())
+	if (!keyBytesValue.IsTypedArray())
 		fprintf(stderr, "Invalid key buffer\n");
-	int keyBufferLength;
-	napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
+	size_t keyBufferLength;
+	napi_get_typedarray_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength, nullptr, nullptr);
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
-	int pathLength = path.Length();
-	uint8_t* pathBytes = new uint8_t[pathLength + 1];
-	napi_get_value_string_utf8(info.Env(), path, pathBytes, pathLength + 1);
+	const char* pathBytes = path.Utf8Value().c_str();
+	/*int pathLength = path.Length();
 	if (bytes != pathLength)
 		fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
 	if (pathBytes[bytes])
-		fprintf(stderr, "String is not null-terminated");
+		fprintf(stderr, "String is not null-terminated");*/
 	// Parse the maxDbs option
 	int maxDbs = 12;
 	Napi::Value option = options.Get("maxDbs");
@@ -175,7 +175,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	// Parse the mapSize option
 	option = options.Get("mapSize");
 	if (option.IsNumber())
-		mapSize = option.As<Number>();
+		mapSize = option.As<Number>().Int64Value();
 	int pageSize = 4096;
 	// Parse the mapSize option
 	option = options.Get("pageSize");
@@ -187,27 +187,24 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (option.IsNumber())
 		maxReaders = option.As<Number>();
 
-	uint8_t* encryptKey = nullptr;
+	const char* encryptKey = nullptr;
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	if (!encryptionKey.IsUndefined()) {
-		unsigned int l = encryptionKey.As<String>().Length();
-		encryptKey = new uint8_t[l];
-		int utfWritten = 0;
-		napi_get_value_string_utf8(info.Env(), encryptionKey, encryptKey, l, &utfWritten);
-		if (utfWritten != 32) {
-			return napi_throw_error(info.Env(), nullptr, "Encryption key must be 32 bytes long");
+		encryptKey = encryptionKey.As<String>().Utf8Value().c_str();
+		if (strlen(encryptKey) != 32) {
+			return throwError(info.Env(), "Encryption key must be 32 bytes long");
 		}
 		#ifndef MDB_RPAGE_CACHE
-		return napi_throw_error(info.Env(), nullptr, "Encryption not supported with data format version 1");
+		return throwError(info.Env(), "Encryption not supported with data format version 1");
 		#endif
 	}
 
-	rc = this->openEnv(flags, jsFlags, (const char*)pathBytes, keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
+	rc = this->openEnv(flags, jsFlags, (const char*)pathBytes, (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
 	delete[] pathBytes;
 	if (rc < 0)
 		return throwLmdbError(info.Env(), rc);
-	napi_add_env_cleanup_hook(info.Env(), cleanup, ew);
-	return rc;
+	napi_add_env_cleanup_hook(info.Env(), cleanup, this);
+	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
 		int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
@@ -283,7 +280,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	return rc;
 }
 Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
-	return Number::New(mdb_env_get_maxkeysize(this->env));
+	return Number::New(info.Env(), mdb_env_get_maxkeysize(this->env));
 }
 
 
@@ -297,7 +294,6 @@ Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
-	node::RemoveEnvironmentCleanupHook(Isolate::GetCurrent(), cleanup, this);
 	cleanupStrayTxns();
 	pthread_mutex_lock(envsLock);
 	for (auto envPath = envs.begin(); envPath != envs.end(); ) {
@@ -326,21 +322,22 @@ void EnvWrap::closeEnv() {
 }
 extern "C" EXTERN void closeEnv(double ewPointer) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	this->closeEnv();
+	ew->closeEnv();
 }
 
 Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	if (!this->env) {
-		return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
+		return throwError(info.Env(), "The environment is already closed.");
 	}
+	napi_remove_env_cleanup_hook(info.Env(), cleanup, this);
 	this->closeEnv();
 }
 
 Napi::Value EnvWrap::stat(const CallbackInfo& info) {
 	if (!this->env) {
-		return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
+		return throwError(info.Env(), "The environment is already closed.");
 	}
-	 int rc;
+	int rc;
 	MDB_stat stat;
 
 	rc = mdb_env_stat(this->env, &stat);
@@ -359,12 +356,13 @@ Napi::Value EnvWrap::stat(const CallbackInfo& info) {
 
 Napi::Value EnvWrap::freeStat(const CallbackInfo& info) {
 	if (!this->env) {
-		return throwError(info.Env(), nullptr, "The environment is already closed.");
+		return throwError(info.Env(),"The environment is already closed.");
 	}
 	int rc;
 	MDB_stat stat;
-
-	rc = mdb_stat(this->txn, 0, &stat);
+	TxnWrap *txn;
+	napi_unwrap(info.Env(), info[0], &(void*)txn);
+	rc = mdb_stat(txn->txn, 0, &stat);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
@@ -380,7 +378,7 @@ Napi::Value EnvWrap::freeStat(const CallbackInfo& info) {
 
 Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	if (!this->env) {
-		return napi_throw_error(info.Env(), nullptr, "The environment is already closed.");
+		return throwError(info.Env(),"The environment is already closed.");
 	}
 	int rc;
 	MDB_envinfo envinfo;
@@ -390,7 +388,6 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 		return throwLmdbError(info.Env(), rc);
 	}
 	Object stats = Object::New(info.Env());
-	stats.Set("mapAddress", Number::New(info.Env(), envinfo.me_mapaddr));
 	stats.Set("mapSize", Number::New(info.Env(), envinfo.me_mapsize));
 	stats.Set("lastPageNumber", Number::New(info.Env(), envinfo.me_last_pgno));
 	stats.Set("lastTxnId", Number::New(info.Env(), envinfo.me_last_txnid));
@@ -422,9 +419,9 @@ Napi::Value EnvWrap::readerList(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-    readerStrings = Array::New(info.Env());
+   readerStrings = Array::New(info.Env());
 	int rc;
-    Env env = info.Env();
+   Napi::Env env = info.Env();
 	rc = mdb_reader_list(this->env, printReaders, &env);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
@@ -452,7 +449,7 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	}
 
 	CopyWorker* worker = new CopyWorker(
-	  this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
+	 this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
 	);
 	worker->Queue();
 }
@@ -539,7 +536,7 @@ Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	if (currentTxn->flags & TXN_ABORTABLE) {
 		mdb_txn_abort(currentTxn->txn);
 	} else {
-		napi_throw_error(info.Env(), nullptr, "Can not abort this transaction");
+		throwError(info.Env(), "Can not abort this transaction");
 	}
 	this->writeTxn = currentTxn->parent;
 	if (!this->writeTxn) {
@@ -575,7 +572,7 @@ extern "C" EXTERN void abortEnvTxn(double ewPointer) {
 	if (currentTxn->flags & TXN_ABORTABLE) {
 		mdb_txn_abort(currentTxn->txn);
 	} else {
-		napi_throw_error(info.Env(), nullptr, "Can not abort this transaction");
+		throwError(info.Env(), "Can not abort this transaction");
 	}
 	ew->writeTxn = currentTxn->parent;
 	if (!ew->writeTxn) {

@@ -1,7 +1,6 @@
 #include "lmdb-js.h"
 
-using namespace v8;
-using namespace node;
+using namespace Napi;
 
 int Logging::initLogging() {
 	char* logging = getenv("LMDB_JS_LOGGING");
@@ -11,7 +10,7 @@ int Logging::initLogging() {
 }
 int Logging::debugLogging = Logging::initLogging();
 
-NAPI_MODULE_INIT(/* exports, module, context */) {
+Object InitAll(Napi::Env env, Object exports) {
 	if (Logging::debugLogging)
 		fprintf(stderr, "Start initialization\n");
 	// Initializes the module
@@ -20,16 +19,18 @@ NAPI_MODULE_INIT(/* exports, module, context */) {
 
 	// Export Cursor as constructor for CursorWrap
 	CursorWrap::setupExports(env, exports);
-    TxnWrap::setupExports(env, exports);
-    DbiWrap::setupExports(env, exports);
-    CursorWrap::setupExports(env, exports);
-    Compression::setupExports(env, exports);
+	TxnWrap::setupExports(env, exports);
+	DbiWrap::setupExports(env, exports);
+	CursorWrap::setupExports(env, exports);
+	Compression::setupExports(env, exports);
 
 	// Export misc things
 	setupExportMisc(env, exports);
 	if (Logging::debugLogging)
 		fprintf(stderr, "Finished initialization\n");
+	return env.Undefined();
 }
+NODE_API_MODULE(lmdb, InitAll)
 #ifndef _WIN32
 extern "C" void node_module_register(void* m) {
 	//fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");

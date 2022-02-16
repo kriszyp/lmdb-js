@@ -40,37 +40,24 @@ extern "C" EXTERN void getError(int rc, char* target) {
 	strcpy(target, mdb_strerror(rc));
 }
 
-void throwError(const char* message) {
-	v8::Isolate::GetCurrent()->ThrowException(String::New(env, message));
-}
-
-v8::Local<v8::String> String::New(env, const char* str) {
-	return v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), str).ToLocalChecked();
-}
-
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
 	Value opt = options.Get(name);
 	if (opt.IsBoolean() ? opt.BooleanValue() : defaultValue)
 		*flags |= flag;
 }
-
+/*
 Value valToStringUnsafe(MDB_val &data) {
 	auto resource = new CustomExternalOneByteStringResource(&data);
 	auto str = Nan::New<v8::String>(resource);
 
 	return str.ToLocalChecked();
-}
+}*/
 
 Value valToUtf8(Env env, MDB_val &data) {
-	//const uint8_t *buffer = (const uint8_t*)(data.mv_data);
-	//Isolate *isolate = Isolate::GetCurrent();
-	//auto str = v8::String::NewFromOneByte(isolate, buffer, v8::NewStringType::kNormal, data.mv_size);
-	napi_value string;
-	napi_create_string_utf8(env, (const char*)(data.mv_data), data.mv_size, &string);
-	return string;
+	return String::New(env, (const char*) data.mv_data, data.mv_size);
 }
 
-Value valToString(MDB_val &data) {
+Value valToString(Env env, MDB_val &data) {
 	// UTF-16 buffer
 	const uint16_t *buffer = reinterpret_cast<const uint16_t*>(data.mv_data);
 	// Number of UTF-16 code points
@@ -78,14 +65,11 @@ Value valToString(MDB_val &data) {
 	
 	// Check zero termination
 	if (n < 1 || buffer[n - 1] != 0) {
-		Nan::ThrowError("Invalid zero-terminated UTF-16 string");
-		return Nan::Undefined();
+		return throwError(env, "Invalid zero-terminated UTF-16 string");
 	}
 	
 	size_t length = n - 1;
-	napi_value string;
-	napi_create_string_utf16(env, (const char*)(data.mv_data), length, &string);
-	return string;
+	return String::New(env, (const char16_t*)data.mv_data, length);
 }
 
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
@@ -115,9 +99,7 @@ bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
 }
 Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env) {
 	valToBinaryFast(data, dw);
-	napi_value size;
-	napi_create_uint32(env, data.mv_size, size);
-	return size;
+	return Number::New(env, data.mv_size);
 }
 
 
@@ -147,11 +129,11 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 }
 
 Value lmdbError(const CallbackInfo& info) {
-	throwLmdbError(info.Env(), Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+	return throwLmdbError(info.Env(), Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
 }
 
 Value setGlobalBuffer(const CallbackInfo& info) {
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, &globalUnsafePtr);
+	napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, &globalUnsafePtr, nullptr, nullptr);
 }
 
 /*Value getBufferForAddress) {
@@ -164,13 +146,11 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 Value getViewAddress(const CallbackInfo& info) {
 	void* data;
 	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &data);
-	napi_value address;
-	napi_create_int64(info.Env(), (int64_t) data, &address);
-	return address;
+	return Number::New(info.Env(), (int64_t) data);
 }
 Value clearKeptObjects(const CallbackInfo& info) {
 	#if NODE_VERSION_AT_LEAST(12,0,0)
-	Isolate::GetCurrent()->ClearKeptObjects();
+	v8::Isolate::GetCurrent()->ClearKeptObjects();
 	#endif
 }
 
@@ -182,7 +162,7 @@ Napi::Value throwLmdbError(Napi::Env env, int rc) {
     if (rc < 0 && !(rc < -30700 && rc > -30800))
         rc = -rc;
 	Error error = Error::New(env, mdb_strerror(rc));
-	error.Set("code", Number::New(rc));
+	error.Set("code", Number::New(info.Env(), rc));
 	error.ThrowAsJavaScriptException();
     return env.Undefined();
 }

@@ -143,13 +143,13 @@ void writeValueToEntry(const Value &str, MDB_val *val);
 LmdbKeyType keyTypeFromOptions(const Value &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
-NAN_METHOD(setGlobalBuffer);
-NAN_METHOD(lmdbError);
+Value setGlobalBuffer(const CallbackInfo& info);
+Value lmdbError(const CallbackInfo& info);
 //NAN_METHOD(getBufferForAddress);
-NAN_METHOD(getViewAddress);
-NAN_METHOD(getAddress);
-NAN_METHOD(clearKeptObjects);
-NAN_METHOD(lmdbNativeFunctions);
+Value getViewAddress(const CallbackInfo& info);
+Value getAddress(const CallbackInfo& info);
+Value clearKeptObjects(const CallbackInfo& info);
+Value lmdbNativeFunctions(const CallbackInfo& info);
 
 #ifndef thread_local
 #ifdef __GNUC__
@@ -164,7 +164,7 @@ NAN_METHOD(lmdbNativeFunctions);
 #endif
 
 bool valToBinaryFast(MDB_val &data, DbiWrap* dw);
-Value valToUtf8(MDB_val &data);
+Value valToUtf8(Env env, MDB_val &data);
 Value valToString(MDB_val &data);
 Value valToStringUnsafe(MDB_val &data);
 Value valToBinary(MDB_val &data);
@@ -220,7 +220,7 @@ class NanWriteWorker : public WriteWorker, public AsyncProgressWorker<NanWriteWo
   public:
 	NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function *callback);
 	void Execute(ExecutionProgress executionProgress);
-	void HandleProgressCallback(const char* data, size_t count);
+	void OnProgress(const char* data, size_t count);
 	void OnOK();
 	void ReportError(const char* error);
 	void SendUpdate();

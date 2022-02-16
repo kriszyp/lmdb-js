@@ -15,7 +15,6 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
 	EnvWrap *ew;
 	napi_unwrap(info.Env(), info[0], &(void*)ew);
 	int flags = 0;
-	MDB_txn *txn;
 	TxnWrap *parentTw;
 	if (info[1].IsTrue() && ew->writeWorker) { // this is from a transaction callback
 		txn = ew->writeWorker->AcquireTxn(&flags);
@@ -39,8 +38,10 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
 			parentTw = nullptr;
 			// Check existence of current write transaction
 			if (0 == (flags & MDB_RDONLY)) {
-				if (ew->currentWriteTxn != nullptr)
-					return Error::New(info.Env(), "You have already opened a write transaction in the current process, can't open a second one.").ThrowAsJavaScriptException();
+				if (ew->currentWriteTxn != nullptr) {
+					throwError(info.Env(), "You have already opened a write transaction in the current process, can't open a second one.");
+					return;
+				}
 				//fprintf(stderr, "begin sync txn");
 				auto writeWorker = ew->writeWorker;
 				if (writeWorker) {
@@ -54,13 +55,12 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
 		if (rc != 0) {
 			if (rc == EINVAL) {
 				throwError(info.Env(), "Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)");
-                return;
+				return;
 			}
 			throwLmdbError(info.Env(), rc);
-            return;
+			return;
 		}
 	}
-	TxnWrap* tw = new TxnWrap(ew->env, txn);
 
 	// Set the current write transaction
 	if (0 == (flags & MDB_RDONLY)) {
@@ -173,9 +173,8 @@ extern "C" EXTERN void abortTxn(double twPointer) {
 	tw->removeFromEnvWrap();
 }
 Value TxnWrap::commit(const Napi::CallbackInfo& info) {
-
 	if (!this->txn) {
-		return throwError((info.Env(), "The transaction is already closed.");
+		return throwError(info.Env(), "The transaction is already closed.");
 	}
 	int rc;
 	WriteWorker* writeWorker = this->ew->writeWorker;

@@ -61,7 +61,7 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function *callback)
+NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function& callback)
 		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
@@ -112,7 +112,7 @@ void WriteWorker::ReportError(const char* error) {
 }
 void NanWriteWorker::ReportError(const char* error) {
 	hasError = true;
-	SetErrorMessage(error);
+	SetError(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
@@ -382,7 +382,7 @@ void NanWriteWorker::OnOK() {
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	if (!this->env) {
-		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
+		return throwError(info.Env(), "The environment is already closed.");
 	}
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	NanWriteWorker* worker = new NanWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[0].As<Function>());
@@ -427,7 +427,7 @@ Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	if (!this->env) {
 		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
 	}
-	size_t instructionAddress = info[0].As<Number>();
+	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	int rc = 0;
 	if (instructionAddress)
 		rc = DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);
@@ -435,7 +435,7 @@ Napi::Value EnvWrap::write(const CallbackInfo& info) {
 		pthread_cond_signal(this->writingCond);
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return throwLmdbError(info.Env(), mdb_strerror(rc));
+		return throwLmdbError(info.Env(), rc);
 }
 
 extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {
