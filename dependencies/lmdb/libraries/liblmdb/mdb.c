@@ -4836,7 +4836,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	}
 #else
 retry_write:
-	rc = pwrite(mfd, ptr, len, off);g
+	rc = pwrite(mfd, ptr, len, off);
 #endif
 	if (rc != len) {
 		rc = rc < 0 ? ErrCode() : EIO;
