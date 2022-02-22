@@ -32,7 +32,9 @@ export function addReadMethods(LMDBStore, {
 				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
 			} catch (error) {
 				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
-					error = new Error('Zero length key is not allowed in LMDB')
+					error = new Error(id === undefined ?
+						'A key is required for get, but is undefined' :
+						'Zero length key is not allowed in LMDB')
 				throw error
 			}
 			let compression = this.compression;
