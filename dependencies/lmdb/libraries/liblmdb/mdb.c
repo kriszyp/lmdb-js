@@ -4818,7 +4818,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	ptr = (char *)&meta + off;
 	len = sizeof(MDB_meta) - off;
 	if (flags & 2) {
-		off += env->me_psize >> 1;
+		off += PAGEHDRSZ + (env->me_psize >> 1);
 	} else
 		off += (char *)mp - env->me_map;
 
@@ -4836,7 +4836,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	}
 #else
 retry_write:
-	rc = pwrite(mfd, ptr, len, off);
+	rc = pwrite(mfd, ptr, len, off);g
 #endif
 	if (rc != len) {
 		rc = rc < 0 ? ErrCode() : EIO;
