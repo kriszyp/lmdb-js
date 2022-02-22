@@ -9,6 +9,7 @@ import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';
+import { isMainThread } from 'worker_threads';
 orderedBinary.enableNullTermination();
 
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
@@ -20,7 +21,8 @@ setExternals({
 		if (process.getMaxListeners() < process.listenerCount('exit') + 8)
 			process.setMaxListeners(process.listenerCount('exit') + 8);
 		process.on('exit', callback);
-	}
+	},
+	isWorkerThread: !isMainThread,
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';

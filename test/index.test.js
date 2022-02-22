@@ -1083,7 +1083,7 @@ describe('lmdb-js', function() {
     });
   });
   describe('Threads', function() {
-    this.timeout(10000);
+    this.timeout(1000000);
     it('will run a group of threads with read-only transactions', function(done) {
       var child = spawn('node', [fileURLToPath(new URL('./threads.cjs', import.meta.url))]);
       child.stdout.on('data', function(data) {
