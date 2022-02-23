@@ -61,21 +61,20 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function& callback)
+AsyncWriteWorker::AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function& callback)
 		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		txn = nullptr;
 	}
 
-void NanWriteWorker::Execute(const ExecutionProgress& executionProgress) {
-	this->executionProgress = (ExecutionProgress*) &executionProgress;
+void AsyncWriteWorker::Execute(const AsyncProgressWorker::ExecutionProgress& execution) {
 	Write();
 }
 void WriteWorker::SendUpdate() {
 	//fprintf(stderr, "This SendUpdate does not work!\n");
 }
-void NanWriteWorker::SendUpdate() {
+void AsyncWriteWorker::SendUpdate() {
 	executionProgress->Send(nullptr, 0);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
@@ -110,7 +109,7 @@ void WriteWorker::ReportError(const char* error) {
 	hasError = true;
 	fprintf(stderr, "Error %s\n", error);
 }
-void NanWriteWorker::ReportError(const char* error) {
+void AsyncWriteWorker::ReportError(const char* error) {
 	hasError = true;
 	SetError(error);
 }
@@ -356,9 +355,9 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void NanWriteWorker::OnProgress(const char* data, size_t count) {
+void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 	if (progressStatus == 1) {
-		Callback.Call({ Number::New(Env(), progressStatus)});
+		Callback().Call({ Number::New(Env(), progressStatus)});
 		return;
 	}
 	if (finishedProgress)
@@ -368,16 +367,16 @@ void NanWriteWorker::OnProgress(const char* data, size_t count) {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	envForTxn->writeTxn = new TxnTracked(txn, 0);
 	finishedProgress = true;
-	callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+	Callback().Call({ Number::New(Env(), 1) });
 	delete envForTxn->writeTxn;
 	envForTxn->writeTxn = nullptr;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
-void NanWriteWorker::OnOK() {
+void AsyncWriteWorker::OnOK() {
 	finishedProgress = true;
-	Callback.Call({ Number::New(Env(), 0)});
+	Callback().Call({ Number::New(Env(), 0)});
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
@@ -385,7 +384,7 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
-	NanWriteWorker* worker = new NanWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[0].As<Function>());
+	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[0].As<Function>());
 	this->writeWorker = worker;
 	worker->Queue();
 }
@@ -425,7 +424,7 @@ void EnvWrap::write(
 Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	//fprintf(stderr,"Doing sync write\n");
 	if (!this->env) {
-		return Error::New(info.Env(), "The environment is already closed.").ThrowAsJavaScriptException();
+		return throwError(info.Env(), "The environment is already closed.");
 	}
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	int rc = 0;

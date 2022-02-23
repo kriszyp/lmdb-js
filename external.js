@@ -1,9 +1,9 @@
-export let Env, Txn, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
 	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap;
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Txn = externals.Txn;
-	Txn = function(env, flags) { return env.beginTxn(flags)};
+	Dbi = externals.Dbi;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
 	clearKeptObjects = externals.clearKeptObjects;

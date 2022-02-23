@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir, os, setEnvMap, getEnvMap } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, setEnvMap, getEnvMap } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -152,11 +152,11 @@ export function open(path, options) {
 			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
-			if (!this.db) {// not found
+			if (this.db.dbi == 0xffffffff) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
-						this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+						this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 					});
 				} else {
 					return; // return undefined to indicate it could not be found
@@ -297,8 +297,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: false
-				}),
-			{ abortable: false });
+				}), 2);
 		}
 		clear(callback) {
 			if (typeof callback == 'function')
@@ -316,8 +315,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
-				}),
-			{ abortable: false });
+				}), 2);
 		}
 		readerCheck() {
 			return env.readerCheck();

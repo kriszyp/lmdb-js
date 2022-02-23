@@ -42,7 +42,7 @@ extern "C" EXTERN void getError(int rc, char* target) {
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
 	Value opt = options.Get(name);
-	if (opt.IsBoolean() ? opt.BooleanValue() : defaultValue)
+	if (opt.IsBoolean() ? opt.As<Boolean>().Value() : defaultValue)
 		*flags |= flag;
 }
 /*
@@ -129,11 +129,12 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 }
 
 Value lmdbError(const CallbackInfo& info) {
-	return throwLmdbError(info.Env(), Nan::To<v8::Number>(info[0]).ToLocalChecked()->Value());
+	return throwLmdbError(info.Env(), info[0].As<Number>().Int32Value());
 }
 
 Value setGlobalBuffer(const CallbackInfo& info) {
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, &globalUnsafePtr, nullptr, nullptr);
+	napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, (void**) &globalUnsafePtr, nullptr, nullptr);
+	return info.Env().Undefined();
 }
 
 /*Value getBufferForAddress) {
@@ -145,31 +146,33 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 }*/
 Value getViewAddress(const CallbackInfo& info) {
 	void* data;
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &data);
+	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &data, nullptr, nullptr);
 	return Number::New(info.Env(), (int64_t) data);
 }
 Value clearKeptObjects(const CallbackInfo& info) {
 	#if NODE_VERSION_AT_LEAST(12,0,0)
 	v8::Isolate::GetCurrent()->ClearKeptObjects();
 	#endif
+	return info.Env().Undefined();
 }
 
 Value lmdbNativeFunctions(const CallbackInfo& info) {
 	// no-op, just doing this to give a label to the native functions
+	return info.Env().Undefined();
 }
 
 Napi::Value throwLmdbError(Napi::Env env, int rc) {
-    if (rc < 0 && !(rc < -30700 && rc > -30800))
-        rc = -rc;
+	if (rc < 0 && !(rc < -30700 && rc > -30800))
+		rc = -rc;
 	Error error = Error::New(env, mdb_strerror(rc));
-	error.Set("code", Number::New(info.Env(), rc));
+	error.Set("code", Number::New(env, rc));
 	error.ThrowAsJavaScriptException();
-    return env.Undefined();
+	return env.Undefined();
 }
 
 Napi::Value throwError(Napi::Env env, char* message) {
 	Error::New(env, message).ThrowAsJavaScriptException();
-    return env.Undefined();
+	return env.Undefined();
 }
 
 int putWithVersion(MDB_txn *   txn,

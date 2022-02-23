@@ -24,7 +24,6 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 		return;
 	}
 
-	this->env = nullptr;
 	this->currentWriteTxn = nullptr;
 	this->currentReadTxn = nullptr;
 	this->writeTxn = nullptr;
@@ -70,10 +69,6 @@ class SyncWorker : public AsyncWorker {
 		}
 	}
 
-	void OnOK() {
-		Callback.Call({Env().Null()});
-	}
-
   private:
 	MDB_env* env;
 };
@@ -95,10 +90,6 @@ class CopyWorker : public AsyncWorker {
 		}
 	}
 
-	void OnOK() {
-		Callback->Call({Env().Null()});
-	}
-
   private:
 	MDB_env* env;
 	std::string path;
@@ -114,7 +105,7 @@ MDB_txn* EnvWrap::getReadTxn() {
 	if (txn)
 		mdb_txn_renew(txn);
 	else {
-		throwError(info.Env(), "No current read transaction available");
+		fprintf(stderr, "No current read transaction available");
 		return nullptr;
 	}
 	readTxnRenewed = true;
@@ -156,7 +147,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (!keyBytesValue.IsTypedArray())
 		fprintf(stderr, "Invalid key buffer\n");
 	size_t keyBufferLength;
-	napi_get_typedarray_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength, nullptr, nullptr);
+	napi_get_typedarray_info(info.Env(), keyBytesValue, nullptr, &keyBufferLength, &keyBuffer, nullptr, nullptr);
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
 	const char* pathBytes = path.Utf8Value().c_str();
@@ -200,7 +191,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	}
 
 	rc = this->openEnv(flags, jsFlags, (const char*)pathBytes, (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
-	delete[] pathBytes;
+	//delete[] pathBytes;
 	if (rc < 0)
 		return throwLmdbError(info.Env(), rc);
 	napi_add_env_cleanup_hook(info.Env(), cleanup, this);
@@ -461,6 +452,7 @@ Napi::Value EnvWrap::detachBuffer(const CallbackInfo& info) {
     memcpy(&v8Buffer, &buffer, sizeof(buffer));
 	v8Buffer->Detach();
 	#endif
+    return info.Env().Undefined();
 }
 
 Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
@@ -530,6 +522,7 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	delete currentTxn;
 	if (rc)
 		throwLmdbError(info.Env(), rc);
+    return info.Env().Undefined();
 }
 Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
@@ -546,6 +539,7 @@ Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 			pthread_mutex_unlock(this->writingLock);
 	}
 	delete currentTxn;
+    return info.Env().Undefined();
 }/*
 extern "C" EXTERN int commitEnvTxn(double ewPointer) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
@@ -627,18 +621,18 @@ Napi::Value EnvWrap::sync(const CallbackInfo& info) {
 Napi::Value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
 	mdb_txn_reset(this->currentReadTxn);
 	this->readTxnRenewed = false;
+    return info.Env().Undefined();
 }
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	// EnvWrap: Prepare constructor template
-	Function EnvClass = DefineClass(env, "Env", {
+	Function EnvClass = ObjectWrap<EnvWrap>::DefineClass(env, "Env", {
 		EnvWrap::InstanceMethod("open", &EnvWrap::open),
 		EnvWrap::InstanceMethod("getMaxKeySize", &EnvWrap::getMaxKeySize),
 		EnvWrap::InstanceMethod("close", &EnvWrap::close),
 		EnvWrap::InstanceMethod("beginTxn", &EnvWrap::beginTxn),
 		EnvWrap::InstanceMethod("commitTxn", &EnvWrap::commitTxn),
 		EnvWrap::InstanceMethod("abortTxn", &EnvWrap::abortTxn),
-		EnvWrap::InstanceMethod("openDbi", &EnvWrap::openDbi),
 		EnvWrap::InstanceMethod("sync", &EnvWrap::sync),
 		EnvWrap::InstanceMethod("startWriting", &EnvWrap::startWriting),
 		EnvWrap::InstanceMethod("compress", &EnvWrap::compress),
@@ -647,14 +641,12 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("info", &EnvWrap::info),
 		EnvWrap::InstanceMethod("readerCheck", &EnvWrap::readerCheck),
 		EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
-		EnvWrap::InstanceMethod("resize", &EnvWrap::resize),
 		EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
 		EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);
-
 }
 
 extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
@@ -679,6 +671,7 @@ extern "C" EXTERN int32_t readerCheck(double ew) {
 	rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
 	return rc || dead;
 }
+/*
 extern "C" EXTERN int64_t openDbi(double ewPointer, int flags, char* name, int keyType, double compression) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
 	DbiWrap* dw = new DbiWrap(ew->env, 0);
@@ -692,7 +685,7 @@ extern "C" EXTERN int64_t openDbi(double ewPointer, int flags, char* name, int k
 		return rc;
 	}
 	return (int64_t) dw;
-}
+}*/
 
 extern "C" EXTERN int64_t beginTxn(double ewPointer, int flags) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;

@@ -168,7 +168,7 @@ Value valToUtf8(Env env, MDB_val &data);
 Value valToString(MDB_val &data);
 Value valToStringUnsafe(MDB_val &data);
 Value valToBinary(MDB_val &data);
-Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw);
+Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env);
 
 int putWithVersion(MDB_txn *   txn,
 		MDB_dbi	 dbi,
@@ -216,10 +216,10 @@ class WriteWorker {
 	int progressStatus;
 	MDB_env* env;
 };
-class NanWriteWorker : public WriteWorker, public AsyncProgressWorker<NanWriteWorker> {
+class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
   public:
-	NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function *callback);
-	void Execute(ExecutionProgress executionProgress);
+	AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function& callback);
+	void Execute(const AsyncProgressWorker::ExecutionProgress& execution);
 	void OnProgress(const char* data, size_t count);
 	void OnOK();
 	void ReportError(const char* error);
@@ -258,7 +258,7 @@ private:
 	friend class DbiWrap;
 
 public:
-    EnvWrap(const CallbackInfo&);
+	EnvWrap(const CallbackInfo&);
 	~EnvWrap();
 	// The wrapped object
 	MDB_env *env;
@@ -329,16 +329,6 @@ public:
 	Napi::Value getMaxKeySize(const CallbackInfo& info);
 
 	/*
-		Resizes the maximal size of the memory map. It may be called if no transactions are active in this process.
-		(Wrapper for `mdb_env_set_mapsize`)
-
-		Parameters:
-
-		* maximal size of the memory map (the full environment) in bytes (default is 10485760 bytes)
-	*/
-	Napi::Value resize(const CallbackInfo& info);
-
-	/*
 		Copies the database environment to a file.
 		(Wrapper for `mdb_env_copy2`)
 
@@ -371,27 +361,6 @@ public:
 	Napi::Value beginTxn(const CallbackInfo& info);
 	Napi::Value commitTxn(const CallbackInfo& info);
 	Napi::Value abortTxn(const CallbackInfo& info);
-
-	/*
-		Opens a database in the environment.
-		(Wrapper for `mdb_dbi_open`)
-
-		Parameters:
-
-		* Options object that contains possible configuration options.
-
-		Possible options are:
-
-		* name: the name of the database (or null to use the unnamed database)
-		* create: if true, the database will be created if it doesn't exist
-		* keyIsUint32: if true, keys are treated as 32-bit unsigned integers
-		* dupSort: if true, the database can hold multiple items with the same key
-		* reverseKey: keys are strings to be compared in reverse order
-		* dupFixed: if dupSort is true, indicates that the data items are all the same size
-		* integerDup: duplicate data items are also integers, and should be sorted as such
-		* reverseDup: duplicate data items should be compared as strings in reverse order
-	*/
-	Napi::Value openDbi(const CallbackInfo& info);
 
 	/*
 		Flushes all data to the disk asynchronously.
@@ -481,7 +450,7 @@ public:
 		(Wrapper for `mdb_txn_renew`)
 	*/
 	Napi::Value renew(const CallbackInfo& info);
-    static void setupExports(Napi::Env env, Object exports);
+	static void setupExports(Napi::Env env, Object exports);
 };
 
 const int HAS_VERSIONS = 0x1000;
@@ -515,11 +484,8 @@ public:
 	friend class CursorWrap;
 	friend class EnvWrap;
 
-	DbiWrap(MDB_env *env, MDB_dbi dbi);
+	DbiWrap(const CallbackInfo& info);
 	~DbiWrap();
-
-	// Constructor (not exposed)
-	Napi::Value ctor(const CallbackInfo& info);
 
 	/*
 		Closes the database instance.
@@ -552,7 +518,7 @@ public:
 	Napi::Value getByBinary(const CallbackInfo& info);
 	Napi::Value getStringByBinary(const CallbackInfo& info);
 	Napi::Value getSharedByBinary(const CallbackInfo& info);
-    static void setupExports(Napi::Env env, Object exports);
+	static void setupExports(Napi::Env env, Object exports);
 };
 
 class Compression : public ObjectWrap<Compression> {
@@ -571,12 +537,12 @@ public:
 	int compressInstruction(EnvWrap* env, double* compressionAddress);
 	Napi::Value ctor(const CallbackInfo& info);
 	Napi::Value setBuffer(const CallbackInfo& info);
-	Compression();
+	Compression(const CallbackInfo& info);
 	~Compression();
 	friend class EnvWrap;
 	friend class DbiWrap;
 	//NAN_METHOD(Compression::startCompressing);
-    static void setupExports(Napi::Env env, Object exports);
+	static void setupExports(Napi::Env env, Object exports);
 };
 
 /*
@@ -603,7 +569,7 @@ public:
 	MDB_txn *txn;
 
 	// The wrapped object
-    CursorWrap(MDB_cursor* cursor);
+	CursorWrap(MDB_cursor* cursor);
 	CursorWrap(const CallbackInfo& info);
 	~CursorWrap();
 

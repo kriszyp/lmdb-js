@@ -11,12 +11,12 @@ TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
 TxnTracked::~TxnTracked() {
 }
 
-TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
+TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 	EnvWrap *ew;
 	napi_unwrap(info.Env(), info[0], &(void*)ew);
 	int flags = 0;
 	TxnWrap *parentTw;
-	if (info[1].IsTrue() && ew->writeWorker) { // this is from a transaction callback
+	if (info[1].IsBoolean() && ew->writeWorker) { // this is from a transaction callback
 		txn = ew->writeWorker->AcquireTxn(&flags);
 		parentTw = nullptr;
 	} else {
@@ -31,7 +31,7 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
 		}
 		MDB_txn *parentTxn;
 		if (info[2].IsObject()) {
-			napi_unwrap(info.Env(), info[2], &parentTw);
+			napi_unwrap(info.Env(), info[2], (void**) &parentTw);
 			parentTxn = parentTw->txn;
 		} else {
 			parentTxn = nullptr;
@@ -64,10 +64,10 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) {
 
 	// Set the current write transaction
 	if (0 == (flags & MDB_RDONLY)) {
-		ew->currentWriteTxn = tw;
+		ew->currentWriteTxn = this;
 	}
 	else {
-		ew->readTxns.push_back(tw);
+		ew->readTxns.push_back(this);
 		ew->currentReadTxn = txn;
 	}
 	this->parentTw = parentTw;
@@ -194,6 +194,7 @@ Value TxnWrap::commit(const Napi::CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
+	return info.Env().Undefined();
 }
 
 Value TxnWrap::abort(const Napi::CallbackInfo& info) {
@@ -203,12 +204,14 @@ Value TxnWrap::abort(const Napi::CallbackInfo& info) {
 
 	mdb_txn_abort(this->txn);
 	this->removeFromEnvWrap();
+	return info.Env().Undefined();
 }
 Value TxnWrap::reset(const Napi::CallbackInfo& info) {
 	if (!this->txn) {
 		return throwError(info.Env(), "The transaction is already closed.");
 	}
 	this->reset();
+	return info.Env().Undefined();
 }
 void TxnWrap::reset() {
 	ew->readTxnRenewed = false;
@@ -223,6 +226,7 @@ Value TxnWrap::renew(const Napi::CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
+	return info.Env().Undefined();
 }
 void TxnWrap::setupExports(Napi::Env env, Object exports) {
     	// TxnWrap: Prepare constructor template

@@ -5,7 +5,7 @@ using namespace Napi;
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
 
-DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
+DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
 	this->dbi = 0;
 	this->keyType = LmdbKeyType::DefaultKey;
 	this->compression = nullptr;
@@ -13,34 +13,37 @@ DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->getFast = false;
 	this->ew = nullptr;
 	EnvWrap *ew;
-	napi_unwrap(info.Env(), info[0], &ew);
+	napi_unwrap(info.Env(), info[0], (void**) &ew);
 	this->env = ew->env;
 	this->ew = ew;
 	int flags = info[1].As<Number>();
 	char* nameBytes;
+	std::string name;
 	if (info[2].IsString()) {
-		nameBytes = info[2].As<String>().Utf8Value().c_str();
+		name = info[2].As<String>().Utf8Value();
+		nameBytes = (char*) name.c_str();
 	} else
 		nameBytes = nullptr;
-	LmdbKeyType keyType = (LmdbKeyType) info[3].As<Number>();
+	LmdbKeyType keyType = (LmdbKeyType) info[3].As<Number>().Int32Value();
 	Compression* compression;
 	if (info[4].IsObject())
-		napi_unwrap(info.Env(), info[4], &compression);
+		napi_unwrap(info.Env(), info[4], (void**) &compression);
 	else
 		compression = nullptr;
 	int rc = this->open(flags & ~HAS_VERSIONS, nameBytes, flags & HAS_VERSIONS,
 		keyType, compression);
-	if (nameBytes)
-		delete nameBytes;
+	//if (nameBytes)
+		//delete nameBytes;
 	if (rc) {
 		if (rc == MDB_NOTFOUND)
 			this->dbi = (MDB_dbi) 0xffffffff;
 		else {
 			//delete this;
-			return throwLmdbError(info.Env(), rc);
+			throwLmdbError(info.Env(), rc);
+			return;
 		}
 	}
-	info.This().Set("dbi", Number::New(info.Env(), this->dbi));
+	info.This().As<Object>().Set("dbi", Number::New(info.Env(), this->dbi));
 }
 
 
@@ -104,7 +107,7 @@ Value DbiWrap::drop(const Napi::CallbackInfo& info) {
 		
 		// Just free pages
 		Napi::Value opt = options.Get("justFreePages");
-		del = opt.IsBoolean() ? !opt.BooleanValue() : 1;
+		del = opt.IsBoolean() ? !opt.As<Boolean>().Value() : 1;
 	}
 
 	// Drop database
@@ -207,11 +210,11 @@ Value DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
 			return throwLmdbError(info.Env(), rc);
 	}
 	rc = getVersionAndUncompress(data, this);
-	return valToBinaryUnsafe(data, this);
+	return valToBinaryUnsafe(data, this, info.Env());
 }
 napi_finalize noop = [](napi_env, void *, void *) {
-			// Data belongs to LMDB, we shouldn't free it here
-		}
+	// Data belongs to LMDB, we shouldn't free it here
+};
 Value DbiWrap::getSharedByBinary(const Napi::CallbackInfo& info) {
 	char* keyBuffer = this->ew->keyBuffer;
 	MDB_txn* txn = this->ew->getReadTxn();

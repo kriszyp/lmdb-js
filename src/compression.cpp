@@ -8,37 +8,40 @@ thread_local LZ4_stream_t* Compression::stream = nullptr;
 Compression::Compression(const CallbackInfo& info) : ObjectWrap<Compression>(info) {
 	unsigned int compressionThreshold = 1000;
 	char* dictionary = nullptr;
-	unsigned int dictSize = 0;
+	size_t dictSize = 0;
 	if (info[0].IsObject()) {
-		Value dictionaryOption = info[0].As<Object>().Get("dictionary");
+		auto dictionaryOption = info[0].As<Object>().Get("dictionary");
 		if (!dictionaryOption.IsUndefined()) {
-			if (!dictionaryOption.IsTypedArray())
-				return throwError(info.Env(), "Dictionary must be a buffer");
-			napi_get_typedarray_info(info.Env(), dictionaryOption, nullptr, &dictSize, &dictionary, nullptr, nullptr);
-			dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned			
+			if (!dictionaryOption.IsTypedArray()) {
+				throwError(info.Env(), "Dictionary must be a buffer");
+				return;
+			}
+			napi_get_typedarray_info(info.Env(), dictionaryOption, nullptr, &dictSize, (void**) &dictionary, nullptr, nullptr);
+			dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
 		}
-		Value thresholdOption = info[0].As<Object>().Get("threshold");
+		auto thresholdOption = info[0].As<Object>().Get("threshold");
 		if (thresholdOption.IsNumber()) {
 			compressionThreshold = thresholdOption.As<Number>();
 		}
 	}
-	Compression* compression = new Compression();
 	this->dictionary = this->compressDictionary = dictionary;
 	this->dictionarySize = dictSize;
 	this->decompressTarget = dictionary + dictSize;
 	this->decompressSize = 0;
 	this->acceleration = 1;
 	this->compressionThreshold = compressionThreshold;
-	this->Wrap(info.This());
 	this->Ref();
-	info.This().Set("address", Number::New((double) (size_t) compression));
+	info.This().As<Object>().Set("address", Number::New(info.Env(), (double) (size_t) this));
+}
+Compression::~Compression() {
 }
 
 Napi::Value Compression::setBuffer(const CallbackInfo& info) {
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &this->decompressTarget, nullptr, nullptr);
+	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, (void**) &this->decompressTarget, nullptr, nullptr);
 	this->decompressSize = info[1].As<Number>();
-	napi_get_typedarray_info(info.Env(), info[2], nullptr, nullptr, &(void*) this->dictionary, nullptr, nullptr);
+	napi_get_typedarray_info(info.Env(), info[2], nullptr, nullptr, (void**) &this->dictionary, nullptr, nullptr);
 	this->dictionarySize = info[3].As<Number>();
+	return info.Env().Undefined();
 }
 extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* decompressTarget, uint32_t decompressSize, char* dictionary, uint32_t dictSize) {
 	Compression *compression = (Compression*) (size_t) compressionPointer;
@@ -187,7 +190,7 @@ class CompressionWorker : public AsyncWorker {
 };
 
 Napi::Value EnvWrap::compress(const CallbackInfo& info) {
-	size_t compressionAddress = info[0].As<Number>();
+	size_t compressionAddress = info[0].As<Number>().Int64Value();
 	CompressionWorker* worker = new CompressionWorker(this, (double*) compressionAddress, info[1].As<Function>());
 	worker->Queue();
 }
@@ -203,7 +206,7 @@ extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {
 	}
 }
 
-extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, uint32_t threshold) {
+/*extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, uint32_t threshold) {
 	dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
 	Compression* compression = new Compression();
 	if ((size_t) dictionary < 10)
@@ -215,7 +218,7 @@ extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, u
 	compression->acceleration = 1;
 	compression->compressionThreshold = threshold;
 	return (uint64_t) compression;
-}
+}*/
 
 void Compression::setupExports(Napi::Env env, Object exports) {
 	Function CompressionClass = DefineClass(env, "Compression", {
