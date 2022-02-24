@@ -203,7 +203,7 @@ NAN_METHOD(getViewAddress) {
     info.GetReturnValue().Set(Nan::New<Number>((size_t) address));
 }
 NAN_METHOD(clearKeptObjects) {
-    #if NODE_VERSION_AT_LEAST(14,0,0)
+    #if NODE_VERSION_AT_LEAST(14,0,0) // actually added in Node V12.16, but we aren't going to try to split minor versions
     Isolate::GetCurrent()->ClearKeptObjects();
     #endif
 }
