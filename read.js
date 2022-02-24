@@ -162,9 +162,10 @@ export function addReadMethods(LMDBStore, {
 		doesExist(key, versionOrValue) {
 			if (!env.writeTxn)
 				readTxnRenewed ? readTxn : renewReadTxn();
-			if (versionOrValue === undefined) {
+			if (versionOrValue == null) {
 				this.getBinaryFast(key);
-				return this.lastSize !== 0xffffffff;
+				// undefined means the entry exists, null is used specifically to check for the entry *not* existing
+				return (this.lastSize === 0xffffffff) == (versionOrValue === null);
 			}
 			else if (this.useVersions) {
 				this.getBinaryFast(key);
