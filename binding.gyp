@@ -3,7 +3,7 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
-      "enable_pointer_compression%": "false",
+      "enable_v8%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
       "runtime%": "node"
@@ -92,8 +92,8 @@
         ['runtime=="electron"', {
           "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
-        ["enable_fast_api_calls=='true'", {
-          "defines": ["ENABLE_FAST_API=1"],
+        ["enable_v8=='true'", {
+          "defines": ["ENABLE_V8_API=1"],
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_USE_ROBUST"],

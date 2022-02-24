@@ -92,6 +92,7 @@ Value DbiWrap::close(const Napi::CallbackInfo& info) {
 	else {
 		return throwError(info.Env(), "The Dbi is not open, you can't close it.");
 	}
+	return info.Env().Undefined();
 }
 
 Value DbiWrap::drop(const Napi::CallbackInfo& info) {
@@ -121,6 +122,7 @@ Value DbiWrap::drop(const Napi::CallbackInfo& info) {
 		isOpen = false;
 		ew = nullptr;
 	}
+	return info.Env().Undefined();
 }
 
 Value DbiWrap::stat(const Napi::CallbackInfo& info) {
@@ -136,7 +138,7 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
 uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize) {
 	DbiWrap* dw = static_cast<DbiWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
@@ -327,21 +329,12 @@ Value DbiWrap::prefetch(const Napi::CallbackInfo& info) {
 	size_t keysAddress = info[0].As<Number>().Int64Value();
 	PrefetchWorker* worker = new PrefetchWorker(this, (uint32_t*) keysAddress, info[1].As<Function>());
 	worker->Queue();
+	return info.Env().Undefined();
 }
 
-void DbiWrap::setupExports(Napi::Env env, Object exports) {
-	Function DbiClass = DefineClass(env, "Dbi", {
-		// DbiWrap: Prepare constructor template
-		// DbiWrap: Add functions to the prototype
-		DbiWrap::InstanceMethod("close", &DbiWrap::close),
-		DbiWrap::InstanceMethod("drop", &DbiWrap::drop),
-		DbiWrap::InstanceMethod("stat", &DbiWrap::stat),
-		DbiWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
-		DbiWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
-		DbiWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
-    	DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
-	});
-	#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+void setupFast(const Napi::CallbackInfo& info) {
+	#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+	v8::Local<v8:FunctionTemplate> dbiTpl = info[0]
 	auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
 	dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
 		  isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
@@ -364,6 +357,21 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		v8::SideEffectType::kHasNoSideEffect));*/
 	#endif
 //	dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+}
+void DbiWrap::setupExports(Napi::Env env, Object exports) {
+	Function DbiClass = DefineClass(env, "Dbi", {
+		// DbiWrap: Prepare constructor template
+		// DbiWrap: Add functions to the prototype
+		DbiWrap::InstanceMethod("close", &DbiWrap::close),
+		DbiWrap::InstanceMethod("drop", &DbiWrap::drop),
+		DbiWrap::InstanceMethod("stat", &DbiWrap::stat),
+		DbiWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
+		DbiWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
+		DbiWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
+		DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
+	});
+	DbiClass.Set("EnableFastAPI", Function::New(env, setupFast));
 
 	exports.Set("Dbi", DbiClass);
 	// TODO: wrap mdb_stat too
