@@ -63,7 +63,6 @@ describe('lmdb-js', function() {
         //noSync: true,
         //overlappingSync: true,
         maxReaders: 100,
-        eventTurnBatching: true,
         keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
@@ -258,6 +257,20 @@ describe('lmdb-js', function() {
       should.equal(result, true);
       result = await db2.remove('key-no-exists', IF_EXISTS);
       should.equal(result, false);
+    });
+    it('repeated ifNoExists', async function() {
+      let keyBase = 'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f'
+      let result;
+      for (let i = 0; i < 500; i++) {
+        let key = keyBase + (i % 100);
+        result = db.ifNoExists(keyBase + i, () => {
+          db.put(keyBase + i, 'changed', 7);
+        });
+        if (i % 100 == 0) {
+          await result;
+        }
+      }
+      await result;
     });
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
