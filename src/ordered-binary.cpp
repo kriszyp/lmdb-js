@@ -27,8 +27,14 @@ int compareFast(const MDB_val *a, const MDB_val *b) {
         remaining -= 4;
     }
     if (remaining) {
-        aVal = ntohl(*dataA);
-        bVal = ntohl(*dataB & (remaining == 2 ? 0x0000ffff : remaining == 1 ? 0x000000ff : 0x00ffffff));
+        if (remaining == 1) {
+            aVal = *((uint8_t*) dataA);
+            bVal = *((uint8_t*) dataB);
+        } else {
+            aVal = ntohl(*dataA);
+            bVal = remaining == 2 ? (*((uint8_t*) dataB) << 24) + (*((uint8_t*) dataB + 1) << 16) :
+                ntohl(*dataB & 0x00ffffff);
+        }
         if (aVal > bVal)
             return 1;
         if (aVal < bVal)
