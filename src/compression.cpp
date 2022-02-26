@@ -193,6 +193,7 @@ Napi::Value EnvWrap::compress(const CallbackInfo& info) {
 	size_t compressionAddress = info[0].As<Number>().Int64Value();
 	CompressionWorker* worker = new CompressionWorker(this, (double*) compressionAddress, info[1].As<Function>());
 	worker->Queue();
+    return info.Env().Undefined();
 }
 
 extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {

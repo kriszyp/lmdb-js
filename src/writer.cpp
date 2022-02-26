@@ -436,6 +436,7 @@ Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return throwLmdbError(info.Env(), rc);
+	return info.Env().Undefined();
 }
 
 extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {

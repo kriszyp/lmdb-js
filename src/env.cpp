@@ -138,7 +138,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	Compression* compression = nullptr;
 	Napi::Value compressionOption = options.Get("compression");
 	if (compressionOption.IsObject()) {
-		napi_unwrap(info.Env(), compressionOption, &(void*)compression);
+		napi_unwrap(info.Env(), compressionOption, (void**)&compression);
 		this->compression = compression;
 		this->compression->Ref();
 	}
@@ -322,6 +322,7 @@ Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	}
 	napi_remove_env_cleanup_hook(info.Env(), cleanup, this);
 	this->closeEnv();
+    return info.Env().Undefined();
 }
 
 Napi::Value EnvWrap::stat(const CallbackInfo& info) {
@@ -352,7 +353,7 @@ Napi::Value EnvWrap::freeStat(const CallbackInfo& info) {
 	int rc;
 	MDB_stat stat;
 	TxnWrap *txn;
-	napi_unwrap(info.Env(), info[0], &(void*)txn);
+	napi_unwrap(info.Env(), info[0], (void**)&txn);
 	rc = mdb_stat(txn->txn, 0, &stat);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
@@ -502,6 +503,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 		const int argc = 2;
 		fprintf(stderr, "Invalid number of arguments");
 	}
+    return info.Env().Undefined();
 }
 Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
@@ -642,6 +644,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("readerCheck", &EnvWrap::readerCheck),
 		EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
 		EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
+        EnvWrap::InstanceMethod("write", &EnvWrap::write),
 		EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});

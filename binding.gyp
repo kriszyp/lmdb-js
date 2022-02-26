@@ -4,6 +4,7 @@
       "use_robust%": "false",
       "use_data_v1%": "false",
       "enable_v8%": "false",
+      "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
       "runtime%": "node"

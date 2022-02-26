@@ -808,7 +808,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (finalPromise && resolvedPromise != finalPromise) {
 				return finalPromise.then(() => this._endWrites(finalPromise), () => this._endWrites(finalPromise));
 			}
-			env.sync = null;
+			Object.defineProperty(env, 'sync', { value: null });
 		},
 		on(event, callback) {
 			if (event == 'beforecommit') {

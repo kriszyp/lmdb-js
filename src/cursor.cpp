@@ -13,7 +13,7 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 	}
 
 	DbiWrap *dw;
-	napi_unwrap(info.Env(), info[0], &((void*)dw));
+	napi_unwrap(info.Env(), info[0], (void**)&dw);
 
 	// Open the cursor
 	MDB_cursor *cursor;
@@ -48,6 +48,7 @@ Value CursorWrap::close(const CallbackInfo& info) {
 	mdb_cursor_close(this->cursor);
 	this->dw->Unref();
 	this->cursor = nullptr;
+    return info.Env().Undefined();
 }
 extern "C" EXTERN void cursorClose(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -71,6 +72,7 @@ Value CursorWrap::del(const CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
+    return info.Env().Undefined();
 }
 int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	if (lastRC) {
@@ -283,6 +285,7 @@ Napi::Value CursorWrap::renew(const CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
+    return info.Env().Undefined();
 }
 extern "C" EXTERN int cursorRenew(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
