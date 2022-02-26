@@ -31,7 +31,7 @@ let bigString = 'big'
 for (let i = 0; i < 15; i++) {
   bigString += bigString
 }
-data.more = bigString
+//data.more = bigString
 console.log(bigString.length)
 var c = 0
 let result
@@ -188,8 +188,8 @@ cleanup(async function (err) {
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
-    });
-    suite.add('get', getData);*/
+    });*/
+    suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     
     suite.add('getBinary', getBinary);
