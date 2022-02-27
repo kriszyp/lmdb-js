@@ -436,7 +436,7 @@ describe('lmdb-js', function() {
       }
       count.should.equal(1)
     });
-    it.only('should handle open iterators and cursor renewal', async function() {
+    it('should handle open iterators and cursor renewal', async function() {
       let data1 = {foo: 1, bar: true};
       let data2 = {foo: 2, bar: false};
       let data3 = {foo: 3, bar: false};

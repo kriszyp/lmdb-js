@@ -139,6 +139,28 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 }
 
 #if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+void DbiWrap::getByBinaryV8(
+  const v8::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Object> instance =
+      v8::Local<v8::Object>::Cast(info.Holder());
+    DbiWrap* dw = Nan::ObjectWrap::Unwrap<DbiWrap>(instance);
+    char* keyBuffer = dw->ew->keyBuffer;
+    MDB_txn* txn = dw->ew->getReadTxn();
+    MDB_val key;
+    MDB_val data;
+    key.mv_size = info[0]->Uint32Value(Nan::GetCurrentContext()).FromJust();
+    key.mv_data = (void*) keyBuffer;
+    int rc = mdb_get(txn, dw->dbi, &key, &data);
+    if (rc) {
+        if (rc == MDB_NOTFOUND)
+            return info.GetReturnValue().Set(Nan::New<Number>(0xffffffff));
+        else
+            return throwLmdbError(rc);
+    }
+    rc = getVersionAndUncompress(data, dw);
+    return info.GetReturnValue().Set(valToBinaryUnsafe(data, dw));
+}
+
 uint32_t DbiWrap::getByBinaryFast(Local<Object> receiver_obj, uint32_t keySize) {
 	DbiWrap* dw = static_cast<DbiWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
@@ -197,22 +219,34 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	return data.mv_size;
 }
 
-Value DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
-	char* keyBuffer = this->ew->keyBuffer;
-	MDB_txn* txn = this->ew->getReadTxn();
+napi_value DbiWrap::getByBinary(napi_env env, napi_callback_info info) {
+    size_t argc = 1;
+    napi_value args[1];
+    napi_value jsthis;
+    napi_get_cb_info(env, info, &argc, args, &jsthis, nullptr);
+    DbiWrap* dw;
+    napi_unwrap(env, jsthis, (void**)&dw);
+	char* keyBuffer = dw->ew->keyBuffer;
+	MDB_txn* txn = dw->ew->getReadTxn();
 	MDB_val key;
 	MDB_val data;
-	key.mv_size = info[0].As<Number>().Uint32Value();
+	key.mv_size = 0;
+    napi_get_value_uint32(env, args[0], (uint32_t*) &key.mv_size);
 	key.mv_data = (void*) keyBuffer;
-	int rc = mdb_get(txn, this->dbi, &key, &data);
+	int rc = mdb_get(txn, dw->dbi, &key, &data);
 	if (rc) {
-		if (rc == MDB_NOTFOUND)
-			return Number::New(info.Env(), 0xffffffff);
-		else
-			return throwLmdbError(info.Env(), rc);
+		if (rc == MDB_NOTFOUND) {
+            napi_value value;
+            napi_create_uint32(env, 0xffffffff, &value);
+            return value;
+        }
+		else {
+            fprintf(stderr, "error!!!");
+			//throwLmdbError(info.Env(), rc);
+        }
 	}
-	rc = getVersionAndUncompress(data, this);
-	return valToBinaryUnsafe(data, this, info.Env());
+	rc = getVersionAndUncompress(data, dw);
+	return valToBinaryUnsafe(data, dw, env);
 }
 napi_finalize noop = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
@@ -334,7 +368,7 @@ Value DbiWrap::prefetch(const Napi::CallbackInfo& info) {
 
 void setupFast(const Napi::CallbackInfo& info) {
 	#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	v8::Local<v8:FunctionTemplate> dbiTpl = info[0]
+	/*v8::Local<v8:FunctionTemplate> dbiTpl = info[0]
 	auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
 	dbiTpl->PrototypeTemplate()->Set(isolate, "getByBinary", v8::FunctionTemplate::New(
 		  isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
@@ -347,18 +381,20 @@ void setupFast(const Napi::CallbackInfo& info) {
 		v8::SideEffectType::kHasNoSideEffect, &writeFast));
 
 	#else
-	/*DbiWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
-		  isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
+	*/DbiWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
+		  isolate, DbiWrap::getByBinaryV8, v8::Local<v8::Value>(),
 		  v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
 		  v8::SideEffectType::kHasNoSideEffect));
 	EnvWrap::InstanceMethod("write", v8::FunctionTemplate::New(
 		isolate, EnvWrap::write, v8::Local<v8::Value>(),
 		v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		v8::SideEffectType::kHasNoSideEffect));*/
+		v8::SideEffectType::kHasNoSideEffect));
 	#endif
 //	dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
 
 }
+#define DECLARE_NAPI_METHOD(name, func)                                        \
+  { name, 0, func, 0, 0, 0, napi_default, 0 }
 void DbiWrap::setupExports(Napi::Env env, Object exports) {
 	Function DbiClass = DefineClass(env, "Dbi", {
 		// DbiWrap: Prepare constructor template
@@ -369,9 +405,14 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		DbiWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
 		DbiWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
 		DbiWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
-		DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
+		//DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
 	});
 	DbiClass.Set("EnableFastAPI", Function::New(env, setupFast));
+    Napi::Value prototype = DbiClass.Get("prototype");
+    napi_property_descriptor descriptors[] = {
+        DECLARE_NAPI_METHOD("getByBinary", DbiWrap::getByBinary),
+    };
+    napi_define_properties(env, prototype, 1, descriptors);
 
 	exports.Set("Dbi", DbiClass);
 	// TODO: wrap mdb_stat too

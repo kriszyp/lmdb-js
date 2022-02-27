@@ -169,7 +169,7 @@ Value valToString(MDB_val &data);
 Value valToStringUnsafe(MDB_val &data);
 Value valToBinary(MDB_val &data);
 Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env);
-
+napi_value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, napi_env env);
 int putWithVersion(MDB_txn *   txn,
 		MDB_dbi	 dbi,
 		MDB_val *   key,
@@ -515,7 +515,7 @@ public:
 	static uint32_t getByBinaryFast(Object receiver_obj, uint32_t keySize);
 #endif
 	uint32_t doGetByBinary(uint32_t keySize);
-	Napi::Value getByBinary(const CallbackInfo& info);
+	static napi_value getByBinary(napi_env env, napi_callback_info info);
 	Napi::Value getStringByBinary(const CallbackInfo& info);
 	Napi::Value getSharedByBinary(const CallbackInfo& info);
 	static void setupExports(Napi::Env env, Object exports);

@@ -161,7 +161,7 @@ function setup() {
     create: true,
     sharedStructuresKey: 100000000,
     keyIsUint32: true,
-    compression: true,
+//    compression: true,
   })
   let lastPromise
   for (let i = 0; i < total; i++) {
@@ -189,7 +189,7 @@ cleanup(async function (err) {
       defer: true,
       fn: batchDataAdd
     });*/
-    suite.add('get', getData);
+  //  suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     
     suite.add('getBinary', getBinary);

@@ -101,6 +101,12 @@ Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env) {
 	valToBinaryFast(data, dw);
 	return Number::New(env, data.mv_size);
 }
+napi_value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, napi_env env) {
+    valToBinaryFast(data, dw);
+    napi_value size;
+    napi_create_uint32(env, data.mv_size, &size);
+    return size;
+}
 
 
 bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
