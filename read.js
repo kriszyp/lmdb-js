@@ -29,7 +29,7 @@ export function addReadMethods(LMDBStore, {
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
 			try {
-				this.lastSize = this.db.getByBinary(this.writeKey(id, keyBytes, 0));
+				this.lastSize = this.db.getByBinary2(this.writeKey(id, keyBytes, 0));
 			} catch (error) {
 				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
 					error = new Error('Zero length key is not allowed in LMDB')

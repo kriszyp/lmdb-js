@@ -3,7 +3,7 @@ const require = createRequire(import.meta.url);
 import { fileURLToPath } from 'url';
 import { dirname, default as path } from 'path';
 import EventEmitter from 'events';
-import { setExternals, setNativeFunctions } from './external.js';
+import { setExternals, setNativeFunctions, Dbi } from './external.js';
 import { arch, tmpdir, platform } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
@@ -14,6 +14,8 @@ orderedBinary.enableNullTermination();
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 setNativeFunctions(require('node-gyp-build')(dirName));
+Dbi.prototype[2] = true;
+Dbi.enableFastAPI(Dbi.prototype);
 setExternals({
 	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
 	EventEmitter, os: platform(), onExit(callback) {

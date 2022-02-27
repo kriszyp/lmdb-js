@@ -39,7 +39,7 @@
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
 #endif
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
 #if NODE_VERSION_AT_LEAST(17,0,0)
 #include "../dependencies/v8/v8-fast-api-calls.h"
 #else
@@ -381,8 +381,8 @@ public:
 	*/
 	Napi::Value startWriting(const CallbackInfo& info);
 	Napi::Value compress(const CallbackInfo& info);
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static void writeFast(Object receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options);
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+	static void writeFast(v8::Object receiver_obj, uint64_t instructionAddress, v8::FastApiCallbackOptions& options);
 #endif
 	Napi::Value write(const CallbackInfo& info);
 
@@ -511,8 +511,9 @@ public:
 	Napi::Value prefetch(const CallbackInfo& info);
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static uint32_t getByBinaryFast(Object receiver_obj, uint32_t keySize);
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+	static uint32_t getByBinaryFast(v8::Local<v8::Object> receiver_obj, uint32_t keySize);
+	static void DbiWrap::getByBinaryV8(const v8::FunctionCallbackInfo<v8::Value>& info);
 #endif
 	uint32_t doGetByBinary(uint32_t keySize);
 	Napi::Value getByBinary(const CallbackInfo& info);
@@ -594,9 +595,9 @@ public:
 
 	Napi::Value getCurrentValue(const CallbackInfo& info);
 	int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static uint32_t positionFast(Object receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options);
-	static int32_t iterateFast(Object receiver_obj, FastApiCallbackOptions& options);
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+	static uint32_t positionFast(Object receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, v8::FastApiCallbackOptions& options);
+	static int32_t iterateFast(Object receiver_obj, v8::FastApiCallbackOptions& options);
 #endif
 	Napi::Value position(const CallbackInfo& info);	
 	int32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
