@@ -293,7 +293,7 @@ describe('lmdb-js', function() {
     });
     if (options.encoding == 'ordered-binary')
       return // no more tests need to be applied for this
-    it('store objects', async function() {
+    it.only('store objects', async function() {
       let dataIn = {foo: 3, bar: true}
       await db.put('key1',  dataIn);
       let dataOut = db.get('key1');
@@ -436,7 +436,7 @@ describe('lmdb-js', function() {
       }
       count.should.equal(1)
     });
-    it.only('should handle open iterators and cursor renewal', async function() {
+    it('should handle open iterators and cursor renewal', async function() {
       let data1 = {foo: 1, bar: true};
       let data2 = {foo: 2, bar: false};
       let data3 = {foo: 3, bar: false};

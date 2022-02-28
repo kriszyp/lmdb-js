@@ -38,7 +38,8 @@
         "src/misc.cpp",
         "src/txn.cpp",
         "src/dbi.cpp",
-        "src/cursor.cpp"
+        "src/cursor.cpp",
+        "src/v8-functions.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",

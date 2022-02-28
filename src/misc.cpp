@@ -22,6 +22,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	//exports.Set("getBufferForAddress", Function::New(env, getBufferForAddress));
 	exports.Set("getAddress", Function::New(env, getViewAddress));
 	exports.Set("clearKeptObjects", Function::New(env, clearKeptObjects));
+	exports.Set("setupV8", Function::New(env, setupV8));
 	// this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
 	// often just uses the name of the last exported native function:
 	//exports.Set("lmdbNativeFunctions", lmdbNativeFunctions);

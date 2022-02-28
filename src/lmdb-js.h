@@ -150,6 +150,7 @@ Value getViewAddress(const CallbackInfo& info);
 Value getAddress(const CallbackInfo& info);
 Value clearKeptObjects(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
+Value setupV8(const CallbackInfo& info);
 
 #ifndef thread_local
 #ifdef __GNUC__
@@ -511,10 +512,6 @@ public:
 	Napi::Value prefetch(const CallbackInfo& info);
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static uint32_t getByBinaryFast(v8::Local<v8::Object> receiver_obj, uint32_t keySize);
-	static void DbiWrap::getByBinaryV8(const v8::FunctionCallbackInfo<v8::Value>& info);
-#endif
 	uint32_t doGetByBinary(uint32_t keySize);
 	Napi::Value getByBinary(const CallbackInfo& info);
 	Napi::Value getStringByBinary(const CallbackInfo& info);

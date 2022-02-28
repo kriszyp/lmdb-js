@@ -44,6 +44,7 @@ DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
 		}
 	}
 	info.This().As<Object>().Set("dbi", Number::New(info.Env(), this->dbi));
+	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 }
 
 
@@ -138,39 +139,6 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-uint32_t DbiWrap::getByBinaryFast(v8::Local<v8::Object> receiver_obj, uint32_t keySize) {
-	DbiWrap* dw = static_cast<DbiWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
-	return dw->doGetByBinary(keySize);
-}
-
-class NanWrap : public Nan::ObjectWrap {};
-void DbiWrap::getByBinaryV8(
-  const v8::FunctionCallbackInfo<v8::Value>& info) {
-	  fprintf(stderr, "getByBinaryV8");
-    v8::Local<v8::Object> instance =
-      v8::Local<v8::Object>::Cast(info.This());
-    DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_txn* txn = dw->ew->getReadTxn();
-    MDB_val key;
-    MDB_val data;
-	 v8::Isolate* isolate = v8::Isolate::GetCurrent();
-    key.mv_size = info[0]->Uint32Value(isolate->GetCurrentContext()).FromJust();
-    key.mv_data = (void*) keyBuffer;
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(v8::Number::New(isolate, 0xffffffff));
-        //else
-          //  return throwLmdbError(rc);
-    }   
-    rc = getVersionAndUncompress(data, dw);
-    return info.GetReturnValue().Set(valToBinaryUnsafe(data, dw, nullptr));
-}
-
-#endif
 extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
@@ -358,44 +326,6 @@ Value DbiWrap::prefetch(const Napi::CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 
-void setupFast(const Napi::CallbackInfo& info) {
-	#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	v8::Isolate* isolate = v8::Isolate::GetCurrent();
-	napi_value dbiPrototypeValue = info[0];
-	bool result;
-	napi_has_element(info.Env(), dbiPrototypeValue, 2, &result);
-	fprintf(stderr, "has 2 %u ", result);
-	napi_has_element(info.Env(), dbiPrototypeValue, 4, &result);
-	fprintf(stderr, "has 4 %u ", result);
-	v8::Local<v8::Object> dbiPrototype;
-	memcpy(&dbiPrototype, &dbiPrototypeValue, sizeof(dbiPrototypeValue));
-	fprintf(stderr, "has v8 2 %u ", dbiPrototype->Has(isolate->GetCurrentContext(), 2).FromJust());
-	fprintf(stderr, "has v8 4 %u ", dbiPrototype->Has(isolate->GetCurrentContext(), 4).FromJust());
-	//auto getFast = v8::CFunction::Make(DbiWrap::getByBinaryFast);
-	dbiPrototype->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, "getByBinary2").ToLocalChecked(), v8::FunctionTemplate::New(
-		  isolate, DbiWrap::getByBinaryV8, v8::Local<v8::Value>(),
-		  v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		  v8::SideEffectType::kHasNoSideEffect/*, &getFast*/)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
-	fprintf(stderr,"done setting");
-	/*auto writeFast = CFunction::Make(EnvWrap::writeFast);
-	envTpl->PrototypeTemplate()->Set(isolate, "write", v8::FunctionTemplate::New(
-		isolate, EnvWrap::write, v8::Local<v8::Value>(),
-		v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		v8::SideEffectType::kHasNoSideEffect, &writeFast));*/
-
-	#else
-	/*DbiWrap::InstanceMethod("getByBinary", v8::FunctionTemplate::New(
-		  isolate, DbiWrap::getByBinary, v8::Local<v8::Value>(),
-		  v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		  v8::SideEffectType::kHasNoSideEffect));
-	EnvWrap::InstanceMethod("write", v8::FunctionTemplate::New(
-		isolate, EnvWrap::write, v8::Local<v8::Value>(),
-		v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		v8::SideEffectType::kHasNoSideEffect));*/
-	#endif
-//	dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-}
 void DbiWrap::setupExports(Napi::Env env, Object exports) {
 	Function DbiClass = DefineClass(env, "Dbi", {
 		// DbiWrap: Prepare constructor template
@@ -408,8 +338,6 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		DbiWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
 		DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
 	});
-	DbiClass.Set("enableFastAPI", Function::New(env, setupFast));
-
 	exports.Set("Dbi", DbiClass);
 	// TODO: wrap mdb_stat too
 }
