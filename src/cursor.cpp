@@ -21,7 +21,7 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 	int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
 	if (rc != 0) {
 		throwLmdbError(info.Env(), rc);
-        return;
+		return;
 	}
 
 	this->cursor = cursor;
@@ -32,7 +32,6 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 
 CursorWrap::~CursorWrap() {
 	if (this->cursor) {
-		this->dw->Unref();
 		// Don't close cursor here, it is possible that the environment may already be closed, which causes it to crash
 		//mdb_cursor_close(this->cursor);
 	}
@@ -46,9 +45,8 @@ Value CursorWrap::close(const CallbackInfo& info) {
 	  return throwError(info.Env(), "cursor.close: Attempt to close a closed cursor!");
 	}
 	mdb_cursor_close(this->cursor);
-	this->dw->Unref();
 	this->cursor = nullptr;
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 extern "C" EXTERN void cursorClose(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
@@ -72,14 +70,14 @@ Value CursorWrap::del(const CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	if (lastRC) {
 		if (lastRC == MDB_NOTFOUND)
 			return 0;
 		else {
-            return lastRC > 0 ? -lastRC : lastRC;
+			return lastRC > 0 ? -lastRC : lastRC;
 		}
 	}
 	if (endKey.mv_size > 0) {
@@ -209,10 +207,10 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 				size_t countForKey;
 				rc = mdb_cursor_count(cursor, &countForKey);
 				if (rc) {
-                    if (rc > 0)
-                        rc = -rc;
-                    return rc;
-                }
+					if (rc > 0)
+						rc = -rc;
+					return rc;
+				}
 				count += countForKey;
 			} else
 				count++;
@@ -285,7 +283,7 @@ Napi::Value CursorWrap::renew(const CallbackInfo& info) {
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 extern "C" EXTERN int cursorRenew(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;

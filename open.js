@@ -162,6 +162,7 @@ export function open(path, options) {
 					return; // return undefined to indicate it could not be found
 				}
 			}
+			this.dbAddress = this.db.address
 			this.db.name = dbName || null;
 			this.name = dbName;
 			this.status = 'open';

@@ -7,6 +7,13 @@ using namespace Napi;
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 
+static napi_value perfTest(napi_env env, napi_callback_info info) {
+  napi_status status;
+  napi_value world;
+  status = napi_create_uint32(env, 0xffffffff, &world);
+  return world;
+}
+
 void setupExportMisc(Napi::Env env, Object exports) {
 	Object versionObj = Object::New(env);
 
@@ -23,6 +30,8 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	exports.Set("getAddress", Function::New(env, getViewAddress));
 	exports.Set("clearKeptObjects", Function::New(env, clearKeptObjects));
 	exports.Set("setupV8", Function::New(env, setupV8));
+	napi_property_descriptor desc =  { "perfTest", 0, perfTest, 0, 0, 0, napi_default, 0 };
+	napi_define_properties(env, exports, 1, &desc);
 	// this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
 	// often just uses the name of the last exported native function:
 	//exports.Set("lmdbNativeFunctions", lmdbNativeFunctions);
@@ -152,9 +161,10 @@ Value getViewAddress(const CallbackInfo& info) {
 }
 Value clearKeptObjects(const CallbackInfo& info) {
 	#if NODE_VERSION_AT_LEAST(12,0,0)
-	v8::Isolate::GetCurrent()->ClearKeptObjects();
+	//v8::Isolate::GetCurrent()->ClearKeptObjects();
 	#endif
-	return info.Env().Undefined();
+	return Number::New(info.Env(), 0xffffffff);
+	//return info.Env().Undefined();
 }
 
 Value lmdbNativeFunctions(const CallbackInfo& info) {

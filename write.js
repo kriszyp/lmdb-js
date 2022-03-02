@@ -488,6 +488,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	async function executeTxnCallbacks() {
 		env.writeTxn = writeTxn = { write: true };
+		//this.emit('begin-transaction');
 		let promises;
 		let txnCallbacks;
 		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
@@ -757,6 +758,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				this.transactions++;
 				env.beginTxn(flags == undefined ? 3 : flags);
 				writeTxn = env.writeTxn = { write: true };
+				this.emit('begin-transaction');
 				return when(callback(), (result) => {
 					try {
 						if (result === ABORT)
@@ -816,6 +818,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				beforeCommitCallbacks.push(callback);
 			} else if (event == 'aftercommit')
 				afterCommitCallbacks.push(callback);
+			else
+				super.on(event, callback);
 		}
 	});
 }

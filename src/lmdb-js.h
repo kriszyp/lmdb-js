@@ -27,7 +27,9 @@
 #include <vector>
 #include <algorithm>
 #include <v8.h>
+#ifndef NAPI_VERSION
 #define NAPI_VERSION 4
+#endif
 #include <napi.h>
 #include <node_api.h>
 
@@ -513,7 +515,6 @@ public:
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 	uint32_t doGetByBinary(uint32_t keySize);
-	Napi::Value getByBinary(const CallbackInfo& info);
 	Napi::Value getStringByBinary(const CallbackInfo& info);
 	Napi::Value getSharedByBinary(const CallbackInfo& info);
 	static void setupExports(Napi::Env env, Object exports);

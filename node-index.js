@@ -15,13 +15,8 @@ let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 let nativeAddon = require('node-gyp-build')(dirName);
 setNativeFunctions(nativeAddon);
-Dbi.prototype[2] = true;
 let v8Funcs = {}
 nativeAddon.setupV8(v8Funcs);
-let getByBinary2 = v8Funcs.getByBinary2;
-Dbi.prototype.getByBinary2 = function(size) {
-	return getByBinary2(this.address, size);
-};
 setExternals({
 	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
 	EventEmitter, os: platform(), onExit(callback) {

@@ -19,6 +19,7 @@ void getByBinaryV8(
     DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
 	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
+	return info.GetReturnValue().Set(v8::Number::New(isolate, 0xffffffff));/*
     char* keyBuffer = dw->ew->keyBuffer;
     MDB_txn* txn = dw->ew->getReadTxn();
     MDB_val key;
@@ -34,7 +35,7 @@ void getByBinaryV8(
     }   
     rc = getVersionAndUncompress(data, dw);
 	 valToBinaryFast(data, dw);
-    return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));
+    return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));*/
 }
 
 #endif

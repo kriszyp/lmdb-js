@@ -1,5 +1,5 @@
 export let Env, Txn, Dbi, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
-	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap;
+	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, write, position, iterate;
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Txn = externals.Txn;
@@ -10,6 +10,7 @@ export function setNativeFunctions(externals) {
 	setGlobalBuffer = externals.setGlobalBuffer;
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
+	getByBinary = externals.getByBinary;
 	if (externals.tmpdir)
         tmpdir = externals.tmpdir
 }

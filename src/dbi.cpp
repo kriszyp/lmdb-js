@@ -190,23 +190,38 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	return 0;*/
 	return data.mv_size;
 }
+#define NAPI_FUNCTION(name, count) napi_value name(napi_env env, napi_callback_info info) {\
+	napi_value returnValue;\
+	size_t argc = count;\
+	napi_value args[count];\
+	napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+#define GET_UINT32_ARG(target, position) napi_get_value_uint32(env, args[position], (uint32_t*) &target)
+#define GET_INT64_ARG(target, position) napi_get_value_int64(env, args[position], (int64_t*) &target)
+#define RETURN_UINT32(value) napi_create_uint32(env, value, &returnValue); return returnValue;
+#define THROW_LMDB_ERROR(value) napi_create_uint32(env, value, &returnValue); return returnValue;
+#define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, napi_default, 0 }; napi_define_properties(env, exports, 1, &desc); }
 
-Value DbiWrap::getByBinary(const Napi::CallbackInfo& info) {
-	char* keyBuffer = this->ew->keyBuffer;
-	MDB_txn* txn = this->ew->getReadTxn();
+
+NAPI_FUNCTION(getByBinary, 2)
+	DbiWrap* dw;
+	GET_INT64_ARG(dw, 0);
+	char* keyBuffer = dw->ew->keyBuffer;
+	MDB_txn* txn = dw->ew->getReadTxn();
 	MDB_val key;
 	MDB_val data;
-	key.mv_size = info[0].As<Number>().Uint32Value();
+	key.mv_size = 0;
+	GET_UINT32_ARG(key.mv_size, 1);
 	key.mv_data = (void*) keyBuffer;
-	int rc = mdb_get(txn, this->dbi, &key, &data);
+	int rc = mdb_get(txn, dw->dbi, &key, &data);
 	if (rc) {
 		if (rc == MDB_NOTFOUND)
-			return Number::New(info.Env(), 0xffffffff);
-		else
-			return throwLmdbError(info.Env(), rc);
+			RETURN_UINT32(0xffffffff);
+		//else
+			//return throwLmdbError(info.Env(), rc);
 	}
-	rc = getVersionAndUncompress(data, this);
-	return valToBinaryUnsafe(data, this, info.Env());
+	rc = getVersionAndUncompress(data, dw);
+	valToBinaryFast(data, dw);
+	RETURN_UINT32(data.mv_size);
 }
 napi_finalize noop = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
@@ -336,9 +351,9 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		DbiWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
 		DbiWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
 		DbiWrap::InstanceMethod("prefetch", &DbiWrap::prefetch),
-		DbiWrap::InstanceMethod("getByBinary", &DbiWrap::getByBinary),
 	});
 	exports.Set("Dbi", DbiClass);
+	EXPORT_NAPI_FUNCTION("getByBinary", getByBinary);
 	// TODO: wrap mdb_stat too
 }
 

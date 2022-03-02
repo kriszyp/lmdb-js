@@ -229,7 +229,7 @@ Value TxnWrap::renew(const Napi::CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 void TxnWrap::setupExports(Napi::Env env, Object exports) {
-    	// TxnWrap: Prepare constructor template
+		// TxnWrap: Prepare constructor template
 	Function TxnClass = DefineClass(env, "Txn", {
 		// TxnWrap: Add functions to the prototype
 		TxnWrap::InstanceMethod("commit", &TxnWrap::commit),

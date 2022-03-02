@@ -69,10 +69,11 @@ AsyncWriteWorker::AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* i
 	}
 
 void AsyncWriteWorker::Execute(const AsyncProgressWorker::ExecutionProgress& execution) {
+	executionProgress = (AsyncProgressWorker::ExecutionProgress*) &execution;
 	Write();
 }
 void WriteWorker::SendUpdate() {
-	//fprintf(stderr, "This SendUpdate does not work!\n");
+	fprintf(stderr, "This SendUpdate does not work!\n");
 }
 void AsyncWriteWorker::SendUpdate() {
 	executionProgress->Send(nullptr, 0);
@@ -367,7 +368,7 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	envForTxn->writeTxn = new TxnTracked(txn, 0);
 	finishedProgress = true;
-	Callback().Call({ Number::New(Env(), 1) });
+	Callback().Call({ Number::New(Env(), progressStatus) });
 	delete envForTxn->writeTxn;
 	envForTxn->writeTxn = nullptr;
 	pthread_cond_signal(envForTxn->writingCond);
