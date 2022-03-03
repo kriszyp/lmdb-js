@@ -198,13 +198,10 @@ NAN_METHOD(EnvWrap::open) {
     keyBuffer = node::Buffer::Data(keyBytesValue);
     setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
     Local<String> path = Local<String>::Cast(options->Get(Nan::GetCurrentContext(), Nan::New<String>("path").ToLocalChecked()).ToLocalChecked());
-    int pathLength = path->Length();
-    uint8_t* pathBytes = new uint8_t[pathLength + 1];
-    int bytes = path->WriteOneByte(Isolate::GetCurrent(), pathBytes, 0, pathLength + 1, v8::String::WriteOptions::NO_OPTIONS);
-    if (bytes != pathLength)
-        fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
-    if (pathBytes[bytes])
-        fprintf(stderr, "String is not null-terminated");
+    int pathLength = path->Length() * 3;
+    char* pathBytes = new char[pathLength + 1];
+    int utfWritten = 0;
+    int bytes = path->WriteUtf8(Isolate::GetCurrent(), pathBytes, pathLength + 1, &utfWritten, v8::String::WriteOptions::NO_OPTIONS);
     // Parse the maxDbs option
     int maxDbs = 12;
     Local<Value> option = options->Get(Nan::GetCurrentContext(), Nan::New<String>("maxDbs").ToLocalChecked()).ToLocalChecked();
@@ -233,7 +230,7 @@ NAN_METHOD(EnvWrap::open) {
     if (!encryptionKey->IsUndefined()) {
         unsigned int l = Local<String>::Cast(encryptionKey)->Length();
         encryptKey = new uint8_t[l];
-        int utfWritten = 0;
+        utfWritten = 0;
         Local<String>::Cast(encryptionKey)->WriteUtf8(Isolate::GetCurrent(),
             (char*) encryptKey, l, &utfWritten, v8::String::WriteOptions::NO_NULL_TERMINATION);
         if (utfWritten != 32) {

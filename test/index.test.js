@@ -960,7 +960,7 @@ describe('lmdb-js', function() {
         data += Math.random()
       }
       for (let i = 0; i < 10; i++) {
-        let db = open(testDirPath + '/test-close.mdb', {
+        let db = open(testDirPath + '/təst-close.mdb', {
 //          name: 'test-close',
           compression: true,
           overlappingSync: true,
