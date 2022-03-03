@@ -174,7 +174,7 @@ Napi::Value throwLmdbError(Napi::Env env, int rc) {
 	return env.Undefined();
 }
 
-Napi::Value throwError(Napi::Env env, char* message) {
+Napi::Value throwError(Napi::Env env, const char* message) {
 	Error::New(env, message).ThrowAsJavaScriptException();
 	return env.Undefined();
 }

@@ -172,7 +172,7 @@ int putWithVersion(MDB_txn *   txn,
 		unsigned int	flags, double version);
 
 Napi::Value throwLmdbError(Napi::Env env, int rc);
-Napi::Value throwError(Napi::Env env, char* message);
+Napi::Value throwError(Napi::Env env, const char* message);
 
 class TxnWrap;
 class DbiWrap;
@@ -214,7 +214,7 @@ class WriteWorker {
 };
 class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
   public:
-	AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Function& callback);
+	AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback);
 	void Execute(const AsyncProgressWorker::ExecutionProgress& execution);
 	void OnProgress(const char* data, size_t count);
 	void OnOK();
@@ -263,6 +263,7 @@ public:
 	TxnTracked *writeTxn;
 	pthread_mutex_t* writingLock;
 	pthread_cond_t* writingCond;
+	std::vector<AsyncWorker*> workers;
 
 	MDB_txn* currentReadTxn;
 	WriteWorker* writeWorker;

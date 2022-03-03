@@ -50,6 +50,10 @@ void EnvWrap::cleanupStrayTxns() {
 		mdb_txn_abort(this->currentWriteTxn->txn);
 		this->currentWriteTxn->removeFromEnvWrap();
 	}
+	while (this->workers.size()) {
+		AsyncWorker *worker = *this->workers.begin();
+		delete worker;
+	}
 	while (this->readTxns.size()) {
 		TxnWrap *tw = *this->readTxns.begin();
 		mdb_txn_abort(tw->txn);
@@ -59,18 +63,27 @@ void EnvWrap::cleanupStrayTxns() {
 
 class SyncWorker : public AsyncWorker {
   public:
-	SyncWorker(MDB_env* env, Function& callback)
-	 : AsyncWorker(callback), env(env) {}
+	SyncWorker(EnvWrap* env, Function& callback)
+	 : AsyncWorker(callback), env(env) {
+		env->workers.push_back(this);
+	 }
+	~SyncWorker() {
+		for (auto workerRef = env->workers.begin(); workerRef != env->workers.end(); ) {
+			if (this == *workerRef) {
+				env->workers.erase(workerRef);
+			}
+		}
+	}
 
 	void Execute() {
-		int rc = mdb_env_sync(env, 1);
+		int rc = mdb_env_sync(env->env, 1);
 		if (rc != 0) {
 			SetError(mdb_strerror(rc));
 		}
 	}
 
   private:
-	MDB_env* env;
+	EnvWrap* env;
 };
 
 class CopyWorker : public AsyncWorker {
@@ -599,7 +612,7 @@ Napi::Value EnvWrap::sync(const CallbackInfo& info) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
 	if (info.Length() > 0) {
-		SyncWorker* worker = new SyncWorker(this->env, info[0].As<Function>());
+		SyncWorker* worker = new SyncWorker(this, info[0].As<Function>());
 		worker->Queue();
 	} else {
 		int rc = mdb_env_sync(this->env, 1);
