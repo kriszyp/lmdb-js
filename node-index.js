@@ -14,9 +14,17 @@ orderedBinary.enableNullTermination();
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 let nativeAddon = require('node-gyp-build')(dirName);
+
+if (process.versions.v8.includes('node')) {
+	let v8Funcs = {}
+	if (process.version.startsWith('v16.') && process.version.slice(4) > 6)
+		nativeAddon.enableDirectV8Fast(v8Funcs);
+	else
+		nativeAddon.enableDirectV8(v8Funcs);
+	nativeAddon.getByBinary = v8Funcs.getByBinary
+	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects
+}
 setNativeFunctions(nativeAddon);
-let v8Funcs = {}
-nativeAddon.setupV8(v8Funcs);
 setExternals({
 	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
 	EventEmitter, os: platform(), onExit(callback) {

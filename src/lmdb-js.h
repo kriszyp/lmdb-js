@@ -26,7 +26,6 @@
 
 #include <vector>
 #include <algorithm>
-#include <v8.h>
 #ifndef NAPI_VERSION
 #define NAPI_VERSION 4
 #endif
@@ -40,13 +39,6 @@
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
 #include "chacha8.h"
-#endif
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-#if NODE_VERSION_AT_LEAST(17,0,0)
-#include "../dependencies/v8/v8-fast-api-calls.h"
-#else
-#include "../dependencies/v8/v8-fast-api-calls-v16.h"
-#endif
 #endif
 
 using namespace Napi;
@@ -150,9 +142,9 @@ Value lmdbError(const CallbackInfo& info);
 //NAN_METHOD(getBufferForAddress);
 Value getViewAddress(const CallbackInfo& info);
 Value getAddress(const CallbackInfo& info);
-Value clearKeptObjects(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
-Value setupV8(const CallbackInfo& info);
+Value enableDirectV8(const CallbackInfo& info);
+Value enableDirectV8Fast(const CallbackInfo& info);
 
 #ifndef thread_local
 #ifdef __GNUC__
@@ -218,6 +210,7 @@ class WriteWorker {
 	uint32_t* instructions;
 	int progressStatus;
 	MDB_env* env;
+	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
 };
 class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
   public:
@@ -384,9 +377,6 @@ public:
 	*/
 	Napi::Value startWriting(const CallbackInfo& info);
 	Napi::Value compress(const CallbackInfo& info);
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static void writeFast(v8::Object receiver_obj, uint64_t instructionAddress, v8::FastApiCallbackOptions& options);
-#endif
 	Napi::Value write(const CallbackInfo& info);
 
 	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);
@@ -593,10 +583,6 @@ public:
 
 	Napi::Value getCurrentValue(const CallbackInfo& info);
 	int returnEntry(int lastRC, MDB_val &key, MDB_val &data);
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	static uint32_t positionFast(Object receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, v8::FastApiCallbackOptions& options);
-	static int32_t iterateFast(Object receiver_obj, v8::FastApiCallbackOptions& options);
-#endif
 	Napi::Value position(const CallbackInfo& info);	
 	int32_t doPosition(uint32_t offset, uint32_t keySize, uint64_t endKeyAddress);
 	Napi::Value iterate(const CallbackInfo& info);	

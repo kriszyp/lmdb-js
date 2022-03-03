@@ -157,7 +157,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		interruptionStatus = 0;
 	return 0;
 }
-int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
+int WriteWorker::DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
 	MDB_val key, value;
 	int rc = 0;
 	int conditionDepth = 0;
@@ -402,27 +402,6 @@ extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddre
 }
 
 
-#ifdef ENABLE_FAST_API
-void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
-	EnvWrap* ew = static_cast<EnvWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
-	int rc;
-	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
-	else {
-		pthread_cond_signal(ew->writingCond);
-		rc = 0;
-	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		options.fallback = true;
-}
-void EnvWrap::write(
-	const v8::FunctionCallbackInfo<v8::Value>& info) {
-	v8::Local<v8::Object> instance =
-		v8::Local<v8::Object>::Cast(info.Holder());
-	instance->write(info);
-}
-#endif
 Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	//fprintf(stderr,"Doing sync write\n");
 	if (!this->env) {
@@ -431,7 +410,7 @@ Napi::Value EnvWrap::write(const CallbackInfo& info) {
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	int rc = 0;
 	if (instructionAddress)
-		rc = DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);
+		rc = WriteWorker::DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);
 	else if (this->writeWorker) {
 		pthread_cond_signal(this->writingCond);
 	}
@@ -444,7 +423,7 @@ extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) 
 	int rc = 0;
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
 	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*) (size_t)instructionAddress, nullptr);
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*) (size_t)instructionAddress, nullptr);
 	else if (ew->writeWorker) {
 		pthread_cond_signal(ew->writingCond);
 	}

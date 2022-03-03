@@ -2,10 +2,17 @@
 #include <v8.h>
 #include <string.h>
 #include <stdio.h>
+#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+#if NODE_VERSION_AT_LEAST(17,0,0)
+#include "../dependencies/v8/v8-fast-api-calls.h"
+#else
+#include "../dependencies/v8/v8-fast-api-calls-v16.h"
+#endif
+#endif
 
 using namespace v8;
 #if ENABLE_V8_API
-uint32_t getByBinaryFast(/*Local<Object> receiver_obj,*/double dwPointer, uint32_t keySize) {
+uint32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
 }
@@ -14,12 +21,11 @@ uint32_t getByBinaryFast(/*Local<Object> receiver_obj,*/double dwPointer, uint32
 void getByBinaryV8(
   const FunctionCallbackInfo<v8::Value>& info) {
 	 Isolate* isolate = Isolate::GetCurrent();
-    /*Local<Object> instance =
-      Local<Object>::Cast(info.This());
+    /*Local<v8::Object> instance =
+      Local<v8::Object>::Cast(info.This());
     DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
 	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
-	return info.GetReturnValue().Set(v8::Number::New(isolate, 0xffffffff));/*
     char* keyBuffer = dw->ew->keyBuffer;
     MDB_txn* txn = dw->ew->getReadTxn();
     MDB_val key;
@@ -35,50 +41,105 @@ void getByBinaryV8(
     }   
     rc = getVersionAndUncompress(data, dw);
 	 valToBinaryFast(data, dw);
-    return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));*/
+    return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));
+}
+int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
+	CursorWrap* cw = static_cast<CursorWrap*>(
+		receiver_obj->GetAlignedPointerFromInternalField(0));
+	DbiWrap* dw = cw->dw;
+	dw->getFast = true;
+	cw->flags = flags;
+	return cw->doPosition(offset, keySize, endKeyAddress);
+}
+int32_t iterateFast(Local<v8::Object> receiver_obj, FastApiCallbackOptions& options) {
+	CursorWrap* cw = static_cast<CursorWrap*>(
+		receiver_obj->GetAlignedPointerFromInternalField(0));
+	DbiWrap* dw = cw->dw;
+	dw->getFast = true;
+	MDB_val key, data;
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+	return cw->returnEntry(rc, key, data);
+}
+void writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
+	EnvWrap* ew = static_cast<EnvWrap*>(
+		receiver_obj->GetAlignedPointerFromInternalField(0));
+	int rc;
+	if (instructionAddress)
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		pthread_cond_signal(ew->writingCond);
+		rc = 0;
+	}
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
+		options.fallback = true;
+}
+void write(
+	const v8::FunctionCallbackInfo<v8::Value>& info) {
+	EnvWrap* ew;
+	uint64_t instructionAddress;
+	int rc;
+	if (instructionAddress)
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		pthread_cond_signal(ew->writingCond);
+		rc = 0;
+	}
+}
+
+
+void clearKeptObjects(const FunctionCallbackInfo<v8::Value>& info) {
+	#if NODE_VERSION_AT_LEAST(12,0,0)
+	v8::Isolate::GetCurrent()->ClearKeptObjects();
+	#endif
+}
+Napi::Value EnvWrap::detachBuffer(const CallbackInfo& info) {
+	#if NODE_VERSION_AT_LEAST(12,0,0)
+    napi_value buffer = info[0];
+    v8::Local<v8::ArrayBuffer> v8Buffer;
+    memcpy(&v8Buffer, &buffer, sizeof(buffer));
+	v8Buffer->Detach();
+	#endif
+    return info.Env().Undefined();
 }
 
 #endif
 
-Napi::Value setupV8(const Napi::CallbackInfo& info) {
+
+#define EXPORT_FAST(exportName, slowName, fastName) {\
+	auto fast = CFunction::Make(fastName);\
+	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName).ToLocalChecked(), FunctionTemplate::New(\
+		  isolate, slowName, Local<v8::Value>(),\
+		  Local<Signature>(), 0, ConstructorBehavior::kThrow,\
+		  SideEffectType::kHasNoSideEffect, &fast)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());\
+}
+#define EXPORT_FUNCTION(exportName, funcName) \
+	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName).ToLocalChecked(), FunctionTemplate::New(\
+		  isolate, funcName, Local<v8::Value>(),\
+		  Local<Signature>(), 0, ConstructorBehavior::kThrow,\
+		  SideEffectType::kHasNoSideEffect)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
+
+Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	fprintf(stderr, "setupV8\n");
 	#if ENABLE_V8_API
-	fprintf(stderr, "v8 enabled\n");
 	Isolate* isolate = Isolate::GetCurrent();
-	napi_value dbiPrototypeValue = info[0];
+	napi_value exportsValue = info[0];
 	bool result;
-	napi_has_element(info.Env(), dbiPrototypeValue, 2, &result);
-	fprintf(stderr, "has 2 %u ", result);
-	napi_has_element(info.Env(), dbiPrototypeValue, 4, &result);
-	fprintf(stderr, "has 4 %u ", result);
-	Local<v8::Object> dbiPrototype;
-	memcpy(&dbiPrototype, &dbiPrototypeValue, sizeof(dbiPrototypeValue));
-	fprintf(stderr, "has v8 2 %u ", dbiPrototype->Has(isolate->GetCurrentContext(), 2).FromJust());
-	fprintf(stderr, "has v8 4 %u ", dbiPrototype->Has(isolate->GetCurrentContext(), 4).FromJust());
-	#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-	//auto getFast = CFunction::Make(DbiWrap::getByBinaryFast);
+	Local<v8::Object> exports;
+	memcpy(&exports, &exportsValue, sizeof(exportsValue));
+	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
+	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
 	#endif
-	dbiPrototype->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, "getByBinary2").ToLocalChecked(), FunctionTemplate::New(
-		  isolate, getByBinaryV8, Local<v8::Value>(),
-		  Local<Signature>(), 0, ConstructorBehavior::kThrow,
-		  SideEffectType::kHasNoSideEffect/*, &getFast*/)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
-	fprintf(stderr,"done setting");
-	/*auto writeFast = CFunction::Make(EnvWrap::writeFast);
-	envTpl->PrototypeTemplate()->Set(isolate, "write", FunctionTemplate::New(
-		isolate, EnvWrap::write, Local<Value>(),
-		Local<Signature>(), 0, ConstructorBehavior::kThrow,
-		SideEffectType::kHasNoSideEffect, &writeFast));*/
-
-	#else
-	/*DbiWrap::InstanceMethod("getByBinary", FunctionTemplate::New(
-		  isolate, DbiWrap::getByBinary, Local<Value>(),
-		  Local<Signature>(), 0, ConstructorBehavior::kThrow,
-		  SideEffectType::kHasNoSideEffect));
-	EnvWrap::InstanceMethod("write", FunctionTemplate::New(
-		isolate, EnvWrap::write, Local<Value>(),
-		Local<Signature>(), 0, ConstructorBehavior::kThrow,
-		SideEffectType::kHasNoSideEffect));*/
+	return info.Env().Undefined();
+}
+Napi::Value enableDirectV8Fast(const Napi::CallbackInfo& info) {
+	#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+	Isolate* isolate = Isolate::GetCurrent();
+	napi_value exportsValue = info[0];
+	bool result;
+	Local<v8::Object> exports;
+	memcpy(&exports, &exportsValue, sizeof(exportsValue));
+	EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
+	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
 	#endif
-//	dbiTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	return info.Env().Undefined();
 }

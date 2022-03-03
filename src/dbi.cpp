@@ -199,7 +199,7 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 #define GET_INT64_ARG(target, position) napi_get_value_int64(env, args[position], (int64_t*) &target)
 #define RETURN_UINT32(value) napi_create_uint32(env, value, &returnValue); return returnValue;
 #define THROW_LMDB_ERROR(value) napi_create_uint32(env, value, &returnValue); return returnValue;
-#define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, napi_default, 0 }; napi_define_properties(env, exports, 1, &desc); }
+#define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, (napi_property_attributes) (napi_writable | napi_configurable), 0 }; napi_define_properties(env, exports, 1, &desc); }
 
 
 NAPI_FUNCTION(getByBinary, 2)

@@ -221,16 +221,6 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 	// TODO: Handle count?
 	return returnEntry(rc, key, data);
 }
-#if ENABLE_FAST_API && NODE_VERSION_AT_LEAST(16,6,0)
-int32_t CursorWrap::positionFast(Local<Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
-	CursorWrap* cw = static_cast<CursorWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
-	DbiWrap* dw = cw->dw;
-	dw->getFast = true;
-	cw->flags = flags;
-	return cw->doPosition(offset, keySize, endKeyAddress);
-}
-#endif
 Napi::Value CursorWrap::position(const CallbackInfo& info) {
 	this->flags = info[0].As<Number>();
 	uint32_t offset = info[1].As<Number>();
@@ -245,17 +235,6 @@ extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t 
 	return cw->doPosition(offset, keySize, (uint64_t) endKeyAddress);
 }
 
-#ifdef ENABLE_FAST_API
-int32_t CursorWrap::iterateFast(Local<Object> receiver_obj, FastApiCallbackOptions& options) {
-	CursorWrap* cw = static_cast<CursorWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
-	DbiWrap* dw = cw->dw;
-	dw->getFast = true;
-	MDB_val key, data;
-	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
-	return cw->returnEntry(rc, key, data);
-}
-#endif
 Napi::Value CursorWrap::iterate(const CallbackInfo& info) {
 	MDB_val key, data;
 	int rc = mdb_cursor_get(this->cursor, &key, &data, this->iteratingOp);
@@ -297,24 +276,8 @@ void CursorWrap::setupExports(Napi::Env env, Object exports) {
 		CursorWrap::InstanceMethod("del", &CursorWrap::del),
 		CursorWrap::InstanceMethod("getCurrentValue", &CursorWrap::getCurrentValue),
 		CursorWrap::InstanceMethod("renew", &CursorWrap::renew),
-
-	#ifdef ENABLE_FAST_API
-	Isolate *isolate = Isolate::GetCurrent();
-	auto positionFast = CFunction::Make(CursorWrap::positionFast);
-	cursorTpl->PrototypeTemplate()->Set(isolate, "position", v8::FunctionTemplate::New(
-		  isolate, CursorWrap::position, v8::Local<v8::Value>(),
-		  v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		  v8::SideEffectType::kHasNoSideEffect, &positionFast));
-
-	auto iterateFast = CFunction::Make(CursorWrap::iterateFast);
-	cursorTpl->PrototypeTemplate()->Set(isolate, "iterate", v8::FunctionTemplate::New(
-		  isolate, CursorWrap::iterate, v8::Local<v8::Value>(),
-		  v8::Local<v8::Signature>(), 0, v8::ConstructorBehavior::kThrow,
-		  v8::SideEffectType::kHasNoSideEffect, &iterateFast));
-	#else
 		CursorWrap::InstanceMethod("position", &CursorWrap::position),
 		CursorWrap::InstanceMethod("iterate", &CursorWrap::iterate),
-	#endif
 	});
 	exports.Set("Cursor", CursorClass);
 

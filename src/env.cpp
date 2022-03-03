@@ -150,7 +150,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	napi_get_typedarray_info(info.Env(), keyBytesValue, nullptr, &keyBufferLength, &keyBuffer, nullptr, nullptr);
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
-	const char* pathBytes = path.Utf8Value().c_str();
+	std::string pathString = path.Utf8Value();
 	/*int pathLength = path.Length();
 	if (bytes != pathLength)
 		fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
@@ -178,11 +178,11 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (option.IsNumber())
 		maxReaders = option.As<Number>();
 
-	const char* encryptKey = nullptr;
 	Napi::Value encryptionKey = options.Get("encryptionKey");
+	std::string encryptKey;
 	if (!encryptionKey.IsUndefined()) {
-		encryptKey = encryptionKey.As<String>().Utf8Value().c_str();
-		if (strlen(encryptKey) != 32) {
+		encryptKey = encryptionKey.As<String>().Utf8Value();
+		if (encryptKey.length() != 32) {
 			return throwError(info.Env(), "Encryption key must be 32 bytes long");
 		}
 		#ifndef MDB_RPAGE_CACHE
@@ -190,7 +190,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		#endif
 	}
 
-	rc = this->openEnv(flags, jsFlags, (const char*)pathBytes, (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, (char*)encryptKey);
+	rc = this->openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
 	//delete[] pathBytes;
 	if (rc < 0)
 		return throwLmdbError(info.Env(), rc);
@@ -444,16 +444,6 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	 this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
 	);
 	worker->Queue();
-}
-
-Napi::Value EnvWrap::detachBuffer(const CallbackInfo& info) {
-	#if NODE_VERSION_AT_LEAST(12,0,0)
-    napi_value buffer = info[0];
-    v8::Local<v8::ArrayBuffer> v8Buffer;
-    memcpy(&v8Buffer, &buffer, sizeof(buffer));
-	v8Buffer->Detach();
-	#endif
-    return info.Env().Undefined();
 }
 
 Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
