@@ -63,7 +63,7 @@ void EnvWrap::cleanupStrayTxns() {
 
 class SyncWorker : public AsyncWorker {
   public:
-	SyncWorker(EnvWrap* env, Function& callback)
+	SyncWorker(EnvWrap* env, const Function& callback)
 	 : AsyncWorker(callback), env(env) {
 		env->workers.push_back(this);
 	 }
@@ -88,7 +88,7 @@ class SyncWorker : public AsyncWorker {
 
 class CopyWorker : public AsyncWorker {
   public:
-	CopyWorker(MDB_env* env, std::string inPath, int flags, Function& callback)
+	CopyWorker(MDB_env* env, std::string inPath, int flags, const Function& callback)
 	 : AsyncWorker(callback), env(env), path(inPath), flags(flags) {
 	 }
 	~CopyWorker() {
@@ -457,6 +457,7 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	 this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
 	);
 	worker->Queue();
+	return info.Env().Undefined();
 }
 
 Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
@@ -500,10 +501,8 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 	}
 
 	if (info.Length() > 1) {
-		const int argc = 3;
 		fprintf(stderr, "Invalid number of arguments");
 	} else {
-		const int argc = 2;
 		fprintf(stderr, "Invalid number of arguments");
 	}
     return info.Env().Undefined();
