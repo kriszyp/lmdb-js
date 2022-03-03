@@ -43,7 +43,7 @@ void getByBinaryV8(
 	 valToBinaryFast(data, dw);
     return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));
 }
-int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress, FastApiCallbackOptions& options) {
+int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
 	CursorWrap* cw = static_cast<CursorWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
 	DbiWrap* dw = cw->dw;
@@ -51,7 +51,7 @@ int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t of
 	cw->flags = flags;
 	return cw->doPosition(offset, keySize, endKeyAddress);
 }
-int32_t iterateFast(Local<v8::Object> receiver_obj, FastApiCallbackOptions& options) {
+int32_t iterateFast(Local<v8::Object> receiver_obj) {
 	CursorWrap* cw = static_cast<CursorWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
 	DbiWrap* dw = cw->dw;
@@ -60,7 +60,7 @@ int32_t iterateFast(Local<v8::Object> receiver_obj, FastApiCallbackOptions& opti
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	return cw->returnEntry(rc, key, data);
 }
-void writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
+int32_t writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress) {
 	EnvWrap* ew = static_cast<EnvWrap*>(
 		receiver_obj->GetAlignedPointerFromInternalField(0));
 	int rc;
@@ -70,8 +70,9 @@ void writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress, Fast
 		pthread_cond_signal(ew->writingCond);
 		rc = 0;
 	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		options.fallback = true;
+	return rc;
+//	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
+	//	options.fallback = true;
 }
 void write(
 	const v8::FunctionCallbackInfo<v8::Value>& info) {

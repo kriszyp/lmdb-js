@@ -52,6 +52,7 @@ void EnvWrap::cleanupStrayTxns() {
 	}
 	while (this->workers.size()) {
 		AsyncWorker *worker = *this->workers.begin();
+		fprintf(stderr, "Deleting running worker\n");
 		delete worker;
 	}
 	while (this->readTxns.size()) {

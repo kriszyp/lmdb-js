@@ -307,7 +307,7 @@ int DbiWrap::prefetch(uint32_t* keys) {
 
 class PrefetchWorker : public AsyncWorker {
   public:
-	PrefetchWorker(DbiWrap* dw, uint32_t* keys, Function& callback)
+	PrefetchWorker(DbiWrap* dw, uint32_t* keys, const Function& callback)
 	  : AsyncWorker(callback), dw(dw), keys(keys) {}
 
 	void Execute() {

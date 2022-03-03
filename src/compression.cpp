@@ -168,7 +168,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
 
 class CompressionWorker : public AsyncWorker {
   public:
-	CompressionWorker(EnvWrap* env, double* compressionAddress, Function& callback)
+	CompressionWorker(EnvWrap* env, double* compressionAddress, const Function& callback)
 	  : AsyncWorker(callback), env(env), compressionAddress(compressionAddress) {}
 
 
