@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.2.1",
+  "version": "2.2.4",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -20,14 +20,14 @@
   ],
   "type": "module",
   "main": "dist/index.cjs",
-  "module": "index.js",
+  "module": "node-index.js",
   "exports": {
     ".": {
       "node": {
         "require": "./dist/index.cjs",
         "import": "./node-index.js"
       },
-      "default": "./index.js"
+      "default": "./node-index.js"
     }
   },
   "files": [

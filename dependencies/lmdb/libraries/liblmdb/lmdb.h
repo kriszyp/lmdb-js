@@ -375,6 +375,8 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_REMAP_CHUNKS	0x4000000
 /** @} */
 
+#define MDB_OVERLAPPINGSYNC_SYNC = 0x02
+
 /**	@defgroup	mdb_dbi_open	Database Flags
  *	@{
  */

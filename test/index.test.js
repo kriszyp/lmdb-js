@@ -63,7 +63,6 @@ describe('lmdb-js', function() {
         //noSync: true,
         //overlappingSync: true,
         maxReaders: 100,
-        eventTurnBatching: true,
         keyEncoder: orderedBinaryEncoder,
         compression: {
           threshold: 256,
@@ -258,6 +257,20 @@ describe('lmdb-js', function() {
       should.equal(result, true);
       result = await db2.remove('key-no-exists', IF_EXISTS);
       should.equal(result, false);
+    });
+    it('repeated ifNoExists', async function() {
+      let keyBase = 'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f'
+      let result;
+      for (let i = 0; i < 500; i++) {
+        let key = keyBase + (i % 100);
+        result = db.ifNoExists(keyBase + i, () => {
+          db.put(keyBase + i, 'changed', 7);
+        });
+        if (i % 100 == 0) {
+          await result;
+        }
+      }
+      await result;
     });
     it('string with compression and versions', async function() {
       let str = expand('Hello world!')
@@ -947,7 +960,7 @@ describe('lmdb-js', function() {
         data += Math.random()
       }
       for (let i = 0; i < 10; i++) {
-        let db = open(testDirPath + '/test-close.mdb', {
+        let db = open(testDirPath + '/təst-close.mdb', {
 //          name: 'test-close',
           compression: true,
           overlappingSync: true,
@@ -1083,7 +1096,7 @@ describe('lmdb-js', function() {
     });
   });
   describe('Threads', function() {
-    this.timeout(10000);
+    this.timeout(1000000);
     it('will run a group of threads with read-only transactions', function(done) {
       var child = spawn('node', [fileURLToPath(new URL('./threads.cjs', import.meta.url))]);
       child.stdout.on('data', function(data) {

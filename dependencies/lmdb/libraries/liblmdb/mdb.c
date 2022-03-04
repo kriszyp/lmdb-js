@@ -4817,9 +4817,9 @@ mdb_env_write_meta(MDB_txn *txn)
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
 	len = sizeof(MDB_meta) - off;
-	if (flags & 2)
-		off += (char *)env->me_metas[0] - env->me_map + (env->me_psize >> 1);
-	else
+	if (flags & 2) {
+		off += PAGEHDRSZ + (env->me_psize >> 1);
+	} else
 		off += (char *)mp - env->me_map;
 
 	/* Write to the SYNC fd unless MDB_NOSYNC/MDB_NOMETASYNC.

@@ -32,7 +32,9 @@ export function addReadMethods(LMDBStore, {
 				this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
 			} catch (error) {
 				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
-					error = new Error('Zero length key is not allowed in LMDB')
+					error = new Error(id === undefined ?
+						'A key is required for get, but is undefined' :
+						'Zero length key is not allowed in LMDB')
 				throw error
 			}
 			let compression = this.compression;
@@ -160,9 +162,10 @@ export function addReadMethods(LMDBStore, {
 		doesExist(key, versionOrValue) {
 			if (!env.writeTxn)
 				readTxnRenewed ? readTxn : renewReadTxn(this);
-			if (versionOrValue === undefined) {
+			if (versionOrValue == null) {
 				this.getBinaryFast(key);
-				return this.lastSize !== 0xffffffff;
+				// undefined means the entry exists, null is used specifically to check for the entry *not* existing
+				return (this.lastSize === 0xffffffff) == (versionOrValue === null);
 			}
 			else if (this.useVersions) {
 				this.getBinaryFast(key);

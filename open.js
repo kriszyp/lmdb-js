@@ -11,6 +11,7 @@ if (globalThis.__lmdb_envs__)
 else
 	globalThis.__lmdb_envs__ = getEnvMap;
 
+
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
 // this corresponds to the max key size for 8KB pages
 const MAX_KEY_SIZE = 4026;
@@ -53,7 +54,7 @@ export function open(path, options) {
 		remapChunks,
 		keyBytes,
 		pageSize: 4096,
-		overlappingSync: (options && (options.noSync || options.readOnly)) ? false : os != 'win32',
+		overlappingSync: (options && (options.noSync || options.readOnly)) ? false : (os != 'win32' && !isWorkerThread),
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :

@@ -89,7 +89,7 @@ void write(
 
 
 void clearKeptObjects(const FunctionCallbackInfo<v8::Value>& info) {
-	#if NODE_VERSION_AT_LEAST(12,0,0)
+	#if NODE_VERSION_AT_LEAST(14,0,0)
 	v8::Isolate::GetCurrent()->ClearKeptObjects();
 	#endif
 }

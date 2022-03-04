@@ -16,11 +16,10 @@ if (isMainThread) {
     maxDbs: 10,
     mapSize: MAX_DB_SIZE,
     maxReaders: 126,
-    encoding: 'binary',
   });
 
   var workerCount = Math.min(numCPUs * 2, 20);
-  var value = Buffer.from('48656c6c6f2c20776f726c6421', 'hex');
+  var value = {test: '48656c6c6f2c20776f726c6421'};
 
   // This will start as many workers as there are CPUs available.
   var workers = [];
@@ -36,12 +35,15 @@ if (isMainThread) {
       messages.push(msg);
       // Once every worker has replied with a response for the value
       // we can exit the test.
+
+      setTimeout(() => worker.terminate(), 100);
       if (messages.length === workerCount) {
         db.close();
         for (var i = 0; i < messages.length; i ++) {
           assert(messages[i] === value.toString('hex'));
         }
-        process.exit(0);
+        setTimeout(() =>
+          process.exit(0), 200);
       }
     });
   });
@@ -59,7 +61,6 @@ if (isMainThread) {
   });
 
 } else {
-
   // The worker process
   let db = open({
     path: path.resolve(__dirname, './testdata'),
@@ -69,11 +70,12 @@ if (isMainThread) {
   });
 
 
-  process.on('message', async function(msg) {
+  parentPort.on('message', async function(msg) {
     if (msg.key) {
       var value = db.get(msg.key);
-      if (msg.key == 'key1')
+      if (msg.key == 'key1') {
         await db.put(msg.key, 'updated');
+      }
       if (value === null) {
         parentPort.postMessage("");
       } else {
@@ -82,5 +84,4 @@ if (isMainThread) {
       
     }
   });
-
 }
