@@ -28,21 +28,23 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			try {
-				this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
-			} catch (error) {
-				if (error.message.startsWith('MDB_BAD_VALSIZE') && this.writeKey(id, keyBytes, 0) == 0)
-					error = new Error(id === undefined ?
-						'A key is required for get, but is undefined' :
-						'Zero length key is not allowed in LMDB')
-				throw error
+			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
+			if (rc < 0) {
+				if (rc == -30798) // MDB_NOTFOUND
+					return; // undefined
+				if (rc == -30781 /*MDB_BAD_VALSIZE*/ && this.writeKey(id, keyBytes, 0) == 0)
+					throw new Error(id === undefined ?
+					'A key is required for get, but is undefined' :
+					'Zero length key is not allowed in LMDB')
+				if (rc == -30000) // int32 overflow, read uint32
+					rc = this.lastSize = keyBytesView.getUint32(0, true);
+				else
+					throw lmdbError(rc);
 			}
 			let compression = this.compression;
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
-			if (this.lastSize > bytes.maxLength) {
-				// this means we the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
-				if (this.lastSize === 0xffffffff)
-					return;
+			if (rc > bytes.maxLength) {
+				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				if (returnNullWhenBig && this.lastSize > NEW_BUFFER_THRESHOLD)
 					 // used by getBinary to indicate it should create a dedicated buffer to receive this
 					return null;

@@ -26,5 +26,4 @@ export function setExternals(externals) {
 	tmpdir = externals.tmpdir;
    os = externals.os;
 	onExit = externals.onExit;
-	isWorkerThread = externals.isWorkerThread;
 }

@@ -12,7 +12,7 @@
 
 using namespace v8;
 #if ENABLE_V8_API
-uint32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_t keySize) {
+int32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
 }
@@ -26,22 +26,7 @@ void getByBinaryV8(
     DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
 	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
-    char* keyBuffer = dw->ew->keyBuffer;
-    MDB_txn* txn = dw->ew->getReadTxn();
-    MDB_val key;
-    MDB_val data;
-    key.mv_size = info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust();
-    key.mv_data = (void*) keyBuffer;
-    int rc = mdb_get(txn, dw->dbi, &key, &data);
-    if (rc) {
-        if (rc == MDB_NOTFOUND)
-            return info.GetReturnValue().Set(v8::Number::New(isolate, 0xffffffff));
-        //else
-          //  return throwLmdbError(rc);
-    }   
-    rc = getVersionAndUncompress(data, dw);
-	 valToBinaryFast(data, dw);
-    return info.GetReturnValue().Set(v8::Number::New(isolate, data.mv_size));
+	return info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust())));
 }
 int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
 	CursorWrap* cw = static_cast<CursorWrap*>(

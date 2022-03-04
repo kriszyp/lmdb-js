@@ -139,7 +139,7 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
+extern "C" EXTERN int32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
 }
@@ -158,7 +158,7 @@ extern "C" EXTERN int64_t openCursor(double dwPointer) {
 }
 
 
-uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
+int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	char* keyBuffer = ew->keyBuffer;
 	MDB_txn* txn = ew->getReadTxn();
 	MDB_val key, data;
@@ -167,50 +167,28 @@ uint32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 
 	int result = mdb_get(txn, dbi, &key, &data);
 	if (result) {
-		if (result == MDB_NOTFOUND)
-			return 0xffffffff;
-		// let the slow handler handle throwing errors
-		//options.fallback = true;
 		return result;
 	}
-	getFast = true;
 	result = getVersionAndUncompress(data, this);
 	if (result)
-		result = valToBinaryFast(data, this);
-/*	if (!result) {
-		// this means an allocation or error needs to be thrown, so we fallback to the slow handler
-		// or since we are using signed int32 (so we can return error codes), need special handling for above 2GB entries
-		options.fallback = true;
-	}*/
-	getFast = false;
+		valToBinaryFast(data, this);
+	if (data.mv_size < 0x80000000)
+		return data.mv_size;
+	*((uint32_t*)keyBuffer) = data.mv_size;
+	return -30000;
 	/*
 	alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
 	*((size_t*) keyBuffer) = data.mv_size;
 	*((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
 	return 0;*/
-	return data.mv_size;
 }
 
 NAPI_FUNCTION(getByBinary, 2)
 	DbiWrap* dw;
 	GET_INT64_ARG(dw, 0);
-	char* keyBuffer = dw->ew->keyBuffer;
-	MDB_txn* txn = dw->ew->getReadTxn();
-	MDB_val key;
-	MDB_val data;
-	key.mv_size = 0;
-	GET_UINT32_ARG(key.mv_size, 1);
-	key.mv_data = (void*) keyBuffer;
-	int rc = mdb_get(txn, dw->dbi, &key, &data);
-	if (rc) {
-		if (rc == MDB_NOTFOUND)
-			RETURN_UINT32(0xffffffff);
-		//else
-			//return throwLmdbError(info.Env(), rc);
-	}
-	rc = getVersionAndUncompress(data, dw);
-	valToBinaryFast(data, dw);
-	RETURN_UINT32(data.mv_size);
+	uint32_t keySize;
+	GET_UINT32_ARG(keySize, 1);
+	RETURN_UINT32(dw->doGetByBinary(keySize));
 }
 napi_finalize noop = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
