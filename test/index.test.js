@@ -12,7 +12,7 @@ import inspector from 'inspector'
 //inspector.open(9330, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../index.js';
 import { RangeIterable } from '../util/RangeIterable.js'
 import { assert } from 'console';
 

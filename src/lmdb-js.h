@@ -301,11 +301,6 @@ public:
 	Napi::Value freeStat(const CallbackInfo& info);
 	
 	/*
-		Detaches a buffer from the backing store
-	*/
-	Napi::Value detachBuffer(const CallbackInfo& info);
-
-	/*
 		Gets information about the database environment.
 	*/
 	Napi::Value info(const CallbackInfo& info);

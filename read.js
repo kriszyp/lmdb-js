@@ -1,5 +1,5 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, setGlobalBuffer, orderedBinary, lmdbError, getByBinary }  from './external.js';
+import { getAddress, Cursor, Txn, setGlobalBuffer, orderedBinary, lmdbError, getByBinary, detachBuffer }  from './external.js';
 import { saveKey }  from './keys.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
@@ -51,7 +51,7 @@ export function addReadMethods(LMDBStore, {
 				if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression && this.db.getSharedByBinary) {
 					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
 					if (this.lastShared) // we have to detach the last one, or else could crash due to two buffers pointing at same location
-						env.detachBuffer(this.lastShared.buffer)
+						detachBuffer(this.lastShared.buffer)
 					return this.lastShared = this.db.getSharedByBinary(this.writeKey(id, keyBytes, 0));
 				}
 				// grow our shared/static buffer to accomodate the size of the data

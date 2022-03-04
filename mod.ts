@@ -25,6 +25,10 @@ if (!libPath || !exists(libPath)) {
 		}
 	}
 }
+console.log('first test', Deno.dlopen(libPath, {
+	readerCheck: { parameters: ['f64'], result: 'i32'},
+}))
+
 let lmdbLib = Deno.dlopen(libPath, {
 	// const char* path, char* keyBuffer, Compression* compression, int jsFlags, int flags, int maxDbs,
 	// int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey

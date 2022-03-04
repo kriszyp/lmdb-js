@@ -21,9 +21,9 @@ int32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_
 void getByBinaryV8(
   const FunctionCallbackInfo<v8::Value>& info) {
 	 Isolate* isolate = Isolate::GetCurrent();
-    /*Local<v8::Object> instance =
-      Local<v8::Object>::Cast(info.This());
-    DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
+	/*Local<v8::Object> instance =
+	  Local<v8::Object>::Cast(info.This());
+	DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
 	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
 	return info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust())));
@@ -78,14 +78,11 @@ void clearKeptObjects(const FunctionCallbackInfo<v8::Value>& info) {
 	v8::Isolate::GetCurrent()->ClearKeptObjects();
 	#endif
 }
-Napi::Value EnvWrap::detachBuffer(const CallbackInfo& info) {
+void detachBuffer(const FunctionCallbackInfo<v8::Value>& info) {
 	#if NODE_VERSION_AT_LEAST(12,0,0)
-    napi_value buffer = info[0];
-    v8::Local<v8::ArrayBuffer> v8Buffer;
-    memcpy(&v8Buffer, &buffer, sizeof(buffer));
+	v8::Local<v8::ArrayBuffer> v8Buffer = Local<v8::ArrayBuffer>::Cast(info[0]);
 	v8Buffer->Detach();
 	#endif
-    return info.Env().Undefined();
 }
 
 #endif
@@ -105,7 +102,6 @@ Napi::Value EnvWrap::detachBuffer(const CallbackInfo& info) {
 		  SideEffectType::kHasNoSideEffect)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
 
 Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
-	fprintf(stderr, "setupV8\n");
 	#if ENABLE_V8_API
 	Isolate* isolate = Isolate::GetCurrent();
 	napi_value exportsValue = info[0];
@@ -114,6 +110,7 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	memcpy(&exports, &exportsValue, sizeof(exportsValue));
 	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
 	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
+	EXPORT_FUNCTION("detachBuffer", detachBuffer);
 	#endif
 	return info.Env().Undefined();
 }
@@ -126,6 +123,7 @@ Napi::Value enableDirectV8Fast(const Napi::CallbackInfo& info) {
 	memcpy(&exports, &exportsValue, sizeof(exportsValue));
 	EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
 	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
+	EXPORT_FUNCTION("detachBuffer", detachBuffer);
 	#endif
 	return info.Env().Undefined();
 }

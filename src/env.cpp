@@ -336,7 +336,7 @@ Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	}
 	napi_remove_env_cleanup_hook(info.Env(), cleanup, this);
 	this->closeEnv();
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 
 Napi::Value EnvWrap::stat(const CallbackInfo& info) {
@@ -506,7 +506,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 	} else {
 		fprintf(stderr, "Invalid number of arguments");
 	}
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
@@ -527,7 +527,7 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	delete currentTxn;
 	if (rc)
 		throwLmdbError(info.Env(), rc);
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
@@ -544,7 +544,7 @@ Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 			pthread_mutex_unlock(this->writingLock);
 	}
 	delete currentTxn;
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }/*
 extern "C" EXTERN int commitEnvTxn(double ewPointer) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
@@ -626,7 +626,7 @@ Napi::Value EnvWrap::sync(const CallbackInfo& info) {
 Napi::Value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
 	mdb_txn_reset(this->currentReadTxn);
 	this->readTxnRenewed = false;
-    return info.Env().Undefined();
+	return info.Env().Undefined();
 }
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {
@@ -647,8 +647,8 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("readerCheck", &EnvWrap::readerCheck),
 		EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
 		EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
-        EnvWrap::InstanceMethod("write", &EnvWrap::write),
-		EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
+		EnvWrap::InstanceMethod("write", &EnvWrap::write),
+		//EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -657,7 +657,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 
 extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
 		int maxReaders, double mapSize, int pageSize, char* encryptionKey) {
-    CallbackInfo* none = nullptr;
+	CallbackInfo* none = nullptr;
 	EnvWrap* ew = new EnvWrap(*none);
 	int rc = mdb_env_create(&(ew->env));
 	if (rc)

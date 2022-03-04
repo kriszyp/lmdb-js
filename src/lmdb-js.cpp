@@ -11,7 +11,7 @@ int Logging::initLogging() {
 int Logging::debugLogging = Logging::initLogging();
 
 Object InitAll(Napi::Env env, Object exports) {
-	//if (Logging::debugLogging)
+	if (Logging::debugLogging)
 		fprintf(stderr, "Start initialization\n");
 	// Initializes the module
 	// Export Env as constructor for EnvWrap
@@ -26,7 +26,7 @@ Object InitAll(Napi::Env env, Object exports) {
 
 	// Export misc things
 	setupExportMisc(env, exports);
-	//if (Logging::debugLogging)
+	if (Logging::debugLogging)
 		fprintf(stderr, "Finished initialization\n");
 	return exports;
 }

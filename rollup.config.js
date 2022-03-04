@@ -1,6 +1,6 @@
 export default [
     {
-        input: "node-index.js",
+        input: "index.js",
         output: [
             {
                 file: "dist/index.cjs",

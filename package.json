@@ -20,14 +20,14 @@
   ],
   "type": "module",
   "main": "dist/index.cjs",
-  "module": "node-index.js",
+  "module": "index.js",
   "exports": {
     ".": {
       "node": {
         "require": "./dist/index.cjs",
-        "import": "./node-index.js"
+        "import": "./index.js"
       },
-      "default": "./node-index.js"
+      "default": "./index.js"
     }
   },
   "files": [

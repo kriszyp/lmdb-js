@@ -3,7 +3,7 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
-      "enable_v8%": "false",
+      "enable_v8%": "true",
       "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
@@ -38,8 +38,7 @@
         "src/misc.cpp",
         "src/txn.cpp",
         "src/dbi.cpp",
-        "src/cursor.cpp",
-        "src/v8-functions.cpp"
+        "src/cursor.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",

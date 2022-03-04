@@ -24,6 +24,7 @@ if (process.versions.v8.includes('node')) {
 		nativeAddon.enableDirectV8(v8Funcs);
 	nativeAddon.getByBinary = v8Funcs.getByBinary
 	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects
+	nativeAddon.detachBuffer = v8Funcs.detachBuffer
 }
 setNativeFunctions(nativeAddon);
 setExternals({
