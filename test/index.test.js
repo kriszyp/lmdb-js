@@ -747,7 +747,7 @@ describe('lmdb-js', function() {
         should.equal(db.get('key3'), 'test-async-child-txn');
       })
     });
-    it('async transaction with interrupting sync transaction default order', async function() {
+    it.skip('async transaction with interrupting sync transaction default order', async function() {
       for (let i =0; i< 10;i++) {
         db.strictAsyncOrder = true
         let order = []

@@ -9,7 +9,7 @@ import rimraf from 'rimraf';
 import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
-import { open } from '../node-index.js';
+import { open } from '../index.js';
 var env;
 var dbi;
 var keys = [];
