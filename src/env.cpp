@@ -307,7 +307,6 @@ void EnvWrap::closeEnv() {
                 unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
                 mdb_env_get_flags(env, &envFlags);
                 if (envFlags & MDB_OVERLAPPINGSYNC) {
-                    fprintf(stderr,"final sync\n");
                     mdb_env_sync(env, 1);
                 }
 				mdb_env_close(env);

@@ -50,7 +50,7 @@ export function addReadMethods(LMDBStore, {
 					return null;
 				if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression && this.db.getSharedByBinary) {
 					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
-					if (this.lastShared) // we have to detach the last one, or else could crash due to two buffers pointing at same location
+					if (this.lastShared && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
 						detachBuffer(this.lastShared.buffer)
 					return this.lastShared = this.db.getSharedByBinary(this.writeKey(id, keyBytes, 0));
 				}

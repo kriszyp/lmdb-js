@@ -372,7 +372,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 								committedFlushResolvers = null
 								lastSync = new Promise((resolve) => {
 									env.sync(() => {
-										console.log('sync callback')
 										for (let i = 0; i < resolvers.length; i++)
 											resolvers[i]();
 										resolve();
