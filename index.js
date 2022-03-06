@@ -9,14 +9,15 @@ import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';
-import { isMainThread } from 'worker_threads';
+
 orderedBinary.enableNullTermination();
 
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 let nativeAddon = require('node-gyp-build')(dirName);
 
-if (process.versions.v8.includes('node')) {
+if (process.versions.v8.includes('node') && parseFloat(process.versions.v8) == parseFloat(nativeAddon.version.v8Major + '.' + nativeAddon.version.v8Minor)) {
+	console.log('v8 enabled')
 	let v8Funcs = {}
 	nativeAddon.enableDirectV8(v8Funcs);
 	Object.assign(nativeAddon, v8Funcs);
@@ -29,7 +30,6 @@ setExternals({
 			process.setMaxListeners(process.listenerCount('exit') + 8);
 		process.on('exit', callback);
 	},
-	isWorkerThread: !isMainThread,
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';

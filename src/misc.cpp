@@ -1,6 +1,7 @@
 #include "lmdb-js.h"
 #include <string.h>
 #include <stdio.h>
+#include <v8.h>
 
 using namespace Napi;
 
@@ -23,6 +24,9 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	versionObj.Set("major", Number::New(env, major));
 	versionObj.Set("minor", Number::New(env, minor));
 	versionObj.Set("patch", Number::New(env, patch));
+    versionObj.Set("v8Major", Number::New(env, V8_MAJOR_VERSION));
+    versionObj.Set("v8Minor", Number::New(env, V8_MINOR_VERSION));
+    
 	exports.Set("version", versionObj);
 	exports.Set("setGlobalBuffer", Function::New(env, setGlobalBuffer));
 	exports.Set("lmdbError", Function::New(env, lmdbError));
