@@ -2,6 +2,8 @@
 #include <v8.h>
 #include <string.h>
 #include <stdio.h>
+#include <node.h>
+
 #if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
 #if NODE_VERSION_AT_LEAST(17,0,0)
 #include "../dependencies/v8/v8-fast-api-calls.h"
