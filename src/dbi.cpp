@@ -190,7 +190,7 @@ NAPI_FUNCTION(getByBinary, 2)
 	GET_INT64_ARG(dw, 0);
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
-	RETURN_UINT32(dw->doGetByBinary(keySize));
+	RETURN_INT32(dw->doGetByBinary(keySize));
 }
 napi_finalize noop = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here

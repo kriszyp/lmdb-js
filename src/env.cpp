@@ -294,7 +294,6 @@ Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
-    fprintf(stderr,"closeEnv");
 	cleanupStrayTxns();
 	pthread_mutex_lock(envsLock);
 	for (auto envPath = envs.begin(); envPath != envs.end(); ) {
@@ -318,7 +317,6 @@ void EnvWrap::closeEnv() {
 		++envPath;
 	}
 	pthread_mutex_unlock(envsLock);
-fprintf(stderr,"closeEnv-done");
 	env = nullptr;
 }
 extern "C" EXTERN void closeEnv(double ewPointer) {
@@ -470,7 +468,6 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 		else if (this->writeWorker) {
 			// try to acquire the txn from the current batch
 			txn = this->writeWorker->AcquireTxn(&flags);
-			fprintf(stderr, "acquired %p %p %p\n", this->writeWorker, txn, flags);
 		} else {
 			pthread_mutex_lock(this->writingLock);
 			txn = nullptr;
