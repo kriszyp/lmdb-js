@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+#include "v8.h"
 using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
@@ -46,11 +47,11 @@ void EnvWrap::cleanupStrayTxns() {
 		mdb_txn_abort(this->currentWriteTxn->txn);
 		this->currentWriteTxn->removeFromEnvWrap();
 	}
-	while (this->workers.size()) {
+/*	while (this->workers.size()) { // enable this if we do need to do worker cleanup
 		AsyncWorker *worker = *this->workers.begin();
 		fprintf(stderr, "Deleting running worker\n");
 		delete worker;
-	}
+	}*/
 	while (this->readTxns.size()) {
 		TxnWrap *tw = *this->readTxns.begin();
 		mdb_txn_abort(tw->txn);
@@ -62,15 +63,19 @@ class SyncWorker : public AsyncWorker {
   public:
 	SyncWorker(EnvWrap* env, const Function& callback)
 	 : AsyncWorker(callback), env(env) {
-		env->workers.push_back(this);
+		//env->workers.push_back(this);
 	 }
-	~SyncWorker() {
+	/*~SyncWorker() {
 		for (auto workerRef = env->workers.begin(); workerRef != env->workers.end(); ) {
 			if (this == *workerRef) {
 				env->workers.erase(workerRef);
 			}
 		}
-	}
+	}*/
+    void OnOK() {
+        napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
+        napi_call_function(Env(), Env().Undefined(), Callback().Value(), 0, {}, &result);
+    }
 
 	void Execute() {
 		int rc = mdb_env_sync(env->env, 1);
@@ -136,7 +141,7 @@ void cleanup(void* data) {
 
 Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	int rc;
-
+ fprintf(stderr, "open %p\n", this);
 	// Get the wrapper
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
@@ -299,12 +304,14 @@ void EnvWrap::closeEnv() {
 	for (auto envPath = envs.begin(); envPath != envs.end(); ) {
 		if (envPath->env == env) {
 			envPath->count--;
-			unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
-			mdb_env_get_flags(env, &envFlags);
-			if (envFlags & MDB_OVERLAPPINGSYNC)
-				mdb_env_sync(env, 1);
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
+                unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
+                mdb_env_get_flags(env, &envFlags);
+                if (envFlags & MDB_OVERLAPPINGSYNC) {
+                    fprintf(stderr,"final sync\n");
+                    mdb_env_sync(env, 1);
+                }
 				mdb_env_close(env);
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(envPath->path);

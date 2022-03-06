@@ -366,11 +366,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							committedFlushResolvers = resolvers
 							let delay = Math.min(Date.now() - start, maxFlushDelay)
-							setTimeout(() => lastSync.then(() => {
+							setTimeout(() => 
+								lastSync.then(() => {
 								let resolvers = committedFlushResolvers
 								committedFlushResolvers = null
 								lastSync = new Promise((resolve) => {
 									env.sync(() => {
+										console.log('sync callback')
 										for (let i = 0; i < resolvers.length; i++)
 											resolvers[i]();
 										resolve();
