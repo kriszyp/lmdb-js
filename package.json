@@ -50,6 +50,7 @@
   "scripts": {
     "install": "node-gyp-build",
     "build": "node-gyp configure && node-gyp build && rollup -c",
+    "rebuild": "node-gyp build && rollup -c",
     "build-js": "rollup -c",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && prebuildify --napi --enable_v8=false",
