@@ -29,7 +29,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	//exports.Set("getBufferForAddress", Function::New(env, getBufferForAddress));
 	exports.Set("getAddress", Function::New(env, getViewAddress));
 	exports.Set("enableDirectV8", Function::New(env, enableDirectV8));
-	exports.Set("enableDirectV8Fast", Function::New(env, enableDirectV8Fast));
+	//exports.Set("enableDirectV8Fast", Function::New(env, enableDirectV8Fast));
 	napi_property_descriptor desc =  { "perfTest", 0, perfTest, 0, 0, 0, napi_default, 0 };
 	napi_define_properties(env, exports, 1, &desc);
 	// this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8

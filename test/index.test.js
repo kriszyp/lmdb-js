@@ -750,14 +750,17 @@ describe('lmdb-js', function() {
     it.skip('async transaction with interrupting sync transaction default order', async function() {
       for (let i =0; i< 10;i++) {
         db.strictAsyncOrder = true
+        await new Promise(r => setTimeout(r, 300))
         let order = []
         let ranSyncTxn
+        console.log('start')
         db.transactionAsync(() => {
           order.push('a1');
           db.put('async1', 'test');
           if (!ranSyncTxn) {
             ranSyncTxn = true;
             setImmediate(() => {
+              console.log('start txn')
               db.transactionSync(() => {
                 order.push('s1');
                 db.put('inside-sync', 'test');
@@ -767,9 +770,11 @@ describe('lmdb-js', function() {
         });
         db.put('outside-txn', 'test');
         await db.transactionAsync(() => {
+          console.log('run second')
           order.push('a2');
           db.put('async2', 'test');
         });
+        console.log('start')
         order.should.deep.equal(['a1', 's1', 'a2']);
         should.equal(db.get('async1'), 'test');
         should.equal(db.get('outside-txn'), 'test');

@@ -19,10 +19,10 @@ int32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_
 
 //class NanWrap : public Nan::ObjectWrap {};
 void getByBinaryV8(
-  const FunctionCallbackInfo<v8::Value>& info) {
-	 Isolate* isolate = Isolate::GetCurrent();
+	const FunctionCallbackInfo<v8::Value>& info) {
+	Isolate* isolate = Isolate::GetCurrent();
 	/*Local<v8::Object> instance =
-	  Local<v8::Object>::Cast(info.This());
+		Local<v8::Object>::Cast(info.This());
 	DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
 	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
@@ -90,16 +90,16 @@ void detachBuffer(const FunctionCallbackInfo<v8::Value>& info) {
 
 #define EXPORT_FAST(exportName, slowName, fastName) {\
 	auto fast = CFunction::Make(fastName);\
-	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName).ToLocalChecked(), FunctionTemplate::New(\
-		  isolate, slowName, Local<v8::Value>(),\
-		  Local<Signature>(), 0, ConstructorBehavior::kThrow,\
-		  SideEffectType::kHasNoSideEffect, &fast)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());\
+	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName, NewStringType::kInternalized).ToLocalChecked(), FunctionTemplate::New(\
+			isolate, slowName, Local<v8::Value>(),\
+			Local<Signature>(), 0, ConstructorBehavior::kThrow,\
+			SideEffectType::kHasNoSideEffect, &fast)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());\
 }
 #define EXPORT_FUNCTION(exportName, funcName) \
-	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName).ToLocalChecked(), FunctionTemplate::New(\
-		  isolate, funcName, Local<v8::Value>(),\
-		  Local<Signature>(), 0, ConstructorBehavior::kThrow,\
-		  SideEffectType::kHasNoSideEffect)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
+	exports->Set(isolate->GetCurrentContext(), v8::String::NewFromUtf8(isolate, exportName, NewStringType::kInternalized).ToLocalChecked(), FunctionTemplate::New(\
+			isolate, funcName, Local<v8::Value>(),\
+			Local<Signature>(), 0, ConstructorBehavior::kThrow,\
+			SideEffectType::kHasNoSideEffect)->GetFunction(isolate->GetCurrentContext()).ToLocalChecked());
 
 Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	#if ENABLE_V8_API
@@ -108,20 +108,11 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	bool result;
 	Local<v8::Object> exports;
 	memcpy(&exports, &exportsValue, sizeof(exportsValue));
-	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
-	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
-	EXPORT_FUNCTION("detachBuffer", detachBuffer);
-	#endif
-	return info.Env().Undefined();
-}
-Napi::Value enableDirectV8Fast(const Napi::CallbackInfo& info) {
-	#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
-	Isolate* isolate = Isolate::GetCurrent();
-	napi_value exportsValue = info[0];
-	bool result;
-	Local<v8::Object> exports;
-	memcpy(&exports, &exportsValue, sizeof(exportsValue));
+	#if ENABLE_FAST_API_CALLS && NODE_VERSION_AT_LEAST(16,6,0)
 	EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
+	#else
+	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
+	#endif
 	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
 	EXPORT_FUNCTION("detachBuffer", detachBuffer);
 	#endif

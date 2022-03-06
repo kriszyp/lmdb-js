@@ -4,6 +4,7 @@
       "use_robust%": "false",
       "use_data_v1%": "false",
       "enable_v8%": "true",
+      "enable_fast_api_calls%": "true",
       "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
@@ -96,6 +97,9 @@
         }],
         ["enable_v8=='true'", {
           "defines": ["ENABLE_V8_API=1"],
+        }],
+        ["enable_fast_api_calls=='true'", {
+          "defines": ["ENABLE_FAST_API_CALLS=1"],
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_USE_ROBUST"],

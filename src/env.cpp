@@ -2,8 +2,6 @@
 using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
-//thread_local Nan::Persistent<Function>* EnvWrap::txnCtor;
-//thread_local Nan::Persistent<Function>* EnvWrap::dbiCtor;
 
 pthread_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
 std::vector<env_path_t> EnvWrap::envs;
@@ -38,8 +36,6 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 EnvWrap::~EnvWrap() {
 	// Close if not closed already
 	closeEnv();
-	if (this->compression)
-		this->compression->Unref();
 	pthread_mutex_destroy(this->writingLock);
 	pthread_cond_destroy(this->writingCond);
 	
@@ -154,7 +150,6 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (compressionOption.IsObject()) {
 		napi_unwrap(info.Env(), compressionOption, (void**)&compression);
 		this->compression = compression;
-		this->compression->Ref();
 	}
 	void* keyBuffer;
 	Napi::Value keyBytesValue = options.Get("keyBytes");
@@ -299,6 +294,7 @@ Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
+    fprintf(stderr,"closeEnv");
 	cleanupStrayTxns();
 	pthread_mutex_lock(envsLock);
 	for (auto envPath = envs.begin(); envPath != envs.end(); ) {
@@ -322,7 +318,7 @@ void EnvWrap::closeEnv() {
 		++envPath;
 	}
 	pthread_mutex_unlock(envsLock);
-
+fprintf(stderr,"closeEnv-done");
 	env = nullptr;
 }
 extern "C" EXTERN void closeEnv(double ewPointer) {
@@ -474,7 +470,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 		else if (this->writeWorker) {
 			// try to acquire the txn from the current batch
 			txn = this->writeWorker->AcquireTxn(&flags);
-			//fprintf(stderr, "acquired %p %p %p\n", this->writeWorker, txn, flags);
+			fprintf(stderr, "acquired %p %p %p\n", this->writeWorker, txn, flags);
 		} else {
 			pthread_mutex_lock(this->writingLock);
 			txn = nullptr;
@@ -666,7 +662,7 @@ extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyB
 		maxDbs, maxReaders, (mdb_size_t) mapSize, pageSize, encryptionKey);
 	if (rc)
 		return rc;
-	return (ssize_t) ew;
+	return (int64_t) ew;
 }
 
 extern "C" EXTERN uint32_t getMaxKeySize(double ew) {

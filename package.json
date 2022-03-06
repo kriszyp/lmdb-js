@@ -52,7 +52,7 @@
     "build": "node-gyp configure && node-gyp build && rollup -c",
     "build-js": "rollup -c",
     "prepare": "rollup -c",
-    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --napi",
+    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --napi --enable_v8=false",
     "before-publish-with-fast": "rollup -c && prebuildify-ci download && prebuildify --napi && set ENABLE_FAST_API_CALLS=true&& prebuildify --target 16.13.0",
     "prebuild-libc": "prebuildify --napi --tag-libc",
     "prebuildify": "prebuildify",

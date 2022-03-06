@@ -26,15 +26,9 @@
 
 #include <vector>
 #include <algorithm>
-#ifndef NAPI_VERSION
-#define NAPI_VERSION 4
-#endif
 #include <napi.h>
 #include <node_api.h>
 
-#include <node.h>
-#include <node_buffer.h>
-#include <nan.h>
 #include "lmdb.h"
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
@@ -155,7 +149,6 @@ Value getViewAddress(const CallbackInfo& info);
 Value getAddress(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
 Value enableDirectV8(const CallbackInfo& info);
-Value enableDirectV8Fast(const CallbackInfo& info);
 
 #ifndef thread_local
 #ifdef __GNUC__
@@ -176,7 +169,7 @@ Value valToStringUnsafe(MDB_val &data);
 Value valToBinary(MDB_val &data);
 Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env);
 
-int putWithVersion(MDB_txn *   txn,
+int putWithVersion(MDB_txn* txn,
 		MDB_dbi	 dbi,
 		MDB_val *   key,
 		MDB_val *   data,

@@ -72,7 +72,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var unwrittenResolution = nextResolution;
 	let needToRegisterOnExit = overlappingSync;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
-		if (needToRegisterOnExit) {
+/*		if (needToRegisterOnExit) {
 			needToRegisterOnExit = false;
 			if (onExit) {
 				onExit(() => {
@@ -80,7 +80,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						env.sync();
 				})
 			}
-		}
+		}*/
 		let writeStatus;
 		let targetBytes, position, encoder;
 		let valueBuffer, valueSize, valueBufferStart;

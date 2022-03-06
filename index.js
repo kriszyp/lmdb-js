@@ -18,13 +18,8 @@ let nativeAddon = require('node-gyp-build')(dirName);
 
 if (process.versions.v8.includes('node')) {
 	let v8Funcs = {}
-	if (process.version.startsWith('v16.') && process.version.slice(4) > 6)
-		nativeAddon.enableDirectV8Fast(v8Funcs);
-	else
-		nativeAddon.enableDirectV8(v8Funcs);
-	nativeAddon.getByBinary = v8Funcs.getByBinary
-	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects
-	nativeAddon.detachBuffer = v8Funcs.detachBuffer
+	nativeAddon.enableDirectV8(v8Funcs);
+	Object.assign(nativeAddon, v8Funcs);
 }
 setNativeFunctions(nativeAddon);
 setExternals({

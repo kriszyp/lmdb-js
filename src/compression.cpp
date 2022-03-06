@@ -67,8 +67,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 	}
 	else {
 		fprintf(stderr, "Unknown status byte %u\n", charData[0]);
-		if (canAllocate)
-			Nan::ThrowError("Unknown status byte");
+		//if (canAllocate)
+		//	Nan::ThrowError("Unknown status byte");
 		isValid = false;
 		return;
 	}
@@ -90,8 +90,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		for (uint32_t i = 0; i < compressedLength; i++) {
 			fprintf(stderr, "%u ", charData[i]);
 		}
-		if (canAllocate)
-			Nan::ThrowError("Failed to decompress data");
+		//if (canAllocate)
+		//	Nan::ThrowError("Failed to decompress data");
 		isValid = false;
 		return;
 	}
