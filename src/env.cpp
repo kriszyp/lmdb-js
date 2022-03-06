@@ -1,5 +1,4 @@
 #include "lmdb-js.h"
-#include "v8.h"
 using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
@@ -141,7 +140,6 @@ void cleanup(void* data) {
 
 Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	int rc;
- fprintf(stderr, "open %p\n", this);
 	// Get the wrapper
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
