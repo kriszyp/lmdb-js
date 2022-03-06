@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+#include <arpa/inet.h>
 
 #ifdef _WIN32
 #define ntohl _byteswap_ulong
