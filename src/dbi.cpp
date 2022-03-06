@@ -167,6 +167,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 
 	int result = mdb_get(txn, dbi, &key, &data);
 	if (result) {
+        if (result > 0)
+            return -result;
 		return result;
 	}
 	result = getVersionAndUncompress(data, this);
