@@ -48,7 +48,7 @@ jobs:
       #- run: npm run prebuildify
       #  env:
       #    ENABLE_FAST_API_CALLS: true
-      #- run: npm test
+      - run: npm test
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')
@@ -87,7 +87,7 @@ jobs:
         env:
           PREBUILD_LIBC: musl
       - run: npm run build
-      #- run: npm test
+      - run: npm test
       - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')

@@ -528,7 +528,6 @@ public:
 	Napi::Value ctor(const CallbackInfo& info);
 	Napi::Value setBuffer(const CallbackInfo& info);
 	Compression(const CallbackInfo& info);
-	~Compression();
 	friend class EnvWrap;
 	friend class DbiWrap;
 	//NAN_METHOD(Compression::startCompressing);
