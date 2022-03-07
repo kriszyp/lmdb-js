@@ -185,7 +185,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	return 0;*/
 }
 
-NAPI_FUNCTION(getByBinary, 2)
+NAPI_FUNCTION(getByBinary) {
+	ARGS(2)
 	DbiWrap* dw;
 	GET_INT64_ARG(dw, 0);
 	uint32_t keySize;
