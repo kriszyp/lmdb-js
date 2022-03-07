@@ -9,6 +9,7 @@ import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';
+export let v8AccelerationEnabled = false;
 
 orderedBinary.enableNullTermination();
 
@@ -20,6 +21,7 @@ if (process.versions.v8.includes('node') && parseFloat(process.versions.v8) == p
 	let v8Funcs = {}
 	nativeAddon.enableDirectV8(v8Funcs);
 	Object.assign(nativeAddon, v8Funcs);
+	v8AccelerationEnabled = true;
 }
 setNativeFunctions(nativeAddon);
 setExternals({
