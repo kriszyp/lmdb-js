@@ -304,11 +304,12 @@ class PrefetchWorker : public AsyncWorker {
 	uint32_t* keys;
 };
 
-Value DbiWrap::prefetch(const Napi::CallbackInfo& info) {
-	size_t keysAddress = info[0].As<Number>().Int64Value();
-	PrefetchWorker* worker = new PrefetchWorker(this, (uint32_t*) keysAddress, info[1].As<Function>());
+NAPI_FUNCTION(prefetch) {
+	ARGS(2)
+	uint32_t* keys;
+	GET_INT64_ARG(keys, 0);
+	PrefetchWorker* worker = new PrefetchWorker(this, keys, Function(env, args[1]));
 	worker->Queue();
-	return info.Env().Undefined();
 }
 
 void DbiWrap::setupExports(Napi::Env env, Object exports) {
@@ -324,6 +325,7 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 	});
 	exports.Set("Dbi", DbiClass);
 	EXPORT_NAPI_FUNCTION("getByBinary", getByBinary);
+	EXPORT_NAPI_FUNCTION("prefetch", prefetch);
 	// TODO: wrap mdb_stat too
 }
 
