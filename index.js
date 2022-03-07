@@ -17,9 +17,12 @@ let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 let nativeAddon = require('node-gyp-build')(dirName);
 
-if (process.versions.v8.includes('node') && parseFloat(process.versions.v8) == parseFloat(nativeAddon.version.v8Major + '.' + nativeAddon.version.v8Minor)) {
-	let v8Funcs = {}
-	nativeAddon.enableDirectV8(v8Funcs);
+if (process.versions.v8.includes('node') && +process.versions.node.split('.')[0] == nativeAddon.version.nodeCompiledVersion) {
+	let v8Funcs = {};
+	let fastApiCalls = parseFloat(process.versions.node) >= 16.6;
+	if (fastApiCalls)
+		v8.setFlagsFromStrings('--turbo-fast-api-calls')
+	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
 	Object.assign(nativeAddon, v8Funcs);
 	v8AccelerationEnabled = true;
 }

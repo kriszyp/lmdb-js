@@ -1,7 +1,7 @@
 #include "lmdb-js.h"
 #include <string.h>
 #include <stdio.h>
-#include <v8.h>
+#include <node_version.h>
 
 using namespace Napi;
 
@@ -25,8 +25,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	versionObj.Set("minor", Number::New(env, minor));
 	versionObj.Set("patch", Number::New(env, patch));
 	#if ENABLE_V8_API
-   versionObj.Set("v8Major", Number::New(env, V8_MAJOR_VERSION));
-   versionObj.Set("v8Minor", Number::New(env, V8_MINOR_VERSION));
+   versionObj.Set("nodeCompiledVersion", Number::New(env, NODE_MAJOR_VERSION));
 	#endif
 
 	exports.Set("version", versionObj);

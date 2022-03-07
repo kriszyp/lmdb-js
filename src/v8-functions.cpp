@@ -110,10 +110,16 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	bool result;
 	Local<v8::Object> exports;
 	memcpy(&exports, &exportsValue, sizeof(exportsValue));
-	#if ENABLE_FAST_API_CALLS && NODE_VERSION_AT_LEAST(16,6,0)
-	EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
-	#else
+	#if NODE_VERSION_AT_LEAST(16,6,1)
+	bool useFastApi;
+	napi_get_value_bool(info.Env(), info[1], &useFastApi);
+	if (useFastApi) {
+		EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
+	} else {
+	#endif
 	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
+	#if NODE_VERSION_AT_LEAST(16,6,1)
+	}
 	#endif
 	EXPORT_FUNCTION("clearKeptObjects", clearKeptObjects);
 	EXPORT_FUNCTION("detachBuffer", detachBuffer);
