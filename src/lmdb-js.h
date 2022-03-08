@@ -61,7 +61,7 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 
 #endif
 
-#define NAPI_FUNCTION(name, count) napi_value name(napi_env env, napi_callback_info info)
+#define NAPI_FUNCTION(name) napi_value name(napi_env env, napi_callback_info info)
 #define ARGS(count) napi_value returnValue;\
 	size_t argc = count;\
 	napi_value args[count];\
