@@ -14,7 +14,7 @@
 
 using namespace v8;
 #if ENABLE_V8_API
-int32_t getByBinaryFast(Local<v8::Object> receiver_obj,double dwPointer, uint32_t keySize) {
+int32_t getByBinaryFast(Local<v8::Object> receiver_obj, double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
 }

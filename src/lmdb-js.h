@@ -502,7 +502,6 @@ public:
 	Napi::Value drop(const CallbackInfo& info);
 
 	Napi::Value stat(const CallbackInfo& info);
-	Napi::Value prefetch(const CallbackInfo& info);
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 	int32_t doGetByBinary(uint32_t keySize);

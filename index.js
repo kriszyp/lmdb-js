@@ -1,7 +1,3 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-import { fileURLToPath } from 'url';
-import { dirname, default as path } from 'path';
 import EventEmitter from 'events';
 import { setExternals, setNativeFunctions, Dbi } from './external.js';
 import { arch, tmpdir, platform } from 'os';
@@ -9,26 +5,10 @@ import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';
-export let v8AccelerationEnabled = false;
 
 orderedBinary.enableNullTermination();
-
-let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
-
-let nativeAddon = require('node-gyp-build')(dirName);
-
-if (process.versions.v8.includes('node') && +process.versions.node.split('.')[0] == nativeAddon.version.nodeCompiledVersion) {
-	let v8Funcs = {};
-	let fastApiCalls = parseFloat(process.versions.node) >= 16.6;
-	if (fastApiCalls)
-		v8.setFlagsFromStrings('--turbo-fast-api-calls')
-	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
-	Object.assign(nativeAddon, v8Funcs);
-	v8AccelerationEnabled = true;
-}
-setNativeFunctions(nativeAddon);
 setExternals({
-	require, arch, fs, tmpdir, path, MsgpackrEncoder, WeakLRUCache, orderedBinary,
+	arch, fs, tmpdir, MsgpackrEncoder, WeakLRUCache, orderedBinary,
 	EventEmitter, os: platform(), onExit(callback) {
 		if (process.getMaxListeners() < process.listenerCount('exit') + 8)
 			process.setMaxListeners(process.listenerCount('exit') + 8);
@@ -38,10 +18,10 @@ setExternals({
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
-export { clearKeptObjects } from './external.js';
+export { clearKeptObjects, v8AccelerationEnabled } from './external.js';
 export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, getLastVersion } from './open.js';
 export default {
-	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, path, EventEmitter
+	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, EventEmitter
 };

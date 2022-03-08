@@ -1,6 +1,7 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, setGlobalBuffer, orderedBinary, lmdbError, getByBinary, detachBuffer }  from './external.js';
+import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
 import { saveKey }  from './keys.js';
+const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
@@ -468,7 +469,7 @@ export function addReadMethods(LMDBStore, {
 				}
 			}
 			saveKey(undefined, this.writeKey, bufferHolder, maxKeySize);
-			this.db.prefetch(startPosition, (error) => {
+			prefetch(this.dbAddress, startPosition, (error) => {
 				if (error)
 					console.error('Error with prefetch', buffers, bufferHolder); // partly exists to keep the buffers pinned in memory
 				else
