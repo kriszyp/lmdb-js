@@ -401,12 +401,13 @@ extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddre
 	return 0;
 }
 
-NAPI_FUNCTION(write) {
+NAPI_FUNCTION(EnvWrap::write) {
 	ARGS(2)
 	EnvWrap* ew;
 	GET_INT64_ARG(ew, 0);
 	if (!ew->env) {
-		return throwError(info.Env(), "The environment is already closed.");
+		napi_throw_error(env, nullptr, "The environment is already closed.");
+		RETURN_UNDEFINED;
 	}
 	uint32_t* instructionAddress;
 	GET_INT64_ARG(instructionAddress, 1);
@@ -416,9 +417,11 @@ NAPI_FUNCTION(write) {
 	else if (ew->writeWorker) {
 		pthread_cond_signal(ew->writingCond);
 	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return throwLmdbError(info.Env(), rc);
-	RETURN_UNDEFINED();
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
+		throwLmdbError(env, rc);
+		RETURN_UNDEFINED;
+	}
+	RETURN_UNDEFINED;
 }
 
 extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {

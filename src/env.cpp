@@ -645,10 +645,10 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("readerCheck", &EnvWrap::readerCheck),
 		EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
 		EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
-		EnvWrap::InstanceMethod("write", &EnvWrap::write),
 		//EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
+	EXPORT_NAPI_FUNCTION("write", write);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);
 }

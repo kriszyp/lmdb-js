@@ -1,5 +1,6 @@
-import { getAddress, onExit } from './external.js';
+import { getAddress, onExit, native } from './external.js';
 import { when } from './util/when.js';
+const { write } = native;
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;
@@ -214,7 +215,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		targetBytes.position = position;
 		if (writeTxn) {
 			uint32[0] = flags;
-			env.write(uint32.address);
+			write(env.address, uint32.address);
 			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS;
 		}
 		// if we ever use buffers that haven't been zero'ed, need to clear out the next slot like this:
@@ -285,7 +286,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (!flushPromise && overlappingSync)
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve));
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
-				env.write(0);
+				write(env.address, 0);
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD && !writeBatchStart) {
 				if (!backpressureArray)
@@ -552,7 +553,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2); // atomically write the end block
 		nextResolution.flagPosition += 2;
 		if (writeStatus & WAITING_OPERATION) {
-			env.write(0);
+			write(env.address, 0);
 		}
 	}
 	function clearWriteTxn(parentTxn) {

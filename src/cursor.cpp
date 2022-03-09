@@ -277,7 +277,7 @@ NAPI_FUNCTION(renew) {
 	CursorWrap* cw;
 	GET_INT64_ARG(cw, 0);
 	mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
-	RETURN_UNDEFINED();
+	RETURN_UNDEFINED;
 }
 
 extern "C" EXTERN int cursorRenew(double cwPointer) {

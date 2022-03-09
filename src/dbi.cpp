@@ -312,7 +312,7 @@ NAPI_FUNCTION(prefetchNapi) {
 	GET_INT64_ARG(keys, 1);
 	PrefetchWorker* worker = new PrefetchWorker(dw, keys, Function(env, args[2]));
 	worker->Queue();
-	RETURN_UNDEFINED();
+	RETURN_UNDEFINED;
 }
 
 void DbiWrap::setupExports(Napi::Env env, Object exports) {
