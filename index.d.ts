@@ -130,25 +130,25 @@ declare namespace lmdb {
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getKeys(options: RangeOptions): ArrayLikeIterable<K>
+		getKeys(options?: RangeOptions): ArrayLikeIterable<K>
 		/**
 		* Get the count of all the unique keys for the given range
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getKeysCount(options: RangeOptions): number
+		getKeysCount(options?: RangeOptions): number
 		/**
 		* Get all the entries for the given range
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getRange(options: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
+		getRange(options?: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
 		/**
 		* Get the count of all the entries for the given range
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getCount(options: RangeOptions): number
+		getCount(options?: RangeOptions): number
 		/**
 		 * @deprecated since version 2.0, use transaction() instead
 		 */
