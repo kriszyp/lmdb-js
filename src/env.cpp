@@ -29,6 +29,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->readTxnRenewed = false;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
+	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 	pthread_mutex_init(this->writingLock, nullptr);
 	pthread_cond_init(this->writingCond, nullptr);
 }

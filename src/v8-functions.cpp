@@ -14,42 +14,54 @@
 
 using namespace v8;
 #if ENABLE_V8_API
-int32_t getByBinaryFast(Local<v8::Object> receiver_obj, double dwPointer, uint32_t keySize) {
+int32_t getByBinaryFast(Local<v8::Object> instance, double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);
 }
 
 //class NanWrap : public Nan::ObjectWrap {};
-void getByBinaryV8(
-	const FunctionCallbackInfo<v8::Value>& info) {
+void getByBinaryV8(const FunctionCallbackInfo<v8::Value>& info) {
 	Isolate* isolate = Isolate::GetCurrent();
-	/*Local<v8::Object> instance =
-		Local<v8::Object>::Cast(info.This());
-	DbiWrap* dw = (DbiWrap*) Nan::ObjectWrap::Unwrap<NanWrap>(instance);
-	 */
 	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
-	return info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust())));
+	info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust())));
 }
-int32_t positionFast(Local<v8::Object> receiver_obj, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
-	CursorWrap* cw = static_cast<CursorWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
+int32_t positionFast(Local<v8::Object> instance, double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
+	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
 	DbiWrap* dw = cw->dw;
 	dw->getFast = true;
 	cw->flags = flags;
 	return cw->doPosition(offset, keySize, endKeyAddress);
 }
-int32_t iterateFast(Local<v8::Object> receiver_obj) {
-	CursorWrap* cw = static_cast<CursorWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
+void positionV8(const FunctionCallbackInfo<v8::Value>& info) {
+	Isolate* isolate = Isolate::GetCurrent();
+	CursorWrap* cw = (CursorWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
+	cw->flags = info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust();
+	uint32_t offset = info[2]->Uint32Value(isolate->GetCurrentContext()).FromJust();
+	uint32_t keySize = info[3]->Uint32Value(isolate->GetCurrentContext()).FromJust();
+	uint64_t endKeyAddress = info[4]->IntegerValue(isolate->GetCurrentContext()).FromJust();
+	info.GetReturnValue().Set(v8::Number::New(isolate, cw->doPosition(offset, keySize, endKeyAddress)));
+}
+
+int32_t iterateFast(Local<v8::Object> instance, double cwPointer) {
+	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
 	DbiWrap* dw = cw->dw;
 	dw->getFast = true;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	return cw->returnEntry(rc, key, data);
 }
-int32_t writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress) {
-	EnvWrap* ew = static_cast<EnvWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
+void iterateV8(const FunctionCallbackInfo<v8::Value>& info) {
+	Isolate* isolate = Isolate::GetCurrent();
+	CursorWrap* cw = (CursorWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
+	DbiWrap* dw = cw->dw;
+	dw->getFast = true;
+	MDB_val key, data;
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+	info.GetReturnValue().Set(v8::Number::New(isolate, cw->returnEntry(rc, key, data)));
+}
+
+int32_t writeFast(Local<v8::Object> instance, double ewPointer, uint64_t instructionAddress) {
+	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
 	int rc;
 	if (instructionAddress)
 		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
@@ -61,10 +73,10 @@ int32_t writeFast(Local<v8::Object> receiver_obj, uint64_t instructionAddress) {
 //	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 	//	options.fallback = true;
 }
-void write(
-	const v8::FunctionCallbackInfo<v8::Value>& info) {
-	EnvWrap* ew;
-	uint64_t instructionAddress;
+void writeV8(const v8::FunctionCallbackInfo<v8::Value>& info) {
+	Isolate* isolate = Isolate::GetCurrent();
+	EnvWrap* ew = (EnvWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
+	uint64_t instructionAddress = info[1]->IntegerValue(isolate->GetCurrentContext()).FromJust();
 	int rc;
 	if (instructionAddress)
 		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
@@ -72,6 +84,7 @@ void write(
 		pthread_cond_signal(ew->writingCond);
 		rc = 0;
 	}
+	info.GetReturnValue().Set(v8::Number::New(isolate, rc));
 }
 
 
@@ -107,7 +120,6 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	#if ENABLE_V8_API
 	Isolate* isolate = Isolate::GetCurrent();
 	napi_value exportsValue = info[0];
-	bool result;
 	Local<v8::Object> exports;
 	memcpy(&exports, &exportsValue, sizeof(exportsValue));
 	#if NODE_VERSION_AT_LEAST(16,6,1)
@@ -115,9 +127,15 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	napi_get_value_bool(info.Env(), info[1], &useFastApi);
 	if (useFastApi) {
 		EXPORT_FAST("getByBinary", getByBinaryV8, getByBinaryFast);
+		EXPORT_FAST("position", positionV8, positionFast);
+		EXPORT_FAST("iterate", iterateV8, iterateFast);
+		EXPORT_FAST("write", writeV8, writeFast);
 	} else {
 	#endif
 	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
+	EXPORT_FUNCTION("position", positionV8);
+	EXPORT_FUNCTION("iterate", iterateV8);
+	EXPORT_FUNCTION("write", writeV8);
 	#if NODE_VERSION_AT_LEAST(16,6,1)
 	}
 	#endif

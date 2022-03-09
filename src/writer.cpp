@@ -401,22 +401,24 @@ extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddre
 	return 0;
 }
 
-
-Napi::Value EnvWrap::write(const CallbackInfo& info) {
-	//fprintf(stderr,"Doing sync write\n");
-	if (!this->env) {
+NAPI_FUNCTION(write) {
+	ARGS(2)
+	EnvWrap* ew;
+	GET_INT64_ARG(ew, 0);
+	if (!ew->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-	size_t instructionAddress = info[0].As<Number>().Int64Value();
+	uint32_t* instructionAddress;
+	GET_INT64_ARG(instructionAddress, 1);
 	int rc = 0;
 	if (instructionAddress)
-		rc = WriteWorker::DoWrites(this->writeTxn->txn, this, (uint32_t*)instructionAddress, nullptr);
-	else if (this->writeWorker) {
-		pthread_cond_signal(this->writingCond);
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, instructionAddress, nullptr);
+	else if (ew->writeWorker) {
+		pthread_cond_signal(ew->writingCond);
 	}
 	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
 		return throwLmdbError(info.Env(), rc);
-	return info.Env().Undefined();
+	RETURN_UNDEFINED();
 }
 
 extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {

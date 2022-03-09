@@ -1,7 +1,7 @@
 import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
 import { saveKey }  from './keys.js';
-const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch } = native;
+const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, renew, getCurrentValue } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
@@ -29,7 +29,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
+			let rc = this.lastSize = getByBinary.call(this, this.dbAddress, this.writeKey(id, keyBytes, 0));
 			if (rc < 0) {
 				if (rc == -30798) // MDB_NOTFOUND
 					return; // undefined
@@ -58,7 +58,7 @@ export function addReadMethods(LMDBStore, {
 				// grow our shared/static buffer to accomodate the size of the data
 				bytes = this._allocateGetBuffer(this.lastSize);
 				// and try again
-				this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
+				this.lastSize = getByBinary.call(this, this.dbAddress, this.writeKey(id, keyBytes, 0));
 			}
 			bytes.length = this.lastSize;
 			return bytes;
@@ -235,7 +235,7 @@ export function addReadMethods(LMDBStore, {
 				let currentKey = valuesForKey ? options.key : options.start;
 				const reverse = options.reverse;
 				let count = 0;
-				let cursor, cursorRenewId;
+				let cursor, cursorRenewId, cursorAddress;
 				let txn;
 				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
 					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0);
@@ -255,6 +255,7 @@ export function addReadMethods(LMDBStore, {
 						} else {
 							cursor = new Cursor(db);
 						}
+						cursorAddress = cursor.address;
 						txn.cursorCount = (txn.cursorCount || 0) + 1; // track transaction so we always use the same one
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
@@ -303,7 +304,7 @@ export function addReadMethods(LMDBStore, {
 						}
 					} else
 						endAddress = saveKey(options.end, store.writeKey, iterable, maxKeySize);
-					return cursor.position(flags, offset || 0, keySize, endAddress);
+					return doPosition(cursorAddress, flags, offset || 0, keySize, endAddress);
 				}
 
 				function finishCursor() {
@@ -334,7 +335,7 @@ export function addReadMethods(LMDBStore, {
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
 							keySize = position(options.offset);
 						} else
-							keySize = cursor.iterate();
+							keySize = iterate(cursorAddress);
 						if (keySize <= 0 ||
 								(count++ >= limit)) {
 							if (count < 0)
@@ -356,7 +357,7 @@ export function addReadMethods(LMDBStore, {
 							let bytes = compression ? compression.getValueBytes : getValueBytes;
 							if (lastSize > bytes.maxLength) {
 								bytes = store._allocateGetBuffer(lastSize);
-								let rc = cursor.getCurrentValue();
+								let rc = getCurrentValue(cursorAddress);
 								if (rc < 0)
 									lmdbError(count);
 							}

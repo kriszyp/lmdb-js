@@ -23,7 +23,7 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 		throwLmdbError(info.Env(), rc);
 		return;
 	}
-
+	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 	this->cursor = cursor;
 	this->dw = dw;
 	this->txn = txn;
@@ -221,49 +221,65 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 	// TODO: Handle count?
 	return returnEntry(rc, key, data);
 }
-Napi::Value CursorWrap::position(const CallbackInfo& info) {
-	this->flags = info[0].As<Number>();
-	uint32_t offset = info[1].As<Number>();
-	uint32_t keySize = info[2].As<Number>();
-	int64_t endKeyAddress = info[3].As<Number>().Int64Value();
-	int32_t result = this->doPosition(offset, keySize, endKeyAddress);
-	return Number::New(info.Env(), result);
+NAPI_FUNCTION(position) {
+	ARGS(5)
+	CursorWrap* cw;
+	GET_INT64_ARG(cw, 0);
+	GET_UINT32_ARG(cw->flags, 1);
+	uint32_t offset;
+	GET_UINT32_ARG(offset, 2);
+	uint32_t keySize;
+	GET_UINT32_ARG(keySize, 3);
+	int64_t endKeyAddress;
+	GET_INT64_ARG(endKeyAddress, 4);
+	int32_t result = cw->doPosition(offset, keySize, endKeyAddress);
+	RETURN_INT32(result);
 }
+
 extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, double endKeyAddress) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
 	cw->flags = flags;
 	return cw->doPosition(offset, keySize, (uint64_t) endKeyAddress);
 }
-
-Napi::Value CursorWrap::iterate(const CallbackInfo& info) {
+NAPI_FUNCTION(iterate) {
+	ARGS(1)
+	CursorWrap* cw;
+	GET_INT64_ARG(cw, 0);
 	MDB_val key, data;
-	int rc = mdb_cursor_get(this->cursor, &key, &data, this->iteratingOp);
-	return Number::New(info.Env(), this->returnEntry(rc, key, data));
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
+
 extern "C" EXTERN int cursorIterate(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	return cw->returnEntry(rc, key, data);
 }
-Value CursorWrap::getCurrentValue(const CallbackInfo& info) {
+
+NAPI_FUNCTION(getCurrentValue) {
+	ARGS(1)
+	CursorWrap* cw;
+	GET_INT64_ARG(cw, 0);
 	MDB_val key, data;
-	int rc = mdb_cursor_get(this->cursor, &key, &data, MDB_GET_CURRENT);
-	return Number::New(info.Env(), this->returnEntry(rc, key, data));
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
+	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
+
 extern "C" EXTERN int cursorCurrentValue(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
 	return cw->returnEntry(rc, key, data);
 }
-Napi::Value CursorWrap::renew(const CallbackInfo& info) {
-	int rc = mdb_cursor_renew(this->txn = this->dw->ew->getReadTxn(), this->cursor);
-	if (rc != 0) {
-		return throwLmdbError(info.Env(), rc);
-	}
-	return info.Env().Undefined();
+NAPI_FUNCTION(renew) {
+	ARGS(1)
+	CursorWrap* cw;
+	GET_INT64_ARG(cw, 0);
+	mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
+	RETURN_UNDEFINED();
 }
+
 extern "C" EXTERN int cursorRenew(double cwPointer) {
 	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
 	return mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
@@ -274,11 +290,11 @@ void CursorWrap::setupExports(Napi::Env env, Object exports) {
 	// CursorWrap: Add functions to the prototype
 		CursorWrap::InstanceMethod("close", &CursorWrap::close),
 		CursorWrap::InstanceMethod("del", &CursorWrap::del),
-		CursorWrap::InstanceMethod("getCurrentValue", &CursorWrap::getCurrentValue),
-		CursorWrap::InstanceMethod("renew", &CursorWrap::renew),
-		CursorWrap::InstanceMethod("position", &CursorWrap::position),
-		CursorWrap::InstanceMethod("iterate", &CursorWrap::iterate),
 	});
+	EXPORT_NAPI_FUNCTION("position", position);
+	EXPORT_NAPI_FUNCTION("iterate", iterate);
+	EXPORT_NAPI_FUNCTION("getCurrentValue", getCurrentValue);
+	EXPORT_NAPI_FUNCTION("renew", renew);
 	exports.Set("Cursor", CursorClass);
 
 //	cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
