@@ -154,7 +154,7 @@ export function open(path, options) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
 						this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
-					});
+					}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
 				} else {
 					return; // return undefined to indicate it could not be found
 				}

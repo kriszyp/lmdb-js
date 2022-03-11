@@ -365,18 +365,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							committedFlushResolvers.push(...resolvers)
 						else {
 							committedFlushResolvers = resolvers
-							let delay = Math.min(Date.now() - start, maxFlushDelay)
-							setTimeout(() => lastSync.then(() => {
-								let resolvers = committedFlushResolvers
-								committedFlushResolvers = null
-								lastSync = new Promise((resolve) => {
-									env.sync(() => {
-										for (let i = 0; i < resolvers.length; i++)
-											resolvers[i]();
-										resolve();
-									});
-								});
-							}), delay);
+							scheduleFlush(Math.min(Date.now() - start, maxFlushDelay))
 						}
 					}
 				case 1:
@@ -393,6 +382,19 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 		});
 		startAddress = 0;
+	}
+	function scheduleFlush(delay) {
+		setTimeout(() => lastSync.then(() => {
+			let resolvers = committedFlushResolvers || []
+			committedFlushResolvers = null
+			lastSync = new Promise((resolve) => {
+				env.sync(() => {
+					for (let i = 0; i < resolvers.length; i++)
+						resolvers[i]();
+					resolve();
+				});
+			});
+		}), delay || 0);
 	}
 
 	function queueCommitResolution(resolution) {
@@ -764,6 +766,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							env.commitTxn();
 							resetReadTxn();
+							if ((flags & 0x10000) && overlappingSync) // if it is no-sync in overlapping-sync mode, need to schedule flush for it to be marked as persisted
+								scheduleFlush()
 						}
 						return result;
 					} finally {
