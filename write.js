@@ -283,7 +283,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.address + (flagPosition << 2);
 				}
 			}
-			if (!flushPromise && overlappingSync)
+			if (!flushPromise && separateFlushed)
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve));
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				write(env.address, 0);
@@ -367,8 +367,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							committedFlushResolvers = resolvers
 							let delay = Math.min(Date.now() - start, maxFlushDelay)
-							setTimeout(() => 
-								lastSync.then(() => {
+							setTimeout(() => lastSync.then(() => {
 								let resolvers = committedFlushResolvers
 								committedFlushResolvers = null
 								lastSync = new Promise((resolve) => {

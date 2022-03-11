@@ -347,6 +347,9 @@ void WriteWorker::Write() {
 		rc = mdb_txn_commit(txn);
 	txn = nullptr;
 	pthread_mutex_unlock(envForTxn->writingLock);
+	if (!(envForTxn->jsFlags & SEPARATE_FLUSHED) && (envFlags & MDB_OVERLAPPINGSYNC) && !(rc || hasError)) {
+		rc = mdb_env_sync(env, 1); // if the JS isn't going to schedule a separate flush/sync, we need to do so as part of the commit process
+	}
 	if (rc || hasError) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
