@@ -360,14 +360,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					if (resolvers.length > 0) {
-						if (committedFlushResolvers)
-							committedFlushResolvers.push(...resolvers)
-						else {
-							committedFlushResolvers = resolvers
-							scheduleFlush(Math.min(Date.now() - start, maxFlushDelay))
-						}
-					}
+					if (resolvers.length > 0)
+						scheduleFlush(resolvers, Math.min(Date.now() - start, maxFlushDelay))
 				case 1:
 				break;
 				case 2:
@@ -383,18 +377,23 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		});
 		startAddress = 0;
 	}
-	function scheduleFlush(delay) {
-		setTimeout(() => lastSync.then(() => {
-			let resolvers = committedFlushResolvers || []
-			committedFlushResolvers = null
-			lastSync = new Promise((resolve) => {
-				env.sync(() => {
-					for (let i = 0; i < resolvers.length; i++)
-						resolvers[i]();
-					resolve();
+	function scheduleFlush(resolvers, delay) {
+		if (committedFlushResolvers)
+			committedFlushResolvers.push(...resolvers)
+		else {
+			committedFlushResolvers = resolvers
+			setTimeout(() => lastSync.then(() => {
+				let resolvers = committedFlushResolvers || []
+				committedFlushResolvers = null
+				lastSync = new Promise((resolve) => {
+					env.sync(() => {
+						for (let i = 0; i < resolvers.length; i++)
+							resolvers[i]();
+						resolve();
+					});
 				});
-			});
-		}), delay || 0);
+			}), delay || 0);
+		}
 	}
 
 	function queueCommitResolution(resolution) {
@@ -767,7 +766,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							env.commitTxn();
 							resetReadTxn();
 							if ((flags & 0x10000) && overlappingSync) // if it is no-sync in overlapping-sync mode, need to schedule flush for it to be marked as persisted
-								scheduleFlush()
+								scheduleFlush([])
 						}
 						return result;
 					} finally {
