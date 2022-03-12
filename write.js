@@ -682,14 +682,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return this.put(key, value, versionOrOptions, ifVersion);
 			else
 				return this.transactionSync(() =>
-					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS, 2);
+					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
 				return this.remove(key, ifVersionOrValue);
 			else
 				return this.transactionSync(() =>
-					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS, 2);
+					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
 		},
 		transaction(callback) {
 			if (writeTxn) {
