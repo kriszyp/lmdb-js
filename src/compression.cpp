@@ -40,14 +40,6 @@ Napi::Value Compression::setBuffer(const CallbackInfo& info) {
 	this->dictionarySize = info[3].As<Number>();
 	return info.Env().Undefined();
 }
-extern "C" EXTERN void setCompressionBuffer(double compressionPointer, char* decompressTarget, uint32_t decompressSize, char* dictionary, uint32_t dictSize) {
-	Compression *compression = (Compression*) (size_t) compressionPointer;
-	compression->dictionary = dictionary;
-	compression->decompressTarget = decompressTarget;
-	compression->decompressSize = decompressSize;
-	compression->dictionarySize = dictSize;
-}
-
 void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 	uint32_t uncompressedLength;
 	int compressionHeaderSize;
@@ -192,31 +184,6 @@ Napi::Value EnvWrap::compress(const CallbackInfo& info) {
 	worker->Queue();
     return info.Env().Undefined();
 }
-
-extern "C" EXTERN void compress(double ewPointer, double compressionJSPointer) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	uint64_t compressionPointer;
-	double* compressionAddress = (double*) (size_t) compressionJSPointer;
-	compressionPointer = std::atomic_exchange((std::atomic<int64_t>*) compressionAddress, (int64_t) 2);
-	if (compressionPointer > 1) {
-		Compression* compression = (Compression*)(size_t) * ((double*)&compressionPointer);
-		compression->compressInstruction(ew, compressionAddress);
-	}
-}
-
-/*extern "C" EXTERN uint64_t newCompression(char* dictionary, uint32_t dictSize, uint32_t threshold) {
-	dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
-	Compression* compression = new Compression();
-	if ((size_t) dictionary < 10)
-		dictionary= nullptr;
-	compression->dictionary = compression->compressDictionary = dictionary;
-	compression->dictionarySize = dictSize;
-	compression->decompressTarget = dictionary + dictSize;
-	compression->decompressSize = 0;
-	compression->acceleration = 1;
-	compression->compressionThreshold = threshold;
-	return (uint64_t) compression;
-}*/
 
 void Compression::setupExports(Napi::Env env, Object exports) {
 	Function CompressionClass = DefineClass(env, "Compression", {

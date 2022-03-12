@@ -80,9 +80,6 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, 
 	}
 	return 0;
 }
-extern "C" EXTERN uint32_t getDbi(double dw) {
-	return (uint32_t) ((DbiWrap*) (size_t) dw)->dbi;
-}
 
 Value DbiWrap::close(const Napi::CallbackInfo& info) {
 	if (this->isOpen) {
@@ -137,24 +134,6 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	stats.Set("entryCount", Number::New(info.Env(), stat.ms_entries));
 	stats.Set("overflowPages", Number::New(info.Env(), stat.ms_overflow_pages));
 	return stats;
-}
-
-extern "C" EXTERN int32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
-	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-	return dw->doGetByBinary(keySize);
-}
-extern "C" EXTERN int64_t openCursor(double dwPointer) {
-	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-	MDB_cursor *cursor;
-	MDB_txn *txn = dw->ew->getReadTxn();
-	int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
-	if (rc)
-		return rc;
-	CursorWrap* cw;// = new CursorWrap(cursor);
-	cw->keyType = dw->keyType;
-	cw->dw = dw;
-	cw->txn = txn;
-	return (int64_t) cw;
 }
 
 
@@ -236,11 +215,6 @@ Value DbiWrap::getStringByBinary(const Napi::CallbackInfo& info) {
 		return valToUtf8(info.Env(), data);
 	else
 		return Number::New(info.Env(), data.mv_size);
-}
-
-extern "C" EXTERN int prefetch(double dwPointer, double keysPointer) {
-	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-	return dw->prefetch((uint32_t*)(size_t)keysPointer);
 }
 
 int DbiWrap::prefetch(uint32_t* keys) {

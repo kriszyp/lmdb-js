@@ -324,10 +324,6 @@ void EnvWrap::closeEnv() {
 	pthread_mutex_unlock(envsLock);
 	env = nullptr;
 }
-extern "C" EXTERN void closeEnv(double ewPointer) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	ew->closeEnv();
-}
 
 Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	if (!this->env) {
@@ -543,45 +539,7 @@ Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	}
 	delete currentTxn;
 	return info.Env().Undefined();
-}/*
-extern "C" EXTERN int commitEnvTxn(double ewPointer) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	TxnTracked *currentTxn = ew->writeTxn;
-	int rc = 0;
-	if (currentTxn->flags & TXN_ABORTABLE) {
-		//fprintf(stderr, "txn_commit\n");
-		rc = mdb_txn_commit(currentTxn->txn);
-	}
-	ew->writeTxn = currentTxn->parent;
-	if (!ew->writeTxn) {
-		//fprintf(stderr, "unlock txn\n");
-		if (ew->writeWorker)
-			ew->writeWorker->UnlockTxn();
-		else
-			pthread_mutex_unlock(ew->writingLock);
-	}
-	delete currentTxn;
-	return rc;
 }
-extern "C" EXTERN void abortEnvTxn(double ewPointer) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	TxnTracked *currentTxn = ew->writeTxn;
-	if (currentTxn->flags & TXN_ABORTABLE) {
-		mdb_txn_abort(currentTxn->txn);
-	} else {
-		throwError(info.Env(), "Can not abort this transaction");
-	}
-	ew->writeTxn = currentTxn->parent;
-	if (!ew->writeTxn) {
-		if (ew->writeWorker)
-			ew->writeWorker->UnlockTxn();
-		else
-			pthread_mutex_unlock(ew->writingLock);
-	}
-	delete currentTxn;
-}
-*/
-
 /*Napi::Value EnvWrap::openDbi(const CallbackInfo& info) {
 
 
@@ -652,59 +610,6 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);
 }
-
-extern "C" EXTERN int64_t envOpen(int flags, int jsFlags, char* path, char* keyBuffer, double compression, int maxDbs,
-		int maxReaders, double mapSize, int pageSize, char* encryptionKey) {
-	CallbackInfo* none = nullptr;
-	EnvWrap* ew = new EnvWrap(*none);
-	int rc = mdb_env_create(&(ew->env));
-	if (rc)
-		return rc;
-	rc = ew->openEnv(flags, jsFlags, path, keyBuffer, (Compression*) (size_t) compression,
-		maxDbs, maxReaders, (mdb_size_t) mapSize, pageSize, encryptionKey);
-	if (rc)
-		return rc;
-	return (int64_t) ew;
-}
-
-extern "C" EXTERN uint32_t getMaxKeySize(double ew) {
-	return mdb_env_get_maxkeysize(((EnvWrap*) (size_t) ew)->env);
-}
-extern "C" EXTERN int32_t readerCheck(double ew) {
-	int rc, dead;
-	rc = mdb_reader_check(((EnvWrap*) (size_t) ew)->env, &dead);
-	return rc || dead;
-}
-/*
-extern "C" EXTERN int64_t openDbi(double ewPointer, int flags, char* name, int keyType, double compression) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	DbiWrap* dw = new DbiWrap(ew->env, 0);
-	dw->ew = ew;
-	if (((size_t) name) < 100) // 1 means nullptr?
-		name = nullptr;
-	int rc = dw->open(flags & ~HAS_VERSIONS, name, flags & HAS_VERSIONS,
-		(LmdbKeyType) keyType, (Compression*) (size_t) compression);
-	if (rc) {
-		delete dw;
-		return rc;
-	}
-	return (int64_t) dw;
-}*/
-
-extern "C" EXTERN int64_t beginTxn(double ewPointer, int flags) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	TxnWrap* tw;// = new TxnWrap(ew->env, nullptr);
-	int rc = tw->begin(ew, flags);
-	if (rc) {
-		delete tw;
-		return rc;
-	}
-	return (int64_t) tw;
-}
-extern "C" EXTERN int32_t envSync(double ew) {
-	return mdb_env_sync(((EnvWrap*) (size_t) ew)->env, 1);
-}
-
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

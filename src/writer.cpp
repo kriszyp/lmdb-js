@@ -394,16 +394,6 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 
-extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
-	ew->writeWorker = worker;
-	worker->Write();
-	ew->writeWorker = nullptr;
-	delete worker;
-	return 0;
-}
-
 NAPI_FUNCTION(EnvWrap::write) {
 	ARGS(2)
 	EnvWrap* ew;
@@ -425,17 +415,4 @@ NAPI_FUNCTION(EnvWrap::write) {
 		RETURN_UNDEFINED;
 	}
 	RETURN_UNDEFINED;
-}
-
-extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {
-	int rc = 0;
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	if (instructionAddress)
-		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*) (size_t)instructionAddress, nullptr);
-	else if (ew->writeWorker) {
-		pthread_cond_signal(ew->writingCond);
-	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return rc;
-	return 0;
 }

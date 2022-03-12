@@ -153,25 +153,6 @@ int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
 	}
 	return 0;
 }
-extern "C" EXTERN void resetTxn(double twPointer, int flags) {
-	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-	tw->reset();
-}
-extern "C" EXTERN int renewTxn(double twPointer, int flags) {
-	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-	return mdb_txn_renew(tw->txn);
-}
-extern "C" EXTERN int commitTxn(double twPointer) {
-	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-	int rc = mdb_txn_commit(tw->txn);
-	tw->removeFromEnvWrap();
-	return rc;
-}
-extern "C" EXTERN void abortTxn(double twPointer) {
-	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-	mdb_txn_abort(tw->txn);
-	tw->removeFromEnvWrap();
-}
 Value TxnWrap::commit(const Napi::CallbackInfo& info) {
 	if (!this->txn) {
 		return throwError(info.Env(), "The transaction is already closed.");

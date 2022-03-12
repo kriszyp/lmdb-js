@@ -41,19 +41,6 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	// often just uses the name of the last exported native function:
 	//exports.Set("lmdbNativeFunctions", lmdbNativeFunctions);
 }
-extern "C" EXTERN void freeData(double ref) {
-	delete (char*) (size_t) ref;
-}
-extern "C" EXTERN size_t getAddress(char* buffer) {
-	return (size_t) buffer;
-}
-extern "C" EXTERN void setGlobalBuffer(char* buffer, size_t bufferSize) {
-	globalUnsafePtr = buffer;
-	globalUnsafeSize = bufferSize;
-}
-extern "C" EXTERN void getError(int rc, char* target) {
-	strcpy(target, mdb_strerror(rc));
-}
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
 	Value opt = options.Get(name);

@@ -48,11 +48,6 @@ Value CursorWrap::close(const CallbackInfo& info) {
 	this->cursor = nullptr;
 	return info.Env().Undefined();
 }
-extern "C" EXTERN void cursorClose(double cwPointer) {
-	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
-	mdb_cursor_close(cw->cursor);
-	cw->cursor = nullptr;
-}
 
 Value CursorWrap::del(const CallbackInfo& info) {
 	int flags = 0;
@@ -236,11 +231,6 @@ NAPI_FUNCTION(position) {
 	RETURN_INT32(result);
 }
 
-extern "C" EXTERN int cursorPosition(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, double endKeyAddress) {
-	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
-	cw->flags = flags;
-	return cw->doPosition(offset, keySize, (uint64_t) endKeyAddress);
-}
 NAPI_FUNCTION(iterate) {
 	ARGS(1)
 	CursorWrap* cw;
@@ -248,13 +238,6 @@ NAPI_FUNCTION(iterate) {
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	RETURN_INT32(cw->returnEntry(rc, key, data));
-}
-
-extern "C" EXTERN int cursorIterate(double cwPointer) {
-	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
-	MDB_val key, data;
-	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
-	return cw->returnEntry(rc, key, data);
 }
 
 NAPI_FUNCTION(getCurrentValue) {
@@ -266,12 +249,6 @@ NAPI_FUNCTION(getCurrentValue) {
 	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
 
-extern "C" EXTERN int cursorCurrentValue(double cwPointer) {
-	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
-	MDB_val key, data;
-	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
-	return cw->returnEntry(rc, key, data);
-}
 NAPI_FUNCTION(renew) {
 	ARGS(1)
 	CursorWrap* cw;
@@ -280,10 +257,6 @@ NAPI_FUNCTION(renew) {
 	RETURN_UNDEFINED;
 }
 
-extern "C" EXTERN int cursorRenew(double cwPointer) {
-	CursorWrap *cw = (CursorWrap*) (size_t) cwPointer;
-	return mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
-}
 void CursorWrap::setupExports(Napi::Env env, Object exports) {
 	// CursorWrap: Prepare constructor template
 	Function CursorClass = DefineClass(env, "Cursor", {
