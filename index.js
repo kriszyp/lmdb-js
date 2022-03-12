@@ -22,6 +22,9 @@ export { clearKeptObjects, v8AccelerationEnabled } from './external.js';
 export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, getLastVersion } from './open.js';
+export const ABORTABLE = 1;
+export const SYNCHRONOUS_COMMIT = 2;
+export const NO_SYNC_FLUSH = 0x10000;
 export default {
 	open, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, EventEmitter
 };
