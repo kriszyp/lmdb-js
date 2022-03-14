@@ -334,7 +334,7 @@ void WriteWorker::Write() {
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	pthread_mutex_lock(envForTxn->writingLock);
-	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
@@ -347,9 +347,6 @@ void WriteWorker::Write() {
 		rc = mdb_txn_commit(txn);
 	txn = nullptr;
 	pthread_mutex_unlock(envForTxn->writingLock);
-	if (!(envForTxn->jsFlags & SEPARATE_FLUSHED) && (envFlags & MDB_OVERLAPPINGSYNC) && !(rc || hasError)) {
-		rc = mdb_env_sync(env, 1); // if the JS isn't going to schedule a separate flush/sync, we need to do so as part of the commit process
-	}
 	if (rc || hasError) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)

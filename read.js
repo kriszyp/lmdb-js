@@ -1,7 +1,7 @@
 import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
 import { saveKey }  from './keys.js';
-const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, renew, getCurrentValue } = native;
+const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
@@ -547,7 +547,7 @@ export function addReadMethods(LMDBStore, {
 				readTxn.onlyCursor = true;
 				readTxn = null;
 			} else
-				readTxn.reset();
+				resetTxn(readTxn.address);
 		}
 	}
 }

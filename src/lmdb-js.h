@@ -64,8 +64,9 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 #define GET_INT64_ARG(target, position) napi_get_value_int64(env, args[position], (int64_t*) &target)
 #define RETURN_UINT32(value) napi_create_uint32(env, value, &returnValue); return returnValue;
 #define RETURN_INT32(value) napi_create_int32(env, value, &returnValue); return returnValue;
+#define RETURN_INT64(value) napi_create_int64(env, value, &returnValue); return returnValue;
 #define RETURN_UNDEFINED napi_get_undefined(env, &returnValue); return returnValue;
-#define THROW_LMDB_ERROR(message) napi_create_exception(env, message);
+#define THROW_ERROR(message) { napi_throw_error(env, NULL, message); napi_get_undefined(env, &returnValue); return returnValue; }
 #define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, (napi_property_attributes) (napi_writable | napi_configurable), 0 }; napi_define_properties(env, exports, 1, &desc); }
 
 #ifdef _WIN32
@@ -178,10 +179,13 @@ class TxnWrap;
 class DbiWrap;
 class EnvWrap;
 class CursorWrap;
-struct env_path_t {
+class SharedEnv {
+  public:
 	MDB_env* env;
 	char* path;
 	int count;
+	bool deleteOnClose;
+	void finish(bool close);
 };
 
 const int INTERRUPT_BATCH = 9998;
@@ -237,13 +241,16 @@ class TxnTracked {
 	Represents a database environment.
 	(Wrapper for `MDB_env`)
 */
+typedef struct env_tracking_t {
+	pthread_mutex_t* envsLock;
+	std::vector<SharedEnv> envs;
+} env_tracking_t;
+
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
 	std::vector<TxnWrap*> readTxns;
-	static pthread_mutex_t* envsLock;
-	static std::vector<env_path_t> envs;
-	static pthread_mutex_t* initMutex();
+	static env_tracking_t* initTracking();
 	// compression settings and space
 	Compression *compression;
 
@@ -259,6 +266,7 @@ public:
 	// The wrapped object
 	MDB_env *env;
 	// Current write transaction
+	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;
 	pthread_mutex_t* writingLock;
@@ -374,6 +382,7 @@ public:
 	Napi::Value startWriting(const CallbackInfo& info);
 	Napi::Value compress(const CallbackInfo& info);
 	static napi_value write(napi_env env, napi_callback_info info);
+	static napi_value onExit(napi_env env, napi_callback_info info);
 	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);
 };
 
@@ -431,7 +440,6 @@ public:
 		Aborts a read-only transaction but makes it renewable with `renew`.
 		(Wrapper for `mdb_txn_reset`)
 	*/
-	Napi::Value reset(const CallbackInfo& info);
 	void reset();
 	/*
 		Renews a read-only transaction after it has been reset.

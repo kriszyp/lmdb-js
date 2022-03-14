@@ -9,6 +9,7 @@ TxnTracked::TxnTracked(MDB_txn *txn, unsigned int flags) {
 }
 
 TxnTracked::~TxnTracked() {
+	this->txn = nullptr;
 }
 
 TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
@@ -74,6 +75,7 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 	this->flags = flags;
 	this->ew = ew;
 	this->env = ew->env;
+	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 }
 
 TxnWrap::~TxnWrap() {
@@ -187,13 +189,17 @@ Value TxnWrap::abort(const Napi::CallbackInfo& info) {
 	this->removeFromEnvWrap();
 	return info.Env().Undefined();
 }
-Value TxnWrap::reset(const Napi::CallbackInfo& info) {
-	if (!this->txn) {
-		return throwError(info.Env(), "The transaction is already closed.");
+NAPI_FUNCTION(resetTxn) {
+	ARGS(1)
+	TxnWrap* tw;
+	GET_INT64_ARG(tw, 0);
+	if (!tw->txn) {
+		THROW_ERROR("The transaction is already closed.");
 	}
-	this->reset();
-	return info.Env().Undefined();
+	tw->reset();
+	RETURN_UNDEFINED;
 }
+
 void TxnWrap::reset() {
 	ew->readTxnRenewed = false;
 	mdb_txn_reset(txn);
@@ -215,10 +221,10 @@ void TxnWrap::setupExports(Napi::Env env, Object exports) {
 		// TxnWrap: Add functions to the prototype
 		TxnWrap::InstanceMethod("commit", &TxnWrap::commit),
 		TxnWrap::InstanceMethod("abort", &TxnWrap::abort),
-		TxnWrap::InstanceMethod("reset", &TxnWrap::reset),
 		TxnWrap::InstanceMethod("renew", &TxnWrap::renew),
 	});
 	exports.Set("Txn", TxnClass);
+	EXPORT_NAPI_FUNCTION("resetTxn", resetTxn);
 	//txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
 }
 // This file contains code from the node-lmdb project

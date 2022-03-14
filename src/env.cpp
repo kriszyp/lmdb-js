@@ -3,13 +3,13 @@ using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
 
-pthread_mutex_t* EnvWrap::envsLock = EnvWrap::initMutex();
-std::vector<env_path_t> EnvWrap::envs;
+env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
 
-pthread_mutex_t* EnvWrap::initMutex() {
-	pthread_mutex_t* mutex = new pthread_mutex_t;
-	pthread_mutex_init(mutex, nullptr);
-	return mutex;
+env_tracking_t* EnvWrap::initTracking() {
+	env_tracking_t* tracking = new env_tracking_t;
+	tracking->envsLock = new pthread_mutex_t;
+	pthread_mutex_init(tracking->envsLock, nullptr);
+	return tracking;
 }
 
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
@@ -72,10 +72,10 @@ class SyncWorker : public AsyncWorker {
 			}
 		}
 	}*/
-    void OnOK() {
-        napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
-        napi_call_function(Env(), Env().Undefined(), Callback().Value(), 0, {}, &result);
-    }
+	void OnOK() {
+		napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
+		napi_call_function(Env(), Env().Undefined(), Callback().Value(), 0, {}, &result);
+	}
 
 	void Execute() {
 		int rc = mdb_env_sync(env->env, 1);
@@ -212,18 +212,18 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
 		int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
-	pthread_mutex_lock(envsLock);
+	pthread_mutex_lock(envTracking->envsLock);
 	this->keyBuffer = keyBuffer;
 	this->compression = compression;
 	this->jsFlags = jsFlags;
 	MDB_env* env = this->env;
-	for (auto envPath = envs.begin(); envPath != envs.end();) {
+	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end();) {
 		char* existingPath = envPath->path;
 		if (!strcmp(existingPath, path)) {
 			envPath->count++;
 			mdb_env_close(env);
 			this->env = envPath->env;
-			pthread_mutex_unlock(envsLock);
+			pthread_mutex_unlock(envTracking->envsLock);
 			return 0;
 		}
 		++envPath;
@@ -270,23 +270,41 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		mdb_env_close(env);
 		goto fail;
 	}
-	env_path_t envPath;
+	SharedEnv envPath;
 	envPath.path = strdup(path);
 	envPath.env = env;
 	envPath.count = 1;
-	envs.push_back(envPath);
-	pthread_mutex_unlock(envsLock);
+	envPath.deleteOnClose = jsFlags & DELETE_ON_CLOSE;
+	envTracking->envs.push_back(envPath);
+	pthread_mutex_unlock(envTracking->envsLock);
 	return 0;
 
 	fail:
-	pthread_mutex_unlock(envsLock);
+	pthread_mutex_unlock(envTracking->envsLock);
 	this->env = nullptr;
 	return rc;
 }
 Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 	return Number::New(info.Env(), mdb_env_get_maxkeysize(this->env));
 }
+NAPI_FUNCTION(getEnvFlags) {
+	ARGS(1)
+	EnvWrap* ew;
+	GET_INT64_ARG(ew, 0);
+	unsigned int envFlags;
+	mdb_env_get_flags(ew->env, &envFlags);
+	RETURN_INT64(envFlags);
+}
 
+NAPI_FUNCTION(setJSFlags) {
+	ARGS(2)
+	EnvWrap* ew;
+	GET_INT64_ARG(ew, 0);
+	int64_t jsFlags;
+	GET_INT64_ARG(jsFlags, 1);
+	ew->jsFlags = jsFlags;
+	RETURN_UNDEFINED;
+}
 
 #ifdef _WIN32
 // TODO: I think we should switch to DeleteFileW (but have to convert to UTF16)
@@ -295,33 +313,65 @@ Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 #include <unistd.h>
 #endif
 
+
+void SharedEnv::finish(bool close) {
+	unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
+	mdb_env_get_flags(env, &envFlags);
+	if (envFlags & MDB_OVERLAPPINGSYNC) {
+		mdb_env_sync(env, 1);
+	}
+	if (close) {
+		mdb_env_close(env);
+		if (deleteOnClose) {
+			unlink(path);
+			//unlink(strcat(envPath->path, "-lock"));
+		}
+	}
+}
+NAPI_FUNCTION(EnvWrap::onExit) {
+	// close all the environments
+	pthread_mutex_lock(envTracking->envsLock);
+	for (auto envPath : envTracking->envs) {
+		envPath.finish(false);
+	}
+	pthread_mutex_unlock(envTracking->envsLock);
+	napi_value returnValue;
+	RETURN_UNDEFINED;
+}
+NAPI_FUNCTION(getEnvsPointer) {
+	napi_value returnValue;
+	RETURN_INT64((int64_t) EnvWrap::envTracking);
+}
+
+NAPI_FUNCTION(setEnvsPointer) {
+	// If another version of lmdb-js is running, switch to using its list of envs
+	ARGS(1)
+	env_tracking_t* adoptedTracking;
+	GET_INT64_ARG(adoptedTracking, 0);
+	// copy any existing ones over to the central one
+	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
+	EnvWrap::envTracking = adoptedTracking;
+	RETURN_UNDEFINED;
+}
+
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
 	cleanupStrayTxns();
-	pthread_mutex_lock(envsLock);
-	for (auto envPath = envs.begin(); envPath != envs.end(); ) {
+	pthread_mutex_lock(envTracking->envsLock);
+	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end(); ) {
 		if (envPath->env == env) {
 			envPath->count--;
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
-                unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
-                mdb_env_get_flags(env, &envFlags);
-                if (envFlags & MDB_OVERLAPPINGSYNC) {
-                    mdb_env_sync(env, 1);
-                }
-				mdb_env_close(env);
-				if (jsFlags & DELETE_ON_CLOSE) {
-					unlink(envPath->path);
-					//unlink(strcat(envPath->path, "-lock"));
-				}
-				envs.erase(envPath);
+				envPath->finish(true);
+				envTracking->envs.erase(envPath);
 			}
 			break;
 		}
 		++envPath;
 	}
-	pthread_mutex_unlock(envsLock);
+	pthread_mutex_unlock(envTracking->envsLock);
 	env = nullptr;
 }
 
@@ -607,6 +657,11 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
 	EXPORT_NAPI_FUNCTION("write", write);
+	EXPORT_NAPI_FUNCTION("onExit", onExit);
+	EXPORT_NAPI_FUNCTION("getEnvsPointer", getEnvsPointer);
+	EXPORT_NAPI_FUNCTION("setEnvsPointer", setEnvsPointer);
+	EXPORT_NAPI_FUNCTION("getEnvFlags", getEnvFlags);
+	EXPORT_NAPI_FUNCTION("setJSFlags", setJSFlags);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);
 }

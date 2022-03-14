@@ -71,17 +71,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var txnResolution, lastQueuedResolution, nextResolution = { uint32: dynamicBytes.uint32, flagPosition: 0, };
 	var uncommittedResolution = { next: nextResolution };
 	var unwrittenResolution = nextResolution;
-	let needToRegisterOnExit = overlappingSync;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
-		if (needToRegisterOnExit) {
-			needToRegisterOnExit = false;
-			if (onExit) {
-				onExit(() => {
-					if (env.sync) // if we have already closed the env, this will be null
-						env.sync();
-				})
-			}
-		}
 		let writeStatus;
 		let targetBytes, position, encoder;
 		let valueBuffer, valueSize, valueBufferStart;
@@ -283,7 +273,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.address + (flagPosition << 2);
 				}
 			}
-			if (!flushPromise && separateFlushed)
+			if (!flushPromise && overlappingSync)
 				flushPromise = new Promise(resolve => flushResolvers.push(resolve));
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				write(env.address, 0);

@@ -1,5 +1,5 @@
 var assert = require('assert');
-const { Worker, isMainThread, parentPort } = require('worker_threads');
+const { Worker, isMainThread, parentPort, threadId } = require('worker_threads');
 var path = require('path');
 var numCPUs = require('os').cpus().length;
 
@@ -30,21 +30,21 @@ if (isMainThread) {
   }
 
   var messages = [];
-
   workers.forEach(function(worker) {
     worker.on('message', function(msg) {
       messages.push(msg);
       // Once every worker has replied with a response for the value
       // we can exit the test.
 
-//      setTimeout(() => {
+      setTimeout(() => {
         worker.terminate()
-  //    }, 100);
+      }, 100);
       if (messages.length === workerCount) {
         db.close();
         for (var i = 0; i < messages.length; i ++) {
           assert(messages[i] === value.toString('hex'));
         }
+        console.log("done", threadId)
         //setTimeout(() =>
           //process.exit(0), 200);
       }
