@@ -1,6 +1,6 @@
 import { getAddress, onExit, native } from './external.js';
 import { when } from './util/when.js';
-const { write } = native;
+const { write, compress } = native;
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;
@@ -179,7 +179,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					flags |= 0x100000;
 					float64[position] = store.compression.address;
 					if (!writeTxn)
-						env.compress(uint32.address + (position << 3), () => {
+						compress(env.address, uint32.address + (position << 3), () => {
 							// this is never actually called in NodeJS, just use to pin the buffer in memory until it is finished
 							// and is a no-op in Deno
 							if (!float64)

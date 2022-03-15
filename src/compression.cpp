@@ -178,11 +178,15 @@ class CompressionWorker : public AsyncWorker {
 	double* compressionAddress;
 };
 
-Napi::Value EnvWrap::compress(const CallbackInfo& info) {
-	size_t compressionAddress = info[0].As<Number>().Int64Value();
-	CompressionWorker* worker = new CompressionWorker(this, (double*) compressionAddress, info[1].As<Function>());
+NAPI_FUNCTION(EnvWrap::compress) {
+	ARGS(3)
+	EnvWrap* ew;
+	GET_INT64_ARG(ew, 0);
+	double* compressionAddress;
+	GET_INT64_ARG(compressionAddress, 1);
+	CompressionWorker* worker = new CompressionWorker(ew, (double*) compressionAddress, Function(env, args[2]));
 	worker->Queue();
-    return info.Env().Undefined();
+	RETURN_UNDEFINED;
 }
 
 void Compression::setupExports(Napi::Env env, Object exports) {

@@ -380,7 +380,7 @@ public:
 		* Callback to be executed after the sync is complete.
 	*/
 	Napi::Value startWriting(const CallbackInfo& info);
-	Napi::Value compress(const CallbackInfo& info);
+	static napi_value compress(napi_env env, napi_callback_info info);
 	static napi_value write(napi_env env, napi_callback_info info);
 	static napi_value onExit(napi_env env, napi_callback_info info);
 	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);

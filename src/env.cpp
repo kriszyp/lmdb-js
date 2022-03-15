@@ -646,7 +646,6 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("abortTxn", &EnvWrap::abortTxn),
 		EnvWrap::InstanceMethod("sync", &EnvWrap::sync),
 		EnvWrap::InstanceMethod("startWriting", &EnvWrap::startWriting),
-		EnvWrap::InstanceMethod("compress", &EnvWrap::compress),
 		EnvWrap::InstanceMethod("stat", &EnvWrap::stat),
 		EnvWrap::InstanceMethod("freeStat", &EnvWrap::freeStat),
 		EnvWrap::InstanceMethod("info", &EnvWrap::info),
@@ -656,6 +655,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		//EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
 		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
+	EXPORT_NAPI_FUNCTION("compress", compress);
 	EXPORT_NAPI_FUNCTION("write", write);
 	EXPORT_NAPI_FUNCTION("onExit", onExit);
 	EXPORT_NAPI_FUNCTION("getEnvsPointer", getEnvsPointer);
