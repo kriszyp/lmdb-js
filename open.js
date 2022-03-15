@@ -325,7 +325,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: false
-				}), 2);
+				}), options.overlappingSync ? 0x10002 : 2);
 		}
 		clear(callback) {
 			if (typeof callback == 'function')
@@ -343,7 +343,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
-				}), 2);
+				}), options.overlappingSync ? 0x10002 : 2);
 		}
 		readerCheck() {
 			return env.readerCheck();
