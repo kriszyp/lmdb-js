@@ -668,6 +668,8 @@ describe('lmdb-js', function() {
       let values = await db.getMany(keys);
       should.equal(values.length, 20);
       should.equal(values[3], value);
+      values = await db.getMany([]);
+      should.equal(values.length, 0);
     });
 
     it('invalid key', async function() {
