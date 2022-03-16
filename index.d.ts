@@ -363,5 +363,7 @@ declare namespace lmdb {
 	/* Wrap a Buffer/Uint8Array for direct assignment as a value bypassing any encoding, for put (and doesExist) operations.
 	*/
 	export function asBinary(buffer: Uint8Array): Binary
+	/* Indicates if V8 accelerated functions are enabled. If this is false, some functions will be a little slower, and you may want to npm install --build-from-source to enable maximum performance */ 
+	export let v8AccelerationEnabled: boolean
 }
 export = lmdb

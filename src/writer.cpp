@@ -61,21 +61,21 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-NanWriteWorker::NanWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, Nan::Callback *callback)
-		: WriteWorker(env, envForTxn, instructions), Nan::AsyncProgressWorker(callback, "lmdb:write") {
+AsyncWriteWorker::AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback)
+		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
 		txn = nullptr;
 	}
 
-void NanWriteWorker::Execute(const ExecutionProgress& executionProgress) {
-	this->executionProgress = (ExecutionProgress*) &executionProgress;
+void AsyncWriteWorker::Execute(const AsyncProgressWorker::ExecutionProgress& execution) {
+	executionProgress = (AsyncProgressWorker::ExecutionProgress*) &execution;
 	Write();
 }
 void WriteWorker::SendUpdate() {
-	//fprintf(stderr, "This SendUpdate does not work!\n");
+	fprintf(stderr, "This SendUpdate does not work!\n");
 }
-void NanWriteWorker::SendUpdate() {
+void AsyncWriteWorker::SendUpdate() {
 	executionProgress->Send(nullptr, 0);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
@@ -88,7 +88,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-        *flags |= TXN_FROM_WORKER;
+		*flags |= TXN_FROM_WORKER;
 		return nullptr;
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
@@ -110,9 +110,9 @@ void WriteWorker::ReportError(const char* error) {
 	hasError = true;
 	fprintf(stderr, "Error %s\n", error);
 }
-void NanWriteWorker::ReportError(const char* error) {
+void AsyncWriteWorker::ReportError(const char* error) {
 	hasError = true;
-	SetErrorMessage(error);
+	SetError(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
@@ -157,7 +157,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		interruptionStatus = 0;
 	return 0;
 }
-int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
+int WriteWorker::DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
 	MDB_val key, value;
 	int rc = 0;
 	int conditionDepth = 0;
@@ -334,7 +334,7 @@ void WriteWorker::Write() {
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	pthread_mutex_lock(envForTxn->writingLock);
-	rc = mdb_txn_begin(env, nullptr, (envFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
@@ -356,13 +356,9 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void NanWriteWorker::HandleProgressCallback(const char* data, size_t count) {
-	Nan::HandleScope scope;
-	v8::Local<v8::Value> argv[] = {
-		Nan::New<Number>(progressStatus)
-	};
+void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 	if (progressStatus == 1) {
-		callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+		Callback().Call({ Number::New(Env(), progressStatus)});
 		return;
 	}
 	if (finishedProgress)
@@ -372,90 +368,48 @@ void NanWriteWorker::HandleProgressCallback(const char* data, size_t count) {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	envForTxn->writeTxn = new TxnTracked(txn, 0);
 	finishedProgress = true;
-	callback->Call(1, argv, async_resource).ToLocalChecked()->IsTrue();
+	Callback().Call({ Number::New(Env(), progressStatus) });
 	delete envForTxn->writeTxn;
 	envForTxn->writeTxn = nullptr;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
-void NanWriteWorker::HandleOKCallback() {
-	Nan::HandleScope scope;
-	Local<v8::Value> argv[] = {
-		Nan::New<Number>(0)
-	};
+void AsyncWriteWorker::OnOK() {
 	finishedProgress = true;
-	callback->Call(1, argv, async_resource);
+	Callback().Call({ Number::New(Env(), 0)});
 }
 
-NAN_METHOD(EnvWrap::startWriting) {
-    EnvWrap *ew = Nan::ObjectWrap::Unwrap<EnvWrap>(info.This());
-    if (!ew->env) {
-        return Nan::ThrowError("The environment is already closed.");
-    }
-    size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
-    Nan::Callback* callback = new Nan::Callback(Local<v8::Function>::Cast(info[1]));
-
-    NanWriteWorker* worker = new NanWriteWorker(ew->env, ew, (uint32_t*) instructionAddress, callback);
-	ew->writeWorker = worker;
-    Nan::AsyncQueueWorker(worker);
-}
-
-extern "C" EXTERN int32_t startWriting(double ewPointer, double instructionAddress) {
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-    WriteWorker* worker = new WriteWorker(ew->env, ew, (uint32_t*) (size_t) instructionAddress);
-	ew->writeWorker = worker;
-	worker->Write();
-	ew->writeWorker = nullptr;
-	delete worker;
-	return 0;
-}
-
-
-#ifdef ENABLE_FAST_API
-void EnvWrap::writeFast(Local<Object> receiver_obj, uint64_t instructionAddress, FastApiCallbackOptions& options) {
-	EnvWrap* ew = static_cast<EnvWrap*>(
-		receiver_obj->GetAlignedPointerFromInternalField(0));
-	int rc;
-	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
-	else {
-		pthread_cond_signal(ew->writingCond);
-		rc = 0;
+Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
+	if (!this->env) {
+		return throwError(info.Env(), "The environment is already closed.");
 	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		options.fallback = true;
+	size_t instructionAddress = info[0].As<Number>().Int64Value();
+	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[1].As<Function>());
+	this->writeWorker = worker;
+	worker->Queue();
+	return info.Env().Undefined();
 }
-#endif
-void EnvWrap::write(
-	const v8::FunctionCallbackInfo<v8::Value>& info) {
-	v8::Local<v8::Object> instance =
-		v8::Local<v8::Object>::Cast(info.Holder());
-	//fprintf(stderr,"Doing sync write\n");
-	EnvWrap* ew = Nan::ObjectWrap::Unwrap<EnvWrap>(instance);
+
+NAPI_FUNCTION(EnvWrap::write) {
+	ARGS(2)
+	EnvWrap* ew;
+	GET_INT64_ARG(ew, 0);
 	if (!ew->env) {
-		return Nan::ThrowError("The environment is already closed.");
+		napi_throw_error(env, nullptr, "The environment is already closed.");
+		RETURN_UNDEFINED;
 	}
-	size_t instructionAddress = Local<Number>::Cast(info[0])->Value();
+	uint32_t* instructionAddress;
+	GET_INT64_ARG(instructionAddress, 1);
 	int rc = 0;
 	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, instructionAddress, nullptr);
 	else if (ew->writeWorker) {
 		pthread_cond_signal(ew->writingCond);
 	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return Nan::ThrowError(mdb_strerror(rc));
-}
-
-extern "C" EXTERN int32_t envWrite(double ewPointer, double instructionAddress) {
-	int rc = 0;
-	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
-	if (instructionAddress)
-		rc = DoWrites(ew->writeTxn->txn, ew, (uint32_t*) (size_t)instructionAddress, nullptr);
-	else if (ew->writeWorker) {
-		pthread_cond_signal(ew->writingCond);
+	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
+		throwLmdbError(env, rc);
+		RETURN_UNDEFINED;
 	}
-	if (rc && !(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND))
-		return rc;
-	return 0;
+	RETURN_UNDEFINED;
 }

@@ -9,7 +9,7 @@ import rimraf from 'rimraf';
 import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
-import { open } from '../node-index.js';
+import { open } from '../index.js';
 var env;
 var dbi;
 var keys = [];
@@ -181,10 +181,10 @@ cleanup(async function (err) {
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
     //suite.add('getRange', getRange);
-    suite.add('setData', setData/*, {
+    /*suite.add('setData', setData/*, {
       defer: true,
       fn: setData
-    }*/);
+    });*/
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
@@ -192,7 +192,7 @@ cleanup(async function (err) {
     suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     
-    suite.add('getBinary', getBinary);
+    //suite.add('getBinary', getBinary);
     //test
     suite.add('getBinaryFast', getBinaryFast);
     suite.on('cycle', function (event) {

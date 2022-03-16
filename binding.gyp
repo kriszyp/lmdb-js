@@ -3,6 +3,8 @@
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
       "use_data_v1%": "false",
+      "enable_v8%": "true",
+      "enable_fast_api_calls%": "true",
       "enable_pointer_compression%": "false",
       "target%": "",
       "build_v8_with_gn": "false",
@@ -37,13 +39,15 @@
         "src/misc.cpp",
         "src/txn.cpp",
         "src/dbi.cpp",
-        "src/cursor.cpp"
+        "src/cursor.cpp",
+        "src/v8-functions.cpp"
       ],
       "include_dirs": [
         "<!(node -e \"require('nan')\")",
+        "<!(node -p \"require('node-addon-api').include_dir\")",
         "dependencies/lz4/lib"
       ],
-      "defines": ["MDB_MAXKEYSIZE=0"],
+      "defines": ["MDB_MAXKEYSIZE=0", "NAPI_DISABLE_CPP_EXCEPTIONS" ],
       "conditions": [
         ["OS=='linux'", {
           "variables": {
@@ -91,8 +95,11 @@
         ['runtime=="electron"', {
           "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
+        ["enable_v8=='true'", {
+          "defines": ["ENABLE_V8_API=1"],
+        }],
         ["enable_fast_api_calls=='true'", {
-          "defines": ["ENABLE_FAST_API=1"],
+          "defines": ["ENABLE_FAST_API_CALLS=1"],
         }],
         ["use_robust=='true'", {
           "defines": ["MDB_USE_ROBUST"],

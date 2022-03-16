@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, tmpdir, os, isWorkerThread } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, native } from './external.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -6,17 +6,22 @@ import { applyKeyHandling } from './keys.js';
 setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
+const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = native;
+if (globalThis.__lmdb_envs__)
+	setEnvsPointer(globalThis.__lmdb_envs__());
+else
+	globalThis.__lmdb_envs__ = getEnvsPointer();
 
 
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
-// this corresponds to the max key size for 8KB pages, which is currently the default
+// this corresponds to the max key size for 8KB pages
 const MAX_KEY_SIZE = 4026;
 const DEFAULT_COMMIT_DELAY = 0;
 
 export const allDbs = new Map();
 let defaultCompression;
 let lastSize, lastOffset, lastVersion;
-let abortedNonChildTransactionWarn;
+let hasRegisteredOnExit;
 export function open(path, options) {
 	if (!keyBytes) // TODO: Consolidate get buffer and key buffer (don't think we need both)
 		allocateFixedBuffer();
@@ -29,17 +34,20 @@ export function open(path, options) {
 		options = path;
 		path = options.path;
 	}
+	options = options || {}
+	let userOptions = options;
 	if (!path) {
-		if (!options)
-			options = {};
-		options.deleteOnClose = true;
-		options.noSync = true;
+		options = Object.assign({
+			deleteOnClose: true,
+			noSync: true,
+		}, options);
 		path = tmpdir() + '/' + Math.floor(Math.random() * 2821109907455).toString(36) + '.mdb'
-	}
+	} else if (!options)
+		options = {};
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
-	let remapChunks = (options && options.remapChunks) || ((options && options.mapSize) ?
+	let remapChunks = options.remapChunks || (options.mapSize ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({
@@ -50,7 +58,7 @@ export function open(path, options) {
 		remapChunks,
 		keyBytes,
 		pageSize: 4096,
-		overlappingSync: (options && (options.noSync || options.readOnly)) ? false : (os != 'win32' && !isWorkerThread),
+		overlappingSync: (options.noSync || options.readOnly) ? false : (os != 'win32'),
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
@@ -100,15 +108,37 @@ export function open(path, options) {
 		(options.remapChunks ? 0x4000000 : 0);
 
 	let env = new Env();
-	let jsFlags = (options.separateFlushed ? 1 : 0) |
+	let jsFlags = (options.overlappingSync ? 0x1000 : 0) |
+		(options.separateFlushed ? 1 : 0) |
 		(options.deleteOnClose ? 2 : 0)
 	let rc = env.open(options, flags, jsFlags);
    if (rc)
 		lmdbError(rc);
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
+	flags = getEnvFlags(env.address); // re-retrieve them, they are not necessarily the same if we are connecting to an existing env
+	if (flags & 0x1000) {
+		if (userOptions.noSync) {
+			env.close();
+			throw new Error('Can not set noSync on a database that was opened with overlappingSync');
+		}
+	} else if (options.overlappingSync) {
+		if (userOptions.overlappingSync) {
+			env.close();
+			throw new Error('Can not enable overlappingSync on a database that was opened without this flag');
+		}
+		options.overlappingSync = false;
+		jsFlags = jsFlags & 0xff; // clear overlapping sync
+		setJSFlags(env.address, jsFlags);
+	}
+
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
+	if ((options.overlappingSync || options.deleteOnClose) && !hasRegisteredOnExit) {
+		hasRegisteredOnExit = true;
+		process.on('exit', onExit);
+	}
+
 	class LMDBStore extends EventEmitter {
 		constructor(dbName, dbOptions) {
 			super();
@@ -147,18 +177,19 @@ export function open(path, options) {
 			if (keyType == 2)
 				flags |= 0x08; // integer key
 			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
-				this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
-			if (!this.db) {// not found
+			if (this.db.dbi == 0xffffffff) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
-						this.db = env.openDbi(flags, dbName, keyType, dbOptions.compression);
+						this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 					}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
 				} else {
 					return; // return undefined to indicate it could not be found
 				}
 			}
+			this.dbAddress = this.db.address
 			this.db.name = dbName || null;
 			this.name = dbName;
 			this.status = 'open';
@@ -294,8 +325,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: false
-				}),
-			{ abortable: false });
+				}), options.overlappingSync ? 0x10002 : 2);
 		}
 		clear(callback) {
 			if (typeof callback == 'function')
@@ -313,8 +343,7 @@ export function open(path, options) {
 			this.transactionSync(() =>
 				this.db.drop({
 					justFreePages: true
-				}),
-			{ abortable: false });
+				}), options.overlappingSync ? 0x10002 : 2);
 		}
 		readerCheck() {
 			return env.readerCheck();

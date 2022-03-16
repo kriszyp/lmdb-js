@@ -1,5 +1,5 @@
 var assert = require('assert');
-const { Worker, isMainThread, parentPort } = require('worker_threads');
+const { Worker, isMainThread, parentPort, threadId } = require('worker_threads');
 var path = require('path');
 var numCPUs = require('os').cpus().length;
 
@@ -16,6 +16,7 @@ if (isMainThread) {
     maxDbs: 10,
     mapSize: MAX_DB_SIZE,
     maxReaders: 126,
+    overlappingSync: true,
   });
 
   var workerCount = Math.min(numCPUs * 2, 20);
@@ -29,21 +30,23 @@ if (isMainThread) {
   }
 
   var messages = [];
-
   workers.forEach(function(worker) {
     worker.on('message', function(msg) {
       messages.push(msg);
       // Once every worker has replied with a response for the value
       // we can exit the test.
 
-      setTimeout(() => worker.terminate(), 100);
+      setTimeout(() => {
+        worker.terminate()
+      }, 100);
       if (messages.length === workerCount) {
         db.close();
         for (var i = 0; i < messages.length; i ++) {
           assert(messages[i] === value.toString('hex'));
         }
-        setTimeout(() =>
-          process.exit(0), 200);
+        console.log("done", threadId)
+        //setTimeout(() =>
+          //process.exit(0), 200);
       }
     });
   });
@@ -66,14 +69,15 @@ if (isMainThread) {
     path: path.resolve(__dirname, './testdata'),
     maxDbs: 10,
     mapSize: MAX_DB_SIZE,
-    maxReaders: 126
+    maxReaders: 126,
+    overlappingSync: true,
   });
 
 
   parentPort.on('message', async function(msg) {
     if (msg.key) {
       var value = db.get(msg.key);
-      if (msg.key == 'key1') {
+      if (msg.key == 'key1' || msg.key == 'key3') {
         await db.put(msg.key, 'updated');
       }
       if (value === null) {

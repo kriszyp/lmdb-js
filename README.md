@@ -29,8 +29,6 @@ Or in Deno can be directly used from the [deno.land `lmdb` module](https://deno.
 
 This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
 
-This library was formerly known as "lmdb-store", but "lmdb-js" better represents the broad purpose of being the cross-platform LMDB JavaScript library. This package has replaced the previously deprecated (LevelDOWN) `lmdb` package in the NPM package registry, but existing versions of that library are [still available](https://www.npmjs.com/package/lmdb/v/0.2.0).
-
 ## Design
 
 This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data in LMDB.
@@ -482,8 +480,8 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 ## Alternate Database
 The lmdb-js project is developed in conjunction with [lmdbx-js](https://github.com/kriszyp/lmdbx-js), which is based on [libmdbx](https://github.com/erthink/libmdbx), a fork of LMDB. Each of these have their own advantages:
-* lmdb-js/LMDB is great for general usage, easy to set up with automated sizing, supports encryption, and works well across all platforms.
-* lmdbx-js/libmdbx has more advanced management of free space and database sizing that can offer more performance optimizations for heavy usage. However, it may have not perform as well on Windows, and the database format is not compatible with LMDB.
+* lmdb-js/LMDB is great for general usage, has very high performance, easy to set up with automated sizing, supports encryption, and works well across all platforms.
+* lmdbx-js/libmdbx has more advanced management of free space and database sizing that can offer more performance optimizations for situations that require intense free space reclamation. However, in my experience lmdb-js has better performance than lmdbx-js, and the database format is not compatible with LMDB.
 
 ## Credits
 

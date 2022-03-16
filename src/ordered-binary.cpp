@@ -3,6 +3,8 @@
 #ifdef _WIN32
 #define ntohl _byteswap_ulong
 #define htonl _byteswap_ulong
+#else
+#include <arpa/inet.h>
 #endif
 
 // compare items by 32-bit comparison, a is user provided and assumed to be zero terminated/padded
