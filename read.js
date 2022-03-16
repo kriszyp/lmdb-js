@@ -417,6 +417,7 @@ export function addReadMethods(LMDBStore, {
 			// allowing a separate to absorb the potentially largest cost: hard page faults (and disk I/O).
 			// And then we just do standard sync gets (to deserialized data) to fulfil the callback/promise
 			// once the prefetch occurs
+			let promise = callback ? undefined : new Promise(resolve => callback = (error, results) => resolve(results));
 			this.prefetch(keys, () => {
 				let results = new Array(keys.length);
 				for (let i = 0, l = keys.length; i < l; i++) {
@@ -424,7 +425,7 @@ export function addReadMethods(LMDBStore, {
 				}
 				callback(null, results);
 			});
-			return callback ? undefined : new Promise(resolve => callback = (error, results) => resolve(results));
+			return promise;
 		},
 		getSharedBufferForGet(id) {
 			let txn = (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn()));
@@ -451,6 +452,15 @@ export function addReadMethods(LMDBStore, {
 			return buffer.slice(lastOffset, lastOffset + this.lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + this.lastSize)*/
 		},
 		prefetch(keys, callback) {
+			if (!keys)
+				throw new Error('An array of keys must be provided');
+			if (!keys.length) {
+				if (callback) {
+					callback(null);
+					return;
+				} else
+					return Promise.resolve();
+			}
 			let buffers = [];
 			let startPosition;
 			let bufferHolder = {};
