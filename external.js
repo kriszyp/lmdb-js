@@ -15,7 +15,7 @@ let nativeAddon = require('node-gyp-build')(dirName);
 let [ majorVersion, minorVersion ] = process.versions.node.split('.')
 if (process.versions.v8.includes('node') && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 	let v8Funcs = {};
-	let fastApiCalls = majorVersion == 17 || majorVersion == 16 && minorVersion > 6;
+	let fastApiCalls = (majorVersion == 17 || majorVersion == 16 && minorVersion > 6) && !process.env.DISABLE_TURBO_CALLS;
 	if (fastApiCalls)
 		require('v8').setFlagsFromString('--turbo-fast-api-calls')
 	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);

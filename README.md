@@ -25,7 +25,9 @@ This library is published to the NPM package `lmdb` (the 1.x versions were publi
 ```
 npm install lmdb
 ```
-Or in Deno can be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts) (see [Deno instructions](#deno)).
+`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and Deno. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
+
+In Deno, this package could be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts), but Node-API support is currently in-progress, so probably will require Deno v1.22+ (for older versions of Deno, you can use `lmdb-js` v2.2.x).
 
 This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
 
@@ -35,7 +37,7 @@ This library handles translation of JavaScript values, primitives, arrays, and o
 
 `lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS and Deno code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
-With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and legendary performance.
+With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and unparalled performance.
 
 This library supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows this library to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
 
@@ -474,7 +476,7 @@ dbLevel.get(id).then(...)
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
-##### Build Options
+#### Build Options
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install --use_robust=true`: This will enable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead, but this is recommended if you will be using multiple processes.
 
@@ -482,7 +484,8 @@ On MacOS, there is a default limit of 10 robust locked semaphores, which imposes
 
 `npm install --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
-`npm install --enable_fast_api_calls=true` (or env var `ENABLE_FAST_API_CALLS=true`): This will build `lmdb-js` with V8's new API for fast calls. `lmdb-js` supports the new fast API for several functions, and this can provide significant performance benefits for `get`s and range retrieval. This should be used in conjunction with starting node with the `--turbo-fast-api-calls` option. This is only supported in Node v16 and higher.
+#### Turbo Mode
+On Node V16+, lmdb-js will automatically enable V8's turbo fast-api calls (the `--turbo-fast-api-calls` V8 flag) to accelerate `lmdb-js`'s turbo-enabled functions. If you do not want this flag enabled, set the env variable `DISABLE_TURBO_CALLS=true` for your node process, or build from source with `--enable_fast_api_calls=false`.
 
 ## Alternate Database
 The lmdb-js project is developed in conjunction with [lmdbx-js](https://github.com/kriszyp/lmdbx-js), which is based on [libmdbx](https://github.com/erthink/libmdbx), a fork of LMDB. Each of these have their own advantages:
