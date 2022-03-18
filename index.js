@@ -19,7 +19,7 @@ export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { clearKeptObjects, v8AccelerationEnabled } from './external.js';
-export { open, getLastVersion, getLastEntrySize, setLastVersion, allDbs } from './open.js';
+export { open, openAsClass, getLastVersion, setLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, getLastVersion } from './open.js';
 export const ABORTABLE = 1;

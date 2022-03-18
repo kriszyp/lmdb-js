@@ -15,6 +15,7 @@ let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../index.js';
 import { RangeIterable } from '../util/RangeIterable.js'
 import { assert } from 'console';
+import { openAsClass } from '../open.js';
 
 describe('lmdb-js', function() {
   let testDirPath = path.resolve(dirName, './testdata-ls');
@@ -1031,11 +1032,12 @@ describe('lmdb-js', function() {
     this.timeout(10000);
     let db, db2;
     before(function() {
-      db = open(testDirPath, {
-        name: 'uint32',
+      let options = {
         keyEncoding: 'uint32',
         compression: true,
-      });
+      };
+      let Store = openAsClass(testDirPath, options);
+      db = new Store('uint32', options)
     });
     it('write and read range', async function() {
       let lastPromise

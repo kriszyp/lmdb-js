@@ -20,21 +20,16 @@ const DEFAULT_COMMIT_DELAY = 0;
 
 export const allDbs = new Map();
 let defaultCompression;
-let lastSize, lastOffset, lastVersion;
+let lastSize;
 let hasRegisteredOnExit;
 export function open(path, options) {
 	if (!keyBytes) // TODO: Consolidate get buffer and key buffer (don't think we need both)
 		allocateFixedBuffer();
-	let committingWrites;
-	let scheduledTransactions;
-	let scheduledOperations;
-	let asyncTransactionAfter = true, asyncTransactionStrictOrder;
-	let transactionWarned;
 	if (typeof path == 'object' && !options) {
 		options = path;
 		path = options.path;
 	}
-	options = options || {}
+	options = options || {};
 	let userOptions = options;
 	if (!path) {
 		options = Object.assign({
@@ -64,12 +59,8 @@ export function open(path, options) {
 		mapSize: remapChunks ? 0x10000000000000 :
 			0x20000, // Otherwise we start small with 128KB
 	}, options);
-	if (options.asyncTransactionOrder == 'before') {
-		console.warn('asyncTransactionOrder: "before" is deprecated');
-		asyncTransactionAfter = false;
-	} else if (options.asyncTransactionOrder == 'strict') {
-		asyncTransactionStrictOrder = true;
-		asyncTransactionAfter = false;
+	if (options.asyncTransactionOrder == 'strict') {
+		options.strictAsyncOrder = true;
 	}
 
 	if (!exists(options.noSubdir ? pathModule.dirname(path) : path))
@@ -260,44 +251,6 @@ export function open(path, options) {
 				callback(null, db);
 			return db;
 		}
-		transactionAsync(callback, asChild) {
-			let lastOperation;
-			let after, strictOrder;
-			if (scheduledOperations) {
-				lastOperation = asyncTransactionAfter ? scheduledOperations.appendAsyncTxn :
-					scheduledOperations[asyncTransactionStrictOrder ? scheduledOperations.length - 1 : 0];
-			} else {
-				scheduledOperations = [];
-				scheduledOperations.bytes = 0;
-			}
-			let transactionSet;
-			let transactionSetIndex;
-			if (lastOperation === true) { // continue last set of transactions
-				transactionSetIndex = scheduledTransactions.length - 1;
-				transactionSet = scheduledTransactions[transactionSetIndex];
-			} else {
-				// for now we signify transactions as a true
-				if (asyncTransactionAfter) // by default we add a flag to put transactions after other operations
-					scheduledOperations.appendAsyncTxn = true;
-				else if (asyncTransactionStrictOrder)
-					scheduledOperations.push(true);
-				else // in before mode, we put all the async transaction at the beginning
-					scheduledOperations.unshift(true);
-				if (!scheduledTransactions) {
-					scheduledTransactions = [];
-				}
-				transactionSetIndex = scheduledTransactions.push(transactionSet = []) - 1;
-			}
-			let index = (transactionSet.push(asChild ?
-				{asChild, callback } : callback) - 1) << 1;
-			return this.scheduleCommit().results.then((results) => {
-				let transactionResults = results.transactionResults[transactionSetIndex];
-				let error = transactionResults[index];
-				if (error)
-					throw error;
-				return transactionResults[index + 1];
-			});
-		}
 		backup(path) {
 			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
 				if (error) {
@@ -395,15 +348,19 @@ export function open(path, options) {
 		deferredOpen: true,
 		openCallback: true,	
 	};
-	return options.cache ?
-		new (CachingStore(LMDBStore))(options.name || null, options) :
-		new LMDBStore(options.name || null, options);
+	let Class = options.cache ? CachingStore(LMDBStore) : LMDBStore;
+	return options.asClass ? Class : new Class(options.name || null, options);
+}
+export function openAsClass(path, options) {
+	if (typeof path == 'object' && !options) {
+		options = path;
+		path = options.path;
+	}
+	options = options || {};
+	options.asClass = true;
+	return open(path, options);
 }
 
-
-export function getLastEntrySize() {
-	return lastSize;
-}
 export function getLastVersion() {
 	return keyBytesView.getFloat64(16, true);
 }

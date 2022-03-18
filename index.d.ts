@@ -1,6 +1,7 @@
 declare namespace lmdb {
 	export function open<V = any, K extends Key = Key>(path: string, options: RootDatabaseOptions): RootDatabase<V, K>
 	export function open<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): RootDatabase<V, K>
+	export function openAsClass<V = any, K extends Key = Key>(options: RootDatabaseOptionsWithPath): DatabaseClass<V, K>
 
 	class Database<V = any, K extends Key = Key> {
 		/**
@@ -280,6 +281,9 @@ declare namespace lmdb {
 		**/
 		openDB<OV = V, OK extends Key = K>(dbName: string, dbOptions: DatabaseOptions): Database<OV, OK>
 	}
+	class DatabaseClass<V = any, K extends Key = Key> {
+		new(name: string | null, options: DatabaseOptions): Database<V, K>
+	}
 
 	type Key = Key[] | string | symbol | number | boolean | Uint8Array;
 
@@ -299,9 +303,10 @@ declare namespace lmdb {
 		maxDbs?: number
 		/** Set a longer delay (in milliseconds) to wait longer before committing writes to increase the number of writes per transaction (higher latency, but more efficient) **/
 		commitDelay?: number
-		asyncTransactionOrder?: 'after' | 'before' | 'strict'
 		mapSize?: number
 		pageSize?: number
+		overlappingSync?: boolean
+		separateFlushed?: boolean
 		remapChunks?: boolean
 		/** This provides a small performance boost (when not using useWritemap) for writes, by skipping zero'ing out malloc'ed data, but can leave application data in unused portions of the database. This is recommended unless there are concerns of database files being accessible. */
 		noMemInit?: boolean
@@ -313,7 +318,6 @@ declare namespace lmdb {
 		readOnly?: boolean
 		mapAsync?: boolean
 		maxReaders?: number
-		winMemoryPriority?: 1 | 2 | 3 | 4 | 5
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
 		path: string
