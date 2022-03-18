@@ -283,11 +283,17 @@ This will retrieve the binary data at the specified key. This is just like `get`
 ### `db.getBinaryFast(key): Buffer`
 This will retrieve the binary data at the specified key, like `getBinary`, except it uses reusable buffers, which is faster, but means the data in the buffer is only valid until the next get operation (including cursor operations). Since this is a reusable buffer it also slightly differs from a typical buffer: the `length` property is set to the length of the value (what you typically want for normal usage), but the `byteLength` will be the size of the full allocated memory area for the buffer (usually much larger).
 
-### `prefetch(ids, callback?): Promise`
+### `db.prefetch(ids, callback?): Promise`
 With larger databases and situations where the data in the database may not be cached in memory, it may be advisable to use asynchronous methods to fetch data to avoid slow/expensive hard-page faults on the main thread. This method provides a means of asynchronously fetching data in separate thread/asynchronously to ensure data is in memory. This fetches the data for given ids and accesses all pages to ensure that any hard page faults are done asynchronously. Once completed, synchronous gets to the same entries will most likely be in memory and fast. The `prefetch` can also be run in parallel with sync `get`s (for the same entries) in situations where the main thread be busy with deserialization and other work at roughly the same rate as the prefetch page faults might occur.
 
-### `getMany(ids: K[], callback?): Promise`
+### `db.getMany(ids: K[], callback?): Promise`
 Asynchronously gets the values stored by the given ids and return the values in array corresponding to the array of ids. This uses `prefetch` followed by `get`s for each entry once the data is prefetched.
+
+### `db.clearAsync(): Promise` and `db.clearSync()`
+These methods remove all the entries from a database (asynchronously or synchronously, respectively).
+
+### `db.drop(): Promise` and `db.dropSync()`
+These methods remove all the entries from a database and delete that database (asynchronously or synchronously, respectively).
 
 ### `resetReadTxn(): void`
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
