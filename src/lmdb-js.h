@@ -507,8 +507,6 @@ public:
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
 	int32_t doGetByBinary(uint32_t keySize);
-	Napi::Value getStringByBinary(const CallbackInfo& info);
-	Napi::Value getSharedByBinary(const CallbackInfo& info);
 	static void setupExports(Napi::Env env, Object exports);
 };
 

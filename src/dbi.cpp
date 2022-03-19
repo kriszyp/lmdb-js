@@ -175,46 +175,53 @@ NAPI_FUNCTION(getByBinary) {
 napi_finalize noop = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
 };
-Value DbiWrap::getSharedByBinary(const Napi::CallbackInfo& info) {
-	char* keyBuffer = this->ew->keyBuffer;
-	MDB_txn* txn = this->ew->getReadTxn();
+NAPI_FUNCTION(getSharedByBinary) {
+	ARGS(2)
+	DbiWrap* dw;
+	GET_INT64_ARG(dw, 0);
+	uint32_t keySize;
+	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
 	MDB_val data;
-	key.mv_size = info[0].As<Number>().Uint32Value();
-	key.mv_data = (void*) keyBuffer;
-	int rc = mdb_get(txn, this->dbi, &key, &data);
+	key.mv_size = keySize;
+	key.mv_data = (void*) dw->ew->keyBuffer;
+	MDB_txn* txn = dw->ew->getReadTxn();
+	int rc = mdb_get(txn, dw->dbi, &key, &data);
 	if (rc) {
-		if (rc == MDB_NOTFOUND)
-			return info.Env().Undefined();
-		else
-			return throwLmdbError(info.Env(), rc);
+		if (rc == MDB_NOTFOUND) {
+			RETURN_UNDEFINED;
+		} else
+			return throwLmdbError(env, rc);
 	}
-	rc = getVersionAndUncompress(data, this);
-	napi_value buffer;
-	napi_create_external_buffer(info.Env(), data.mv_size,
-		(char*) data.mv_data, noop, nullptr, &buffer);
-	return Value::From(info.Env(), buffer);
+	rc = getVersionAndUncompress(data, dw);
+	napi_create_external_buffer(env, data.mv_size,
+		(char*) data.mv_data, noop, nullptr, &returnValue);
+	return returnValue;
 }
-
-Value DbiWrap::getStringByBinary(const Napi::CallbackInfo& info) {
-	char* keyBuffer = this->ew->keyBuffer;
-	MDB_txn* txn = this->ew->getReadTxn();
+NAPI_FUNCTION(getStringByBinary) {
+	ARGS(2)
+	DbiWrap* dw;
+	GET_INT64_ARG(dw, 0);
+	uint32_t keySize;
+	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
 	MDB_val data;
-	key.mv_size = info[0].As<Number>().Uint32Value();
-	key.mv_data = (void*) keyBuffer;
-	int rc = mdb_get(txn, this->dbi, &key, &data);
+	key.mv_size = keySize;
+	key.mv_data = (void*) dw->ew->keyBuffer;
+	MDB_txn* txn = dw->ew->getReadTxn();
+	int rc = mdb_get(txn, dw->dbi, &key, &data);
 	if (rc) {
-		if (rc == MDB_NOTFOUND)
-			return info.Env().Undefined();
-		else
-			return throwLmdbError(info.Env(), rc);
+		if (rc == MDB_NOTFOUND) {
+			RETURN_UNDEFINED;
+		} else
+			return throwLmdbError(env, rc);
 	}
-	rc = getVersionAndUncompress(data, this);
+	rc = getVersionAndUncompress(data, dw);
 	if (rc)
-		return valToUtf8(info.Env(), data);
+		napi_create_string_utf8(env, (char*) data.mv_data, data.mv_size, &returnValue);
 	else
-		return Number::New(info.Env(), data.mv_size);
+		napi_create_int32(env, data.mv_size, &returnValue);
+	return returnValue;
 }
 
 int DbiWrap::prefetch(uint32_t* keys) {
@@ -296,12 +303,12 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		DbiWrap::InstanceMethod("close", &DbiWrap::close),
 		DbiWrap::InstanceMethod("drop", &DbiWrap::drop),
 		DbiWrap::InstanceMethod("stat", &DbiWrap::stat),
-		DbiWrap::InstanceMethod("getStringByBinary", &DbiWrap::getStringByBinary),
-		DbiWrap::InstanceMethod("getSharedByBinary", &DbiWrap::getSharedByBinary),
 	});
 	exports.Set("Dbi", DbiClass);
 	EXPORT_NAPI_FUNCTION("getByBinary", getByBinary);
 	EXPORT_NAPI_FUNCTION("prefetch", prefetchNapi);
+	EXPORT_NAPI_FUNCTION("getStringByBinary", getStringByBinary);
+	EXPORT_NAPI_FUNCTION("getSharedByBinary", getSharedByBinary);
 	// TODO: wrap mdb_stat too
 }
 

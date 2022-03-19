@@ -1,13 +1,13 @@
 import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
 import { saveKey }  from './keys.js';
-const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue } = native;
+const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue, getStringByBinary, getSharedByBinary } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
 let getValueBytes = makeReusableBuffer(0);
 const START_ADDRESS_POSITION = 4064;
-const NEW_BUFFER_THRESHOLD = 0x10000;
+const NEW_BUFFER_THRESHOLD = 0x8000;
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
@@ -17,11 +17,11 @@ export function addReadMethods(LMDBStore, {
 	Object.assign(LMDBStore.prototype, {
 		getString(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			let string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0));
+			let string = getStringByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
 			if (typeof string === 'number') { // indicates the buffer wasn't large enough
 				this._allocateGetBuffer(string);
 				// and then try again
-				string = this.db.getStringByBinary(this.writeKey(id, keyBytes, 0));
+				string = getStringByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
 			}
 			if (string)
 				this.lastSize = string.length;
@@ -49,11 +49,11 @@ export function addReadMethods(LMDBStore, {
 				if (returnNullWhenBig && this.lastSize > NEW_BUFFER_THRESHOLD)
 					 // used by getBinary to indicate it should create a dedicated buffer to receive this
 					return null;
-				if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression && this.db.getSharedByBinary) {
+				if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
 					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
 					if (this.lastShared && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
 						detachBuffer(this.lastShared.buffer)
-					return this.lastShared = this.db.getSharedByBinary(this.writeKey(id, keyBytes, 0));
+					return this.lastShared = getSharedByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
 				}
 				// grow our shared/static buffer to accomodate the size of the data
 				bytes = this._allocateGetBuffer(this.lastSize);
