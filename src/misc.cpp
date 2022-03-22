@@ -8,13 +8,6 @@ using namespace Napi;
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
 
-static napi_value perfTest(napi_env env, napi_callback_info info) {
-  napi_status status;
-  napi_value world;
-  status = napi_create_uint32(env, 0xffffffff, &world);
-  return world;
-}
-
 void setupExportMisc(Napi::Env env, Object exports) {
 	Object versionObj = Object::New(env);
 
@@ -32,14 +25,9 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	exports.Set("setGlobalBuffer", Function::New(env, setGlobalBuffer));
 	exports.Set("lmdbError", Function::New(env, lmdbError));
 	//exports.Set("getBufferForAddress", Function::New(env, getBufferForAddress));
-	exports.Set("getAddress", Function::New(env, getViewAddress));
 	exports.Set("enableDirectV8", Function::New(env, enableDirectV8));
-	//exports.Set("enableDirectV8Fast", Function::New(env, enableDirectV8Fast));
-	napi_property_descriptor desc =  { "perfTest", 0, perfTest, 0, 0, 0, napi_default, 0 };
-	napi_define_properties(env, exports, 1, &desc);
-	// this is set solely for the purpose of giving a good name to the set of native functions for the profiler since V8
-	// often just uses the name of the last exported native function:
-	//exports.Set("lmdbNativeFunctions", lmdbNativeFunctions);
+	EXPORT_NAPI_FUNCTION("getAddress", getViewAddress);
+	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
@@ -146,10 +134,19 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 	auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
 	info.GetReturnValue().Set(array_buffer);
 }*/
-Value getViewAddress(const CallbackInfo& info) {
+NAPI_FUNCTION(getViewAddress) {
+	ARGS(1)
 	void* data;
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, nullptr, &data, nullptr, nullptr);
-	return Number::New(info.Env(), (int64_t) data);
+	napi_get_typedarray_info(env, args[0], nullptr, nullptr, &data, nullptr, nullptr);
+	RETURN_INT64((int64_t) data);
+}
+
+NAPI_FUNCTION(detachBuffer) {
+	ARGS(1)
+	#if (NAPI_VERSION > 6)
+	napi_detach_arraybuffer(env, args[0]);
+	#endif
+	RETURN_UNDEFINED;
 }
 
 Value lmdbNativeFunctions(const CallbackInfo& info) {
