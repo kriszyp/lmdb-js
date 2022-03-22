@@ -2,7 +2,7 @@
 import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
 import { isMaster, fork } from 'cluster';
 import inspector from 'inspector'
-
+//inspector.open(9330, null, true); debugger
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
 import rimraf from 'rimraf';
@@ -180,16 +180,16 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    //suite.add('getRange', getRange);
-    /*suite.add('setData', setData/*, {
+    suite.add('getRange', getRange);
+    suite.add('setData', setData, /*{
       defer: true,
       fn: setData
-    });*/
+    }*/);
     /*suite.add('put-batch', {
       defer: true,
       fn: batchDataAdd
     });*/
-    //suite.add('get', getData);
+    suite.add('get', getData);
     //suite.add('plainJSON', plainJSON);
     
     suite.add('getBinary', getBinary);
