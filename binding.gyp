@@ -14,11 +14,13 @@
     ['OS=="win"', {
       "variables": {
         "enable_fast_api_calls%": "<!(echo %ENABLE_FAST_API_CALLS%)",
+        "enable_v8%": "<!(echo %ENABLE_V8_FUNCTIONS%)",
       }
     }],
     ['OS!="win"', {
       "variables": {
         "enable_fast_api_calls%": "<!(echo $ENABLE_FAST_API_CALLS)",
+        "enable_v8%": "<!(echo $ENABLE_V8_FUNCTIONS%)",
       }
     }]
   ],
@@ -95,7 +97,7 @@
         ['runtime=="electron"', {
           "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
-        ["enable_v8=='true'", {
+        ["enable_v8!='false'", {
           "defines": ["ENABLE_V8_API=1"],
         }],
         ["enable_fast_api_calls=='true'", {
