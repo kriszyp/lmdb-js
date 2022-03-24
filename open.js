@@ -7,8 +7,10 @@ setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
 const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = native;
-if (globalThis.__lmdb_envs__)
-	setEnvsPointer(globalThis.__lmdb_envs__());
+if (globalThis.__lmdb_envs__) {
+	console.log('globalThis.__lmdb_envs__', globalThis.__lmdb_envs__)
+	setEnvsPointer(globalThis.__lmdb_envs__);
+}
 else
 	globalThis.__lmdb_envs__ = getEnvsPointer();
 
