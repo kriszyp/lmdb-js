@@ -1,6 +1,6 @@
 [![license](https://img.shields.io/badge/license-MIT-brightgreen)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/lmdb.svg?style=flat-square)](https://www.npmjs.org/package/lmdb)
-[![npm downloads](https://img.shields.io/npm/dw/lmdb-store)](https://www.npmjs.org/package/lmdb)
+[![npm downloads](https://img.shields.io/npm/dw/lmdb)](https://www.npmjs.org/package/lmdb)
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
