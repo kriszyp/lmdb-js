@@ -62,10 +62,10 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 	napi_get_cb_info(env, info, &argc, args, NULL, NULL);
 #define GET_UINT32_ARG(target, position) napi_get_value_uint32(env, args[position], (uint32_t*) &target)
 #define GET_INT64_ARG(target, position) napi_get_value_int64(env, args[position], (int64_t*) &target)
-#define RETURN_UINT32(value) napi_create_uint32(env, value, &returnValue); return returnValue;
-#define RETURN_INT32(value) napi_create_int32(env, value, &returnValue); return returnValue;
-#define RETURN_INT64(value) napi_create_int64(env, value, &returnValue); return returnValue;
-#define RETURN_UNDEFINED napi_get_undefined(env, &returnValue); return returnValue;
+#define RETURN_UINT32(value) { napi_create_uint32(env, value, &returnValue); return returnValue; }
+#define RETURN_INT32(value) { napi_create_int32(env, value, &returnValue); return returnValue; }
+#define RETURN_INT64(value) { napi_create_int64(env, value, &returnValue); return returnValue; }
+#define RETURN_UNDEFINED { napi_get_undefined(env, &returnValue); return returnValue; }
 #define THROW_ERROR(message) { napi_throw_error(env, NULL, message); napi_get_undefined(env, &returnValue); return returnValue; }
 #define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, (napi_property_attributes) (napi_writable | napi_configurable), 0 }; napi_define_properties(env, exports, 1, &desc); }
 

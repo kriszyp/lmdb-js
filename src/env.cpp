@@ -164,11 +164,6 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
 	std::string pathString = path.Utf8Value();
-	/*int pathLength = path.Length();
-	if (bytes != pathLength)
-		fprintf(stderr, "Bytes do not match %u %u", bytes, pathLength);
-	if (pathBytes[bytes])
-		fprintf(stderr, "String is not null-terminated");*/
 	// Parse the maxDbs option
 	int maxDbs = 12;
 	Napi::Value option = options.Get("maxDbs");

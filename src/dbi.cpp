@@ -172,7 +172,7 @@ NAPI_FUNCTION(getByBinary) {
 	GET_UINT32_ARG(keySize, 1);
 	RETURN_INT32(dw->doGetByBinary(keySize));
 }
-napi_finalize noop = [](napi_env, void *, void *) {
+napi_finalize noopDbi = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
 };
 NAPI_FUNCTION(getSharedByBinary) {
@@ -195,7 +195,7 @@ NAPI_FUNCTION(getSharedByBinary) {
 	}
 	rc = getVersionAndUncompress(data, dw);
 	napi_create_external_buffer(env, data.mv_size,
-		(char*) data.mv_data, noop, nullptr, &returnValue);
+		(char*) data.mv_data, noopDbi, nullptr, &returnValue);
 	return returnValue;
 }
 NAPI_FUNCTION(getStringByBinary) {

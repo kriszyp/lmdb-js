@@ -936,6 +936,8 @@ describe('lmdb-js', function() {
       dbBinary.getBinaryFast('big')[3].should.equal(3);
       dbBinary.getBinaryFast('big')[3].should.equal(3); // do it twice to test detach the previous one
       dbBinary.get('Uint8Array')[1].should.equal(2);
+      Array.from(dbBinary.getRange({ start: 'big' }))[0].value[3].should.equal(3);
+      Array.from(dbBinary.getRange({ start: 'big' }))[0].value[3].should.equal(3);
     });
     it('read and write with binary encoding of key and value', async function() {
       let dbBinary = db.openDB({

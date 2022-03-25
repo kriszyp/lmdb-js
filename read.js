@@ -1,7 +1,7 @@
 import { RangeIterable }  from './util/RangeIterable.js';
 import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
 import { saveKey }  from './keys.js';
-const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue, getStringByBinary, getSharedByBinary } = native;
+const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue, getCurrentShared,  getStringByBinary, getSharedByBinary } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
@@ -12,7 +12,7 @@ const NEW_BUFFER_THRESHOLD = 0x8000;
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
 }) {
-	let readTxn, readTxnRenewed, returnNullWhenBig = false;
+	let readTxn, readTxnRenewed, asSafeBuffer = false;
 	let renewId = 1;
 	Object.assign(LMDBStore.prototype, {
 		getString(id) {
@@ -29,7 +29,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			let rc = this.lastSize = getByBinary.call(this, this.dbAddress, this.writeKey(id, keyBytes, 0));
+			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
 			if (rc < 0) {
 				if (rc == -30798) // MDB_NOTFOUND
 					return; // undefined
@@ -46,20 +46,54 @@ export function addReadMethods(LMDBStore, {
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
-				if (returnNullWhenBig && this.lastSize > NEW_BUFFER_THRESHOLD)
-					 // used by getBinary to indicate it should create a dedicated buffer to receive this
-					return null;
-				if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
-					// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
-					if (this.lastShared && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
-						detachBuffer(this.lastShared.buffer)
-					return this.lastShared = getSharedByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
-				}
-				// grow our shared/static buffer to accomodate the size of the data
-				bytes = this._allocateGetBuffer(this.lastSize);
-				// and try again
-				this.lastSize = getByBinary.call(this, this.dbAddress, this.writeKey(id, keyBytes, 0));
+				return this._returnLargeBuffer(
+					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)),
+					() => getSharedByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
 			}
+			bytes.length = this.lastSize;
+			return bytes;
+		},
+		_returnLargeBuffer(getFast, getShared) {
+			let bytes;
+			let compression = this.compression;
+			if (asSafeBuffer && this.lastSize > NEW_BUFFER_THRESHOLD) {
+				// used by getBinary to indicate it should create a dedicated buffer to receive this
+				let bytesToRestore
+				try {
+					if (compression) {
+						bytesToRestore = compression.getValueBytes;
+						let dictionary = compression.dictionary || [];
+						let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
+						bytes = makeReusableBuffer(this.lastSize);
+						compression.setBuffer(bytes, this.lastSize, dictionary, dictLength);
+						compression.getValueBytes = bytes;
+					} else {
+						bytesToRestore = getValueBytes;
+						setGlobalBuffer(bytes = getValueBytes = makeReusableBuffer(this.lastSize));
+					}
+					getFast();
+				} finally {
+					if (compression) {
+						let dictLength = (compression.dictionary.length >> 3) << 3;
+						compression.setBuffer(bytesToRestore, bytesToRestore.maxLength, compression.dictionary, dictLength);
+						compression.getValueBytes = bytesToRestore;
+					} else {
+						setGlobalBuffer(bytesToRestore);
+						getValueBytes = bytesToRestore;
+					}
+				}
+				return bytes;
+			}
+			if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
+				// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
+				if (this.lastShared && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
+					detachBuffer(this.lastShared.buffer);
+				return this.lastShared = getShared();
+			}
+			// grow our shared/static buffer to accomodate the size of the data
+			bytes = this._allocateGetBuffer(this.lastSize);
+			// and try again
+			getFast();
 			bytes.length = this.lastSize;
 			return bytes;
 		},
@@ -81,41 +115,16 @@ export function addReadMethods(LMDBStore, {
 				bytes = makeReusableBuffer(newLength);
 				setGlobalBuffer(getValueBytes = bytes);
 			}
+			bytes.isShared = true;
 			return bytes;
 		},
 		getBinary(id) {
-			let bytesToRestore;
 			try {
-				returnNullWhenBig = true;
+				asSafeBuffer = true;
 				let fastBuffer = this.getBinaryFast(id);
-				if (fastBuffer === null) {
-					if (this.compression) {
-						bytesToRestore = this.compression.getValueBytes;
-						let dictionary = this.compression.dictionary || [];
-						let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
-						let bytes = makeReusableBuffer(this.lastSize);
-						this.compression.setBuffer(bytes, this.lastSize, dictionary, dictLength);
-						this.compression.getValueBytes = bytes;
-					} else {
-						bytesToRestore = getValueBytes;
-						setGlobalBuffer(getValueBytes = makeReusableBuffer(this.lastSize));
-					}
-					return this.getBinaryFast(id);
-				}
-				return fastBuffer && Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);
+				return fastBuffer && (fastBuffer.isShared ? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize) : fastBuffer);
 			} finally {
-				returnNullWhenBig = false;
-				if (bytesToRestore) {
-					if (this.compression) {
-						let compression = this.compression;
-						let dictLength = (compression.dictionary.length >> 3) << 3;
-						compression.setBuffer(bytesToRestore, bytesToRestore.maxLength, compression.dictionary, dictLength);
-						compression.getValueBytes = bytesToRestore;
-					} else {
-						setGlobalBuffer(bytesToRestore);
-						getValueBytes = bytesToRestore;
-					}
-				}
+				asSafeBuffer = false;
 			}
 		},
 		get(id) {
@@ -356,16 +365,22 @@ export function addReadMethods(LMDBStore, {
 							lastSize = keyBytesView.getUint32(0, true);
 							let bytes = compression ? compression.getValueBytes : getValueBytes;
 							if (lastSize > bytes.maxLength) {
-								bytes = store._allocateGetBuffer(lastSize);
-								let rc = getCurrentValue(cursorAddress);
-								if (rc < 0)
-									lmdbError(count);
-							}
-							bytes.length = lastSize;
+								store.lastSize = lastSize;
+								asSafeBuffer = store.encoding == 'binary';
+								try {
+									bytes = store._returnLargeBuffer(
+										() => getCurrentValue(cursorAddress),
+										() => getCurrentShared(cursorAddress)
+									);
+								} finally {
+									asSafeBuffer = false;
+								}
+							} else
+								bytes.length = lastSize;
 							if (store.decoder) {
 								value = store.decoder.decode(bytes, lastSize);
 							} else if (store.encoding == 'binary')
-								value = Uint8ArraySlice.call(bytes, 0, lastSize);
+								value = bytes.isShared ? Uint8ArraySlice.call(bytes, 0, lastSize) : bytes;
 							else {
 								value = bytes.toString('utf8', 0, lastSize);
 								if (store.encoding == 'json' && value)

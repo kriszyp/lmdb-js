@@ -249,6 +249,23 @@ NAPI_FUNCTION(getCurrentValue) {
 	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
 
+napi_finalize noopCursor = [](napi_env, void *, void *) {
+	// Data belongs to LMDB, we shouldn't free it here
+};
+NAPI_FUNCTION(getCurrentShared) {
+	ARGS(1)
+	CursorWrap* cw;
+	GET_INT64_ARG(cw, 0);
+	MDB_val key, data;
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
+	if (rc)
+		RETURN_INT32(cw->returnEntry(rc, key, data));
+	getVersionAndUncompress(data, cw->dw);
+	napi_create_external_buffer(env, data.mv_size,
+		(char*) data.mv_data, noopCursor, nullptr, &returnValue);
+	return returnValue;
+}
+
 NAPI_FUNCTION(renew) {
 	ARGS(1)
 	CursorWrap* cw;
@@ -267,6 +284,7 @@ void CursorWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("position", position);
 	EXPORT_NAPI_FUNCTION("iterate", iterate);
 	EXPORT_NAPI_FUNCTION("getCurrentValue", getCurrentValue);
+	EXPORT_NAPI_FUNCTION("getCurrentShared", getCurrentShared);
 	EXPORT_NAPI_FUNCTION("renew", renew);
 	exports.Set("Cursor", CursorClass);
 
