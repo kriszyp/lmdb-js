@@ -348,7 +348,7 @@ export function open(path, options) {
 		deferredOpen: true,
 		openCallback: true,	
 	};
-	let Class = options.cache ? CachingStore(LMDBStore) : LMDBStore;
+	let Class = options.cache ? CachingStore(LMDBStore, env) : LMDBStore;
 	return options.asClass ? Class : new Class(options.name || null, options);
 }
 export function openAsClass(path, options) {

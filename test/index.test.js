@@ -699,21 +699,19 @@ describe('lmdb-js', function() {
       let ranTransaction
       db.put('key1', 'async initial value'); // should be queued for async write, but should put before queued transaction
       let errorHandled
-      if (!db.cache) {
-        db.childTransaction(() => {
-          db.put('key1',  'should be rolled back');
-          throw new Error('Make sure this is properly propagated without interfering with next transaction')
-        }).catch(error => {
-          if (error)
-            errorHandled = true
-        })
-        await db.childTransaction(() => {
-          should.equal(db.get('key1'), 'async initial value');
-          db.put('key-a',  'async test a');
-          should.equal(db.get('key-a'), 'async test a');
-        })
-        should.equal(errorHandled, true);
-      }
+      db.childTransaction(() => {
+        db.put('key1',  'should be rolled back');
+        throw new Error('Make sure this is properly propagated without interfering with next transaction')
+      }).catch(error => {
+        if (error)
+          errorHandled = true
+      })
+      await db.childTransaction(() => {
+        should.equal(db.get('key1'), 'async initial value');
+        db.put('key-a',  'async test a');
+        should.equal(db.get('key-a'), 'async test a');
+      })
+      should.equal(errorHandled, true);
       await db.transactionAsync(() => {
         ranTransaction = true;
         should.equal(db.get('key1'), 'async initial value');

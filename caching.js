@@ -1,12 +1,17 @@
+import { env } from 'process';
 import { WeakLRUCache, clearKeptObjects } from './external.js';
-import { FAILED_CONDITION } from './write.js';
+import { FAILED_CONDITION, ABORT } from './write.js';
+import { when } from './util/when.js';
+
 let getLastVersion;
 const mapGet = Map.prototype.get;
-export const CachingStore = Store => class extends Store {
+export const CachingStore = (Store, env) => {
+	let childTxnChanges
+	return class extends Store {
 	constructor(dbName, options) {
 		super(dbName, options);
-		if (!this.env.cacheCommitter) {
-			this.env.cacheCommitter = true;
+		if (!env.cacheCommitter) {
+			env.cacheCommitter = true;
 			this.on('aftercommit', ({ next, last }) => {
 				do {
 					let store = next.store;
@@ -81,6 +86,8 @@ export const CachingStore = Store => class extends Store {
 			}	
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
 			let entry = this.cache.setValue(id, value, !result || result.isSync ? 0 : -1);
+			if (childTxnChanges)
+				childTxnChanges.add(id);
 			if (version !== undefined)
 				entry.version = typeof version === 'object' ? version.version : version;
 		}
@@ -91,6 +98,8 @@ export const CachingStore = Store => class extends Store {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
 			if (value && typeof value === 'object') {
 				let entry = this.cache.setValue(id, value);
+				if (childTxnChanges)
+					childTxnChanges.add(id);
 				if (version !== undefined) {
 					entry.version = typeof version === 'object' ? version.version : version;
 				}
@@ -115,9 +124,32 @@ export const CachingStore = Store => class extends Store {
 		this.cache.clear();
 		super.clearSync();
 	}
-	childTransaction(execute) {
-		throw new Error('Child transactions are not supported in caching stores');
+	childTransaction(callback) {
+		return super.childTransaction(() => {
+			let cache = this.cache;
+			let previousChanges = childTxnChanges;
+			try {
+				childTxnChanges = new Set();
+				return when(callback(), (result) => {
+					if (result === ABORT)
+						return abort();
+					childTxnChanges = previousChanges;
+					return result;
+				}, abort);
+			} catch(error) {
+				abort(error);
+			}
+			function abort(error) {
+				// if the transaction was aborted, remove all affected entries from cache
+				for (let id of childTxnChanges)
+					cache.delete(id);
+				childTxnChanges = previousChanges;
+				if (error)
+					throw error;
+			}
+		});
 	}
+	};
 };
 export function setGetLastVersion(get) {
 	getLastVersion = get;
