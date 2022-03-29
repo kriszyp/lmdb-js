@@ -25,7 +25,7 @@ This library is published to the NPM package `lmdb` (the 1.x versions were publi
 ```
 npm install lmdb
 ```
-`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and Deno. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
+`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and futue Deno versions. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
 
 In Deno, this package could be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts), but Node-API support is currently in-progress, so probably will require Deno v1.22+ (for older versions of Deno, you can use `lmdb-js` v2.2.x).
 
@@ -445,20 +445,6 @@ Custom key encoding can be useful for defining more efficient encodings of speci
 The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/api/events.html#events_class_eventemitter">EventEmitter</a>, allowing application to listen to database events. There is just one event right now:
 
 `beforecommit` - This event is fired before a transaction finishes/commits. The callback function can perform additional (asynchronous) writes (`put` and `remove`) and they will be included in the transaction about to be performed as the last operation(s) before the transaction commits (this can be useful for updating a global version stamp based on all previous writes, for example). Using this event forces `eventTurnBatching` to be enabled. This can be called multiples times in a transaction, but should always be called as the last operation of a transaction.
-
-## Deno
-This package is supported on Deno as of v2.1, but there are some requirements and limitations. First, lmdb-js requires FFI (which is currently marked `unstable`) and several permissions to be enabled, so you need to start deno with at least these flags:
-```
-deno run --allow-ffi --unstable --allow-write --allow-read --allow-env --allow-net your-app.ts
-```
-Deno [currently doesn't provide any infrastructure for binary builds](https://github.com/denoland/deno/issues/12943), so lmdb-js will attempt to download and save the appropriate binary file on its own. If you need to manually specify a path, you can do so with the `LMDB_LIB_PATH` env variable.
-
-You can then use the library with an import of the lmdb-js module from deno.land (insert the version you want):
-```
-import { open } from 'https://deno.land/x/lmdb@<version>/mod.ts';
-```
-
-Also, lmdb-js doesn't support asynchronous transaction callbacks (`transaction` API), which can't be efficiently implemented without a resolution to this [issue](https://github.com/denoland/deno/issues/12946). You can still use the standard asynchronous put and remove methods, which will properly be committed asynchronously, as well as the synchronous transactions.
 
 ## LevelUp
 
