@@ -236,7 +236,7 @@ export function open(path, options) {
 				dbOptions = dbOptions || {};
 			try {
 				return dbOptions.cache ?
-					new (CachingStore(LMDBStore))(dbName, dbOptions) :
+					new (CachingStore(LMDBStore, env))(dbName, dbOptions) :
 					new LMDBStore(dbName, dbOptions);
 			} catch(error) {
 				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
