@@ -1,10 +1,11 @@
 #include "lmdb-js.h"
-#include <v8.h>
+#if ENABLE_V8_API
 #include <string.h>
 #include <stdio.h>
 #include <node.h>
+#include <v8.h>
 
-#if ENABLE_V8_API && NODE_VERSION_AT_LEAST(16,6,0)
+#if NODE_VERSION_AT_LEAST(16,6,0)
 #if NODE_VERSION_AT_LEAST(17,0,0)
 #include "../dependencies/v8/v8-fast-api-calls.h"
 #else
@@ -13,7 +14,6 @@
 #endif
 
 using namespace v8;
-#if ENABLE_V8_API
 int32_t getByBinaryFast(Local<v8::Object> instance, double dwPointer, uint32_t keySize) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
 	return dw->doGetByBinary(keySize);

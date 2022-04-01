@@ -31,6 +31,7 @@ Object InitAll(Napi::Env env, Object exports) {
 	return exports;
 }
 NODE_API_MODULE(lmdb, InitAll)
+
 #ifndef _WIN32
 extern "C" void node_module_register(void* m) {
 	//fprintf(stderr, "This is just a dummy function to be called if node isn't there so deno can load this module\n");
