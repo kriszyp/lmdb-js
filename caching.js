@@ -14,14 +14,15 @@ export const CachingStore = (Store, env) => {
 			env.cacheCommitter = true;
 			this.on('aftercommit', ({ next, last }) => {
 				do {
-					let store = next.store;
+					let meta = next.meta;
+					let store = meta && meta.store;
 					if (store) {
 						if (next.flag & FAILED_CONDITION)
-							next.store.cache.delete(next.key); // just delete it from the map
+							store.cache.delete(meta.key); // just delete it from the map
 						else {
-							let expirationPriority = next.valueSize >> 10;
-							let cache = next.store.cache;
-							let entry = mapGet.call(cache, next.key);
+							let expirationPriority = meta.valueSize >> 10;
+							let cache = store.cache;
+							let entry = mapGet.call(cache, meta.key);
 							if (entry)
 								cache.used(entry, expirationPriority + 4); // this will enter it into the LRFU (with a little lower priority than a read)
 						}

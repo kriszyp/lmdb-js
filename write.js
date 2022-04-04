@@ -12,6 +12,8 @@ const TXN_FAILED = 0x40000000;
 export const FAILED_CONDITION = 0x4000000;
 const REUSE_BUFFER_MODE = 512;
 const RESET_BUFFER_MODE = 1024;
+const NO_RESOLVE = 16;
+const HAS_TXN = 8;
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
@@ -68,9 +70,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 	allocateInstructionBuffer();
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
-	var txnResolution, lastQueuedResolution, nextResolution = { uint32: dynamicBytes.uint32, flagPosition: 0, };
-	var uncommittedResolution = { next: nextResolution };
+	var txnResolution, lastQueuedResolution, nextResolution = {
+		uint32: dynamicBytes.uint32, flagPosition: 0, flag: 0, valueBuffer: null, next: null, meta: null };
+	var uncommittedResolution = {
+		uint32: null, flagPosition: 0, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
 	var unwrittenResolution = nextResolution;
+	var lastPromisedResolution = uncommittedResolution;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus;
 		let targetBytes, position, encoder;
@@ -223,23 +228,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			nextUint32 = uint32;
 		let resolution = nextResolution;
 		// create the placeholder next resolution
-		nextResolution = resolution.next = store.cache ?
-		{
+		nextResolution = resolution.next = { // we try keep resolutions exactly the same object type
 			uint32: nextUint32,
 			flagPosition: position << 1,
-			flag: 0, // TODO: eventually eliminate this, as we can probably signify success by zeroing the flagPosition
+			flag: 0, // TODO: eventually eliminate this, as we can probably signify HAS_TXN/NO_RESOLVE/FAILED_CONDITION in upper bits
 			valueBuffer: fixedBuffer, // these are all just placeholders so that we have the right hidden class initially allocated
 			next: null,
-			key,
-			store,
-			valueSize,
-		} :
-		{
-			uint32: nextUint32,
-			flagPosition: position << 1,
-			flag: 0, // TODO: eventually eliminate this, as we can probably signify success by zeroing the flagPosition
-			valueBuffer: fixedBuffer, // these are all just placeholders so that we have the right hidden class initially allocated
-			next: null,
+			meta: null,
 		};
 		let writtenBatchDepth = batchDepth;
 
@@ -296,9 +291,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				resolveWrites();
 			
 			if (store.cache) {
-				resolution.key = key;
-				resolution.store = store;
-				resolution.valueSize = valueBuffer ? valueBuffer.length : 0;
+				resolution.meta = {
+					key,
+					store,
+					valueSize: valueBuffer ? valueBuffer.length : 0,
+				};
 			}
 			resolution.valueBuffer = valueBuffer;
 			lastQueuedResolution = resolution;
@@ -307,19 +304,27 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (callback === IF_EXISTS)
 					ifVersion = IF_EXISTS;
 				else {
-					resolution.reject = callback;
-					resolution.resolve = (value) => callback(null, value);
+					let meta = resolution.meta || (resolution.meta = {});
+					meta.reject = callback;
+					meta.resolve = (value) => callback(null, value);
 					return;
 				}
 			}
 			if (ifVersion === undefined) {
-				if (writtenBatchDepth > 1)
+				if (writtenBatchDepth > 1) {
+					if (!resolution.flag && !store.cache)
+						resolution.flag = NO_RESOLVE;
 					return PROMISE_SUCCESS; // or return undefined?
-				if (!commitPromise) {
+				}
+				if (commitPromise) {
+					if (!resolution.flag)
+						resolution.flag = NO_RESOLVE;
+				} else {
 					commitPromise = new Promise((resolve, reject) => {
-						resolution.resolve = resolve;
+						let meta = resolution.meta || (resolution.meta = {});
+						meta.resolve = resolve;
 						resolve.unconditional = true;
-						resolution.reject = reject;
+						meta.reject = reject;
 					});
 					if (separateFlushed)
 						commitPromise.flushed = overlappingSync ? flushPromise : commitPromise;
@@ -327,8 +332,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return commitPromise;
 			}
 			lastWritePromise = new Promise((resolve, reject) => {
-				resolution.resolve = resolve;
-				resolution.reject = reject;
+				let meta = resolution.meta || (resolution.meta = {});
+				meta.resolve = resolve;
+				meta.reject = reject;
 			});
 			if (separateFlushed)
 				lastWritePromise.flushed = overlappingSync ? flushPromise : lastWritePromise;
@@ -388,8 +394,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 
 	function queueCommitResolution(resolution) {
-		if (!resolution.isTxn) {
-			resolution.isTxn = true;
+		if (!(resolution.flag & HAS_TXN)) {
+			resolution.flag = HAS_TXN;
 			if (txnResolution) {
 				txnResolution.nextTxn = resolution;
 				//outstandingWriteCount = 0
@@ -408,11 +414,18 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				nextTxnCallbacks.push(unwrittenResolution.callbacks);
 				unwrittenResolution.callbacks = null;
 			}
-			if (!unwrittenResolution.isTxn)
+			outstandingWriteCount--;
+			if (unwrittenResolution.flag !== HAS_TXN) {
+				if (unwrittenResolution.flag === NO_RESOLVE && !unwrittenResolution.store) {
+					// in this case we can completely remove from the linked list, clearing more memory
+					lastPromisedResolution.next = unwrittenResolution = unwrittenResolution.next;
+					continue;
+				}
 				unwrittenResolution.uint32 = null;
+			}
 			unwrittenResolution.valueBuffer = null;
 			unwrittenResolution.flag = instructionStatus;
-			outstandingWriteCount--;
+			lastPromisedResolution = unwrittenResolution;
 			unwrittenResolution = unwrittenResolution.next;
 		}
 		while (txnResolution &&
@@ -431,8 +444,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		else
 			queueMicrotask(resetReadTxn); // TODO: only do this if there are actually committed writes?
 		do {
-			if (uncommittedResolution.resolve) {
-				let resolve = uncommittedResolution.resolve;
+			if (uncommittedResolution.meta && uncommittedResolution.meta.resolve) {
+				let resolve = uncommittedResolution.meta.resolve;
 				if (uncommittedResolution.flag & FAILED_CONDITION && !resolve.unconditional)
 					resolve(false);
 				else
@@ -450,11 +463,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			commitRejectPromise.reject = rejectFunction;
 		}
 		do {
-			if (uncommittedResolution.reject) {
+			if (uncommittedResolution.meta && uncommittedResolution.meta.reject) {
 				let flag = uncommittedResolution.flag & 0xf;
 				let error = new Error("Commit failed (see commitError for details)");
 				error.commitError = commitRejectPromise;
-				uncommittedResolution.reject(error);
+				uncommittedResolution.meta.reject(error);
 			}
 		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != txnResolution)
 		txnResolution = txnResolution.nextTxn;
