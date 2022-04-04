@@ -20,7 +20,7 @@
     ['OS!="win"', {
       "variables": {
         "enable_fast_api_calls%": "<!(echo $ENABLE_FAST_API_CALLS)",
-        "enable_v8%": "<!(echo $ENABLE_V8_FUNCTIONS%)",
+        "enable_v8%": "<!(echo $ENABLE_V8_FUNCTIONS)",
       }
     }]
   ],
