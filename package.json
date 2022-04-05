@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.3.0-beta",
+  "version": "2.3.0-beta2",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -55,6 +55,7 @@
     "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 16.14.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify --napi --optional-packages --target 16.14.0 && node util/set-optional-deps.cjs",
     "prebuild-libc": "prebuildify --napi --optional-packages --tag-libc --target 16.14.0",
     "prebuildify": "prebuildify",
+    "publish-all": "cd prebuilds/win32-x64 && npm publish --otp %OTP% && cd ../darwin-x64 && npm publish --otp %OTP% && cd ../darwin-arm64 && npm publish --otp %OTP% && cd ../linux-x64 && npm publish --otp %OTP% && cd ../linux-arm64 && npm publish --otp %OTP%  && cd ../linux-arm && npm publish --otp %OTP% && cd ../.. && npm publish --otp %OTP%",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts",
