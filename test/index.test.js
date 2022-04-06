@@ -94,15 +94,6 @@ describe('lmdb-js', function() {
       })
       return
     }
-    it.skip('large txn', async function(){
-    while(true) {
-      for (let i = 0; i < 5000000; i++) {
-        db.put(i, i);
-      }
-      await db.committed;
-      await db.clearAsync();
-    }
-  })
     it('zero length values', async function() {
       await db.committed // should be able to await db even if nothing has happened
       db.put(5, asBinary(Buffer.from([])));
@@ -967,6 +958,16 @@ describe('lmdb-js', function() {
       }
       should.equal(count, 1);
     });
+    it.skip('large txn', async function(){
+      while(true) {
+        for (let i = 0; i < 5000000; i++) {
+          db.put(i, i);
+        }
+        await db.committed;
+        await db.clearAsync();
+      }
+    })
+
 
     it('open and close with compression', async function() {
       let data = ''

@@ -166,8 +166,9 @@ declare namespace lmdb {
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
+		* @params flags Additional flags specifying transaction behavior, this is optional and defaults to abortable, synchronous commits that are flushed to disk before returning
 		**/
-		transactionSync<T>(action: () => T): T
+		transactionSync<T>(action: () => T, flags?: TransactionFlags): T
 		/**
 		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
@@ -269,8 +270,10 @@ declare namespace lmdb {
 		 */
 		on(event: 'beforecommit' | 'aftercommit', callback: (event: any) => void): void
 	}
-	/* A special value that can be returned from a transaction to indicate that the transaction should be aborted */
-	export const ABORT = 10000000000000
+	/* A constant that can be returned from a transaction to indicate that the transaction should be aborted */
+	export const ABORT: {};
+	/* A constant that can be used as a conditional versions for put and ifVersion to indicate that the write should conditional on the key/entry existing */
+	export const IF_EXISTS: number;
 	class RootDatabase<V = any, K extends Key = Key> extends Database<V, K> {
 		/**
 		* Open a database store using the provided options.
@@ -316,7 +319,6 @@ declare namespace lmdb {
 		noSync?: boolean
 		noMetaSync?: boolean
 		readOnly?: boolean
-		mapAsync?: boolean
 		maxReaders?: number
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
@@ -354,6 +356,14 @@ declare namespace lmdb {
 		/* The version of the entry to set */
 		version?: number
 	}
+	export enum TransactionFlags {
+		/* Indicates that the transaction needs to be abortable */
+		ABORTABLE = 1,
+		/* Indicates that the transaction needs to be committed before returning */
+		SYNCHRONOUS_COMMIT = 2,
+		/* Indicates that the function can return before the transaction has been flushed to disk */
+		NO_SYNC_FLUSH = 0x10000
+	}
 	class ArrayLikeIterable<T> implements Iterable<T> {
 		map<U>(callback: (entry: T) => U): ArrayLikeIterable<U>
 		filter(callback: (entry: T) => any): ArrayLikeIterable<T>
@@ -367,7 +377,9 @@ declare namespace lmdb {
 	/* Wrap a Buffer/Uint8Array for direct assignment as a value bypassing any encoding, for put (and doesExist) operations.
 	*/
 	export function asBinary(buffer: Uint8Array): Binary
-	/* Indicates if V8 accelerated functions are enabled. If this is false, some functions will be a little slower, and you may want to npm install --build-from-source to enable maximum performance */ 
+	/* Indicates if V8 accelerated functions are enabled. If this is false, some functions will be a little slower, and you may want to npm install --build-from-source to enable maximum performance */
 	export let v8AccelerationEnabled: boolean
+	/* Return database augmented with methods to better conform to levelup */ 
+	export function levelup(database: Database): Database
 }
 export = lmdb
