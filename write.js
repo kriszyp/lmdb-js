@@ -707,8 +707,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				let parentTxn = writeTxn;
 				env.writeTxn = writeTxn = { write: true };
 				env.beginTxn(1); // abortable
+				let callbackDone;
 				try {
 					return when(callback(), (result) => {
+						callbackDone = true;
 						if (result === ABORT)
 							env.abortTxn();
 						else
@@ -721,7 +723,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						throw error;
 					});
 				} catch(error) {
-					env.abortTxn();
+					if (!callbackDone)
+						env.abortTxn();
 					clearWriteTxn(parentTxn);
 					throw error;
 				}
@@ -759,6 +762,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 				return result;
 			}
+			let callbackDone;
 			try {
 				this.transactions++;
 				env.beginTxn(flags == undefined ? 3 : flags);
@@ -766,6 +770,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				this.emit('begin-transaction');
 				return when(callback(), (result) => {
 					try {
+						callbackDone = true;
 						if (result === ABORT)
 							env.abortTxn();
 						else {
@@ -784,7 +789,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					throw error;
 				});
 			} catch(error) {
-				try { env.abortTxn(); } catch(e) {}
+				if (!callbackDone)
+					try { env.abortTxn(); } catch(e) {}
 				clearWriteTxn(null);
 				throw error;
 			}

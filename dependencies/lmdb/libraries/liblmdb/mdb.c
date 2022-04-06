@@ -1875,6 +1875,14 @@ mdb_strerror(int err)
 
 	if (err >= MDB_KEYEXIST && err <= MDB_LAST_ERRCODE) {
 		i = err - MDB_KEYEXIST;
+		if (last_error) {
+			char* error = malloc(300);
+			strcpy(error, mdb_errstr[i]);
+			strcat(error, ": ");
+			strcat(error, last_error);
+			last_error = NULL;
+			return error;
+		}
 		return mdb_errstr[i];
 	}
 
@@ -2892,8 +2900,10 @@ mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret)
 		if (! (x <= txn->mt_spill_pgs[0] && txn->mt_spill_pgs[x] == pn))
 			x = 0;
 	}
-	if (x == 0 && !txn->mt_parent)
+	if (x == 0 && !txn->mt_parent) {
+		last_error = "mdb_page_unspill no parent";
 		return MDB_PROBLEM;		/* should be a spilled page */
+	}
 
 	{
 			MDB_page *np;
@@ -2977,6 +2987,7 @@ mdb_page_touch(MDB_cursor *mc)
 		MDB_ID2 mid, *dl = txn->mt_u.dirty_list;
 		pgno = mp->mp_pgno;
 		if (!txn->mt_parent) {
+			last_error = "mdb_page_touch no parent";
 			rc = MDB_PROBLEM;
 			goto fail;
 		}
@@ -4502,6 +4513,8 @@ mdb_txn_commit(MDB_txn *txn)
 	if ((rc = mdb_page_flush(txn, 0)))
 		goto fail;
 	if ((unsigned)txn->mt_loose_count < txn->mt_u.dirty_list[0].mid) {
+		last_error = malloc(100);
+		sprintf(last_error, "The loose count %u is less than the size of the dirty list %u", txn->mt_loose_count, txn->mt_u.dirty_list[0].mid);
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
@@ -7573,8 +7586,10 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 		  MDB_IDL sl = txn->mt_spill_pgs;
 		  if (sl) {
 			x = mdb_midl_search(sl, pn);
-			if (! (x <= sl[0] && sl[x] == pn))
+			if (! (x <= sl[0] && sl[x] == pn)) {
+				last_error = "mdb_ovpage_free spilled dirty";
 				return MDB_PROBLEM;
+			}
 			/* This page is no longer spilled */
 			if (x == sl[0])
 				sl[0]--;
@@ -7596,6 +7611,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 				j = ++(dl[0].mid);
 				dl[j] = ix;		/* Unsorted. OK when MDB_TXN_ERROR. */
 				txn->mt_flags |= MDB_TXN_ERROR;
+				last_error = "mdb_ovpage_free remove dirty";
 				return MDB_PROBLEM;
 			}
 		}
@@ -8957,8 +8973,10 @@ put_sub:
 		}
 		return rc;
 bad_sub:
-		if (rc == MDB_KEYEXIST)	/* should not happen, we deleted that item */
+		if (rc == MDB_KEYEXIST)	{/* should not happen, we deleted that item */
+			last_error = "should not happen, we deleted that item";
 			rc = MDB_PROBLEM;
+		}
 	}
 	mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
@@ -10776,8 +10794,10 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 		mn.mc_top++;
 	}
 	if (rc != MDB_SUCCESS) {
-		if (rc == MDB_NOTFOUND) /* improper mdb_cursor_sibling() result */
+		if (rc == MDB_NOTFOUND) { /* improper mdb_cursor_sibling() result */
+			last_error = "improper mdb_cursor_sibling() result";
 			rc = MDB_PROBLEM;
+		}
 		goto done;
 	}
 	if (nflags & MDB_APPEND) {
