@@ -10,7 +10,7 @@ path = pathModule;
 
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
-let nativeAddon = require('node-gyp-build')(dirName);
+let nativeAddon = require('node-gyp-build-optional-packages')(dirName);
 
 let [ majorVersion, minorVersion ] = process.versions.node.split('.')
 if (process.versions.v8.includes('node') && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
