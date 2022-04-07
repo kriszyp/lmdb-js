@@ -1315,6 +1315,7 @@ typedef struct MDB_meta {
 	 */
 	pgno_t		mm_last_pg;
 	volatile txnid_t	mm_txnid;	/**< txnid that committed this page */
+	int64_t		boot_id;
 } MDB_meta;
 
 	/** Buffer for a stack-allocated meta page.
@@ -1685,6 +1686,7 @@ struct MDB_env {
 #endif
 	void		*me_userctx;	 /**< User-settable context */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
+	int64_t 	boot_id;
 };
 
 	/** Nested transaction */
@@ -4801,6 +4803,7 @@ mdb_env_write_meta(MDB_txn *txn)
 		__sync_synchronize();
 #endif
 		mp->mm_txnid = txn->mt_txnid;
+		mp->boot_id = env->boot_id;
 		if (!(flags & (MDB_NOMETASYNC|MDB_NOSYNC))) {
 			unsigned meta_size = env->me_psize;
 			rc = (env->me_flags & MDB_MAPASYNC) ? MS_ASYNC : MS_SYNC;
@@ -4826,6 +4829,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	meta.mm_last_pg = txn->mt_next_pgno - 1;
 	meta.mm_txnid = txn->mt_txnid;
 	meta.mm_version = MDB_DATA_VERSION;
+	meta.boot_id = env->boot_id;
 
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
@@ -4902,6 +4906,9 @@ mdb_env_pick_meta(const MDB_env *env)
 	//<lmdb-js>
 	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
 	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
+		fprintf(stderr, "comparing last txn boot id %u to current boot id %u", latest->boot_id, env->boot_id);
+		if (latest->boot_id && latest->boot_id == env->boot_id)
+			return latest;
 		int offset = env->me_psize >> 1;
 		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
 		latest = mdb_pick_meta(env, latest, flushed);
@@ -6224,6 +6231,34 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 #endif
 	/*<lmdb-js>*/
 	env->me_last_map = NULL;
+	env->boot_id = 0;
+	char boot_uuid[42];
+	char* endptr;
+	#if defined(__linux__) || defined(__gnu_linux__)
+  	{
+   const int fd =
+        open("/proc/sys/kernel/random/boot_id", O_RDONLY | O_NOFOLLOW);
+	if (fd != -1) {
+		struct statfs fs;
+		const ssize_t len =
+				(fstatfs(fd, &fs) == 0 && fs.f_type == /* procfs */ 0x9FA0)
+					? read(fd, boot_uuid, sizeof(boot_uuid))
+					: -1;
+		const int err = close(fd);
+		if (len > 0)
+			env->boot_id = strtoll(buf, &endptr, 16);
+	}
+	}
+#endif /* Linux */
+
+#if defined(__APPLE__) || defined(__MACH__)
+  {
+    size_t len = sizeof(boot_uuid);
+    if (!sysctlbyname("kern.bootsessionuuid", boot_uuid, &len, nullptr, 0))
+	 	env->boot_id = strtoll(buf, &endptr, 16);
+  }
+#endif
+fprintf(stderr, "env boot id %u", env->boot_id);
 	/*<lmdb-js>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
