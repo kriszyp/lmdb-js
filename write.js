@@ -66,7 +66,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeBatchStart, outstandingBatchCount;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
-	maxFlushDelay = maxFlushDelay || 250;
+	maxFlushDelay = maxFlushDelay || 500;
 
 	allocateInstructionBuffer();
 	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
@@ -358,7 +358,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			switch (status) {
 				case 0:
 					if (resolvers.length > 0)
-						scheduleFlush(resolvers, Math.min(Date.now() - start, maxFlushDelay))
+						scheduleFlush(resolvers, Math.min((Date.now() - start << 1) + 1, maxFlushDelay))
 				case 1:
 				break;
 				case 2:

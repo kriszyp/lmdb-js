@@ -6246,7 +6246,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 					: -1;
 		const int err = close(fd);
 		if (len > 0)
-			env->boot_id = strtoll(buf, &endptr, 16);
+			env->boot_id = strtoll(boot_uuid, &endptr, 16);
 	}
 	}
 #endif /* Linux */
@@ -6255,7 +6255,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
   {
     size_t len = sizeof(boot_uuid);
     if (!sysctlbyname("kern.bootsessionuuid", boot_uuid, &len, nullptr, 0))
-	 	env->boot_id = strtoll(buf, &endptr, 16);
+	 	env->boot_id = strtoll(boot_uuid, &endptr, 16);
   }
 #endif
 fprintf(stderr, "env boot id %u", env->boot_id);
