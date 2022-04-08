@@ -1858,6 +1858,9 @@ static char *const mdb_errstr[] = {
 	"MDB_CRYPTO_FAIL: Page encryption or decryption failed",
 	"MDB_ENV_ENCRYPTION: Environment encryption mismatch",
 };
+//<lmdb-js>
+static char* last_error = NULL;
+//</lmdb-js>
 
 char *
 mdb_strerror(int err)

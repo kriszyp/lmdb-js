@@ -563,10 +563,6 @@ typedef struct MDB_envinfo {
 	 */
 char *mdb_version(int *major, int *minor, int *patch);
 
-//<lmdb-js>
-static char* last_error = NULL;
-char* get_last_error();
-//</lmdb-js>
 	/** @brief Return a string describing a given error code.
 	 *
 	 * This function is a superset of the ANSI C X3.159-1989 (ANSI C) strerror(3)
