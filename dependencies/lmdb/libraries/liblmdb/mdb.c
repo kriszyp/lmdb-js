@@ -111,6 +111,9 @@ static NtCloseFunc *NtClose;
 #include <fcntl.h>
 #define MDB_OFF_T	off_t
 #endif
+#if defined(__APPLE__) || defined(__MACH__)
+#include <sys/sysctl.h>
+#endif
 
 #if defined(__mips) && defined(__linux)
 /* MIPS has cache coherency issues, requires explicit cache control */
@@ -6257,7 +6260,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 #if defined(__APPLE__) || defined(__MACH__)
   {
     size_t len = sizeof(boot_uuid);
-    if (!sysctlbyname("kern.bootsessionuuid", boot_uuid, &len, nullptr, 0))
+    if (!sysctlbyname("kern.bootsessionuuid", boot_uuid, &len, NULL, 0))
 	 	env->boot_id = strtoll(boot_uuid, &endptr, 16);
   }
 #endif
