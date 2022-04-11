@@ -60,6 +60,7 @@
             "-Wno-strict-aliasing",
             "-Wno-unused-result",
             "-Wno-cast-function-type",
+            "-wclass-memaccess",
             "-fvisibility=hidden",
             "-fvisibility-inlines-hidden",
           ],

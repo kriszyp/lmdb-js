@@ -6250,7 +6250,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 				(fstatfs(fd, &fs) == 0 && fs.f_type == /* procfs */ 0x9FA0)
 					? read(fd, boot_uuid, sizeof(boot_uuid))
 					: -1;
-		const int err = close(fd);
+		close(fd);
 		if (len > 0)
 			env->boot_id = strtoll(boot_uuid, &endptr, 16);
 	}

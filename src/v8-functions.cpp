@@ -2,8 +2,8 @@
 #if ENABLE_V8_API
 #include <string.h>
 #include <stdio.h>
-#include <node.h>
 #include <v8.h>
+#include <node.h>
 
 #if NODE_VERSION_AT_LEAST(16,6,0)
 #if NODE_VERSION_AT_LEAST(17,0,0)
