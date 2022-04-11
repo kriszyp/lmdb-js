@@ -121,7 +121,7 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 	Isolate* isolate = Isolate::GetCurrent();
 	napi_value exportsValue = info[0];
 	Local<v8::Object> exports;
-	memcpy(&exports, &exportsValue, sizeof(exportsValue));
+	memcpy((void*) &exports, (void*) &exportsValue, sizeof(exportsValue));
 	#if NODE_VERSION_AT_LEAST(16,6,1)
 	bool useFastApi;
 	napi_get_value_bool(info.Env(), info[1], &useFastApi);
