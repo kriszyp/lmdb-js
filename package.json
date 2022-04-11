@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.3.0-beta3",
+  "version": "2.3.0",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -68,7 +68,7 @@
     "msgpackr": "^1.5.4",
     "nan": "^2.14.2",
     "node-addon-api": "^4.3.0",
-    "node-gyp-build-optional-packages": "^4.3.1",
+    "node-gyp-build-optional-packages": "^4.3.2",
     "ordered-binary": "^1.2.4",
     "weak-lru-cache": "^1.2.2"
   },
@@ -92,11 +92,11 @@
     "test": "tests"
   },
   "optionalDependencies": {
-    "lmdb-darwin-arm64": "2.3.0-beta3",
-    "lmdb-darwin-x64": "2.3.0-beta3",
-    "lmdb-linux-arm": "2.3.0-beta3",
-    "lmdb-linux-arm64": "2.3.0-beta3",
-    "lmdb-linux-x64": "2.3.0-beta3",
-    "lmdb-win32-x64": "2.3.0-beta3"
+    "lmdb-darwin-arm64": "2.3.0",
+    "lmdb-darwin-x64": "2.3.0",
+    "lmdb-linux-arm": "2.3.0",
+    "lmdb-linux-arm64": "2.3.0",
+    "lmdb-linux-x64": "2.3.0",
+    "lmdb-win32-x64": "2.3.0"
   }
 }
