@@ -31,7 +31,7 @@ export function setNativeFunctions(externals) {
 	Dbi = externals.Dbi;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
-	clearKeptObjects = externals.clearKeptObjects;
+	clearKeptObjects = externals.clearKeptObjects || function() {};
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
 	if (externals.tmpdir)
