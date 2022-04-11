@@ -83,6 +83,15 @@ jobs:
           PREBUILD_ARCH: arm64
           CC: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc
           CXX: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++
+      - run: wget https://musl.cc/armv7l-linux-musleabihf-cross.tgz
+      - run: tar -xf armv7l-linux-musleabihf-cross.tgz && pwd && ls
+      - run: npm run prebuild-libc
+        env:
+          PREBUILD_LIBC: musl
+          PREBUILD_ARCH: arm
+          PREBUILD_ARMV: 7
+          CC: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-gcc
+          CXX: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-g++
       - run: npm run prebuild-libc
         env:
           PREBUILD_LIBC: musl
