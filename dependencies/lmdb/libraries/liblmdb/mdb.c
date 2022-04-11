@@ -4912,7 +4912,6 @@ mdb_env_pick_meta(const MDB_env *env)
 	//<lmdb-js>
 	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
 	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
-		fprintf(stderr, "comparing last txn boot id %u to current boot id %u", latest->boot_id, env->boot_id);
 		if (latest->boot_id && latest->boot_id == env->boot_id)
 			return latest;
 		int offset = env->me_psize >> 1;
@@ -6264,7 +6263,6 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	 	env->boot_id = strtoll(boot_uuid, &endptr, 16);
   }
 #endif
-fprintf(stderr, "env boot id %u", env->boot_id);
 	/*<lmdb-js>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
