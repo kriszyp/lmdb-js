@@ -49,7 +49,6 @@ This library provides optional compression using LZ4 that works in conjunction w
 An LMDB database instance is created by using `open` export from the main module:
 ```
 import { open } from 'lmdb'; // or require
-// or in deno: import { open } from 'https://deno.land/x/lmdb/mod.ts';
 let myDB = open({
 	path: 'my-db',
 	// any options go here, we can turn on compression like this:
