@@ -6239,7 +6239,8 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	env->boot_id = 0;
 	char boot_uuid[42];
 	char* endptr;
-	#if defined(__linux__) || defined(__gnu_linux__)
+// copied/adapted from https://github.com/erthink/libmdbx/blob/master/src/osal.c#L2199 (more OSes are handled there, might add windows when full overlappingSync support is added)
+#if defined(__linux__) || defined(__gnu_linux__)
   	{
    const int fd =
         open("/proc/sys/kernel/random/boot_id", O_RDONLY | O_NOFOLLOW);
