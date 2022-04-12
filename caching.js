@@ -1,4 +1,3 @@
-import { env } from 'process';
 import { WeakLRUCache, clearKeptObjects } from './external.js';
 import { FAILED_CONDITION, ABORT } from './write.js';
 import { when } from './util/when.js';
