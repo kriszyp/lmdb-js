@@ -53,6 +53,7 @@
     "build-js": "rollup -c",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 16.14.0 && prebuildify --target 14.19.1 && prebuildify --target 17.9.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify --napi --optional-packages --target 16.14.0 && node util/set-optional-deps.cjs",
+    "prebuild-libc-expanded": "prebuildify --tag-libc --target 16.14.0 && prebuildify --tag-libc --target 14.19.1 && prebuildify --tag-libc --target 17.9.0 && ENABLE_V8_FUNCTIONS=false prebuildify --napi --optional-packages --target 16.14.0",
     "prebuild-libc": "prebuildify --tag-libc --target 17.9.0 && prebuildify --napi --optional-packages --tag-libc --target 16.14.2",
     "prebuildify": "prebuildify --target 16.14.2",
     "publish-all": "cd prebuilds/win32-x64 && npm publish --otp %OTP% && cd ../darwin-x64 && npm publish --otp %OTP% && cd ../darwin-arm64 && npm publish --otp %OTP% && cd ../linux-x64 && npm publish --otp %OTP% && cd ../linux-arm64 && npm publish --otp %OTP%  && cd ../linux-arm && npm publish --otp %OTP% && cd ../.. && npm publish --otp %OTP%",
