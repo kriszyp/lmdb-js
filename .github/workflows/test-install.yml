@@ -1,0 +1,13 @@
+name: Test Install
+on: 
+  workflow_dispatch:
+
+jobs:
+  build-alpine:
+    runs-on: ubuntu-18.04
+    container: node:16-alpine
+    steps:
+      - run: npm install lmdb --ignore-scripts --verbose
+      - run: node -e "console.log(require('lmdb'))"
+      - run: npm install lmdb --verbose
+      - run: node -e "console.log(require('lmdb'))"
