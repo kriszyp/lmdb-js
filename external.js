@@ -21,6 +21,11 @@ if (process.versions.v8.includes('node') && +majorVersion == nativeAddon.version
 	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
 	Object.assign(nativeAddon, v8Funcs);
 	v8AccelerationEnabled = true;
+} else if (majorVersion == 14) {
+	// node v14 only has ABI compatibility with node v16 for zero-arg clearKeptObjects
+	let v8Funcs = {};
+	nativeAddon.enableDirectV8(v8Funcs, false);
+	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
 }
 setNativeFunctions(nativeAddon);
 	
