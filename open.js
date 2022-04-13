@@ -170,7 +170,7 @@ export function open(path, options) {
 			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
-			if (this.db.dbi == 0xffffffff) {// not found
+			if (!this.db || this.db.dbi == 0xffffffff) {// not found
 				if (dbOptions.create !== false && !options.readOnly) {
 					flags |= 0x40000; // add create flag
 					this.transactionSync(() => {
