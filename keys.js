@@ -1,4 +1,4 @@
-import { getAddress, orderedBinary } from './external.js';
+import { getAddress, orderedBinary } from './native.js';
 
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true);

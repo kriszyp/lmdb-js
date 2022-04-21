@@ -1,4 +1,4 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, native } from './external.js';
+import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, native } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -11,7 +11,6 @@ if (globalThis.__lmdb_envs__)
 	setEnvsPointer(globalThis.__lmdb_envs__);
 else
 	globalThis.__lmdb_envs__ = getEnvsPointer();
-
 
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
 // this corresponds to the max key size for 8KB pages
@@ -385,9 +384,7 @@ function exists(path) {
 	try {
 		return fs.statSync(path);
 	} catch (error) {
-//		if (error.name == 'NotFound')
-			return false
-//		throw error
+		return false
 	}
 }
 

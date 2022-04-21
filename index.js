@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { setExternals, setNativeFunctions, Dbi } from './external.js';
+import { setExternals, setNativeFunctions, Dbi } from './native.js';
 import { arch, tmpdir, platform } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
@@ -20,8 +20,8 @@ export { ABORT, IF_EXISTS, asBinary } from './write.js';
 import { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 import { levelup } from './level.js';
-export { clearKeptObjects, v8AccelerationEnabled } from './external.js';
-import { v8AccelerationEnabled } from './external.js';
+export { clearKeptObjects, v8AccelerationEnabled } from './native.js';
+import { v8AccelerationEnabled } from './native.js';
 export { open, openAsClass, getLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, openAsClass, getLastVersion } from './open.js';

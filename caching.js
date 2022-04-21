@@ -1,4 +1,4 @@
-import { WeakLRUCache, clearKeptObjects } from './external.js';
+import { WeakLRUCache, clearKeptObjects } from './native.js';
 import { FAILED_CONDITION, ABORT } from './write.js';
 import { when } from './util/when.js';
 

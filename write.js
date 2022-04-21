@@ -1,4 +1,4 @@
-import { getAddress, onExit, native } from './external.js';
+import { getAddress, onExit, native } from './native.js';
 import { when } from './util/when.js';
 const { write, compress } = native;
 var backpressureArray;

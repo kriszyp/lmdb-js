@@ -1,5 +1,5 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, native } from './external.js';
+import { getAddress, Cursor, Txn, orderedBinary, native } from './native.js';
 import { saveKey }  from './keys.js';
 const { lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position: doPosition, resetTxn, getCurrentValue, getCurrentShared,  getStringByBinary, getSharedByBinary } = native;
 const ITERATOR_DONE = { done: true, value: undefined };
