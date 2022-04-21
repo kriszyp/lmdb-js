@@ -28,8 +28,10 @@ export function applyKeyHandling(store) {
 			return saveKey(value, this.writeKey, false, store.maxKeySize);
 		};
 	}
-	if (store.decoder && store.decoder.readKey && !store.decoder.decode)
+	if (store.decoder && store.decoder.readKey && !store.decoder.decode) {
 		store.decoder.decode = function(buffer) { return this.readKey(buffer, 0, buffer.length); };
+		store.decoderCopies = true;
+	}
 	if (store.keyIsUint32 || store.keyEncoding == 'uint32') {
 		store.writeKey = writeUint32Key;
 		store.readKey = readUint32Key;

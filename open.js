@@ -219,6 +219,7 @@ export function open(path, options) {
 				};
 			} else if (this.encoder) {
 				this.decoder = this.encoder;
+				this.decoderCopies = !this.encoder.needsStableBuffer
 			}
 			this.maxKeySize = maxKeySize;
 			applyKeyHandling(this);

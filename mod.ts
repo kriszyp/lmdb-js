@@ -1,5 +1,5 @@
 import { fileURLToPath } from './deps.ts';
-import { orderedBinary, setNativeFunctions } from './external.js';
+import { orderedBinary, setNativeFunctions } from './native.js';
 orderedBinary.enableNullTermination();
 // probably use Deno.build.os
 let version = import.meta.url.match(/@([^/]+)\//)?.[1];
