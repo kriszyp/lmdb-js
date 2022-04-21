@@ -198,11 +198,12 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		#endif
 	}
 
-	rc = this->openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
+	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
 	//delete[] pathBytes;
 	if (rc < 0)
 		return throwLmdbError(info.Env(), rc);
-	napi_add_env_cleanup_hook(info.Env(), cleanup, this);
+	napiEnv = info.Env();
+	napi_add_env_cleanup_hook(napiEnv, cleanup, this);
 	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
@@ -352,6 +353,7 @@ NAPI_FUNCTION(setEnvsPointer) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
+	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
 	cleanupStrayTxns();
 	pthread_mutex_lock(envTracking->envsLock);
 	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end(); ) {
@@ -374,7 +376,6 @@ Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-	napi_remove_env_cleanup_hook(info.Env(), cleanup, this);
 	this->closeEnv();
 	return info.Env().Undefined();
 }

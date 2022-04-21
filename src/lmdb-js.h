@@ -252,6 +252,7 @@ private:
 	// List of open read transactions
 	std::vector<TxnWrap*> readTxns;
 	static env_tracking_t* initTracking();
+	napi_env napiEnv;
 	// compression settings and space
 	Compression *compression;
 
