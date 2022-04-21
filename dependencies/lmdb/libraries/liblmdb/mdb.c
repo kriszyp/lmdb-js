@@ -4522,7 +4522,7 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 	if ((unsigned)txn->mt_loose_count < txn->mt_u.dirty_list[0].mid) {
 		last_error = malloc(100);
-		sprintf(last_error, "The loose count %u is less than the size of the dirty list %u", txn->mt_loose_count, txn->mt_u.dirty_list[0].mid);
+		sprintf(last_error, "The loose count %i is less than the size of the dirty list %i", txn->mt_loose_count, txn->mt_u.dirty_list[0].mid);
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
