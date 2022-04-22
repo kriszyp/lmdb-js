@@ -93,11 +93,11 @@
     "test": "tests"
   },
   "optionalDependencies": {
-    "lmdb-darwin-arm64": "2.3.4",
-    "lmdb-darwin-x64": "2.3.4",
-    "lmdb-linux-arm": "2.3.4",
-    "lmdb-linux-arm64": "2.3.4",
-    "lmdb-linux-x64": "2.3.4",
-    "lmdb-win32-x64": "2.3.4"
+    "lmdb-darwin-arm64": "2.3.6",
+    "lmdb-darwin-x64": "2.3.6",
+    "lmdb-linux-arm": "2.3.6",
+    "lmdb-linux-arm64": "2.3.6",
+    "lmdb-linux-x64": "2.3.6",
+    "lmdb-win32-x64": "2.3.6"
   }
 }

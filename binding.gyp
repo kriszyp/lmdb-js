@@ -6,6 +6,7 @@
       "enable_v8%": "true",
       "enable_fast_api_calls%": "true",
       "enable_pointer_compression%": "false",
+      "openssl_fips": "X",
       "target%": "",
       "build_v8_with_gn": "false",
       "runtime%": "node"
