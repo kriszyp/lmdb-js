@@ -141,7 +141,7 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
 Value setGlobalBuffer(const CallbackInfo& info);
 Value lmdbError(const CallbackInfo& info);
-//NAN_METHOD(getBufferForAddress);
+napi_value createBufferForAddress(napi_env env, napi_callback_info info);
 napi_value getViewAddress(napi_env env, napi_callback_info info);
 napi_value detachBuffer(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);

@@ -24,8 +24,8 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	exports.Set("version", versionObj);
 	exports.Set("setGlobalBuffer", Function::New(env, setGlobalBuffer));
 	exports.Set("lmdbError", Function::New(env, lmdbError));
-	//exports.Set("getBufferForAddress", Function::New(env, getBufferForAddress));
 	exports.Set("enableDirectV8", Function::New(env, enableDirectV8));
+	EXPORT_NAPI_FUNCTION("createBufferForAddress", createBufferForAddress);
 	EXPORT_NAPI_FUNCTION("getAddress", getViewAddress);
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
 }
@@ -134,6 +134,16 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 	auto array_buffer = v8::ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing));
 	info.GetReturnValue().Set(array_buffer);
 }*/
+NAPI_FUNCTION(createBufferForAddress) {
+	ARGS(2)
+	void* data;
+	GET_INT64_ARG(data, 0);
+	size_t length;
+	GET_INT64_ARG(length, 1);
+	napi_create_external_buffer(env, length, data, nullptr, nullptr, &returnValue);
+	return returnValue;
+}
+
 NAPI_FUNCTION(getViewAddress) {
 	ARGS(1)
 	void* data;

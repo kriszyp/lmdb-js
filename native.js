@@ -2,7 +2,7 @@ import { dirname, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, clearKeptObjects, setGlobalBuffer,
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, setGlobalBuffer,
 	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, write, position, iterate, native, v8AccelerationEnabled = false;
 
 require = createRequire(import.meta.url);
@@ -36,6 +36,7 @@ export function setNativeFunctions(externals) {
 	Dbi = externals.Dbi;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
+	createBufferForAddress = externals.createBufferForAddress;
 	clearKeptObjects = externals.clearKeptObjects || function() {};
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
