@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.3.4",
+  "version": "2.3.6",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -52,11 +52,11 @@
     "rebuild": "node-gyp build && rollup -c",
     "build-js": "rollup -c",
     "prepare": "rollup -c",
-    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 16.14.0 && prebuildify --target 14.19.1 && prebuildify --target 17.9.0 && prebuildify --target 18.0.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify --napi --optional-packages --target 16.14.0 && node util/set-optional-deps.cjs",
+    "before-publish": "rollup -c && prebuildify-ci download && prebuildify --target 16.14.0 && prebuildify --target 14.19.1 && prebuildify --target 17.9.0 && prebuildify --target 18.0.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify --napi --optional-packages --target 16.14.0 && node util/set-optional-deps.cjs && npm run test",
     "prebuild-libc-expanded": "prebuildify --tag-libc --target 16.14.0 && prebuildify --tag-libc --target 14.19.1 && prebuildify --tag-libc --target 17.9.0 && prebuildify --tag-libc --target 18.0.0 && ENABLE_V8_FUNCTIONS=false prebuildify --tag-libc --napi --optional-packages --target 16.14.0",
     "prebuild-libc": "prebuildify --tag-libc --target 17.9.0 && prebuildify --tag-libc --target 18.0.0 && prebuildify --napi --optional-packages --tag-libc --target 16.14.2",
     "prebuildify": "prebuildify --target 16.14.2",
-    "publish-all": "cd prebuilds/win32-x64 && npm publish --otp %OTP% && cd ../darwin-x64 && npm publish --otp %OTP% && cd ../darwin-arm64 && npm publish --otp %OTP% && cd ../linux-x64 && npm publish --otp %OTP% && cd ../linux-arm64 && npm publish --otp %OTP%  && cd ../linux-arm && npm publish --otp %OTP% && cd ../.. && npm publish --otp %OTP%",
+    "prepublishOnly": "cd prebuilds/win32-x64 && npm publish --otp %OTP% && cd ../darwin-x64 && npm publish --otp %OTP% && cd ../darwin-arm64 && npm publish --otp %OTP% && cd ../linux-x64 && npm publish --otp %OTP% && cd ../linux-arm64 && npm publish --otp %OTP%  && cd ../linux-arm && npm publish --otp %OTP% && cd ../..",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts",
@@ -93,11 +93,11 @@
     "test": "tests"
   },
   "optionalDependencies": {
-    "lmdb-darwin-arm64": "2.3.2",
-    "lmdb-darwin-x64": "2.3.2",
-    "lmdb-linux-arm": "2.3.2",
-    "lmdb-linux-arm64": "2.3.2",
-    "lmdb-linux-x64": "2.3.2",
-    "lmdb-win32-x64": "2.3.2"
+    "lmdb-darwin-arm64": "2.3.4",
+    "lmdb-darwin-x64": "2.3.4",
+    "lmdb-linux-arm": "2.3.4",
+    "lmdb-linux-arm64": "2.3.4",
+    "lmdb-linux-x64": "2.3.4",
+    "lmdb-win32-x64": "2.3.4"
   }
 }
