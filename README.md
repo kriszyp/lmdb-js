@@ -47,7 +47,8 @@ This library provides optional compression using LZ4 that works in conjunction w
 
 ## Usage
 An LMDB database instance is created by using `open` export from the main module:
-```
+
+```js
 import { open } from 'lmdb'; // or require
 let myDB = open({
 	path: 'my-db',
@@ -62,6 +63,7 @@ myDB.transaction(() => {
 	myDB.get('greeting').someText // 'Hello, World!'
 });
 ```
+
 (see database options below for more options)
 
 Once you have opened a database, you can store and retrieve values using keys:
@@ -80,7 +82,8 @@ In addition, you can use `asBinary` to directly store a buffer or Uint8Array as 
 
 ### Keys
 When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
-```
+
+```js
 null // lowest possible value
 Symbol.for('even symbols')
 -10 // negative supported
@@ -95,6 +98,7 @@ Symbol.for('even symbols')
 ['hello', 'world']
 Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
+
 You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower), use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a db, the following methods are available:
@@ -123,7 +127,8 @@ This will run the provided callback in a transaction, asynchronously starting th
 The callback function will be queued along with other `put` and `remove` operations, and run in the same transaction as other operations that have been queued in the current event turn, and will be executed in the order they were called. `transaction` will return a promise that will resolve once its transaction has been committed. The promise will resolve to the value returned by the callback function.
 
 For example:
-```
+
+```js
 let products = open(...);
 // decrement count if above zero
 function buyShoe() {
@@ -178,23 +183,28 @@ If this is called inside an existing transaction and child transactions are supp
 
 ### `db.getRange(options: RangeOptions): Iterable<{ key, value: Buffer }>`
 This starts a cursor-based query of a range of data in the database, returning an iterable that also has `map`, `filter`, and `forEach` methods. The `start` and `end` indicate the starting and ending key for the range. The `reverse` flag can be used to indicate reverse traversal. The `limit` can limit the number of entries returned. The returned cursor/query is lazy, and retrieves data _as_ iteration takes place, so a large range could specified without forcing all the entries to be read and loaded in memory upfront, and one can exit out of the loop without traversing the whole range in the database. The query is iterable, we can use it directly in a for-of:
-```
+
+```js
 for (let { key, value } of db.getRange({ start, end })) {
 	// for each key-value pair in the given range
 }
 ```
+
 Or we can use the provided iterative methods on the returned results:
-```
+
+```js
 db.getRange({ start, end })
 	.filter(({ key, value }) => test(key))
 	.forEach(({ key, value }) => {
 		// for each key-value pair in the given range that matched the filter
 	})
 ```
+
 Note that `map` and `filter` are also lazy, they will only be executed once their returned iterable is iterated or `forEach` is called on it. The `map` and `filter` functions also support async/promise-based functions, and you can create an async iterable if the callback functions execute asynchronously (return a promise).
 
 We can also query with offset to skip a certain number of entries, and limit the number of entries to iterate through:
-```
+
+```js
 db.getRange({ start, end, offset: 10, limit: 10 }) // skip first 10 and get next 10
 ```
 
@@ -205,7 +215,8 @@ By default a range iterator will use a database snapshot, using a single read tr
 
 ### `db.getValues(key, options?: RangeOptions): Iterable<any>`
 When using a database with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
-```
+
+```js
 let db = db.openDB('my-index', {
 	dupSort: true,
 	encoding: 'ordered-binary',
@@ -220,10 +231,13 @@ for (let value of db.getValues('key1')) {
 	// just iterate value 'value1'
 }
 ```
+
 You can optionally provide a second argument with the same `options` that `getRange` handles. You can provide a `start` and/or `end` values, which will be define the starting value and ending value for the range of values to return for the key:
-```
+
+```js
 for (let value of db.getValues('key1', { start: 'value1', end: 'value3'})) ...
 ```
+
 Using `start`/`end` is only supported if using the `ordered-binary` encoding.
 
 ### `db.getKeys(options: RangeOptions): Iterable<any>`
@@ -241,21 +255,26 @@ Here are the options that can be provided to the range methods (all are optional
 
 ### `db.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB database with `open`, the database uses the default root database. However, you can use multiple databases per environment/file and instantiate a database for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple databases for a single environment:
-```
+
+```js
 import { open } from 'lmdb';
 let rootDB = open('all-my-data');
 let usersDB = myDB.openDB('users');
 let groupsDB = myDB.openDB('groups');
 let productsDB = myDB.openDB('products');
 ```
+
 Each of the opened/returned databases has the same API as the default database for the environment. Each of the databases for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two databases with the same environment will be batched together in the same commit. For example:
-```
+
+```js
 usersDB.put('some-user', { data: userInfo });
 groupsDB.put('some-group', { groupData: moreData });
 ```
+
 Both these puts will be batched and committed in the same transaction in the next event turn.
 Also, you can start a transaction from one database and make writes from any of the databases in that same environment (and they will be a part of the same transaction):
-```
+
+```js
 rootDB.transaction(() => {
 	usersDB.put('some-user', { data: userInfo });
 	groupsDB.put('some-group', { groupData: moreData });
@@ -267,7 +286,8 @@ This returns the version number of the last entry that was retrieved with `get` 
 
 ### `asBinary(buffer): Binary`
 This can be used to directly store a buffer or Uint8Array as a value, bypassing any encoding. If you are using a database with an encoding that isn't `binary`, setting a value with a Uint8Array will typically be encoded with the db's encoding (for example MessagePack wraps in a header, preserving its type for `get`). However, if you want to bypass encoding, for example, if you have already encoded a value, you can use `asBinary`:
-```
+
+```js
 let buffer = encode(myValue) // if we have already serialized a value, perhaps to compare it or check its size
 db.put(key, asBinary(buffer)) // we can directly store the encoded value
 ```
@@ -301,14 +321,16 @@ Normally, this library will automatically start a reader transaction for get and
 
 ## Concurrency and Versioning
 LMDB and this library are designed for high concurrency, and we recommend using multiple processes to achieve concurrency (processes are more robust than threads, and thread's advantage of shared memory is minimal with separate JavaScript workers, and you still get shared memory access with processes when using LMDB). Versioning or asynchronous transactions are the preferred method for achieving atomicity with data updates with concurrency. A version can be stored with an entry, and later the data can be updated, conditional on the version being the expected version. This provides a robust mechanism for concurrent data updates even with multiple processes are accessing the same database. To enable versioning, make sure to set the `useVersions` option when opening the database:
-```
+
+```js
 let myDB = open('my-db', { useVersions: true });
 ```
+
 You can set a version by using the `version` argument in `put` calls. You can later update data and ensure that the data will only be updated if the version matches the expected version by using the `ifVersion` argument. When retrieving entries, you can access the version number by calling `getLastVersion()`.
 
 You can then make conditional writes, examples:
 
-```
+```js
 myDB.put('key1', 'value1', 4, 3); // new version of 4, only if previous version was 3
 ```
 ```
@@ -319,15 +341,18 @@ myDB.ifVersion('key1', 4, () => {
 	myDB2.put('keyInOtherDb', 'value'); 
 });
 ```
+
 Asynchronous transactions are also a robust way to handle concurrency with multiple processes and provides a more traditional and flexible mechanism for making atomic ACID-compliant transactional data changes.
 
 ## Shared Structures
 Shared structures are mechanism for storing the structural information about objects stored in database in dedicated entry, outside of individual entries, for reuse across all of the data in database, for much more efficient storage and faster retrieval of data when storing objects that have the same or similar structures (note that this is only available using the default MessagePack or CBOR encoding, using the msgpackr or cbor-x package). This is highly recommended when storing structured objects with similiar object structures (including inside of array). When enabled, when data is stored, any structural information (the set of property names) is automatically generated and stored in separate entry to be reused for storing and retrieving all data for the database. To enable this feature, simply specify the key where shared structures can be stored. You can use a symbol as a metadata key, as symbols are outside of the range of the standard JS primitive values:
-```
+
+```js
 let myDB = open('my-db', {
 	sharedStructuresKey: Symbol.for('structures')
 })
 ```
+
 Once shared structures has been enabled, you can persist JavaScript objects just as you would normally would, and this library will automatically generate, increment, and save the structural information in the provided key to improve storage efficiency and performance. You never need to directly access this key, just be aware that that entry is being used by this library.
 
 ## Compression
@@ -335,7 +360,8 @@ This library can optionally use off-thread LZ4 compression as part of the asynch
 * `threshold` - Only entries that are larger than this value (in bytes) will be compressed. This defaults to 1000 (if compression is enabled)
 * `dictionary` - This can be buffer to use as a shared dictionary. This is defaults to a shared dictionary that helps with compressing JSON and English words in small entries. [Zstandard](https://facebook.github.io/zstd/#small-data) provides utilities for [creating your own optimized shared dictionary](https://github.com/lz4/lz4/releases/tag/v1.8.1.2).
 For example:
-```
+
+```js
 let myDB = open('my-db', {
 	compression: {
 		threshold: 500, // compress any entry larger than 500 bytes
@@ -343,6 +369,7 @@ let myDB = open('my-db', {
 	}
 })
 ```
+
 Compression is recommended for large databases that may be close to or larger than available RAM, to improve caching and reduce page faults. If you enable compression for a database, you must ensure that the data is always opened with the same compression setting, so that the data will be properly decompressed.
 
 ## Caching
@@ -351,7 +378,8 @@ This library supports caching of entries from databases, and uses a [LRU/LFU (LR
 The weak-referencing mechanism works in harmony with JS garbage collection to allow objects to be cached without preventing GC, and retrieved from the cache until they have actually been collected from memory, making more efficient use of memory. This also can provide a guarantee of object identity correlation with keys: as long as retrieved object is in memory, a `get` will always return the existing object, and `get` never will return two copies of the same object (for the same key). The LRFU caching mechanism is scan-resistant, tracking frequency of usage as well as recency.
 
 Because asynchronous `put` operations immediately go in the cache (and are pinned in the cache until committed), the caching enabled, `put` values can be retrieved via `get`, immediately and synchronously after the `put` call. Without caching enabled, you need wait for the `put` promise to resolve (or use asynchronous transactions) before you can access the stored value, but the cache enables the value to be immediately without waiting for the commit to finish:
-```
+
+```js
 db.put('hi', 'there');
 db.get('hi'); // can immediately access value without having to await the promise
 ```
@@ -376,10 +404,12 @@ If the `path` has an `.` in it, it is treated as a file name, otherwise it is tr
 * `name` - This is the name of the database. This defaults to null (which is the root database) when opening the database environment (`open`). When an opening a database within an environment (`openDB`), this is required, if not specified in first parameter.
 * `encoding` - Sets the encoding for the database values, which can be `'msgpack'`, `'json'`, `'cbor'`, `'string'`, `'ordered-binary'`or `'binary'`.
 * `encoder` - Directly set the encoder to use or provide the settings for an encoder. This can be an object with settings to pass to the encoder or can be an object with `encode` and `decode` methods. It can also be an object with an `Encoder` that will be called to create the encoder instance. This allows you explicitly set the encoder with an import:
-```
+
+```js
 import * as cbor from 'cbor-x';
 let db = open({ encoder: cbor });
 ```
+
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
 * `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)). For long-running synchronous operations, it is recommended that you set the `clearKeptInterval` (a value of 100 is a good choice).
@@ -417,7 +447,8 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 The `overlappingSync` option enables transactions to be committed such that LMDB waits for a transaction to be fully flushed to disk _after_ the transaction has been committed. This option is enabled by default on non-Windows operating systems. This means that the expensive/slow disk flushing operations do not occur during the writer lock, and allows disk flushing to occur in parallel with future transactions, providing potentially significant performance benefits. This uses a multi-step process of updating meta pointers to ensure database integrity even if a crash occurs.
 
 When this is enabled, there are two events of potential interest: when the transaction is committed and the data is visible (to all other threads/processes), and when the transaction is flushed and durable. The write actions return a promise for when they are committed. The database includes a `flushed` property with a promise-like object that resolves when the last commit is fully flushed/synced to disk and is durable. Alternately, the `separateFlushed` option can be enabled and for write operations, the returned promise will still resolve when the transaction is committed and the promise will also have a `flushed` property that holds a second promise that is resolved when the OS reports that the transaction writes has been fully flushed to disk and are truly durable (at least as far the hardward/OS is capable of guaranteeing this). For example:
-```
+
+```js
 let db = open('my-db', { overlappingSync: true });
 let written = db.put(key, value);
 await written; // wait for it to be committed
@@ -448,7 +479,8 @@ The database instance is an <a href="https://nodejs.org/dist/latest-v11.x/docs/a
 ## LevelUp
 
 If you have an existing application built on LevelUp, the lmdb-js is designed to make it easy to transition to this package, with most of the LevelUp API implemented and supported in lmdb-js. This includes the `put`, `del`, `batch`, `status`, `isOperation`, and `getMany` functions. One key difference in APIs is that LevelUp uses asynchronous callback based `get`s, but lmdb-js is so fast that it generally returns from `get` call before an an event can even be queued, consequently lmdb-js uses synchronous `get`s. However, there is a `levelup` export that can be used to generate a new database instance with LevelUp's style of API for `get` (although it still runs synchronously):
-```
+
+```js
 let dbLevel = levelup(db)
 dbLevel.get(id, (error, value) => {
 
