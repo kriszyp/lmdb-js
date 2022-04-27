@@ -566,6 +566,8 @@ export function addReadMethods(LMDBStore, {
 				}
 			} while (retries++ < 100);
 		}
+		// we actually don't renew here, we let the renew take place in the next 
+		// lmdb native read/call so as to avoid an extra native call
 		readTxnRenewed = setTimeout(resetReadTxn, 0);
 		store.emit('begin-transaction');
 		return readTxn;

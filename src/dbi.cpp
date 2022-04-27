@@ -71,7 +71,7 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, 
 	this->keyType = keyType;
 	this->flags = flags;
 	flags &= ~HAS_VERSIONS;
-	int rc = mdb_dbi_open(txn, name, flags, &this->dbi);
+	int rc = txn ? mdb_dbi_open(txn, name, flags, &this->dbi) : EINVAL;
 	if (rc)
 		return rc;
 	this->isOpen = true;

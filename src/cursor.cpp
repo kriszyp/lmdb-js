@@ -105,8 +105,14 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 	//char* keyBuffer = dw->ew->keyBuffer;
 	MDB_val key, data;
 	int rc;
-	if (flags & 0x2000) // TODO: check the txn_id to determine if we need to renew
-		mdb_cursor_renew(txn = dw->ew->getReadTxn(), cursor);
+	if (flags & 0x2000) { // TODO: check the txn_id to determine if we need to renew
+		rc = mdb_cursor_renew(txn = dw->ew->getReadTxn(), cursor);
+		if (rc) {
+			if (rc > 0)
+				rc = -rc;
+			return rc;
+		}
+	}
 	if (endKeyAddress) {
 		uint32_t* keyBuffer = (uint32_t*) endKeyAddress;
 		endKey.mv_size = *keyBuffer;

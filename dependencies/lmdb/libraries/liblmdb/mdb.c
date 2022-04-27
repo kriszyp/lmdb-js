@@ -3438,14 +3438,26 @@ mdb_txn_renew(MDB_txn *txn)
 {
 	int rc;
 
-	if (!txn || !F_ISSET(txn->mt_flags, MDB_TXN_RDONLY|MDB_TXN_FINISHED))
+	if (!txn || !F_ISSET(txn->mt_flags, MDB_TXN_RDONLY|MDB_TXN_FINISHED)) {
+		if (!txn)
+			last_error = "No transaction to renew";
+		else if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
+			// Txn is already renewed, we can just keep using it
+			return MDB_SUCCESS;
+		} else {
+			last_error = malloc(100);
+			sprintf(last_error, "Transaction flag was invalid for renew: %u", txn->mt_flags);
+		}
 		return EINVAL;
+	}
 
 	rc = mdb_txn_renew0(txn);
 	if (rc == MDB_SUCCESS) {
 		DPRINTF(("renew txn %"Yu"%c %p on mdbenv %p, root page %"Yu,
 			txn->mt_txnid, (txn->mt_flags & MDB_TXN_RDONLY) ? 'r' : 'w',
 			(void *)txn, (void *)txn->mt_env, txn->mt_dbs[MAIN_DBI].md_root));
+	} else {
+		last_error = mdb_strerror(rc);
 	}
 	return rc;
 }
@@ -7755,9 +7767,10 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 			last_error = "No key was provided";
 		else if (!data)
 			last_error = "No data was provided";
-		else if (!txn)
-			last_error = "No transaction available";
-		else if ((dbi)>=(txn)->mt_numdbs) {
+		else if (!txn) {
+			if (!last_error)
+				last_error = "No transaction available";
+		} else if ((dbi)>=(txn)->mt_numdbs) {
 			last_error = malloc(100);
 			sprintf(last_error, "The dbi %u was out of range for the number of dbis (%u)", dbi, (txn)->mt_numdbs);
 		} else {
