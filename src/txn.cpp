@@ -54,6 +54,7 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 		//fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
 		int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
 		if (rc != 0) {
+			txn = nullptr;
 			if (rc == EINVAL) {
 				throwError(info.Env(), "Invalid parameter, which on MacOS is often due to more transactions than available robust locked semaphors (see docs for more info)");
 				return;
