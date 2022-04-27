@@ -137,6 +137,7 @@ static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int enc
 #endif
 
 void cleanup(void* data) {
+	// this may not be called on the main thread
 	((EnvWrap*) data)->closeEnv();
 }
 
@@ -319,13 +320,16 @@ void SharedEnv::finish(bool close) {
 	}
 	if (close) {
 		mdb_env_close(env);
-		if (deleteOnClose) {
-			unlink(path);
-			//unlink(strcat(envPath->path, "-lock"));
-		}
+	}
+	if (deleteOnClose) {// I think we can try do delete and just expect it to fail if still open by other threads
+		unlink(path);
+		//unlink(strcat(envPath->path, "-lock"));
 	}
 }
 NAPI_FUNCTION(EnvWrap::onExit) {
+	// this is called when a process *or* a thread is forcibly exited. This happens
+	// before cleanup, but on the main thread cleanup may never be called. On child
+	// onExit won't be called if there wasn't an error
 	// close all the environments
 	pthread_mutex_lock(envTracking->envsLock);
 	for (auto envPath : envTracking->envs) {
