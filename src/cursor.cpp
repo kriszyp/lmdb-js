@@ -92,8 +92,10 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 			result = valToBinaryFast(data, dw);
 		*((size_t*)keyBuffer) = data.mv_size;
 	}
-	if (!(flags & 0x800))
+	if (!(flags & 0x800)) {
 		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
+		*(keyBuffer + 32 + key.mv_size) = 0; // make sure it is null terminated for the sake of better ordered-binary performance
+	}
 
 	return key.mv_size;
 }
