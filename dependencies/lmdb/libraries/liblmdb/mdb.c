@@ -1908,6 +1908,14 @@ mdb_strerror(int err)
 	case EBUSY:		/* 16, CURRENT_DIRECTORY */
 	case EINVAL:	/* 22, BAD_COMMAND */
 	case ENOSPC:	/* 28, OUT_OF_PAPER */
+		if (last_error) {
+			char* error = malloc(300);
+			strcpy(error, strerror(err));
+			strcat(error, ": ");
+			strcat(error, last_error);
+			last_error = NULL;
+			return error;
+		}
 		return strerror(err);
 	default:
 		;
@@ -1918,6 +1926,14 @@ mdb_strerror(int err)
 		NULL, err, 0, ptr, MSGSIZE, (va_list *)buf+MSGSIZE);
 	return ptr;
 #else
+	if (last_error) {
+		char* error = malloc(300);
+		strcpy(error, strerror(err));
+		strcat(error, ": ");
+		strcat(error, last_error);
+		last_error = NULL;
+		return error;
+	}
 	return strerror(err);
 #endif
 }
@@ -7734,8 +7750,22 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 
 	DPRINTF(("===> get db %u key [%s]", dbi, DKEY(key)));
 
-	if (!key || !data || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID))
+	if (!key || !data || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) {
+		if (!key)
+			last_error = "No key was provided";
+		else if (!data)
+			last_error = "No data was provided";
+		else if (!txn)
+			last_error = "No transaction available";
+		else if ((dbi)>=(txn)->mt_numdbs) {
+			last_error = malloc(100);
+			sprintf(last_error, "The dbi %u was out of range for the number of dbis (%u)", dbi, (txn)->mt_numdbs);
+		} else {
+			last_error = malloc(100);
+			sprintf(last_error, "The dbi %u flag was not valid for the txn: %u", dbi, (txn)->mt_dbflags[dbi]);
+		}
 		return EINVAL;
+	}
 
 	if (txn->mt_flags & MDB_TXN_BLOCKED)
 		return MDB_BAD_TXN;
