@@ -3301,8 +3301,14 @@ mdb_txn_renew0(MDB_txn *txn)
 			MDB_reader *r = (env->me_flags & MDB_NOTLS) ? txn->mt_u.reader :
 				pthread_getspecific(env->me_txkey);
 			if (r) {
-				if (r->mr_pid != env->me_pid || r->mr_txnid != (txnid_t)-1)
+				if (r->mr_pid != env->me_pid || r->mr_txnid != (txnid_t)-1) {
+					last_error = malloc(100);
+					if (r->mr_pid != env->me_pid)
+						sprintf(last_error, "The reader lock pid %u doesn't match env pid %u", r->mr_pid, env->me_pid);
+					else
+						sprintf(last_error, "The reader lock has a txn id %i", r->mr_txnid);
 					return MDB_BAD_RSLOT;
+				}
 			} else {
 				MDB_PID_T pid = env->me_pid;
 				MDB_THR_T tid = pthread_self();
