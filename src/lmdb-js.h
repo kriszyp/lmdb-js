@@ -254,7 +254,7 @@ private:
 	napi_env napiEnv;
 	// compression settings and space
 	Compression *compression;
-	static thread_local std::vector<EnvWrap*> openEnvWraps;
+	static thread_local std::vector<EnvWrap*>* openEnvWraps;
 
 	// Cleans up stray transactions
 	void cleanupStrayTxns();

@@ -1,5 +1,7 @@
 #include "lmdb-js.h"
-
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
 using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
@@ -12,7 +14,7 @@ env_tracking_t* EnvWrap::initTracking() {
 	pthread_mutex_init(tracking->envsLock, nullptr);
 	return tracking;
 }
-thread_local std::vector<EnvWrap*> EnvWrap::openEnvWraps;
+thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
 	rc = mdb_env_create(&(this->env));
@@ -44,7 +46,7 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 	dev = fileInformation.dwVolumeSerialNumber;
 	inode = ((uint64_t) fileInformation.nFileIndexHigh << 32) | fileInformation.nFileIndexLow;
 	#else
-	auto st = stat(path);
+	auto st = fstat(fd);
 	dev = st.st_dev;
 	inode = st.st_ino;
 	#endif
@@ -277,7 +279,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (flags & MDB_NOLOCK) {
 		fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
 	}
-	mdb_env_set_userctx(env, checkExistingEnvs);
+	mdb_env_set_userctx(env, (void*) checkExistingEnvs);
 
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
@@ -295,8 +297,11 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 			goto fail;
 	}
 	mdb_env_get_flags(env, (unsigned int*) &flags);
-	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC))
-		openEnvWraps.push_back(this);
+	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC)) {
+		if (!openEnvWraps)
+			openEnvWraps = new std::vector<EnvWrap*>;
+		openEnvWraps->push_back(this);
+	}
 	pthread_mutex_unlock(envTracking->envsLock);
 	return 0;
 
@@ -337,8 +342,10 @@ NAPI_FUNCTION(setJSFlags) {
 
 NAPI_FUNCTION(EnvWrap::onExit) {
 	// close all the environments
-	for (auto envWrap : openEnvWraps) {
-		envWrap->closeEnv();
+	if (openEnvWraps) {
+		for (auto envWrap : *openEnvWraps)
+			envWrap->closeEnv();
+		free(openEnvWraps);
 	}
 	napi_value returnValue;
 	RETURN_UNDEFINED;
@@ -362,12 +369,14 @@ NAPI_FUNCTION(setEnvsPointer) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
-	for (auto ewRef = openEnvWraps.begin(); ewRef != openEnvWraps.end(); ) {
-		if (*ewRef == this) {
-			openEnvWraps.erase(ewRef);
-			break;
+	if (openEnvWraps) {
+		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
+			if (*ewRef == this) {
+				openEnvWraps->erase(ewRef);
+				break;
+			}
+			++ewRef;
 		}
-		++ewRef;
 	}
 	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
 	cleanupStrayTxns();
@@ -383,7 +392,7 @@ void EnvWrap::closeEnv() {
 					mdb_env_sync(env, 1);
 				}
 				char* path;
-				mdb_env_get_path(env, &((const char*)path));
+				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
 				fprintf(stderr, "Closed path %s\n", path);
