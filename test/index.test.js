@@ -1130,7 +1130,7 @@ describe('lmdb-js', function() {
       });
     });
   });
-  describe.only('Read-only Threads', function() {
+  describe('Read-only Threads', function() {
 	this.timeout(1000000);
 	it('will run a group of threads with read-only transactions', function(done) {
 	  var child = spawn('node', [fileURLToPath(new URL('./readonly-threads.cjs', import.meta.url))]);

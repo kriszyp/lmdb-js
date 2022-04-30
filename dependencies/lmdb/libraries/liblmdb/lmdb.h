@@ -339,6 +339,9 @@ typedef int (MDB_enc_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key,
  */
 typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key);
 #endif
+//<lmdb-js>
+typedef int (MDB_check_fd)(const mdb_filehandle_t fd, MDB_env* env);
+//</lmdb-js>
 
 /** @defgroup	mdb_env	Environment Flags
  *	@{

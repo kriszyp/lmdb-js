@@ -183,10 +183,9 @@ class CursorWrap;
 class SharedEnv {
   public:
 	MDB_env* env;
-	char* path;
+	uint64_t dev;
+	uint64_t inode;
 	int count;
-	bool deleteOnClose;
-	void finish(bool close);
 };
 
 const int INTERRUPT_BATCH = 9998;

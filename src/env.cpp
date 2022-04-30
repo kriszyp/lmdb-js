@@ -34,6 +34,39 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	pthread_mutex_init(this->writingLock, nullptr);
 	pthread_cond_init(this->writingCond, nullptr);
 }
+MDB_env* foundEnv;
+const int EXISTING_ENV_FOUND = 10;
+int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
+	uint64_t inode, dev;
+	#ifdef _WIN32
+	BY_HANDLE_FILE_INFORMATION fileInformation;
+	GetFileInformationByHandle(fd, &fileInformation);
+	dev = fileInformation.dwVolumeSerialNumber;
+	inode = ((uint64_t) fileInformation.nFileIndexHigh << 32) | fileInformation.nFileIndexLow;
+	#else
+	auto st = stat(path);
+	dev = st.st_dev;
+	inode = st.st_ino;
+	#endif
+	fprintf(stderr, "check existing env at dev %llu inode %llu\n", dev, inode);
+	for (auto envRef = EnvWrap::envTracking->envs.begin(); envRef != EnvWrap::envTracking->envs.end();) {
+		if (envRef->dev == dev && envRef->inode == inode) {
+			fprintf(stderr, "found existing env at dev %llu inode %llu\n", dev, inode);
+			envRef->count++;
+			foundEnv = envRef->env;
+			return EXISTING_ENV_FOUND;
+		}
+		++envRef;
+	}
+	fprintf(stderr, "no existing env at dev %llu inode %llu\n", dev, inode);
+	SharedEnv envRef;
+	envRef.dev = dev;
+	envRef.inode = inode;
+	envRef.env = env;
+	envRef.count = 1;
+	EnvWrap::envTracking->envs.push_back(envRef);
+	return 0;
+}
 
 EnvWrap::~EnvWrap() {
 	// Close if not closed already
@@ -210,24 +243,10 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
 		int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
-	pthread_mutex_lock(envTracking->envsLock);
 	this->keyBuffer = keyBuffer;
 	this->compression = compression;
 	this->jsFlags = jsFlags;
-	MDB_env* env = this->env;
-	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end();) {
-		char* existingPath = envPath->path;
-		if (!strcmp(existingPath, path)) {
-			envPath->count++;
-			mdb_env_close(env);
-			this->env = envPath->env;
-			pthread_mutex_unlock(envTracking->envsLock);
-			if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC))
-				openEnvWraps.push_back(this);
-			return 0;
-		}
-		++envPath;
-	}
+
 	int rc;
 	rc = mdb_env_set_maxdbs(env, maxDbs);
 	if (rc) goto fail;
@@ -244,7 +263,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		enckey.mv_data = encryptionKey;
 		enckey.mv_size = 32;
 		#ifdef MDB_RPAGE_CACHE
-		rc = mdb_env_set_encrypt(this->env, encfunc, &enckey, 0);
+		rc = mdb_env_set_encrypt(env, encfunc, &enckey, 0);
 		#else
 		rc = -1;
 		#endif
@@ -258,24 +277,24 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (flags & MDB_NOLOCK) {
 		fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
 	}
+	mdb_env_set_userctx(env, checkExistingEnvs);
 
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
+	pthread_mutex_lock(envTracking->envsLock);
 	rc = mdb_env_open(env, path, flags, 0664);
-	mdb_env_get_flags(env, (unsigned int*) &flags);
 
 	if (rc != 0) {
 		mdb_env_close(env);
-		goto fail;
+		if (rc == EXISTING_ENV_FOUND) {
+			fprintf(stderr, "env_open failed because of existing env %p", foundEnv);
+			env = foundEnv;
+		} else
+			goto fail;
 	}
-	SharedEnv envPath;
-	envPath.path = strdup(path);
-	envPath.env = env;
-	envPath.count = 1;
-	envPath.deleteOnClose = jsFlags & DELETE_ON_CLOSE;
-	envTracking->envs.push_back(envPath);
+	mdb_env_get_flags(env, (unsigned int*) &flags);
 	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC))
 		openEnvWraps.push_back(this);
 	pthread_mutex_unlock(envTracking->envsLock);
@@ -283,7 +302,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 
 	fail:
 	pthread_mutex_unlock(envTracking->envsLock);
-	this->env = nullptr;
+	env = nullptr;
 	return rc;
 }
 Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
@@ -316,18 +335,11 @@ NAPI_FUNCTION(setJSFlags) {
 #endif
 
 
-void SharedEnv::finish(bool close) {
-}
 NAPI_FUNCTION(EnvWrap::onExit) {
 	// close all the environments
 	for (auto envWrap : openEnvWraps) {
 		envWrap->closeEnv();
 	}
-	/*pthread_mutex_lock(envTracking->envsLock);
-	for (auto envPath : envTracking->envs) {
-		envPath.finish(false);
-	}
-	pthread_mutex_unlock(envTracking->envsLock);*/
 	napi_value returnValue;
 	RETURN_UNDEFINED;
 }
@@ -370,9 +382,13 @@ void EnvWrap::closeEnv() {
 				if (envFlags & MDB_OVERLAPPINGSYNC) {
 					mdb_env_sync(env, 1);
 				}
+				char* path;
+				mdb_env_get_path(env, &((const char*)path));
+				path = strdup(path);
 				mdb_env_close(env);
-				if (envPath->deleteOnClose) {
-					unlink(envPath->path);
+				fprintf(stderr, "Closed path %s\n", path);
+				if (jsFlags & DELETE_ON_CLOSE) {
+					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));
 				}
 				envTracking->envs.erase(envPath);

@@ -38,12 +38,8 @@ if (isMainThread) {
 
       setTimeout(() => {
         worker.terminate()
-      }, 8000);
+      }, 20);
       if (messages.length === workerCount) {
-        db.close();
-        for (var i = 0; i < messages.length; i ++) {
-          assert(messages[i] === value.toString('hex'));
-        }
         console.log("done", threadId)
         //setTimeout(() =>
           //process.exit(0), 200);
@@ -72,19 +68,16 @@ if (isMainThread) {
     if (msg.key) {
       var value = db.get(msg.key);
 		let lastIterate = db.getRange().iterate()
-		setInterval(() => {
+		let interval = setInterval(() => {
 			db.get(msg.key);
 			let iterate = db.getRange().iterate();
 			while(!lastIterate.next().done){}
 			lastIterate = iterate;
 		}, 1);
 		setTimeout(() => {
-			if (value === null) {
+			clearInterval(interval)
 			parentPort.postMessage("");
-			} else {
-			parentPort.postMessage(value.toString('hex'));
-			}
-		}, 10000);
+		}, 100);
       
     }
   });

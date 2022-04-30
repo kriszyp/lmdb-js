@@ -5872,6 +5872,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	MDB_OFF_T size, rsize;
 
 	rc = mdb_fopen(env, fname, MDB_O_LOCKS, mode, &env->me_lfd);
+	if (!rc)
+		rc = ((MDB_check_fd*) env->me_userctx)(env->me_lfd, env);
 	if (rc) {
 		/* Omit lockfile if read-only env on read-only filesystem */
 		if (rc == MDB_ERRCODE_ROFS && (env->me_flags & MDB_RDONLY)) {
@@ -6300,7 +6302,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	 	env->boot_id = strtoll(boot_uuid, &endptr, 16);
   }
 #endif
-	/*<lmdb-js>*/
+	/*</lmdb-js>*/
 	env->me_path = strdup(path);
 	env->me_dbxs = calloc(env->me_maxdbs, sizeof(MDB_dbx));
 	env->me_dbflags = calloc(env->me_maxdbs, sizeof(uint16_t));
