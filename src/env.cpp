@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+
 using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
@@ -11,7 +12,7 @@ env_tracking_t* EnvWrap::initTracking() {
 	pthread_mutex_init(tracking->envsLock, nullptr);
 	return tracking;
 }
-
+thread_local std::vector<EnvWrap*> EnvWrap::openEnvWraps;
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
 	rc = mdb_env_create(&(this->env));
@@ -137,7 +138,6 @@ static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int enc
 #endif
 
 void cleanup(void* data) {
-	// this may not be called on the main thread
 	((EnvWrap*) data)->closeEnv();
 }
 
@@ -222,6 +222,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 			mdb_env_close(env);
 			this->env = envPath->env;
 			pthread_mutex_unlock(envTracking->envsLock);
+			if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC))
+				openEnvWraps.push_back(this);
 			return 0;
 		}
 		++envPath;
@@ -274,6 +276,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	envPath.count = 1;
 	envPath.deleteOnClose = jsFlags & DELETE_ON_CLOSE;
 	envTracking->envs.push_back(envPath);
+	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC))
+		openEnvWraps.push_back(this);
 	pthread_mutex_unlock(envTracking->envsLock);
 	return 0;
 
@@ -313,29 +317,17 @@ NAPI_FUNCTION(setJSFlags) {
 
 
 void SharedEnv::finish(bool close) {
-	unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
-	mdb_env_get_flags(env, &envFlags);
-	if (envFlags & MDB_OVERLAPPINGSYNC) {
-		mdb_env_sync(env, 1);
-	}
-	if (close) {
-		mdb_env_close(env);
-	}
-	if (deleteOnClose) {// I think we can try do delete and just expect it to fail if still open by other threads
-		unlink(path);
-		//unlink(strcat(envPath->path, "-lock"));
-	}
 }
 NAPI_FUNCTION(EnvWrap::onExit) {
-	// this is called when a process *or* a thread is forcibly exited. This happens
-	// before cleanup, but on the main thread cleanup may never be called. On child
-	// onExit won't be called if there wasn't an error
 	// close all the environments
-	pthread_mutex_lock(envTracking->envsLock);
+	for (auto envWrap : openEnvWraps) {
+		envWrap->closeEnv();
+	}
+	/*pthread_mutex_lock(envTracking->envsLock);
 	for (auto envPath : envTracking->envs) {
 		envPath.finish(false);
 	}
-	pthread_mutex_unlock(envTracking->envsLock);
+	pthread_mutex_unlock(envTracking->envsLock);*/
 	napi_value returnValue;
 	RETURN_UNDEFINED;
 }
@@ -358,6 +350,13 @@ NAPI_FUNCTION(setEnvsPointer) {
 void EnvWrap::closeEnv() {
 	if (!env)
 		return;
+	for (auto ewRef = openEnvWraps.begin(); ewRef != openEnvWraps.end(); ) {
+		if (*ewRef == this) {
+			openEnvWraps.erase(ewRef);
+			break;
+		}
+		++ewRef;
+	}
 	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
 	cleanupStrayTxns();
 	pthread_mutex_lock(envTracking->envsLock);
@@ -366,7 +365,16 @@ void EnvWrap::closeEnv() {
 			envPath->count--;
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
-				envPath->finish(true);
+				unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
+				mdb_env_get_flags(env, &envFlags);
+				if (envFlags & MDB_OVERLAPPINGSYNC) {
+					mdb_env_sync(env, 1);
+				}
+				mdb_env_close(env);
+				if (envPath->deleteOnClose) {
+					unlink(envPath->path);
+					//unlink(strcat(envPath->path, "-lock"));
+				}
 				envTracking->envs.erase(envPath);
 			}
 			break;

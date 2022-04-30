@@ -1130,6 +1130,22 @@ describe('lmdb-js', function() {
       });
     });
   });
+  describe.only('Read-only Threads', function() {
+	this.timeout(1000000);
+	it('will run a group of threads with read-only transactions', function(done) {
+	  var child = spawn('node', [fileURLToPath(new URL('./readonly-threads.cjs', import.meta.url))]);
+	  child.stdout.on('data', function(data) {
+		 console.log(data.toString());
+	  });
+	  child.stderr.on('data', function(data) {
+		 console.error(data.toString());
+	  });
+	  child.on('close', function(code) {
+		 code.should.equal(0);
+		 done();
+	  });
+	});
+ });
 });
 
 function delay(ms) {
