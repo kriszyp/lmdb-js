@@ -1,5 +1,6 @@
 #include "lmdb-js.h"
 #ifndef _WIN32
+#include <sys/types.h>
 #include <sys/stat.h>
 #endif
 using namespace Napi;
@@ -46,9 +47,14 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 	dev = fileInformation.dwVolumeSerialNumber;
 	inode = ((uint64_t) fileInformation.nFileIndexHigh << 32) | fileInformation.nFileIndexLow;
 	#else
-	auto st = fstat(fd);
-	dev = st.st_dev;
-	inode = st.st_ino;
+	struct stat sb;
+	if (fstat(fd, &sb) == 0) {
+		dev = sb.st_dev;
+		inode = sb.st_ino;
+	} else {
+		dev = 0;
+		inode = 0;
+	}
 	#endif
 	fprintf(stderr, "check existing env at dev %llu inode %llu\n", dev, inode);
 	for (auto envRef = EnvWrap::envTracking->envs.begin(); envRef != EnvWrap::envTracking->envs.end();) {
