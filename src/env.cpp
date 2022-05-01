@@ -248,11 +248,11 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		#endif
 	}
 
+    napiEnv = info.Env();
 	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
 	//delete[] pathBytes;
 	if (rc < 0)
 		return throwLmdbError(info.Env(), rc);
-	napiEnv = info.Env();
 	napi_add_env_cleanup_hook(napiEnv, cleanup, this);
 	return info.Env().Undefined();
 }
