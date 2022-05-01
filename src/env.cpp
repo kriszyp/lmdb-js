@@ -63,17 +63,14 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 		inode = 0;
 	}
 	#endif
-	fprintf(stderr, "check existing env at dev %llu inode %llu\n", dev, inode);
 	for (auto envRef = EnvWrap::envTracking->envs.begin(); envRef != EnvWrap::envTracking->envs.end();) {
 		if (envRef->dev == dev && envRef->inode == inode) {
-			fprintf(stderr, "found existing env at dev %llu inode %llu\n", dev, inode);
 			envRef->count++;
 			foundEnv = envRef->env;
 			return EXISTING_ENV_FOUND;
 		}
 		++envRef;
 	}
-	fprintf(stderr, "no existing env at dev %llu inode %llu\n", dev, inode);
 	SharedEnv envRef;
 	envRef.dev = dev;
 	envRef.inode = inode;
@@ -304,7 +301,6 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (rc != 0) {
 		mdb_env_close(env);
 		if (rc == EXISTING_ENV_FOUND) {
-			fprintf(stderr, "env_open failed because of existing env %p", foundEnv);
 			env = foundEnv;
 		} else
 			goto fail;
@@ -409,7 +405,6 @@ void EnvWrap::closeEnv() {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
-				fprintf(stderr, "Closed path %s\n", path);
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));
