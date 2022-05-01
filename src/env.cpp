@@ -17,7 +17,10 @@ env_tracking_t* EnvWrap::initTracking() {
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 void EnvWrap::cleanupEnvWraps(void* data) {
-    free(openEnvWraps);
+    if (openEnvWraps)
+        free(openEnvWraps);
+    else
+        fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
     openEnvWraps = nullptr;
 }
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
