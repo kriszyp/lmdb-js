@@ -16,6 +16,10 @@ env_tracking_t* EnvWrap::initTracking() {
 	return tracking;
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
+void EnvWrap::cleanupEnvWraps(void* data) {
+    free(openEnvWraps);
+    openEnvWraps = nullptr;
+}
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
 	rc = mdb_env_create(&(this->env));
@@ -304,8 +308,10 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	}
 	mdb_env_get_flags(env, (unsigned int*) &flags);
 	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC)) {
-		if (!openEnvWraps)
+		if (!openEnvWraps) {
 			openEnvWraps = new std::vector<EnvWrap*>;
+            napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
+        }
 		openEnvWraps->push_back(this);
 	}
 	pthread_mutex_unlock(envTracking->envsLock);
@@ -351,7 +357,6 @@ NAPI_FUNCTION(EnvWrap::onExit) {
 	if (openEnvWraps) {
 		for (auto envWrap : *openEnvWraps)
 			envWrap->closeEnv();
-		free(openEnvWraps);
 	}
 	napi_value returnValue;
 	RETURN_UNDEFINED;
