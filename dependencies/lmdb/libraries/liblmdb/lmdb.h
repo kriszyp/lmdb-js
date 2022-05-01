@@ -339,9 +339,6 @@ typedef int (MDB_enc_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key,
  */
 typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key);
 #endif
-//<lmdb-js>
-typedef int (MDB_check_fd)(const mdb_filehandle_t fd, MDB_env* env);
-//</lmdb-js>
 
 /** @defgroup	mdb_env	Environment Flags
  *	@{
@@ -1035,6 +1032,11 @@ typedef void MDB_assert_func(MDB_env *env, const char *msg);
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
 int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
+
+//<lmdb-js>
+typedef int (MDB_check_fd)(const mdb_filehandle_t fd, MDB_env* env);
+int  mdb_env_set_check_fd(MDB_env *env, MDB_check_fd *func);
+//</lmdb-js>
 
 #if MDB_RPAGE_CACHE
 	/** @brief Set encryption on an environment.

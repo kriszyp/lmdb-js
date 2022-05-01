@@ -1689,6 +1689,7 @@ struct MDB_env {
 #endif
 	void		*me_userctx;	 /**< User-settable context */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
+	MDB_check_fd *me_check_fd; /**< Callback for assertion failures */
 	int64_t 	boot_id;
 };
 
@@ -5872,8 +5873,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	MDB_OFF_T size, rsize;
 
 	rc = mdb_fopen(env, fname, MDB_O_LOCKS, mode, &env->me_lfd);
-	if (!rc)
-		rc = ((MDB_check_fd*) env->me_userctx)(env->me_lfd, env);
+	if (!rc && env->me_check_fd)
+		rc = ((MDB_check_fd*) env->me_check_fd)(env->me_lfd, env);
 	if (rc) {
 		/* Omit lockfile if read-only env on read-only filesystem */
 		if (rc == MDB_ERRCODE_ROFS && (env->me_flags & MDB_RDONLY)) {
@@ -11684,6 +11685,15 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 #ifndef NDEBUG
 	env->me_assert_func = func;
 #endif
+	return MDB_SUCCESS;
+}
+
+int ESECT
+mdb_env_set_check_fd(MDB_env *env, MDB_check_fd *func)
+{
+	if (!env)
+		return EINVAL;
+	env->me_check_fd = func;
 	return MDB_SUCCESS;
 }
 

@@ -50,18 +50,18 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 	uint64_t inode, dev;
 	#ifdef _WIN32
 	BY_HANDLE_FILE_INFORMATION fileInformation;
-	GetFileInformationByHandle(fd, &fileInformation);
-	dev = fileInformation.dwVolumeSerialNumber;
-	inode = ((uint64_t) fileInformation.nFileIndexHigh << 32) | fileInformation.nFileIndexLow;
+	if (GetFileInformationByHandle(fd, &fileInformation)) {
+		dev = fileInformation.dwVolumeSerialNumber;
+		inode = ((uint64_t) fileInformation.nFileIndexHigh << 32) | fileInformation.nFileIndexLow;
+	} else
+		return MDB_NOTFOUND;
 	#else
 	struct stat sb;
 	if (fstat(fd, &sb) == 0) {
 		dev = sb.st_dev;
 		inode = sb.st_ino;
-	} else {
-		dev = 0;
-		inode = 0;
-	}
+	} else
+		return MDB_NOTFOUND;
 	#endif
 	for (auto envRef = EnvWrap::envTracking->envs.begin(); envRef != EnvWrap::envTracking->envs.end();) {
 		if (envRef->dev == dev && envRef->inode == inode) {
@@ -289,7 +289,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (flags & MDB_NOLOCK) {
 		fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
 	}
-	mdb_env_set_userctx(env, (void*) checkExistingEnvs);
+	mdb_env_set_check_fd(env, checkExistingEnvs);
 
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
