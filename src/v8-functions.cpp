@@ -98,6 +98,12 @@ void resetTxnV8(const FunctionCallbackInfo<v8::Value>& info) {
 	tw->reset();
 }
 
+void noopFast(Local<v8::Object> instance) {
+}
+
+void noopV8(const FunctionCallbackInfo<v8::Value>& info) {
+}
+
 
 void clearKeptObjects(const FunctionCallbackInfo<v8::Value>& info) {
 	#if NODE_VERSION_AT_LEAST(14,0,0)
@@ -142,13 +148,14 @@ Napi::Value enableDirectV8(const Napi::CallbackInfo& info) {
 		EXPORT_FAST("iterate", iterateV8, iterateFast);
 		EXPORT_FAST("write", writeV8, writeFast);
 		EXPORT_FAST("resetTxn", resetTxnV8, resetTxnFast);
+		EXPORT_FAST("noop", noopV8, noopFast);
 	} else {
 	#endif
 	EXPORT_FUNCTION("getByBinary", getByBinaryV8);
 	EXPORT_FUNCTION("position", positionV8);
 	EXPORT_FUNCTION("iterate", iterateV8);
 	EXPORT_FUNCTION("write", writeV8);
-	EXPORT_FUNCTION("resetTxn", resetTxnV8);
+	EXPORT_FUNCTION("noop", noopV8);
 	#if NODE_VERSION_AT_LEAST(16,6,1)
 	}
 	#endif

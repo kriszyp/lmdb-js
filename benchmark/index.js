@@ -10,6 +10,8 @@ import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
 import { open } from '../index.js';
+import { native } from '../native.js';
+let { noop } = native;
 var env;
 var dbi;
 var keys = [];
@@ -95,6 +97,10 @@ function syncTxn() {
   })
 }
   
+function noopTest() {
+	for (let i = 0; i < 1000; i++)
+  		noop();
+}
 function getData() {
   result = store.get((c += 357) % total)
 }
@@ -180,6 +186,7 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
+	 suite.add('noop', noopTest);
     suite.add('getRange', getRange);
     suite.add('setData', setData, /*{
       defer: true,
