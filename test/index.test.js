@@ -989,6 +989,8 @@ describe('lmdb-js', function() {
 			v = db.get('key2')
 			v = db.get('key3')
 			db.put('key', data);
+			if (i == 4)
+				await db.put('key', data);
 		  }
         let promise = db.close();
         expect(() => db.put('key1', data)).to.throw();

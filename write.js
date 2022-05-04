@@ -63,7 +63,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var enqueuedEventTurnBatch;
 	var batchDepth = 0;
 	var lastWritePromise;
-	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush;
+	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush, lastFlushTimeout, lastFlushCallback;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
 	maxFlushDelay = maxFlushDelay || 500;
@@ -358,8 +358,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					if (resolvers.length > 0)
-						scheduleFlush(resolvers, Math.min((Date.now() - start << 1) + 1, maxFlushDelay))
+					if (resolvers.length > 0) {
+						let delay = Date.now() - start
+						scheduleFlush(resolvers, Math.min((flushPromise && flushPromise.hasCallbacks ? delay >> 1 : delay) + 1, maxFlushDelay))
+					}
 				case 1:
 				break;
 				case 2:
@@ -380,17 +382,26 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			committedFlushResolvers.push(...resolvers)
 		else {
 			committedFlushResolvers = resolvers
-			setTimeout(() => lastSync.then(() => {
-				let resolvers = committedFlushResolvers || []
-				committedFlushResolvers = null
-				lastSync = new Promise((resolve) => {
-					env.sync(() => {
-						for (let i = 0; i < resolvers.length; i++)
-							resolvers[i]();
-						resolve();
+			lastFlushTimeout = setTimeout(lastFlushCallback = () => {
+				lastFlushTimeout = null;
+				lastSync.then(() => {
+					let resolvers = committedFlushResolvers || [];
+					committedFlushResolvers = null;
+					lastSync = new Promise((resolve) => {
+						env.sync(() => {
+							for (let i = 0; i < resolvers.length; i++)
+								resolvers[i]();
+							resolve();
+						});
 					});
 				});
-			}), delay || 0);
+			}, delay || 0);
+		}
+	}
+	function expediteFlush() {
+		if (lastFlushTimeout) {
+			clearTimeout(lastFlushTimeout);
+			lastFlushCallback();
 		}
 	}
 
@@ -812,6 +823,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		flushed: {
 			// make this a thenable for when the commit is flushed to disk
 			then(onfulfilled, onrejected) {
+				if (flushPromise)
+					flushPromise.hasCallbacks = true
 				return Promise.all([flushPromise || committed, lastSyncTxnFlush]).then(onfulfilled, onrejected);
 			}
 		},
@@ -819,6 +832,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			this.put = this.remove = this.del = this.batch = this.removeSync = this.putSync = this.transactionAsync = this.drop = this.clearAsync = () => { throw new Error('Database is closed') };
 			// wait for all txns to finish, checking again after the current txn is done
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
+			if (flushPromise)
+				flushPromise.hasCallbacks = true
+			if (lastFlushTimeout)
+				expediteFlush();
 			let finalSyncPromise = lastSyncTxnFlush;
 			if (finalPromise && resolvedPromise != finalPromise ||
 					finalSyncPromise && resolvedSyncPromise != finalSyncPromise) {
