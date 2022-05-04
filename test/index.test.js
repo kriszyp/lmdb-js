@@ -983,11 +983,13 @@ describe('lmdb-js', function() {
           compression: true,
           overlappingSync: true,
         });
-        let v = db.get('key')
-        v = db.get('key1')
-        v = db.get('key2')
-        v = db.get('key3')
-        db.put('key', data);
+		  if (i > 0) {
+			let v = db.get('key')
+			v = db.get('key1')
+			v = db.get('key2')
+			v = db.get('key3')
+			db.put('key', data);
+		  }
         let promise = db.close();
         expect(() => db.put('key1', data)).to.throw();
         await promise;

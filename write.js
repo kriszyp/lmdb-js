@@ -63,7 +63,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var enqueuedEventTurnBatch;
 	var batchDepth = 0;
 	var lastWritePromise;
-	var writeBatchStart, outstandingBatchCount;
+	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
 	maxFlushDelay = maxFlushDelay || 500;
@@ -778,7 +778,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							env.commitTxn();
 							resetReadTxn();
 							if ((flags & 0x10000) && overlappingSync) // if it is no-sync in overlapping-sync mode, need to schedule flush for it to be marked as persisted
-								scheduleFlush([])
+								lastSyncTxnFlush = new Promise(resolve => scheduleFlush([resolve]))
 						}
 						return result;
 					} finally {
@@ -812,17 +812,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		flushed: {
 			// make this a thenable for when the commit is flushed to disk
 			then(onfulfilled, onrejected) {
-				if (flushPromise)
-					return flushPromise.then(onfulfilled, onrejected);
-				return committed.then(onfulfilled, onrejected);
+				return Promise.all([flushPromise || committed, lastSyncTxnFlush]).then(onfulfilled, onrejected);
 			}
 		},
-		_endWrites(resolvedPromise) {
+		_endWrites(resolvedPromise, resolvedSyncPromise) {
 			this.put = this.remove = this.del = this.batch = this.removeSync = this.putSync = this.transactionAsync = this.drop = this.clearAsync = () => { throw new Error('Database is closed') };
 			// wait for all txns to finish, checking again after the current txn is done
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
-			if (finalPromise && resolvedPromise != finalPromise) {
-				return finalPromise.then(() => this._endWrites(finalPromise), () => this._endWrites(finalPromise));
+			let finalSyncPromise = lastSyncTxnFlush;
+			if (finalPromise && resolvedPromise != finalPromise ||
+					finalSyncPromise && resolvedSyncPromise != finalSyncPromise) {
+				return Promise.all([finalPromise, finalSyncPromise]).then(() => this._endWrites(finalPromise, finalSyncPromise), () => this._endWrites(finalPromise, finalSyncPromise));
 			}
 			Object.defineProperty(env, 'sync', { value: null });
 		},
