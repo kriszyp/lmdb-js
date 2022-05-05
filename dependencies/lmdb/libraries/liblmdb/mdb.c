@@ -4603,16 +4603,18 @@ fail:
 }
 
 MDB_meta* mdb_pick_meta(const MDB_env *env, MDB_meta* a, MDB_meta* b) {
+	const MDB_meta *latest = a->mm_txnid >= b->mm_txnid ? a : b;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 			if (!b->mm_txnid)
 				return a;
-			return (a->mm_txnid + (a->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) >
-				(b->mm_txnid + (b->mm_flags & MDB_OVERLAPPINGSYNC ? 0 : 0x10000)) ? a : b;
+			if ((latest->boot_id && latest->boot_id == env->boot_id) ||
+					!(latest->mm_flags & MDB_OVERLAPPINGSYNC))
+				return latest;
 		}
-		return a->mm_txnid > b->mm_txnid ? b : a;
+		return a->mm_txnid > b->mm_txnid ? b : a; // previous snapshot, use oldest
 	}
-	return a->mm_txnid >= b->mm_txnid ? a : b;
+	return latest;
 }
 
 static int ESECT mdb_env_map(MDB_env *env, void *addr);
@@ -4949,12 +4951,10 @@ mdb_env_pick_meta(const MDB_env *env)
 	//<lmdb-js>
 	MDB_meta *latest = mdb_pick_meta(env, metas[0], metas[1]);
 	if (env->me_flags & MDB_PREVSNAPSHOT && env->me_flags & MDB_OVERLAPPINGSYNC) {
-		if (latest->boot_id && latest->boot_id == env->boot_id)
-			return latest;
 		int offset = env->me_psize >> 1;
 		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
 		latest = mdb_pick_meta(env, latest, flushed);
-	}
+	} else
 	//</lmdb-js>
 	return latest;
 }
