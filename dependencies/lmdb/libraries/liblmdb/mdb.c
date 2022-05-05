@@ -4954,7 +4954,7 @@ mdb_env_pick_meta(const MDB_env *env)
 		int offset = env->me_psize >> 1;
 		MDB_meta *flushed = ((MDB_meta*) (((char*)metas[0]) + offset));
 		latest = mdb_pick_meta(env, latest, flushed);
-	} else
+	}
 	//</lmdb-js>
 	return latest;
 }
