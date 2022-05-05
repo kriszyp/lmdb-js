@@ -316,7 +316,7 @@ export function open(path, options) {
 			};
 			return {
 				saveStructures: (structures, isCompatible) => {
-					return this.transactionSyncStart(() => {
+					return this.transactionSync(() => {
 						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey);
 						let existingStructures = existingStructuresBuffer && this.decoder.decode(existingStructuresBuffer);
 						if (typeof isCompatible == 'function' ?
@@ -324,7 +324,7 @@ export function open(path, options) {
 								(existingStructures && existingStructures.length != isCompatible))
 							return false; // it changed, we need to indicate that we couldn't update
 						this.put(this.sharedStructuresKey, structures);
-					});
+					},  options.overlappingSync ? 0x10000 : 0);
 				},
 				getStructures,
 				copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
