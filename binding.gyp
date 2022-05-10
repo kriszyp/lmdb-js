@@ -28,7 +28,6 @@
   "targets": [
     {
       "target_name": "lmdb",
-      "win_delay_load_hook": "false",
       "sources": [
         "src/lmdb-js.cpp",
         "dependencies/lmdb/libraries/liblmdb/midl.c",
@@ -46,7 +45,6 @@
         "src/v8-functions.cpp"
       ],
       "include_dirs": [
-        "<!(node -e \"require('nan')\")",
         "<!(node -p \"require('node-addon-api').include_dir\")",
         "dependencies/lz4/lib"
       ],
