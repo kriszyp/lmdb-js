@@ -41,6 +41,12 @@ using namespace Napi;
 #define __CPTHREAD_H__
 
 #ifdef _WIN32
+#define EXTERN __declspec(dllexport)
+# else
+#define EXTERN __attribute__((visibility("default")))
+#endif
+
+#ifdef _WIN32
 # include <windows.h>
 #else
 # include <pthread.h>

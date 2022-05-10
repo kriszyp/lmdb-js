@@ -172,6 +172,12 @@ NAPI_FUNCTION(getByBinary) {
 	GET_UINT32_ARG(keySize, 1);
 	RETURN_INT32(dw->doGetByBinary(keySize));
 }
+
+extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
+    DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
+    return dw->doGetByBinary(keySize);
+}
+
 napi_finalize noopDbi = [](napi_env, void *, void *) {
 	// Data belongs to LMDB, we shouldn't free it here
 };
