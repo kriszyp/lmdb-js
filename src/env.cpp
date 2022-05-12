@@ -17,11 +17,11 @@ env_tracking_t* EnvWrap::initTracking() {
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 void EnvWrap::cleanupEnvWraps(void* data) {
-    if (openEnvWraps)
-        free(openEnvWraps);
-    else
-        fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
-    openEnvWraps = nullptr;
+	if (openEnvWraps)
+		free(openEnvWraps);
+	else
+		fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
+	openEnvWraps = nullptr;
 }
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
@@ -245,7 +245,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		#endif
 	}
 
-    napiEnv = info.Env();
+	napiEnv = info.Env();
 	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
 	//delete[] pathBytes;
 	if (rc < 0)
@@ -309,8 +309,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC)) {
 		if (!openEnvWraps) {
 			openEnvWraps = new std::vector<EnvWrap*>;
-            napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
-        }
+			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
+		}
 		openEnvWraps->push_back(this);
 	}
 	pthread_mutex_unlock(envTracking->envsLock);
@@ -513,9 +513,9 @@ Napi::Value EnvWrap::readerList(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-   readerStrings = Array::New(info.Env());
+	readerStrings = Array::New(info.Env());
 	int rc;
-   Napi::Env env = info.Env();
+	Napi::Env env = info.Env();
 	rc = mdb_reader_list(this->env, printReaders, &env);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
@@ -543,7 +543,7 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	}
 
 	CopyWorker* worker = new CopyWorker(
-	 this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()  > 2 ? 2 : 1].As<Function>()
+		this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()	> 2 ? 2 : 1].As<Function>()
 	);
 	worker->Queue();
 	return info.Env().Undefined();
