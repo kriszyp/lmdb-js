@@ -95,6 +95,13 @@ describe('lmdb-js', function() {
       })
       return
     }
+	 it('will not open non-existent db with create disabled', function() {
+		let noDb = db.open({
+			name: 'not-there',
+			create: false,
+		});
+		should.equal(noDb, undefined);
+	 });
     it('zero length values', async function() {
       await db.committed // should be able to await db even if nothing has happened
       db.put(5, asBinary(Buffer.from([])));
@@ -983,6 +990,9 @@ describe('lmdb-js', function() {
           compression: true,
           overlappingSync: true,
         });
+		  let db2 = db.openDB({
+			  name: 'child'
+		  })
 		  if (i > 0) {
 			let v = db.get('key')
 			v = db.get('key1')
@@ -1134,7 +1144,7 @@ describe('lmdb-js', function() {
       });
     });
   });
-  describe('Read-only Threads', function() {
+  describe.only('Read-only Threads', function() {
 	this.timeout(1000000);
 	it('will run a group of threads with read-only transactions', function(done) {
 	  var child = spawn('node', [fileURLToPath(new URL('./readonly-threads.cjs', import.meta.url))]);
