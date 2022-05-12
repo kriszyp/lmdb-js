@@ -26,6 +26,17 @@ if (process.versions.v8.includes('node') && +majorVersion == nativeAddon.version
 	let v8Funcs = {};
 	nativeAddon.enableDirectV8(v8Funcs, false);
 	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
+} else if (process.isBun) {
+	/*const { dlopen, FFIType } = require('bun:ffi');
+	let lmdbLib = dlopen(libPath, {
+		dbiGetByBinary: { args: [FFIType.f64, FFIType.u32], returns: FFIType.u32},
+		iterate: { args: [FFIType.f64], returns: FFIType.i32},
+		position: { args: [FFIType.f64, FFIType.u32, FFIType.u32, FFIType.u32, FFIType.f64], returns: FFIType.i32},
+		write: { args: [FFIType.f64, FFIType.f64], returns: FFIType.i32},
+		resetTxn: { args: [FFIType.f64], returns: FFIType.u8},
+	});
+	Object.assign(nativeAddon, lmdbLib.symbols);
+	v8AccelerationEnabled = true;*/
 }
 setNativeFunctions(nativeAddon);
 	
