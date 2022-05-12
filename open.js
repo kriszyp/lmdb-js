@@ -124,7 +124,7 @@ export function open(path, options) {
 
 	env.readerCheck(); // clear out any stale entries
 	let stores = [];
-	if ((options.overlappingSync || options.deleteOnClose) && !hasRegisteredOnExit) {
+	if ((options.overlappingSync || options.deleteOnClose) && !hasRegisteredOnExit && process.on) {
 		hasRegisteredOnExit = true;
 		process.on('exit', onExit);
 	}
@@ -375,7 +375,7 @@ const KEY_BUFFER_SIZE = 4096;
 function allocateFixedBuffer() {
 	keyBytes = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE) : new Uint8Array(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;
-	keyBytesView = keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE); // max key size is actually 4026
+	keyBytesView = keyBytes.dataView || (keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE)); // max key size is actually 4026
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
 	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
 	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBytes);

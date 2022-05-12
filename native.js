@@ -11,9 +11,9 @@ path = pathModule;
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 
 let nativeAddon = require('node-gyp-build-optional-packages')(dirName);
-
-let [ majorVersion, minorVersion ] = process.versions.node.split('.')
-if (process.versions.v8.includes('node') && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
+let versions = process.versions;
+let [ majorVersion, minorVersion ] = versions.node.split('.')
+if (versions.v8 && versions.v8.includes('node') && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 	let v8Funcs = {};
 	let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 6) && !process.env.DISABLE_TURBO_CALLS;
 	if (fastApiCalls)
