@@ -68,7 +68,6 @@
   "gypfile": true,
   "dependencies": {
     "msgpackr": "^1.5.4",
-    "nan": "^2.14.2",
     "node-addon-api": "^4.3.0",
     "node-gyp-build-optional-packages": "^4.3.2",
     "ordered-binary": "^1.2.4",
