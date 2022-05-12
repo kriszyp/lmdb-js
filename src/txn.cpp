@@ -200,6 +200,10 @@ NAPI_FUNCTION(resetTxn) {
 	tw->reset();
 	RETURN_UNDEFINED;
 }
+extern "C" EXTERN void resetTxn(double twPointer) {
+	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
+	tw->reset();
+}
 
 void TxnWrap::reset() {
 	ew->readTxnRenewed = false;

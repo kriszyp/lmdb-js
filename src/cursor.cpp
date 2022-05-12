@@ -238,6 +238,13 @@ NAPI_FUNCTION(position) {
 	int32_t result = cw->doPosition(offset, keySize, endKeyAddress);
 	RETURN_INT32(result);
 }
+extern "C" EXTERN int32_t position(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
+	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
+	DbiWrap* dw = cw->dw;
+	dw->getFast = true;
+	cw->flags = flags;
+	return cw->doPosition(offset, keySize, endKeyAddress);
+}
 
 NAPI_FUNCTION(iterate) {
 	ARGS(1)
@@ -247,6 +254,16 @@ NAPI_FUNCTION(iterate) {
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
+
+extern "C" EXTERN int32_t iterate(double cwPointer) {
+	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
+	DbiWrap* dw = cw->dw;
+	dw->getFast = true;
+	MDB_val key, data;
+	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+	return cw->returnEntry(rc, key, data);
+}
+
 
 NAPI_FUNCTION(getCurrentValue) {
 	ARGS(1)

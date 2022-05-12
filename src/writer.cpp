@@ -413,3 +413,14 @@ NAPI_FUNCTION(EnvWrap::write) {
 	}
 	RETURN_UNDEFINED;
 }
+extern "C" EXTERN int32_t write(double ewPointer, uint64_t instructionAddress) {
+	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+	int rc;
+	if (instructionAddress)
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		pthread_cond_signal(ew->writingCond);
+		rc = 0;
+	}
+	return rc;
+}
