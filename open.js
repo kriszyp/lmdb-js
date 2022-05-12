@@ -176,7 +176,7 @@ export function open(path, options) {
 						this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 					}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
 				} else {
-					return; // return undefined to indicate it could not be found
+					throw new Error('Database not found')
 				}
 			}
 			this.dbAddress = this.db.address
@@ -239,6 +239,8 @@ export function open(path, options) {
 					new (CachingStore(LMDBStore, env))(dbName, dbOptions) :
 					new LMDBStore(dbName, dbOptions);
 			} catch(error) {
+				if (error.message == 'Database not found')
+					return; // return undefined to indicate db not found
 				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
 					error.message += ' (increase your maxDbs option)';
 				}
