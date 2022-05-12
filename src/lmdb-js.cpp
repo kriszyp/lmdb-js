@@ -30,7 +30,10 @@ Object InitAll(Napi::Env env, Object exports) {
 		fprintf(stderr, "Finished initialization\n");
 	return exports;
 }
-NODE_API_MODULE(lmdb, InitAll)
+NAPI_MODULE_INIT() {
+	Value exp = Value::From(env, exports);
+	return InitAll(env, exp.As<Object>());
+}
 
 #ifndef _WIN32
 extern "C" void node_module_register(void* m) {
