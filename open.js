@@ -143,9 +143,6 @@ export function open(path, options) {
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
 				throw new Error('The dupSort flag can not be combined with versions or caching');
 			}
-			// make sure we are using a fresh read txn, so we don't want to share with a cursor txn
-			this.resetReadTxn();
-			this.ensureReadTxn();
 			let keyIsBuffer = dbOptions.keyIsBuffer
 			if (dbOptions.keyEncoding == 'uint32') {
 				dbOptions.keyIsUint32 = true;
@@ -162,22 +159,29 @@ export function open(path, options) {
 				(dbOptions.dupFixed ? 0x10 : 0) |
 				(dbOptions.integerDup ? 0x20 : 0) |
 				(dbOptions.reverseDup ? 0x40 : 0) |
+				(!options.readOnly && dbOptions.create !== false ? 0x40000 : 0) |
 				(dbOptions.useVersions ? 0x1000 : 0);
 			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
 			if (keyType == 2)
 				flags |= 0x08; // integer key
-			if (!((flags & 0xff) && !dbName)) // if there are any dupsort options on the main db, skip as we have to use a write txn below
+
+			if (options.readOnly) {
+				// in read-only mode we use a read-only txn to open the database
+				// TODO: LMDB is actually not entire thread-safe when it comes to opening databases with
+				// read-only transactions since there is a race condition on setting the update dbis that
+				// occurs outside the lock
+				// make sure we are using a fresh read txn, so we don't want to share with a cursor txn
+				this.resetReadTxn();
+				this.ensureReadTxn();
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
-			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
+				this._commitReadTxn(); // current read transaction becomes invalid after opening another db
+			} else {
+				this.transactionSync(() => {
+					this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
+				}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
+			}
 			if (!this.db || this.db.dbi == 0xffffffff) {// not found
-				if (dbOptions.create !== false && !options.readOnly) {
-					flags |= 0x40000; // add create flag
-					this.transactionSync(() => {
-						this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
-					}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
-				} else {
-					throw new Error('Database not found')
-				}
+				throw new Error('Database not found')
 			}
 			this.dbAddress = this.db.address
 			this.db.name = dbName || null;
