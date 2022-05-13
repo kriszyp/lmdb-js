@@ -368,7 +368,9 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	envForTxn->writeTxn = new TxnTracked(txn, 0);
 	finishedProgress = true;
-	Callback().Call({ Number::New(Env(), progressStatus) });
+	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
+	napi_create_int32(Env(), progressStatus, &arg);
+	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
 	delete envForTxn->writeTxn;
 	envForTxn->writeTxn = nullptr;
 	pthread_cond_signal(envForTxn->writingCond);
@@ -377,7 +379,9 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 
 void AsyncWriteWorker::OnOK() {
 	finishedProgress = true;
-	Callback().Call({ Number::New(Env(), 0)});
+	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
+	napi_create_int32(Env(), 0, &arg);
+	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
