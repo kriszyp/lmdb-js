@@ -1,10 +1,11 @@
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 import { setExternals, setNativeFunctions, Dbi } from './native.js';
 import { arch, tmpdir, platform } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';
+
 
 orderedBinary.enableNullTermination();
 setExternals({

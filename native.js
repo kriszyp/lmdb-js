@@ -8,7 +8,6 @@ path = pathModule;
 let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which doesn't have fileURLToPath
 	dirname(fileURLToPath(import.meta.url))).replace(/dist$/, ''); // for node, which doesn't have __dirname in ESM
 export let nativeAddon = loadNAPI(dirName);
-console.log('nativeAddon.getByBinaryPtr', nativeAddon.getByBinaryPtr)
 if (process.isBun) {
 	const { linkSymbols, FFIType } = require('bun:ffi');
 	console.log(FFIType);
