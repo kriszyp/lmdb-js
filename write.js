@@ -1,6 +1,5 @@
-import { getAddress, native } from './native.js';
+import { getAddress, write, compress } from './native.js';
 import { when } from './util/when.js';
-const { write, compress } = native;
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;

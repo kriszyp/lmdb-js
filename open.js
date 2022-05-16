@@ -1,12 +1,17 @@
-import { Compression, getAddress, require, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, native } from './native.js';
+import { Compression, getAddress, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, nativeAddon } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
 import { applyKeyHandling } from './keys.js';
+let moduleRequire = typeof require == 'function' && require;
+export function setRequire(require) {
+	moduleRequire = require;
+}
+
 setGetLastVersion(getLastVersion);
 let keyBytes, keyBytesView;
 const buffers = [];
-const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = native;
+const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = nativeAddon;
 if (globalThis.__lmdb_envs__)
 	setEnvsPointer(globalThis.__lmdb_envs__);
 else
@@ -208,7 +213,7 @@ export function open(path, options) {
 				this.encoder = null; // don't copy everything from the module
 			}
 			if (!Encoder && !(this.encoder && this.encoder.encode) && (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor')) {
-				Encoder = (this.encoding == 'cbor' ? require('cbor-x').Encoder : MsgpackrEncoder);
+				Encoder = (this.encoding == 'cbor' ? moduleRequire('cbor-x').Encoder : MsgpackrEncoder);
 			}
 			if (Encoder) {
 				this.encoder = new Encoder(Object.assign(

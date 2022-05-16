@@ -1,47 +1,37 @@
-import { dirname, default as pathModule } from 'path';
+import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+import loadNAPI from 'node-gyp-build-optional-packages';
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, compress;
 
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, setGlobalBuffer,
-	require, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, write, position, iterate, native, v8AccelerationEnabled = false;
-
-require = createRequire(import.meta.url);
 path = pathModule;
 
-let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
-
-let nativeAddon = require('node-gyp-build-optional-packages')(dirName);
-let versions = process.versions;
-let [ majorVersion, minorVersion ] = versions.node.split('.')
-if (versions.v8 && versions.v8.includes('node') && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
-	let v8Funcs = {};
-	let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 6) && !process.env.DISABLE_TURBO_CALLS;
-	if (fastApiCalls)
-		require('v8').setFlagsFromString('--turbo-fast-api-calls')
-	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
-	Object.assign(nativeAddon, v8Funcs);
-	v8AccelerationEnabled = true;
-} else if (majorVersion == 14) {
-	// node v14 only has ABI compatibility with node v16 for zero-arg clearKeptObjects
-	let v8Funcs = {};
-	nativeAddon.enableDirectV8(v8Funcs, false);
-	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
-} else if (process.isBun) {
-	/*const { dlopen, FFIType } = require('bun:ffi');
-	let lmdbLib = dlopen(libPath, {
-		dbiGetByBinary: { args: [FFIType.f64, FFIType.u32], returns: FFIType.u32},
-		iterate: { args: [FFIType.f64], returns: FFIType.i32},
+let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which doesn't have fileURLToPath
+	dirname(fileURLToPath(import.meta.url))).replace(/dist$/, ''); // for node, which doesn't have __dirname in ESM
+export let nativeAddon = loadNAPI(dirName);
+console.log('nativeAddon.getByBinaryPtr', nativeAddon.getByBinaryPtr)
+if (process.isBun) {
+	const { linkSymbols, FFIType } = require('bun:ffi');
+	console.log(FFIType);
+	let libPath = join(dirName + '/build/Release/lmdb.node');
+	//let libPath = join(dirname(require.resolve('lmdb-linux-' + process.arch)), 'node.napi.node');
+	let lmdbLib = linkSymbols({
+		getByBinary: {
+			args: [FFIType.f64, FFIType.u32],
+			returns: FFIType.u32,
+			ptr: nativeAddon.getByBinaryPtr
+		},
+		/*iterate: { args: [FFIType.f64], returns: FFIType.i32},
 		position: { args: [FFIType.f64, FFIType.u32, FFIType.u32, FFIType.u32, FFIType.f64], returns: FFIType.i32},
 		write: { args: [FFIType.f64, FFIType.f64], returns: FFIType.i32},
-		resetTxn: { args: [FFIType.f64], returns: FFIType.u8},
+		resetTxn: { args: [FFIType.f64], returns: FFIType.u8},*/
 	});
+	console.log('lmdbLib.symbols.getByBinary.native', lmdbLib.symbols.getByBinary.native);
 	Object.assign(nativeAddon, lmdbLib.symbols);
-	v8AccelerationEnabled = true;*/
+	v8AccelerationEnabled = true;
 }
 setNativeFunctions(nativeAddon);
 	
 export function setNativeFunctions(externals) {
-	native = externals;
 	Env = externals.Env;
 	Txn = externals.Txn;
 	Dbi = externals.Dbi;
@@ -49,6 +39,19 @@ export function setNativeFunctions(externals) {
 	getAddress = externals.getAddress;
 	createBufferForAddress = externals.createBufferForAddress;
 	clearKeptObjects = externals.clearKeptObjects || function() {};
+	getByBinary = externals.getByBinary;
+	detachBuffer  = externals.detachBuffer;
+	setGlobalBuffer = externals.setGlobalBuffer;
+	prefetch = externals.prefetch;
+	iterate = externals.iterate;
+	position = externals.position;
+	resetTxn = externals.resetTxn;
+	getCurrentValue = externals.getCurrentValue;
+	getCurrentShared = externals.getCurrentShared;
+	getStringByBinary = externals.getStringByBinary;
+	getSharedByBinary = externals.getSharedByBinary;
+	write = externals.write;
+	compress = externals.compress;
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
 	if (externals.tmpdir)

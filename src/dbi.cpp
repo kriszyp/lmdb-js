@@ -173,7 +173,7 @@ NAPI_FUNCTION(getByBinary) {
 	RETURN_INT32(dw->doGetByBinary(keySize));
 }
 
-extern "C" EXTERN uint32_t dbiGetByBinary(double dwPointer, uint32_t keySize) {
+uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize) {
     DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
     return dw->doGetByBinary(keySize);
 }
@@ -315,6 +315,7 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("prefetch", prefetchNapi);
 	EXPORT_NAPI_FUNCTION("getStringByBinary", getStringByBinary);
 	EXPORT_NAPI_FUNCTION("getSharedByBinary", getSharedByBinary);
+	EXPORT_FUNCTION_ADDRESS("getByBinaryPtr", getByBinaryFFI);
 	// TODO: wrap mdb_stat too
 }
 
