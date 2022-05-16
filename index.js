@@ -20,9 +20,9 @@ export { ABORT, IF_EXISTS, asBinary } from './write.js';
 import { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 import { levelup } from './level.js';
-export { clearKeptObjects, v8AccelerationEnabled } from './native.js';
-import { v8AccelerationEnabled, native } from './native.js';
-export let { noop } = native;
+export { clearKeptObjects } from './native.js';
+import { nativeAddon } from './native.js';
+export let { noop } = nativeAddon;
 export { open, openAsClass, getLastVersion, allDbs } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, openAsClass, getLastVersion } from './open.js';
@@ -32,5 +32,5 @@ export const TransactionFlags = {
 	NO_SYNC_FLUSH: 0x10000,
 };
 export default {
-	open, openAsClass, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, IF_EXISTS, asBinary, levelup, v8AccelerationEnabled, TransactionFlags
+	open, openAsClass, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, IF_EXISTS, asBinary, levelup, TransactionFlags
 };

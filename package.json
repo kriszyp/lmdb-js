@@ -25,7 +25,7 @@
     ".": {
       "node": {
         "require": "./dist/index.cjs",
-        "import": "./index.js"
+        "import": "./node-index.js"
       },
       "default": "./index.js"
     }

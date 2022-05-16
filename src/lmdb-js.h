@@ -73,7 +73,13 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 #define RETURN_INT64(value) { napi_create_int64(env, value, &returnValue); return returnValue; }
 #define RETURN_UNDEFINED { napi_get_undefined(env, &returnValue); return returnValue; }
 #define THROW_ERROR(message) { napi_throw_error(env, NULL, message); napi_get_undefined(env, &returnValue); return returnValue; }
-#define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, (napi_property_attributes) (napi_writable | napi_configurable), 0 }; napi_define_properties(env, exports, 1, &desc); }
+#define EXPORT_NAPI_FUNCTION(name, func) { napi_property_descriptor desc = { name, 0, func, 0, 0, 0, (napi_property_attributes) (napi_writable | napi_configurable), 0 };\
+	napi_define_properties(env, exports, 1, &desc); }
+#define EXPORT_FUNCTION_ADDRESS(name, func) { \
+	napi_value address;\
+	napi_create_int64(env, (size_t) func, &address);\
+	napi_property_descriptor desc = { name, 0, 0, 0, 0, address, (napi_property_attributes) (napi_writable | napi_configurable), 0 };\
+	napi_define_properties(env, exports, 1, &desc); }
 
 #ifdef _WIN32
 
