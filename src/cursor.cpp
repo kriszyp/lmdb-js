@@ -238,7 +238,7 @@ NAPI_FUNCTION(position) {
 	int32_t result = cw->doPosition(offset, keySize, endKeyAddress);
 	RETURN_INT32(result);
 }
-extern "C" EXTERN int32_t position(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
+int32_t positionFFI(double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
 	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
 	DbiWrap* dw = cw->dw;
 	dw->getFast = true;
@@ -255,7 +255,7 @@ NAPI_FUNCTION(iterate) {
 	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
 
-extern "C" EXTERN int32_t iterate(double cwPointer) {
+int32_t iterateFFI(double cwPointer) {
 	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
 	DbiWrap* dw = cw->dw;
 	dw->getFast = true;
@@ -311,6 +311,9 @@ void CursorWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("getCurrentValue", getCurrentValue);
 	EXPORT_NAPI_FUNCTION("getCurrentShared", getCurrentShared);
 	EXPORT_NAPI_FUNCTION("renew", renew);
+	EXPORT_FUNCTION_ADDRESS("positionPtr", positionFFI);
+	EXPORT_FUNCTION_ADDRESS("iteratePtr", iterateFFI);
+
 	exports.Set("Cursor", CursorClass);
 
 //	cursorTpl->InstanceTemplate()->SetInternalFieldCount(1);
