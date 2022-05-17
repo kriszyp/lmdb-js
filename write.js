@@ -23,7 +23,7 @@ export const ABORT = {};
 export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
 const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
-const ByteArray = typeof Buffer != 'undefined' ? Buffer : Uint8Array; // TODO: Once Buffer.from is fixed in bun, use that
+const ByteArray = typeof Buffer != 'undefined' ? function(buffer) { return Buffer.from(buffer) } : Uint8Array;
 const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
 //let debugLog = []
 const WRITE_BUFFER_SIZE = 0x10000;
