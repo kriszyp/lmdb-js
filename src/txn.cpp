@@ -200,7 +200,7 @@ NAPI_FUNCTION(resetTxn) {
 	tw->reset();
 	RETURN_UNDEFINED;
 }
-extern "C" EXTERN void resetTxn(double twPointer) {
+void resetTxnFFI(double twPointer) {
 	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
 	tw->reset();
 }
@@ -230,6 +230,7 @@ void TxnWrap::setupExports(Napi::Env env, Object exports) {
 	});
 	exports.Set("Txn", TxnClass);
 	EXPORT_NAPI_FUNCTION("resetTxn", resetTxn);
+	EXPORT_FUNCTION_ADDRESS("resetTxnPtr", resetTxnFFI);
 	//txnTpl->InstanceTemplate()->SetInternalFieldCount(1);
 }
 // This file contains code from the node-lmdb project

@@ -677,6 +677,18 @@ Napi::Value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
 	this->readTxnRenewed = false;
 	return info.Env().Undefined();
 }
+int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
+	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
+	int rc;
+	if (instructionAddress)
+		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, (uint32_t*)instructionAddress, nullptr);
+	else {
+		pthread_cond_signal(ew->writingCond);
+		rc = 0;
+	}
+	return rc;
+}
+
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	// EnvWrap: Prepare constructor template
@@ -705,6 +717,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("setEnvsPointer", setEnvsPointer);
 	EXPORT_NAPI_FUNCTION("getEnvFlags", getEnvFlags);
 	EXPORT_NAPI_FUNCTION("setJSFlags", setJSFlags);
+	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);
 }

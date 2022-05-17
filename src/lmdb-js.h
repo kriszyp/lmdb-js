@@ -41,12 +41,6 @@ using namespace Napi;
 #define __CPTHREAD_H__
 
 #ifdef _WIN32
-#define EXTERN __declspec(dllexport)
-# else
-#define EXTERN __attribute__((visibility("default")))
-#endif
-
-#ifdef _WIN32
 # include <windows.h>
 #else
 # include <pthread.h>
@@ -77,7 +71,8 @@ typedef CONDITION_VARIABLE pthread_cond_t;
 	napi_define_properties(env, exports, 1, &desc); }
 #define EXPORT_FUNCTION_ADDRESS(name, func) { \
 	napi_value address;\
-	napi_create_int64(env, (size_t) func, &address);\
+	void* f = (void*) func;\
+	napi_create_double(env, *((double*) &f), &address);\
 	napi_property_descriptor desc = { name, 0, 0, 0, 0, address, (napi_property_attributes) (napi_writable | napi_configurable), 0 };\
 	napi_define_properties(env, exports, 1, &desc); }
 
