@@ -5,6 +5,6 @@ let platformDeps = packageData.optionalDependencies = {};
 let packageName = packageData.name;
 let version = packageData.version;
 for (let prebuild of prebuilds) {
-	platformDeps[packageName + '-' + prebuild] = version;
+	platformDeps['@' + packageName + '/' + packageName + '-' + prebuild] = version;
 }
 fs.writeFileSync('package.json', JSON.stringify(packageData, null, 2));
