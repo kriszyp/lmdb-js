@@ -56,7 +56,7 @@
     "prebuild-libc-expanded": "prebuildify --tag-libc --target 16.14.0 && prebuildify --tag-libc --target 14.19.1 && prebuildify --tag-libc --target 17.9.0 && prebuildify --tag-libc --target 18.0.0 && ENABLE_V8_FUNCTIONS=false prebuildify --tag-libc --napi --platform-packages --target 16.14.0",
     "prebuild-libc": "prebuildify --tag-libc --target 17.9.0 && prebuildify --tag-libc --target 18.0.0 && prebuildify --napi --platform-packages --tag-libc --target 16.14.2",
     "prebuildify": "prebuildify --target 16.14.2",
-    "full-publish": "cd prebuilds/win32-x64 && npm publish --otp %OTP% && cd ../darwin-x64 && npm publish --otp %OTP% && cd ../darwin-arm64 && npm publish --otp %OTP% && cd ../linux-x64 && npm publish --otp %OTP% && cd ../linux-arm64 && npm publish --otp %OTP%  && cd ../linux-arm && npm publish --otp %OTP% && cd ../.. && npm publish",
+    "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts",
