@@ -180,13 +180,12 @@ export function addReadMethods(LMDBStore, {
 			if (!env.writeTxn)
 				readTxnRenewed ? readTxn : renewReadTxn(this);
 			if (versionOrValue == null) {
-				this.getBinaryFast(key);
 				// undefined means the entry exists, null is used specifically to check for the entry *not* existing
-				return (this.lastSize === 0xffffffff) == (versionOrValue === null);
+				return (this.getBinaryFast(key) === undefined) == (versionOrValue === null);
 			}
 			else if (this.useVersions) {
 				this.getBinaryFast(key);
-				return this.lastSize !== 0xffffffff && getLastVersion() === versionOrValue;
+				return this.getBinaryFast(key) !== undefined && getLastVersion() === versionOrValue;
 			}
 			else {
 				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
@@ -454,7 +453,7 @@ export function addReadMethods(LMDBStore, {
 		getSharedBufferForGet(id) {
 			let txn = (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
 			this.lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0));
-			if (this.lastSize === 0xffffffff) { // not found code
+			if (this.lastSize === -30798) { // not found code
 				return; //undefined
 			}
 			return this.lastSize;

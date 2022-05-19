@@ -614,6 +614,8 @@ describe('lmdb-js', function() {
 
     });
     it('doesExist', async function() {
+		should.equal(db.doesExist('not-there'), false);
+		should.equal(db2.doesExist('not-there'), false);
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: true}
