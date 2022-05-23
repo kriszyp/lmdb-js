@@ -179,12 +179,12 @@ export function open(path, options) {
 				this.resetReadTxn();
 				this.ensureReadTxn();
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
-				this._commitReadTxn(); // current read transaction becomes invalid after opening another db
 			} else {
 				this.transactionSync(() => {
 					this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 				}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
 			}
+			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
 			if (!this.db || this.db.dbi == 0xffffffff) {// not found
 				throw new Error('Database not found')
 			}
