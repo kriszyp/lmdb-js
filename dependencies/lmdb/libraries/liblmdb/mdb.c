@@ -7780,8 +7780,10 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 			if (!last_error)
 				last_error = "No transaction available";
 		} else if ((dbi)>=(txn)->mt_numdbs) {
-			last_error = malloc(100);
-			sprintf(last_error, "The dbi %u was out of range for the number of dbis (%u)", dbi, (txn)->mt_numdbs);
+			MDB_meta *meta = mdb_env_pick_meta(txn->mt_env);
+			txn->mt_txnid = meta->mm_txnid;
+			last_error = malloc(140);
+			sprintf(last_error, "The dbi %u was out of range for the number of dbis (txn: %u id: %u, env: %u txnid: %u)", dbi, (txn)->mt_numdbs, txn->mt_txnid, txn->mt_env->me_numdbs, meta->mm_txnid);
 		} else {
 			last_error = malloc(100);
 			sprintf(last_error, "The dbi %u flag was not valid for the txn: %u", dbi, (txn)->mt_dbflags[dbi]);

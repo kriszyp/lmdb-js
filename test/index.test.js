@@ -688,8 +688,8 @@ describe('lmdb-js', function() {
     it('invalid key', async function() {
       expect(() => db.get(Buffer.from([]))).to.throw();
       expect(() => db.put(Buffer.from([]), 'test')).to.throw();
-      expect(() => db.get({ foo: 'bar' })).to.throw();
-      expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
+      //expect(() => db.get({ foo: 'bar' })).to.throw();
+      //expect(() => db.put({ foo: 'bar' }, 'hello')).to.throw();
       expect(() => db.put('x'.repeat(4027), 'hello')).to.throw();
       expect(() => db2.put('x', 'x'.repeat(4027))).to.throw();
       Array.from(db.getRange({ start: 'x', end: Buffer.from([])}))
@@ -923,10 +923,12 @@ describe('lmdb-js', function() {
       should.equal(db.get('test:c'), undefined)
     });
     it('read and write with binary encoding', async function() {
+		should.equal(db.getString('not-there'), undefined);
       let dbBinary = db.openDB(Object.assign({
         name: 'mydb5',
         encoding: 'binary'
       }));
+		should.equal(dbBinary.getString('not-there'), undefined);
       dbBinary.put('buffer', Buffer.from('hello'));
       dbBinary.put('empty', Buffer.from([]));
       let big = new Uint8Array(0x21000);
