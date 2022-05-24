@@ -116,10 +116,13 @@ This operation will be enqueued to be written in a batch transaction. Any other 
 
 If `put` is called inside a transaction, the put will be executed immediately in the current transaction.
 
-### `db.remove(key, valueOrIfVersion?: number): Promise<boolean>`
-This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation. If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
+### `db.remove(key, IfVersion?: number): Promise<boolean>`
+This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation.
 
 Again, if this is performed inside a transation, the removal will be performed in the current transaction.
+
+### `db.remove(key, value?: any): Promise<boolean>`
+If you are using a database with duplicate entries per key (with `dupSort` flag), you can specify the value to remove as the second parameter (instead of a version).
 
 ### `db.transaction(callback: Function): Promise`
 This will run the provided callback in a transaction, asynchronously starting the transaction, then running the callback, then later committing the transaction. By running within a transaction, the code in the callback can perform multiple database operations atomically and isolated (fully [ACID compliant](https://en.wikipedia.org/wiki/ACID)). Any `put` or `remove` operations are immediately written to the transaction and can be immediately read afterwards (you can call `get()` or `getRange()` without awaiting for a returned promise) in the transaction.
@@ -416,7 +419,7 @@ let db = open({ encoder: cbor });
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `keyEncoding` - This indicates the encoding to use for the database keys, and can be `'uint32'` for unsigned 32-bit integers, `'binary'` for raw buffers/Uint8Arrays, and the default `'ordered-binary'` allows any JS primitive as a keys.
 * `keyEncoder` - Provide a custom key encoder.
-* `dupSort` - Enables duplicate entries for keys. You will usually want to retrieve the values for a key with `getValues`. Note that you can not set this flag on the unnamed/main database and also have named databases.
+* `dupSort` - Enables duplicate entries for keys. Generally this is best used for building indices where the values represent keys to other databases, and it is recommended that you use `encoding: 'ordered-binary'` with this flag. You will usually want to retrieve the values for a key with `getValues`.
 * `strictAsyncOrder` - Maintain strict ordering of execution of asynchronous transaction callbacks relative to asynchronous single operations.
 
 The following additional option properties are only available when creating the main database environment (`open`):
