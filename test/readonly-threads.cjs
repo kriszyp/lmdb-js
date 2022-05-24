@@ -16,7 +16,7 @@ if (isMainThread) {
 
 	// This will start as many workers as there are CPUs available.
 	let messages = [];
-	let iterations = 1000;
+	let iterations = 100;
 	function startWorker() {
 		if (iterations-- <= 0)
 			return;
