@@ -35,7 +35,7 @@ export function addReadMethods(LMDBStore, {
 				if (rc == -30781 /*MDB_BAD_VALSIZE*/ && this.writeKey(id, keyBytes, 0) == 0)
 					throw new Error(id === undefined ?
 					'A key is required for get, but is undefined' :
-					'Zero length key is not allowed in LMDB')
+					'Zero length key is not allowed in LMDB');
 				if (rc == -30000) // int32 overflow, read uint32
 					rc = this.lastSize = keyBytesView.getUint32(0, true);
 				else
@@ -85,9 +85,9 @@ export function addReadMethods(LMDBStore, {
 			}
 			if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
 				// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
-				if (this.lastShared && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
-					detachBuffer(this.lastShared.buffer);
-				return this.lastShared = getShared();
+				if (globalThis.__lmdb_last_shared__ && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
+					detachBuffer(globalThis.__lmdb_last_shared__.buffer);
+				return globalThis.__lmdb_last_shared__ = getShared();
 			}
 			// grow our shared/static buffer to accomodate the size of the data
 			bytes = this._allocateGetBuffer(this.lastSize);
