@@ -25,3 +25,4 @@ if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 setNativeFunctions(nativeAddon);
 
 export * from './index.js'
+export { default } from './index.js'
