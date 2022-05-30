@@ -17,7 +17,6 @@ import { createBufferForAddress } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { assert } from 'console';
 import { openAsClass } from '../open.js';
-
 describe('lmdb-js', function() {
 	let testDirPath = path.resolve(dirName, './testdata-ls');
 
@@ -95,13 +94,14 @@ describe('lmdb-js', function() {
 			})
 			return
 		}
-	 it('will not open non-existent db with create disabled', function() {
-		let noDb = db.open({
-			name: 'not-there',
-			create: false,
+		it('will not open non-existent db with create disabled', function() {
+			let noDb = db.open({
+				name: 'not-there',
+				create: false,
+			});
+			should.equal(noDb, undefined);
 		});
-		should.equal(noDb, undefined);
-	 });
+		it('')
 		it('zero length values', async function() {
 			await db.committed // should be able to await db even if nothing has happened
 			db.put(5, asBinary(Buffer.from([])));
@@ -923,17 +923,19 @@ describe('lmdb-js', function() {
 			should.equal(db.get('test:c'), undefined)
 		});
 		it('read and write with binary encoding', async function() {
-		should.equal(db.getString('not-there'), undefined);
+			should.equal(db.getString('not-there'), undefined);
 			let dbBinary = db.openDB(Object.assign({
 				name: 'mydb5',
 				encoding: 'binary'
 			}));
-		should.equal(dbBinary.getString('not-there'), undefined);
+			should.equal(dbBinary.getString('not-there'), undefined);
 			dbBinary.put('buffer', Buffer.from('hello'));
 			dbBinary.put('empty', Buffer.from([]));
 			let big = new Uint8Array(0x21000);
 			big.fill(3);
 			dbBinary.put('big', big);
+			dbBinary.put('big1', big);
+			dbBinary.put('big2', big);
 			let promise = dbBinary.put('Uint8Array', new Uint8Array([1,2,3]));
 			await promise
 			await promise.flushed
@@ -945,7 +947,16 @@ describe('lmdb-js', function() {
 
 			dbBinary.get('big')[3].should.equal(3);
 			dbBinary.get('big')[3].should.equal(3);
-			dbBinary.getBinaryFast('big')[3].should.equal(3);
+			for (let i = 0; i < 100; i++) {
+				dbBinary.getBinaryFast('big')[3].should.equal(3);
+				dbBinary.getBinaryFast('big1')[3].should.equal(3);
+				dbBinary.getBinaryFast('big2')[3].should.equal(3);
+				let a
+				for (let j = 0; j < 100000;j++) {
+					a = {}
+				}
+				await delay(1)
+			}
 			dbBinary.getBinaryFast('big')[3].should.equal(3); // do it twice to test detach the previous one
 			dbBinary.get('Uint8Array')[1].should.equal(2);
 			Array.from(dbBinary.getRange({ start: 'big' }))[0].value[3].should.equal(3);
@@ -988,24 +999,28 @@ describe('lmdb-js', function() {
 			for (let i = 0; i < 100; i++) {
 				data += Math.random()
 			}
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 100; i++) {
 				let db = open(testDirPath + '/təst-close.mdb', {
 //					name: 'test-close',
 					compression: true,
 					overlappingSync: true,
+					batchStartThreshold: 5,
 				});
-			let db2 = db.openDB({
-				name: 'child'
-			})
-			if (i > 0) {
-			let v = db.get('key')
-			v = db.get('key1')
-			v = db.get('key2')
-			v = db.get('key3')
-			db.put('key', data);
-			if (i == 4)
-				await db.put('key', data);
-			}
+				for (let j = 0; j < 100; j++)
+					db.put('key', data);
+				let db2 = db.openDB({
+					name: 'child'
+				})
+				db2.get('test')
+				if (i > 0) {
+					let v = db.get('key')
+					v = db.get('key1')
+					v = db.get('key2')
+					v = db.get('key3')
+					db.put('key', data);
+					if (i == 4)
+						await db.put('key', data);
+				}
 				let promise = db.close();
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
