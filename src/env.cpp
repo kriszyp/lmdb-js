@@ -2,6 +2,7 @@
 #ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #endif
 using namespace Napi;
 
@@ -124,7 +125,20 @@ class SyncWorker : public AsyncWorker {
 	}
 
 	void Execute() {
-		int rc = mdb_env_sync(env->env, 1);
+        #ifdef _WIN32
+        int rc = mdb_env_sync(env->env, 1);
+        #else
+        int retries = 0;
+        retry:
+        int rc = mdb_env_sync(env->env, 1);
+        if (rc == EINVAL) {
+            if (retries++ < 10) {
+                sleep(1);
+                goto retry;
+            }
+            return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+        }
+        #endif
 		if (rc != 0) {
 			SetError(mdb_strerror(rc));
 		}

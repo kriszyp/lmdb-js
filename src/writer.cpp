@@ -13,6 +13,10 @@ inline value?
 */
 #include "lmdb-js.h"
 #include <atomic>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
 const int PUT = 15;
@@ -334,7 +338,20 @@ void WriteWorker::Write() {
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	pthread_mutex_lock(envForTxn->writingLock);
+    #ifdef _WIN32
 	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+    #else
+    int retries = 0;
+    retry:
+	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+    if (rc == EINVAL) {
+        if (retries++ < 10) {
+            sleep(1);
+            goto retry;
+        }
+        return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+    }
+    #endif
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
