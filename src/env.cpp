@@ -16,6 +16,7 @@ env_tracking_t* EnvWrap::initTracking() {
 	return tracking;
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
+thread_local std::unordered_map<void*, external_ref_t>* EnvWrap::sharedBuffers = new std::unordered_map<void*, external_ref_t>;
 void EnvWrap::cleanupEnvWraps(void* data) {
 	if (openEnvWraps)
 		free(openEnvWraps);
@@ -362,17 +363,28 @@ NAPI_FUNCTION(EnvWrap::onExit) {
 }
 NAPI_FUNCTION(getEnvsPointer) {
 	napi_value returnValue;
-	RETURN_INT64((int64_t) EnvWrap::envTracking);
+	napi_create_array(env, &returnValue);
+	napi_value item;
+	napi_create_int64(env, (int64_t) EnvWrap::envTracking, &item);
+	napi_set_element(env, returnValue, 0, item);
+	napi_create_int64(env, (int64_t) EnvWrap::sharedBuffers, &item);
+	napi_set_element(env, returnValue, 0, item);
+	return returnValue;
 }
 
 NAPI_FUNCTION(setEnvsPointer) {
 	// If another version of lmdb-js is running, switch to using its list of envs
-	ARGS(1)
+	ARGS(2)
 	env_tracking_t* adoptedTracking;
 	GET_INT64_ARG(adoptedTracking, 0);
 	// copy any existing ones over to the central one
 	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
 	EnvWrap::envTracking = adoptedTracking;
+
+	free(EnvWrap::sharedBuffers);
+	std::unordered_map<void*, external_ref_t>* adoptedSharedBuffers;
+	GET_INT64_ARG(adoptedSharedBuffers, 1);
+	EnvWrap::sharedBuffers = adoptedSharedBuffers;
 	RETURN_UNDEFINED;
 }
 

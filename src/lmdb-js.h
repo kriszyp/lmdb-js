@@ -25,6 +25,7 @@
 #define NODE_LMDB_H
 
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <napi.h>
 #include <node_api.h>
@@ -196,7 +197,7 @@ class SharedEnv {
 };
 
 const int INTERRUPT_BATCH = 9998;
-const int ALLOW_COMMIT = 9997;
+const int WORKER_WAITING = 9997;
 const int RESTART_WORKER_TXN = 9999;
 const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
@@ -253,6 +254,11 @@ typedef struct env_tracking_t {
 	std::vector<SharedEnv> envs;
 } env_tracking_t;
 
+typedef struct external_ref_t {
+	napi_ref ref;
+	int id;
+	TxnTracked* txn;
+} external_ref_t;
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
@@ -276,6 +282,7 @@ public:
 	// The wrapped object
 	MDB_env *env;
 	// Current write transaction
+	static thread_local std::unordered_map<void*, external_ref_t>* sharedBuffers;
 	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;
