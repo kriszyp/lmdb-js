@@ -136,7 +136,7 @@ class SyncWorker : public AsyncWorker {
                 sleep(1);
                 goto retry;
             }
-            return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+            return SetError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
         }
         #endif
 		if (rc != 0) {
