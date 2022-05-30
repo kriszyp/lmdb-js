@@ -10,8 +10,8 @@ import benchmark from 'benchmark';
 var suite = new benchmark.Suite();
 
 import { open } from '../index.js';
-import { native } from '../native.js';
-let { noop } = native;
+import { nativeAddon } from '../native.js';
+let { noop } = nativeAddon;
 var env;
 var dbi;
 var keys = [];
@@ -33,7 +33,7 @@ let bigString = 'big'
 for (let i = 0; i < 14; i++) {
   bigString += bigString
 }
-//data.more = bigString
+data.more = bigString
 console.log(bigString.length)
 var c = 0
 let result
@@ -186,6 +186,7 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
+    suite.add('getBinaryFast', getBinaryFast);
 	 suite.add('noop', noopTest);
     suite.add('getRange', getRange);
     suite.add('setData', setData, /*{
