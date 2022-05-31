@@ -126,6 +126,16 @@ export function addReadMethods(LMDBStore, {
 				asSafeBuffer = false;
 			}
 		},
+		getSharedBinary(id) {
+			let fastBuffer = this.getBinaryFast(id);
+			if (fastBuffer) {
+				if (fastBuffer.isShared || writeTxn)
+					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
+				fastBuffer.txn = readTxn;
+				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
+				return fastBuffer;
+			}
+		},
 		get(id) {
 			if (this.decoderCopies) {
 				// the decoder copies any data, so we can use the fast binary retrieval that overwrites the same buffer space

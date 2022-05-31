@@ -254,11 +254,10 @@ typedef struct env_tracking_t {
 	std::vector<SharedEnv> envs;
 } env_tracking_t;
 
-typedef struct external_ref_t {
-	napi_ref ref;
+typedef struct buffer_info_t {
 	int id;
-	TxnTracked* txn;
-} external_ref_t;
+    size_t end;
+} buffer_info_t;
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
@@ -282,7 +281,7 @@ public:
 	// The wrapped object
 	MDB_env *env;
 	// Current write transaction
-	static thread_local std::unordered_map<void*, external_ref_t>* sharedBuffers;
+	static thread_local std::unordered_map<void*, buffer_info_t>* sharedBuffers;
 	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;

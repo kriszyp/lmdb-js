@@ -16,7 +16,7 @@ env_tracking_t* EnvWrap::initTracking() {
 	return tracking;
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
-thread_local std::unordered_map<void*, external_ref_t>* EnvWrap::sharedBuffers = new std::unordered_map<void*, external_ref_t>;
+thread_local std::unordered_map<void*, int>* EnvWrap::sharedBuffers;
 void EnvWrap::cleanupEnvWraps(void* data) {
 	if (openEnvWraps)
 		free(openEnvWraps);
