@@ -41,7 +41,7 @@ describe('lmdb-js', function() {
 	});
 	let testIteration = 0
 	describe('Basic use', basicTests({ }));
-	describe('Basic use with overlapping sync', basicTests({ overlappingSync: true }));
+	describe('Basic use with overlapping sync', basicTests({ compression: false, overlappingSync: true }));
 	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
 	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));

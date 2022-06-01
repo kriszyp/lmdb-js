@@ -40,10 +40,10 @@ export function addReadMethods(LMDBStore, {
 				if (rc == -30000) // int32 overflow, read uint32
 					rc = this.lastSize = keyBytesView.getUint32(0, true);
 				if (rc == -30001) {// shared buffer
-					let bufferId = keyBytesView.getUint32(0, true);
+					this.lastSize = keyBytesView.getUint32(0, true);
+					let bufferId = keyBytesView.getUint32(4, true);
 					let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
-					let offset = keyBytesView.getUint32(4, true);
-					this.lastSize = keyBytesView.getUint32(8, true);
+					let offset = keyBytesView.getUint32(8, true);
 					return Buffer.from(buffer, offset, this.lastSize);
 				} else
 					throw lmdbError(rc);
@@ -53,8 +53,7 @@ export function addReadMethods(LMDBStore, {
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				return this._returnLargeBuffer(
-					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)),
-					() => getSharedByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
+					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
 			}
 			bytes.length = this.lastSize;
 			return bytes;
@@ -68,7 +67,7 @@ export function addReadMethods(LMDBStore, {
 				return Uint8ArraySlice.call(buffer, 0, this.lastSize);
 			}
 		},
-		_returnLargeBuffer(getFast, getShared) {
+		_returnLargeBuffer(getFast) {
 			let bytes;
 			let compression = this.compression;
 			if (asSafeBuffer && this.lastSize > NEW_BUFFER_THRESHOLD) {
@@ -98,12 +97,6 @@ export function addReadMethods(LMDBStore, {
 					}
 				}
 				return bytes;
-			}
-			if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
-				// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
-				if (globalThis.__lmdb_last_shared__ && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
-					detachBuffer(globalThis.__lmdb_last_shared__.buffer);
-				return globalThis.__lmdb_last_shared__ = getShared();
 			}
 			// grow our shared/static buffer to accomodate the size of the data
 			bytes = this._allocateGetBuffer(this.lastSize);
@@ -393,20 +386,25 @@ export function addReadMethods(LMDBStore, {
 						if (includeValues) {
 							let value;
 							lastSize = keyBytesView.getUint32(0, true);
-							let bytes = compression ? compression.getValueBytes : getValueBytes;
-							if (lastSize > bytes.maxLength) {
-								store.lastSize = lastSize;
-								asSafeBuffer = store.encoding == 'binary';
-								try {
-									bytes = store._returnLargeBuffer(
-										() => getCurrentValue(cursorAddress),
-										() => getCurrentShared(cursorAddress)
-									);
-								} finally {
-									asSafeBuffer = false;
-								}
-							} else
-								bytes.length = lastSize;
+							let bufferId = keyBytesView.getUint32(4, true);
+							let bytes;
+							if (bufferId) {
+								let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
+								let offset = keyBytesView.getUint32(8, true);
+								bytes = Buffer.from(buffer, offset, this.lastSize);
+							} else {
+								bytes = compression ? compression.getValueBytes : getValueBytes;
+								if (lastSize > bytes.maxLength) {
+									store.lastSize = lastSize;
+									asSafeBuffer = store.encoding == 'binary';
+									try {
+										bytes = store._returnLargeBuffer(() => getCurrentValue(cursorAddress));
+									} finally {
+										asSafeBuffer = false;
+									}
+								} else
+									bytes.length = lastSize;
+							}
 							if (store.decoder) {
 								value = store.decoder.decode(bytes, lastSize);
 							} else if (store.encoding == 'binary')

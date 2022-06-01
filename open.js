@@ -46,7 +46,7 @@ export function open(path, options) {
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
-	let remapChunks = options.remapChunks || (options.mapSize ?
+	let remapChunks = options.remapChunks || options.encryptionKey || (options.mapSize ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	options = Object.assign({

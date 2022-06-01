@@ -161,7 +161,7 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
     	return -30000;
 	} else {
 		return ew->toSharedBuffer(data);
-    }
+	}
 }
 
 NAPI_FUNCTION(getByBinary) {

@@ -422,7 +422,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
 	size_t bufferStart = bufferPosition << 32;
 	bufferStart += -(bufferStart >> 4) + mapAddress;
-	fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
+	//fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
 	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
 	size_t offset = dataAddress - bufferStart;
 	buffer_info_t bufferInfo;
@@ -447,9 +447,9 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
 
-	*((uint32_t*) keyBuffer) = bufferInfo.id;
-	*((uint32_t*) (keyBuffer + 4)) = offset;
-	*((uint32_t*) (keyBuffer + 8)) = data.mv_size;
+	*((uint32_t*) keyBuffer) = data.mv_size;
+	*((uint32_t*) (keyBuffer + 4)) = bufferInfo.id;
+	*((uint32_t*) (keyBuffer + 8)) = offset;
 	return -30001;
 }
 
