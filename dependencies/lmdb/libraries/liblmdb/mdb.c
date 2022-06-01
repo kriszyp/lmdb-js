@@ -4089,13 +4089,16 @@ mdb_page_flush(MDB_txn *txn, int keep)
 
 	/* setup nump list, flag that it's in use */
 	dl_nump = env->me_dirty_nump;
+	/* <lmdb-js addition> */
 	for (n=1; n<=pagecount; n++) {
 		dp = dl[n].mptr;
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
+		pgno_t p = dl[n].mid + dl_nump[n];
+		if (p > pgno)
+			pgno = p;
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
 	/* <lmdb-js addition> */
-	pgno = dl[pagecount].mid + dl_nump[pagecount];
 	n = 0;
 	
 #ifdef _WIN32
