@@ -427,7 +427,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	size_t offset = dataAddress - bufferStart;
 	buffer_info_t bufferInfo;
 	if (bufferSearch == sharedBuffers->end()) {
-		bufferInfo.end = bufferStart + 0x100000000;
+		bufferInfo.end = bufferStart + 0xffffffff;
 		if (bufferInfo.end > mapAddress + stat.me_mapsize)
 			bufferInfo.end = mapAddress + stat.me_mapsize;
 	} else {
@@ -440,7 +440,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 			bufferInfo = bufferSearch->second;
 	}
 	if (bufferSearch == sharedBuffers->end()) {
-		bufferInfo.end = bufferStart + 0x100000000;
+		bufferInfo.end = bufferStart + 0xffffffff;
 		if (bufferInfo.end > mapAddress + stat.me_mapsize)
 			bufferInfo.end = mapAddress + stat.me_mapsize;
 		bufferInfo.id = nextSharedId++;
