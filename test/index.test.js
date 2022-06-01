@@ -101,7 +101,6 @@ describe('lmdb-js', function() {
 			});
 			should.equal(noDb, undefined);
 		});
-		it('')
 		it('zero length values', async function() {
 			await db.committed // should be able to await db even if nothing has happened
 			db.put(5, asBinary(Buffer.from([])));

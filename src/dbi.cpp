@@ -136,7 +136,6 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-
 int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	char* keyBuffer = ew->keyBuffer;
 	MDB_txn* txn = ew->getReadTxn();
@@ -151,42 +150,17 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 		return result;
 	}
 	result = getVersionAndUncompress(data, this);
-	if (valToBinaryFast(data, this)) {
-        return data.mv_size;
-    }
-    if (result) {// if it was decompressed
-        if (data.mv_size < 0x80000000)
-		  return data.mv_size;
+	bool fits = true;
+	if (result) {
+		fits = valToBinaryFast(data, this); // it fit in the global/compression-target buffer
+   }
+   if (fits || result == 2 || data.mv_size < 0x100) {// if it was decompressed
+		if (data.mv_size < 0x80000000)
+			return data.mv_size;
     	*((uint32_t*)keyBuffer) = data.mv_size;
     	return -30000;
-    } else {
-        if (data.mv_size < 0x800)
-            return data.mv_size;
-        MDB_envinfo stat;
-        mdb_env_info(ew->env, &stat);
-        ssize_t offset = data.mv_data - stat.me_mapaddr;
-        if (offset < -1)
-            goto specificAddress;
-        bufferNum = (offset + (offset >> 4)) >> 32;
-        bufferStart = bufferNum << 32;
-        bufferStart -= bufferStart >> 4;
-        bufferEnd = bufferStart + 0x100000000;
-        if (offset + data.mv_size >= bufferEnd)
-            goto specificAddress;
-        
-
-        end = offset + data.mv_size;
-        bufferStartForEnd = (end + (end >> 4)) >> 32;
-
-        ew->env
-        ew->sharedBuffers
-        /*
-        alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
-
-        *((size_t*) keyBuffer) = data.mv_size;
-        *((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
-        return 0;*/
-
+	} else {
+		return ew->toSharedBuffer(data);
     }
 }
 

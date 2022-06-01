@@ -93,7 +93,7 @@ Value valToBinaryUnsafe(MDB_val &data, DbiWrap* dw, Env env) {
 }
 
 
-bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
+int getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 	//fprintf(stdout, "uncompressing %u\n", compressionThreshold);
 	unsigned char* charData = (unsigned char*) data.mv_data;
 	if (dw->hasVersions) {
@@ -104,18 +104,16 @@ bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 		data.mv_size -= 8;
 	}
 	if (data.mv_size == 0) {
-		return true;// successFunc(data);
+		return 1;// successFunc(data);
 	}
 	unsigned char statusByte = dw->compression ? charData[0] : 0;
 		//fprintf(stdout, "uncompressing status %X\n", statusByte);
 	if (statusByte >= 250) {
 		bool isValid;
 		dw->compression->decompress(data, isValid, !dw->getFast);
-		if (!isValid)
-			return false;
-			//return Nan::Null();
+		return isValid ? 2 : 0;
 	}
-	return true;
+	return 1;
 }
 
 Value lmdbError(const CallbackInfo& info) {

@@ -52,6 +52,17 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 			}
 		}
 		//fprintf(stderr, "txn_begin from txn.cpp %u %p\n", flags, parentTxn);
+		if ((flags & MDB_RDONLY) && parentTxn) {
+			// if a txn is passed in, we check to see if it is up-to-date and can be reused
+			MDB_envinfo stat;
+			mdb_env_info(ew->env, &stat);
+			if (mdb_txn_id(parentTxn) == stat.me_last_txnid) {
+				txn = nullptr;
+				info.This().As<Object>().Set("address", Number::New(info.Env(), 0));
+				return;
+			}
+			parentTxn = nullptr;
+		}
 		int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
 		if (rc != 0) {
 			txn = nullptr;
