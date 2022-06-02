@@ -139,7 +139,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			delay = delay << 1ll;
 			//if (delay > 500)
 				//fprintf(stderr, "waited, %llu %p\n", delay, *target);
-			if ((*target & 0xf) || allowCommit && finishedProgress) {
+			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
 				return 0;
