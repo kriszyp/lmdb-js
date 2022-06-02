@@ -87,19 +87,26 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	
 	// TODO: if the conditionDepth is 0, we could allow the current worker's txn to be continued, committed and restarted
 	pthread_mutex_lock(envForTxn->writingLock);
-	if (commitSynchronously && interruptionStatus == ALLOW_COMMIT) {
+	retry:
+	if (commitSynchronously && interruptionStatus == WORKER_WAITING) {
 		//fprintf(stderr, "acquire interupting lock %p %u\n", this, commitSynchronously);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-		*flags |= TXN_FROM_WORKER;
-		return nullptr;
+		if (interruptionStatus == RESTART_WORKER_TXN) {
+			*flags |= TXN_FROM_WORKER;
+			return nullptr;
+		} else {
+			interruptionStatus = WORKER_WAITING;
+			goto retry;
+		}
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
 		//	pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		interruptionStatus = USER_HAS_LOCK;
 		*flags |= TXN_FROM_WORKER;
-		//fprintf(stderr, "acquire lock %p %u\n", txn, commitSynchronously);
+		//if (txn)
+			//fprintf(stderr, "acquire lock from worker %p %u\n", txn, commitSynchronously);
 		return txn;
 	}
 }
@@ -120,21 +127,24 @@ void AsyncWriteWorker::ReportError(const char* error) {
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
-	//fprintf(stderr, "wait for callback %p\n", this);
+	//fprintf(stderr, "wait for callback %p\n", target);
 	if (!finishedProgress)
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
-	interruptionStatus = allowCommit ? ALLOW_COMMIT : 0;
+	interruptionStatus = WORKER_WAITING;
 	if (target) {
 		uint64_t delay = 1;
 		do {
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 1ll;
-			//if (delay > 5000)
-			//	fprintf(stderr, "waited, %llu %p\n", delay, *target);
-		} while(!(
-			(*target & 0xf) ||
-			(allowCommit && (interruptionStatus == INTERRUPT_BATCH || finishedProgress))));
+			//if (delay > 500)
+				//fprintf(stderr, "waited, %llu %p\n", delay, *target);
+			if ((*target & 0xf) || allowCommit && finishedProgress) {
+				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
+				interruptionStatus = 0;
+				return 0;
+			}
+		} while(interruptionStatus != INTERRUPT_BATCH);
 	} else
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
@@ -192,9 +202,11 @@ next_inst:	start = instruction++;
 					status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 					if (status == 2) {
 						//fprintf(stderr, "wait on compression %p\n", instruction);
+						worker->interruptionStatus = WORKER_WAITING;
 						do {
 							pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 						} while (std::atomic_load((std::atomic<int64_t>*)(instruction + 2)));
+						worker->interruptionStatus = 0;
 					} else if (status > 2) {
 						//fprintf(stderr, "doing the compression ourselves\n");
 						((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
@@ -242,8 +254,9 @@ next_inst:	start = instruction++;
 				if (!worker->finishedProgress || conditionDepth) {
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
-							(uint32_t)WAITING_OPERATION))
+							(uint32_t)WAITING_OPERATION)) {
 						worker->WaitForCallbacks(&txn, conditionDepth == 0, start);
+					}
 					goto next_inst;
 				} else {
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
