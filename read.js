@@ -1,5 +1,5 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary } from './native.js';
+import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer } from './native.js';
 import { saveKey }  from './keys.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
@@ -7,6 +7,7 @@ const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Arra
 let getValueBytes = makeReusableBuffer(0);
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
+let buffers = globalThis.__lmdb_shared__ || (globalThis.__lmdb_shared__ = []);
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
@@ -38,7 +39,13 @@ export function addReadMethods(LMDBStore, {
 					'Zero length key is not allowed in LMDB');
 				if (rc == -30000) // int32 overflow, read uint32
 					rc = this.lastSize = keyBytesView.getUint32(0, true);
-				else
+				if (rc == -30001) {// shared buffer
+					this.lastSize = keyBytesView.getUint32(0, true);
+					let bufferId = keyBytesView.getUint32(4, true);
+					let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
+					let offset = keyBytesView.getUint32(8, true);
+					return Buffer.from(buffer, offset, this.lastSize);
+				} else
 					throw lmdbError(rc);
 			}
 			let compression = this.compression;
@@ -46,13 +53,21 @@ export function addReadMethods(LMDBStore, {
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				return this._returnLargeBuffer(
-					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)),
-					() => getSharedByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
+					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
 			}
 			bytes.length = this.lastSize;
 			return bytes;
 		},
-		_returnLargeBuffer(getFast, getShared) {
+		retainBinary(buffer) {
+			if (!buffer.isGlobal && !env.writeTxn) {
+				buffer.txn = readTxn;
+				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
+				return buffer;
+			} else {
+				return Uint8ArraySlice.call(buffer, 0, this.lastSize);
+			}
+		},
+		_returnLargeBuffer(getFast) {
 			let bytes;
 			let compression = this.compression;
 			if (asSafeBuffer && this.lastSize > NEW_BUFFER_THRESHOLD) {
@@ -82,12 +97,6 @@ export function addReadMethods(LMDBStore, {
 					}
 				}
 				return bytes;
-			}
-			if (this.lastSize > NEW_BUFFER_THRESHOLD && !compression) {
-				// for large binary objects, cheaper to make a buffer that directly points at the shared LMDB memory to avoid copying a large amount of memory, but only for large data since there is significant overhead to instantiating the buffer
-				if (globalThis.__lmdb_last_shared__ && detachBuffer) // we have to detach the last one, or else could crash due to two buffers pointing at same location
-					detachBuffer(globalThis.__lmdb_last_shared__.buffer);
-				return globalThis.__lmdb_last_shared__ = getShared();
 			}
 			// grow our shared/static buffer to accomodate the size of the data
 			bytes = this._allocateGetBuffer(this.lastSize);
@@ -124,6 +133,16 @@ export function addReadMethods(LMDBStore, {
 				return fastBuffer && (fastBuffer.isShared ? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize) : fastBuffer);
 			} finally {
 				asSafeBuffer = false;
+			}
+		},
+		getSharedBinary(id) {
+			let fastBuffer = this.getBinaryFast(id);
+			if (fastBuffer) {
+				if (fastBuffer.isShared || writeTxn)
+					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
+				fastBuffer.txn = readTxn;
+				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
+				return fastBuffer;
 			}
 		},
 		get(id) {
@@ -167,8 +186,11 @@ export function addReadMethods(LMDBStore, {
 			resetReadTxn();
 		},
 		_commitReadTxn() {
-			if (readTxn)
+			if (readTxn) {
+				readTxn.isCommitted = true
 				readTxn.commit();
+			}
+			lastReadTxnRef = null;
 			readTxnRenewed = null;
 			readTxn = null;
 		},
@@ -367,20 +389,25 @@ export function addReadMethods(LMDBStore, {
 						if (includeValues) {
 							let value;
 							lastSize = keyBytesView.getUint32(0, true);
-							let bytes = compression ? compression.getValueBytes : getValueBytes;
-							if (lastSize > bytes.maxLength) {
-								store.lastSize = lastSize;
-								asSafeBuffer = store.encoding == 'binary';
-								try {
-									bytes = store._returnLargeBuffer(
-										() => getCurrentValue(cursorAddress),
-										() => getCurrentShared(cursorAddress)
-									);
-								} finally {
-									asSafeBuffer = false;
-								}
-							} else
-								bytes.length = lastSize;
+							let bufferId = keyBytesView.getUint32(4, true);
+							let bytes;
+							if (bufferId) {
+								let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
+								let offset = keyBytesView.getUint32(8, true);
+								bytes = Buffer.from(buffer, offset, this.lastSize);
+							} else {
+								bytes = compression ? compression.getValueBytes : getValueBytes;
+								if (lastSize > bytes.maxLength) {
+									store.lastSize = lastSize;
+									asSafeBuffer = store.encoding == 'binary';
+									try {
+										bytes = store._returnLargeBuffer(() => getCurrentValue(cursorAddress));
+									} finally {
+										asSafeBuffer = false;
+									}
+								} else
+									bytes.length = lastSize;
+							}
 							if (store.decoder) {
 								value = store.decoder.decode(bytes, lastSize);
 							} else if (store.encoding == 'binary')
@@ -546,13 +573,20 @@ export function addReadMethods(LMDBStore, {
 		}
 	});
 	let get = LMDBStore.prototype.get;
+	let lastReadTxnRef;
 	function renewReadTxn(store) {
 		if (!readTxn) {
 			let retries = 0;
 			let waitArray;
 			do {
 				try {
-					readTxn = new Txn(env, 0x20000);
+					let lastReadTxn = lastReadTxnRef && lastReadTxnRef.deref();
+					readTxn = new Txn(env, 0x20000, lastReadTxn && !lastReadTxn.isDone && lastReadTxn);
+					if (readTxn.address == 0) {
+						readTxn = lastReadTxn;
+						if (readTxn.onlyCursor)
+							readTxn.onlyCursor = false;
+					}
 					break;
 				} catch (error) {
 					if (error.message.includes('temporarily')) {
@@ -576,6 +610,7 @@ export function addReadMethods(LMDBStore, {
 			readTxnRenewed = null;
 			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
 				readTxn.onlyCursor = true;
+				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
 			} else
 				resetTxn(readTxn.address);

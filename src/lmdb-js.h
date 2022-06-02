@@ -145,7 +145,7 @@ void consoleLogN(int n);
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
 void writeValueToEntry(const Value &str, MDB_val *val);
 LmdbKeyType keyTypeFromOptions(const Value &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
-bool getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
+int getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
 Value setGlobalBuffer(const CallbackInfo& info);
 Value lmdbError(const CallbackInfo& info);
@@ -254,11 +254,10 @@ typedef struct env_tracking_t {
 	std::vector<SharedEnv> envs;
 } env_tracking_t;
 
-typedef struct external_ref_t {
-	napi_ref ref;
+typedef struct buffer_info_t {
 	int id;
-	TxnTracked* txn;
-} external_ref_t;
+	size_t end;
+} buffer_info_t;
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
@@ -282,7 +281,7 @@ public:
 	// The wrapped object
 	MDB_env *env;
 	// Current write transaction
-	static thread_local std::unordered_map<void*, external_ref_t>* sharedBuffers;
+	static thread_local std::unordered_map<void*, buffer_info_t>* sharedBuffers;
 	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;
@@ -401,6 +400,7 @@ public:
 	static napi_value write(napi_env env, napi_callback_info info);
 	static napi_value onExit(napi_env env, napi_callback_info info);
 	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);
+	int32_t toSharedBuffer(MDB_val data);
 };
 
 const int TXN_ABORTABLE = 1;

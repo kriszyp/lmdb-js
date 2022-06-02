@@ -88,9 +88,16 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	char* keyBuffer = dw->ew->keyBuffer;
 	if (flags & 0x100) {
 		bool result = getVersionAndUncompress(data, dw);
-		if (result)
-			result = valToBinaryFast(data, dw);
-		*((size_t*)keyBuffer) = data.mv_size;
+		bool fits = true;
+		if (result) {
+			fits = valToBinaryFast(data, dw); // it fit in the global/compression-target buffer
+		}
+		if (fits || result == 2 || data.mv_size < 0x100) {// if it was decompressed
+			*((uint32_t*)keyBuffer) = data.mv_size;
+			*((uint32_t*)(keyBuffer + 4)) = 0; // buffer id of 0
+		} else {
+			dw->ew->toSharedBuffer(data);
+		}
 	}
 	if (!(flags & 0x800)) {
 		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);

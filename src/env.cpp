@@ -16,7 +16,7 @@ env_tracking_t* EnvWrap::initTracking() {
 	return tracking;
 }
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
-thread_local std::unordered_map<void*, external_ref_t>* EnvWrap::sharedBuffers = new std::unordered_map<void*, external_ref_t>;
+thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
 void EnvWrap::cleanupEnvWraps(void* data) {
 	if (openEnvWraps)
 		free(openEnvWraps);
@@ -325,6 +325,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 	return Number::New(info.Env(), mdb_env_get_maxkeysize(this->env));
 }
+
 NAPI_FUNCTION(getEnvFlags) {
 	ARGS(1)
 	EnvWrap* ew;
@@ -367,8 +368,10 @@ NAPI_FUNCTION(getEnvsPointer) {
 	napi_value item;
 	napi_create_int64(env, (int64_t) EnvWrap::envTracking, &item);
 	napi_set_element(env, returnValue, 0, item);
+	if (!EnvWrap::sharedBuffers)
+		EnvWrap::sharedBuffers = new std::unordered_map<void*, buffer_info_t>;
 	napi_create_int64(env, (int64_t) EnvWrap::sharedBuffers, &item);
-	napi_set_element(env, returnValue, 0, item);
+	napi_set_element(env, returnValue, 1, item);
 	return returnValue;
 }
 
@@ -382,11 +385,75 @@ NAPI_FUNCTION(setEnvsPointer) {
 	EnvWrap::envTracking = adoptedTracking;
 
 	free(EnvWrap::sharedBuffers);
-	std::unordered_map<void*, external_ref_t>* adoptedSharedBuffers;
+	std::unordered_map<void*, buffer_info_t>* adoptedSharedBuffers;
 	GET_INT64_ARG(adoptedSharedBuffers, 1);
 	EnvWrap::sharedBuffers = adoptedSharedBuffers;
 	RETURN_UNDEFINED;
 }
+
+napi_finalize cleanupExternal = [](napi_env, void *, void *) {
+	// Data belongs to LMDB, we shouldn't free it here
+};
+
+NAPI_FUNCTION(getSharedBuffer) {
+	ARGS(1)
+	uint32_t bufferId;
+	GET_UINT32_ARG(bufferId, 0);
+	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
+		if (bufferRef->second.id == bufferId) {
+			size_t start = (size_t) bufferRef->first;
+			size_t end = bufferRef->second.end;
+			fprintf(stderr, "getSharedBuffer %p to %p, %u\n", start, end, end - start);
+			napi_create_external_arraybuffer(env, (void*) start, end - start, cleanupExternal, nullptr, &returnValue);
+			return returnValue;
+		}
+	}
+	RETURN_UNDEFINED;
+}
+
+thread_local int nextSharedId = 1;
+
+int32_t EnvWrap::toSharedBuffer(MDB_val data) {
+	MDB_envinfo stat;
+	mdb_env_info(env, &stat);
+	size_t mapAddress = (size_t) (char*) stat.me_mapaddr;
+	size_t dataAddress = (size_t) (char*) data.mv_data;
+	size_t mapOffset = dataAddress - mapAddress;
+	size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
+	size_t bufferStart = bufferPosition << 32;
+	bufferStart += -(bufferStart >> 4) + mapAddress;
+	//fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
+	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
+	size_t offset = dataAddress - bufferStart;
+	buffer_info_t bufferInfo;
+	if (bufferSearch == sharedBuffers->end()) {
+		bufferInfo.end = bufferStart + 0xffffffff;
+		if (bufferInfo.end > mapAddress + stat.me_mapsize)
+			bufferInfo.end = mapAddress + stat.me_mapsize;
+	} else {
+		bufferInfo = bufferSearch->second;
+	}
+	if (bufferInfo.end < dataAddress + data.mv_size || mapOffset < 0) {
+		bufferSearch = sharedBuffers->find((void*)(bufferStart = dataAddress));
+		offset = 0;
+		if (bufferSearch != sharedBuffers->end())
+			bufferInfo = bufferSearch->second;
+	}
+	if (bufferSearch == sharedBuffers->end()) {
+		bufferInfo.end = bufferStart + 0xffffffff;
+		if (bufferInfo.end > mapAddress + stat.me_mapsize)
+			bufferInfo.end = mapAddress + stat.me_mapsize;
+		bufferInfo.id = nextSharedId++;
+		fprintf(stderr, "recording buffer %p to %p, id: %u (map: %p, size: %p)", bufferStart, bufferInfo.end, bufferInfo.id, mapAddress, stat.me_mapsize);
+		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
+	}
+
+	*((uint32_t*) keyBuffer) = data.mv_size;
+	*((uint32_t*) (keyBuffer + 4)) = bufferInfo.id;
+	*((uint32_t*) (keyBuffer + 8)) = offset;
+	return -30001;
+}
+
 
 void EnvWrap::closeEnv() {
 	if (!env)
@@ -729,6 +796,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("setEnvsPointer", setEnvsPointer);
 	EXPORT_NAPI_FUNCTION("getEnvFlags", getEnvFlags);
 	EXPORT_NAPI_FUNCTION("setJSFlags", setJSFlags);
+	EXPORT_NAPI_FUNCTION("getSharedBuffer", getSharedBuffer);
 	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);

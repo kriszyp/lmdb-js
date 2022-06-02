@@ -136,7 +136,6 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-
 int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	char* keyBuffer = ew->keyBuffer;
 	MDB_txn* txn = ew->getReadTxn();
@@ -151,17 +150,18 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 		return result;
 	}
 	result = getVersionAndUncompress(data, this);
-	if (result)
-		valToBinaryFast(data, this);
-	if (data.mv_size < 0x80000000)
-		return data.mv_size;
-	*((uint32_t*)keyBuffer) = data.mv_size;
-	return -30000;
-	/*
-	alternately, if we want to send over the address, which can be used for direct access to the LMDB shared memory, but all benchmarking shows it is slower
-	*((size_t*) keyBuffer) = data.mv_size;
-	*((uint64_t*) (keyBuffer + 8)) = (uint64_t) data.mv_data;
-	return 0;*/
+	bool fits = true;
+	if (result) {
+		fits = valToBinaryFast(data, this); // it fit in the global/compression-target buffer
+   }
+   if (fits || result == 2 || data.mv_size < 0x100) {// if it was decompressed
+		if (data.mv_size < 0x80000000)
+			return data.mv_size;
+    	*((uint32_t*)keyBuffer) = data.mv_size;
+    	return -30000;
+	} else {
+		return ew->toSharedBuffer(data);
+	}
 }
 
 NAPI_FUNCTION(getByBinary) {
