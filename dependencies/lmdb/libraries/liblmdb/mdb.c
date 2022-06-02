@@ -4096,6 +4096,8 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		pgno_t p = dl[n].mid + dl_nump[n];
 		if (p > pgno)
 			pgno = p;
+		else
+			fprintf(stderr, "Page writes are out of order\n");
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
 	/* <lmdb-js addition> */
