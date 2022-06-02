@@ -444,6 +444,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		if (bufferInfo.end > mapAddress + stat.me_mapsize)
 			bufferInfo.end = mapAddress + stat.me_mapsize;
 		bufferInfo.id = nextSharedId++;
+		fprintf(stderr, "recording buffer %p to %p, id: %u (map: %p, size: %p)", bufferStart, bufferInfo.end, bufferInfo.id, mapAddress, stat.me_mapsize);
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
 
