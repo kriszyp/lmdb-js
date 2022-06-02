@@ -123,12 +123,12 @@ jobs:
           PREBUILD_ARCH: arm64
           CC: aarch64-linux-gnu-gcc
           CXX: aarch64-linux-gnu-g++
-      - run: npm run prebuild-libc
-        env:
-          PREBUILD_ARCH: arm
-          PREBUILD_ARMV: 7
-          CC: arm-linux-gnueabihf-gcc
-          CXX: arm-linux-gnueabihf-g++
+      #- run: npm run prebuild-libc
+      #  env:
+      #    PREBUILD_ARCH: arm
+      #    PREBUILD_ARMV: 7
+      #    CC: arm-linux-gnueabihf-gcc
+      #    CXX: arm-linux-gnueabihf-g++
       - run: tar --create --verbose --file=prebuild-linux-arm.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')
