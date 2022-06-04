@@ -5872,7 +5872,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	int rc;
 	MDB_OFF_T size, rsize;
 	if (env->me_check_fd) {
-		rc = mdb_fopen(env, fname, MDB_O_RDONLY, mode, &env->me_lfd);
+		rc = mdb_fopen(env, fname, MDB_O_RDWR, mode, &env->me_lfd);
 		if (!rc) {
 			rc = ((MDB_check_fd*) env->me_check_fd)(env->me_lfd, env);
 			if (rc)
