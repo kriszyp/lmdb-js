@@ -2927,7 +2927,7 @@ mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret)
 	}
 	if (x == 0 && !txn->mt_parent) {
 		/* should be a spilled page */
-		fprintf(stderr, "Page %u was unspilled, but was not found in spilled page list (size of %u)\n", mp->mp_pgno, txn->mt_spill_pgs[0]);
+		fprintf(stderr, "Page %u was unspilled, but was not found in spilled page list (%p)\n", mp->mp_pgno, txn->mt_spill_pgs);
 		/*last_error = "mdb_page_unspill no parent";
 		return MDB_PROBLEM;		*/
 	}
