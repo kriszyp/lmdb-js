@@ -427,14 +427,15 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 
 NAPI_FUNCTION(EnvWrap::write) {
 	ARGS(2)
-	EnvWrap* ew;
-	GET_INT64_ARG(ew, 0);
+	GET_INT64_ARG(0);
+	EnvWrap* ew = (EnvWrap*) i64;
 	if (!ew->env) {
 		napi_throw_error(env, nullptr, "The environment is already closed.");
 		RETURN_UNDEFINED;
 	}
-	uint32_t* instructionAddress;
-	GET_INT64_ARG(instructionAddress, 1);
+	
+	napi_get_value_int64(env, args[1], &i64);
+	uint32_t* instructionAddress = (uint32_t*) i64;
 	int rc = 0;
 	if (instructionAddress)
 		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, instructionAddress, nullptr);

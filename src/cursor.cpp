@@ -226,15 +226,15 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 }
 NAPI_FUNCTION(position) {
 	ARGS(5)
-	CursorWrap* cw;
-	GET_INT64_ARG(cw, 0);
+    GET_INT64_ARG(0);
+    CursorWrap* cw = (CursorWrap*) i64;
 	GET_UINT32_ARG(cw->flags, 1);
 	uint32_t offset;
 	GET_UINT32_ARG(offset, 2);
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 3);
-	int64_t endKeyAddress;
-	GET_INT64_ARG(endKeyAddress, 4);
+    napi_get_value_int64(env, args[4], &i64);
+    int64_t endKeyAddress = i64;
 	int32_t result = cw->doPosition(offset, keySize, endKeyAddress);
 	RETURN_INT32(result);
 }
@@ -248,8 +248,8 @@ int32_t positionFFI(double cwPointer, uint32_t flags, uint32_t offset, uint32_t 
 
 NAPI_FUNCTION(iterate) {
 	ARGS(1)
-	CursorWrap* cw;
-	GET_INT64_ARG(cw, 0);
+    GET_INT64_ARG(0);
+    CursorWrap* cw = (CursorWrap*) i64;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	RETURN_INT32(cw->returnEntry(rc, key, data));
@@ -267,8 +267,8 @@ int32_t iterateFFI(double cwPointer) {
 
 NAPI_FUNCTION(getCurrentValue) {
 	ARGS(1)
-	CursorWrap* cw;
-	GET_INT64_ARG(cw, 0);
+    GET_INT64_ARG(0);
+    CursorWrap* cw = (CursorWrap*) i64;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
 	RETURN_INT32(cw->returnEntry(rc, key, data));
@@ -279,8 +279,8 @@ napi_finalize noopCursor = [](napi_env, void *, void *) {
 };
 NAPI_FUNCTION(getCurrentShared) {
 	ARGS(1)
-	CursorWrap* cw;
-	GET_INT64_ARG(cw, 0);
+    GET_INT64_ARG(0);
+    CursorWrap* cw = (CursorWrap*) i64;
 	MDB_val key, data;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, MDB_GET_CURRENT);
 	if (rc)
@@ -293,8 +293,8 @@ NAPI_FUNCTION(getCurrentShared) {
 
 NAPI_FUNCTION(renew) {
 	ARGS(1)
-	CursorWrap* cw;
-	GET_INT64_ARG(cw, 0);
+    GET_INT64_ARG(0);
+    CursorWrap* cw = (CursorWrap*) i64;
 	mdb_cursor_renew(cw->txn = cw->dw->ew->getReadTxn(), cw->cursor);
 	RETURN_UNDEFINED;
 }

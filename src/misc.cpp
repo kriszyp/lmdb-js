@@ -136,10 +136,10 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 }*/
 NAPI_FUNCTION(createBufferForAddress) {
 	ARGS(2)
-	void* data;
-	GET_INT64_ARG(data, 0);
-	size_t length;
-	GET_INT64_ARG(length, 1);
+    GET_INT64_ARG(0);
+    void* data = (void*) i64;   
+	uint32_t length;
+	GET_UINT32_ARG(length, 1);
 	napi_create_external_buffer(env, length, data, nullptr, nullptr, &returnValue);
 	return returnValue;
 }

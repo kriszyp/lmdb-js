@@ -180,10 +180,10 @@ class CompressionWorker : public AsyncWorker {
 
 NAPI_FUNCTION(EnvWrap::compress) {
 	ARGS(3)
-	EnvWrap* ew;
-	GET_INT64_ARG(ew, 0);
-	double* compressionAddress;
-	GET_INT64_ARG(compressionAddress, 1);
+    GET_INT64_ARG(0);
+    EnvWrap* ew = (EnvWrap*) i64;	
+    napi_get_value_int64(env, args[1], &i64);
+    double* compressionAddress = (double*) i64;
 	CompressionWorker* worker = new CompressionWorker(ew, (double*) compressionAddress, Function(env, args[2]));
 	worker->Queue();
 	RETURN_UNDEFINED;
