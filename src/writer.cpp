@@ -13,6 +13,10 @@ inline value?
 */
 #include "lmdb-js.h"
 #include <atomic>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
 const int PUT = 15;
@@ -135,7 +139,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			delay = delay << 1ll;
 			//if (delay > 500)
 				//fprintf(stderr, "waited, %llu %p\n", delay, *target);
-			if ((*target & 0xf) || allowCommit && finishedProgress) {
+			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
 				return 0;
@@ -347,7 +351,20 @@ void WriteWorker::Write() {
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	pthread_mutex_lock(envForTxn->writingLock);
+    #ifdef _WIN32
 	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+    #else
+    int retries = 0;
+    retry:
+	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+    if (rc == EINVAL) {
+        if (retries++ < 10) {
+            sleep(1);
+            goto retry;
+        }
+        return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+    }
+    #endif
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
@@ -410,14 +427,15 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 
 NAPI_FUNCTION(EnvWrap::write) {
 	ARGS(2)
-	EnvWrap* ew;
-	GET_INT64_ARG(ew, 0);
+	GET_INT64_ARG(0);
+	EnvWrap* ew = (EnvWrap*) i64;
 	if (!ew->env) {
 		napi_throw_error(env, nullptr, "The environment is already closed.");
 		RETURN_UNDEFINED;
 	}
-	uint32_t* instructionAddress;
-	GET_INT64_ARG(instructionAddress, 1);
+	
+	napi_get_value_int64(env, args[1], &i64);
+	uint32_t* instructionAddress = (uint32_t*) i64;
 	int rc = 0;
 	if (instructionAddress)
 		rc = WriteWorker::DoWrites(ew->writeTxn->txn, ew, instructionAddress, nullptr);

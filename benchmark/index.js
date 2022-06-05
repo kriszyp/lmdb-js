@@ -186,6 +186,7 @@ cleanup(async function (err) {
     await setup();
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
+    suite.add('getBinaryFast', getBinaryFast);
 	 suite.add('noop', noopTest);
     suite.add('getRange', getRange);
     suite.add('setData', setData, /*{

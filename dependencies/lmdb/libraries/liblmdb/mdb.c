@@ -2927,7 +2927,7 @@ mdb_page_unspill(MDB_txn *txn, MDB_page *mp, MDB_page **ret)
 	}
 	if (x == 0 && !txn->mt_parent) {
 		/* should be a spilled page */
-		fprintf(stderr, "Page %u was unspilled, but was not found in spilled page list (size of %u)\n", mp->mp_pgno, txn->mt_spill_pgs[0]);
+		fprintf(stderr, "Page %u was unspilled, but was not found in spilled page list (%p)\n", mp->mp_pgno, txn->mt_spill_pgs);
 		/*last_error = "mdb_page_unspill no parent";
 		return MDB_PROBLEM;		*/
 	}
@@ -5874,10 +5874,16 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #endif
 	int rc;
 	MDB_OFF_T size, rsize;
-
+	if (env->me_check_fd) {
+		rc = mdb_fopen(env, fname, MDB_O_RDWR, mode, &env->me_lfd);
+		if (!rc) {
+			rc = ((MDB_check_fd*) env->me_check_fd)(env->me_lfd, env);
+			if (rc)
+				return rc;
+		}
+		close(env->me_lfd);
+	}
 	rc = mdb_fopen(env, fname, MDB_O_LOCKS, mode, &env->me_lfd);
-	if (!rc && env->me_check_fd)
-		rc = ((MDB_check_fd*) env->me_check_fd)(env->me_lfd, env);
 	if (rc) {
 		/* Omit lockfile if read-only env on read-only filesystem */
 		if (rc == MDB_ERRCODE_ROFS && (env->me_flags & MDB_RDONLY)) {

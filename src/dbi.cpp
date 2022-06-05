@@ -166,8 +166,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 
 NAPI_FUNCTION(getByBinary) {
 	ARGS(2)
-	DbiWrap* dw;
-	GET_INT64_ARG(dw, 0);
+    GET_INT64_ARG(0);
+    DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
 	RETURN_INT32(dw->doGetByBinary(keySize));
@@ -183,8 +183,8 @@ napi_finalize noopDbi = [](napi_env, void *, void *) {
 };
 NAPI_FUNCTION(getSharedByBinary) {
 	ARGS(2)
-	DbiWrap* dw;
-	GET_INT64_ARG(dw, 0);
+    GET_INT64_ARG(0);
+    DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
@@ -206,8 +206,8 @@ NAPI_FUNCTION(getSharedByBinary) {
 }
 NAPI_FUNCTION(getStringByBinary) {
 	ARGS(2)
-	DbiWrap* dw;
-	GET_INT64_ARG(dw, 0);
+    GET_INT64_ARG(0);
+    DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
@@ -293,10 +293,10 @@ class PrefetchWorker : public AsyncWorker {
 
 NAPI_FUNCTION(prefetchNapi) {
 	ARGS(3)
-	DbiWrap* dw;
-	GET_INT64_ARG(dw, 0);
-	uint32_t* keys;
-	GET_INT64_ARG(keys, 1);
+    GET_INT64_ARG(0);
+    DbiWrap* dw = (DbiWrap*) i64;
+    napi_get_value_int64(env, args[1], &i64);
+	uint32_t* keys = (uint32_t*) i64;
 	PrefetchWorker* worker = new PrefetchWorker(dw, keys, Function(env, args[2]));
 	worker->Queue();
 	RETURN_UNDEFINED;
