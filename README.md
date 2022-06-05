@@ -25,7 +25,7 @@ This library is published to the NPM package `lmdb` (the 1.x versions were publi
 ```
 npm install lmdb
 ```
-`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and futue Deno versions. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
+`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and future Deno versions. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
 
 In Deno, this package could be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts), but Node-API support is currently in-progress, so probably will require Deno v1.24+ (for older versions of Deno, you can use `lmdb-js` v2.2.x).
 
