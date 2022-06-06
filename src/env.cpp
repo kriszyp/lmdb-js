@@ -446,23 +446,26 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
 	size_t offset = dataAddress - bufferStart;
 	buffer_info_t bufferInfo;
+	uint64_t end;
 	if (bufferSearch == sharedBuffers->end()) {
-		bufferInfo.end = bufferStart + 0xffffffff;
-		if (bufferInfo.end > mapAddress + stat.me_mapsize)
-			bufferInfo.end = mapAddress + stat.me_mapsize;
+		end = bufferStart + 0xffffffffll;
+		if (end > mapAddress + stat.me_mapsize)
+			end = mapAddress + stat.me_mapsize;
 	} else {
 		bufferInfo = bufferSearch->second;
+		end = bufferInfo.end;
 	}
-	if (bufferInfo.end < dataAddress + data.mv_size || mapOffset < 0) {
+	if (end < dataAddress + data.mv_size || mapOffset < 0) {
 		bufferSearch = sharedBuffers->find((void*)(bufferStart = dataAddress));
 		offset = 0;
 		if (bufferSearch != sharedBuffers->end())
 			bufferInfo = bufferSearch->second;
 	}
 	if (bufferSearch == sharedBuffers->end()) {
-		bufferInfo.end = bufferStart + 0xffffffff;
-		if (bufferInfo.end > mapAddress + stat.me_mapsize)
-			bufferInfo.end = mapAddress + stat.me_mapsize;
+		end = bufferStart + 0xffffffffll;
+		if (end > mapAddress + stat.me_mapsize)
+			end = mapAddress + stat.me_mapsize;
+		bufferInfo.end = end;
 		bufferInfo.id = nextSharedId++;
 		fprintf(stderr, "recording buffer %p size %p, id: %u (map: %p, size: %p)\n", bufferStart, bufferInfo.end - bufferStart, bufferInfo.id, mapAddress, stat.me_mapsize);
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
