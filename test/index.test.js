@@ -121,7 +121,7 @@ describe('lmdb-js', function() {
 			should.equal(db2.getBinary('key1').length, 0);
 			await db2.remove('key1');
 		});
-		it('query of keys', async function() {
+		it.only('query of keys', async function() {
 			let keys = [
 				Symbol.for('test'),
 				false,
@@ -164,7 +164,7 @@ describe('lmdb-js', function() {
 			}
 			keys.should.deep.equal(returnedKeys)
 		});
-		it('reverse query range', async function() {
+		it.only('reverse query range', async function() {
 			const keys = [
 				[ 'Test', 100, 1 ],
 				[ 'Test', 10010, 2 ],
