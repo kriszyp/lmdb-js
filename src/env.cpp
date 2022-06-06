@@ -434,7 +434,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	int64_t mapOffset = dataAddress - mapAddress;
 	size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
 	size_t bufferStart = bufferPosition << 32;
-	bufferStart += -(bufferStart >> 4) + mapAddress;
+	bufferStart += mapAddress - (bufferStart >> 4);
 	//fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
 	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
 	size_t offset = dataAddress - bufferStart;

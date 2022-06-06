@@ -257,7 +257,7 @@ typedef struct env_tracking_t {
 } env_tracking_t;
 
 typedef struct buffer_info_t {
-	int id;
+	uint32_t id;
 	size_t end;
 } buffer_info_t;
 class EnvWrap : public ObjectWrap<EnvWrap> {

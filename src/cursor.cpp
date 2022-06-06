@@ -87,7 +87,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	}
 	char* keyBuffer = dw->ew->keyBuffer;
 	if (flags & 0x100) {
-		bool result = getVersionAndUncompress(data, dw);
+		int result = getVersionAndUncompress(data, dw);
 		bool fits = true;
 		if (result) {
 			fits = valToBinaryFast(data, dw); // it fit in the global/compression-target buffer
