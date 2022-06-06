@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-alpine:
+  test-arm7:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2.1.0
@@ -21,11 +21,19 @@ jobs:
           # Set an output parameter `uname` for use in subsequent steps
           install: |
             apt-get update
-            apt-get install -y curl
+            apt-get install -y curl libatomic1
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm install 16
+            node -v
+            npm install -g mocha node-gyp
           run: |
-            npm install
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            node -v
+            npm install --ignore-scripts
+            node-gyp rebuild
+            mocha test/**.test.js --recursive && npm run test:types
+            echo "$(which node) and $(which node-gyp)"
             npm install lmdb --ignore-scripts --verbose
