@@ -416,7 +416,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 		if (bufferRef->second.id == bufferId) {
 			size_t start = (size_t) bufferRef->first;
 			size_t end = bufferRef->second.end;
-			fprintf(stderr, "getSharedBuffer %p to %p, %u\n", start, end, end - start);
+			//fprintf(stderr, "getSharedBuffer %p to %p, %u\n", start, end, end - start);
 			napi_create_external_arraybuffer(env, (void*) start, end - start, cleanupExternal, nullptr, &returnValue);
 			return returnValue;
 		}
@@ -431,7 +431,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	mdb_env_info(env, &stat);
 	size_t mapAddress = (size_t) (char*) stat.me_mapaddr;
 	size_t dataAddress = (size_t) (char*) data.mv_data;
-	size_t mapOffset = dataAddress - mapAddress;
+	int64_t mapOffset = dataAddress - mapAddress;
 	size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
 	size_t bufferStart = bufferPosition << 32;
 	bufferStart += -(bufferStart >> 4) + mapAddress;
@@ -457,7 +457,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		if (bufferInfo.end > mapAddress + stat.me_mapsize)
 			bufferInfo.end = mapAddress + stat.me_mapsize;
 		bufferInfo.id = nextSharedId++;
-		fprintf(stderr, "recording buffer %p to %p, id: %u (map: %p, size: %p)", bufferStart, bufferInfo.end, bufferInfo.id, mapAddress, stat.me_mapsize);
+		//fprintf(stderr, "recording buffer %p to %p, id: %u (map: %p, size: %p)", bufferStart, bufferInfo.end, bufferInfo.id, mapAddress, stat.me_mapsize);
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
 
