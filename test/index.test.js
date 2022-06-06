@@ -999,7 +999,7 @@ describe('lmdb-js', function() {
 			}
 		})
 
-		it.skip('open and close with compression', async function() {
+		it('open and close with compression', async function() {
 			let data = ''
 			for (let i = 0; i < 10; i++) {
 				data += Math.random()
