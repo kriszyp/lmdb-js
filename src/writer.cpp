@@ -231,7 +231,9 @@ next_inst:	start = instruction++;
 				if (rc)
 					validated = false;
 				else if (conditionalVersion != ANY_VERSION) {
-					validated = validated && conditionalVersion == *((double*)conditionalValue.mv_data);
+					double version;
+					memcpy(&version, conditionalValue.mv_data, 8);
+					validated = validated && conditionalVersion == version;
 				}
 			}
 			if (flags & SET_VERSION) {
