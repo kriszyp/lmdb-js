@@ -4117,7 +4117,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 				rc = SetEndOfFile(fd);
 				if (!rc) {
 					rc = ErrCode();
-					fprintf(stderr, "SetEndOfFile error %s\n", strerror(rc));
+					fprintf(stderr, "SetEndOfFile error, extending to %u %s\n", file_size, strerror(rc));
 				}
 			}
 		}

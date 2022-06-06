@@ -12,6 +12,7 @@ jobs:
         with:
           node-version: 16
       - run: npm install --ignore-scripts
+      - run: npm run build-js
       - run: npm run prebuildify
         env:
           PREBUILD_ARCH: arm
