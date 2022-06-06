@@ -42,7 +42,7 @@ describe('lmdb-js', function() {
 	let testIteration = 0
 	describe('Basic use', basicTests({ }));
 	describe('Basic use with overlapping sync', basicTests({ compression: false, overlappingSync: true }));
-	//describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
+	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
 	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
@@ -991,7 +991,13 @@ describe('lmdb-js', function() {
 				await db.clearAsync();
 			}
 		})
-
+		it('larger buffers', async function() {
+			let index = 1, mult = 64;
+			while (index++ < 1000) {
+				const newBuff = Buffer.alloc(index*mult);
+				await db.put('test-key', newBuff);
+			}
+		})
 
 		it.skip('open and close with compression', async function() {
 			let data = ''

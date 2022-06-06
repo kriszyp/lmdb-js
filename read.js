@@ -39,7 +39,7 @@ export function addReadMethods(LMDBStore, {
 					'Zero length key is not allowed in LMDB');
 				if (rc == -30000) // int32 overflow, read uint32
 					rc = this.lastSize = keyBytesView.getUint32(0, true);
-				if (rc == -30001) {// shared buffer
+				else if (rc == -30001) {// shared buffer
 					this.lastSize = keyBytesView.getUint32(0, true);
 					let bufferId = keyBytesView.getUint32(4, true);
 					let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));

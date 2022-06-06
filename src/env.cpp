@@ -427,6 +427,13 @@ NAPI_FUNCTION(getSharedBuffer) {
 thread_local int nextSharedId = 1;
 
 int32_t EnvWrap::toSharedBuffer(MDB_val data) {
+	unsigned int flags;
+	mdb_env_get_flags(env, (unsigned int*) &flags);
+	if (flags & MDB_REMAP_CHUNKS) {
+		*((uint32_t*)keyBuffer) = data.mv_size;
+		*((uint32_t*) (keyBuffer + 4)) = 0;
+    	return -30000;
+	}
 	MDB_envinfo stat;
 	mdb_env_info(env, &stat);
 	size_t mapAddress = (size_t) (char*) stat.me_mapaddr;

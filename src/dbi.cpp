@@ -154,7 +154,7 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 	if (result) {
 		fits = valToBinaryFast(data, this); // it fit in the global/compression-target buffer
    }
-   if (fits || result == 2 || data.mv_size < 0x100) {// if it was decompressed
+   if (fits || result == 2 || data.mv_size < 0x1000) {// if it was decompressed
 		if (data.mv_size < 0x80000000)
 			return data.mv_size;
     	*((uint32_t*)keyBuffer) = data.mv_size;

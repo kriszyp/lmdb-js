@@ -37,10 +37,7 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm install 16
-            npm install -g mocha node-gyp
           run: |
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            mocha test/**.test.js --recursive && npm run test:types
-            node-gyp rebuild
-            mocha test/**.test.js --recursive && npm run test:types
+            node_modules/.bin/mocha test/**.test.js --recursive
