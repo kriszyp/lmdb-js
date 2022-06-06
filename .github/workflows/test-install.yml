@@ -5,7 +5,7 @@ on:
 jobs:
   build-alpine:
     runs-on: ubuntu-18.04
-    container: node:16.15.0-alpine
+    container: arm32v7/node:16
     steps:
       - run: apk update && apk add --no-cache nodejs npm python3 py3-pip build-base
       - run: npm install lmdb --ignore-scripts --verbose
