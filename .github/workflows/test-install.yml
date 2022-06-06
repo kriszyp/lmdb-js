@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: 16
       - run: npm install --ignore-scripts
-      - run: npm run prebuild-libc
+      - run: npm run prebuildify
         env:
           PREBUILD_ARCH: arm
           PREBUILD_ARMV: 7
@@ -37,11 +37,10 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             nvm install 16
-            node -v
             npm install -g mocha node-gyp
           run: |
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            npm install --ignore-scripts
+            mocha test/**.test.js --recursive && npm run test:types
             node-gyp rebuild
             mocha test/**.test.js --recursive && npm run test:types
