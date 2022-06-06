@@ -1,44 +1,14 @@
 name: Test Install
-on: [push]
+on: 
+  workflow_dispatch:
+
 jobs:
-  test-arm7:
+  build-alpine:
     runs-on: ubuntu-18.04
+    container: node:16.15.0-alpine
     steps:
-      - uses: actions/checkout@v2.1.0
-      - run: sudo apt-get update
-      - run: sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-      - run: npm install --ignore-scripts
-      - run: npm run build-js
-      - run: npm run prebuildify
-        env:
-          PREBUILD_ARCH: arm
-          PREBUILD_ARMV: 7
-          CC: arm-linux-gnueabihf-gcc
-          CXX: arm-linux-gnueabihf-g++
-      - uses: uraimo/run-on-arch-action@v2
-        name: Run commands
-        id: runcmd
-        with:
-          arch: armv7
-          distro: ubuntu18.04
-
-          # Not required, but speeds up builds by storing container images in
-          # a GitHub package registry.
-          githubToken: ${{ github.token }}
-
-          # Set an output parameter `uname` for use in subsequent steps
-          install: |
-            apt-get update
-            apt-get install -y curl libatomic1 python3 gcc g++ make
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            nvm install 16
-          run: |
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            node_modules/.bin/mocha test/**.test.js --recursive
+      - run: apk update && apk add --no-cache nodejs npm python3 py3-pip build-base
+      - run: npm install lmdb --ignore-scripts --verbose
+      - run: node -e "console.log(require('lmdb'))"
+      - run: npm install lmdb --verbose
+      - run: node -e "console.log(require('lmdb'))"
