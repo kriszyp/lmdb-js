@@ -5,10 +5,27 @@ on:
 jobs:
   build-alpine:
     runs-on: ubuntu-18.04
-    container: arm32v7/node:16
     steps:
-      - run: apk update && apk add --no-cache nodejs npm python3 py3-pip build-base
-      - run: npm install lmdb --ignore-scripts --verbose
-      - run: node -e "console.log(require('lmdb'))"
-      - run: npm install lmdb --verbose
-      - run: node -e "console.log(require('lmdb'))"
+      - uses: actions/checkout@v2.1.0
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run commands
+        id: runcmd
+        with:
+          arch: armv7
+          distro: ubuntu18.04
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          # Set an output parameter `uname` for use in subsequent steps
+          install: |
+            apt-get update
+            apt-get install -y curl
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install 16
+          run: |
+            npm install
+            npm install lmdb --ignore-scripts --verbose
