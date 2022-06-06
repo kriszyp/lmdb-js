@@ -97,7 +97,7 @@ int getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 	//fprintf(stdout, "uncompressing %u\n", compressionThreshold);
 	unsigned char* charData = (unsigned char*) data.mv_data;
 	if (dw->hasVersions) {
-		*((double*) (dw->ew->keyBuffer + 16)) = *((double*) charData);
+		memcpy((dw->ew->keyBuffer + 16), charData, 8);
 //		fprintf(stderr, "getVersion %u\n", lastVersion);
 		charData = charData + 8;
 		data.mv_data = charData;
