@@ -341,10 +341,10 @@ Napi::Value EnvWrap::getMaxKeySize(const CallbackInfo& info) {
 NAPI_FUNCTION(getEnvFlags) {
 	ARGS(1)
 	GET_INT64_ARG(0);
-    EnvWrap* ew = (EnvWrap*) i64;
+	EnvWrap* ew = (EnvWrap*) i64;
 	unsigned int envFlags;
 	mdb_env_get_flags(ew->env, &envFlags);
-	RETURN_INT64(envFlags);
+	RETURN_UINT32(envFlags);
 }
 
 NAPI_FUNCTION(setJSFlags) {
@@ -376,7 +376,8 @@ NAPI_FUNCTION(EnvWrap::onExit) {
 }
 NAPI_FUNCTION(getEnvsPointer) {
 	napi_value returnValue;
-	RETURN_INT64((int64_t) EnvWrap::envTracking);
+	napi_create_double(env, (double) (size_t) EnvWrap::envTracking, &returnValue);
+	return returnValue;
 }
 
 NAPI_FUNCTION(setEnvsPointer) {
