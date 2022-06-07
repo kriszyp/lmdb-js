@@ -146,7 +146,8 @@ NAPI_FUNCTION(getViewAddress) {
 	ARGS(1)
 	void* data;
 	napi_get_typedarray_info(env, args[0], nullptr, nullptr, &data, nullptr, nullptr);
-	RETURN_INT64((int64_t) data);
+	napi_create_double(env, (double) (size_t) data, &returnValue);
+	return returnValue;
 }
 
 NAPI_FUNCTION(detachBuffer) {

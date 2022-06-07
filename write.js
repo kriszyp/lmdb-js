@@ -177,8 +177,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						(valueBuffer.length === 0 ? 0 : // externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
 						(valueArrayBuffer.address = (getAddress(valueBuffer) - valueBuffer.byteOffset))))
 							+ valueBuffer.byteOffset;
-					if (address == 0 && valueBuffer.length > 0)
-						console.error('Supplied buffer had a null pointer address');
+					if (address <= 0 && valueBuffer.length > 0)
+						console.error('Supplied buffer had an invalid address', address);
 					float64[position] = address;
 					mustCompress = valueBuffer[0] >= 250; // this is the compression indicator, so we must compress
 				}
