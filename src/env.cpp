@@ -404,8 +404,11 @@ NAPI_FUNCTION(setEnvsPointer) {
 	RETURN_UNDEFINED;
 }
 
-napi_finalize cleanupExternal = [](napi_env, void *, void *) {
+napi_finalize cleanupExternal = [](napi_env env, void *, void * size) {
 	// Data belongs to LMDB, we shouldn't free it here
+	int64_t result;
+	napi_adjust_external_memory(env, (int64_t) size, &result);
+	fprintf(stderr, "adjust memory back up %i\n", result);
 };
 
 NAPI_FUNCTION(getSharedBuffer) {
@@ -414,10 +417,18 @@ NAPI_FUNCTION(getSharedBuffer) {
 	GET_UINT32_ARG(bufferId, 0);
 	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
-			size_t start = (size_t) bufferRef->first;
+			void* start = bufferRef->first;
 			size_t end = bufferRef->second.end;
-			fprintf(stderr, "getSharedBuffer %p to %p, %u\n", start, end, end - start);
-			napi_create_external_arraybuffer(env, (void*) start, end - start, cleanupExternal, nullptr, &returnValue);
+			size_t size = end - (size_t) start;
+			int64_t result;
+			napi_adjust_external_memory(env, -8, &result);
+			fprintf(stderr, "getSharedBuffer %p to %p, %u, ext: %i\n", start, end, size, result);
+			napi_create_external_arraybuffer(env, start, size, cleanupExternal, (void*) size, &returnValue);
+//			int64_t result;
+			napi_adjust_external_memory(env, 8, &result);
+			fprintf(stderr, "getSharedBuffer ext after allocate: %i\n", result);
+			napi_adjust_external_memory(env, -(int64_t) size, &result);
+			fprintf(stderr, "getSharedBuffer ext after adjust: %i\n", result);
 			return returnValue;
 		}
 	}
