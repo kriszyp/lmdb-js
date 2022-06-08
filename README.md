@@ -86,6 +86,8 @@ When using the various APIs, keys can be any JS primitive (string, number, boole
 ```js
 null // lowest possible value
 Symbol.for('even symbols')
+false
+true
 -10 // negative supported
 -1.1 // decimals supported
 400
