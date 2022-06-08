@@ -992,8 +992,8 @@ describe('lmdb-js', function() {
 			}
 		})
 		it('larger buffers', async function() {
-			let index = 1, mult = 64;
-			while (index++ < 1000) {
+			let index = 1, mult = 640;
+			while (index++ < 100) {
 				const newBuff = Buffer.alloc(index*mult);
 				await db.put('test-key', newBuff);
 			}
