@@ -109,6 +109,7 @@ export function open(path, options) {
 	let rc = env.open(options, flags, jsFlags);
    if (rc)
 		lmdbError(rc);
+	delete options.keyBytes // no longer needed, don't copy to stores
 	let maxKeySize = env.getMaxKeySize();
 	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
 	flags = getEnvFlags(env.address); // re-retrieve them, they are not necessarily the same if we are connecting to an existing env

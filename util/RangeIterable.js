@@ -118,6 +118,7 @@ export class RangeIterable {
 			let iterator = this.iterate();
 			let array = [];
 			let iterable = this;
+			Object.defineProperty(array, 'iterable', { value: iterable });
 			function next(result) {
 				while (result.done !== true) {
 					if (result.then) {
@@ -127,7 +128,6 @@ export class RangeIterable {
 					}
 					result = iterator.next();
 				}
-				array.iterable = iterable;
 				resolve(iterable._asArray = array);
 			}
 			next(iterator.next());
