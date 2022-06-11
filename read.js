@@ -7,13 +7,13 @@ const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Arra
 let getValueBytes = makeReusableBuffer(0);
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
-let buffers = globalThis.__lmdb_shared__ || (globalThis.__lmdb_shared__ = []);
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
 }) {
 	let readTxn, readTxnRenewed, asSafeBuffer = false;
 	let renewId = 1;
+	let mmaps = [];
 	Object.assign(LMDBStore.prototype, {
 		getString(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
@@ -42,9 +42,7 @@ export function addReadMethods(LMDBStore, {
 				else if (rc == -30001) {// shared buffer
 					this.lastSize = keyBytesView.getUint32(0, true);
 					let bufferId = keyBytesView.getUint32(4, true);
-					let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
-					let offset = keyBytesView.getUint32(8, true);
-					return Buffer.from(buffer, offset, this.lastSize);
+					return getMMapBuffer(bufferId, this.lastSize);
 				} else
 					throw lmdbError(rc);
 			}
@@ -392,9 +390,7 @@ export function addReadMethods(LMDBStore, {
 							let bufferId = keyBytesView.getUint32(4, true);
 							let bytes;
 							if (bufferId) {
-								let buffer = buffers[bufferId] || (buffers[bufferId] = getSharedBuffer(bufferId));
-								let offset = keyBytesView.getUint32(8, true);
-								bytes = Buffer.from(buffer, offset, this.lastSize);
+								bytes = getMMapBuffer(bufferId, lastSize);
 							} else {
 								bytes = compression ? compression.getValueBytes : getValueBytes;
 								if (lastSize > bytes.maxLength) {
@@ -574,6 +570,14 @@ export function addReadMethods(LMDBStore, {
 	});
 	let get = LMDBStore.prototype.get;
 	let lastReadTxnRef;
+	function getMMapBuffer(bufferId, size) {
+		let buffer = mmaps[bufferId];
+		if (!buffer) {
+			buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
+		}
+		let offset = keyBytesView.getUint32(8, true);
+		return Buffer.from(buffer, offset, size);
+	}
 	function renewReadTxn(store) {
 		if (!readTxn) {
 			let retries = 0;

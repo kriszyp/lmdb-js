@@ -1,6 +1,7 @@
 import { createRequire } from 'module';
 import { setRequire } from './open.js';
 import { nativeAddon, setNativeFunctions } from './native.js';
+export { nativeAddon } from './native.js'
 import { setFlagsFromString } from 'v8';
 setRequire(createRequire(import.meta.url));
 export let v8AccelerationEnabled = false

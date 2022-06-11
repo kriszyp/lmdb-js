@@ -9,15 +9,21 @@ using namespace Napi;
 #define IGNORE_NOTFOUND	(1)
 
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
+thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
+thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
+void* getSharedBuffers() {
+	return (void*) EnvWrap::sharedBuffers;
+}
 
 env_tracking_t* EnvWrap::initTracking() {
 	env_tracking_t* tracking = new env_tracking_t;
 	tracking->envsLock = new pthread_mutex_t;
 	pthread_mutex_init(tracking->envsLock, nullptr);
+	tracking->getSharedBuffers = getSharedBuffers;
 	return tracking;
 }
-thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
-thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
+static napi_ref testRef;
+static napi_env testRefEnv;
 void EnvWrap::cleanupEnvWraps(void* data) {
 	if (openEnvWraps)
 		free(openEnvWraps);
@@ -378,14 +384,9 @@ NAPI_FUNCTION(EnvWrap::onExit) {
 }
 NAPI_FUNCTION(getEnvsPointer) {
 	napi_value returnValue;
-	napi_create_array(env, &returnValue);
-	napi_value item;
-	napi_create_int64(env, (int64_t) EnvWrap::envTracking, &item);
-	napi_set_element(env, returnValue, 0, item);
+	napi_create_double(env, (double) (size_t) EnvWrap::envTracking, &returnValue);
 	if (!EnvWrap::sharedBuffers)
 		EnvWrap::sharedBuffers = new std::unordered_map<void*, buffer_info_t>;
-	napi_create_int64(env, (int64_t) EnvWrap::sharedBuffers, &item);
-	napi_set_element(env, returnValue, 1, item);
 	return returnValue;
 }
 
@@ -397,10 +398,9 @@ NAPI_FUNCTION(setEnvsPointer) {
 	// copy any existing ones over to the central one
 	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
 	EnvWrap::envTracking = adoptedTracking;
-
-	free(EnvWrap::sharedBuffers);
-    napi_get_value_int64(env, args[1], &i64);
-	EnvWrap::sharedBuffers = (std::unordered_map<void*, buffer_info_t>*) i64;
+	if (EnvWrap::sharedBuffers)
+		free(EnvWrap::sharedBuffers);
+	EnvWrap::sharedBuffers = (std::unordered_map<void*, buffer_info_t>*) adoptedTracking->getSharedBuffers();
 	RETURN_UNDEFINED;
 }
 
@@ -412,27 +412,54 @@ napi_finalize cleanupExternal = [](napi_env env, void *, void * size) {
 };
 
 NAPI_FUNCTION(getSharedBuffer) {
-	ARGS(1)
+	ARGS(2)
 	uint32_t bufferId;
 	GET_UINT32_ARG(bufferId, 0);
+	GET_INT64_ARG(1);
+	EnvWrap* ew = (EnvWrap*) i64;
 	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
 			void* start = bufferRef->first;
-			size_t end = bufferRef->second.end;
+			buffer_info_t buffer = bufferRef->second;
+			napi_ref ref;
+			if (buffer.env == ew->env) {
+				napi_get_reference_value(env, buffer.ref, &returnValue);
+				return returnValue;
+			}
+			if (buffer.env) {
+				// if for some reason it is different env that didn't get cleaned up
+				napi_value arrayBuffer;
+				napi_get_reference_value(env, buffer.ref, &arrayBuffer);
+				napi_detach_arraybuffer(env, arrayBuffer);
+				napi_delete_reference(env, buffer.ref);
+			}
+			size_t end = buffer.end;
+			buffer.env = ew->env;
 			size_t size = end - (size_t) start;
 			int64_t result;
-			napi_adjust_external_memory(env, -8, &result);
-			fprintf(stderr, "getSharedBuffer %p to %p, %u, ext: %i\n", start, end, size, result);
 			napi_create_external_arraybuffer(env, start, size, cleanupExternal, (void*) size, &returnValue);
 //			int64_t result;
-			napi_adjust_external_memory(env, 8, &result);
-			fprintf(stderr, "getSharedBuffer ext after allocate: %i\n", result);
+			napi_create_reference(env, returnValue, 1, &buffer.ref);
 			napi_adjust_external_memory(env, -(int64_t) size, &result);
 			fprintf(stderr, "getSharedBuffer ext after adjust: %i\n", result);
 			return returnValue;
 		}
 	}
 	RETURN_UNDEFINED;
+}
+NAPI_FUNCTION(setTestRef) {
+	ARGS(1)
+	napi_create_reference(env, args[0], 1, &testRef);
+	testRefEnv = env;
+	RETURN_UNDEFINED
+}
+
+NAPI_FUNCTION(getTestRef) {
+	napi_value returnValue;
+	fprintf(stderr,"trying to get refernec\n");
+	napi_get_reference_value(env, testRef, &returnValue);
+	fprintf(stderr,"got refernec\n");
+	return returnValue;
 }
 
 thread_local int nextSharedId = 1;
@@ -477,6 +504,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		if (end > mapAddress + stat.me_mapsize)
 			end = mapAddress + stat.me_mapsize;
 		bufferInfo.end = end;
+		bufferInfo.env = nullptr;
 		bufferInfo.id = nextSharedId++;
 		fprintf(stderr, "recording buffer %p size %p, id: %u (map: %p, size: %p)\n", bufferStart, bufferInfo.end - bufferStart, bufferInfo.id, mapAddress, stat.me_mapsize);
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
@@ -518,6 +546,15 @@ void EnvWrap::closeEnv() {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
+				for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
+					if (bufferRef->second.env == env) {
+						napi_value arrayBuffer;
+						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
+						napi_detach_arraybuffer(napiEnv, arrayBuffer);
+						napi_delete_reference(napiEnv, bufferRef->second.ref);
+						EnvWrap::sharedBuffers->erase(bufferRef);
+					}
+				}
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));
@@ -831,6 +868,8 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("getEnvFlags", getEnvFlags);
 	EXPORT_NAPI_FUNCTION("setJSFlags", setJSFlags);
 	EXPORT_NAPI_FUNCTION("getSharedBuffer", getSharedBuffer);
+	EXPORT_NAPI_FUNCTION("setTestRef", setTestRef);
+	EXPORT_NAPI_FUNCTION("getTestRef", getTestRef);
 	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);

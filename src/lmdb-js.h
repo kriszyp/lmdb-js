@@ -245,6 +245,8 @@ class TxnTracked {
 	TxnTracked *parent;
 };
 
+
+typedef void* (get_shared_buffers_t)();
 /*
 	`Env`
 	Represents a database environment.
@@ -253,11 +255,14 @@ class TxnTracked {
 typedef struct env_tracking_t {
 	pthread_mutex_t* envsLock;
 	std::vector<SharedEnv> envs;
+	get_shared_buffers_t* getSharedBuffers;
 } env_tracking_t;
 
 typedef struct buffer_info_t {
 	uint32_t id;
 	size_t end;
+	MDB_env* env;
+	napi_ref ref;
 } buffer_info_t;
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
