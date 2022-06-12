@@ -421,7 +421,6 @@ NAPI_FUNCTION(getSharedBuffer) {
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
 	EnvWrap* ew = (EnvWrap*) i64;
-	void* b = (void*) EnvWrap::sharedBuffers;
 	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
 			void* start = bufferRef->first;
@@ -550,14 +549,15 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
-				for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
+				for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end();) {
 					if (bufferRef->second.env == env) {
 						napi_value arrayBuffer;
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
-						EnvWrap::sharedBuffers->erase(bufferRef);
-					}
+						bufferRef = EnvWrap::sharedBuffers->erase(bufferRef);
+					} else
+						bufferRef++;
 				}
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
