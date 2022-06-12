@@ -13,6 +13,9 @@ import inspector from 'inspector'
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../index.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { open: openFromCJS } = require('../dist/index.cjs');
 import { createBufferForAddress } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { assert } from 'console';
@@ -54,7 +57,7 @@ describe('lmdb-js', function() {
 		before(function() {
 			if (!options.checkLast)
 				testIteration++;
-			db = open(Object.assign({
+			db = open(options = Object.assign({
 				name: 'mydb1',
 				create: true,
 				useVersions: true,
@@ -999,19 +1002,18 @@ describe('lmdb-js', function() {
 			}
 		})
 
-		it('open and close with compression', async function() {
+		it('open and close', async function() {
+			if (options.encryptionKey) // it won't match the environment
+				return;
 			let data = ''
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 1000; i++) {
 				data += Math.random()
 			}
 			for (let i = 0; i < 100; i++) {
-				let db = open(testDirPath + '/təst-close.mdb', {
-//					name: 'test-close',
-					compression: true,
-					overlappingSync: true,
-					batchStartThreshold: 5,
-				});
-				for (let j = 0; j < 100; j++)
+				options.batchStartThreshold = 5
+				let db = open(testDirPath + '/təst-close.mdb', options);
+				let dbMirror = openFromCJS(testDirPath + '/təst-close.mdb', options);
+				for (let j = 0; j < 10; j++)
 					db.put('key', data);
 				let db2 = db.openDB({
 					name: 'child'
@@ -1019,6 +1021,7 @@ describe('lmdb-js', function() {
 				db2.get('test')
 				if (i > 0) {
 					let v = db.get('key')
+					v.should.equal(dbMirror.get('key'))
 					v = db.get('key1')
 					v = db.get('key2')
 					v = db.get('key3')
@@ -1029,6 +1032,7 @@ describe('lmdb-js', function() {
 				let promise = db.close();
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
+				await dbMirror.close();
 			}
 		})
 		after(function(done) {

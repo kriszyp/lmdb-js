@@ -320,11 +320,14 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	rc = mdb_env_open(env, path, flags, 0664);
 
 	if (rc != 0) {
-		mdb_env_close(env);
 		if (rc == EXISTING_ENV_FOUND) {
+			mdb_env_close(env);
 			env = foundEnv;
-		} else
+		} else {
+			closeEnv(true);
+			pthread_mutex_unlock(envTracking->envsLock);
 			goto fail;
+		}
 	}
 	mdb_env_get_flags(env, (unsigned int*) &flags);
 	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC)) {
@@ -338,7 +341,6 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	return 0;
 
 	fail:
-	pthread_mutex_unlock(envTracking->envsLock);
 	env = nullptr;
 	return rc;
 }
@@ -398,9 +400,11 @@ NAPI_FUNCTION(setEnvsPointer) {
 	// copy any existing ones over to the central one
 	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
 	EnvWrap::envTracking = adoptedTracking;
-	if (EnvWrap::sharedBuffers)
+	std::unordered_map<void*, buffer_info_t>* adoptedBuffers = (std::unordered_map<void*, buffer_info_t>*) adoptedTracking->getSharedBuffers();
+	if (EnvWrap::sharedBuffers && adoptedBuffers != EnvWrap::sharedBuffers) {
 		free(EnvWrap::sharedBuffers);
-	EnvWrap::sharedBuffers = (std::unordered_map<void*, buffer_info_t>*) adoptedTracking->getSharedBuffers();
+	}
+	EnvWrap::sharedBuffers = adoptedBuffers;
 	RETURN_UNDEFINED;
 }
 
@@ -408,7 +412,7 @@ napi_finalize cleanupExternal = [](napi_env env, void *, void * size) {
 	// Data belongs to LMDB, we shouldn't free it here
 	int64_t result;
 	napi_adjust_external_memory(env, (int64_t) size, &result);
-	fprintf(stderr, "adjust memory back up %i\n", result);
+	//fprintf(stderr, "adjust memory back up %i\n", result);
 };
 
 NAPI_FUNCTION(getSharedBuffer) {
@@ -417,31 +421,31 @@ NAPI_FUNCTION(getSharedBuffer) {
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
 	EnvWrap* ew = (EnvWrap*) i64;
+	void* b = (void*) EnvWrap::sharedBuffers;
 	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
 			void* start = bufferRef->first;
-			buffer_info_t buffer = bufferRef->second;
-			napi_ref ref;
-			if (buffer.env == ew->env) {
-				napi_get_reference_value(env, buffer.ref, &returnValue);
+			buffer_info_t* buffer = &bufferRef->second;
+			if (buffer->env == ew->env) {
+				//fprintf(stderr, "found exiting buffer for %u\n", bufferId);
+				napi_get_reference_value(env, buffer->ref, &returnValue);
 				return returnValue;
 			}
-			if (buffer.env) {
+			if (buffer->env) {
+				fprintf(stderr, "env changed");
 				// if for some reason it is different env that didn't get cleaned up
 				napi_value arrayBuffer;
-				napi_get_reference_value(env, buffer.ref, &arrayBuffer);
+				napi_get_reference_value(env, buffer->ref, &arrayBuffer);
 				napi_detach_arraybuffer(env, arrayBuffer);
-				napi_delete_reference(env, buffer.ref);
+				napi_delete_reference(env, buffer->ref);
 			}
-			size_t end = buffer.end;
-			buffer.env = ew->env;
+			size_t end = buffer->end;
+			buffer->env = ew->env;
 			size_t size = end - (size_t) start;
-			int64_t result;
 			napi_create_external_arraybuffer(env, start, size, cleanupExternal, (void*) size, &returnValue);
-//			int64_t result;
-			napi_create_reference(env, returnValue, 1, &buffer.ref);
+			int64_t result;
+			napi_create_reference(env, returnValue, 1, &buffer->ref);
 			napi_adjust_external_memory(env, -(int64_t) size, &result);
-			fprintf(stderr, "getSharedBuffer ext after adjust: %i\n", result);
 			return returnValue;
 		}
 	}
@@ -506,7 +510,6 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		bufferInfo.end = end;
 		bufferInfo.env = nullptr;
 		bufferInfo.id = nextSharedId++;
-		fprintf(stderr, "recording buffer %p size %p, id: %u (map: %p, size: %p)\n", bufferStart, bufferInfo.end - bufferStart, bufferInfo.id, mapAddress, stat.me_mapsize);
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
 
@@ -517,7 +520,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 }
 
 
-void EnvWrap::closeEnv() {
+void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
 	if (openEnvWraps) {
@@ -531,7 +534,8 @@ void EnvWrap::closeEnv() {
 	}
 	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
 	cleanupStrayTxns();
-	pthread_mutex_lock(envTracking->envsLock);
+	if (!hasLock)
+		pthread_mutex_lock(envTracking->envsLock);
 	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end(); ) {
 		if (envPath->env == env) {
 			envPath->count--;
