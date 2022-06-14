@@ -608,9 +608,8 @@ Napi::Value EnvWrap::freeStat(const CallbackInfo& info) {
 	}
 	int rc;
 	MDB_stat stat;
-	TxnWrap *txn;
-	napi_unwrap(info.Env(), info[0], (void**)&txn);
-	rc = mdb_stat(txn->txn, 0, &stat);
+	MDB_txn *txn = getReadTxn();
+	rc = mdb_stat(txn, 0, &stat);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}

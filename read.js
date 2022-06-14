@@ -548,10 +548,10 @@ export function addReadMethods(LMDBStore, {
 			}
 			let txnPromise = this._endWrites();
 			const doClose = () => {
-				this.db.close();
-				if (this.isRoot) {
+				if (this.isRoot)
 					env.close();
-				}
+				else
+					this.db.close();
 				this.status = 'closed';
 				if (callback)
 					callback();
@@ -564,8 +564,12 @@ export function addReadMethods(LMDBStore, {
 			}
 		},
 		getStats() {
-			readTxnRenewed ? readTxn : renewReadTxn(this);
-			return this.db.stat();
+			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
+			let dbStats = this.db.stat();
+			dbStats.root = env.stat();
+			dbStats.env = env.info();
+			dbStats.free = env.freeStat();
+			return dbStats;
 		}
 	});
 	let get = LMDBStore.prototype.get;
