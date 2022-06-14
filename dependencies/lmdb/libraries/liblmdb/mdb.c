@@ -4117,7 +4117,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 				rc = SetEndOfFile(fd);
 				if (!rc) {
 					rc = ErrCode();
-					fprintf(stderr, "SetEndOfFile error, extending to %u %s\n", file_size, strerror(rc));
+					fprintf(stderr, "SetEndOfFile error, extending to %u %i %s\n", file_size, rc, strerror(rc));
 				}
 			}
 		}
@@ -4730,7 +4730,7 @@ mdb_env_init_meta0(MDB_env *env, MDB_meta *meta)
 	meta->mm_mapsize = env->me_mapsize;
 	meta->mm_psize = env->me_psize;
 	meta->mm_last_pg = NUM_METAS-1;
-	meta->mm_flags = env->me_flags & 0xffff;
+	meta->mm_flags = env->me_flags & 0xffff & ~MDB_OVERLAPPINGSYNC;
 	meta->mm_flags |= MDB_INTEGERKEY; /* this is mm_dbs[FREE_DBI].md_flags */
 	meta->mm_dbs[FREE_DBI].md_root = P_INVALID;
 	meta->mm_dbs[MAIN_DBI].md_root = P_INVALID;
@@ -11482,7 +11482,7 @@ mdb_env_copyfd1(MDB_env *env, HANDLE fd)
 		mm->mm_dbs[MAIN_DBI].md_flags = txn->mt_dbs[MAIN_DBI].md_flags;
 	}
 	if (root != P_INVALID || mm->mm_dbs[MAIN_DBI].md_flags) {
-		mm->mm_txnid = 1;		/* use metapage 1 */
+		mm->mm_txnid = txn->mt_txnid | 1;		/* update to current txn id and make it odd*/
 	}
 
 	my.mc_wlen[0] = env->me_psize * NUM_METAS;

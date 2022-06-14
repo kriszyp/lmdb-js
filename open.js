@@ -263,8 +263,9 @@ export function open(path, options) {
 				callback(null, db);
 			return db;
 		}
-		backup(path) {
-			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
+		backup(path, compact) {
+			fs.mkdirSync(pathModule.dirname(path), { recursive: true });
+			return new Promise((resolve, reject) => env.copy(path, compact, (error) => {
 				if (error) {
 					reject(error);
 				} else {
