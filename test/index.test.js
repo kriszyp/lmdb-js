@@ -16,7 +16,7 @@ import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { open: openFromCJS } = require('../dist/index.cjs');
-import { createBufferForAddress } from '../native.js'
+import { createBufferForAddress, fs } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { assert } from 'console';
 import { openAsClass } from '../open.js';
@@ -1033,6 +1033,24 @@ describe('lmdb-js', function() {
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
 				await dbMirror.close();
+			}
+		})
+		it('can backup and use backup', async function() {
+			if (options.encryptionKey) // it won't match the environment
+				return;
+			for (let i = 0; i < 10; i++) {
+				await db.put('for-backup-' + i, 'test');
+			}
+			try {
+				fs.unlinkSync(testDirPath + '/backup.mdb');
+			} catch(error) {}
+			await db.flushed;
+			await db.backup(testDirPath + '/backup.mdb', true);
+			let backupDb = open(testDirPath + '/backup.mdb', options);
+			try {
+				backupDb.get('for-backup-1').should.equal('test');
+			} finally {
+				await backupDb.close();
 			}
 		})
 		after(function(done) {
