@@ -1,5 +1,6 @@
 name: Test Install
-on: [push]
+on: 
+  workflow_dispatch:
 jobs:
   test-arm7:
     runs-on: ubuntu-18.04
