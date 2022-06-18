@@ -1,4 +1,4 @@
-name: Test Install
+name: Test ARM7
 on: 
   workflow_dispatch:
 jobs:
