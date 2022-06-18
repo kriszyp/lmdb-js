@@ -57,6 +57,8 @@ export function addReadMethods(LMDBStore, {
 			return bytes;
 		},
 		retainBinary(buffer) {
+			if (!buffer)
+				return
 			if (!buffer.isGlobal && !env.writeTxn) {
 				buffer.txn = readTxn;
 				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
@@ -121,14 +123,14 @@ export function addReadMethods(LMDBStore, {
 				bytes = makeReusableBuffer(newLength);
 				setGlobalBuffer(getValueBytes = bytes);
 			}
-			bytes.isShared = true;
+			bytes.isGlobal = true;
 			return bytes;
 		},
 		getBinary(id) {
 			try {
 				asSafeBuffer = true;
 				let fastBuffer = this.getBinaryFast(id);
-				return fastBuffer && (fastBuffer.isShared ? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize) : fastBuffer);
+				return fastBuffer && (fastBuffer.isGlobal ? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize) : fastBuffer);
 			} finally {
 				asSafeBuffer = false;
 			}
@@ -136,7 +138,7 @@ export function addReadMethods(LMDBStore, {
 		getSharedBinary(id) {
 			let fastBuffer = this.getBinaryFast(id);
 			if (fastBuffer) {
-				if (fastBuffer.isShared || writeTxn)
+				if (fastBuffer.isGlobal || writeTxn)
 					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
 				fastBuffer.txn = readTxn;
 				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
@@ -407,7 +409,7 @@ export function addReadMethods(LMDBStore, {
 							if (store.decoder) {
 								value = store.decoder.decode(bytes, lastSize);
 							} else if (store.encoding == 'binary')
-								value = bytes.isShared ? Uint8ArraySlice.call(bytes, 0, lastSize) : bytes;
+								value = bytes.isGlobal ? Uint8ArraySlice.call(bytes, 0, lastSize) : bytes;
 							else {
 								value = bytes.toString('utf8', 0, lastSize);
 								if (store.encoding == 'json' && value)

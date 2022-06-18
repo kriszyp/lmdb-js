@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
 import inspector from 'inspector'
-//inspector.open(9330, null, true); debugger
+//inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../index.js';
@@ -994,11 +994,14 @@ describe('lmdb-js', function() {
 				await db.clearAsync();
 			}
 		})
-		it('larger buffers', async function() {
+		it('larger buffers, retained', async function() {
 			let index = 1, mult = 640;
+			index = 1
+			let results = []
 			while (index++ < 100) {
 				const newBuff = Buffer.alloc(index*mult);
-				await db.put('test-key', newBuff);
+				await db.put('test-key' + index, newBuff);
+				db.retainBinary(db.getBinaryFast('test-key' + index));
 			}
 		})
 
@@ -1009,7 +1012,7 @@ describe('lmdb-js', function() {
 			for (let i = 0; i < 1000; i++) {
 				data += Math.random()
 			}
-			for (let i = 0; i < 100; i++) {
+			for (let i = 0; i < 10; i++) {
 				options.batchStartThreshold = 5
 				let db = open(testDirPath + '/təst-close.mdb', options);
 				let dbMirror = openFromCJS(testDirPath + '/təst-close.mdb', options);
@@ -1038,8 +1041,11 @@ describe('lmdb-js', function() {
 		it('can backup and use backup', async function() {
 			if (options.encryptionKey) // it won't match the environment
 				return;
-			for (let i = 0; i < 10; i++) {
-				await db.put('for-backup-' + i, 'test');
+			let value = 'hello world'
+			for (let i = 0; i < 9; i++)
+				value += value
+			for (let i = 0; i < 20; i++) {
+				await db.put('for-backup-' + (i % 12), value.slice(0, i * 400));
 			}
 			try {
 				fs.unlinkSync(testDirPath + '/backup.mdb');
@@ -1048,7 +1054,12 @@ describe('lmdb-js', function() {
 			await db.backup(testDirPath + '/backup.mdb', true);
 			let backupDb = open(testDirPath + '/backup.mdb', options);
 			try {
-				backupDb.get('for-backup-1').should.equal('test');
+				backupDb.get('for-backup-7').should.equal(value);
+				value += ' changed'
+				for (let i = 0; i < 10; i++) {
+					await backupDb.put('for-backup-' + i, value);
+				}
+				backupDb.get('for-backup-1').should.equal(value);
 			} finally {
 				await backupDb.close();
 			}
