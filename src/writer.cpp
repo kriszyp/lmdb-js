@@ -13,6 +13,7 @@ inline value?
 */
 #include "lmdb-js.h"
 #include <atomic>
+#include <ctime>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
@@ -347,11 +348,18 @@ next_inst:	start = instruction++;
 	return rc;
 }
 
+const int READER_CHECK_INTERVAL = 600; // ten minutes
 void WriteWorker::Write() {
 	int rc;
 	finishedProgress = true;
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
+	time_t now = time(0);
+	if (now - envForTxn->lastReaderCheck > READER_CHECK_INTERVAL) {
+		int dead;
+		mdb_reader_check(env, &dead);
+		envForTxn->lastReaderCheck = now;
+	}
 	pthread_mutex_lock(envForTxn->writingLock);
     #ifdef _WIN32
 	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);

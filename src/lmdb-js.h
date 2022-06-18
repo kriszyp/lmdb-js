@@ -27,6 +27,7 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <ctime>
 #include <napi.h>
 #include <node_api.h>
 
@@ -301,6 +302,7 @@ public:
 	unsigned int jsFlags;
 	char* keyBuffer;
 	int pageSize;
+	time_t lastReaderCheck;
 	MDB_txn* getReadTxn();
 
 	// Sets up exports for the Env constructor
