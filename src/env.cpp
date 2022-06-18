@@ -465,6 +465,33 @@ NAPI_FUNCTION(getTestRef) {
 	return returnValue;
 }
 
+NAPI_FUNCTION(directWrite) {
+	ARGS(4)
+	GET_INT64_ARG(0);
+	EnvWrap* ew = (EnvWrap*) i64;
+	napi_get_value_int64(env, args[1], &i64);
+	char* target = (char*) i64;
+	napi_get_value_int64(env, args[2], &i64);
+	void* source = (void*) i64;
+	uint32_t length;
+	GET_UINT32_ARG(length, 3);
+	mdb_filehandle_t fd;
+	mdb_env_get_fd(ew->env, &fd);
+	MDB_envinfo stat;
+	mdb_env_info(ew->env, &stat);
+	int64_t offset = target - (char*) stat.me_mapaddr;
+	if (offset > 0 && offset < (int64_t) stat.me_mapsize) {
+		#ifdef _WIN32
+		OVERLAPPED ov;
+		ov.Offset = offset;
+		ov.OffsetHigh = 0;
+		WriteFile(fd, target, length, nullptr, &ov);
+		#else
+		pwrite(fd, target, length, offset);
+		#endif
+	}
+	RETURN_UNDEFINED;
+}
 thread_local int nextSharedId = 1;
 
 int32_t EnvWrap::toSharedBuffer(MDB_val data) {
