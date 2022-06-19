@@ -39,6 +39,9 @@
 
 using namespace Napi;
 
+// set the threshold of when to use shared buffers (for uncompressed entries larger than this value)
+const size_t SHARED_BUFFER_THRESHOLD = 0x4000;
+
 #ifndef __CPTHREAD_H__
 #define __CPTHREAD_H__
 
