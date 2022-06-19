@@ -1,4 +1,4 @@
-name: Test Install
+name: Test Parcel
 on: 
   workflow_dispatch:
 jobs:
