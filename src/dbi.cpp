@@ -145,8 +145,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 
 	int result = mdb_get(txn, dbi, &key, &data);
 	if (result) {
-        if (result > 0)
-            return -result;
+		if (result > 0)
+			return -result;
 		return result;
 	}
 	result = getVersionAndUncompress(data, this);
@@ -157,8 +157,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
    if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// if it was decompressed
 		if (data.mv_size < 0x80000000)
 			return data.mv_size;
-    	*((uint32_t*)keyBuffer) = data.mv_size;
-    	return -30000;
+		*((uint32_t*)keyBuffer) = data.mv_size;
+		return -30000;
 	} else {
 		return ew->toSharedBuffer(data);
 	}
@@ -174,8 +174,8 @@ NAPI_FUNCTION(getByBinary) {
 }
 
 uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize) {
-    DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-    return dw->doGetByBinary(keySize);
+	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
+	return dw->doGetByBinary(keySize);
 }
 
 napi_finalize noopDbi = [](napi_env, void *, void *) {
@@ -183,8 +183,8 @@ napi_finalize noopDbi = [](napi_env, void *, void *) {
 };
 NAPI_FUNCTION(getSharedByBinary) {
 	ARGS(2)
-    GET_INT64_ARG(0);
-    DbiWrap* dw = (DbiWrap*) i64;
+	GET_INT64_ARG(0);
+	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
@@ -206,8 +206,8 @@ NAPI_FUNCTION(getSharedByBinary) {
 }
 NAPI_FUNCTION(getStringByBinary) {
 	ARGS(2)
-    GET_INT64_ARG(0);
-    DbiWrap* dw = (DbiWrap*) i64;
+	GET_INT64_ARG(0);
+	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
 	MDB_val key;
@@ -293,9 +293,9 @@ class PrefetchWorker : public AsyncWorker {
 
 NAPI_FUNCTION(prefetchNapi) {
 	ARGS(3)
-    GET_INT64_ARG(0);
-    DbiWrap* dw = (DbiWrap*) i64;
-    napi_get_value_int64(env, args[1], &i64);
+	GET_INT64_ARG(0);
+	DbiWrap* dw = (DbiWrap*) i64;
+	napi_get_value_int64(env, args[1], &i64);
 	uint32_t* keys = (uint32_t*) i64;
 	PrefetchWorker* worker = new PrefetchWorker(dw, keys, Function(env, args[2]));
 	worker->Queue();

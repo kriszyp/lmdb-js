@@ -208,8 +208,8 @@ Value TxnWrap::abort(const Napi::CallbackInfo& info) {
 }
 NAPI_FUNCTION(resetTxn) {
 	ARGS(1)
-    GET_INT64_ARG(0);
-    TxnWrap* tw = (TxnWrap*) i64;
+	GET_INT64_ARG(0);
+	TxnWrap* tw = (TxnWrap*) i64;
 	if (!tw->txn) {
 		THROW_ERROR("The transaction is already closed.");
 	}

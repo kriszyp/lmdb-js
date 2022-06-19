@@ -132,20 +132,20 @@ class SyncWorker : public AsyncWorker {
 	}
 
 	void Execute() {
-        #ifdef _WIN32
-        int rc = mdb_env_sync(env->env, 1);
-        #else
-        int retries = 0;
-        retry:
-        int rc = mdb_env_sync(env->env, 1);
-        if (rc == EINVAL) {
-            if (retries++ < 10) {
-                sleep(1);
-                goto retry;
-            }
-            return SetError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
-        }
-        #endif
+		#ifdef _WIN32
+		int rc = mdb_env_sync(env->env, 1);
+		#else
+		int retries = 0;
+		retry:
+		int rc = mdb_env_sync(env->env, 1);
+		if (rc == EINVAL) {
+			if (retries++ < 10) {
+				sleep(1);
+				goto retry;
+			}
+			return SetError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+		}
+		#endif
 		if (rc != 0) {
 			SetError(mdb_strerror(rc));
 		}
@@ -360,9 +360,9 @@ NAPI_FUNCTION(getEnvFlags) {
 NAPI_FUNCTION(setJSFlags) {
 	ARGS(2)
 	GET_INT64_ARG(0);
-    EnvWrap* ew = (EnvWrap*) i64;
-    int64_t jsFlags;
-    napi_get_value_int64(env, args[1], &jsFlags);
+	EnvWrap* ew = (EnvWrap*) i64;
+	int64_t jsFlags;
+	napi_get_value_int64(env, args[1], &jsFlags);
 	ew->jsFlags = jsFlags;
 	RETURN_UNDEFINED;
 }
@@ -396,7 +396,7 @@ NAPI_FUNCTION(setEnvsPointer) {
 	// If another version of lmdb-js is running, switch to using its list of envs
 	ARGS(2)
 	GET_INT64_ARG(0);
-    env_tracking_t* adoptedTracking = (env_tracking_t*) i64;
+	env_tracking_t* adoptedTracking = (env_tracking_t*) i64;
 	// copy any existing ones over to the central one
 	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
 	EnvWrap::envTracking = adoptedTracking;
@@ -500,7 +500,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	if (flags & MDB_REMAP_CHUNKS) {
 		*((uint32_t*)keyBuffer) = data.mv_size;
 		*((uint32_t*) (keyBuffer + 4)) = 0;
-    	return -30000;
+		return -30000;
 	}
 	MDB_envinfo stat;
 	mdb_env_info(env, &stat);

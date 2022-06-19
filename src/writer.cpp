@@ -361,20 +361,20 @@ void WriteWorker::Write() {
 		envForTxn->lastReaderCheck = now;
 	}
 	pthread_mutex_lock(envForTxn->writingLock);
-    #ifdef _WIN32
+	#ifdef _WIN32
 	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
-    #else
-    int retries = 0;
-    retry:
+	#else
+	int retries = 0;
+	retry:
 	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
-    if (rc == EINVAL) {
-        if (retries++ < 10) {
-            sleep(1);
-            goto retry;
-        }
-        return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
-    }
-    #endif
+	if (rc == EINVAL) {
+		if (retries++ < 10) {
+			sleep(1);
+			goto retry;
+		}
+		return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
+	}
+	#endif
 	if (rc != 0) {
 		return ReportError(mdb_strerror(rc));
 	}
