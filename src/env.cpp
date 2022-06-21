@@ -112,6 +112,10 @@ void EnvWrap::cleanupStrayTxns() {
 		tw->removeFromEnvWrap();
 	}
 }
+void EnvWrap::consolidateTxns() {
+	// sort read txns by txn id, and then abort newer ones that we can just reference older ones with.
+
+}
 
 class SyncWorker : public AsyncWorker {
   public:

@@ -67,6 +67,7 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 		if (rc == MDB_READERS_FULL) { // try again after reader check, in case a dead process frees a slot
 			int dead;
 			mdb_reader_check(ew->env, &dead);
+			ew->consolidateTxns();
 			rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
 		}
 		if (rc != 0) {

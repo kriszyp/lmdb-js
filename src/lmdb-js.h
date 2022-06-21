@@ -280,7 +280,8 @@ private:
 
 	// Cleans up stray transactions
 	void cleanupStrayTxns();
-    static void cleanupEnvWraps(void* data);
+	void consolidateTxns();
+   static void cleanupEnvWraps(void* data);
 
 	friend class TxnWrap;
 	friend class DbiWrap;
