@@ -303,14 +303,15 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		if (rc != 0) goto fail;
 	}
 
-	if (flags & MDB_OVERLAPPINGSYNC) {
-		flags |= MDB_PREVSNAPSHOT;
-	}
-
 	if (flags & MDB_NOLOCK) {
 		fprintf(stderr, "You chose to use MDB_NOLOCK which is not officially supported by node-lmdb. You have been warned!\n");
 	}
+	#ifdef MDB_OVERLAPPINGSYNC
+	if (flags & MDB_OVERLAPPINGSYNC) {
+		flags |= MDB_PREVSNAPSHOT;
+	}
 	mdb_env_set_check_fd(env, checkExistingEnvs);
+	#endif
 
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
@@ -330,7 +331,11 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		}
 	}
 	mdb_env_get_flags(env, (unsigned int*) &flags);
-	if ((jsFlags & DELETE_ON_CLOSE) || (flags & MDB_OVERLAPPINGSYNC)) {
+	if ((jsFlags & DELETE_ON_CLOSE)
+	#ifdef MDB_OVERLAPPINGSYNC
+	 	|| (flags & MDB_OVERLAPPINGSYNC)
+	#endif
+		) {
 		if (!openEnvWraps) {
 			openEnvWraps = new std::vector<EnvWrap*>;
 			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
@@ -497,11 +502,13 @@ thread_local int nextSharedId = 1;
 int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 	unsigned int flags;
 	mdb_env_get_flags(env, (unsigned int*) &flags);
+	#ifdef MDB_RPAGE_CACHE
 	if (flags & MDB_REMAP_CHUNKS) {
 		*((uint32_t*)keyBuffer) = data.mv_size;
 		*((uint32_t*) (keyBuffer + 4)) = 0;
 		return -30000;
 	}
+	#endif
 	MDB_envinfo stat;
 	mdb_env_info(env, &stat);
 	size_t mapAddress = (size_t) (char*) stat.me_mapaddr;
@@ -569,9 +576,11 @@ void EnvWrap::closeEnv(bool hasLock) {
 				// last thread using it, we can really close it now
 				unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
 				mdb_env_get_flags(env, &envFlags);
+				#ifdef MDB_OVERLAPPINGSYNC
 				if (envFlags & MDB_OVERLAPPINGSYNC) {
 					mdb_env_sync(env, 1);
 				}
+				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);

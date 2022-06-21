@@ -361,12 +361,16 @@ void WriteWorker::Write() {
 		envForTxn->lastReaderCheck = now;
 	}
 	pthread_mutex_lock(envForTxn->writingLock);
-	#ifdef _WIN32
-	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
-	#else
+	#ifndef _WIN32
 	int retries = 0;
 	retry:
-	rc = mdb_txn_begin(env, nullptr, (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC : 0, &txn);
+	#endif
+	rc = mdb_txn_begin(env, nullptr,
+	#ifdef MDB_OVERLAPPINGSYNC
+		(envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC :
+	#endif
+		0, &txn);
+	#ifndef _WIN32
 	if (rc == EINVAL) {
 		if (retries++ < 10) {
 			sleep(1);
