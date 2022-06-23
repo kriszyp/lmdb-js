@@ -43,6 +43,7 @@ yarn.lock
 # Visual Studio Code directory
 .vscode
 .vs
+.idea
 
 #package-lock.json
 yarn.lock

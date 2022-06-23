@@ -59,10 +59,6 @@ describe('lmdb-js', function() {
 				create: true,
 				useVersions: true,
 				batchStartThreshold: 10,
-				//asyncTransactionOrder: 'strict',
-				//useWritemap: true,
-				//noSync: true,
-				//overlappingSync: true,
 				maxReaders: 100,
 				keyEncoder: orderedBinaryEncoder,
 				compression: {
@@ -1004,6 +1000,7 @@ describe('lmdb-js', function() {
 //					name: 'test-close',
 					compression: true,
 					overlappingSync: true,
+					safeRestore: i % 2 == 0,
 					batchStartThreshold: 5,
 				});
 				for (let j = 0; j < 100; j++)

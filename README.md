@@ -443,6 +443,7 @@ In addition, the following options map to LMDB's env flags, <a href="http://www.
 * `noMetaSync` - This isn't as dangerous as `noSync`, but doesn't improve performance much either.
 * `noReadAhead` - This disables read-ahead caching. Turning it off may help random read performance when the DB is larger than RAM and system RAM is full. However, this is not supported by all OSes, including Windows, and should not be used in conjunction with page sizes larger than 4,096.
 * `noSubdir` - Treat `path` as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it)
+* `safeRestore` - When using `overlappingSync`, lmdb-js will use the latest committed transaction if the OS's boot id hasn't changed, but this will force lmdb-store to always use the latest safely _flushed_ transaction even if the boot id hasn't changed.
 * `readOnly` - Self-descriptive.
 * `mapAsync` - Not recommended, commits are already performed in a separate thread (asyncronous to JS), and this prevents accurate notification of when flushes finish.
 

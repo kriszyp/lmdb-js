@@ -4603,12 +4603,12 @@ fail:
 }
 
 MDB_meta* mdb_pick_meta(const MDB_env *env, MDB_meta* a, MDB_meta* b) {
-	const MDB_meta *latest = a->mm_txnid >= b->mm_txnid ? a : b;
+	MDB_meta *latest = a->mm_txnid >= b->mm_txnid ? a : b;
 	if (env->me_flags & MDB_PREVSNAPSHOT) {
 		if (env->me_flags & MDB_OVERLAPPINGSYNC) {
 			if (!b->mm_txnid)
 				return a;
-			if ((latest->boot_id && latest->boot_id == env->boot_id) ||
+			if ((latest->boot_id && latest->boot_id == env->boot_id && !(env->me_flags & MDB_SAFE_RESTORE)) ||
 					!(latest->mm_flags & MDB_OVERLAPPINGSYNC))
 				return latest;
 		}
@@ -6187,7 +6187,7 @@ mdb_env_envflags(MDB_env *env)
 	 */
 #define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC|MDB_NOMEMINIT)
 #define	CHANGELESS	(MDB_FIXEDMAP|MDB_NOSUBDIR|MDB_RDONLY| \
-	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC)
+	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC|MDB_SAFE_RESTORE)
 #define EXPOSED		(CHANGEABLE|CHANGELESS | MDB_ENCRYPT)
 
 #if VALID_FLAGS & PERSISTENT_FLAGS & EXPOSED
