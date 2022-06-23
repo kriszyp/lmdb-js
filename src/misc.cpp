@@ -28,6 +28,10 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("createBufferForAddress", createBufferForAddress);
 	EXPORT_NAPI_FUNCTION("getAddress", getViewAddress);
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
+	napi_value globalBuffer;
+	napi_create_buffer(env, SHARED_BUFFER_THRESHOLD, (void**) &globalUnsafePtr, &globalBuffer);
+	globalUnsafeSize = SHARED_BUFFER_THRESHOLD;
+	exports.Set("globalBuffer", Object(env, globalBuffer));
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
@@ -69,6 +73,7 @@ bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
 			// already decompressed to the target, nothing more to do
 		} else {
 			if (data.mv_size > compression->decompressSize) {
+				// indicates we could not copy, won't fit
 				return false;
 			}
 			// copy into the buffer target
@@ -76,11 +81,7 @@ bool valToBinaryFast(MDB_val &data, DbiWrap* dw) {
 		}
 	} else {
 		if (data.mv_size > globalUnsafeSize) {
-			// TODO: Provide a direct reference if for really large blocks, but we do that we need to detach that in the next turn
-			/* if(data.mv_size > 64000) {
-				dw->SetUnsafeBuffer(data.mv_data, data.mv_size);
-				return Nan::New<Number>(data.mv_size);
-			}*/
+			// indicates we could not copy, won't fit
 			return false;
 		}
 		memcpy(globalUnsafePtr, data.mv_data, data.mv_size);

@@ -12,7 +12,7 @@ import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { open: openFromCJS } = require('../dist/index.cjs');

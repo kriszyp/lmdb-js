@@ -1,10 +1,14 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer } from './native.js';
+import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer } from './native.js';
 import { saveKey }  from './keys.js';
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
-let getValueBytes = makeReusableBuffer(0);
+let getValueBytes = globalBuffer;
+if (!getValueBytes.maxLength) {
+	 getValueBytes.maxLength = getValueBytes.length;
+	 Object.defineProperty(getValueBytes, 'length', { value: getValueBytes.length, writable: true, configurable: true });
+}
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
 
@@ -120,6 +124,7 @@ export function addReadMethods(LMDBStore, {
 				Object.defineProperty(bytes, 'length', { value: newLength, writable: true, configurable: true });
 				this.compression.getValueBytes = bytes;
 			} else {
+				console.log('should not get here', newLength)
 				bytes = makeReusableBuffer(newLength);
 				setGlobalBuffer(getValueBytes = bytes);
 			}
