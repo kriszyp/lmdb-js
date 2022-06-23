@@ -75,14 +75,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		uint32: null, flagPosition: 0, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
 	var unwrittenResolution = nextResolution;
 	var lastPromisedResolution = uncommittedResolution;
+	let lastValue, valueBuffer;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus;
 		let targetBytes, position, encoder;
-		let valueBuffer, valueSize, valueBufferStart;
+		let valueSize, valueBufferStart;
 		if (flags & 2) {
 			// encode first in case we have to write a shared structure
 			encoder = store.encoder;
-			if (value && value['\x10binary-data\x02'])
+			if (typeof value !== 'object' && value && value === lastValue && !store.compression) {
+				// reuse last valueBuffer
+			} else if (value && value['\x10binary-data\x02'])
 				valueBuffer = value['\x10binary-data\x02'];
 			else if (encoder) {
 				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
@@ -98,6 +101,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				valueBuffer = value;
 			else
 				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder');
+			lastValue = (writeTxn || store.compression) ? null : value; // can't reuse values from write txns because we reset the buffer
 			valueBufferStart = valueBuffer.start;
 			if (valueBufferStart > -1) // if we have buffers with start/end position
 				valueSize = valueBuffer.end - valueBufferStart; // size
