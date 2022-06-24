@@ -62,10 +62,6 @@ describe('lmdb-js', function() {
 				create: true,
 				useVersions: true,
 				batchStartThreshold: 10,
-				//asyncTransactionOrder: 'strict',
-				//useWritemap: true,
-				//noSync: true,
-				//overlappingSync: true,
 				maxReaders: 100,
 				keyEncoder: orderedBinaryEncoder,
 				compression: {
@@ -1013,7 +1009,8 @@ describe('lmdb-js', function() {
 				data += Math.random()
 			}
 			for (let i = 0; i < 10; i++) {
-				options.batchStartThreshold = 5
+				options.batchStartThreshold = 5;
+				options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);
 				let dbMirror = openFromCJS(testDirPath + '/təst-close.mdb', options);
 				for (let j = 0; j < 10; j++)

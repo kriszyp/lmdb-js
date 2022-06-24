@@ -62,6 +62,7 @@ export function open(path, options) {
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
 			0x20000, // Otherwise we start small with 128KB
+		safeRestore: process.env.LMDB_RESTORE == 'safe',
 	}, options);
 	if (options.asyncTransactionOrder == 'strict') {
 		options.strictAsyncOrder = true;
@@ -100,7 +101,8 @@ export function open(path, options) {
 		(options.noReadAhead ? 0x800000 : 0) |
 		(options.noMemInit ? 0x1000000 : 0) |
 		(options.usePreviousSnapshot ? 0x2000000 : 0) |
-		(options.remapChunks ? 0x4000000 : 0);
+		(options.remapChunks ? 0x4000000 : 0) |
+		(options.safeRestore ? 0x8000000 : 0);
 
 	let env = new Env();
 	let jsFlags = (options.overlappingSync ? 0x1000 : 0) |

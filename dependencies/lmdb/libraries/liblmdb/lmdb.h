@@ -373,9 +373,12 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_PREVSNAPSHOT	0x2000000
 	/** don't use a single mmap, remap individual chunks (needs MDB_RPAGE_CACHE) */
 #define MDB_REMAP_CHUNKS	0x4000000
+	/** Don't consult boot_id and assume that only the "flushed" txn is valid */
+#define MDB_SAFE_RESTORE	0x8000000
+	/** Use the overlapping sync strategy */
+#define MDB_OVERLAPPINGSYNC_SYNC = 0x02
 /** @} */
 
-#define MDB_OVERLAPPINGSYNC_SYNC = 0x02
 
 /**	@defgroup	mdb_dbi_open	Database Flags
  *	@{
