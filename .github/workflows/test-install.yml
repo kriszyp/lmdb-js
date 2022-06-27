@@ -10,6 +10,6 @@ jobs:
       - run: apk update && apk add --no-cache nodejs npm python3 py3-pip build-base
       - run: npm install lmdb@2.5.2 --build-from-source --verbose
       - run: node -e "console.log(require('lmdb'))"
-      - run: ldd node_modules/lmdb/build/Release/lmdb.node
+      - run: readelf -d node_modules/lmdb/build/Release/lmdb.node
       - run: npm install lmdb@2.5.2 --ignore-scripts --verbose
       - run: node -e "console.log(require('lmdb'))"
