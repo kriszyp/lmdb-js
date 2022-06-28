@@ -136,19 +136,21 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
+int32_t DbiWrap::doGetByBinary(uint32_t keySize, int64_t requiredTxnId) {
 	char* keyBuffer = ew->keyBuffer;
 	MDB_txn* txn = ew->getReadTxn();
 	MDB_val key, data;
 	key.mv_size = keySize;
 	key.mv_data = (void*) keyBuffer;
-
-	int result = mdb_get(txn, dbi, &key, &data);
+	mdb_size_t* currentTxnId = (mdb_size_t*) (keyBuffer + 16);
+	int result = mdb_get_with_txn(txn, dbi, &key, &data, currentTxnId);
 	if (result) {
 		if (result > 0)
 			return -result;
 		return result;
 	}
+	if (requiredTxnId && requiredTxnId != *currentTxnId)
+		return -30002;
 	result = getVersionAndUncompress(data, this);
 	bool fits = true;
 	if (result) {
@@ -165,17 +167,18 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize) {
 }
 
 NAPI_FUNCTION(getByBinary) {
-	ARGS(2)
+	ARGS(3)
    GET_INT64_ARG(0);
    DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
-	RETURN_INT32(dw->doGetByBinary(keySize));
+	napi_get_value_int64(env, args[2], &i64);
+	RETURN_INT32(dw->doGetByBinary(keySize, i64));
 }
 
-uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize) {
+uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize, uint64_t txnId) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-	return dw->doGetByBinary(keySize);
+	return dw->doGetByBinary(keySize, txnId);
 }
 
 napi_finalize noopDbi = [](napi_env, void *, void *) {

@@ -4117,7 +4117,8 @@ mdb_page_flush(MDB_txn *txn, int keep)
 				rc = SetEndOfFile(fd);
 				if (!rc) {
 					rc = ErrCode();
-					fprintf(stderr, "SetEndOfFile error, extending to %u %i %s\n", file_size, rc, strerror(rc));
+					if (rc != 1224) // occassionaly see a ERROR_USER_MAPPED_FILE with no apparent ill-effect
+						fprintf(stderr, "SetEndOfFile error, extending to %u %i %s\n", file_size, rc, strerror(rc));
 				}
 			}
 		}
@@ -7775,6 +7776,12 @@ int
 mdb_get(MDB_txn *txn, MDB_dbi dbi,
     MDB_val *key, MDB_val *data)
 {
+	return mdb_get_with_txn(txn, dbi, key, data, NULL);
+}
+int
+mdb_get_with_txn(MDB_txn *txn, MDB_dbi dbi,
+    MDB_val *key, MDB_val *data, mdb_size_t *txn_id)
+{
 	MDB_cursor	mc;
 	MDB_xcursor	mx;
 	int exact = 0, rc;
@@ -7810,6 +7817,9 @@ mdb_get(MDB_txn *txn, MDB_dbi dbi,
 	/* unref all the pages when MDB_REMAP_CHUNKS - caller must copy the data
 	 * before doing anything else
 	 */
+	if (txn_id && !rc) {
+		*txn_id = mc.mc_pg[mc.mc_top]->mp_txnid;
+	}
 	MDB_CURSOR_UNREF(&mc, 1);
 	return rc;
 }

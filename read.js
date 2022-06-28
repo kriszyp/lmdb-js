@@ -33,7 +33,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getBinaryFast(id) {
 			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0));
+			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0);
 			if (rc < 0) {
 				if (rc == -30798) // MDB_NOTFOUND
 					return; // undefined
@@ -55,7 +55,7 @@ export function addReadMethods(LMDBStore, {
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				return this._returnLargeBuffer(
-					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0)));
+					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0));
 			}
 			bytes.length = this.lastSize;
 			return bytes;

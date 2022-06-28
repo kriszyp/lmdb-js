@@ -1423,6 +1423,8 @@ int  mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx);
 	 *	<li>EINVAL - an invalid parameter was specified.
 	 * </ul>
 	 */
+int  mdb_get_with_txn(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data, mdb_size_t *txn_id);
+
 int  mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
 
 	/** @brief Store items into a database.

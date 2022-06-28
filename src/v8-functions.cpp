@@ -14,16 +14,19 @@
 #endif
 
 using namespace v8;
-int32_t getByBinaryFast(Local<v8::Object> instance, double dwPointer, uint32_t keySize) {
+int32_t getByBinaryFast(Local<v8::Object> instance, double dwPointer, uint32_t keySize, uint64_t txnId) {
 	DbiWrap* dw = (DbiWrap*) (size_t) dwPointer;
-	return dw->doGetByBinary(keySize);
+	return dw->doGetByBinary(keySize, txnId);
 }
 
 //class NanWrap : public Nan::ObjectWrap {};
 void getByBinaryV8(const FunctionCallbackInfo<v8::Value>& info) {
 	Isolate* isolate = Isolate::GetCurrent();
-	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(isolate->GetCurrentContext()).FromJust();
-	info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(info[1]->Uint32Value(isolate->GetCurrentContext()).FromJust())));
+	auto context = isolate->GetCurrentContext();
+	DbiWrap* dw = (DbiWrap*) (size_t) info[0]->NumberValue(context).FromJust();
+	info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(
+		info[1]->Uint32Value(context).FromJust(),
+		info[2]->IntegerValue(context).FromJust())));
 }
 int32_t positionFast(Local<v8::Object> instance, double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
 	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;
