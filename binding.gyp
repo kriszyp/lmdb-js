@@ -1,7 +1,7 @@
 {
   "variables": {
       "os_linux_compiler%": "gcc",
-      "use_robust%": "false",
+      "use_robust%": "true",
       "use_data_v1%": "false",
       "enable_v8%": "true",
       "enable_fast_api_calls%": "true",
