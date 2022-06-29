@@ -503,7 +503,11 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install lmdb --build-from-source --use_robust=false`: This will disable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead to robust mutexes, but keeping this enabled is recommended if you will be using multiple processes.
 
-On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 database environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count by setting kern.sysv.semmnu on your local computer. Otherwise you may need to disable the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of database environments (and use more databases within each environment).
+On MacOS, there is a default limit of 10 robust locked semaphores, which imposes a limit on the number of open write transactions (if you have over 10 database environments with a write transaction). If you need more concurrent write transactions, you can increase your maximum undoable semaphore count with:
+```
+sudo sysctl kern.sysv.semume=50
+```
+Otherwise you may need to disable the robust mutex option. You can also try to minimize overlapping transactions and/or reduce the number of database environments (and use more databases within each environment).
 
 `npm install lmdb --build-from-source --use_data_v1=true`: This will build from an older version of LMDB that uses the legacy data format version 1 (the latest LMDB uses data format version 2). For portability of the data format, this may be preferable since many libraries still use older versions of LMDB. Since this is an older version of LMDB, some features may not be available, including encryption and remapping.
 
