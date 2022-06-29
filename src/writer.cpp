@@ -258,6 +258,7 @@ next_inst:	start = instruction++;
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)WAITING_OPERATION)) {
+						fprintf(stderr, "wait ");
 						worker->WaitForCallbacks(&txn, conditionDepth == 0, start);
 					}
 					goto next_inst;
@@ -266,6 +267,7 @@ next_inst:	start = instruction++;
 							(uint32_t*) &flags,
 							(uint32_t)TXN_DELIMITER)) {
 						worker->instructions = start;
+						fprintf(stderr, "done with writing ");
 						return 0;
 					} else
 						goto next_inst;						
@@ -384,7 +386,7 @@ void WriteWorker::Write() {
 	}
 	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
-
+fprintf(stderr,"finished writes\n");
 	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else

@@ -120,59 +120,6 @@ void TxnWrap::removeFromEnvWrap() {
 	this->txn = nullptr;
 }
 
-int TxnWrap::begin(EnvWrap *ew, unsigned int flags) {
-	this->ew = ew;
-	this->flags = flags;
-	MDB_env *env = ew->env;
-	unsigned int envFlags;
-	mdb_env_get_flags(env, &envFlags);
-	if (flags & MDB_RDONLY) {
-		mdb_txn_begin(env, nullptr, flags & 0xf0000, &this->txn);
-	} else {
-		//fprintf(stderr, "begin sync txn %i\n", flags);
-
-		if (ew->writeTxn)
-			txn = ew->writeTxn->txn;
-		else if (ew->writeWorker) {
-			// try to acquire the txn from the current batch
-			txn = ew->writeWorker->AcquireTxn((int*) &flags);
-			//fprintf(stderr, "acquired %p %p %p\n", ew->writeWorker, txn, flags);
-		} else {
-			pthread_mutex_lock(ew->writingLock);
-			txn = nullptr;
-		}
-
-		if (txn) {
-			if (flags & TXN_ABORTABLE) {
-				if (envFlags & MDB_WRITEMAP)
-					flags &= ~TXN_ABORTABLE;
-				else {
-					// child txn
-					mdb_txn_begin(env, this->txn, flags & 0xf0000, &this->txn);
-					TxnTracked* childTxn = new TxnTracked(txn, flags);
-					childTxn->parent = ew->writeTxn;
-					ew->writeTxn = childTxn;
-					return 0;
-				}
-			}
-		} else {
-			mdb_txn_begin(env, nullptr, flags & 0xf0000, &this->txn);
-			flags |= TXN_ABORTABLE;
-		}
-		ew->writeTxn = new TxnTracked(txn, flags);
-		return 0;
-	}
-	// Set the current write transaction
-	if (0 == (flags & MDB_RDONLY)) {
-		ew->currentWriteTxn = this;
-	}
-	else {
-		ew->readTxns.push_back(this);
-		ew->currentReadTxn = txn;
-		ew->readTxnRenewed = true;
-	}
-	return 0;
-}
 Value TxnWrap::commit(const Napi::CallbackInfo& info) {
 	if (!this->txn) {
 		return throwError(info.Env(), "The transaction is already closed.");
