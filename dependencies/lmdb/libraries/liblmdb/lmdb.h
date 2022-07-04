@@ -532,8 +532,10 @@ typedef enum MDB_cursor_op {
 #define MDB_CRYPTO_FAIL		(-30777)
 	/** Environment encryption mismatch */
 #define MDB_ENV_ENCRYPTION	(-30776)
+      /** Unable to acquire a robust mutex */
+#define MDB_LOCK_FAILURE    (-30775)
 	/** The last defined error code */
-#define MDB_LAST_ERRCODE	MDB_ENV_ENCRYPTION
+#define MDB_LAST_ERRCODE	MDB_LOCK_FAILURE
 /** @} */
 
 /** @brief Statistics for a database in the environment */

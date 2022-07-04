@@ -72,10 +72,6 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 		}
 		if (rc != 0) {
 			txn = nullptr;
-			if (rc == EINVAL) {
-				throwError(info.Env(), "Invalid parameter, which is often due to more transactions than available robust locked semaphors (see docs for more info)");
-				return;
-			}
 			throwLmdbError(info.Env(), rc);
 			return;
 		}

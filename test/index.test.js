@@ -1000,7 +1000,7 @@ describe('lmdb-js', function() {
 				db.retainBinary(db.getBinaryFast('test-key' + index));
 			}
 		})
-		it.only('concurrent txns', async function() {
+		it('concurrent txns', async function() {
 			const CONCURRENCY = 20; // macos has a limit of 10 robust/SEM_UNDO semaphores, so this exercises handling that
 			let finishedTxns = []
 			for (let i = 0; i < CONCURRENCY; i++) {

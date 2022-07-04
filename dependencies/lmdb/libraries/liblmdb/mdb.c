@@ -1861,6 +1861,7 @@ static char *const mdb_errstr[] = {
 	"MDB_BAD_CHECKSUM: Page checksum mismatch",
 	"MDB_CRYPTO_FAIL: Page encryption or decryption failed",
 	"MDB_ENV_ENCRYPTION: Environment encryption mismatch",
+	"MDB_LOCK_FAILURE: Failed to get robust semaphore, increase max semaphore count by running 'sudo sysctl kern.sysv.semume=200' or build with robust mutexes disabled (see docs)",
 };
 //<lmdb-js>
 static char* last_error = NULL;
@@ -12409,7 +12410,10 @@ mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc)
 #endif
 		DPRINTF(("LOCK_MUTEX failed, %s", mdb_strerror(rc)));
 	}
-
+#ifdef defined(__APPLE__)
+	if (rc == EINVAL)
+		rc = MDB_LOCK_FAILURE;
+#endif
 	return rc;
 }
 #endif	/* MDB_ROBUST_SUPPORTED */

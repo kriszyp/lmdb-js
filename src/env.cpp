@@ -142,12 +142,11 @@ class SyncWorker : public AsyncWorker {
 		int retries = 0;
 		retry:
 		int rc = mdb_env_sync(env->env, 1);
-		if (rc == EINVAL) {
-			if (retries++ < 10) {
+		if (rc == MDB_LOCK_FAILURE) {
+			if (retries++ < 4) {
 				sleep(1);
 				goto retry;
 			}
-			return SetError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
 		}
 		#endif
 		if (rc != 0) {

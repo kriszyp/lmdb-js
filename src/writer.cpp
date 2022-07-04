@@ -258,7 +258,6 @@ next_inst:	start = instruction++;
 					if (std::atomic_compare_exchange_strong((std::atomic<uint32_t>*) start,
 							(uint32_t*) &flags,
 							(uint32_t)WAITING_OPERATION)) {
-						fprintf(stderr, "wait ");
 						worker->WaitForCallbacks(&txn, conditionDepth == 0, start);
 					}
 					goto next_inst;
@@ -267,7 +266,6 @@ next_inst:	start = instruction++;
 							(uint32_t*) &flags,
 							(uint32_t)TXN_DELIMITER)) {
 						worker->instructions = start;
-						fprintf(stderr, "done with writing ");
 						return 0;
 					} else
 						goto next_inst;						
@@ -373,12 +371,11 @@ void WriteWorker::Write() {
 	#endif
 		0, &txn);
 	#ifndef _WIN32
-	if (rc == EINVAL) {
-		if (retries++ < 10) {
+	if (rc == MDB_LOCK_FAILURE) {
+		if (retries++ < 4) {
 			sleep(1);
 			goto retry;
 		}
-		return ReportError("Invalid parameter, which is often due to more transactions than available robust locked mutexes or semaphors (see docs for more info)");
 	}
 	#endif
 	if (rc != 0) {
@@ -386,7 +383,6 @@ void WriteWorker::Write() {
 	}
 	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
-fprintf(stderr,"finished writes\n");
 	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else
