@@ -247,7 +247,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	option = options.Get("mapSize");
 	if (option.IsNumber())
 		mapSize = option.As<Number>().Int64Value();
-	int pageSize = 4096;
+	int pageSize = 0;
 	// Parse the mapSize option
 	option = options.Get("pageSize");
 	if (option.IsNumber())
@@ -292,7 +292,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	rc = mdb_env_set_mapsize(env, mapSize);
 	if (rc) goto fail;
 	#ifdef MDB_RPAGE_CACHE
-	rc = mdb_env_set_pagesize(env, pageSize);
+    if (pageSize)
+	   rc = mdb_env_set_pagesize(env, pageSize);
 	if (rc) goto fail;
 	#endif
 	if ((size_t) encryptionKey > 100) {

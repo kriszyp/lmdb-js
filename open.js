@@ -20,6 +20,9 @@ else
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
 // this corresponds to the max key size for 8KB pages
 const MAX_KEY_SIZE = 4026;
+// this is used as the key size by default because default page size is OS page size, which is usually
+// 4KB (but is 16KB on M-series MacOS), and this keeps a consistent max key size when no page size specified.
+const DEFAULT_MAX_KEY_SIZE = 1978;
 const DEFAULT_COMMIT_DELAY = 0;
 
 export const allDbs = new Map();
@@ -56,7 +59,6 @@ export function open(path, options) {
 		maxDbs: 12,
 		remapChunks,
 		keyBytes,
-		pageSize: 4096,
 		overlappingSync: (options.noSync || options.readOnly) ? false : (os != 'win32'),
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
@@ -113,7 +115,7 @@ export function open(path, options) {
 		lmdbError(rc);
 	delete options.keyBytes // no longer needed, don't copy to stores
 	let maxKeySize = env.getMaxKeySize();
-	maxKeySize = Math.min(maxKeySize, MAX_KEY_SIZE);
+	maxKeySize = Math.min(maxKeySize, options.pageSize ? MAX_KEY_SIZE : DEFAULT_MAX_KEY_SIZE);
 	flags = getEnvFlags(env.address); // re-retrieve them, they are not necessarily the same if we are connecting to an existing env
 	if (flags & 0x1000) {
 		if (userOptions.noSync) {
