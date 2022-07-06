@@ -535,7 +535,7 @@ public:
 	Napi::Value stat(const CallbackInfo& info);
 	int prefetch(uint32_t* keys);
 	int open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, Compression* compression);
-	int32_t doGetByBinary(uint32_t keySize, int64_t requiredTxnId);
+	int32_t doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t txnAddress);
 	static void setupExports(Napi::Env env, Object exports);
 };
 

@@ -8,7 +8,7 @@ export function setRequire(require) {
 	moduleRequire = require;
 }
 
-setGetLastVersion(getLastVersion);
+setGetLastVersion(getLastVersion, getLastTxnId);
 let keyBytes, keyBytesView;
 const buffers = [];
 const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = nativeAddon;
@@ -177,7 +177,7 @@ export function open(path, options) {
 
 			if (options.readOnly) {
 				// in read-only mode we use a read-only txn to open the database
-				// TODO: LMDB is actually not entire thread-safe when it comes to opening databases with
+				// TODO: LMDB is actually not entirely thread-safe when it comes to opening databases with
 				// read-only transactions since there is a race condition on setting the update dbis that
 				// occurs outside the lock
 				// make sure we are using a fresh read txn, so we don't want to share with a cursor txn
@@ -381,9 +381,12 @@ export function openAsClass(path, options) {
 export function getLastVersion() {
 	return keyBytesView.getFloat64(16, true);
 }
-
 export function setLastVersion(version) {
 	return keyBytesView.setFloat64(16, version, true);
+}
+
+export function getLastTxnId() {
+	return keyBytesView.getUint32(32, true);
 }
 
 const KEY_BUFFER_SIZE = 4096;

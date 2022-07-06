@@ -3,6 +3,14 @@
 
 using namespace Napi;
 
+const int INCLUDE_VALUES = 0x100;
+const int REVERSE = 0x400;
+const int VALUES_FOR_KEY = 0x800;
+const int ONLY_COUNT = 0x1000;
+const int RENEW_CURSOR = 0x2000;
+const int EXACT_MATCH = 0x4000;
+const int INCLUSIVE_END = 0x8000;
+
 CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(info) {
 	this->keyType = LmdbKeyType::StringKey;
 	this->freeKey = nullptr;
@@ -77,16 +85,17 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 	}
 	if (endKey.mv_size > 0) {
 		int comparison;
-		if (flags & 0x800)
+		if (flags & VALUES_FOR_KEY)
 			comparison = mdb_dcmp(txn, dw->dbi, &endKey, &data);
 		else
 			comparison = mdb_cmp(txn, dw->dbi, &endKey, &key);
-		if ((flags & 0x400) ? comparison >= 0 : (comparison <= 0)) {
-			return 0;
+		if ((flags & REVERSE) ? comparison >= 0 : (comparison <= 0)) {
+			if (!((flags & INCLUSIVE_END) && comparison == 0))
+				return 0;
 		}
 	}
 	char* keyBuffer = dw->ew->keyBuffer;
-	if (flags & 0x100) {
+	if (flags & INCLUDE_VALUES) {
 		int result = getVersionAndUncompress(data, dw);
 		bool fits = true;
 		if (result) {
@@ -99,7 +108,7 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 			dw->ew->toSharedBuffer(data);
 		}
 	}
-	if (!(flags & 0x800)) {
+	if (!(flags & VALUES_FOR_KEY)) {
 		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);
 		*(keyBuffer + 32 + key.mv_size) = 0; // make sure it is null terminated for the sake of better ordered-binary performance
 	}
@@ -112,7 +121,7 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 	//char* keyBuffer = dw->ew->keyBuffer;
 	MDB_val key, data;
 	int rc;
-	if (flags & 0x2000) { // TODO: check the txn_id to determine if we need to renew
+	if (flags & RENEW_CURSOR) { // TODO: check the txn_id to determine if we need to renew
 		rc = mdb_cursor_renew(txn = dw->ew->getReadTxn(), cursor);
 		if (rc) {
 			if (rc > 0)
@@ -126,24 +135,24 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 		endKey.mv_data = (char*)(keyBuffer + 1);
 	} else
 		endKey.mv_size = 0;
-	iteratingOp = (flags & 0x400) ?
-		(flags & 0x100) ?
-			(flags & 0x800) ? MDB_PREV_DUP : MDB_PREV :
+	iteratingOp = (flags & REVERSE) ?
+		(flags & INCLUDE_VALUES) ?
+			(flags & VALUES_FOR_KEY) ? MDB_PREV_DUP : MDB_PREV :
 			MDB_PREV_NODUP :
-		(flags & 0x100) ?
-			(flags & 0x800) ? MDB_NEXT_DUP : MDB_NEXT :
+		(flags & INCLUDE_VALUES) ?
+			(flags & VALUES_FOR_KEY) ? MDB_NEXT_DUP : MDB_NEXT :
 			MDB_NEXT_NODUP;
 	key.mv_size = keySize;
 	key.mv_data = dw->ew->keyBuffer;
 	if (keySize == 0) {
-		rc = mdb_cursor_get(cursor, &key, &data, flags & 0x400 ? MDB_LAST : MDB_FIRST);  
+		rc = mdb_cursor_get(cursor, &key, &data, flags & REVERSE ? MDB_LAST : MDB_FIRST);  
 	} else {
-		if (flags & 0x800) { // only values for this key
+		if (flags & VALUES_FOR_KEY) { // only values for this key
 			// take the next part of the key buffer as a pointer to starting data
 			uint32_t* startValueBuffer = (uint32_t*)(size_t)(*(double*)(dw->ew->keyBuffer + START_ADDRESS_POSITION));
 			data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
 			data.mv_data = startValueBuffer + 1;
-			if (flags & 0x400) {// reverse through values
+			if (flags & REVERSE) {// reverse through values
 				MDB_val startValue = data; // save it for comparison
 				rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
 				if (rc) {
@@ -161,11 +170,11 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 				}
 			} else // forward, just do a get by range
 				rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ?
-					(flags & 0x4000) ? MDB_GET_BOTH : MDB_GET_BOTH_RANGE : MDB_SET_KEY);
+					(flags & EXACT_MATCH) ? MDB_GET_BOTH : MDB_GET_BOTH_RANGE : MDB_SET_KEY);
 
 			if (rc == MDB_NOTFOUND)
 				return 0;
-			if (flags & 0x1000 && (!endKeyAddress || (flags & 0x4000))) {
+			if (flags & ONLY_COUNT && (!endKeyAddress || (flags & EXACT_MATCH))) {
 				size_t count;
 				rc = mdb_cursor_count(cursor, &count);
 				if (rc)
@@ -173,7 +182,7 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 				return count;
 			}
 		} else {
-			if (flags & 0x400) {// reverse
+			if (flags & REVERSE) {// reverse
 				MDB_val firstKey = key; // save it for comparison
 				rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
 				if (rc)
@@ -181,13 +190,13 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 				else if (mdb_cmp(txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
 					rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
 			} else // forward, just do a get by range
-				rc = mdb_cursor_get(cursor, &key, &data, (flags & 0x4000) ? MDB_SET_KEY : MDB_SET_RANGE);
+				rc = mdb_cursor_get(cursor, &key, &data, (flags & EXACT_MATCH) ? MDB_SET_KEY : MDB_SET_RANGE);
 		}
 	}
 	while (offset-- > 0 && !rc) {
 		rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
 	}
-	if (flags & 0x1000) {
+	if (flags & ONLY_COUNT) {
 		uint32_t count = 0;
 		bool useCursorCount = false;
 		// if we are in a dupsort database, and we are iterating over all entries, we can just count all the values for each key
@@ -205,12 +214,13 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 		while (!rc) {
 			if (endKey.mv_size > 0) {
 				int comparison;
-				if (flags & 0x800)
+				if (flags & VALUES_FOR_KEY)
 					comparison = mdb_dcmp(txn, dw->dbi, &endKey, &data);
 				else
 					comparison = mdb_cmp(txn, dw->dbi, &endKey, &key);
-				if ((flags & 0x400) ? comparison >= 0 : (comparison <=0)) {
-					return count;
+				if ((flags & REVERSE) ? comparison >= 0 : (comparison <=0)) {
+					if (!((flags & INCLUSIVE_END) && comparison == 0))
+						return count;
 				}
 			}
 			if (useCursorCount) {

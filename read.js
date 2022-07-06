@@ -11,9 +11,10 @@ if (!getValueBytes.maxLength) {
 }
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
+export const MATCHING_TXN_FOUND = {};
 
 export function addReadMethods(LMDBStore, {
-	maxKeySize, env, keyBytes, keyBytesView, getLastVersion
+	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
 }) {
 	let readTxn, readTxnRenewed, asSafeBuffer = false;
 	let renewId = 1;
@@ -31,12 +32,19 @@ export function addReadMethods(LMDBStore, {
 				this.lastSize = string.length;
 			return string;
 		},
-		getBinaryFast(id) {
-			(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
-			let rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0);
+		getBinaryFast(id, options) {
+			let rc
+			if (options?.txn?.address)
+				rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), options.ifNotTxnId || 0, options.txn.address);
+			else {
+				(env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
+				rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), options?.ifNotTxnId || 0, 0);
+			}
 			if (rc < 0) {
 				if (rc == -30798) // MDB_NOTFOUND
 					return; // undefined
+				if (rc == -30004) // txn id matched
+					return MATCHING_TXN_FOUND;
 				if (rc == -30781 /*MDB_BAD_VALSIZE*/ && this.writeKey(id, keyBytes, 0) == 0)
 					throw new Error(id === undefined ?
 					'A key is required for get, but is undefined' :
@@ -65,7 +73,7 @@ export function addReadMethods(LMDBStore, {
 				return
 			if (!buffer.isGlobal && !env.writeTxn) {
 				buffer.txn = readTxn;
-				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
+				readTxn.refCount = (readTxn.refCount || 0) + 1;
 				return buffer;
 			} else {
 				return Uint8ArraySlice.call(buffer, 0, this.lastSize);
@@ -146,7 +154,7 @@ export function addReadMethods(LMDBStore, {
 				if (fastBuffer.isGlobal || writeTxn)
 					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
 				fastBuffer.txn = readTxn;
-				readTxn.cursorCount = (readTxn.cursorCount || 0) + 1;
+				readTxn.refCount = (readTxn.refCount || 0) + 1;
 				return fastBuffer;
 			}
 		},
@@ -278,7 +286,8 @@ export function addReadMethods(LMDBStore, {
 				let cursor, cursorRenewId, cursorAddress;
 				let txn;
 				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
-					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0);
+					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0) |
+					(options.inclusiveEnd ? 0x8000 : 0);
 				let store = this;
 				function resetCursor() {
 					try {
@@ -296,10 +305,10 @@ export function addReadMethods(LMDBStore, {
 							cursor = new Cursor(db);
 						}
 						cursorAddress = cursor.address;
-						txn.cursorCount = (txn.cursorCount || 0) + 1; // track transaction so we always use the same one
+						txn.refCount = (txn.refCount || 0) + 1; // track transaction so we always use the same one
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
-							txn.renewingCursorCount = (txn.renewingCursorCount || 0) + 1; // need to know how many are renewing cursors
+							txn.renewingrefCount = (txn.renewingrefCount || 0) + 1; // need to know how many are renewing cursors
 						}
 					} catch(error) {
 						if (cursor) {
@@ -351,8 +360,8 @@ export function addReadMethods(LMDBStore, {
 					if (txn.isDone)
 						return;
 					if (cursorRenewId)
-						txn.renewingCursorCount--;
-					if (--txn.cursorCount <= 0 && txn.onlyCursor) {
+						txn.renewingrefCount--;
+					if (--txn.refCount <= 0 && txn.onlyCursor) {
 						cursor.close();
 						txn.abort(); // this is no longer main read txn, abort it now that we are done
 						txn.isDone = true;
@@ -379,7 +388,7 @@ export function addReadMethods(LMDBStore, {
 						if (keySize <= 0 ||
 								(count++ >= limit)) {
 							if (count < 0)
-								lmdbError(count);				
+								lmdbError(count);
 							finishCursor();
 							return ITERATOR_DONE;
 						}
@@ -538,6 +547,10 @@ export function addReadMethods(LMDBStore, {
 			if (!callback)
 				return new Promise(resolve => callback = resolve);
 		},
+		useReadTxn() {
+			let txn = readTxnRenewed ? readTxn : renewReadTxn(this);
+			txn.refCount = (txn.refCount || 0) + 1;
+		},
 		close(callback) {
 			this.status = 'closing';
 			if (this.isRoot) {
@@ -577,7 +590,7 @@ export function addReadMethods(LMDBStore, {
 			dbStats.env = env.info();
 			dbStats.free = env.freeStat();
 			return dbStats;
-		}
+		},
 	});
 	let get = LMDBStore.prototype.get;
 	let lastReadTxnRef;
@@ -587,7 +600,7 @@ export function addReadMethods(LMDBStore, {
 			buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 		}
 		let offset = keyBytesView.getUint32(8, true);
-		return Buffer.from(buffer, offset, size);
+		return new Uint8Array(buffer, offset, size);
 	}
 	function renewReadTxn(store) {
 		if (!readTxn) {
@@ -623,7 +636,7 @@ export function addReadMethods(LMDBStore, {
 		renewId++;
 		if (readTxnRenewed) {
 			readTxnRenewed = null;
-			if (readTxn.cursorCount - (readTxn.renewingCursorCount || 0) > 0) {
+			if (readTxn.refCount - (readTxn.renewingrefCount || 0) > 0) {
 				readTxn.onlyCursor = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
@@ -637,4 +650,12 @@ export function makeReusableBuffer(size) {
 	bytes.maxLength = size;
 	Object.defineProperty(bytes, 'length', { value: size, writable: true, configurable: true });
 	return bytes;
+}
+
+Txn.prototype.done = function() {
+	this.refCount--;
+	if (this.refCount == 0 && this.onlyCursor) {
+		this.abort();
+		this.isDone = true;
+	}
 }
