@@ -11,7 +11,7 @@ if (!getValueBytes.maxLength) {
 }
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
-export const MATCHING_TXN_FOUND = {};
+export const UNMODIFIED = {};
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
@@ -44,7 +44,7 @@ export function addReadMethods(LMDBStore, {
 				if (rc == -30798) // MDB_NOTFOUND
 					return; // undefined
 				if (rc == -30004) // txn id matched
-					return MATCHING_TXN_FOUND;
+					return UNMODIFIED;
 				if (rc == -30781 /*MDB_BAD_VALSIZE*/ && this.writeKey(id, keyBytes, 0) == 0)
 					throw new Error(id === undefined ?
 					'A key is required for get, but is undefined' :
@@ -158,18 +158,18 @@ export function addReadMethods(LMDBStore, {
 				return fastBuffer;
 			}
 		},
-		get(id) {
+		get(id, options) {
 			if (this.decoderCopies) {
 				// the decoder copies any data, so we can use the fast binary retrieval that overwrites the same buffer space
-				let bytes = this.getBinaryFast(id);
-				return bytes && this.decoder.decode(bytes);
+				let bytes = this.getBinaryFast(id, options);
+				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes));
 			}
 			if (this.encoding == 'binary')
-				return this.getBinary(id);
+				return this.getBinary(id, options);
 			if (this.decoder) {
 				// the decoder potentially uses the data from the buffer in the future and needs a stable buffer
 				let bytes = this.getBinary(id);
-				return bytes && this.decoder.decode(bytes);
+				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes));
 			}
 
 			let result = this.getString(id);

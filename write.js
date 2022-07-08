@@ -456,7 +456,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 
 	function resolveCommit(async) {
-		afterCommit();
+		afterCommit(txnResolution.uint32[txnResolution.flagPosition + 1]);
 		if (async)
 			resetReadTxn();
 		else
@@ -504,9 +504,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// so we use the slower atomic operation
 			return Atomics.or(uint32, flagPosition, newStatus);
 	}
-	function afterCommit() {
+	function afterCommit(txnId) {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
-			afterCommitCallbacks[i]({ next: uncommittedResolution, last: unwrittenResolution});
+			afterCommitCallbacks[i]({ next: uncommittedResolution, last: unwrittenResolution, txnId });
 		}
 	}
 	async function executeTxnCallbacks() {
@@ -580,7 +580,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function clearWriteTxn(parentTxn) {
 		// TODO: We might actually want to track cursors in a write txn and manually
 		// close them.
-		if (writeTxn.cursorCount > 0)
+		if (writeTxn.refCount > 0)
 			writeTxn.isDone = true;
 		env.writeTxn = writeTxn = parentTxn || null;
 	}

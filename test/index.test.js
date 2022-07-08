@@ -50,7 +50,7 @@ describe('lmdb-js', function() {
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
 	if (typeof WeakRef != 'undefined')
-		describe('Basic use with caching', basicTests({ cache: true }));
+		describe('Basic use with caching', basicTests({ cache: { validated: true } }));
 	function basicTests(options) { return function() {
 		this.timeout(1000000);
 		let db, db2, db3;
@@ -458,6 +458,18 @@ describe('lmdb-js', function() {
 			}
 			count.should.equal(1)
 		});
+    it('should iterate over query with inclusiveEnd', async function() {
+      let data1 = {foo: 1, bar: true}
+      let data2 = {foo: 2, bar: false}
+      let data3 = {foo: 3, bar: false}
+      db.put('key1',  data1);
+      db.put('key2',  data2);
+      await db.put('key3',  data3);
+      let results = Array.from(db.getRange({start:'key1', end:'key3'}));
+      results.length.should.equal(2);
+      results = Array.from(db.getRange({start:'key1', end:'key3', inclusiveEnd: true}));
+      results.length.should.equal(3);
+    });
 		it('should handle open iterators and cursor renewal', async function() {
 			let data1 = {foo: 1, bar: true};
 			let data2 = {foo: 2, bar: false};
@@ -1007,7 +1019,6 @@ describe('lmdb-js', function() {
 				let db = open();
 				finishedTxns.push(db.transaction(() =>
 					new Promise(resolve => {
-						console.log('start txn');
 						setTimeout(resolve, 100);
 					})));
 			}

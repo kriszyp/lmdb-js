@@ -370,7 +370,7 @@ void WriteWorker::Write() {
 		(envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC :
 	#endif
 		0, &txn);
-	#ifndef _WIN32
+	#if !defined(_WIN32) && defined(MDB_RPAGE_CACHE)
 	if (rc == MDB_LOCK_FAILURE) {
 		if (retries++ < 4) {
 			sleep(1);
@@ -383,6 +383,7 @@ void WriteWorker::Write() {
 	}
 	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
+	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
 	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else
@@ -395,6 +396,7 @@ void WriteWorker::Write() {
 			ReportError(mdb_strerror(rc));
 		return;
 	}
+	*(instructions + 1) = txnId;
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 

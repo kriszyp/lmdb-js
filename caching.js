@@ -1,8 +1,9 @@
 import { WeakLRUCache, clearKeptObjects } from './native.js';
 import { FAILED_CONDITION, ABORT } from './write.js';
+import { UNMODIFIED } from './read.js';
 import { when } from './util/when.js';
 
-let getLastVersion;
+let getLastVersion, getLastTxnId;
 const mapGet = Map.prototype.get;
 export const CachingStore = (Store, env) => {
 	let childTxnChanges
@@ -11,7 +12,7 @@ export const CachingStore = (Store, env) => {
 		super(dbName, options);
 		if (!env.cacheCommitter) {
 			env.cacheCommitter = true;
-			this.on('aftercommit', ({ next, last }) => {
+			this.on('aftercommit', ({ next, last, txnId }) => {
 				do {
 					let meta = next.meta;
 					let store = meta && meta.store;
@@ -22,8 +23,10 @@ export const CachingStore = (Store, env) => {
 							let expirationPriority = meta.valueSize >> 10;
 							let cache = store.cache;
 							let entry = mapGet.call(cache, meta.key);
-							if (entry)
+							if (entry) {
+								entry.txnId = txnId;
 								cache.used(entry, expirationPriority + 4); // this will enter it into the LRFU (with a little lower priority than a read)
+							}
 						}
 					}
 				} while (next != last && (next = next.next))
@@ -33,20 +36,40 @@ export const CachingStore = (Store, env) => {
 		if (options.cache.clearKeptInterval)
 			options.cache.clearKeptObjects = clearKeptObjects;
 		this.cache = new WeakLRUCache(options.cache);
+		if (options.cache.validated)
+			this.cache.validated = true;
 	}
 	get isCaching() {
 		return true
 	}
 	get(id, cacheMode) {
-		let value = this.cache.getValue(id);
-		if (value !== undefined)
-			return value;
-		value = super.get(id);
+		let value;
+		if (this.cache.validated) {
+			let entry = this.cache.get(id);
+			if (entry) {
+				let cachedValue = entry.value;
+				if (entry.txnId) {
+					value = super.get(id, { ifNotTxnId: entry.txnId });
+					if (value === UNMODIFIED)
+						return cachedValue;
+				} else // with no txn id we do not validate; this is the state of a cached value after a write before it transacts
+					value = cachedValue;
+			} else
+				value = super.get(id);
+		} else {
+			value = this.cache.getValue(id);
+			if (value !== undefined) {
+				return value;
+			}
+			value = super.get(id);
+		}
 		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
 			let entry = this.cache.setValue(id, value, this.lastSize >> 10);
 			if (this.useVersions) {
 				entry.version = getLastVersion();
 			}
+			if (this.cache.validated)
+				entry.txnId = getLastTxnId();
 		}
 		return value;
 	}
@@ -151,6 +174,7 @@ export const CachingStore = (Store, env) => {
 	}
 	};
 };
-export function setGetLastVersion(get) {
+export function setGetLastVersion(get, getTxnId) {
 	getLastVersion = get;
+	getLastTxnId = getTxnId;
 }
