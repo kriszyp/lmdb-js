@@ -35,6 +35,7 @@ const int HAS_KEY = 4;
 const int HAS_VALUE = 2;
 const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
+const int CONDITIONAL_VERSION_LESS_THAN = 0x800;
 const int SET_VERSION = 0x200;
 //const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
@@ -234,7 +235,7 @@ next_inst:	start = instruction++;
 				else if (conditionalVersion != ANY_VERSION) {
 					double version;
 					memcpy(&version, conditionalValue.mv_data, 8);
-					validated = validated && conditionalVersion == version;
+					validated = validated && ((flags & CONDITIONAL_VERSION_LESS_THAN) ? version <= conditionalVersion : (version == conditionalVersion));
 				}
 			}
 			if (flags & SET_VERSION) {

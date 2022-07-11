@@ -170,7 +170,7 @@ export function open(path, options) {
 				(dbOptions.integerDup ? 0x20 : 0) |
 				(dbOptions.reverseDup ? 0x40 : 0) |
 				(!options.readOnly && dbOptions.create !== false ? 0x40000 : 0) |
-				(dbOptions.useVersions ? 0x1000 : 0);
+				(dbOptions.useVersions ? 0x100 : 0);
 			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
 			if (keyType == 2)
 				flags |= 0x08; // integer key

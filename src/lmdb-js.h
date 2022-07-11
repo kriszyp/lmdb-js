@@ -478,7 +478,7 @@ public:
 	static void setupExports(Napi::Env env, Object exports);
 };
 
-const int HAS_VERSIONS = 0x1000;
+const int HAS_VERSIONS = 0x100;
 /*
 	`Dbi`
 	Represents a database instance in an environment.

@@ -30,7 +30,7 @@ DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
 		napi_unwrap(info.Env(), info[4], (void**) &compression);
 	else
 		compression = nullptr;
-	int rc = this->open(flags & ~HAS_VERSIONS, nameBytes, flags & HAS_VERSIONS,
+	int rc = this->open(flags, nameBytes, flags & HAS_VERSIONS,
 		keyType, compression);
 	//if (nameBytes)
 		//delete nameBytes;
@@ -70,7 +70,6 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, 
 	this->compression = compression;
 	this->keyType = keyType;
 	this->flags = flags;
-	flags &= ~HAS_VERSIONS;
 	int rc = txn ? mdb_dbi_open(txn, name, flags, &this->dbi) : EINVAL;
 	if (rc)
 		return rc;

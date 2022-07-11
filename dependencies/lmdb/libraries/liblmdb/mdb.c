@@ -1276,7 +1276,7 @@ typedef struct MDB_db {
 #define PERSISTENT_FLAGS	(0xffff & ~(MDB_VALID))
 	/** #mdb_dbi_open() flags */
 #define VALID_FLAGS	(MDB_REVERSEKEY|MDB_DUPSORT|MDB_INTEGERKEY|MDB_DUPFIXED|\
-	MDB_INTEGERDUP|MDB_REVERSEDUP|MDB_CREATE)
+	MDB_INTEGERDUP|MDB_REVERSEDUP|MDB_CREATE|0x100)
 
 	/** Handle for the DB used to track free pages. */
 #define	FREE_DBI	0
