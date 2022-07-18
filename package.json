@@ -56,7 +56,7 @@
     "prebuild-libc-musl": "prebuildify-platform-packages --tag-libc --target 16.14.2 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --tag-libc --napi --platform-packages --target 16.14.2",
     "prebuild-libc": "prebuildify-platform-packages --tag-libc --target 18.0.0 && prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.14.2",
     "prebuild-libc-arm7": "prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.14.2",
-    "prebuildify": "prebuildify-platform-packages --target 16.14.2",
+    "prebuildify": "prebuildify-platform-packages --target 18.6.0",
     "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --expose-gc --recursive && npm run test:types",
