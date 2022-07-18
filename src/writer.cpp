@@ -36,6 +36,7 @@ const int HAS_VALUE = 2;
 const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int CONDITIONAL_VERSION_LESS_THAN = 0x800;
+const int CONDITIONAL_ALLOW_NOTFOUND = 0x1000;
 const int SET_VERSION = 0x200;
 //const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
@@ -230,9 +231,11 @@ next_inst:	start = instruction++;
 				instruction += 2;
 				MDB_val conditionalValue;
 				rc = mdb_get(txn, dbi, &key, &conditionalValue);
-				if (rc)
-					validated = false;
-				else if (conditionalVersion != ANY_VERSION) {
+				if (rc) {
+				    // not found counts as version 0, so this is acceptable for conditional less than,
+				    // otherwise does not validate
+                    validated = rc == MDB_NOTFOUND && (flags & CONDITIONAL_ALLOW_NOTFOUND);
+				} else if (conditionalVersion != ANY_VERSION) {
 					double version;
 					memcpy(&version, conditionalValue.mv_data, 8);
 					validated = validated && ((flags & CONDITIONAL_VERSION_LESS_THAN) ? version <= conditionalVersion : (version == conditionalVersion));

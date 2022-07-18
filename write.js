@@ -13,6 +13,8 @@ const REUSE_BUFFER_MODE = 512;
 const RESET_BUFFER_MODE = 1024;
 const NO_RESOLVE = 16;
 const HAS_TXN = 8;
+const CONDITIONAL_VERSION_LESS_THAN = 0x800;
+const CONDITIONAL_ALLOW_NOTFOUND = 0x800;
 
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
@@ -628,11 +630,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		ifNoExists(key, callback) {
 			return this.ifVersion(key, null, callback);
 		},
-
-		ifVersion(key, version, callback) {
+		ifVersion(key, version, callback, options) {
 			if (!callback) {
 				return new Batch((operations, callback) => {
-					let promise = this.ifVersion(key, version, operations);
+					let promise = this.ifVersion(key, version, operations, options);
 					if (callback)
 						promise.then(callback);
 					return promise;
@@ -645,7 +646,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 				return SYNC_PROMISE_FAIL;
 			}
-			let finishStartWrite = writeInstructions(key === undefined || version === undefined ? 1 : 4, this, key, undefined, undefined, version);
+			let flags = key === undefined || version === undefined ? 1 : 4;
+			if (options?.ifLessThan)
+				flags |= CONDITIONAL_VERSION_LESS_THAN;
+			if (options?.allowNotFound)
+				flags |= CONDITIONAL_ALLOW_NOTFOUND;
+			let finishStartWrite = writeInstructions(flags, this, key, undefined, undefined, version);
 			let promise;
 			batchDepth += 2;
 			if (batchDepth > 2)

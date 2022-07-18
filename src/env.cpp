@@ -494,9 +494,9 @@ NAPI_FUNCTION(directWrite) {
 		OVERLAPPED ov;
 		ov.Offset = offset;
 		ov.OffsetHigh = 0;
-		WriteFile(fd, target, length, nullptr, &ov);
+		WriteFile(fd, source, length, nullptr, &ov);
 		#else
-		pwrite(fd, target, length, offset);
+		pwrite(fd, source, length, offset);
 		#endif
 	}
 	RETURN_UNDEFINED;
