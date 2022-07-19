@@ -291,7 +291,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	rc = mdb_env_set_mapsize(env, mapSize);
 	if (rc) goto fail;
 	#ifdef MDB_RPAGE_CACHE
-    if (pageSize)
+	if (pageSize)
 	   rc = mdb_env_set_pagesize(env, pageSize);
 	if (rc) goto fail;
 	#endif
@@ -759,14 +759,15 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 			pthread_mutex_lock(this->writingLock);
 			txn = nullptr;
 		}
-
 		if (txn) {
 			if (flags & TXN_ABORTABLE) {
 				if (envFlags & MDB_WRITEMAP)
 					flags &= ~TXN_ABORTABLE;
 				else {
 					// child txn
-					mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
+					int rc = mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
+					if (rc)
+						return throwLmdbError(info.Env(), rc);
 					TxnTracked* childTxn = new TxnTracked(txn, flags);
 					childTxn->parent = this->writeTxn;
 					this->writeTxn = childTxn;
@@ -774,7 +775,9 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 				}
 			}
 		} else {
-			mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
+			int rc = mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
+			if (rc)
+				return throwLmdbError(info.Env(), rc);
 			flags |= TXN_ABORTABLE;
 		}
 		this->writeTxn = new TxnTracked(txn, flags);

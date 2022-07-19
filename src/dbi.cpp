@@ -171,9 +171,9 @@ NAPI_FUNCTION(getByBinary) {
 	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
-    uint32_t ifNotTxnId;
-    GET_UINT32_ARG(ifNotTxnId, 2);
-    napi_get_value_int64(env, args[3], &i64);
+  uint32_t ifNotTxnId;
+  GET_UINT32_ARG(ifNotTxnId, 2);
+  napi_get_value_int64(env, args[3], &i64);
 	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, i64));
 }
 
@@ -322,6 +322,9 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_FUNCTION_ADDRESS("getByBinaryPtr", getByBinaryFFI);
 	// TODO: wrap mdb_stat too
 }
+
+
+
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf
