@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+#include <atomic>
 #ifndef _WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -180,6 +181,79 @@ class CopyWorker : public AsyncWorker {
 	std::string path;
 	int flags;
 };
+
+class ReadWorker : public AsyncWorker {
+  public:
+	ReadWorker(uint32_t* start, const Function& callback)
+	  : AsyncWorker(callback), start(start) {}
+
+	void Execute() {
+		uint32_t instruction;
+		uint32_t* gets = start;
+		while((instruction = std::atomic_exchange((std::atomic<uint32_t>*)(gets++), (uint32_t)0xf0000000))) {
+
+			MDB_val key;
+			key.mv_size = instruction & 0xffff;
+			MDB_dbi dbi = (MDB_dbi) *(gets++);
+			MDB_val data;
+			MDB_txn* txn = (MDB_txn*) (size_t) *((double*)gets);
+			gets += 2;
+			
+			unsigned int flags;
+			mdb_dbi_flags(txn, dbi, &flags);
+			bool dupSort = flags & MDB_DUPSORT;
+			int effected = 0;
+			MDB_cursor *cursor;
+			int rc = mdb_cursor_open(txn, dbi, &cursor);
+			if (rc)
+				return SetError(mdb_strerror(rc));
+
+			key.mv_data = (void*) gets;
+			gets += (key.mv_size + 12) >> 2;
+			rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+			MDB_env* env = mdb_txn_env(txn);
+
+			while (!rc) {
+				// access one byte from each of the pages to ensure they are in the OS cache,
+				// potentially triggering the hard page fault in this thread
+				int pages = (data.mv_size + 0xfff) >> 12;
+				// TODO: Adjust this for the page headers, I believe that makes the first page slightly less 4KB.
+				for (int i = 0; i < pages; i++) {
+					effected += *(((uint8_t*)data.mv_data) + (i << 12));
+				}
+				if (dupSort) // in dupsort databases, access the rest of the values
+					rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_DUP);
+				else
+					rc = 1; // done
+			
+			}
+			mdb_cursor_close(cursor);
+		}
+	}
+
+	void OnOK() {
+		// TODO: For each entry, find the shared buffer
+		uint32_t* gets = start;
+		// EnvWrap::toSharedBuffer();
+		Callback().Call({Env().Null()});
+	}
+
+  private:
+	uint32_t* start;
+};
+
+NAPI_FUNCTION(readNapi) {
+	ARGS(2)
+	GET_INT64_ARG(0);
+	uint32_t* instructionAddress = (uint32_t*) i64;
+	ReadWorker* worker = new ReadWorker(instructionAddress, Function(env, args[1]));
+	worker->Queue();
+	RETURN_UNDEFINED;
+}
+
+
+
+
 MDB_txn* EnvWrap::getReadTxn() {
 	MDB_txn* txn = writeTxn ? writeTxn->txn : nullptr;
 	if (txn)
@@ -503,7 +577,7 @@ NAPI_FUNCTION(directWrite) {
 }
 thread_local int nextSharedId = 1;
 
-int32_t EnvWrap::toSharedBuffer(MDB_val data) {
+int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data) {
 	unsigned int flags;
 	mdb_env_get_flags(env, (unsigned int*) &flags);
 	#ifdef MDB_RPAGE_CACHE
@@ -549,10 +623,9 @@ int32_t EnvWrap::toSharedBuffer(MDB_val data) {
 		bufferInfo.id = nextSharedId++;
 		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
-
-	*((uint32_t*) keyBuffer) = data.mv_size;
-	*((uint32_t*) (keyBuffer + 4)) = bufferInfo.id;
-	*((uint32_t*) (keyBuffer + 8)) = offset;
+	*keyBuffer = data.mv_size;
+	*(keyBuffer + 1) = bufferInfo.id;
+	*(keyBuffer + 2) = offset;
 	return -30001;
 }
 
@@ -759,15 +832,14 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 			pthread_mutex_lock(this->writingLock);
 			txn = nullptr;
 		}
+
 		if (txn) {
 			if (flags & TXN_ABORTABLE) {
 				if (envFlags & MDB_WRITEMAP)
 					flags &= ~TXN_ABORTABLE;
 				else {
 					// child txn
-					int rc = mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
-					if (rc)
-						return throwLmdbError(info.Env(), rc);
+					mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
 					TxnTracked* childTxn = new TxnTracked(txn, flags);
 					childTxn->parent = this->writeTxn;
 					this->writeTxn = childTxn;
@@ -775,9 +847,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 				}
 			}
 		} else {
-			int rc = mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
-			if (rc)
-				return throwLmdbError(info.Env(), rc);
+			mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
 			flags |= TXN_ABORTABLE;
 		}
 		this->writeTxn = new TxnTracked(txn, flags);

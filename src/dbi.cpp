@@ -161,19 +161,19 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t tx
 		*((uint32_t*)keyBuffer) = data.mv_size;
 		return -30000;
 	} else {
-		return ew->toSharedBuffer(data);
+		return EnvWrap::toSharedBuffer(ew->env, (uint32_t*) ew->keyBuffer, data);
 	}
 }
 
 NAPI_FUNCTION(getByBinary) {
-	ARGS(3)
+	ARGS(4)
 	GET_INT64_ARG(0);
 	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
-  uint32_t ifNotTxnId;
-  GET_UINT32_ARG(ifNotTxnId, 2);
-  napi_get_value_int64(env, args[3], &i64);
+	uint32_t ifNotTxnId;
+	GET_UINT32_ARG(ifNotTxnId, 2);
+	napi_get_value_int64(env, args[3], &i64);
 	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, i64));
 }
 

@@ -412,7 +412,7 @@ public:
 	static napi_value write(napi_env env, napi_callback_info info);
 	static napi_value onExit(napi_env env, napi_callback_info info);
 	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);
-	int32_t toSharedBuffer(MDB_val data);
+	static int32_t toSharedBuffer(MDB_env* env, uint32_t* keyBuffer, MDB_val data);
 };
 
 const int TXN_ABORTABLE = 1;

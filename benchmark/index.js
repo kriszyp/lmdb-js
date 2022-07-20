@@ -2,7 +2,7 @@
 import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
 import { isMaster, fork } from 'cluster';
 import inspector from 'inspector'
-//inspector.open(9330, null, true); debugger
+//inspector.open(9229, null, true); debugger
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
 import rimraf from 'rimraf';
@@ -155,8 +155,8 @@ function cleanup(done) {
 function setup() {
   console.log('opening', testDirPath)
   let rootStore = open(testDirPath, {
-    noMemInit: true,
-    pageSize: 0x4000,
+    //noMemInit: true,
+    //pageSize: 0x4000,
     //compression: true,
     //noSync: true,
     //winMemoryPriority: 4,
@@ -164,7 +164,7 @@ function setup() {
     //overlappingSync: true,
   })
   store = rootStore.openDB('testing', {
-    create: true,
+    //create: true,
     sharedStructuresKey: 100000000,
     keyIsUint32: true,
     //compression: true,
