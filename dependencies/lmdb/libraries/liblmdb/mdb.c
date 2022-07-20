@@ -12410,7 +12410,7 @@ mdb_mutex_failed(MDB_env *env, mdb_mutexref_t mutex, int rc)
 #endif
 		DPRINTF(("LOCK_MUTEX failed, %s", mdb_strerror(rc)));
 	}
-#ifdef defined(__APPLE__)
+#ifdef __APPLE__
 	if (rc == EINVAL)
 		rc = MDB_LOCK_FAILURE;
 #endif

@@ -787,10 +787,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return result;
 			}
 			let callbackDone;
+			this.transactions++;
+			env.beginTxn(flags == undefined ? 3 : flags);
+			writeTxn = env.writeTxn = { write: true };
 			try {
-				this.transactions++;
-				env.beginTxn(flags == undefined ? 3 : flags);
-				writeTxn = env.writeTxn = { write: true };
 				this.emit('begin-transaction');
 				return when(callback(), (result) => {
 					try {
