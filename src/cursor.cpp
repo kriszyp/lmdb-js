@@ -10,6 +10,7 @@ const int ONLY_COUNT = 0x1000;
 const int RENEW_CURSOR = 0x2000;
 const int EXACT_MATCH = 0x4000;
 const int INCLUSIVE_END = 0x8000;
+const int EXCLUSIVE_START = 0x10000;
 
 CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(info) {
 	this->keyType = LmdbKeyType::StringKey;
@@ -152,8 +153,11 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 			uint32_t* startValueBuffer = (uint32_t*)(size_t)(*(double*)(dw->ew->keyBuffer + START_ADDRESS_POSITION));
 			data.mv_size = endKeyAddress ? *((uint32_t*)startValueBuffer) : 0;
 			data.mv_data = startValueBuffer + 1;
+			MDB_val startValue;
+			if (flags & EXCLUSIVE_START)
+				startValue = data; // save it for comparison
 			if (flags & REVERSE) {// reverse through values
-				MDB_val startValue = data; // save it for comparison
+				startValue = data; // save it for comparison
 				rc = mdb_cursor_get(cursor, &key, &data, data.mv_size ? MDB_GET_BOTH_RANGE : MDB_SET_KEY);
 				if (rc) {
 					if (startValue.mv_size) {
@@ -181,18 +185,39 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 					return rc > 0 ? -rc : rc;
 				return count;
 			}
+			if (flags & EXCLUSIVE_START) {
+				while(!rc) {
+					if (mdb_dcmp(txn, dw->dbi, &startValue, &data))
+						break;
+					rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
+				}
+			}
 		} else {
+			MDB_val firstKey;
+			if (flags & EXCLUSIVE_START)
+				firstKey = key; // save it for comparison
 			if (flags & REVERSE) {// reverse
-				MDB_val firstKey = key; // save it for comparison
+				firstKey = key; // save it for comparison
 				rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_RANGE);
 				if (rc)
 					rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST);
 				else if (mdb_cmp(txn, dw->dbi, &firstKey, &key)) // the range found the next entry *after* the start
 					rc = mdb_cursor_get(cursor, &key, &data, MDB_PREV);
+				else if (dw->flags & MDB_DUPSORT)
+					// we need to go to the last value of this key
+					rc = mdb_cursor_get(cursor, &key, &data, MDB_LAST_DUP);
 			} else // forward, just do a get by range
 				rc = mdb_cursor_get(cursor, &key, &data, (flags & EXACT_MATCH) ? MDB_SET_KEY : MDB_SET_RANGE);
+			if (flags & EXCLUSIVE_START) {
+				while(!rc) {
+					if (mdb_cmp(txn, dw->dbi, &firstKey, &key))
+						break;
+					rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
+				}
+			}
 		}
 	}
+
 	while (offset-- > 0 && !rc) {
 		rc = mdb_cursor_get(cursor, &key, &data, iteratingOp);
 	}

@@ -458,7 +458,7 @@ describe('lmdb-js', function() {
 			}
 			count.should.equal(1)
 		});
-    it('should iterate over query with inclusiveEnd', async function() {
+    it('should iterate over query with inclusiveEnd/exclusiveStart', async function() {
       let data1 = {foo: 1, bar: true}
       let data2 = {foo: 2, bar: false}
       let data3 = {foo: 3, bar: false}
@@ -469,6 +469,10 @@ describe('lmdb-js', function() {
       results.length.should.equal(2);
       results = Array.from(db.getRange({start:'key1', end:'key3', inclusiveEnd: true}));
       results.length.should.equal(3);
+      results = Array.from(db.getRange({start:'key1', end:'key3', exclusiveStart: true}));
+      results.length.should.equal(1);
+      results = Array.from(db.getRange({start:'key1', end:'key3', inclusiveEnd: true, exclusiveStart: true}));
+      results.length.should.equal(2);
     });
 		it('should handle open iterators and cursor renewal', async function() {
 			let data1 = {foo: 1, bar: true};

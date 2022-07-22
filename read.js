@@ -68,6 +68,9 @@ export function addReadMethods(LMDBStore, {
 			bytes.length = this.lastSize;
 			return bytes;
 		},
+		getBFAsync(id, callback, options) {
+			saveKey(id, writeKey, {})
+		},
 		retainBinary(buffer) {
 			if (!buffer)
 				return
@@ -287,7 +290,8 @@ export function addReadMethods(LMDBStore, {
 				let txn;
 				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
 					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0) |
-					(options.inclusiveEnd ? 0x8000 : 0);
+					(options.inclusiveEnd ? 0x8000 : 0) |
+					(options.exclusiveStart ? 0x10000 : 0);
 				let store = this;
 				function resetCursor() {
 					try {
