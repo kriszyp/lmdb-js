@@ -47,11 +47,12 @@ export function applyKeyHandling(store) {
 	}
 }
 
-let saveBuffer, saveDataView = { setFloat64() {}, setUint32() {} }, saveDataAddress;
+let saveBuffer, uint32, saveDataView = { setFloat64() {}, setUint32() {} }, saveDataAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateSaveBuffer() {
 	saveBuffer = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
+	uint32 = null;
 	saveBuffer.buffer.address = getAddress(saveBuffer);
 	saveDataAddress = saveBuffer.buffer.address;
 	// TODO: Conditionally only do this for key sequences?
@@ -60,10 +61,12 @@ function allocateSaveBuffer() {
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
 	savePosition = 0;
 }
-export function saveKey(key, writeKey, saveTo, maxKeySize) {
+export function saveKey(key, writeKey, saveTo, maxKeySize, skip) {
 	if (savePosition > 7800) {
 		allocateSaveBuffer();
 	}
+	if (skip > 0)
+		savePosition += skip;
 	let start = savePosition;
 	try {
 		savePosition = key === undefined ? start + 4 :
@@ -98,5 +101,17 @@ export function saveKey(key, writeKey, saveTo, maxKeySize) {
 		saveBuffer.end = savePosition;
 		savePosition = (savePosition + 7) & 0xfffff8; // full 64-bit word alignment since these are usually copied
 		return saveBuffer;
+	}
+}
+export function saveRead(txn, dbi, key, writeKey, saveTo, maxKeySize) {
+	let start = savePosition;
+	saveKey(key, writeKey, saveTo, maxKeySize, 12);
+	if (start > savePosition)
+		start = 0;
+	if (!uint32)
+		uint32 = new Uint32Array(saveBuffer.buffer, 0, saveBuffer.buffer.byteLength >> 2);
+	saveDataView.setFloat64(start, txn.address, true);
+	if (Atomics.or(uint32, (start >> 2) + 2, dbi)) {
+		return start + saveDataAddress;
 	}
 }
