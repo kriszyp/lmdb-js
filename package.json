@@ -47,7 +47,7 @@
     "directory": "test/types"
   },
   "bin": {
-    "download-prebuilds": "./bin/download-prebuilds.js download"
+    "download-lmdb-prebuilds": "./bin/download-prebuilds.js download"
   },
   "scripts": {
     "install": "node-gyp-build-optional-packages",
@@ -56,7 +56,7 @@
     "build-js": "rollup -c",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && prebuildify-platform-packages --target 16.14.0 && prebuildify-platform-packages --target 14.19.1 && prebuildify-platform-packages --target 18.0.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --napi --platform-packages --target 16.14.0 && node util/set-optional-deps.cjs && npm run test",
-    "prebuild-libc-musl": "prebuildify-platform-packages --tag-libc --target 16.14.2 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --tag-libc --napi --platform-packages --target 16.14.2",
+    "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --tag-libc --napi --platform-packages --target 16.14.2",
     "prebuild-libc": "prebuildify-platform-packages --tag-libc --target 18.0.0 && prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.14.2",
     "prebuild-libc-arm7": "prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.14.2",
     "prebuildify": "prebuildify-platform-packages --target 18.6.0",
