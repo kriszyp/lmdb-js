@@ -69,6 +69,9 @@ int DbiWrap::open(int flags, char* name, bool hasVersions, LmdbKeyType keyType, 
 	this->hasVersions = hasVersions;
 	this->compression = compression;
 	this->keyType = keyType;
+	#ifndef MDB_RPAGE_CACHE
+	flags &= ~0x100; // remove use versions flag for older lmdb
+	#endif
 	this->flags = flags;
 	int rc = txn ? mdb_dbi_open(txn, name, flags, &this->dbi) : EINVAL;
 	if (rc)
@@ -142,14 +145,20 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t tx
 	key.mv_size = keySize;
 	key.mv_data = (void*) keyBuffer;
 	uint32_t* currentTxnId = (uint32_t*) (keyBuffer + 32);
+	#ifdef MDB_RPAGE_CACHE
 	int result = mdb_get_with_txn(txn, dbi, &key, &data, (mdb_size_t*) currentTxnId);
+	#else
+	int result = mdb_get(txn, dbi, &key, &data);
+	#endif
 	if (result) {
 		if (result > 0)
 			return -result;
 		return result;
 	}
+	#ifdef MDB_RPAGE_CACHE
 	if (ifNotTxnId && ifNotTxnId == *currentTxnId)
 		return -30004;
+	#endif
 	result = getVersionAndUncompress(data, this);
 	bool fits = true;
 	if (result) {

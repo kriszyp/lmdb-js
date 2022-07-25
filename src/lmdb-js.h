@@ -59,6 +59,9 @@ typedef HANDLE pthread_t;
 typedef CONDITION_VARIABLE pthread_cond_t;
 
 #endif
+#ifndef mdb_size_t
+typedef size_t mdb_size_t;
+#endif
 
 #define NAPI_FUNCTION(name) napi_value name(napi_env env, napi_callback_info info)
 #define ARGS(count) napi_value returnValue;\

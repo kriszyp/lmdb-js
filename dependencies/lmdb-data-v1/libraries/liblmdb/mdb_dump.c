@@ -1,6 +1,6 @@
 /* mdb_dump.c - memory-mapped database dump tool */
 /*
- * Copyright 2011-2020 Howard Chu, Symas Corp.
+ * Copyright 2011-2021 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,7 +20,11 @@
 #include <signal.h>
 #include "lmdb.h"
 
-#define Yu	MDB_PRIy(u)
+#ifdef _WIN32
+#define Z	"I"
+#else
+#define Z	"z"
+#endif
 
 #define PRINT	1
 static int mode;
@@ -113,7 +117,7 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 	if (name)
 		printf("database=%s\n", name);
 	printf("type=btree\n");
-	printf("mapsize=%"Yu"\n", info.me_mapsize);
+	printf("mapsize=%" Z "u\n", info.me_mapsize);
 	if (info.me_mapaddr)
 		printf("mapaddr=%p\n", info.me_mapaddr);
 	printf("maxreaders=%u\n", info.me_maxreaders);
@@ -153,7 +157,7 @@ static int dumpit(MDB_txn *txn, MDB_dbi dbi, char *name)
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "usage: %s [-V] [-f output] [-l] [-n] [-p] [-v] [-a|-s subdb] dbpath\n", prog);
+	fprintf(stderr, "usage: %s [-V] [-f output] [-l] [-n] [-p] [-a|-s subdb] dbpath\n", prog);
 	exit(EXIT_FAILURE);
 }
 
@@ -177,11 +181,10 @@ int main(int argc, char *argv[])
 	 * -n: use NOSUBDIR flag on env_open
 	 * -p: use printable characters
 	 * -f: write to file instead of stdout
-	 * -v: use previous snapshot
 	 * -V: print version and exit
 	 * (default) dump only the main DB
 	 */
-	while ((i = getopt(argc, argv, "af:lnps:vV")) != EOF) {
+	while ((i = getopt(argc, argv, "af:lnps:V")) != EOF) {
 		switch(i) {
 		case 'V':
 			printf("%s\n", MDB_VERSION_STRING);
@@ -204,9 +207,6 @@ int main(int argc, char *argv[])
 			break;
 		case 'n':
 			envflags |= MDB_NOSUBDIR;
-			break;
-		case 'v':
-			envflags |= MDB_PREVSNAPSHOT;
 			break;
 		case 'p':
 			mode |= PRINT;

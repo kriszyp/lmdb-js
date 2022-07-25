@@ -1,6 +1,6 @@
 /* mdb_copy.c - memory-mapped database backup tool */
 /*
- * Copyright 2012-2020 Howard Chu, Symas Corp.
+ * Copyright 2012-2021 Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,6 @@ int main(int argc,char * argv[])
 	for (; argc > 1 && argv[1][0] == '-'; argc--, argv++) {
 		if (argv[1][1] == 'n' && argv[1][2] == '\0')
 			flags |= MDB_NOSUBDIR;
-		else if (argv[1][1] == 'v' && argv[1][2] == '\0')
-			flags |= MDB_PREVSNAPSHOT;
 		else if (argv[1][1] == 'c' && argv[1][2] == '\0')
 			cpflags |= MDB_CP_COMPACT;
 		else if (argv[1][1] == 'V' && argv[1][2] == '\0') {
@@ -50,7 +48,7 @@ int main(int argc,char * argv[])
 	}
 
 	if (argc<2 || argc>3) {
-		fprintf(stderr, "usage: %s [-V] [-c] [-n] [-v] srcpath [dstpath]\n", progname);
+		fprintf(stderr, "usage: %s [-V] [-c] [-n] srcpath [dstpath]\n", progname);
 		exit(EXIT_FAILURE);
 	}
 

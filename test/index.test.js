@@ -103,8 +103,8 @@ describe('lmdb-js', function() {
 		it('zero length values', async function() {
 			await db.committed // should be able to await db even if nothing has happened
 			db.put(5, asBinary(Buffer.from([])));
-		db.put(5, asBinary(createBufferForAddress(16, 0)));// externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
-		db.put(5, asBinary(createBufferForAddress(16, 0)));
+			db.put(5, asBinary(createBufferForAddress(16, 0)));// externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
+			db.put(5, asBinary(createBufferForAddress(16, 0)));
 			await db2.put('key1', asBinary(Buffer.from([])));
 			should.equal(db.getBinary(5).length, 0);
 			should.equal(db2.getBinary('key1').length, 0);
