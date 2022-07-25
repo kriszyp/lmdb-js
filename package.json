@@ -46,6 +46,9 @@
   "tsd": {
     "directory": "test/types"
   },
+  "bin": {
+    "download-prebuilds": "./bin/download-prebuilds.js download"
+  },
   "scripts": {
     "install": "node-gyp-build-optional-packages",
     "build": "node-gyp configure && node-gyp build && rollup -c",
