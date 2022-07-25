@@ -262,8 +262,11 @@ MDB_txn* EnvWrap::getReadTxn() {
 	if (readTxnRenewed)
 		return txn;
 	if (txn) {
-		if (mdb_txn_renew(txn))
-			return nullptr; // if there was an error, signal with nullptr and let error propagate with last_error 
+		int rc;
+		if (rc = mdb_txn_renew(txn)) {
+			if (rc != EINVAL)
+				return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
+		}
 	} else {
 		fprintf(stderr, "No current read transaction available");
 		return nullptr;
