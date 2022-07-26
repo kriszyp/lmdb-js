@@ -9,7 +9,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v2
         with:
-          node-version: 12
+          node-version: 16
       - run: npm install
       - run: npm test
       - run: npm run prebuild
@@ -33,7 +33,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v2
         with:
-          node-version: 12
+          node-version: 16
       - run: npm install
       - run: npm run prebuild
       - run: npm test
@@ -45,7 +45,7 @@ jobs:
           files: prebuild-linux.tar
   build-alpine:
     runs-on: ubuntu-18.04
-    container: node:12.22-alpine
+    container: node:14-alpine
     steps:
       - run: apk add python3 py3-pip build-base
       - uses: actions/checkout@v2
@@ -71,7 +71,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v2
         with:
-          node-version: 12
+          node-version: 14
       - run: npm install
       - run: npm run prebuild-arm64
         if: startsWith(github.ref, 'refs/tags/')

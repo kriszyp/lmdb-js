@@ -26,10 +26,10 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "prebuild": "prebuildify --target 18.6.0 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.17.0 && prebuildify --target electron@15.2.0",
-    "prebuild-musl": "prebuildify --target 18.6.0 --libc musl --tag-libc && prebuildify --target 16.9.0 --libc musl --tag-libc && prebuildify --target 14.17.6 --libc musl --tag-libc && prebuildify --target 12.22.7 --libc musl --tag-libc",
+    "prebuild": "prebuildify --target 18.6.0 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target electron@15.2.0",
+    "prebuild-musl": "prebuildify --target 18.6.0 --libc musl --tag-libc && prebuildify --target 16.9.0 --libc musl --tag-libc && prebuildify --target 14.17.6 --libc musl --tag-libc",
     "prebuild-arm64": "prebuildify --arch=arm64 --target 18.6.0 --libc musl && prebuildify --arch=arm64 --target 16.9.0 && prebuildify --arch=arm64 --target 14.17.6 && prebuildify --arch=arm64 --target electron@15.2.0",
-    "before-publish": "prebuildify --target 18.6.0 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target 12.17.0 && prebuildify --target electron@15.2.0",
+    "before-publish": "prebuildify --target 18.6.0 && prebuildify --target 16.9.0 && prebuildify --target 15.5.0 && prebuildify --target 14.17.6 && prebuildify --target electron@15.2.0",
     "recompile": "node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --recursive && npm run test:types",
     "test2": "mocha tests -u tdd",
