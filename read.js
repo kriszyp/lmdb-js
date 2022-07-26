@@ -63,7 +63,7 @@ export function addReadMethods(LMDBStore, {
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
 				return this._returnLargeBuffer(
-					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0));
+					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0, 0));
 			}
 			bytes.length = this.lastSize;
 			return bytes;

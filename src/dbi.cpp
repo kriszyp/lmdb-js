@@ -141,7 +141,6 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t txnAddress) {
 	char* keyBuffer = ew->keyBuffer;
 	MDB_txn* txn = txnAddress ? (MDB_txn*) txnAddress : ew->getReadTxn();
-	fprintf(stderr, "txn is %p \n", txn);
 	MDB_val key, data;
 	key.mv_size = keySize;
 	key.mv_data = (void*) keyBuffer;
@@ -185,7 +184,6 @@ NAPI_FUNCTION(getByBinary) {
 	GET_UINT32_ARG(ifNotTxnId, 2);
 	int64_t txnId = 0;
 	napi_status status = napi_get_value_int64(env, args[3], &txnId);
-	fprintf(stderr, "doGetByBinary %u %p %u %p\n", status, dw, ifNotTxnId, txnId);
 	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, txnId));
 }
 
