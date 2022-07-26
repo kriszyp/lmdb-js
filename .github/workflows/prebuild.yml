@@ -1,0 +1,86 @@
+name: Test and Prebuild
+on: [push]
+jobs:
+  build-test-macos:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12
+      - run: npm install
+      - run: npm test
+      - run: npm run prebuild
+        if: startsWith(github.ref, 'refs/tags/')
+      - run: npm run prebuild-arm64
+        if: startsWith(github.ref, 'refs/tags/')
+      - run: tar --create --format ustar --verbose --file=prebuild-darwin.tar -C prebuilds .
+        if: startsWith(github.ref, 'refs/tags/')
+      - name: Prebuild
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: prebuild-darwin.tar
+  build-linux:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-18.04
+    container: quay.io/pypa/manylinux2014_x86_64
+    steps:
+      - run: ldd --version ldd
+      - uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12
+      - run: npm install
+      - run: npm run prebuild
+      - run: npm test
+      - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
+      - name: Prebuild
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prebuild-linux.tar
+  build-alpine:
+    runs-on: ubuntu-18.04
+    container: node:12.22-alpine
+    steps:
+      - run: apk add python3 py3-pip build-base
+      - uses: actions/checkout@v2
+      - run: npm install
+      - run: npm run prebuild-musl
+      - run: npm test
+      - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
+      - name: Prebuild
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prebuild-alpine.tar
+  build-linux-arm64:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-18.04
+    container: quay.io/pypa/manylinux_2_24_x86_64
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y gcc-aarch64-linux-gnu
+      - run: apt-get install -y g++-aarch64-linux-gnu
+      - run: ldd --version ldd
+      - uses: actions/checkout@v2
+      - name: Setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 12
+      - run: npm install
+      - run: npm run prebuild-arm64
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          CC: aarch64-linux-gnu-gcc
+          CXX: aarch64-linux-gnu-g++
+      - run: tar --create --verbose --file=prebuild-linux-arm64.tar -C prebuilds .
+      - name: Prebuild
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: prebuild-linux-arm64.tar
