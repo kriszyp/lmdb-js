@@ -27,7 +27,7 @@ void getByBinaryV8(const FunctionCallbackInfo<v8::Value>& info) {
 	info.GetReturnValue().Set(v8::Number::New(isolate, dw->doGetByBinary(
 		info[1]->Uint32Value(context).FromJust(),
 		info[2]->Uint32Value(context).FromJust(),
-		info[3]->IntegerValue(context).FromJust())));
+		info[3]->NumberValue(context).FromJust())));
 }
 int32_t positionFast(Local<v8::Object> instance, double cwPointer, uint32_t flags, uint32_t offset, uint32_t keySize, uint64_t endKeyAddress) {
 	CursorWrap* cw = (CursorWrap*) (size_t) cwPointer;

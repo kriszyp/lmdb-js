@@ -182,8 +182,9 @@ NAPI_FUNCTION(getByBinary) {
 	GET_UINT32_ARG(keySize, 1);
 	uint32_t ifNotTxnId;
 	GET_UINT32_ARG(ifNotTxnId, 2);
-	napi_get_value_int64(env, args[3], &i64);
-	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, i64));
+	int64_t txnId = 0;
+	napi_get_value_int64(env, args[3], &txnId);
+	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, txnId));
 }
 
 uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize, uint32_t ifNotTxnId, uint64_t txnAddress) {
