@@ -96,11 +96,5 @@
     "test": "tests"
   },
   "optionalDependencies": {
-    "@lmdb/lmdb-darwin-arm64": "2.5.1",
-    "@lmdb/lmdb-darwin-x64": "2.5.1",
-    "@lmdb/lmdb-linux-arm": "2.5.1",
-    "@lmdb/lmdb-linux-arm64": "2.5.1",
-    "@lmdb/lmdb-linux-x64": "2.5.1",
-    "@lmdb/lmdb-win32-x64": "2.5.1"
   }
 }
