@@ -40,7 +40,8 @@
     "/*.js",
     "index.d.ts",
     "/*.ts",
-    "/*.gyp"
+    "/*.gyp",
+    "/bin"
   ],
   "types": "./index.d.ts",
   "tsd": {
