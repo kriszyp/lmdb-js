@@ -2,6 +2,7 @@
   "variables": {
       "os_linux_compiler%": "gcc",
       "use_robust%": "false",
+      "openssl_fips": "X",
       "build_v8_with_gn": "false"
   },
   "targets": [
@@ -44,15 +45,13 @@
               "cflags_cc": [
                 "-fPIC",
                 "-fvisibility=hidden",
-                "-fvisibility-inlines-hidden",
-                "-std=c++14"
+                "-fvisibility-inlines-hidden"
               ]
             }, {
              "cflags_cc": [
               "-fPIC",
               "-fvisibility=hidden",
-              "-fvisibility-inlines-hidden",
-              "-std=c++11"
+              "-fvisibility-inlines-hidden"
               ],
             }],
           ],
@@ -65,14 +64,6 @@
             "-fvisibility=hidden",
             "-O3"
           ],
-        }],
-        ["OS=='mac'", {
-          "xcode_settings": {
-            "OTHER_CPLUSPLUSFLAGS" : ["-std=c++14"],
-            "MACOSX_DEPLOYMENT_TARGET": "10.7",
-            "OTHER_LDFLAGS": ["-std=c++14"],
-            "CLANG_CXX_LIBRARY": "libc++"
-          }
         }],
         ["OS=='win'", {
             "libraries": ["ntdll.lib"]
