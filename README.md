@@ -37,11 +37,11 @@ This library handles translation of JavaScript values, primitives, arrays, and o
 
 `lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS and Deno code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
-With the default sync'ing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully sync'ed operations,  preserving both the durability/safety of the transactions and unparalled performance.
+With the default syncing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully synced operations,  preserving both the durability/safety of the transactions and unparalled performance.
 
 This library supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows this library to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
 
-This library automatically handles automatically database growth, expanding file size with a smart heuristic that minimizes file fragmentation (as you would expect from a database).
+This library automatically handles database growth, expanding file size with a smart heuristic that minimizes file fragmentation (as you would expect from a database).
 
 This library provides optional compression using LZ4 that works in conjunction with the asynchronous writes by performing the compression in the same thread (off the main thread) that performs the writes in a transaction. LZ4 is extremely fast, and decompression can be performed at roughly 5GB/s, so excellent storage efficiency can be achieved with almost negligible performance impact.
 
@@ -69,7 +69,7 @@ myDB.transaction(() => {
 Once you have opened a database, you can store and retrieve values using keys:
 
 ### Values
-You can store a wide variety of JavaScript values and data structures in this library, including objects (with arbitrary complexity), arrays, buffers, strings, numbers, etc. in your database. Even full structural cloning (with cycles) is an optionally supported. Values are stored and retrieved according the database encoding, which can be set using the `encoding` property on the database options. By default, data is stored using MessagePack, but there are several supported encodings:
+You can store a wide variety of JavaScript values and data structures in this library, including objects (with arbitrary complexity), arrays, buffers, strings, numbers, etc. in your database. Even full structural cloning (with cycles) is optionally supported. Values are stored and retrieved according to the database encoding, which can be set using the `encoding` property on the database options. By default, data is stored using MessagePack, but there are several supported encodings:
 
 * `msgpack` (default) - All values are stored by serializing the value as MessagePack (using the [msgpackr](https://github.com/kriszyp/msgpackr) package). Values are decoded and parsed on retrieval, so `get` and `getRange` will return the object, array, or other value that you have stored. The msgpackr package is extremely fast (usually faster than native JSON), and provides the most flexibility in storing different value types. See the Shared Structures section for how to achieve maximum efficiency with this.
 * `cbor` - This specifies all values use the CBOR format, which requires that the [cbor-x](https://github.com/kriszyp/cbor-x) package be installed. This package is based on [msgpackr](https://github.com/kriszyp/msgpackr) and supports all the same options.
@@ -81,7 +81,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
 
 ### Keys
-When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordering by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here are the order of some different keys:
+When using the various APIs, keys can be any JS primitive (string, number, boolean, symbol), an array of primitives, or a Buffer. Using the default `ordered-binary` conversion, primitives are translated to binary keys used by LMDB in such a way that consistent ordering is preserved. Numbers are ordered naturally, which come before strings, which are ordered lexically. The keys are stored with type information preserved. The `getRange`operations that return a set of entries will return entries with the original JS primitive values for the keys. If arrays are used as keys, they are ordered by first value in the array, with each subsequent element being a tie-breaker. Numbers are stored as doubles, with reversal of sign bit for proper ordering plus type information, so any JS number can be used as a key. For example, here is the order of some different keys:
 
 ```js
 null // lowest possible value
@@ -101,7 +101,7 @@ true
 Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
 
-You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower), use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
+You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower). Use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a db, the following methods are available:
 
@@ -119,7 +119,7 @@ This operation will be enqueued to be written in a batch transaction. Any other 
 If `put` is called inside a transaction, the put will be executed immediately in the current transaction.
 
 ### `db.remove(key, IfVersion?: number): Promise<boolean>`
-This will delete the entry at the specified key. This functions like `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation.
+This will delete the entry at the specified key. This functions is similar to `put`, with the same optional conditional version. This is batched along with put operations, and returns a promise indicating the success of the operation.
 
 Again, if this is performed inside a transation, the removal will be performed in the current transaction.
 
@@ -237,7 +237,7 @@ for (let value of db.getValues('key1')) {
 }
 ```
 
-You can optionally provide a second argument with the same `options` that `getRange` handles. You can provide a `start` and/or `end` values, which will be define the starting value and ending value for the range of values to return for the key:
+You can optionally provide a second argument with the same `options` that `getRange` handles. You can provide a `start` and/or `end` values, which will define the starting value and ending value for the range of values to return for the key:
 
 ```js
 for (let value of db.getValues('key1', { start: 'value1', end: 'value3'})) ...
@@ -246,7 +246,7 @@ for (let value of db.getValues('key1', { start: 'value1', end: 'value3'})) ...
 Using `start`/`end` is only supported if using the `ordered-binary` encoding.
 
 ### `db.getKeys(options: RangeOptions): Iterable<any>`
-This behaves like `getRange`, but only returns the keys. If this is duplicate key database, each key is only returned once (even if it has multiple values/entries).
+This behaves like `getRange`, but only returns the keys. If this is a duplicate key database, each key is only returned once (even if it has multiple values/entries).
 
 ### `RangeOptions`
 Here are the options that can be provided to the range methods (all are optional):
