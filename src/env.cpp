@@ -262,8 +262,8 @@ MDB_txn* EnvWrap::getReadTxn() {
 	if (readTxnRenewed)
 		return txn;
 	if (txn) {
-		int rc;
-		if (rc = mdb_txn_renew(txn)) {
+		int rc = mdb_txn_renew(txn);
+		if (rc) {
 			if (rc != EINVAL)
 				return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
 		}
