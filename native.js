@@ -1,7 +1,7 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
 
 path = pathModule;
 let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which doesn't have fileURLToPath
@@ -53,6 +53,7 @@ export function setNativeFunctions(externals) {
 	clearKeptObjects = externals.clearKeptObjects || function() {};
 	getByBinary = externals.getByBinary;
 	detachBuffer  = externals.detachBuffer;
+	startRead = externals.startRead;
 	setGlobalBuffer = externals.setGlobalBuffer;
 	globalBuffer = externals.globalBuffer;
 	getSharedBuffer = externals.getSharedBuffer;

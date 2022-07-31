@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+#include <atomic>
 #include <string.h>
 #include <stdio.h>
 #include <node_version.h>
@@ -28,6 +29,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("createBufferForAddress", createBufferForAddress);
 	EXPORT_NAPI_FUNCTION("getAddress", getViewAddress);
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
+	EXPORT_NAPI_FUNCTION("startRead", startRead);
 	napi_value globalBuffer;
 	napi_create_buffer(env, SHARED_BUFFER_THRESHOLD, (void**) &globalUnsafePtr, &globalBuffer);
 	globalUnsafeSize = SHARED_BUFFER_THRESHOLD;
@@ -156,6 +158,75 @@ NAPI_FUNCTION(detachBuffer) {
 	#if (NAPI_VERSION > 6)
 	napi_detach_arraybuffer(env, args[0]);
 	#endif
+	RETURN_UNDEFINED;
+}
+
+class ReadWorker : public AsyncWorker {
+  public:
+	ReadWorker(uint32_t* start, const Function& callback)
+	  : AsyncWorker(callback), start(start) {}
+
+	void Execute() {
+		uint32_t instruction;
+		uint32_t* gets = start;
+		while((instruction = std::atomic_exchange((std::atomic<uint32_t>*)(gets++), (uint32_t)0xf0000000))) {
+
+			MDB_val key;
+			key.mv_size = instruction & 0xffff;
+			MDB_dbi dbi = (MDB_dbi) *(gets++);
+			MDB_val data;
+			MDB_txn* txn = (MDB_txn*) (size_t) *((double*)gets);
+			gets += 2;
+
+			unsigned int flags;
+			mdb_dbi_flags(txn, dbi, &flags);
+			bool dupSort = flags & MDB_DUPSORT;
+			int effected = 0;
+			MDB_cursor *cursor;
+			int rc = mdb_cursor_open(txn, dbi, &cursor);
+			if (rc)
+				return SetError(mdb_strerror(rc));
+
+			key.mv_data = (void*) gets;
+			gets += (key.mv_size + 12) >> 2;
+			rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+			MDB_env* env = mdb_txn_env(txn);
+
+			while (!rc) {
+				// access one byte from each of the pages to ensure they are in the OS cache,
+				// potentially triggering the hard page fault in this thread
+				int pages = (data.mv_size + 0xfff) >> 12;
+				// TODO: Adjust this for the page headers, I believe that makes the first page slightly less 4KB.
+				for (int i = 0; i < pages; i++) {
+					effected += *(((uint8_t*)data.mv_data) + (i << 12));
+				}
+				if (dupSort) // in dupsort databases, access the rest of the values
+					rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_DUP);
+				else
+					rc = 1; // done
+
+			}
+			mdb_cursor_close(cursor);
+		}
+	}
+
+	void OnOK() {
+		// TODO: For each entry, find the shared buffer
+		uint32_t* gets = start;
+		// EnvWrap::toSharedBuffer();
+		Callback().Call({Env().Null()});
+	}
+
+  private:
+	uint32_t* start;
+};
+
+NAPI_FUNCTION(startRead) {
+	ARGS(2)
+	GET_INT64_ARG(0);
+	uint32_t* instructionAddress = (uint32_t*) i64;
+	ReadWorker* worker = new ReadWorker(instructionAddress, Function(env, args[1]));
+	worker->Queue();
 	RETURN_UNDEFINED;
 }
 

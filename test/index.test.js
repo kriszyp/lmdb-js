@@ -679,6 +679,11 @@ describe('lmdb-js', function() {
 			await promise
 			should.equal(db.get(returnedKeys[0]), undefined)
 		});
+		it.only('getAsync', async function() {
+			await db.put('key1', 'async initial value');
+			let buffer = await db.getBFAsync('key1');
+			console.log(buffer);
+		});
 		it('prefetch', async function() {
 			await new Promise(resolve => db.prefetch(['key1', 'key2'], resolve));
 			let key = ''

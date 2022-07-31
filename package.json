@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/DoctorEvidence/lmdb-js.git"
+    "url": "git+ssh://git@github.com/kriszyp/lmdb-js.git"
   },
   "keywords": [
     "lmdb",
@@ -48,7 +48,7 @@
     "directory": "test/types"
   },
   "bin": {
-    "download-lmdb-prebuilds": "./bin/download-prebuilds.js download"
+    "download-lmdb-prebuilds": "./bin/download-prebuilds.js"
   },
   "scripts": {
     "install": "node-gyp-build-optional-packages",
@@ -90,9 +90,9 @@
     "tsd": "^0.14.0"
   },
   "bugs": {
-    "url": "https://github.com/DoctorEvidence/lmdb-js/issues"
+    "url": "https://github.com/kriszyp/lmdb-js/issues"
   },
-  "homepage": "https://github.com/DoctorEvidence/lmdb-js#readme",
+  "homepage": "https://github.com/kriszyp/lmdb-js#readme",
   "directories": {
     "test": "tests"
   },

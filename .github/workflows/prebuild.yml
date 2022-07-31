@@ -43,9 +43,7 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: npm run prebuildify
-        if: startsWith(github.ref, 'refs/tags/')
       - run: npm run prebuildify
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           PREBUILD_ARCH: arm64
       - run: tar --create --verbose --file=prebuild-win32.tar -C prebuilds .

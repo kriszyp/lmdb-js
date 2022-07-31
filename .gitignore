@@ -45,7 +45,7 @@ yarn.lock
 .vs
 .idea
 
-#package-lock.json
+package-lock.json
 yarn.lock
 
 tests/db/

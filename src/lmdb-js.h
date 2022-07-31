@@ -160,6 +160,7 @@ Value lmdbError(const CallbackInfo& info);
 napi_value createBufferForAddress(napi_env env, napi_callback_info info);
 napi_value getViewAddress(napi_env env, napi_callback_info info);
 napi_value detachBuffer(napi_env env, napi_callback_info info);
+napi_value startRead(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
 Value enableDirectV8(const CallbackInfo& info);
@@ -211,6 +212,7 @@ const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
 const int SEPARATE_FLUSHED = 1;
 const int DELETE_ON_CLOSE = 2;
+const int OPEN_FAILED = 0x10000;
 
 class WriteWorker {
   public:
@@ -284,7 +286,7 @@ private:
 	// Cleans up stray transactions
 	void cleanupStrayTxns();
 	void consolidateTxns();
-   static void cleanupEnvWraps(void* data);
+	static void cleanupEnvWraps(void* data);
 
 	friend class TxnWrap;
 	friend class DbiWrap;
