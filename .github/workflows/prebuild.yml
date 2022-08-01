@@ -31,7 +31,7 @@ jobs:
         with:
           files: prebuild-darwin.tar
   build-test-win32:
-    #if: startsWith(github.ref, 'refs/tags/')
+  if: startsWith(github.ref, 'refs/tags/')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm test
-      - run: npm run prebuildify
+      - run: npm run prebuild-win32
       - run: tar --create --verbose --file=prebuild-win32.tar -C prebuilds .
         if: startsWith(github.ref, 'refs/tags/')
       - name: Prebuild
