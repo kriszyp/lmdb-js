@@ -190,7 +190,7 @@ class ReadWorker : public AsyncWorker {
 			rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
 			MDB_env* env = mdb_txn_env(txn);
 			*(gets + 3) = data.mv_size;
-			*((double*)gets) = (double) data.mv_data;
+			*((double*)gets) = (double) (size_t) data.mv_data;
 			gets += (key.mv_size + 28) >> 2;
 			while (!rc) {
 				// access one byte from each of the pages to ensure they are in the OS cache,
