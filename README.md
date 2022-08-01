@@ -499,6 +499,23 @@ dbLevel.get(id).then(...)
 
 Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using JS numbers as a key, retrieving data from the database (random access), and decoding the data into a structured object with 10 properties (using default [MessagePack encoding](https://github.com/kriszyp/msgpackr)), can be done in about half a microsecond, or about 1,900,000/sec on a single thread. This is almost three times as fast as a single native `JSON.parse` call with the same object without any DB interaction! LMDB scales effortlessly across multiple processes or threads; over 6,000,000 operations/sec on the same 4/8 core computer by running across multiple threads (or 18,000,000 operations/sec with raw binary data). By running writes on a separate transactional thread, writing is extremely fast as well. With encoding the same objects, full encoding and writes can be performed at about 500,000 puts/second or 1,700,000 puts/second on multiple threads.
 
+
+### Full Prebuild Script
+This package includes an NPM executable to download all the prebuilds for all OS/architectures. This can be useful if you are building a full set of files/artifacts to be run on different machines. This requires the `prebuildify-ci` package and can be run with `npm exec download-lmdb-prebuilds` or adding something like this to your package.json:
+```
+{
+    "dependencies": {
+        "lmdb": "2.6.0"
+    },
+    "devDependencies": {
+        "prebuildify-ci": "^1.0.5"
+    },
+    "scripts": {
+        "download-lmdb-prebuilds": "download-lmdb-prebuilds"
+    }
+}
+```
+
 #### Build Options
 A few LMDB options are available at build time, and can be specified with options with `npm install` (which can be specified in your package.json install script):
 `npm install lmdb --build-from-source --use_robust=false`: This will disable LMDB's MDB_USE_ROBUST option, which uses robust semaphores/mutexes so that if you are using multiple processes, and one process dies in the middle of transaction, the OS will cleanup the semaphore/mutex, aborting the transaction and allowing other processes to run without hanging. There is a slight performance overhead to robust mutexes, but keeping this enabled is recommended if you will be using multiple processes.
