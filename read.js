@@ -71,7 +71,7 @@ export function addReadMethods(LMDBStore, {
 			return bytes;
 		},
 		getBFAsync(id, callback, options) {
-			let txn = options.txn || (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
+			let txn = options?.txn || (env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this)));
 			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ({ bufferId, offset, size }) => {
 				let buffer = mmaps[bufferId];
 				if (!buffer) {
