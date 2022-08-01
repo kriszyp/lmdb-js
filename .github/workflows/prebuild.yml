@@ -95,6 +95,7 @@ jobs:
       #- run: npm run prebuildify
       #  env:
       #    ENABLE_FAST_API_CALLS: true
+      - run: npm run build-js
       - run: npm test
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
       - name: Prebuild
