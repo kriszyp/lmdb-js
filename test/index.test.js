@@ -628,8 +628,8 @@ describe('lmdb-js', function() {
 
 		});
 		it('doesExist', async function() {
-		should.equal(db.doesExist('not-there'), false);
-		should.equal(db2.doesExist('not-there'), false);
+			should.equal(db.doesExist('not-there'), false);
+			should.equal(db2.doesExist('not-there'), false);
 			let data1 = {foo: 1, bar: true}
 			let data2 = {foo: 2, bar: false}
 			let data3 = {foo: 3, bar: true}
@@ -679,7 +679,7 @@ describe('lmdb-js', function() {
 			await promise
 			should.equal(db.get(returnedKeys[0]), undefined)
 		});
-		it.only('getAsync', async function() {
+		it.skip('getAsync', async function() {
 			await db.put('key1', 'async initial value');
 			let buffer = await db.getBFAsync('key1');
 			console.log(buffer);

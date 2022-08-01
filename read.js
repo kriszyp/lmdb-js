@@ -13,7 +13,8 @@ const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
 export const UNMODIFIED = {};
 
-let unreadResolution, lastQueuedResolution, nextResolution;
+let unreadResolution = {};
+let lastQueuedResolution, nextResolution = unreadResolution;
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
@@ -80,7 +81,7 @@ export function addReadMethods(LMDBStore, {
 				callback(buffer, offset, size);
 			});
 			if (address) {
-				startRead(() => {
+				startRead(address, () => {
 					resolveReads();
 				});
 			}
@@ -257,6 +258,10 @@ export function addReadMethods(LMDBStore, {
 			else {
 				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
 					versionOrValue = versionOrValue['\x10binary-data\x02'];
+				else if (this.encoder)
+					versionOrValue = this.encoder.encode(versionOrValue);
+				if (typeof versionOrValue == 'string')
+					versionOrValue = Buffer.from(versionOrValue);
 				return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0;
 			}
 		},
@@ -701,7 +706,7 @@ function allocateInstructionsBuffer() {
 	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
 	savePosition = 0;
 }
-export function recordReadInstruction(txn, dbi, key, writeKey, maxKeySize, callback) {
+export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback) {
 	if (savePosition > 7800) {
 		allocateInstructionsBuffer();
 	}
@@ -725,13 +730,13 @@ export function recordReadInstruction(txn, dbi, key, writeKey, maxKeySize, callb
 		savePosition = start;
 		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
 	}
-	uint32Instructions[start >> 2] =  length; // save the length
+	uint32Instructions[(start >> 2) + 3] =  length; // save the length
 	savePosition = (savePosition + 12) & 0xfffffc;
 	nextResolution.callback = callback;
 	nextResolution.uint32 = uint32Instructions;
 	nextResolution.position = start >> 2;
-	nextResolution = nextResolution.next;
-	instructionsDataView.setFloat64(start, txn.address, true);
+	nextResolution = nextResolution.next = {};
+	instructionsDataView.setFloat64(start, txnAddress, true);
 	if (Atomics.or(uint32Instructions, (start >> 2) + 2, dbi)) {
 		return start + instructionsAddress;
 	}
@@ -740,8 +745,11 @@ export function recordReadInstruction(txn, dbi, key, writeKey, maxKeySize, callb
 
 function resolveReads(async) {
 	let instructionStatus;
-	while ((instructionStatus = unreadResolution.uint32[unreadResolution.position + 2]) & 0x1000000) {
+	debugger;
+	console.log('resolveReads', unreadResolution, (instructionStatus = unreadResolution.uint32[unreadResolution.position + 2]) & 0x1000000);
+	while ((instructionStatus = unreadResolution.uint32[unreadResolution.position + 2]) & 0x10000000) {
 		let size = unreadResolution.uint32[unreadResolution.position + 3];
+		console.log('resolved read', size);
 		let reference;
 		switch(instructionStatus & 0xf) {
 			case 0:

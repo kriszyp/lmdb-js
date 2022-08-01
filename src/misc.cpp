@@ -169,15 +169,14 @@ class ReadWorker : public AsyncWorker {
 	void Execute() {
 		uint32_t instruction;
 		uint32_t* gets = start;
-		while((instruction = std::atomic_exchange((std::atomic<uint32_t>*)(gets++), (uint32_t)0xf0000000))) {
+		while((instruction = std::atomic_exchange((std::atomic<uint32_t>*)(gets + 2), (uint32_t)0xf0000000))) {
 
 			MDB_val key;
-			key.mv_size = instruction & 0xffff;
-			MDB_dbi dbi = (MDB_dbi) *(gets++);
+			key.mv_size = *(gets + 3);
+			MDB_dbi dbi = (MDB_dbi) (instruction & 0xffff) ;
 			MDB_val data;
 			MDB_txn* txn = (MDB_txn*) (size_t) *((double*)gets);
-			gets += 2;
-
+			
 			unsigned int flags;
 			mdb_dbi_flags(txn, dbi, &flags);
 			bool dupSort = flags & MDB_DUPSORT;
@@ -188,10 +187,11 @@ class ReadWorker : public AsyncWorker {
 				return SetError(mdb_strerror(rc));
 
 			key.mv_data = (void*) gets;
-			gets += (key.mv_size + 12) >> 2;
 			rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
 			MDB_env* env = mdb_txn_env(txn);
-
+			*(gets + 3) = data.mv_size;
+			*((double*)gets) = (double) data.mv_data;
+			gets += (key.mv_size + 28) >> 2;
 			while (!rc) {
 				// access one byte from each of the pages to ensure they are in the OS cache,
 				// potentially triggering the hard page fault in this thread
