@@ -7,7 +7,7 @@ let getLastVersion, getLastTxnId;
 const mapGet = Map.prototype.get;
 export const CachingStore = (Store, env) => {
 	let childTxnChanges
-	return class extends Store {
+	return class LMDBStore extends Store {
 	constructor(dbName, options) {
 		super(dbName, options);
 		if (!env.cacheCommitter) {
