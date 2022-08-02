@@ -501,14 +501,13 @@ Benchmarking on Node 14.9, with 3.4Ghz i7-4770 Windows, a get operation, using J
 
 
 ### Full Prebuild Script
-This package includes an NPM executable to download all the prebuilds for all OS/architectures. This can be useful if you are building a full set of files/artifacts to be run on different machines. This requires the `prebuildify-ci` package and can be run with `npm exec download-lmdb-prebuilds` or adding something like this to your package.json:
+This package includes an NPM executable to download all the prebuilds for all OS/architectures. This can be useful if
+ you are building a full set of files/artifacts to be run on different machines. This requires installing the `prebuildify-ci
+ ` package (globally is recommended) and adding something like this to your package.json:
 ```
 {
     "dependencies": {
         "lmdb": "2.6.0"
-    },
-    "devDependencies": {
-        "prebuildify-ci": "^1.0.5"
     },
     "scripts": {
         "download-lmdb-prebuilds": "download-lmdb-prebuilds"
