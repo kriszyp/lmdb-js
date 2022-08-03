@@ -1,5 +1,6 @@
 import { getAddress, orderedBinary } from './native.js';
 
+const REUSE_BUFFER_MODE = 512;
 const writeUint32Key = (key, target, start) => {
 	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true);
 	return start + 4;
@@ -24,9 +25,14 @@ export function applyKeyHandling(store) {
 		};
 	}
 	if (store.encoder && store.encoder.writeKey && !store.encoder.encode) {
-		store.encoder.encode = function(value) {
-			return saveKey(value, this.writeKey, false, store.maxKeySize);
+		store.encoder.encode = function(value, mode) {
+			let bytes = saveKey(value, this.writeKey, false, store.maxKeySize);
+			if (bytes.end > 0 && !(REUSE_BUFFER_MODE & mode)) {
+				return bytes.subarray(bytes.start, bytes.end)
+			}
+			return bytes;
 		};
+		store.encoder.copyBuffers = true; // just an indicator for the buffer reuse in write.js
 	}
 	if (store.decoder && store.decoder.readKey && !store.decoder.decode) {
 		store.decoder.decode = function(buffer) { return this.readKey(buffer, 0, buffer.length); };
@@ -65,8 +71,6 @@ export function saveKey(key, writeKey, saveTo, maxKeySize, skip) {
 	if (savePosition > 7800) {
 		allocateSaveBuffer();
 	}
-	if (skip > 0)
-		savePosition += skip;
 	let start = savePosition;
 	try {
 		savePosition = key === undefined ? start + 4 :
@@ -101,17 +105,5 @@ export function saveKey(key, writeKey, saveTo, maxKeySize, skip) {
 		saveBuffer.end = savePosition;
 		savePosition = (savePosition + 7) & 0xfffff8; // full 64-bit word alignment since these are usually copied
 		return saveBuffer;
-	}
-}
-export function saveRead(txn, dbi, key, writeKey, saveTo, maxKeySize) {
-	let start = savePosition;
-	saveKey(key, writeKey, saveTo, maxKeySize, 12);
-	if (start > savePosition)
-		start = 0;
-	if (!uint32)
-		uint32 = new Uint32Array(saveBuffer.buffer, 0, saveBuffer.buffer.byteLength >> 2);
-	saveDataView.setFloat64(start, txn.address, true);
-	if (Atomics.or(uint32, (start >> 2) + 2, dbi)) {
-		return start + saveDataAddress;
 	}
 }
