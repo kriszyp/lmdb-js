@@ -600,7 +600,7 @@ export function addReadMethods(LMDBStore, {
 				};
 				readTxnRenewed = null;
 			}
-			let txnPromise = this._endWrites();
+			let txnPromise = this._endWrites && this._endWrites();
 			const doClose = () => {
 				if (this.isRoot)
 					env.close();
