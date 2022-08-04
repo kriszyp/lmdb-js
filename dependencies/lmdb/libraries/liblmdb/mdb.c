@@ -1862,6 +1862,7 @@ static char *const mdb_errstr[] = {
 	"MDB_CRYPTO_FAIL: Page encryption or decryption failed",
 	"MDB_ENV_ENCRYPTION: Environment encryption mismatch",
 	"MDB_LOCK_FAILURE: Failed to get robust semaphore, increase max semaphore count by running 'sudo sysctl kern.sysv.semume=200' or build with robust mutexes disabled (see docs)",
+	"MDB_EMPTY_TXN: Transaction was empty",
 };
 //<lmdb-js>
 static char* last_error = NULL;
@@ -4521,8 +4522,10 @@ mdb_txn_commit(MDB_txn *txn)
 	mdb_cursors_close(txn, 0);
 
 	if (!txn->mt_u.dirty_list[0].mid &&
-		!(txn->mt_flags & (MDB_TXN_DIRTY|MDB_TXN_SPILLS)))
-		goto done;
+		!(txn->mt_flags & (MDB_TXN_DIRTY | MDB_TXN_SPILLS))) {
+		mdb_txn_end(txn, end_mode);
+		return MDB_EMPTY_TXN;
+	}
 
 	DPRINTF(("committing txn %"Yu" %p on mdbenv %p, root page %"Yu,
 	    txn->mt_txnid, (void*)txn, (void*)env, txn->mt_dbs[MAIN_DBI].md_root));

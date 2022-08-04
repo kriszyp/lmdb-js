@@ -154,6 +154,8 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);
+		if (rc == MDB_EMPTY_TXN)
+			rc = 0;
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
 			//fprintf(stderr, "Waiting after interruption\n");
@@ -392,6 +394,8 @@ void WriteWorker::Write() {
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
+	if (rc == MDB_EMPTY_TXN)
+		rc = 0;
 	txn = nullptr;
 	pthread_mutex_unlock(envForTxn->writingLock);
 	if (rc || hasError) {

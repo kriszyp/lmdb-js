@@ -798,9 +798,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						if (result === ABORT)
 							env.abortTxn();
 						else {
-							env.commitTxn();
+							let hasWrites = env.commitTxn();
 							resetReadTxn();
-							if ((flags & 0x10000) && overlappingSync) // if it is no-sync in overlapping-sync mode, need to schedule flush for it to be marked as persisted
+							if ((flags & 0x10000) && overlappingSync && hasWrites) // if it is no-sync in overlapping-sync mode, need
+								// to schedule flush for it to be marked as persisted
 								lastSyncTxnFlush = new Promise(resolve => scheduleFlush([resolve]))
 						}
 						return result;

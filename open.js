@@ -111,6 +111,7 @@ export function open(path, options) {
 		(options.separateFlushed ? 1 : 0) |
 		(options.deleteOnClose ? 2 : 0)
 	let rc = env.open(options, flags, jsFlags);
+	env.path = path;
    if (rc)
 		lmdbError(rc);
 	delete options.keyBytes // no longer needed, don't copy to stores

@@ -811,9 +811,14 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 			pthread_mutex_unlock(this->writingLock);
 	}
 	delete currentTxn;
-	if (rc)
+	
+	if (rc) {
+		if (rc == MDB_EMPTY_TXN) {
+			return Napi::Boolean::New(info.Env(), false);
+		}
 		throwLmdbError(info.Env(), rc);
-	return info.Env().Undefined();
+	}
+	return Napi::Boolean::New(info.Env(), true);
 }
 Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;

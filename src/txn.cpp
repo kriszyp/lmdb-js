@@ -127,14 +127,14 @@ Value TxnWrap::commit(const Napi::CallbackInfo& info) {
 		// rc = 0
 		// else
 		rc = mdb_txn_commit(this->txn);
-		
 		pthread_mutex_unlock(this->ew->writingLock);
 	}
 	else
 		rc = mdb_txn_commit(this->txn);
 	//fprintf(stdout, "commit done\n");
 	this->removeFromEnvWrap();
-
+	if (rc == MDB_EMPTY_TXN)
+		rc = 0;
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}

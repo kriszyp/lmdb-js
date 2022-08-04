@@ -534,8 +534,10 @@ typedef enum MDB_cursor_op {
 #define MDB_ENV_ENCRYPTION	(-30776)
       /** Unable to acquire a robust mutex */
 #define MDB_LOCK_FAILURE    (-30775)
+	/** The transaction was empty (not an error, but informative) */
+#define MDB_EMPTY_TXN    (-30774)
 	/** The last defined error code */
-#define MDB_LAST_ERRCODE	MDB_LOCK_FAILURE
+#define MDB_LAST_ERRCODE	MDB_EMPTY_TXN
 /** @} */
 
 /** @brief Statistics for a database in the environment */
