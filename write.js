@@ -582,7 +582,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function clearWriteTxn(parentTxn) {
 		// TODO: We might actually want to track cursors in a write txn and manually
 		// close them.
-		if (writeTxn.refCount > 0)
+		if (writeTxn && writeTxn.refCount > 0)
 			writeTxn.isDone = true;
 		env.writeTxn = writeTxn = parentTxn || null;
 	}

@@ -117,24 +117,12 @@ void TxnWrap::removeFromEnvWrap() {
 }
 
 Value TxnWrap::commit(const Napi::CallbackInfo& info) {
+	// this should only be used for committing read-only txns
 	if (!this->txn) {
 		return throwError(info.Env(), "The transaction is already closed.");
 	}
-	int rc;
-	WriteWorker* writeWorker = this->ew->writeWorker;
-	if (writeWorker) {
-		// if (writeWorker->txn && env->writeMap)
-		// rc = 0
-		// else
-		rc = mdb_txn_commit(this->txn);
-		pthread_mutex_unlock(this->ew->writingLock);
-	}
-	else
-		rc = mdb_txn_commit(this->txn);
-	//fprintf(stdout, "commit done\n");
+	int rc = mdb_txn_commit(this->txn);
 	this->removeFromEnvWrap();
-	if (rc == MDB_EMPTY_TXN)
-		rc = 0;
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}

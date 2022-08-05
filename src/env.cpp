@@ -47,6 +47,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->writeTxn = nullptr;
 	this->writeWorker = nullptr;
 	this->readTxnRenewed = false;
+    this->hasWrites = false;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
 	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
@@ -85,6 +86,7 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 	envRef.inode = inode;
 	envRef.env = env;
 	envRef.count = 1;
+    envRef.hasWrites = false;
 	EnvWrap::envTracking->envs.push_back(envRef);
 	return 0;
 }
@@ -582,12 +584,14 @@ void EnvWrap::closeEnv(bool hasLock) {
 	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end(); ) {
 		if (envPath->env == env) {
 			envPath->count--;
+            if (hasWrites)
+                envPath->hasWrites = true;
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
 				unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
 				mdb_env_get_flags(env, &envFlags);
 				#ifdef MDB_OVERLAPPINGSYNC
-				if ((envFlags & MDB_OVERLAPPINGSYNC) && !(jsFlags & OPEN_FAILED)) {
+				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
 				#endif
@@ -811,14 +815,13 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 			pthread_mutex_unlock(this->writingLock);
 	}
 	delete currentTxn;
-	
-	if (rc) {
-		if (rc == MDB_EMPTY_TXN) {
-			return Napi::Boolean::New(info.Env(), false);
-		}
-		throwLmdbError(info.Env(), rc);
-	}
-	return Napi::Boolean::New(info.Env(), true);
+    if (rc == 0) {
+        hasWrites = true;
+        return Napi::Boolean::New(info.Env(), true);
+    } else if (rc == MDB_EMPTY_TXN)
+        return Napi::Boolean::New(info.Env(), false);
+    else
+        return throwLmdbError(info.Env(), rc);
 }
 Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;

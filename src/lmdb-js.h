@@ -203,6 +203,7 @@ class SharedEnv {
 	uint64_t dev;
 	uint64_t inode;
 	int count;
+    bool hasWrites;
 };
 
 const int INTERRUPT_BATCH = 9998;
@@ -308,6 +309,7 @@ public:
 	MDB_txn* currentReadTxn;
 	WriteWorker* writeWorker;
 	bool readTxnRenewed;
+    bool hasWrites;
 	unsigned int jsFlags;
 	char* keyBuffer;
 	int pageSize;

@@ -440,6 +440,7 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
+	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[1].As<Function>());
 	this->writeWorker = worker;
@@ -455,6 +456,7 @@ NAPI_FUNCTION(EnvWrap::write) {
 		napi_throw_error(env, nullptr, "The environment is already closed.");
 		RETURN_UNDEFINED;
 	}
+	ew->hasWrites = true;
 	
 	napi_get_value_int64(env, args[1], &i64);
 	uint32_t* instructionAddress = (uint32_t*) i64;
