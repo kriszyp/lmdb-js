@@ -16,12 +16,14 @@
       "variables": {
         "enable_fast_api_calls%": "<!(echo %ENABLE_FAST_API_CALLS%)",
         "enable_v8%": "<!(echo %ENABLE_V8_FUNCTIONS%)",
+        "use_data_v1%": "<!(echo %LMDB_DATA_V1%)",
       }
     }],
     ['OS!="win"', {
       "variables": {
         "enable_fast_api_calls%": "<!(echo $ENABLE_FAST_API_CALLS)",
         "enable_v8%": "<!(echo $ENABLE_V8_FUNCTIONS)",
+        "use_data_v1%": "<!(echo $LMDB_DATA_V1)",
       }
     }]
   ],

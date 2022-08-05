@@ -3,6 +3,8 @@ on: [push]
 jobs:
   build-test-macos:
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      LMDB_DATA_V1: ${{ startsWith(github.ref, '-v1') }}
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -104,9 +106,12 @@ jobs:
         with:
           files: prebuild-linux.tar
   build-debian-9:
+    env:
+      LMDB_DATA_V1: ${{ startsWith(github.ref, '-v1') }}
     runs-on: ubuntu-18.04
     container: node:14-stretch
     steps:
+      - run: echo "LMDB_DATA_V1 is $LMDB_DATA_V1"
       - uses: actions/checkout@v2
       - uses: denoland/setup-deno@v1
         with:
