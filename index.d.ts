@@ -81,27 +81,27 @@ declare namespace lmdb {
 		**/
 		remove(id: K, valueToRemove: V): Promise<boolean>
 		/**
-		* Syncronously store the provided value, using the provided id/key, will return after the data has been written.
+		* Synchronously store the provided value, using the provided id/key, will return after the data has been written.
 		* @param id The key for the entry
 		* @param value The value to store
 		**/
 		putSync(id: K, value: V): void
 		/**
-		* Syncronously store the provided value, using the provided id/key and version number
+		* Synchronously store the provided value, using the provided id/key and version number
 		* @param id The key for the entry
 		* @param value The value to store
 		* @param version The version number to assign to this entry
 		**/
 		putSync(id: K, value: V, version: number): void
 		/**
-		* Syncronously store the provided value, using the provided id/key and options
+		* Synchronously store the provided value, using the provided id/key and options
 		* @param id The key for the entry
 		* @param value The value to store
 		* @param options The version number to assign to this entry
 		**/
 		putSync(id: K, value: V, options: PutOptions): void
 		/**
-		* Syncronously remove the entry with the provided id/key
+		* Synchronously remove the entry with the provided id/key
 		* existing version
 		* @param id The key for the entry to remove
 		**/
@@ -155,14 +155,14 @@ declare namespace lmdb {
 		 */
 		transactionAsync<T>(action: () => T): T
 		/**
-		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
+		* Execute a transaction asynchronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
 		**/
 		transaction<T>(action: () => T): Promise<T>
 		/**
-		* Execute a transaction syncronously, running all the actions within the action callback in the transaction,
+		* Execute a transaction synchronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
@@ -170,12 +170,17 @@ declare namespace lmdb {
 		**/
 		transactionSync<T>(action: () => T, flags?: TransactionFlags): T
 		/**
-		* Execute a transaction asyncronously, running all the actions within the action callback in the transaction,
+		* Execute a transaction asynchronously, running all the actions within the action callback in the transaction,
 		* and committing the transaction after the action callback completes.
 		* existing version
 		* @param action The function to execute within the transaction
 		**/
 		childTransaction<T>(action: () => T): Promise<T>
+		/**
+		* Returns the current transaction and marks it as in use. This can then be explicitly used for read operations
+		* @returns The transaction object
+		**/
+		useReadTransaction(): Transaction
 		/**
 		* Execute a set of write operations that will all be batched together in next queued asynchronous transaction.
 		* @param action The function to execute with a set of write operations.
@@ -343,6 +348,8 @@ declare namespace lmdb {
 		offset?: number
 		/** Use a snapshot of the database from when the iterator started **/
 		snapshot?: boolean
+		/** Use the provided transaction for this range query */
+		transaction: Transaction
 	}
 	interface PutOptions {
 		/* Append to the database using MDB_APPEND, which can be faster */
@@ -370,6 +377,9 @@ declare namespace lmdb {
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
 		asArray: T[]
+	}
+	class Transaction {
+		use<T>(callback: () => T): T
 	}
 	export function getLastVersion(): number
 	export function compareKeys(a: Key, b: Key): number

@@ -314,7 +314,7 @@ public:
 	char* keyBuffer;
 	int pageSize;
 	time_t lastReaderCheck;
-	MDB_txn* getReadTxn();
+	MDB_txn* getReadTxn(int64_t tw_address = 0);
 
 	// Sets up exports for the Env constructor
 	static void setupExports(Napi::Env env, Object exports);
@@ -415,10 +415,10 @@ public:
 		* Callback to be executed after the sync is complete.
 	*/
 	Napi::Value startWriting(const CallbackInfo& info);
+	Napi::Value resumeWriting(const CallbackInfo& info);
 	static napi_value compress(napi_env env, napi_callback_info info);
 	static napi_value write(napi_env env, napi_callback_info info);
 	static napi_value onExit(napi_env env, napi_callback_info info);
-	Napi::Value resetCurrentReadTxn(const CallbackInfo& info);
 	static int32_t toSharedBuffer(MDB_env* env, uint32_t* keyBuffer, MDB_val data);
 };
 

@@ -184,25 +184,21 @@ class CopyWorker : public AsyncWorker {
 	int flags;
 };
 
-
-MDB_txn* EnvWrap::getReadTxn() {
-	MDB_txn* txn = writeTxn ? writeTxn->txn : nullptr;
-	if (txn)
-		return txn;
-	txn = currentReadTxn;
-	if (readTxnRenewed)
-		return txn;
-	if (txn) {
-		int rc = mdb_txn_renew(txn);
-		if (rc) {
-			if (rc != EINVAL)
-				return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
-		}
-	} else {
-		fprintf(stderr, "No current read transaction available");
-		return nullptr;
+MDB_txn* EnvWrap::getReadTxn(int64_t tw_address) {
+	MDB_txn* txn;
+	if (tw_address) // explicit txn
+		txn = ((TxnWrap*)tw_address)->txn;
+	else if (writeTxn && (txn = writeTxn->txn)) {
+		return txn; // no need to renew write txn
+	} else // default to current read txn
+		txn = currentReadTxn;
+	int rc = mdb_txn_renew(txn); // always try to renew
+	if (rc) {
+		if (!txn)
+			fprintf(stderr, "No current read transaction available");
+		if (rc != EINVAL)
+			return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
 	}
-	readTxnRenewed = true;
 	return txn;
 }
 
@@ -879,11 +875,6 @@ Napi::Value EnvWrap::sync(const CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 
-Napi::Value EnvWrap::resetCurrentReadTxn(const CallbackInfo& info) {
-	mdb_txn_reset(this->currentReadTxn);
-	this->readTxnRenewed = false;
-	return info.Env().Undefined();
-}
 int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 	EnvWrap* ew = (EnvWrap*) (size_t) ewPointer;
 	int rc;
@@ -907,6 +898,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("commitTxn", &EnvWrap::commitTxn),
 		EnvWrap::InstanceMethod("abortTxn", &EnvWrap::abortTxn),
 		EnvWrap::InstanceMethod("sync", &EnvWrap::sync),
+		EnvWrap::InstanceMethod("resumeWriting", &EnvWrap::resumeWriting),
 		EnvWrap::InstanceMethod("startWriting", &EnvWrap::startWriting),
 		EnvWrap::InstanceMethod("stat", &EnvWrap::stat),
 		EnvWrap::InstanceMethod("freeStat", &EnvWrap::freeStat),
@@ -915,7 +907,6 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("readerList", &EnvWrap::readerList),
 		EnvWrap::InstanceMethod("copy", &EnvWrap::copy),
 		//EnvWrap::InstanceMethod("detachBuffer", &EnvWrap::detachBuffer),
-		EnvWrap::InstanceMethod("resetCurrentReadTxn", &EnvWrap::resetCurrentReadTxn),
 	});
 	EXPORT_NAPI_FUNCTION("compress", compress);
 	EXPORT_NAPI_FUNCTION("write", write);

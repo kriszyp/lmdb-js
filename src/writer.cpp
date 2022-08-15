@@ -423,10 +423,14 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
 	napi_create_int32(Env(), progressStatus, &arg);
 	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
-	delete envForTxn->writeTxn;
-	envForTxn->writeTxn = nullptr;
-	pthread_cond_signal(envForTxn->writingCond);
-	pthread_mutex_unlock(envForTxn->writingLock);
+	bool is_async = false;
+	napi_get_value_bool(Env(), result, &is_async);
+	if (!is_async) {
+		delete envForTxn->writeTxn;
+		envForTxn->writeTxn = nullptr;
+		pthread_cond_signal(envForTxn->writingCond);
+		pthread_mutex_unlock(envForTxn->writingLock);
+	}
 }
 
 void AsyncWriteWorker::OnOK() {
@@ -434,6 +438,15 @@ void AsyncWriteWorker::OnOK() {
 	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
 	napi_create_int32(Env(), 0, &arg);
 	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+}
+
+Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
+	// if we had async txns, now we resume
+	delete writeTxn;
+	writeTxn = nullptr;
+	pthread_cond_signal(writingCond);
+	pthread_mutex_unlock(writingLock);
+	return info.Env().Undefined();
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {

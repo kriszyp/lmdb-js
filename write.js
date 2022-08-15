@@ -65,6 +65,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var batchDepth = 0;
 	var lastWritePromise;
 	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush, lastFlushTimeout, lastFlushCallback;
+	var hasUnresolvedTxns;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
 	maxFlushDelay = maxFlushDelay || 500;
@@ -370,10 +371,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						let delay = Date.now() - start
 						scheduleFlush(resolvers, Math.min((flushPromise && flushPromise.hasCallbacks ? delay >> 1 : delay) + 1, maxFlushDelay))
 					}
+					break;
 				case 1:
+					console.log('unknown status', status);
 				break;
 				case 2:
+					hasUnresolvedTxns = false;
 					executeTxnCallbacks();
+					return hasUnresolvedTxns;
 				break;
 				default:
 				console.error(status);
@@ -524,6 +529,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (asChild) {
 					if (promises) {
 						// must complete any outstanding transactions before proceeding
+						hasUnresolvedTxns = true;
 						await Promise.all(promises);
 						promises = null;
 					}
@@ -533,6 +539,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					try {
 						let result = userTxnCallback.callback();
 						if (result && result.then) {
+							hasUnresolvedTxns = true;
 							await result;
 						}
 						if (result === ABORT)
@@ -563,9 +570,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		nextTxnCallbacks = [];
 		if (promises) { // finish any outstanding commit functions
+			hasUnresolvedTxns = true;
 			await Promise.all(promises);
 		}
 		clearWriteTxn(null);
+		if (hasUnresolvedTxns) {
+			env.resumeWriting();
+		}
 		function txnError(error, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error;
 			txnCallbacks[i] = CALLBACK_THREW;

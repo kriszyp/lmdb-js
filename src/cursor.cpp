@@ -23,10 +23,11 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 
 	DbiWrap *dw;
 	napi_unwrap(info.Env(), info[0], (void**)&dw);
-
+	int64_t tw_address = 0;
+	napi_get_value_int64(info.Env(), info[1], &tw_address);
 	// Open the cursor
 	MDB_cursor *cursor;
-	MDB_txn *txn = dw->ew->getReadTxn();
+	MDB_txn *txn = dw->ew->getReadTxn(tw_address);
 	int rc = mdb_cursor_open(txn, dw->dbi, &cursor);
 	if (rc != 0) {
 		throwLmdbError(info.Env(), rc);

@@ -2,7 +2,7 @@
 import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
 import { isMaster, fork } from 'cluster';
 import inspector from 'inspector'
-//inspector.open(9229, null, true); debugger
+inspector.open(9229, null, true);
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
 import rimraf from 'rimraf';
@@ -33,7 +33,7 @@ let bigString = 'big'
 for (let i = 0; i < 14; i++) {
   bigString += bigString
 }
-data.more = bigString
+//data.more = bigString
 console.log(bigString.length)
 var c = 0
 let result

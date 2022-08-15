@@ -138,9 +138,9 @@ Value DbiWrap::stat(const Napi::CallbackInfo& info) {
 	return stats;
 }
 
-int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t txnAddress) {
+int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t txnWrapAddress) {
 	char* keyBuffer = ew->keyBuffer;
-	MDB_txn* txn = txnAddress ? (MDB_txn*) txnAddress : ew->getReadTxn();
+	MDB_txn* txn = ew->getReadTxn(txnWrapAddress);
 	MDB_val key, data;
 	key.mv_size = keySize;
 	key.mv_data = (void*) keyBuffer;
