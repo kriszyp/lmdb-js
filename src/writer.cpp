@@ -404,7 +404,7 @@ void WriteWorker::Write() {
 			ReportError(mdb_strerror(rc));
 		return;
 	}
-	*(instructions + 1) = txnId;
+	*(instructions - 1) = txnId;
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 

@@ -41,11 +41,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let buffer = new LocalSharedArrayBuffer(WRITE_BUFFER_SIZE);
 		dynamicBytes = new ByteArray(buffer);
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
-		uint32[0] = 0;
+		uint32[2] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
 		buffer.address = getAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
-		dynamicBytes.position = 0;
+		dynamicBytes.position = 1; // we start at position 1 to save space for writing the txn id before the txn delimiter
 		return dynamicBytes;
 	}
 	var newBufferThreshold = (WRITE_BUFFER_SIZE - maxKeySize - 64) >> 3; // need to reserve more room if we do inline values
@@ -71,11 +71,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	maxFlushDelay = maxFlushDelay || 500;
 
 	allocateInstructionBuffer();
-	dynamicBytes.uint32[0] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
+	dynamicBytes.uint32[2] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
 	var txnResolution, lastQueuedResolution, nextResolution = {
-		uint32: dynamicBytes.uint32, flagPosition: 0, flag: 0, valueBuffer: null, next: null, meta: null };
+		uint32: dynamicBytes.uint32, flagPosition: 2, flag: 0, valueBuffer: null, next: null, meta: null };
 	var uncommittedResolution = {
-		uint32: null, flagPosition: 0, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
+		uint32: null, flagPosition: 2, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
 	var unwrittenResolution = nextResolution;
 	var lastPromisedResolution = uncommittedResolution;
 	let lastValue, valueBuffer;
@@ -231,7 +231,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let lastPosition = position;
 			targetBytes = allocateInstructionBuffer();
 			position = targetBytes.position;
-			float64[lastPosition + 1] = targetBytes.uint32.address + position;
+			float64[lastPosition + 1] = targetBytes.uint32.address + (position << 3);
 			uint32[lastPosition << 1] = 3; // pointer instruction
 			nextUint32 = targetBytes.uint32;
 		} else
@@ -463,7 +463,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 
 	function resolveCommit(async) {
-		afterCommit(txnResolution.uint32[txnResolution.flagPosition + 1]);
+		afterCommit(txnResolution.uint32[txnResolution.flagPosition - 1]);
 		if (async)
 			resetReadTxn();
 		else
