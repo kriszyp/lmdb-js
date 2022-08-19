@@ -48,12 +48,12 @@ export const CachingStore = (Store, env) => {
 			let entry = this.cache.get(id);
 			if (entry) {
 				let cachedValue = entry.value;
-				if (entry.txnId) {
+				if (entry.txnId != null) {
 					value = super.get(id, { ifNotTxnId: entry.txnId });
 					if (value === UNMODIFIED)
 						return cachedValue;
 				} else // with no txn id we do not validate; this is the state of a cached value after a write before it transacts
-					value = cachedValue;
+					return cachedValue;
 			} else
 				value = super.get(id);
 		} else {
