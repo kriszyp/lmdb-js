@@ -527,12 +527,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				let userTxnCallback = txnCallbacks[j];
 				let asChild = userTxnCallback.asChild;
 				if (asChild) {
-					if (promises) {
-						// must complete any outstanding transactions before proceeding
-						hasUnresolvedTxns = true;
-						await Promise.all(promises);
-						promises = null;
-					}
 					env.beginTxn(1); // abortable
 					let parentTxn = writeTxn;
 					env.writeTxn = writeTxn = { write: true };
@@ -558,9 +552,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						let result = userTxnCallback();
 						txnCallbacks[j] = result;
 						if (result && result.then) {
-							if (!promises)
-								promises = [];
-							promises.push(result.catch(error => txnError(error, txnCallbacks, j)));
+							hasUnresolvedTxns = true;
+							await result;
 						}
 					} catch(error) {
 						txnError(error, txnCallbacks, j);
@@ -569,10 +562,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 		}
 		nextTxnCallbacks = [];
-		if (promises) { // finish any outstanding commit functions
-			hasUnresolvedTxns = true;
-			await Promise.all(promises);
-		}
 		clearWriteTxn(null);
 		if (hasUnresolvedTxns) {
 			env.resumeWriting();
