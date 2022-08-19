@@ -223,7 +223,7 @@ export function open(path, options) {
 			}
 			if (Encoder) {
 				this.encoder = new Encoder(Object.assign(
-					assignConstrainedProperties(['copyBuffers', 'getStructures', 'saveStructures', 'useFloat32', 'useRecords', 'structuredClone', 'variableMapSize', 'useTimestamp32', 'largeBigIntToFloat', 'encodeUndefinedAsNil', 'int64AsNumber', 'onInvalidDate', 'mapsAsObjects', 'useTag259ForMaps', 'pack', 'maxSharedStructures', 'shouldShareStructure', 'randomAccessStructure', 'freezeData'],
+					assignConstrainedProperties(['copyBuffers', 'getStructure', 'getStructures', 'saveStructure', 'saveStructures', 'useFloat32', 'useRecords', 'structuredClone', 'variableMapSize', 'useTimestamp32', 'largeBigIntToFloat', 'encodeUndefinedAsNil', 'int64AsNumber', 'onInvalidDate', 'mapsAsObjects', 'useTag259ForMaps', 'pack', 'maxSharedStructures', 'shouldShareStructure', 'randomAccessStructure', 'freezeData'],
 					this.sharedStructuresKey ? this.setupSharedStructures() : {
 						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
 					}, options, dbOptions), this.encoder));
@@ -345,6 +345,27 @@ export function open(path, options) {
 					},  options.overlappingSync ? 0x10000 : 0);
 				},
 				getStructures,
+				getStructure: (id) => {
+					let lastVersion; // because we are doing a read here, we may need to save and restore the lastVersion from the last read
+					if (this.useVersions)
+						lastVersion = getLastVersion();
+					let buffer = this.getBinary([this.sharedStructuresKey, id]);
+					if (this.useVersions)
+						setLastVersion(lastVersion);
+					return buffer;
+				},
+				saveStructure: (id, structure, isCompatible) => {
+					return this.transactionSync(() => {
+						let key = [this.sharedStructuresKey, id];
+						let existingStructuresBuffer = this.getBinary(key);
+						let existingStructures = existingStructuresBuffer && this.decoder.decode(existingStructuresBuffer);
+						if (typeof isCompatible == 'function' ?
+							!isCompatible(existingStructures) :
+							(existingStructures && existingStructures.length != isCompatible))
+							return false; // it changed, we need to indicate that we couldn't update
+						this.put(key, structure);
+					},  options.overlappingSync ? 0x10000 : 0);
+				},
 				copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
 			};
 		}
