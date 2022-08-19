@@ -775,10 +775,12 @@ describe('lmdb-js', function() {
 			let promiseWithDelay = db.transaction(async () => {
 				await new Promise(resolve => setTimeout(resolve, 1));
 				db.put('key2', 'async test 2');
+				return 2;
 			});
 			let promise = db.transaction(async () => {
 				await new Promise(resolve => setTimeout(resolve, 1));
 				db.put('key3', 'async test 2');
+				return 3;
 			});
 			await db.committed;
 			await promiseWithDelay;
@@ -786,6 +788,8 @@ describe('lmdb-js', function() {
 			should.equal(db.get('key2'), 'async test 2');
 			should.equal(db.get('key3'), 'async test 2');
 			reportedError.message.should.equal('test');
+			should.equal(await promiseWithDelay, 2);
+			should.equal(await promise, 3);
 		});
 		it('child transaction in sync transaction', async function() {
 			if (db.cache)

@@ -72,12 +72,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 	allocateInstructionBuffer();
 	dynamicBytes.uint32[2] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
-	var txnResolution, lastQueuedResolution, nextResolution = {
+	var txnResolution, nextResolution = {
 		uint32: dynamicBytes.uint32, flagPosition: 2, flag: 0, valueBuffer: null, next: null, meta: null };
 	var uncommittedResolution = {
 		uint32: null, flagPosition: 2, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
 	var unwrittenResolution = nextResolution;
 	var lastPromisedResolution = uncommittedResolution;
+	var lastQueuedResolution = uncommittedResolution;
 	let lastValue, valueBuffer;
 	function writeInstructions(flags, store, key, value, version, ifVersion) {
 		let writeStatus;
@@ -768,7 +769,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		transactionAsync(callback, asChild) {
 			let txnIndex;
 			let txnCallbacks;
-			if (!nextResolution.callbacks) {
+			if (!lastQueuedResolution.callbacks) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
 				nextResolution.callbacks = txnCallbacks;
 				txnCallbacks.results = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this)();
