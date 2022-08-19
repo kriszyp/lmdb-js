@@ -763,6 +763,30 @@ describe('lmdb-js', function() {
 			should.equal(db2.get('key2-async'), 'async test 2');
 			should.equal(ranTransaction, true);
 		});
+		it('async transactions with async callbacks', async function() {
+			let reportedError;
+			let promiseWithError = db.transaction(async () => {
+				await new Promise(resolve => setTimeout(resolve, 1));
+				db.put('key1', 'async test 2');
+				throw new Error('test');
+			}).then(() => {
+				console.error('should not get here');
+			}, error => reportedError = error);
+			let promiseWithDelay = db.transaction(async () => {
+				await new Promise(resolve => setTimeout(resolve, 1));
+				db.put('key2', 'async test 2');
+			});
+			let promise = db.transaction(async () => {
+				await new Promise(resolve => setTimeout(resolve, 1));
+				db.put('key3', 'async test 2');
+			});
+			await db.committed;
+			await promiseWithDelay;
+			should.equal(db.get('key1'), 'async test 2');
+			should.equal(db.get('key2'), 'async test 2');
+			should.equal(db.get('key3'), 'async test 2');
+			reportedError.message.should.equal('test');
+		});
 		it('child transaction in sync transaction', async function() {
 			if (db.cache)
 				return

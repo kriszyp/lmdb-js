@@ -520,11 +520,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		env.writeTxn = writeTxn = { write: true };
 		//this.emit('begin-transaction');
 		let promises;
-		let txnCallbacks;
 		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
-			txnCallbacks = nextTxnCallbacks[i];
-			for (let i = 0, l = txnCallbacks.length; i < l; i++) {
-				let userTxnCallback = txnCallbacks[i];
+			let txnCallbacks = nextTxnCallbacks[i];
+			for (let j = 0, l = txnCallbacks.length; j < l; j++) {
+				let userTxnCallback = txnCallbacks[j];
 				let asChild = userTxnCallback.asChild;
 				if (asChild) {
 					if (promises) {
@@ -547,23 +546,23 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else
 							env.commitTxn();
 						clearWriteTxn(parentTxn);
-						txnCallbacks[i] = result;
+						txnCallbacks[j] = result;
 					} catch(error) {
 						clearWriteTxn(parentTxn);
 						env.abortTxn();
-						txnError(error, i);
+						txnError(error, txnCallbacks, j);
 					}
 				} else {
 					try {
 						let result = userTxnCallback();
-						txnCallbacks[i] = result;
+						txnCallbacks[j] = result;
 						if (result && result.then) {
 							if (!promises)
 								promises = [];
-							promises.push(result.catch(() => {}));
+							promises.push(result.catch(error => txnError(error, txnCallbacks, j)));
 						}
 					} catch(error) {
-						txnError(error, i);
+						txnError(error, txnCallbacks, j);
 					}
 				}
 			}
@@ -577,7 +576,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (hasUnresolvedTxns) {
 			env.resumeWriting();
 		}
-		function txnError(error, i) {
+		function txnError(error, txnCallbacks, i) {
 			(txnCallbacks.errors || (txnCallbacks.errors = []))[i] = error;
 			txnCallbacks[i] = CALLBACK_THREW;
 		}
