@@ -15,11 +15,11 @@ let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const { open: openFromCJS } = require('../dist/index.cjs');
+//const { open: openFromCJS } = require('../dist/index.cjs');
 import { createBufferForAddress, fs } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
-import { assert } from 'console';
 import { openAsClass } from '../open.js';
+import {Packr} from "msgpackr";
 describe('lmdb-js', function() {
 	let testDirPath = path.resolve(dirName, './testdata-ls');
 
@@ -1100,6 +1100,36 @@ describe('lmdb-js', function() {
 				await promise;
 				await dbMirror.close();
 			}
+		});
+		it.only('use random access structures', async function() {
+			let dbRAS = db.openDB(Object.assign({
+				name: 'random-access',
+				randomAccessStructure: true,
+				sharedStructuresKey: Symbol('shared-structure'),
+			}));
+			await dbRAS.put(1, {
+				id: 1,
+				name: 'one'
+			});
+			await dbRAS.put(2, {
+				id: 2,
+				name: 'two'
+			})
+			should.equal(dbRAS.get(1).name, 'one');
+			await dbRAS.close();
+			// re-open
+			dbRAS = db.openDB(Object.assign({
+				name: 'random-access',
+				randomAccessStructure: true,
+				sharedStructuresKey: Symbol('shared-structure'),
+			}));
+			should.equal(dbRAS.get(2).name, 'two');
+			await dbRAS.put(3, {
+				id: 3,
+				name: 'three',
+				isOdd: true
+			})
+			should.equal(dbRAS.get(3).name, 'three');
 		})
 		it('can backup and use backup', async function() {
 			if (options.encryptionKey) // it won't match the environment
