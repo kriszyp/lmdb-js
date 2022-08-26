@@ -1140,8 +1140,8 @@ describe('lmdb-js', function() {
 			let value = 'hello world'
 			for (let i = 0; i < 9; i++)
 				value += value
-			for (let i = 0; i < 20; i++) {
-				await db.put('for-backup-' + (i % 12), value.slice(0, i * 400));
+			for (let i = 0; i < 200; i++) {
+				await db.put('for-backup-' + (i % 120), value.slice(0, i * 20));
 			}
 			try {
 				fs.unlinkSync(testDirPath + '/backup.mdb');
@@ -1150,7 +1150,7 @@ describe('lmdb-js', function() {
 			await db.backup(testDirPath + '/backup.mdb', true);
 			let backupDb = open(testDirPath + '/backup.mdb', options);
 			try {
-				backupDb.get('for-backup-7').should.equal(value);
+				backupDb.get('for-backup-110').should.equal(value.slice(0,2200));
 				value += ' changed'
 				for (let i = 0; i < 10; i++) {
 					await backupDb.put('for-backup-' + i, value);
