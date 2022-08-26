@@ -1,4 +1,5 @@
-import { Compression, getAddress, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env, Dbi, tmpdir, os, nativeAddon } from './native.js';
+import { Compression, getAddress, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env,
+	Dbi, tmpdir, os, nativeAddon } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -30,6 +31,20 @@ let defaultCompression;
 let lastSize;
 let hasRegisteredOnExit;
 export function open(path, options) {
+	if (nativeAddon.open) {
+		if (nativeAddon.open !== open) {
+			// this is the case when lmdb-js has been opened in both ESM and CJS mode, which means that there are two
+			// separate JS modules, but they are both using the same native module.
+			getLastVersion = nativeAddon.getLastVersion;
+			getLastTxnId = nativeAddon.getLastTxnId;
+			setGetLastVersion(getLastVersion, getLastTxnId);
+			return nativeAddon.open(path, options);
+		}
+	} else {
+		nativeAddon.open = open;
+		nativeAddon.getLastVersion = getLastVersion;
+		nativeAddon.getLastTxnId = getLastTxnId;
+	}
 	if (!keyBytes) // TODO: Consolidate get buffer and key buffer (don't think we need both)
 		allocateFixedBuffer();
 	if (typeof path == 'object' && !options) {

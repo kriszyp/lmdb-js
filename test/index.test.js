@@ -15,7 +15,9 @@ let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-//const { open: openFromCJS } = require('../dist/index.cjs');
+// we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
+// that is webstorm debugging)
+const { open: openFromCJS } = process.env.TEST_CJS ? require('../dist/index.cjs') : {};
 import { createBufferForAddress, fs } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { openAsClass } from '../open.js';
@@ -1078,7 +1080,7 @@ describe('lmdb-js', function() {
 				options.batchStartThreshold = 5;
 				options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);
-				let dbMirror = openFromCJS(testDirPath + '/təst-close.mdb', options);
+				let dbMirror = openFromCJS ? openFromCJS(testDirPath + '/təst-close.mdb', options) : db;
 				for (let j = 0; j < 10; j++)
 					db.put('key', data);
 				let db2 = db.openDB({
@@ -1098,10 +1100,11 @@ describe('lmdb-js', function() {
 				let promise = db.close();
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
-				await dbMirror.close();
+				if (db !== dbMirror)
+					await dbMirror.close();
 			}
 		});
-		it.only('use random access structures', async function() {
+		it('use random access structures', async function() {
 			let dbRAS = db.openDB(Object.assign({
 				name: 'random-access',
 				randomAccessStructure: true,

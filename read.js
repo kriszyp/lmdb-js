@@ -602,7 +602,9 @@ export function addReadMethods(LMDBStore, {
 		},
 		close(callback) {
 			this.status = 'closing';
+			let txnPromise;
 			if (this.isRoot) {
+				// if it is root, we need to abort and/or wait for transactions to finish
 				if (readTxn) {
 					try {
 						readTxn.abort();
@@ -614,8 +616,8 @@ export function addReadMethods(LMDBStore, {
 					}
 				};
 				readTxnRenewed = null;
+				txnPromise = this._endWrites && this._endWrites();
 			}
-			let txnPromise = this._endWrites && this._endWrites();
 			const doClose = () => {
 				if (this.isRoot)
 					env.close();

@@ -21,7 +21,7 @@ const SYNC_PROMISE_FAIL = Promise.resolve(false);
 SYNC_PROMISE_SUCCESS.isSync = true;
 SYNC_PROMISE_FAIL.isSync = true;
 const PROMISE_SUCCESS = Promise.resolve(true);
-export const ABORT = {};
+export const ABORT = 4.452694326329068e-106; // random/unguessable numbers, which work across module/versions and native
 export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
 const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
