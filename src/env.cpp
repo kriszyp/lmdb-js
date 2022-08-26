@@ -173,8 +173,7 @@ class CopyWorker : public AsyncWorker {
 	void Execute() {
 		int rc = mdb_env_copy2(env, path.c_str(), flags);
 		if (rc != 0) {
-			fprintf(stderr, "Error on copy code: %u\n", rc);
-			SetError("Error on copy");
+			SetError(mdb_strerror(rc));
 		}
 	}
 

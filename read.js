@@ -163,7 +163,6 @@ export function addReadMethods(LMDBStore, {
 				Object.defineProperty(bytes, 'length', { value: newLength, writable: true, configurable: true });
 				this.compression.getValueBytes = bytes;
 			} else {
-				console.log('should not get here', newLength)
 				bytes = makeReusableBuffer(newLength);
 				setGlobalBuffer(getValueBytes = bytes);
 			}
