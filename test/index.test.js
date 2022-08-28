@@ -1050,7 +1050,7 @@ describe('lmdb-js', function() {
 			let index = 1, mult = 640;
 			index = 1
 			let results = []
-			while (index++ < 100) {
+			while (index++ < 80) {
 				const newBuff = Buffer.alloc(index*mult);
 				await db.put('test-key' + index, newBuff);
 				db.retainBinary(db.getBinaryFast('test-key' + index));
