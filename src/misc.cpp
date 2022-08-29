@@ -192,7 +192,8 @@ int putWithVersion(MDB_txn *   txn,
 	if (rc == 0) {
 		// if put is successful, data->mv_data will point into the database where we copy the data to
 		memcpy((char*) data->mv_data + 8, sourceData, size);
-		*((double*) data->mv_data) = version;
+		memcpy(data->mv_data, &version, 8);
+		//*((double*) data->mv_data) = version; // this doesn't work on ARM v7 because it is not (guaranteed) memory-aligned
 	}
 	data->mv_data = sourceData; // restore this so that if it points to data that needs to be freed, it points to the right place
 	return rc;
