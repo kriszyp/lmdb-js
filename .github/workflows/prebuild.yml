@@ -39,16 +39,43 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v2
         with:
-          node-version: 12
+          node-version: 14
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --output aarch64-linux-musl-cross.tgz
+      - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --output armv7l-linux-musleabihf-cross.tgz
+      - run: tar -xf armv7l-linux-musleabihf-cross.tgz && pwd && ls
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/x86_64-linux-musl-native.tgz --output x86_64-linux-musl-native.tgz
+      - run: tar -xf x86_64-linux-musl-native.tgz && pwd && ls
       - run: npm install
-      - run: npm run build
+      - run: npm run prebuild-libc-expanded
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PREBUILD_LIBC: musl
+          PREBUILD_ARCH: arm64
+          CC: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc
+          CXX: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++
+      - run: npm run prebuild-libc-expanded
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PREBUILD_LIBC: musl
+          PREBUILD_ARCH: arm
+          PREBUILD_ARMV: 7
+          CC: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-gcc
+          CXX: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-g++
+      - run: npm run prebuild-libc-expanded
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PREBUILD_LIBC: musl
+          PREBUILD_ARCH: x64
+          CC: ${PWD}/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc
+          CXX: ${PWD}/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++
       - run: npm run prebuild-libc-expanded
       - run: ls prebuilds/linux-x64
       #- run: cp prebuilds/linux-x64/node.abi93.glibc.node prebuilds/linux-x64/node.abi92.glibc.node
       #- run: npm run prebuildify
       #  env:
       #    ENABLE_FAST_API_CALLS: true
-      - run: npm test
+      - run: npm run build-js
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')
@@ -67,42 +94,6 @@ jobs:
       - run: npm run build
       #- run: npm run deno-test
       - run: npm test
-  build-alpine:
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-18.04
-    container: node:14-alpine
-    steps:
-      - run: apk add python3 py3-pip build-base git
-      - uses: actions/checkout@v2
-      - run: npm install --ignore-scripts
-      - run: wget https://musl.cc/aarch64-linux-musl-cross.tgz
-      - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
-      - run: npm run prebuild-libc-expanded
-        env:
-          PREBUILD_LIBC: musl
-          PREBUILD_ARCH: arm64
-          CC: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc
-          CXX: ${PWD}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++
-      - run: wget https://musl.cc/armv7l-linux-musleabihf-cross.tgz
-      - run: tar -xf armv7l-linux-musleabihf-cross.tgz && pwd && ls
-      - run: npm run prebuild-libc-expanded
-        env:
-          PREBUILD_LIBC: musl
-          PREBUILD_ARCH: arm
-          PREBUILD_ARMV: 7
-          CC: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-gcc
-          CXX: ${PWD}/armv7l-linux-musleabihf-cross/bin/armv7l-linux-musleabihf-g++
-      - run: npm run prebuild-libc-expanded
-        env:
-          PREBUILD_LIBC: musl
-      - run: npm run build
-      - run: npm test
-      - run: tar --create --verbose --file=prebuild-alpine.tar -C prebuilds .
-      - name: Prebuild
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: prebuild-alpine.tar
   build-linux-arm:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-18.04
