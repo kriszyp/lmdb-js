@@ -42,7 +42,7 @@ export const CachingStore = (Store, env) => {
 	get isCaching() {
 		return true
 	}
-	get(id, cacheMode) {
+	get(id, options) {
 		let value;
 		if (this.cache.validated) {
 			let entry = this.cache.get(id);
@@ -63,7 +63,7 @@ export const CachingStore = (Store, env) => {
 			}
 			value = super.get(id);
 		}
-		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
+		if (value && typeof value === 'object' && !options && typeof id !== 'object') {
 			let entry = this.cache.setValue(id, value, this.lastSize >> 10);
 			if (this.useVersions) {
 				entry.version = getLastVersion();

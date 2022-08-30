@@ -192,7 +192,7 @@ export function addReadMethods(LMDBStore, {
 			if (this.decoderCopies) {
 				// the decoder copies any data, so we can use the fast binary retrieval that overwrites the same buffer space
 				let bytes = this.getBinaryFast(id, options);
-				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes));
+				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes, options));
 			}
 			if (this.encoding == 'binary')
 				return this.getBinary(id, options);

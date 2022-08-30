@@ -1118,7 +1118,7 @@ describe('lmdb-js', function() {
 				id: 2,
 				name: 'two'
 			})
-			should.equal(dbRAS.get(1).name, 'one');
+			should.equal(dbRAS.get(1, { lazy: true }).name, 'one');
 			await dbRAS.close();
 			// re-open
 			dbRAS = db.openDB(Object.assign({
@@ -1126,7 +1126,7 @@ describe('lmdb-js', function() {
 				randomAccessStructure: true,
 				sharedStructuresKey: Symbol('shared-structure'),
 			}));
-			should.equal(dbRAS.get(2).name, 'two');
+			should.equal(dbRAS.get(2, { lazy: true }).name, 'two');
 			await dbRAS.put(3, {
 				id: 3,
 				name: 'three',
