@@ -10,5 +10,6 @@ jobs:
       - run: git clone https://github.com/kriszyp/parcel-segfault-repro.git
       - run: npm install
       - run: npm run build-js
+      - run: npm run recompile
       - run: npm link
       - run: cd parcel-segfault-repro && npm install && npm link lmdb && chmod 777 multiple.sh && ./multiple.sh
