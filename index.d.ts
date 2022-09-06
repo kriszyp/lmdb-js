@@ -32,6 +32,15 @@ declare namespace lmdb {
 		getBinaryFast(id: K): Buffer | undefined
 
 		/**
+		 * For random access structures and "fast" binary data, the underlying data is volatile,
+		 * and not safe to access after the next get. This function allows the data to
+		 * be copied as needed for safe access in the future. This can be used with buffers and random
+		 * access data structures.
+		 * @param data The data to be copied
+		 **/
+		retain(data: any): any
+
+		/**
 		* Asynchronously fetch the values stored by the given ids and accesses all 
 		* pages to ensure that any hard page faults and disk I/O are performed
 		* asynchronously in a separate thread. Once completed, synchronous

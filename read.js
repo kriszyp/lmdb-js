@@ -7,11 +7,13 @@ const Uint8ArraySlice = Uint8Array.prototype.slice;
 const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
 let getValueBytes = globalBuffer;
 if (!getValueBytes.maxLength) {
-	 getValueBytes.maxLength = getValueBytes.length;
-	 Object.defineProperty(getValueBytes, 'length', { value: getValueBytes.length, writable: true, configurable: true });
+	getValueBytes.maxLength = getValueBytes.length;
+	getValueBytes.isGlobal = true;
+	Object.defineProperty(getValueBytes, 'length', { value: getValueBytes.length, writable: true, configurable: true });
 }
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
+const SOURCE_SYMBOL = Symbol.for('source');
 export const UNMODIFIED = {};
 
 let unreadResolution = {};
@@ -98,16 +100,23 @@ export function addReadMethods(LMDBStore, {
 			});
 			return promise;
 		},
-		retainBinary(buffer) {
-			if (!buffer)
+		retain(data) {
+			if (!data)
 				return
+			let source = data[SOURCE_SYMBOL];
+			let buffer = source ? source.bytes : data;
 			if (!buffer.isGlobal && !env.writeTxn) {
 				let txn = explicitTxn || (readTxnRenewed ? readTxn : renewReadTxn(this));
 				buffer.txn = txn;
 				txn.refCount = (txn.refCount || 0) + 1;
-				return buffer;
+				return data;
 			} else {
-				return Uint8ArraySlice.call(buffer, 0, this.lastSize);
+				buffer = Uint8ArraySlice.call(buffer, 0, this.lastSize);
+				if (source) {
+					source.bytes = buffer;
+					return data;
+				} else
+					return buffer;
 			}
 		},
 		_returnLargeBuffer(getFast) {

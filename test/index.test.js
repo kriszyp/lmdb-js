@@ -1046,6 +1046,41 @@ describe('lmdb-js', function() {
 				await db.clearAsync();
 			}
 		})
+		it('use random access structures with retain', async function() {
+			let dbRAS = db.openDB(Object.assign({
+				name: 'random-access',
+				randomAccessStructure: true,
+				sharedStructuresKey: Symbol('shared-structure'),
+			}));
+			await dbRAS.put(1, {
+				id: 1,
+				name: 'one'
+			});
+			let text = 'hello-world';
+			for (let i = 0; i < 13; i++) {
+				text += text;
+			}
+			await dbRAS.put(2, {
+				id: 2,
+				name: 'two',
+				text
+			})
+			await dbRAS.put(3, {
+				id: 3,
+				name: 'three'
+			})
+			let one = dbRAS.get(1, { lazy: true });
+			dbRAS.retain(one);
+			let two = dbRAS.get(2, { lazy: true });
+			dbRAS.retain(two);
+			let three = dbRAS.get(3, { lazy: true });
+			dbRAS.retain(three);
+			should.equal(one.name, 'one');
+			should.equal(two.name, 'two');
+			should.equal(three.name, 'three');
+			await dbRAS.close();
+		})
+
 		it('larger buffers, retained', async function() {
 			let index = 1, mult = 640;
 			index = 1
@@ -1053,7 +1088,7 @@ describe('lmdb-js', function() {
 			while (index++ < 80) {
 				const newBuff = Buffer.alloc(index*mult);
 				await db.put('test-key' + index, newBuff);
-				db.retainBinary(db.getBinaryFast('test-key' + index));
+				db.retain(db.getBinaryFast('test-key' + index));
 			}
 		})
 		it('concurrent txns', async function() {
