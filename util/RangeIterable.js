@@ -1,4 +1,8 @@
 const SKIP = {};
+const DONE = {
+	value: null,
+	done: true,
+}
 if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
 }
@@ -14,6 +18,7 @@ export class RangeIterable {
 		let result = new RangeIterable();
 		result.iterate = (async) => {
 			let iterator = source[Symbol.iterator](async);
+			let i = 0;
 			return {
 				next(resolvedResult) {
 					let result;
@@ -32,16 +37,19 @@ export class RangeIterable {
 							this.done = true;
 							return iteratorResult;
 						}
-						result = func(iteratorResult.value);
+						result = func(iteratorResult.value, i++);
 						if (result && result.then) {
 							return result.then(result =>
-								result == SKIP ?
+								result === SKIP ?
 									this.next() :
 									{
 										value: result
 									});
 						}
-					} while(result == SKIP)
+					} while(result === SKIP)
+					if (result === DONE) {
+						return result;
+					}
 					return {
 						value: result
 					};
@@ -98,6 +106,17 @@ export class RangeIterable {
 			return concatIterator;
 		};
 		return concatIterable;
+	}
+	slice(start, end) {
+		return this.map((element, i) => {
+			if (i < start)
+				return SKIP;
+			if (i >= end) {
+				DONE.value = element;
+				return DONE;
+			}
+			return element;
+		});
 	}
 	next() {
 		if (!this.iterator)
