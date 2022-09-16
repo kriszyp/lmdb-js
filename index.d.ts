@@ -8,7 +8,7 @@ declare namespace lmdb {
 		* Get the value stored by given id/key
 		* @param id The key for the entry
 		**/
-		get(id: K): V | undefined
+		get(id: K, options?: GetOptions): V | undefined
 		/**
 		* Get the entry stored by given id/key, which includes both the value and the version number (if available)
 		* @param id The key for the entry
@@ -342,6 +342,8 @@ declare namespace lmdb {
 		threshold?: number
 		dictionary?: Buffer
 	}
+	interface GetOptions {
+	}
 	interface RangeOptions {
 		/** Starting key for a range **/
 		start?: Key
@@ -358,7 +360,7 @@ declare namespace lmdb {
 		/** Use a snapshot of the database from when the iterator started **/
 		snapshot?: boolean
 		/** Use the provided transaction for this range query */
-		transaction: Transaction
+		transaction?: Transaction
 	}
 	interface PutOptions {
 		/* Append to the database using MDB_APPEND, which can be faster */
