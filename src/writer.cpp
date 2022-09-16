@@ -242,7 +242,10 @@ next_inst:	start = instruction++;
 				if (rc) {
 				    // not found counts as version 0, so this is acceptable for conditional less than,
 				    // otherwise does not validate
-                    validated = rc == MDB_NOTFOUND && (flags & CONDITIONAL_ALLOW_NOTFOUND);
+					if (rc == MDB_NOTFOUND)
+						validated = flags & CONDITIONAL_ALLOW_NOTFOUND;
+					else
+						worker->ReportError(mdb_strerror(rc));
 				} else if (conditionalVersion != ANY_VERSION) {
 					double version;
 					memcpy(&version, conditionalValue.mv_data, 8);
@@ -255,7 +258,12 @@ next_inst:	start = instruction++;
 			}
 			if ((flags & IF_NO_EXISTS) && (flags & START_CONDITION_BLOCK)) {
 				rc = mdb_get(txn, dbi, &key, &value);
-				validated = validated && rc == MDB_NOTFOUND;
+				if (!rc)
+					validated = false;
+				else if (rc == MDB_NOTFOUND)
+					validated = true;
+				else
+					worker->ReportError(mdb_strerror(rc));
 			}
 		} else
 			instruction++;
