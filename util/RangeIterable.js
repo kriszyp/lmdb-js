@@ -86,7 +86,7 @@ export class RangeIterable {
 		concatIterable.iterate = (async) => {
 			let iterator = this.iterator = this.iterate();
 			let isFirst = true;
-			let concatIterator = {
+			return {
 				next() {
 					let result = iterator.next();
 					if (isFirst && result.done) {
@@ -103,10 +103,52 @@ export class RangeIterable {
 					return iterator.throw();
 				}
 			};
-			return concatIterator;
 		};
 		return concatIterable;
 	}
+
+	flatMap(callback) {
+		let mappedIterable = new RangeIterable();
+		mappedIterable.iterate = (async) => {
+			let iterator = this.iterator = this.iterate(async);
+			let isFirst = true;
+			let currentSubIterator;
+			return {
+				next() {
+					do {
+						if (currentSubIterator) {
+							let result = currentSubIterator.next();
+							if (!result.done) {
+								return result;
+							}
+						}
+						let result = iterator.next();
+						if (result.done)
+							return result;
+						let value = callback(result.value);
+						if (Array.isArray(value) || value instanceof RangeIterable)
+							currentSubIterator = value[Symbol.iterator]();
+						else {
+							currentSubIterator = null;
+							return { value };
+						}
+					} while(true);
+				},
+				return() {
+					if (currentSubIterator)
+						currentSubIterator.return();
+					return iterator.return();
+				},
+				throw() {
+					if (currentSubIterator)
+						currentSubIterator.throw();
+					return iterator.throw();
+				}
+			};
+		};
+		return mappedIterable;
+	}
+
 	slice(start, end) {
 		return this.map((element, i) => {
 			if (i < start)
