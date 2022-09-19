@@ -274,6 +274,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (writeStatus & TXN_DELIMITER) {
 				commitPromise = null; // TODO: Don't reset these if this comes from the batch start operation on an event turn batch
 				flushPromise = null;
+				flushResolvers = [];
 				queueCommitResolution(resolution);
 				if (!startAddress) {
 					startAddress = uint32.address + (flagPosition << 2);
@@ -359,7 +360,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			enqueuedCommit = null;
 		}
 		let resolvers = flushResolvers;
-		flushResolvers = [];
 		let start = Date.now();
 		env.startWriting(startAddress, (status) => {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
@@ -393,18 +393,20 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	function scheduleFlush(resolvers, delay) {
 		if (committedFlushResolvers)
-			committedFlushResolvers.push(...resolvers)
+			committedFlushResolvers.push(resolvers);
 		else {
-			committedFlushResolvers = resolvers
+			committedFlushResolvers = [resolvers];
 			lastFlushTimeout = setTimeout(lastFlushCallback = () => {
 				lastFlushTimeout = null;
 				lastSync.then(() => {
-					let resolvers = committedFlushResolvers || [];
+					let resolverSets = committedFlushResolvers || [];
 					committedFlushResolvers = null;
 					lastSync = new Promise((resolve) => {
 						env.sync(() => {
-							for (let i = 0; i < resolvers.length; i++)
-								resolvers[i]();
+							for (let resolvers of resolverSets) {
+								for (let resolver of resolvers)
+									resolver();
+							}
 							resolve();
 						});
 					});
