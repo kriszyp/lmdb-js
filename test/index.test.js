@@ -1121,6 +1121,7 @@ describe('lmdb-js', function() {
 				options.batchStartThreshold = 5;
 				options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);
+				console.log({openFromCJS})
 				let dbMirror = openFromCJS ? openFromCJS(testDirPath + '/təst-close.mdb', options) : db;
 				for (let j = 0; j < 10; j++) {
 					db.put('key', data);

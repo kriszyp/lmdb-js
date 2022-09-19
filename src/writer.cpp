@@ -143,10 +143,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		uint64_t delay = 1;
 		do {
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
-			fprintf(stderr, "waited %u\n", delay);
 			delay = delay << 1ll;
-			//if (delay > 500)
-				//fprintf(stderr, "waited, %llu %p\n", delay, *target);
+			if (delay > 500)
+				fprintf(stderr, "waited, %llu %p\n", delay, target);
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
@@ -158,6 +157,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 				fprintf(stderr, "waited for callback\n");
 				return 0;
 			}
+			fprintf(stderr, "waiting again\n");
 		} while(interruptionStatus != INTERRUPT_BATCH);
 	} else
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
