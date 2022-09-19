@@ -50,6 +50,7 @@ describe('lmdb-js', function() {
 		compression: false,
 		overlappingSync: true,
 		noMemInit: true,
+		trackMetrics: true,
 		pageSize: 0x2000,
 	}));
 	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
@@ -206,7 +207,12 @@ describe('lmdb-js', function() {
 			should.equal(db.get('key0'), undefined)
 			should.equal(db.get('hello'), undefined)
 			should.equal(db.get('key1'), 'one')
-		})
+		});
+		if (options.trackMetrics)
+		it('track metrics', async function() {
+			await db.put('key1', 'Hello world!');
+			expect(db.getStats().timeDuringTxns).gt(0);
+		});
 		it('string', async function() {
 			await db.put('key1', 'Hello world!');
 			let data = db.get('key1');

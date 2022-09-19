@@ -646,7 +646,7 @@ export function addReadMethods(LMDBStore, {
 			let txn = env.writeTxn || explicitTxn || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			let dbStats = this.db.stat();
 			dbStats.root = env.stat();
-			dbStats.env = env.info();
+			Object.assign(dbStats, env.info());
 			dbStats.free = env.freeStat();
 			return dbStats;
 		},

@@ -119,7 +119,8 @@ export function open(path, options) {
 		(options.noMemInit ? 0x1000000 : 0) |
 		(options.usePreviousSnapshot ? 0x2000000 : 0) |
 		(options.remapChunks ? 0x4000000 : 0) |
-		(options.safeRestore ? 0x8000000 : 0);
+		(options.safeRestore ? 0x8000000 : 0) |
+		(options.trackMetrics ? 0x10000000 : 0);
 
 	let env = new Env();
 	let jsFlags = (options.overlappingSync ? 0x1000 : 0) |
