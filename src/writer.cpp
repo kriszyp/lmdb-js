@@ -142,6 +142,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	if (target) {
 		uint64_t delay = 1;
 		do {
+			fprintf(stderr, "env: %p \n", envForTxn->env);
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 1ll;
 			if (delay > 500)
