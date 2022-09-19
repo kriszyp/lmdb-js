@@ -200,3 +200,4 @@ export class RangeIterable {
 		return this.asArray;
 	}
 }
+RangeIterable.prototype.DONE = DONE;
