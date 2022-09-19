@@ -17,7 +17,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
 // that is webstorm debugging)
-const { open: openFromCJS } = (true||process.env.TEST_CJS) ? require('../dist/index.cjs') : {};
+const { open: openFromCJS } = (false) ? require('../dist/index.cjs') : {};
 import { createBufferForAddress, fs } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { openAsClass } from '../open.js';

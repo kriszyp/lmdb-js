@@ -4325,7 +4325,6 @@ retry_seek:
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		fprintf(stderr, "tracking flush\n");
-
 		((MDB_metrics*) env->me_userctx)->writes += write_i;
 		((MDB_metrics*) env->me_userctx)->page_flushes++;
 		((MDB_metrics*) env->me_userctx)->pages_written += pagecount - keep;
@@ -11142,7 +11141,9 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
 	MDB_env* env = txn->mt_env;
 	if (env->me_flags & MDB_TRACK_METRICS) {
+		fprintf(stderr, "mdb_put ");
 		((MDB_metrics*) env->me_userctx)->puts++;
+		fprintf(stderr, "mdb_put finish\n");
 	}
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
