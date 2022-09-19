@@ -138,6 +138,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	clock_t start;
 	if (envForTxn->trackMetrics)
 		start = clock();
+	fprintf(stderr, "started clock\n");
 	if (target) {
 		uint64_t delay = 1;
 		do {
@@ -148,7 +149,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
+				fprintf(stderr, "checking metrics\n");
 				if (envForTxn->trackMetrics) {
+					fprintf(stderr, "incrementing time for waiting\n");
 					envForTxn->timeTxnWaiting += clock() - start;
 				}
 				fprintf(stderr, "waited for callback\n");
