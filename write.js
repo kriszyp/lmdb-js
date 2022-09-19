@@ -55,7 +55,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var committed;
 	var abortedNonChildTransactionWarn;
 	var nextTxnCallbacks = [];
-	var commitPromise, flushPromise, flushResolvers = [];
+	var commitPromise, flushPromise, flushResolvers = [], batchFlushResolvers = [];
 	commitDelay = commitDelay || 0;
 	eventTurnBatching = eventTurnBatching === false ? false : true;
 	var enqueuedCommit;
@@ -280,8 +280,19 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					startAddress = uint32.address + (flagPosition << 2);
 				}
 			}
-			if (!flushPromise && overlappingSync)
-				flushPromise = new Promise(resolve => flushResolvers.push(resolve));
+			if (!writtenBatchDepth && batchFlushResolvers.length > 0) {
+				flushResolvers.push(...batchFlushResolvers);
+				batchFlushResolvers = [];
+			}
+			if (!flushPromise && overlappingSync) {
+				flushPromise = new Promise(resolve => {
+					if (writtenBatchDepth) {
+						batchFlushResolvers.push(resolve);
+					} else {
+						flushResolvers.push(resolve);
+					}
+				});
+			}
 			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
 				write(env.address, 0);
 			}
