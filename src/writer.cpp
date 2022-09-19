@@ -130,7 +130,7 @@ void AsyncWriteWorker::ReportError(const char* error) {
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
-	//fprintf(stderr, "wait for callback %p\n", target);
+	fprintf(stderr, "wait for callback %p\n", target);
 	if (!finishedProgress)
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
@@ -148,6 +148,10 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
+				if (envForTxn->trackMetrics) {
+					envForTxn->timeTxnWaiting += clock() - start;
+				}
+				fprintf(stderr, "waited for callback\n");
 				return 0;
 			}
 		} while(interruptionStatus != INTERRUPT_BATCH);
@@ -156,6 +160,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	if (envForTxn->trackMetrics) {
 		envForTxn->timeTxnWaiting += clock() - start;
 	}
+	fprintf(stderr, "waited for callback2\n");
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;

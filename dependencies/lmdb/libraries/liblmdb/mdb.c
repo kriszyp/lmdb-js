@@ -4090,6 +4090,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	MDB_page	*dp = NULL;
 	clock_t		start = 0;
 	int			write_i = 0;
+	fprintf(stderr, "page flush\n");
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		start = clock();
 	}
@@ -4372,6 +4373,7 @@ done:
 	dl[0].mid = j;
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_page_flushes += clock() - start;
+		fprintf(stderr, "flush end\n");
 	}
 	return MDB_SUCCESS;
 }
