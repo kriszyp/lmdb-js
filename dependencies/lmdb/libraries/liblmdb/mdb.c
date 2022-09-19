@@ -3388,6 +3388,7 @@ mdb_txn_renew0(MDB_txn *txn)
 			txn->mt_txnid = meta->mm_txnid;
 		}
 		if (env->me_flags & MDB_TRACK_METRICS) {
+			fprintf(stderr, "got lock\n");
 			clock_t now = clock();
 			((MDB_metrics*) env->me_userctx)->time_start_txns += now - ((MDB_metrics*) env->me_userctx)->clock_txn;
 			((MDB_metrics*) env->me_userctx)->clock_txn = now;
@@ -4323,6 +4324,8 @@ retry_seek:
 	 */
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 	if (env->me_flags & MDB_TRACK_METRICS) {
+		fprintf(stderr, "tracking flush\n");
+
 		((MDB_metrics*) env->me_userctx)->writes += write_i;
 		((MDB_metrics*) env->me_userctx)->page_flushes++;
 		((MDB_metrics*) env->me_userctx)->pages_written += pagecount - keep;

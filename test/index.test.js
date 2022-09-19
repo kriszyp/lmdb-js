@@ -45,7 +45,7 @@ describe('lmdb-js', function() {
 		});
 	});
 	let testIteration = 0
-	describe('Basic use', basicTests({ }));
+	//describe('Basic use', basicTests({ }));
 	describe('Basic use with overlapping sync', basicTests({
 		compression: false,
 		overlappingSync: true,
@@ -53,12 +53,12 @@ describe('lmdb-js', function() {
 		trackMetrics: true,
 		pageSize: 0x2000,
 	}));
-	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
+	/*describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
 	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
 	if (typeof WeakRef != 'undefined')
-		describe('Basic use with caching', basicTests({ cache: { validated: true } }));
+		describe('Basic use with caching', basicTests({ cache: { validated: true } }));*/
 	function basicTests(options) { return function() {
 		this.timeout(1000000);
 		let db, db2, db3;
@@ -1110,7 +1110,7 @@ describe('lmdb-js', function() {
 			await Promise.all(finishedTxns);
 			console.log('all done')
 		});
-		it('open and close', async function() {
+		it.only('open and close', async function() {
 			if (options.encryptionKey) // it won't match the environment
 				return;
 			let data = ''
@@ -1122,8 +1122,10 @@ describe('lmdb-js', function() {
 				options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);
 				let dbMirror = openFromCJS ? openFromCJS(testDirPath + '/təst-close.mdb', options) : db;
-				for (let j = 0; j < 10; j++)
+				for (let j = 0; j < 10; j++) {
 					db.put('key', data);
+					console.log('put', i)
+				}
 				let db2 = db.openDB({
 					name: 'child'
 				})
@@ -1135,6 +1137,7 @@ describe('lmdb-js', function() {
 					v = db.get('key2')
 					v = db.get('key3')
 					db.put('key', data);
+					console.log('put again')
 					if (i == 4)
 						await db.put('key', data);
 				}
