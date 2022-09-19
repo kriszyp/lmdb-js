@@ -1119,21 +1119,21 @@ describe('lmdb-js', function() {
 			}
 			for (let i = 0; i < 10; i++) {
 				options.batchStartThreshold = 5;
-				options.safeRestore = i % 2 == 0;
+				//options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);
-				console.log({openFromCJS})
-				let dbMirror = openFromCJS ? openFromCJS(testDirPath + '/təst-close.mdb', options) : db;
+				//console.log({openFromCJS})
+				//let dbMirror = openFromCJS ? openFromCJS(testDirPath + '/təst-close.mdb', options) : db;
 				for (let j = 0; j < 10; j++) {
 					db.put('key', data);
 					console.log('put', i)
 				}
-				let db2 = db.openDB({
+				/*let db2 = db.openDB({
 					name: 'child'
 				})
-				db2.get('test')
+				db2.get('test')*/
 				if (i > 0) {
 					let v = db.get('key')
-					v.should.equal(dbMirror.get('key'))
+					//v.should.equal(dbMirror.get('key'))
 					v = db.get('key1')
 					v = db.get('key2')
 					v = db.get('key3')
@@ -1147,8 +1147,8 @@ describe('lmdb-js', function() {
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
 				console.log('closed');
-				if (db !== dbMirror)
-					await dbMirror.close();
+				//if (db !== dbMirror)
+				//	await dbMirror.close();
 			}
 		});
 		it('use random access structures', async function() {
