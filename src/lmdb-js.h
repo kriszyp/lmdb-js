@@ -310,6 +310,8 @@ public:
 	WriteWorker* writeWorker;
 	bool readTxnRenewed;
     bool hasWrites;
+	bool trackMetrics;
+	clock_t timeTxnWaiting;
 	unsigned int jsFlags;
 	char* keyBuffer;
 	int pageSize;

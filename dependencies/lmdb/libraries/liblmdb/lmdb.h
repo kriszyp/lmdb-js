@@ -375,6 +375,8 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_REMAP_CHUNKS	0x4000000
 	/** Don't consult boot_id and assume that only the "flushed" txn is valid */
 #define MDB_SAFE_RESTORE	0x8000000
+	/** Track metrics for this env */
+#define MDB_TRACK_METRICS	0x10000000
 	/** Use the overlapping sync strategy */
 #define MDB_OVERLAPPINGSYNC_SYNC = 0x02
 /** @} */
@@ -539,6 +541,20 @@ typedef enum MDB_cursor_op {
 	/** The last defined error code */
 #define MDB_LAST_ERRCODE	MDB_EMPTY_TXN
 /** @} */
+
+typedef struct MDB_metrics {
+	mdb_size_t puts;
+	mdb_size_t deletes;
+	mdb_size_t txns;
+	mdb_size_t page_flushes;
+	mdb_size_t writes;
+	mdb_size_t pages_written;
+	clock_t clock_txn;
+	clock_t time_during_txns;
+	clock_t time_start_txns;
+	clock_t time_page_flushes;
+	clock_t time_sync;
+} MDB_metrics;
 
 /** @brief Statistics for a database in the environment */
 typedef struct MDB_stat {

@@ -3074,6 +3074,11 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY)
 		return EACCES;
+	clock_t start = 0;
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		start = clock();
+	}
+
 	if (force || !(env->me_flags & MDB_NOSYNC)
 #ifdef _WIN32	/* Sync is normally achieved in Windows by doing WRITE_THROUGH writes */
 	 && (env->me_flags & MDB_WRITEMAP)
@@ -3098,6 +3103,9 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 			if (MDB_FDATASYNC(env->me_fd))
 				rc = ErrCode();
 		}
+	}
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->time_sync += clock() - start;
 	}
 	return rc;
 }
@@ -3366,6 +3374,9 @@ mdb_txn_renew0(MDB_txn *txn)
 
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			((MDB_metrics*) env->me_userctx)->clock_txn = clock();
+		}
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
@@ -3374,6 +3385,11 @@ mdb_txn_renew0(MDB_txn *txn)
 		} else {
 			meta = mdb_env_pick_meta(env);
 			txn->mt_txnid = meta->mm_txnid;
+		}
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			clock_t now = clock();
+			((MDB_metrics*) env->me_userctx)->time_start_txns += now - ((MDB_metrics*) env->me_userctx)->clock_txn;
+			((MDB_metrics*) env->me_userctx)->clock_txn = now;
 		}
 		txn->mt_txnid++;
 #if MDB_DEBUG
@@ -4070,10 +4086,14 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	MDB_OFF_T	pos = 0;
 	pgno_t		pgno = 0;
 	MDB_page	*dp = NULL;
+	clock_t		start = 0;
+	int			write_i = 0;
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		start = clock();
+	}
 #ifdef _WIN32
 	OVERLAPPED	*ov, *this_ov;
 	MDB_page	*wdp;
-	int async_i = 0;
 	HANDLE fd = (txn->mt_flags & MDB_NOSYNC) ? env->me_fd : env->me_ovfd;
 #else
 	struct iovec iov[MDB_COMMIT_PAGES];
@@ -4199,7 +4219,7 @@ retry_write:
 				rc = 0;
 				/* Write previous page(s) */
 #ifdef _WIN32
-				this_ov = &ov[async_i];
+				this_ov = &ov[write_i];
 				/* Clear status, and keep hEvent, we reuse that */
 				this_ov->Internal = 0;
 				this_ov->Offset = wpos & 0xffffffff;
@@ -4221,7 +4241,6 @@ retry_write:
 					}
 					rc = 0;
 				}
-				async_i++;
 #else /* _WIN32 */
 #ifdef MDB_USE_PWRITEV
 				wres = pwritev(fd, iov, n, wpos);
@@ -4254,6 +4273,7 @@ retry_seek:
 					}
 				}
 #endif /* _WIN32 */
+				write_i++;
 				if (rc)
 					return rc;
 				n = 0;
@@ -4301,6 +4321,11 @@ retry_seek:
 	 * flushed.
 	 */
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->writes += write_i;
+		((MDB_metrics*) env->me_userctx)->page_flushes++;
+		((MDB_metrics*) env->me_userctx)->pages_written += pagecount - keep;
+	}
 
 #ifdef _WIN32
 	if (!(txn->mt_flags & MDB_NOSYNC)) {
@@ -4309,9 +4334,9 @@ retry_seek:
 		* we reduce thread suspend/resuming (in practice, typically about 99.5% of writes are
 		* done after the last write is done) */
 		rc = 0;
-		while (--async_i >= 0) {
-			if (ov[async_i].hEvent) {
-				if (!GetOverlappedResult(fd, &ov[async_i], &wres, TRUE)) {
+		while (--write_i >= 0) {
+			if (ov[write_i].hEvent) {
+				if (!GetOverlappedResult(fd, &ov[write_i], &wres, TRUE)) {
 					rc = ErrCode(); /* Continue on so that all the event signals are reset */
 				}
 			}
@@ -4342,7 +4367,9 @@ done:
 	i--;
 	txn->mt_dirty_room += i - j;
 	dl[0].mid = j;
-
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->time_page_flushes += clock() - start;
+	}
 	return MDB_SUCCESS;
 }
 
@@ -4604,6 +4631,11 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 done:
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->time_during_txns += clock() - ((MDB_metrics*) env->me_userctx)->clock_txn;
+		((MDB_metrics*) env->me_userctx)->txns++;
+	}
+
 	mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
 
@@ -6197,7 +6229,7 @@ mdb_env_envflags(MDB_env *env)
 	 */
 #define	CHANGEABLE	(MDB_NOSYNC|MDB_NOMETASYNC|MDB_MAPASYNC|MDB_NOMEMINIT)
 #define	CHANGELESS	(MDB_FIXEDMAP|MDB_NOSUBDIR|MDB_RDONLY| \
-	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC|MDB_SAFE_RESTORE)
+	MDB_WRITEMAP|MDB_NOTLS|MDB_NOLOCK|MDB_NORDAHEAD|MDB_PREVSNAPSHOT|MDB_REMAP_CHUNKS|MDB_OVERLAPPINGSYNC|MDB_SAFE_RESTORE|MDB_TRACK_METRICS)
 #define EXPOSED		(CHANGEABLE|CHANGELESS | MDB_ENCRYPT)
 
 #if VALID_FLAGS & PERSISTENT_FLAGS & EXPOSED
@@ -10609,7 +10641,10 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
 		/* must ignore any data */
 		data = NULL;
 	}
-
+	MDB_env* env = txn->mt_env;
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->deletes++;
+	}
 	return mdb_del0(txn, dbi, key, data, 0);
 }
 
@@ -11101,6 +11136,10 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 
 	if (txn->mt_flags & (MDB_TXN_RDONLY|MDB_TXN_BLOCKED))
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
+	MDB_env* env = txn->mt_env;
+	if (env->me_flags & MDB_TRACK_METRICS) {
+		((MDB_metrics*) env->me_userctx)->puts++;
+	}
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
 	mc.mc_next = txn->mt_cursors[dbi];

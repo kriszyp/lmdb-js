@@ -135,6 +135,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = WORKER_WAITING;
+	clock_t start;
+	if (envForTxn->trackMetrics)
+		start = clock();
 	if (target) {
 		uint64_t delay = 1;
 		do {
@@ -150,6 +153,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		} while(interruptionStatus != INTERRUPT_BATCH);
 	} else
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+	if (envForTxn->trackMetrics) {
+		envForTxn->timeTxnWaiting += clock() - start;
+	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
