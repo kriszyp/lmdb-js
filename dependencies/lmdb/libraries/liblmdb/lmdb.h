@@ -169,6 +169,7 @@
 #include <sys/types.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
