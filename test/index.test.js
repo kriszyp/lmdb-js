@@ -17,7 +17,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
 // that is webstorm debugging)
-const { open: openFromCJS } = process.env.TEST_CJS ? require('../dist/index.cjs') : {};
+const { open: openFromCJS } = (true||process.env.TEST_CJS) ? require('../dist/index.cjs') : {};
 import { createBufferForAddress, fs } from '../native.js'
 import { RangeIterable } from '../util/RangeIterable.js'
 import { openAsClass } from '../open.js';
@@ -1138,9 +1138,11 @@ describe('lmdb-js', function() {
 					if (i == 4)
 						await db.put('key', data);
 				}
+				console.log('closing');
 				let promise = db.close();
 				expect(() => db.put('key1', data)).to.throw();
 				await promise;
+				console.log('closed');
 				if (db !== dbMirror)
 					await dbMirror.close();
 			}

@@ -3375,6 +3375,7 @@ mdb_txn_renew0(MDB_txn *txn)
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
 		if (env->me_flags & MDB_TRACK_METRICS) {
+			fprintf(stderr, "start tracking txn\n");
 			((MDB_metrics*) env->me_userctx)->clock_txn = clock();
 		}
 		if (ti) {

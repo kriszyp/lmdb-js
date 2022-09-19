@@ -335,8 +335,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
 	pthread_mutex_lock(envTracking->envsLock);
+	fprintf(stderr, "opening env ");
 	rc = mdb_env_open(env, path, flags, 0664);
-
+	fprintf(stderr, "opened env\n");
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
 		if (trackMetrics) {
