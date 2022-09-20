@@ -375,9 +375,9 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 	/** don't use a single mmap, remap individual chunks (needs MDB_RPAGE_CACHE) */
 #define MDB_REMAP_CHUNKS	0x4000000
 	/** Don't consult boot_id and assume that only the "flushed" txn is valid */
-#define MDB_SAFE_RESTORE	0x8000000
+#define MDB_SAFE_RESTORE	0x800
 	/** Track metrics for this env */
-#define MDB_TRACK_METRICS	0x10000000
+#define MDB_TRACK_METRICS	0x400
 	/** Use the overlapping sync strategy */
 #define MDB_OVERLAPPINGSYNC_SYNC = 0x02
 /** @} */

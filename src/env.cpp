@@ -320,13 +320,13 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_check_fd(env, checkExistingEnvs);
-	trackMetrics = false;//!!(flags & MDB_TRACK_METRICS);
-	/*if (trackMetrics) {
+	trackMetrics = !!(flags & MDB_TRACK_METRICS);
+	if (trackMetrics) {
 		metrics = new MDB_metrics;
 		memset(metrics, 0, sizeof(MDB_metrics));
 		rc = mdb_env_set_userctx(env, (void*) metrics);
 		if (rc) goto fail;
-	}*/
+	}
 	#endif
 
 	timeTxnWaiting = 0;
@@ -340,9 +340,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	fprintf(stderr, "opened env\n");
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
-		/*if (trackMetrics) {
+		if (trackMetrics) {
 			delete metrics;
-		}*/
+		}
 		#endif
 		if (rc == EXISTING_ENV_FOUND) {
 			mdb_env_close(env);
@@ -605,9 +605,9 @@ void EnvWrap::closeEnv(bool hasLock) {
 				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
-				/*if (envFlags & MDB_TRACK_METRICS) {
+				if (envFlags & MDB_TRACK_METRICS) {
 					delete (MDB_metrics*) mdb_env_get_userctx(env);
-				}*/
+				}
 				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
