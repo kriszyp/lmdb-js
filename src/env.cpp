@@ -612,6 +612,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
+				fprintf(stderr, "close env %u\n",clock());
 				mdb_env_close(env);
 				for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end();) {
 					if (bufferRef->second.env == env) {

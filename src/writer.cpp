@@ -142,7 +142,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	if (target) {
 		uint64_t delay = 1;
 		do {
-			fprintf(stderr, "env: %p \n", envForTxn->env);
+			fprintf(stderr, "env: %p %p %u\n", envForTxn->env, this, clock());
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 1ll;
 			if (delay > 500)
@@ -480,6 +480,7 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[1].As<Function>());
+	fprintf(stderr, "new worker %p", worker);
 	this->writeWorker = worker;
 	worker->Queue();
 	return info.Env().Undefined();
