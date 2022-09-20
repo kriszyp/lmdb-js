@@ -3374,10 +3374,10 @@ mdb_txn_renew0(MDB_txn *txn)
 
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
-		if (env->me_flags & MDB_TRACK_METRICS) {
+		/*if (env->me_flags & MDB_TRACK_METRICS) {
 			fprintf(stderr, "start tracking txn %u\n");
 			((MDB_metrics*) env->me_userctx)->clock_txn = clock();
-		}
+		}*/
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
@@ -3387,12 +3387,12 @@ mdb_txn_renew0(MDB_txn *txn)
 			meta = mdb_env_pick_meta(env);
 			txn->mt_txnid = meta->mm_txnid;
 		}
-		if (env->me_flags & MDB_TRACK_METRICS) {
+		/*if (env->me_flags & MDB_TRACK_METRICS) {
 			fprintf(stderr, "got lock\n");
 			clock_t now = clock();
 			((MDB_metrics*) env->me_userctx)->time_start_txns += now - ((MDB_metrics*) env->me_userctx)->clock_txn;
 			((MDB_metrics*) env->me_userctx)->clock_txn = now;
-		}
+		}*/
 		txn->mt_txnid++;
 #if MDB_DEBUG
 		if (txn->mt_txnid == mdb_debug_start)
@@ -4637,10 +4637,10 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 done:
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_during_txns += clock() - ((MDB_metrics*) env->me_userctx)->clock_txn;
 		((MDB_metrics*) env->me_userctx)->txns++;
-	}
+	}*/
 
 	mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
@@ -10648,9 +10648,9 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
 		data = NULL;
 	}
 	MDB_env* env = txn->mt_env;
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->deletes++;
-	}
+	}*/
 	return mdb_del0(txn, dbi, key, data, 0);
 }
 
@@ -11143,11 +11143,11 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 	if (txn->mt_flags & (MDB_TXN_RDONLY|MDB_TXN_BLOCKED))
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
 	MDB_env* env = txn->mt_env;
-	fprintf(stderr, "mdb_put ");
+	/*fprintf(stderr, "mdb_put ");
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->puts++;
 		fprintf(stderr, "mdb_put finish\n");
-	}
+	}*/
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
 	mc.mc_next = txn->mt_cursors[dbi];
