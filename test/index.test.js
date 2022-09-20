@@ -1117,7 +1117,7 @@ describe('lmdb-js', function() {
 			for (let i = 0; i < 1000; i++) {
 				data += Math.random()
 			}
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 2; i++) {
 				options.batchStartThreshold = 5;
 				//options.safeRestore = i % 2 == 0;
 				let db = open(testDirPath + '/təst-close.mdb', options);

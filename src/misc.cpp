@@ -8,7 +8,25 @@ using namespace Napi;
 
 static thread_local char* globalUnsafePtr;
 static thread_local size_t globalUnsafeSize;
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
 
+
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
 void setupExportMisc(Napi::Env env, Object exports) {
 	Object versionObj = Object::New(env);
 
@@ -34,6 +52,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	napi_create_buffer(env, SHARED_BUFFER_THRESHOLD, (void**) &globalUnsafePtr, &globalBuffer);
 	globalUnsafeSize = SHARED_BUFFER_THRESHOLD;
 	exports.Set("globalBuffer", Object(env, globalBuffer));
+  signal(SIGSEGV, handler);   // install our handler
 }
 
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options) {
