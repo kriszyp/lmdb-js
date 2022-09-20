@@ -320,7 +320,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_check_fd(env, checkExistingEnvs);
-	trackMetrics = !!(flags & MDB_TRACK_METRICS);
+	trackMetrics = false;//!!(flags & MDB_TRACK_METRICS);
 	/*if (trackMetrics) {
 		metrics = new MDB_metrics;
 		memset(metrics, 0, sizeof(MDB_metrics));
