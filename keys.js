@@ -17,6 +17,7 @@ const readBufferKey = (target, start, end) => {
 	return Uint8ArraySlice.call(target, start, end);
 };
 
+let lastEncodedValue, bytes;
 export function applyKeyHandling(store) {
  	if (store.encoding == 'ordered-binary') {
 		store.encoder = store.decoder = {
@@ -26,9 +27,15 @@ export function applyKeyHandling(store) {
 	}
 	if (store.encoder && store.encoder.writeKey && !store.encoder.encode) {
 		store.encoder.encode = function(value, mode) {
-			let bytes = saveKey(value, this.writeKey, false, store.maxKeySize);
+			if (typeof value !== 'object' && value && value === lastEncodedValue) {
+				// reuse the last serialized bytes
+				// NOTE that it is very important that nothing else calls saveKey with saveTo: false
+			} else {
+				lastEncodedValue = value;
+				bytes = saveKey(value, this.writeKey, false, store.maxKeySize);
+			}
 			if (bytes.end > 0 && !(REUSE_BUFFER_MODE & mode)) {
-				return bytes.subarray(bytes.start, bytes.end)
+				return bytes.subarray(bytes.start, bytes.end);
 			}
 			return bytes;
 		};
