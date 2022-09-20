@@ -372,6 +372,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		let resolvers = flushResolvers;
 		let start = Date.now();
+		console.log('start writing')
 		env.startWriting(startAddress, (status) => {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
@@ -400,6 +401,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 			}
 		});
+		console.log('started writing')
 		startAddress = 0;
 	}
 	function scheduleFlush(resolvers, delay) {
