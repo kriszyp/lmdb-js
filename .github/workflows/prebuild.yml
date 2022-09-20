@@ -111,6 +111,8 @@ jobs:
     runs-on: ubuntu-18.04
     container: node:14-stretch
     steps:
+      - run: apt-get update
+      - run: apt-get install glibc-tools
       - run: echo "LMDB_DATA_V1 is $LMDB_DATA_V1"
       - uses: actions/checkout@v2
       - uses: denoland/setup-deno@v1
@@ -119,7 +121,7 @@ jobs:
       - run: npm install
       - run: npm run build
       #- run: npm run deno-test
-      - run: npm test
+      - run: catchsegv npm test
         env:
           TEST_CJS: true
   build-linux-arm:
