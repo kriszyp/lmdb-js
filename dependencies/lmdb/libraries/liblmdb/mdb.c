@@ -3375,7 +3375,7 @@ mdb_txn_renew0(MDB_txn *txn)
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
 		if (env->me_flags & MDB_TRACK_METRICS) {
-			fprintf(stderr, "start tracking txn %u\n", gettid());
+			fprintf(stderr, "start tracking txn %u\n");
 			((MDB_metrics*) env->me_userctx)->clock_txn = clock();
 		}
 		if (ti) {
@@ -4389,7 +4389,7 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if (txn == NULL)
 		return EINVAL;
-	fprintf(stderr, "done with txn %u\n", gettid());
+	fprintf(stderr, "done with txn %u\n");
 
 	/* mdb_txn_end() mode for a commit which writes nothing */
 	end_mode = MDB_END_EMPTY_COMMIT|MDB_END_UPDATE|MDB_END_SLOT|MDB_END_FREE;

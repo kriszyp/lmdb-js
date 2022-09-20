@@ -30,14 +30,7 @@
 #include <ctime>
 #include <napi.h>
 #include <node_api.h>
-#include <unistd.h>
-#include <sys/syscall.h>
 
-#ifndef SYS_gettid
-#error "SYS_gettid unavailable on this system"
-#endif
-
-#define gettid() ((pid_t)syscall(SYS_gettid))
 #include "lmdb.h"
 #include "lz4.h"
 #ifdef MDB_RPAGE_CACHE
