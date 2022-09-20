@@ -135,9 +135,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = WORKER_WAITING;
-	clock_t start;
+	/*clock_t start;
 	if (envForTxn->trackMetrics)
-		start = clock();
+		start = clock();*/
 	fprintf(stderr, "started clock\n");
 	if (target) {
 		uint64_t delay = 1;
@@ -151,10 +151,10 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				interruptionStatus = 0;
 				fprintf(stderr, "checking metrics\n");
-				if (envForTxn->trackMetrics) {
+				/*if (envForTxn->trackMetrics) {
 					fprintf(stderr, "incrementing time for waiting\n");
 					envForTxn->timeTxnWaiting += clock() - start;
-				}
+				}*/
 				fprintf(stderr, "waited for callback\n");
 				return 0;
 			}
@@ -162,9 +162,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		} while(interruptionStatus != INTERRUPT_BATCH);
 	} else
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-	if (envForTxn->trackMetrics) {
+	/*if (envForTxn->trackMetrics) {
 		envForTxn->timeTxnWaiting += clock() - start;
-	}
+	}*/
 	fprintf(stderr, "waited for callback2\n");
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
