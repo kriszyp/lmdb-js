@@ -3074,10 +3074,10 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY)
 		return EACCES;
-	clock_t start = 0;
+	/*clock_t start = 0;
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		start = clock();
-	}
+	}*/
 
 	if (force || !(env->me_flags & MDB_NOSYNC)
 #ifdef _WIN32	/* Sync is normally achieved in Windows by doing WRITE_THROUGH writes */
@@ -3104,9 +3104,9 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 				rc = ErrCode();
 		}
 	}
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_sync += clock() - start;
-	}
+	}*/
 	return rc;
 }
 
@@ -4091,9 +4091,9 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	clock_t		start = 0;
 	int			write_i = 0;
 	fprintf(stderr, "page flush\n");
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		start = clock();
-	}
+	}*/
 #ifdef _WIN32
 	OVERLAPPED	*ov, *this_ov;
 	MDB_page	*wdp;
@@ -4324,12 +4324,12 @@ retry_seek:
 	 * flushed.
 	 */
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		fprintf(stderr, "tracking flush\n");
 		((MDB_metrics*) env->me_userctx)->writes += write_i;
 		((MDB_metrics*) env->me_userctx)->page_flushes++;
 		((MDB_metrics*) env->me_userctx)->pages_written += pagecount - keep;
-	}
+	}*/
 
 #ifdef _WIN32
 	if (!(txn->mt_flags & MDB_NOSYNC)) {
@@ -4371,10 +4371,10 @@ done:
 	i--;
 	txn->mt_dirty_room += i - j;
 	dl[0].mid = j;
-	if (env->me_flags & MDB_TRACK_METRICS) {
+	/*if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_page_flushes += clock() - start;
 		fprintf(stderr, "flush end\n");
-	}
+	}*/
 	return MDB_SUCCESS;
 }
 
@@ -11143,8 +11143,8 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 	if (txn->mt_flags & (MDB_TXN_RDONLY|MDB_TXN_BLOCKED))
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
 	MDB_env* env = txn->mt_env;
+	fprintf(stderr, "mdb_put ");
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		fprintf(stderr, "mdb_put ");
 		((MDB_metrics*) env->me_userctx)->puts++;
 		fprintf(stderr, "mdb_put finish\n");
 	}

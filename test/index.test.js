@@ -50,7 +50,7 @@ describe('lmdb-js', function() {
 		compression: false,
 		overlappingSync: true,
 		noMemInit: true,
-		trackMetrics: false,
+		trackMetrics: true,
 		pageSize: 0x2000,
 	}));
 	/*describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
