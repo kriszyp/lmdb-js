@@ -591,7 +591,7 @@ export function addReadMethods(LMDBStore, {
 			if (!callback)
 				return new Promise(resolve => callback = resolve);
 		},
-		startReadTransaction() {
+		useReadTransaction() {
 			let txn = explicitTxn || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			txn.use = function(action) {

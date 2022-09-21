@@ -128,7 +128,7 @@ declare namespace lmdb {
 		* @param key The key for the entry to remove
 		* @param options The options for the iterator
 		**/
-		getValues(key: K, options?: RangeOptions): ArrayLikeIterable<V>
+		getValues(key: K, options?: RangeOptions): RangeIterable<V>
 		/**
 		* Get the count of all the values for the given key (for dupsort databases)
 		* existing version
@@ -140,7 +140,7 @@ declare namespace lmdb {
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getKeys(options?: RangeOptions): ArrayLikeIterable<K>
+		getKeys(options?: RangeOptions): RangeIterable<K>
 		/**
 		* Get the count of all the unique keys for the given range
 		* existing version
@@ -152,7 +152,7 @@ declare namespace lmdb {
 		* existing version
 		* @param options The options for the range/iterator
 		**/
-		getRange(options?: RangeOptions): ArrayLikeIterable<{ key: K, value: V, version?: number }>
+		getRange(options?: RangeOptions): RangeIterable<{ key: K, value: V, version?: number }>
 		/**
 		* Get the count of all the entries for the given range
 		* existing version
@@ -273,8 +273,10 @@ declare namespace lmdb {
 		resetReadTxn(): void
 		/**
 		* Make a snapshot copy of the current database at the indicated path
+	  * @param path Path to store the backup
+		* @param compact Apply compaction while making the backup (slower and smaller)
 		**/
-		backup(path: string): Promise<void>
+		backup(path: string, compact: boolean): Promise<void>
 		/**
 		* Close the current database.
 		**/
@@ -382,9 +384,11 @@ declare namespace lmdb {
 		/* Indicates that the function can return before the transaction has been flushed to disk */
 		NO_SYNC_FLUSH = 0x10000
 	}
-	class ArrayLikeIterable<T> implements Iterable<T> {
-		map<U>(callback: (entry: T) => U): ArrayLikeIterable<U>
-		filter(callback: (entry: T) => any): ArrayLikeIterable<T>
+	class RangeIterable<T> implements Iterable<T> {
+		map<U>(callback: (entry: T) => U): RangeIterable<U>
+		flatMap<U>(callback: (entry: T) => U[]): RangeIterable<U>
+		slice(start: number, end: number): RangeIterable<T>
+		filter(callback: (entry: T) => any): RangeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
 		asArray: T[]
