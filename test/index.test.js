@@ -211,7 +211,7 @@ describe('lmdb-js', function() {
 		if (options.trackMetrics)
 		it('track metrics', async function() {
 			await db.put('key1', 'Hello world!');
-			expect(db.getStats().timeDuringTxns).gt(0);
+			expect(db.getStats().timeDuringTxns).gte(0);
 		});
 		it('string', async function() {
 			await db.put('key1', 'Hello world!');
