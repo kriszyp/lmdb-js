@@ -528,9 +528,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	async function executeTxnCallbacks() {
 		env.writeTxn = writeTxn = { write: true };
-		//this.emit('begin-transaction');
-		let promises;
-		for (let i = 0, l = nextTxnCallbacks.length; i < l; i++) {
+		nextTxnCallbacks.isExecuting = true;
+		for (let i = 0; i < nextTxnCallbacks.length; i++) {
 			let txnCallbacks = nextTxnCallbacks[i];
 			for (let j = 0, l = txnCallbacks.length; j < l; j++) {
 				let userTxnCallback = txnCallbacks[j];
@@ -727,7 +726,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
 		},
 		transaction(callback) {
-			if (writeTxn) {
+			if (writeTxn && !nextTxnCallbacks.isExecuting) {
 				// already nested in a transaction, just execute and return
 				return callback();
 			}
@@ -736,7 +735,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		childTransaction(callback) {
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode');
-			if (writeTxn) {
+			if (writeTxn && !nextTxnCallbacks.isExecuting) {
 				let parentTxn = writeTxn;
 				env.writeTxn = writeTxn = { write: true };
 				env.beginTxn(1); // abortable
@@ -767,7 +766,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		transactionAsync(callback, asChild) {
 			let txnIndex;
 			let txnCallbacks;
-			if (!lastQueuedResolution.callbacks) {
+			if (nextTxnCallbacks.isExecuting) {
+				txnCallbacks = [asChild ? { callback, asChild } : callback];
+				nextTxnCallbacks.push(txnCallbacks);
+				txnIndex = 0;
+			} else if (!lastQueuedResolution.callbacks) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
 				nextResolution.callbacks = txnCallbacks;
 				txnCallbacks.results = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this)();
