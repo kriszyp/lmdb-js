@@ -459,7 +459,6 @@ NAPI_FUNCTION(getSharedBuffer) {
 				return returnValue;
 			}
 			if (buffer->env) {
-				fprintf(stderr, "env changed");
 				// if for some reason it is different env that didn't get cleaned up
 				napi_value arrayBuffer;
 				napi_get_reference_value(env, buffer->ref, &arrayBuffer);
