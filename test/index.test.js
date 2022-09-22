@@ -1138,7 +1138,6 @@ describe('lmdb-js', function() {
 					})));
 			}
 			await Promise.all(finishedTxns);
-			console.log('all done')
 		});
 		it('open and close', async function() {
 			if (options.encryptionKey) // it won't match the environment
@@ -1240,7 +1239,6 @@ describe('lmdb-js', function() {
 				// should have open read, write, and cursor transactions
 				await db2.close();
 				await db.close();
-				console.log('done')
 				if (options.encryptionKey) {
 					return done();
 				}

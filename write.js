@@ -243,6 +243,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			next: null,
 			meta: null,
 		};
+		lastQueuedResolution = resolution;
+
 		let writtenBatchDepth = batchDepth;
 
 		return (callback) => {
@@ -317,7 +319,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				};
 			}
 			resolution.valueBuffer = valueBuffer;
-			lastQueuedResolution = resolution;
 
 			if (callback) {
 				if (callback === IF_EXISTS)
@@ -766,19 +767,21 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		transactionAsync(callback, asChild) {
 			let txnIndex;
 			let txnCallbacks;
-			if (nextTxnCallbacks.isExecuting) {
+			if (lastQueuedResolution.callbacks) {
+				txnCallbacks = lastQueuedResolution.callbacks;
+				txnIndex = txnCallbacks.push(asChild ? { callback, asChild } : callback) - 1;
+			} else if (nextTxnCallbacks.isExecuting) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
 				txnCallbacks.results = commitPromise;
 				nextTxnCallbacks.push(txnCallbacks);
 				txnIndex = 0;
-			} else if (!lastQueuedResolution.callbacks) {
-				txnCallbacks = [asChild ? { callback, asChild } : callback];
-				nextResolution.callbacks = txnCallbacks;
-				txnCallbacks.results = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this)();
-				txnIndex = 0;
 			} else {
-				txnCallbacks = lastQueuedResolution.callbacks;
-				txnIndex = txnCallbacks.push(asChild ? { callback, asChild } : callback) - 1;
+				let finishWrite = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this);
+				txnCallbacks = [asChild ? { callback, asChild } : callback];
+				lastQueuedResolution.callbacks = txnCallbacks;
+				lastQueuedResolution.id = Math.random();
+				txnCallbacks.results = finishWrite();
+				txnIndex = 0;
 			}
 			return txnCallbacks.results.then((results) => {
 				let result = txnCallbacks[txnIndex];
