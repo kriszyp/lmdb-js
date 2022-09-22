@@ -550,11 +550,11 @@ typedef struct MDB_metrics {
 	mdb_size_t page_flushes;
 	mdb_size_t writes;
 	mdb_size_t pages_written;
-	clock_t clock_txn;
-	clock_t time_during_txns;
-	clock_t time_start_txns;
-	clock_t time_page_flushes;
-	clock_t time_sync;
+	uint64_t clock_txn;
+	uint64_t time_during_txns;
+	uint64_t time_start_txns;
+	uint64_t time_page_flushes;
+	uint64_t time_sync;
 } MDB_metrics;
 
 /** @brief Statistics for a database in the environment */

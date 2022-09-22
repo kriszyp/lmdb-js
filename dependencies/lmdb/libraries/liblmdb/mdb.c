@@ -3067,6 +3067,11 @@ fail:
 	txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
+uint64_t get_time64() {
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return time.tv_sec * 1000000000ll + time.tv_nsec;
+}
 
 int
 mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
@@ -3074,9 +3079,9 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY)
 		return EACCES;
-	clock_t start = 0;
+	uint64_t start = 0;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		start = clock();
+		start = get_time64();
 	}
 
 	if (force || !(env->me_flags & MDB_NOSYNC)
@@ -3105,7 +3110,7 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 		}
 	}
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_sync += clock() - start;
+		((MDB_metrics*) env->me_userctx)->time_sync += get_time64() - start;
 	}
 	return rc;
 }
@@ -3375,7 +3380,7 @@ mdb_txn_renew0(MDB_txn *txn)
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
 		if (env->me_flags & MDB_TRACK_METRICS) {
-			((MDB_metrics*) env->me_userctx)->clock_txn = clock();
+			((MDB_metrics*) env->me_userctx)->clock_txn = get_time64();
 		}
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
@@ -3387,7 +3392,7 @@ mdb_txn_renew0(MDB_txn *txn)
 			txn->mt_txnid = meta->mm_txnid;
 		}
 		if (env->me_flags & MDB_TRACK_METRICS) {
-			clock_t now = clock();
+			uint64_t now = get_time64();
 			((MDB_metrics*) env->me_userctx)->time_start_txns += now - ((MDB_metrics*) env->me_userctx)->clock_txn;
 			((MDB_metrics*) env->me_userctx)->clock_txn = now;
 		}
@@ -4085,10 +4090,10 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	MDB_OFF_T	pos = 0;
 	pgno_t		pgno = 0;
 	MDB_page	*dp = NULL;
-	clock_t		start = 0;
+	uint64_t		start = 0;
 	int			write_i = 0;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		start = clock();
+		start = get_time64();
 	}
 #ifdef _WIN32
 	OVERLAPPED	*ov, *this_ov;
@@ -4367,7 +4372,7 @@ done:
 	txn->mt_dirty_room += i - j;
 	dl[0].mid = j;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_page_flushes += clock() - start;
+		((MDB_metrics*) env->me_userctx)->time_page_flushes += get_time64() - start;
 	}
 	return MDB_SUCCESS;
 }
@@ -4631,7 +4636,7 @@ mdb_txn_commit(MDB_txn *txn)
 
 done:
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_during_txns += clock() - ((MDB_metrics*) env->me_userctx)->clock_txn;
+		((MDB_metrics*) env->me_userctx)->time_during_txns += get_time64() - ((MDB_metrics*) env->me_userctx)->clock_txn;
 		((MDB_metrics*) env->me_userctx)->txns++;
 	}
 

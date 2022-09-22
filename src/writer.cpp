@@ -135,29 +135,28 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = WORKER_WAITING;
-	clock_t start;
+	uint64_t start;
 	if (envForTxn->trackMetrics)
-		start = clock();
+		start = get_time64();
 	if (target) {
 		uint64_t delay = 1;
 		do {
 			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
 			delay = delay << 1ll;
-			//if (delay > 500)
-				//fprintf(stderr, "waited, %llu %p\n", delay, *target);
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 				if (envForTxn->trackMetrics) {
-					envForTxn->timeTxnWaiting += clock() - start;
+					envForTxn->timeTxnWaiting += get_time64() - start;
 				}
 				interruptionStatus = 0;
 				return 0;
 			}
 		} while(interruptionStatus != INTERRUPT_BATCH);
-	} else
+	} else {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+    }
 	if (envForTxn->trackMetrics) {
-		envForTxn->timeTxnWaiting += clock() - start;
+		envForTxn->timeTxnWaiting += get_time64() - start;
 	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
@@ -193,10 +192,11 @@ int WriteWorker::DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instructio
 	double conditionalVersion, setVersion = 0;
 	bool overlappedWord = !!worker;
 	uint32_t* start;
-		do {
+    do {
 next_inst:	start = instruction++;
 		uint32_t flags = *start;
 		MDB_dbi dbi = 0;
+		//fprintf(stderr, "do %u %u\n", flags, get_time64());
 		bool validated = conditionDepth == validatedDepth;
 		if (flags & 0xf0c0) {
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);

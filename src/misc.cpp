@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <node_version.h>
+#include <time.h>
 
 using namespace Napi;
 
@@ -307,7 +308,7 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 	return 0;
 }
 
-int pthread_cond_init(pthread_cond_t *cond, pthread_condattr_t *attr)
+int cond_init(pthread_cond_t *cond)
 {
 	(void)attr;
 	if (cond == NULL)
@@ -358,17 +359,29 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 }
 
 #else
+int cond_init(pthread_cond_t *cond) {
+    pthread_condattr_t attr;
+    pthread_condattr_init( &attr);
+    pthread_condattr_setclock( &attr, CLOCK_MONOTONIC);
+    return pthread_cond_init(cond, &attr);
+}
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
 {
 	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 	uint64_t ns = ts.tv_nsec + cms * 10000;
 	ts.tv_sec += ns / 1000000000;
-	ts.tv_nsec += ns % 1000000000;
+	ts.tv_nsec = ns % 1000000000;
 	return pthread_cond_timedwait(cond, mutex, &ts);
 }
 
 #endif
+
+uint64_t get_time64() {
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return time.tv_sec * 1000000000ll + time.tv_nsec;
+}
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

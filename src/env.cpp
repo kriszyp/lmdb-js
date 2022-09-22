@@ -52,7 +52,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->writingCond = new pthread_cond_t;
 	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 	pthread_mutex_init(this->writingLock, nullptr);
-	pthread_cond_init(this->writingCond, nullptr);
+	cond_init(this->writingCond);
 }
 MDB_env* foundEnv;
 const int EXISTING_ENV_FOUND = 10;
@@ -705,11 +705,11 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (this->trackMetrics) {
 		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_userctx(this->env);
-		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / CLOCKS_PER_SEC));
-		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / CLOCKS_PER_SEC));
-		stats.Set("timePageFlushes", Number::New(info.Env(), (double) metrics->time_page_flushes / CLOCKS_PER_SEC));
-		stats.Set("timeSync", Number::New(info.Env(), (double) metrics->time_sync / CLOCKS_PER_SEC));
-		stats.Set("timeTxnWaiting", Number::New(info.Env(), (double) timeTxnWaiting / CLOCKS_PER_SEC));
+		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / 1000000000));
+		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / 1000000000));
+		stats.Set("timePageFlushes", Number::New(info.Env(), (double) metrics->time_page_flushes / 1000000000));
+		stats.Set("timeSync", Number::New(info.Env(), (double) metrics->time_sync / 1000000000));
+		stats.Set("timeTxnWaiting", Number::New(info.Env(), (double) timeTxnWaiting / 1000000000));
 		stats.Set("txns", Number::New(info.Env(), metrics->txns));
 		stats.Set("pageFlushes", Number::New(info.Env(), metrics->page_flushes));
 		stats.Set("pagesWritten", Number::New(info.Env(), metrics->pages_written));
