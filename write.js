@@ -733,10 +733,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			return this.transactionAsync(callback);
 		},
-		childTransaction(callback) {
+		childTransaction(callback, flags) {
 			if (useWritemap)
 				throw new Error('Child transactions are not supported in writemap mode');
-			if (writeTxn && !nextTxnCallbacks.isExecuting) {
+			if (writeTxn && !nextTxnCallbacks.isExecuting && !flags) {
 				let parentTxn = writeTxn;
 				env.writeTxn = writeTxn = { write: true };
 				env.beginTxn(1); // abortable
@@ -792,9 +792,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		transactionSync(callback, flags) {
 			if (writeTxn) {
-				if (!useWritemap && !this.isCaching) // can't use child transactions in write maps or caching stores
+				if (!useWritemap && !this.isCaching && (!flags || (flags & 1))) // can't use child transactions in write maps or caching stores
 					// already nested in a transaction, execute as child transaction (if possible) and return
-					return this.childTransaction(callback);
+					return this.childTransaction(callback, flags || 1);
 				let result = callback(); // else just run in current transaction
 				if (result == ABORT && !abortedNonChildTransactionWarn) {
 					console.warn('Can not abort a transaction inside another transaction with ' + (this.cache ? 'caching enabled' : 'useWritemap enabled'));
