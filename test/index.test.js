@@ -789,21 +789,30 @@ describe('lmdb-js', function() {
 				db.put('key2', 'async test 2');
 				return 2;
 			});
+			await delay(1);
 			let promise = db.transaction(async () => {
 				await delay(1);
 				order.push(3);
 				db.put('key3', 'async test 2');
 				return 3;
 			});
+			let promise2 = db.transaction(async () => {
+				await delay(1);
+				order.push(4);
+				db.put('key3', 'async test 2');
+				return 4;
+			});
 			await delay(5);
 			let promiseError = db.transaction(async () => {
 				throw new Error('test2')
 			});
-			let promise2 = db.transaction(async () => {
+			let promise3 = db.transaction(async () => {
 				await delay(1);
-				order.push(4);
-				return 4;
+				order.push(5);
+				return 5;
 			});
+			should.equal(await promise3, 5);
+			order.should.deep.equal([0,1,2,3,4,5]);
 			should.equal(await promise2, 4);
 			await db.committed;
 			await promiseWithDelay;
@@ -811,7 +820,6 @@ describe('lmdb-js', function() {
 			should.equal(db.get('key2'), 'async test 2');
 			should.equal(db.get('key3'), 'async test 2');
 			reportedError.message.should.equal('test');
-			order.should.deep.equal([0,1,2,3,4]);
 			should.equal(await promiseWithDelay, 2);
 			should.equal(await promise, 3);
 			try {
