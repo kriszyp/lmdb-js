@@ -98,7 +98,8 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 		if (interruptionStatus == RESTART_WORKER_TXN) {
 			*flags |= TXN_FROM_WORKER;
 			return nullptr;
-		} else if (interruptionStatus == WORKER_WAITING) {
+		} else if (interruptionStatus == WORKER_WAITING || interruptionStatus == INTERRUPT_BATCH) {
+		    interruptionStatus = WORKER_WAITING;
 		    goto retry;
 		} else {
 			return nullptr;
@@ -115,7 +116,6 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 }
 
 void WriteWorker::UnlockTxn() {
-	//fprintf(stderr, "release txn %u\n", interruptionStatus);
 	interruptionStatus = 0;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
@@ -130,7 +130,6 @@ void AsyncWriteWorker::ReportError(const char* error) {
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
-	//fprintf(stderr, "wait for callback %p\n", target);
 	if (!finishedProgress)
 		SendUpdate();
 	pthread_cond_signal(envForTxn->writingCond);
@@ -165,7 +164,6 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			rc = 0;
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
-			//fprintf(stderr, "Waiting after interruption\n");
 			this->txn = *txn = nullptr;
 			pthread_cond_signal(envForTxn->writingCond);
 			pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
@@ -413,7 +411,8 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 	txn = nullptr;
-	pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
+    interruptionStatus = 0;
+    pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
 	pthread_mutex_unlock(envForTxn->writingLock);
 	if (rc || hasError) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
