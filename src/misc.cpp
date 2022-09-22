@@ -365,7 +365,9 @@ uint64_t get_time64() {
 int cond_init(pthread_cond_t *cond) {
     pthread_condattr_t attr;
     pthread_condattr_init( &attr);
+    #if defined(__linux)
     pthread_condattr_setclock( &attr, CLOCK_MONOTONIC);
+    #endif
     return pthread_cond_init(cond, &attr);
 }
 
