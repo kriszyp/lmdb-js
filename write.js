@@ -768,6 +768,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let txnCallbacks;
 			if (nextTxnCallbacks.isExecuting) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
+				txnCallbacks.results = commitPromise;
 				nextTxnCallbacks.push(txnCallbacks);
 				txnIndex = 0;
 			} else if (!lastQueuedResolution.callbacks) {

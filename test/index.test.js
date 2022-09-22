@@ -773,31 +773,53 @@ describe('lmdb-js', function() {
 		});
 		it('async transactions with async callbacks', async function() {
 			let reportedError;
+			let order = [];
 			let promiseWithError = db.transaction(async () => {
 				await new Promise(resolve => setTimeout(resolve, 1));
 				db.put('key1', 'async test 2');
+				order.push(0);
 				throw new Error('test');
 			}).then(() => {
 				console.error('should not get here');
 			}, error => reportedError = error);
 			let promiseWithDelay = db.transaction(async () => {
-				await new Promise(resolve => setTimeout(resolve, 1));
+				order.push(1);
+				await delay(20);
+				order.push(2);
 				db.put('key2', 'async test 2');
 				return 2;
 			});
 			let promise = db.transaction(async () => {
-				await new Promise(resolve => setTimeout(resolve, 1));
+				await delay(1);
+				order.push(3);
 				db.put('key3', 'async test 2');
 				return 3;
 			});
+			await delay(5);
+			let promiseError = db.transaction(async () => {
+				throw new Error('test2')
+			});
+			let promise2 = db.transaction(async () => {
+				await delay(1);
+				order.push(4);
+				return 4;
+			});
+			should.equal(await promise2, 4);
 			await db.committed;
 			await promiseWithDelay;
 			should.equal(db.get('key1'), 'async test 2');
 			should.equal(db.get('key2'), 'async test 2');
 			should.equal(db.get('key3'), 'async test 2');
 			reportedError.message.should.equal('test');
+			order.should.deep.equal([0,1,2,3,4]);
 			should.equal(await promiseWithDelay, 2);
 			should.equal(await promise, 3);
+			try {
+				await promiseError;
+				throw new Error('should not get here');
+			} catch (error) {
+				should.equal(error.message, 'test2');
+			}
 		});
 		it('child transaction in sync transaction', async function() {
 			if (db.cache)
