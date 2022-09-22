@@ -86,7 +86,7 @@ typedef size_t mdb_size_t;
 	napi_define_properties(env, exports, 1, &desc); }
 
 #ifdef _WIN32
-
+const uint64_t TICKS_PER_SECOND = 1000000000;
 int pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr);
 int pthread_mutex_destroy(pthread_mutex_t *mutex);
 int pthread_mutex_lock(pthread_mutex_t *mutex);
@@ -98,6 +98,7 @@ int pthread_cond_signal(pthread_cond_t *cond);
 int pthread_cond_broadcast(pthread_cond_t *cond);
 
 #endif
+const uint64_t TICKS_PER_SECOND = 1000;
 uint64_t get_time64();
 
 int cond_init(pthread_cond_t *cond);

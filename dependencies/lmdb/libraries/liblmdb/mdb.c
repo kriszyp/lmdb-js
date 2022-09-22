@@ -3067,11 +3067,18 @@ fail:
 	txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
+
+#ifdef _WIN32
+uint64_t get_time64() {
+    return GetTickCount64();
+}
+#else
 uint64_t get_time64() {
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
 }
+#endif
 
 int
 mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)

@@ -310,7 +310,6 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
 int cond_init(pthread_cond_t *cond)
 {
-	(void)attr;
 	if (cond == NULL)
 		return 1;
 	InitializeConditionVariable(cond);
@@ -358,6 +357,10 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 	return 0;
 }
 
+uint64_t get_time64() {
+    return GetTickCount64();
+}
+
 #else
 int cond_init(pthread_cond_t *cond) {
     pthread_condattr_t attr;
@@ -365,6 +368,7 @@ int cond_init(pthread_cond_t *cond) {
     pthread_condattr_setclock( &attr, CLOCK_MONOTONIC);
     return pthread_cond_init(cond, &attr);
 }
+
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
 {
 	struct timespec ts;
@@ -375,13 +379,12 @@ int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
 	return pthread_cond_timedwait(cond, mutex, &ts);
 }
 
-#endif
-
 uint64_t get_time64() {
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
 }
+#endif
 
 // This file contains code from the node-lmdb project
 // Copyright (c) 2013-2017 Timur Kristóf

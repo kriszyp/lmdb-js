@@ -705,11 +705,11 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (this->trackMetrics) {
 		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_userctx(this->env);
-		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / 1000000000));
-		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / 1000000000));
-		stats.Set("timePageFlushes", Number::New(info.Env(), (double) metrics->time_page_flushes / 1000000000));
-		stats.Set("timeSync", Number::New(info.Env(), (double) metrics->time_sync / 1000000000));
-		stats.Set("timeTxnWaiting", Number::New(info.Env(), (double) timeTxnWaiting / 1000000000));
+		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / TICKS_PER_SECOND));
+		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / TICKS_PER_SECOND));
+		stats.Set("timePageFlushes", Number::New(info.Env(), (double) metrics->time_page_flushes / TICKS_PER_SECOND));
+		stats.Set("timeSync", Number::New(info.Env(), (double) metrics->time_sync / TICKS_PER_SECOND));
+		stats.Set("timeTxnWaiting", Number::New(info.Env(), (double) timeTxnWaiting / TICKS_PER_SECOND));
 		stats.Set("txns", Number::New(info.Env(), metrics->txns));
 		stats.Set("pageFlushes", Number::New(info.Env(), metrics->page_flushes));
 		stats.Set("pagesWritten", Number::New(info.Env(), metrics->pages_written));
