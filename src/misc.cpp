@@ -366,6 +366,7 @@ int cond_init(pthread_cond_t *cond) {
     pthread_condattr_t attr;
     pthread_condattr_init( &attr);
     #if defined(__linux)
+    // only tested in linux, not available on macos
     pthread_condattr_setclock( &attr, CLOCK_MONOTONIC);
     #endif
     return pthread_cond_init(cond, &attr);
@@ -374,7 +375,12 @@ int cond_init(pthread_cond_t *cond) {
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t cms)
 {
 	struct timespec ts;
+    #if defined(__linux)
 	clock_gettime(CLOCK_MONOTONIC, &ts);
+	#else
+	// without being able to set the clock for condition/mutexes, need to use default realtime clock on macos
+	clock_gettime(CLOCK_REALTIME, &ts);
+	#endif
 	uint64_t ns = ts.tv_nsec + cms * 10000;
 	ts.tv_sec += ns / 1000000000;
 	ts.tv_nsec = ns % 1000000000;
