@@ -92,16 +92,16 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	pthread_mutex_lock(envForTxn->writingLock);
 	retry:
 	if (commitSynchronously && interruptionStatus == WORKER_WAITING) {
-		//fprintf(stderr, "acquire interupting lock %p %u\n", this, commitSynchronously);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		if (interruptionStatus == RESTART_WORKER_TXN) {
 			*flags |= TXN_FROM_WORKER;
 			return nullptr;
+		} else if (interruptionStatus == WORKER_WAITING) {
+		    goto retry;
 		} else {
-			interruptionStatus = WORKER_WAITING;
-			goto retry;
+			return nullptr;
 		}
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
@@ -159,7 +159,6 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		envForTxn->timeTxnWaiting += get_time64() - start;
 	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
-	//	fprintf(stderr, "Performing batch interruption %u\n", allowCommit);
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);
 		if (rc == MDB_EMPTY_TXN)
@@ -414,6 +413,7 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 	txn = nullptr;
+	pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
 	pthread_mutex_unlock(envForTxn->writingLock);
 	if (rc || hasError) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
