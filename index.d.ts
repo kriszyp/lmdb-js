@@ -394,7 +394,10 @@ declare namespace lmdb {
 		asArray: T[]
 	}
 	class Transaction {
-		use<T>(callback: () => T): T
+		/**
+		 * When there is no more need for the transaction and it can be closed.
+		 */
+		done()
 	}
 	export function getLastVersion(): number
 	export function compareKeys(a: Key, b: Key): number

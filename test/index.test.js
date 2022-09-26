@@ -45,7 +45,7 @@ describe('lmdb-js', function() {
 		});
 	});
 	let testIteration = 0
-	describe('Basic use', basicTests({ }));
+/*	describe('Basic use', basicTests({ }));
 	describe('Basic use with overlapping sync', basicTests({
 		compression: false,
 		overlappingSync: true,
@@ -54,7 +54,7 @@ describe('lmdb-js', function() {
 		pageSize: 0x2000,
 	}));
 	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
-	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
+	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));*/
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
 	if (typeof WeakRef != 'undefined')
@@ -739,6 +739,17 @@ describe('lmdb-js', function() {
 			should.equal(db.putSync('zkey7', 'test', { noOverwrite: true }), false);
 			should.equal(db2.putSync('zkey6', 'test1', { noDupData: true }), false);
 		});
+		it('use read transaction', async function() {
+			await db.put('key1', 1);
+			let transaction = db.useReadTransaction();
+			should.equal(db.get('key1', { transaction }), 1);
+			await db.put('key1', 2);
+			should.equal(db.get('key1', { transaction }), 1);
+			should.equal(db.get('key1', { }), 2);
+			await db.put('key1', 3);
+			should.equal(db.get('key1', { transaction }), 1);
+			transaction.done();
+		})
 		it('async transactions', async function() {
 			let ranTransaction
 			db.put('key1', 'async initial value'); // should be queued for async write, but should put before queued transaction

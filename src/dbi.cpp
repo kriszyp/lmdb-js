@@ -182,9 +182,9 @@ NAPI_FUNCTION(getByBinary) {
 	GET_UINT32_ARG(keySize, 1);
 	uint32_t ifNotTxnId;
 	GET_UINT32_ARG(ifNotTxnId, 2);
-	int64_t txnId = 0;
-	napi_status status = napi_get_value_int64(env, args[3], &txnId);
-	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, txnId));
+	int64_t txnAddress = 0;
+	napi_status status = napi_get_value_int64(env, args[3], &txnAddress);
+	RETURN_INT32(dw->doGetByBinary(keySize, ifNotTxnId, txnAddress));
 }
 
 uint32_t getByBinaryFFI(double dwPointer, uint32_t keySize, uint32_t ifNotTxnId, uint64_t txnAddress) {
@@ -219,16 +219,18 @@ NAPI_FUNCTION(getSharedByBinary) {
 	return returnValue;
 }
 NAPI_FUNCTION(getStringByBinary) {
-	ARGS(2)
+	ARGS(3)
 	GET_INT64_ARG(0);
 	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
+    int64_t txnAddress = 0;
+    napi_status status = napi_get_value_int64(env, args[2], &txnAddress);
 	MDB_val key;
 	MDB_val data;
 	key.mv_size = keySize;
 	key.mv_data = (void*) dw->ew->keyBuffer;
-	MDB_txn* txn = dw->ew->getReadTxn();
+	MDB_txn* txn = dw->ew->getReadTxn(txnAddress);
 	int rc = mdb_get(txn, dw->dbi, &key, &data);
 	if (rc) {
 		if (rc == MDB_NOTFOUND) {
