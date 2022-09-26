@@ -37,9 +37,9 @@ This library handles translation of JavaScript values, primitives, arrays, and o
 
 `lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS and Deno code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
-With the default syncing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that has been writted to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully synced operations,  preserving both the durability/safety of the transactions and unparalled performance.
+With the default syncing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that it has been written to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully synced operations,  preserving both the durability/safety of the transactions and unparalleled performance.
 
-This library supports and encourages the use of conditional writes; this allows for atomic operations that are dependendent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows this library to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
+This library supports and encourages the use of conditional writes; this allows for atomic operations that are dependent on previously read data, and most transactional types of operations can be written with an optimistic-locking based, atomic-conditional-write pattern. This allows this library to delegate writes to off-thread execution, and scale to handle concurrent execution across many processes or threads while maintaining data integrity.
 
 This library automatically handles database growth, expanding file size with a smart heuristic that minimizes file fragmentation (as you would expect from a database).
 
@@ -100,6 +100,8 @@ true
 ['hello', 'world']
 Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
 ```
+
+Keys use 0/null bytes as delimiters for arrays, and so strings currently can not have '\x00' (null char) in them.
 
 You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower). Use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
