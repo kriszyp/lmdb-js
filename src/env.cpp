@@ -468,6 +468,8 @@ NAPI_FUNCTION(getSharedBuffer) {
 			size_t end = buffer->end;
 			buffer->env = ew->env;
 			size_t size = end - (size_t) start;
+            if (size > 0x100000000)
+                fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start, end);
 			napi_create_external_arraybuffer(env, start, size, cleanupExternal, (void*) size, &returnValue);
 			int64_t result;
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
@@ -535,37 +537,38 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	mdb_env_info(env, &stat);
 	size_t mapAddress = (size_t) (char*) stat.me_mapaddr;
 	size_t dataAddress = (size_t) (char*) data.mv_data;
-	int64_t mapOffset = dataAddress - mapAddress;
-	size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
-	size_t bufferStart = bufferPosition << 32;
-	bufferStart += mapAddress - (bufferStart >> 4);
+    size_t bufferStart;
+    uint64_t end;
+    if (dataAddress > mapAddress && (dataAddress + data.mv_size) <= (mapAddress + stat.me_mapsize)) {
+        // an address within the memory map
+        int64_t mapOffset = dataAddress - mapAddress;
+        size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
+        bufferStart = bufferPosition << 32;
+        bufferStart += mapAddress - (bufferStart >> 4);
+        end = bufferStart + 0xffffffffll;
+        if (end > mapAddress + stat.me_mapsize)
+            end = mapAddress + stat.me_mapsize;
+    } else {
+        // outside the memory map, usually because this is from the heap during a write txn or the mmap has been reallocated
+        bufferStart = (dataAddress >> 32) << 32;
+        end = bufferStart + 0xffffffffll;
+    }
+    if ((dataAddress + data.mv_size) > end) {
+        // crosses boundaries, create one-off for this address
+        bufferStart = dataAddress;
+        end = bufferStart + 0xffffffffll;
+    }
 	//fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
 	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
 	size_t offset = dataAddress - bufferStart;
 	buffer_info_t bufferInfo;
-	uint64_t end;
 	if (bufferSearch == sharedBuffers->end()) {
-		end = bufferStart + 0xffffffffll;
-		if (end > mapAddress + stat.me_mapsize)
-			end = mapAddress + stat.me_mapsize;
+        bufferInfo.end = end;
+        bufferInfo.env = nullptr;
+        bufferInfo.id = nextSharedId++;
+        sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	} else {
 		bufferInfo = bufferSearch->second;
-		end = bufferInfo.end;
-	}
-	if (end < dataAddress + data.mv_size || mapOffset < 0) {
-		bufferSearch = sharedBuffers->find((void*)(bufferStart = dataAddress));
-		offset = 0;
-		if (bufferSearch != sharedBuffers->end())
-			bufferInfo = bufferSearch->second;
-	}
-	if (bufferSearch == sharedBuffers->end()) {
-		end = bufferStart + 0xffffffffll;
-		if (end > mapAddress + stat.me_mapsize)
-			end = mapAddress + stat.me_mapsize;
-		bufferInfo.end = end;
-		bufferInfo.env = nullptr;
-		bufferInfo.id = nextSharedId++;
-		sharedBuffers->emplace((void*)bufferStart, bufferInfo);
 	}
 	*keyBuffer = data.mv_size;
 	*(keyBuffer + 1) = bufferInfo.id;

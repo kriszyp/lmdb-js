@@ -45,7 +45,7 @@ describe('lmdb-js', function() {
 		});
 	});
 	let testIteration = 0
-/*	describe('Basic use', basicTests({ }));
+	describe('Basic use', basicTests({ }));
 	describe('Basic use with overlapping sync', basicTests({
 		compression: false,
 		overlappingSync: true,
@@ -54,7 +54,7 @@ describe('lmdb-js', function() {
 		pageSize: 0x2000,
 	}));
 	describe('Basic use with encryption', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data' }));
-	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));*/
+	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe('Basic use with ordered-binary', basicTests({ encoding: 'ordered-binary' }));
 	if (typeof WeakRef != 'undefined')
@@ -841,8 +841,6 @@ describe('lmdb-js', function() {
 			}
 		});
 		it('child transaction in sync transaction', async function() {
-			if (db.cache)
-				return
 			await db.transactionSync(async () => {
 				db.put('key3', 'test-sync-txn');
 				db.childTransaction(() => {
@@ -855,11 +853,29 @@ describe('lmdb-js', function() {
 				})
 				should.equal(db.get('key3'), 'test-child-txn');
 				await db.childTransaction(async () => {
-					await new Promise(resolve => setTimeout(resolve, 1))
+					await delay(1);
 					db.put('key3', 'test-async-child-txn');
 				})
 				should.equal(db.get('key3'), 'test-async-child-txn');
-			})
+			});
+			await db.transactionSync(async () => {
+				await delay(1);
+				// no await, but ensure this delays the parent txn
+				db.transactionSync(async () => {
+					await delay(1);
+					db.put('key3', 'child-after-delay');
+					db.transactionSync(async () => {
+						await delay(1);
+						db.put('key3', 'child-after-delay2');
+						db.transactionSync(async () => {
+							await delay(1);
+							db.put('key3', 'child-after-delay3');
+						});
+					});
+				});
+				db.put('key3', 'after-child-start');
+			});
+			should.equal(db.get('key3'), 'child-after-delay3');
 		});
 		it('async transaction with interrupting sync transaction default order', async function() {
 			for (let i =0; i< 10;i++) {
