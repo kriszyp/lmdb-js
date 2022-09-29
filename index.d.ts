@@ -397,7 +397,7 @@ declare namespace lmdb {
 		/**
 		 * When there is no more need for the transaction and it can be closed.
 		 */
-		done()
+		done(): void
 	}
 	export function getLastVersion(): number
 	export function compareKeys(a: Key, b: Key): number
