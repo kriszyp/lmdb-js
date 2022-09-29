@@ -171,6 +171,8 @@ export const CachingStore = (Store, env) => {
 				childTxnChanges = previousChanges;
 				if (error)
 					throw error;
+				else
+					return ABORT;
 			}
 		});
 	}
