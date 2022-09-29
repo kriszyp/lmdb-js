@@ -551,6 +551,8 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
     } else {
         // outside the memory map, usually because this is from the heap during a write txn or the mmap has been reallocated
         bufferStart = (dataAddress >> 32) << 32;
+		if (!bufferStart) // can't use a memory address of 0 because it is considered a nullptr
+			bufferStart = 8;
         end = bufferStart + 0xffffffffll;
     }
     if ((dataAddress + data.mv_size) > end) {

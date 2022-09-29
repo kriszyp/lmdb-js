@@ -1157,6 +1157,18 @@ describe('lmdb-js', function() {
 				db.retain(db.getBinaryFast('test-key' + index));
 			}
 		})
+		it('larger buffers from write txn', async function() {
+			let index = 1, mult = 640;
+			index = 1
+			let results = []
+			db.transactionSync(() => {
+				while (index++ < 80) {
+					const newBuff = Buffer.alloc(index * mult);
+					db.put('test-key' + index, newBuff);
+					db.getBinaryFast('test-key' + index);
+				}
+			});
+		});
 		it('concurrent txns', async function() {
 			const CONCURRENCY = 20; // macos has a limit of 10 robust/SEM_UNDO semaphores, so this exercises handling that
 			let finishedTxns = []
