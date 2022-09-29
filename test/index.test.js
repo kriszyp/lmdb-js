@@ -715,6 +715,9 @@ describe('lmdb-js', function() {
 			should.equal(values[3], value);
 			values = await db.getMany([]);
 			should.equal(values.length, 0);
+			await db3.put('key13333', 3);
+			await db3.put('key133333', 4);
+			await db3.prefetch([{ key: 'key13333', value: 3 }, { key: 'key133333', value: 4 }]);
 		});
 
 		it('invalid key', async function() {

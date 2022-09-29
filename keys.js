@@ -74,7 +74,7 @@ function allocateSaveBuffer() {
 	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
 	savePosition = 0;
 }
-export function saveKey(key, writeKey, saveTo, maxKeySize, skip) {
+export function saveKey(key, writeKey, saveTo, maxKeySize, flags) {
 	if (savePosition > 7800) {
 		allocateSaveBuffer();
 	}
@@ -103,7 +103,7 @@ export function saveKey(key, writeKey, saveTo, maxKeySize, skip) {
 		return saveKey(key, writeKey, saveTo, maxKeySize);
 	}
 	if (saveTo) {
-		saveDataView.setUint32(start, length, true); // save the length
+		saveDataView.setUint32(start, flags ? length | flags : length, true); // save the length
 		saveTo.saveBuffer = saveBuffer;
 		savePosition = (savePosition + 12) & 0xfffffc;
 		return start + saveDataAddress;

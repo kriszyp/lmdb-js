@@ -224,8 +224,8 @@ NAPI_FUNCTION(getStringByBinary) {
 	DbiWrap* dw = (DbiWrap*) i64;
 	uint32_t keySize;
 	GET_UINT32_ARG(keySize, 1);
-    int64_t txnAddress = 0;
-    napi_status status = napi_get_value_int64(env, args[2], &txnAddress);
+	int64_t txnAddress = 0;
+	napi_status status = napi_get_value_int64(env, args[2], &txnAddress);
 	MDB_val key;
 	MDB_val data;
 	key.mv_size = keySize;
@@ -253,12 +253,14 @@ int DbiWrap::prefetch(uint32_t* keys) {
 	MDB_val data;
 	unsigned int flags;
 	mdb_dbi_flags(txn, dbi, &flags);
-	bool dupSort = flags & MDB_DUPSORT;
+	bool findAllValues = flags & MDB_DUPSORT;
 	int effected = 0;
+	bool findDataValue = false;
 	MDB_cursor *cursor;
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
 	if (rc)
 		return rc;
+
 	while((key.mv_size = *keys++) > 0) {
 		if (key.mv_size == 0xffffffff) {
 			// it is a pointer to a new buffer
@@ -267,9 +269,20 @@ int DbiWrap::prefetch(uint32_t* keys) {
 			if (key.mv_size == 0)
 				break;
 		}
-		key.mv_data = (void*) keys;
+		if (key.mv_size & 0x80000000) {
+			// indicator of using a data value combination (with dupSort), to be followed by the corresponding key
+			data.mv_size = key.mv_size & 0x7fffffff;
+			data.mv_data = (void *) keys;
+			keys += (data.mv_size + 12) >> 2;
+			findDataValue = true;
+			findAllValues = false;
+			continue;
+		}
+		// else standard key
+		key.mv_data = (void *) keys;
 		keys += (key.mv_size + 12) >> 2;
-		int rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+		int rc = mdb_cursor_get(cursor, &key, &data, findDataValue ? MDB_GET_BOTH : MDB_SET_KEY);
+		findDataValue = false;
 		while (!rc) {
 			// access one byte from each of the pages to ensure they are in the OS cache,
 			// potentially triggering the hard page fault in this thread
@@ -278,7 +291,7 @@ int DbiWrap::prefetch(uint32_t* keys) {
 			for (int i = 0; i < pages; i++) {
 				effected += *(((uint8_t*)data.mv_data) + (i << 12));
 			}
-			if (dupSort) // in dupsort databases, access the rest of the values
+			if (findAllValues) // in dupsort databases, access the rest of the values
 				rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_DUP);
 			else
 				rc = 1; // done
