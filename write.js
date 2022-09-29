@@ -738,11 +738,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				throw new Error('Child transactions are not supported in writemap mode');
 			if (writeTxn) {
 				let parentTxn = writeTxn;
-				env.writeTxn = writeTxn = { write: true };
+				let thisTxn = env.writeTxn = writeTxn = { write: true };
 				env.beginTxn(1); // abortable
-				let callbackDone;
+				let callbackDone, finishTxn;
 				try {
-					return when(callback(), (result) => {
+					return writeTxn.childResults = when(callback(), finishTxn = (result) => {
+						if (writeTxn !== thisTxn) // need to wait for child txn to finish asynchronously
+							return writeTxn.childResults.then(() => finishTxn(result));
 						callbackDone = true;
 						if (result === ABORT)
 							env.abortTxn();
@@ -804,13 +806,15 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				}
 				return result;
 			}
-			let callbackDone;
+			let callbackDone, finishTxn;
 			this.transactions++;
 			env.beginTxn(flags == undefined ? 3 : flags);
-			writeTxn = env.writeTxn = { write: true };
+			let thisTxn = writeTxn = env.writeTxn = { write: true };
 			try {
 				this.emit('begin-transaction');
-				return when(callback(), (result) => {
+				return writeTxn.childResults = when(callback(), finishTxn = (result) => {
+					if (writeTxn !== thisTxn) // need to wait for child txn to finish asynchronously
+						return writeTxn.childResults.then(() => finishTxn(result));
 					try {
 						callbackDone = true;
 						if (result === ABORT)
