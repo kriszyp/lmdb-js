@@ -573,7 +573,7 @@ export function addReadMethods(LMDBStore, {
 			let lastBuffer;
 			for (let key of keys) {
 				let position
-				if (key && key.key && key.value) {
+				if (key && key.key !== undefined && key.value !== undefined) {
 					position = saveKey(key.value, this.writeKey, bufferHolder, maxKeySize, 0x80000000);
 					saveKey(key.key, this.writeKey, bufferHolder, maxKeySize);
 				} else {
