@@ -280,8 +280,8 @@ typedef struct buffer_info_t { // definition of a buffer that is available/used 
 typedef struct read_results_buffer_t { // this is read results data buffer that is actively being used by a JS thread (read results are written to it)
 	int id;
 	char* data;
-	uint offset;
-	uint size;
+	uint32_t offset;
+	uint32_t size;
 } read_results_buffer_t;
 
 typedef struct js_buffers_t { // there is one instance of this for each JS (worker) thread, holding all the active buffers
