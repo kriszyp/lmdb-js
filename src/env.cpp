@@ -420,7 +420,6 @@ NAPI_FUNCTION(getEnvsPointer) {
 		EnvWrap::sharedBuffers = new js_buffers_t;
 		EnvWrap::sharedBuffers->nextAllocatedId = -1;
 		EnvWrap::sharedBuffers->nextSharedId = 0;
-		EnvWrap::sharedBuffers->current_read_buffer = NULL;
 		pthread_mutex_init(&EnvWrap::sharedBuffers->modification_lock, nullptr);
 	}
 	return returnValue;
@@ -444,12 +443,15 @@ NAPI_FUNCTION(setEnvsPointer) {
 
 napi_finalize cleanupSharedExternal = [](napi_env env, void* data, void* buffer_info) {
 	// Data belongs to LMDB, we shouldn't free it here
-	int64_t result;
-	napi_adjust_external_memory(env, (int64_t) (((buffer_info_t*) buffer_info)->end - (char*) data), &result);
-	//fprintf(stderr, "adjust memory back up %i\n", result);
 };
 
 napi_finalize cleanupAllocatedExternal = [](napi_env env, void* data, void* buffer_info) {
+	int32_t id = ((buffer_info_t*) buffer_info)->id;
+	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
+		if (bufferRef->second.id == id) {
+			bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
+		}
+	}
 	// We malloc'ed this data so free it
 	free(data);
 };
@@ -636,6 +638,9 @@ void EnvWrap::closeEnv(bool hasLock) {
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
+						int64_t result;
+						if (bufferRef->second.id >= 0)
+							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 					} else
 						bufferRef++;

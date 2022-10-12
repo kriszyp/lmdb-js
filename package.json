@@ -56,7 +56,7 @@
   },
   "scripts": {
     "install": "node-gyp-build-optional-packages",
-    "build": "node-gyp configure && node-gyp build && rollup -c",
+    "build": "node-gyp --debug configure && node-gyp --debug build && rollup -c",
     "rebuild": "node-gyp build && rollup -c && cpy index.d.ts . --rename=index.d.cts",
     "build-js": "rollup -c",
     "prepare": "rollup -c",

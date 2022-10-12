@@ -222,6 +222,15 @@ class ReadWorker : public AsyncWorker {
 	uint32_t* start;
 };
 static thread_local uint32_t* currentReadAddress;
+typedef struct { // this is read results data buffer that is actively being used by a JS thread (read results are written to it)
+	int id;
+	char* data;
+	uint32_t offset;
+	uint32_t size;
+} read_results_buffer_t;
+
+static thread_local std::unordered_map<void*, read_results_buffer_t>* buffersByWorker;
+
 typedef struct {
 	napi_ref callback;
 	napi_ref resource;
@@ -232,7 +241,7 @@ typedef struct {
 	uint32_t* instructionAddress;
 	napi_ref callback;
 	napi_async_work work;
-	napi_deferred deferred;
+	//napi_deferred deferred;
 	js_buffers_t* buffers;
 } read_instruction_t;
 const uint32_t ZERO = 0;
@@ -277,49 +286,39 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 		EnvWrap::toSharedBuffer(env, instruction, data);
 		*((double*)instruction) = (double) (size_t) data.mv_data;
 	} else {
-		bool has_lock = false;
+		if (!buffersByWorker)
+			buffersByWorker = new std::unordered_map<void*, read_results_buffer_t>;
 		read_results_buffer_t* read_buffer;
 		int offset;
-		while(true) {
-			read_buffer = readInstruction->buffers->current_read_buffer;
-			if (read_buffer && read_buffer->size - read_buffer->offset - 4 >= data.mv_size) {
-				uint32_t *position = (uint32_t*) (read_buffer->data + read_buffer->offset);
-				bool success = std::atomic_compare_exchange_weak((std::atomic <uint32_t> *) position, (uint32_t*) &ZERO,
-																 (uint32_t) data.mv_size);
-				if (success) {
-					offset = read_buffer->offset;
-					memcpy(position, data.mv_data, data.mv_size);
-					position += (data.mv_size + 7) >> 2;
-					read_buffer->offset = (char*)position - read_buffer->data;
-					break;
-				} else if (*position) { // check for a value in case of a spurious compare
-					position += (*position + 7) >> 2;
-				}
-			} else {
-				if (has_lock) {
-					size_t size = 0x40000;// 256KB
-					read_buffer = new read_results_buffer_t;
-					read_buffer->data = (char*) calloc(size, 1);
-					read_buffer->size = size;
-					read_buffer->offset = offset = 0;
-					readInstruction->buffers->current_read_buffer = read_buffer;
-					buffer_info_t buffer_info;
-					buffer_info.end = read_buffer->data + size;
-					buffer_info.env = nullptr;
-					buffer_info.id = read_buffer->id = readInstruction->buffers->nextAllocatedId--;
-					readInstruction->buffers->buffers.emplace(read_buffer->data, buffer_info);
-					memcpy(read_buffer->data, data.mv_data, data.mv_size);
-					break;
-				} else { // get the lock and try once more in case another thread already added a buffer
-					pthread_mutex_lock(&readInstruction->buffers->modification_lock);
-					has_lock = true;
-				}
-			}
-		}
-		*(instruction + 1) = read_buffer->id;
-		*(instruction + 2) = offset;
-		if (has_lock)
+		auto buffer_search = buffersByWorker->find(readInstruction->buffers);
+		if (buffer_search == buffersByWorker->end()) {
+			// force it to create new one
+			read_buffer = nullptr;
+		} else
+			read_buffer = &buffer_search->second;
+		if (!read_buffer || (read_buffer->size - read_buffer->offset - 4 < data.mv_size)) {
+			size_t size = 0x40000;// 256KB
+			read_results_buffer_t tmp;
+			buffersByWorker->emplace(readInstruction->buffers, tmp);
+			buffer_search = buffersByWorker->find(readInstruction->buffers);
+			read_buffer = &buffer_search->second;
+			read_buffer->data = (char*) calloc(size, 1);
+			read_buffer->size = size;
+			read_buffer->offset = 0;
+			buffer_info_t buffer_info;
+			buffer_info.end = read_buffer->data + size;
+			buffer_info.env = nullptr;
+			pthread_mutex_lock(&readInstruction->buffers->modification_lock);
+			buffer_info.id = read_buffer->id = readInstruction->buffers->nextAllocatedId--;
+			readInstruction->buffers->buffers.emplace(read_buffer->data, buffer_info);
 			pthread_mutex_unlock(&readInstruction->buffers->modification_lock);
+		}
+		auto position = (uint32_t*) (read_buffer->data + read_buffer->offset);
+		memcpy(position, data.mv_data, data.mv_size);
+		position += (data.mv_size + 7) >> 2;
+		*(instruction + 1) = read_buffer->id;
+		*(instruction + 2) = read_buffer->offset;
+		read_buffer->offset = (char*)position - read_buffer->data;
 	}
 	mdb_cursor_close(cursor);
 }

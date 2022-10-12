@@ -648,7 +648,6 @@ export function addReadMethods(LMDBStore, {
 			const doClose = () => {
 				if (this.isRoot) {
 					if (outstandingReads > 0) {
-						console.log('!!!!!!!!!!!!!!WAITING ON CLOSE!!!!!!!!!!!!!!!!!')
 						return new Promise(resolve => setTimeout(() => resolve(doClose()), 1));
 					}
 					env.close();
