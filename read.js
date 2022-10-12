@@ -16,15 +16,13 @@ const NEW_BUFFER_THRESHOLD = 0x8000;
 const SOURCE_SYMBOL = Symbol.for('source');
 export const UNMODIFIED = {};
 
-let unreadResolution = {};
-let lastQueuedResolution, nextResolution = unreadResolution;
-
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
 }) {
 	let readTxn, readTxnRenewed, asSafeBuffer = false;
 	let renewId = 1;
 	let mmaps = [];
+	let outstandingReads = 0;
 	Object.assign(LMDBStore.prototype, {
 		getString(id, options) {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
@@ -70,12 +68,26 @@ export function addReadMethods(LMDBStore, {
 			bytes.length = this.lastSize;
 			return bytes;
 		},
-		getBFAsync(id, callback, options) {
+		getBFAsync(id, options, callback) {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
-			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ({ bufferId, offset, size }) => {
+			txn.refCount = (txn.refCount || 0) + 1;
+			outstandingReads++;
+			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( bufferId, offset, size ) => {
+				outstandingReads--;
 				let buffer = mmaps[bufferId];
 				if (!buffer) {
 					buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
+				}
+				if (bufferId < 0) {
+					// using copied memory
+					txn.done(); // decrement and possibly abort
+				} else {
+					// using LMDB shared memory
+					// TODO: We may want explicit support for clearing aborting the transaction on the next event turn,
+					// but for now we are relying on the GC to cleanup transaction for larger blocks of memory
+					let bytes = new Uint8Array(buffer, offset, size);
+					bytes.txn = txn;
+					callback(bytes, 0, size);
 				}
 				callback(buffer, offset, size);
 			});
@@ -90,6 +102,11 @@ export function addReadMethods(LMDBStore, {
 			if (!callback)
 				promise = new Promise(resolve => callback = resolve);
 			this.getBFAsync(id, options, (buffer, offset, size) => {
+				if (this.useVersions) {
+					// TODO: And get the version
+					offset += 8;
+					size -= 8;
+				}
 				let bytes = new Uint8Array(buffer, offset, size);
 				if (this.encoding == 'binary')
 					callback(bytes);
@@ -588,7 +605,9 @@ export function addReadMethods(LMDBStore, {
 				}
 			}
 			saveKey(undefined, this.writeKey, bufferHolder, maxKeySize);
+			outstandingReads++;
 			prefetch(this.dbAddress, startPosition, (error) => {
+				outstandingReads--;
 				if (error)
 					console.error('Error with prefetch', buffers, bufferHolder); // partly exists to keep the buffers pinned in memory
 				else
@@ -627,9 +646,13 @@ export function addReadMethods(LMDBStore, {
 				txnPromise = this._endWrites && this._endWrites();
 			}
 			const doClose = () => {
-				if (this.isRoot)
+				if (this.isRoot) {
+					if (outstandingReads > 0) {
+						console.log('!!!!!!!!!!!!!!WAITING ON CLOSE!!!!!!!!!!!!!!!!!')
+						return new Promise(resolve => setTimeout(() => resolve(doClose()), 1));
+					}
 					env.close();
-				else
+				} else
 					this.db.close();
 				this.status = 'closed';
 				if (callback)
@@ -721,16 +744,17 @@ Txn.prototype.done = function() {
 }
 
 
-let readInstructions, uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
+let readInstructions, readCallbacks, uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateInstructionsBuffer() {
 	readInstructions = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
-	uint32Instructions = new Uint32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
+	uint32Instructions = new Int32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
 	uint32Instructions[2] = 0xf0000000; // indicates a new read task must be started
 	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions);
 	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
 	savePosition = 0;
+	readCallbacks = [];
 }
 export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback) {
 	if (savePosition > 7800) {
@@ -745,7 +769,7 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 		if (error.name == 'RangeError') {
 			if (8180 - start < maxKeySize) {
 				allocateInstructionsBuffer(); // try again:
-				return recordReadInstruction(key, writeKey, saveTo, maxKeySize);
+				return recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback);
 			}
 			throw new Error('Key was too large, max key size is ' + maxKeySize);
 		} else
@@ -756,39 +780,18 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 		savePosition = start;
 		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
 	}
-	uint32Instructions[(start >> 2) + 3] =  length; // save the length
+	uint32Instructions[(start >> 2) + 3] = length; // save the length
+	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
-	nextResolution.callback = callback;
-	nextResolution.uint32 = uint32Instructions;
-	nextResolution.position = start >> 2;
-	nextResolution = nextResolution.next = {};
 	instructionsDataView.setFloat64(start, txnAddress, true);
-	if (Atomics.or(uint32Instructions, (start >> 2) + 2, dbi)) {
-		return start + instructionsAddress;
-	}
-	// else we are writing to an active queue, don't have to start a new task
-}
-
-function resolveReads(async) {
-	let instructionStatus;
-	debugger;
-	console.log('resolveReads', unreadResolution, (instructionStatus = unreadResolution.uint32[unreadResolution.position + 2]) & 0x1000000);
-	while ((instructionStatus = unreadResolution.uint32[unreadResolution.position + 2]) & 0x10000000) {
-		let size = unreadResolution.uint32[unreadResolution.position + 3];
-		console.log('resolved read', size);
-		let reference;
-		switch(instructionStatus & 0xf) {
-			case 0:
-				reference = {
-					bufferId: unreadResolution.uint32[unreadResolution.position],
-					offset: unreadResolution.uint32[unreadResolution.position + 1],
-					size
-				};
-				break;
-			default:
-				throw new Error('Unknown read response');
-		}
-		unreadResolution.callback(reference);
-		unreadResolution = unreadResolution.next;
-	}
+	readCallbacks[start] = callback;
+	//if (start === 0)
+		return startRead(instructionsAddress + start, function(offset) {
+			//readCallbacks[offset]();
+			let position = start >> 2;
+			let rc = uint32Instructions[position];
+			callback(uint32Instructions[position + 1], uint32Instructions[position + 2], uint32Instructions[position + 3]);
+		});
+	//else
+		//nextRead(start);
 }

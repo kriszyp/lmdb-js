@@ -270,12 +270,28 @@ typedef struct env_tracking_t {
 	get_shared_buffers_t* getSharedBuffers;
 } env_tracking_t;
 
-typedef struct buffer_info_t {
-	uint32_t id;
-	size_t end;
+typedef struct buffer_info_t { // definition of a buffer that is available/used in JS
+	int32_t id;
+	char* end;
 	MDB_env* env;
 	napi_ref ref;
 } buffer_info_t;
+
+typedef struct read_results_buffer_t { // this is read results data buffer that is actively being used by a JS thread (read results are written to it)
+	int id;
+	char* data;
+	uint offset;
+	uint size;
+} read_results_buffer_t;
+
+typedef struct js_buffers_t { // there is one instance of this for each JS (worker) thread, holding all the active buffers
+	std::unordered_map<char*, buffer_info_t> buffers;
+	int nextSharedId;
+	int nextAllocatedId;
+	read_results_buffer_t* current_read_buffer;
+	pthread_mutex_t modification_lock;
+} js_buffers_t;
+
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
@@ -300,7 +316,7 @@ public:
 	// The wrapped object
 	MDB_env *env;
 	// Current write transaction
-	static thread_local std::unordered_map<void*, buffer_info_t>* sharedBuffers;
+	static thread_local js_buffers_t* sharedBuffers;
 	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;

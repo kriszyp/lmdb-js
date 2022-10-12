@@ -44,7 +44,7 @@ describe('lmdb-js', function() {
 			done();
 		});
 	});
-	let testIteration = 0
+	let testIteration = 0;
 	describe('Basic use', basicTests({ }));
 	describe('Basic use with overlapping sync', basicTests({
 		compression: false,
@@ -694,7 +694,7 @@ describe('lmdb-js', function() {
 		});
 		it.skip('getAsync', async function() {
 			await db.put('key1', 'async initial value');
-			let buffer = await db.getBFAsync('key1');
+			let buffer = await db.getAsync('key1');
 			console.log(buffer);
 		});
 		it('prefetch', async function() {

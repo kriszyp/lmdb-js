@@ -174,7 +174,7 @@ class ReadWorker : public AsyncWorker {
 
 			MDB_val key;
 			key.mv_size = *(gets + 3);
-			MDB_dbi dbi = (MDB_dbi) (instruction & 0xffff) ;
+			MDB_dbi dbi = (MDB_dbi) (instruction & 0xffff);
 			MDB_val data;
 			MDB_txn* txn = (MDB_txn*) (size_t) *((double*)gets);
 			
@@ -221,15 +221,160 @@ class ReadWorker : public AsyncWorker {
   private:
 	uint32_t* start;
 };
+static thread_local uint32_t* currentReadAddress;
+typedef struct {
+	napi_ref callback;
+	napi_ref resource;
+} read_callback_t;
+static thread_local read_callback_t* lastCallback;
+static int next_buffer_id = -1;
+typedef struct {
+	uint32_t* instructionAddress;
+	napi_ref callback;
+	napi_async_work work;
+	napi_deferred deferred;
+	js_buffers_t* buffers;
+} read_instruction_t;
+const uint32_t ZERO = 0;
+void do_read(napi_env nenv, void* instruction_pointer) {
+	read_instruction_t* readInstruction = (read_instruction_t*) instruction_pointer;
+	uint32_t* instruction = readInstruction->instructionAddress;
+	MDB_val key;
+	key.mv_size = *(instruction + 3);
+	MDB_dbi dbi = (MDB_dbi) (*(instruction + 2) & 0xffff) ;
+	MDB_val data;
+	TxnWrap* tw = (TxnWrap*) (size_t) *((double*)instruction);
+	MDB_txn* txn = tw->txn;
+	unsigned int flags;
+	mdb_dbi_flags(txn, dbi, &flags);
+	bool dupSort = flags & MDB_DUPSORT;
+	int effected = 0;
+	MDB_cursor *cursor;
+	int rc = mdb_cursor_open(txn, dbi, &cursor);
 
+	key.mv_data = (void*) (instruction + 4);
+	rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
+	MDB_env* env = mdb_txn_env(txn);
+	*(instruction + 3) = data.mv_size;
+
+	//instruction += (key.mv_size + 28) >> 2;
+	while (!rc) {
+		// access one byte from each of the pages to ensure they are in the OS cache,
+		// potentially triggering the hard page fault in this thread
+		int pages = (data.mv_size + 0xfff) >> 12;
+		// TODO: Adjust this for the page headers, I believe that makes the first page slightly less 4KB.
+		for (int i = 0; i < pages; i++) {
+			effected += *(((uint8_t*)data.mv_data) + (i << 12));
+		}
+		if (dupSort) // in dupsort databases, access the rest of the values
+			rc = mdb_cursor_get(cursor, &key, &data, MDB_NEXT_DUP);
+		else
+			rc = 1; // done
+
+	}
+	*instruction = rc;
+	if (data.mv_size > 4096) {
+		EnvWrap::toSharedBuffer(env, instruction, data);
+		*((double*)instruction) = (double) (size_t) data.mv_data;
+	} else {
+		bool has_lock = false;
+		read_results_buffer_t* read_buffer;
+		int offset;
+		while(true) {
+			read_buffer = readInstruction->buffers->current_read_buffer;
+			if (read_buffer && read_buffer->size - read_buffer->offset - 4 >= data.mv_size) {
+				uint32_t *position = (uint32_t*) (read_buffer->data + read_buffer->offset);
+				bool success = std::atomic_compare_exchange_weak((std::atomic <uint32_t> *) position, (uint32_t*) &ZERO,
+																 (uint32_t) data.mv_size);
+				if (success) {
+					offset = read_buffer->offset;
+					memcpy(position, data.mv_data, data.mv_size);
+					position += (data.mv_size + 7) >> 2;
+					read_buffer->offset = (char*)position - read_buffer->data;
+					break;
+				} else if (*position) { // check for a value in case of a spurious compare
+					position += (*position + 7) >> 2;
+				}
+			} else {
+				if (has_lock) {
+					size_t size = 0x40000;// 256KB
+					read_buffer = new read_results_buffer_t;
+					read_buffer->data = (char*) calloc(size, 1);
+					read_buffer->size = size;
+					read_buffer->offset = offset = 0;
+					readInstruction->buffers->current_read_buffer = read_buffer;
+					buffer_info_t buffer_info;
+					buffer_info.end = read_buffer->data + size;
+					buffer_info.env = nullptr;
+					buffer_info.id = read_buffer->id = readInstruction->buffers->nextAllocatedId--;
+					readInstruction->buffers->buffers.emplace(read_buffer->data, buffer_info);
+					memcpy(read_buffer->data, data.mv_data, data.mv_size);
+					break;
+				} else { // get the lock and try once more in case another thread already added a buffer
+					pthread_mutex_lock(&readInstruction->buffers->modification_lock);
+					has_lock = true;
+				}
+			}
+		}
+		*(instruction + 1) = read_buffer->id;
+		*(instruction + 2) = offset;
+		if (has_lock)
+			pthread_mutex_unlock(&readInstruction->buffers->modification_lock);
+	}
+	mdb_cursor_close(cursor);
+}
+void read_complete(napi_env env, napi_status status, void* data) {
+	read_instruction_t* readInstruction = (read_instruction_t*) data;
+	napi_value callback;
+	napi_get_reference_value(env, readInstruction->callback, &callback);
+	//uint32_t count;
+	napi_value result;
+	status = napi_call_function(env, callback, callback, 0, NULL, &result);
+	napi_delete_reference(env, readInstruction->callback);
+	napi_delete_async_work(env, readInstruction->work);
+	//napi_resolve_deferred(env, readInstruction->deferred, resolution);
+}
 NAPI_FUNCTION(startRead) {
 	ARGS(2)
 	GET_INT64_ARG(0);
 	uint32_t* instructionAddress = (uint32_t*) i64;
+	currentReadAddress = instructionAddress;
+	//read_callback_t* callback = new read_callback_t;
+	//callback->env = env;
+	read_instruction_t* readInstruction = new read_instruction_t;
+	readInstruction->instructionAddress = instructionAddress;
+	napi_create_reference(env, args[1], 1, &readInstruction->callback);
+	//readInstruction->callback = callback;
+	readInstruction->buffers = EnvWrap::sharedBuffers;
+	napi_value resource;
+	napi_status status;
+	status = napi_create_object(env, &resource);
+	/*napi_value promise;
+	napi_create_promise(env, &readInstruction->deferred, &promise);*/
+	napi_value resource_name;
+	status = napi_create_string_latin1(env, "read", NAPI_AUTO_LENGTH, &resource_name);
+	status = napi_create_async_work(env, resource, resource_name, do_read, read_complete, readInstruction, &readInstruction->work);
+	status = napi_queue_async_work(env, readInstruction->work);
+	RETURN_UNDEFINED;
+}/*
+NAPI_FUNCTION(nextRead) {
+	ARGS(1)
+	uint32_t offset;
+	GET_UINT32_ARG(offset, 0);
+	uint32_t* instructionAddress = (uint32_t*) currentReadAddress + offset;
+	read_callback_t* callback = lastCallback;
+	uint32_t count;
+	napi_reference_ref(callback->env, callback->callback, &count);
+	read_instruction_t* readInstruction = new read_instruction_t;
+	readInstruction->instructionAddress = instructionAddress;
+	readInstruction->callback = callback;
+	napi_async_work work;
+	napi_create_async_work(callback->env, nullptr, readInstruction, &work);
+	napi_queue_async_work(env, work);
 	ReadWorker* worker = new ReadWorker(instructionAddress, Function(env, args[1]));
 	worker->Queue();
 	RETURN_UNDEFINED;
-}
+}*/
 
 Value lmdbNativeFunctions(const CallbackInfo& info) {
 	// no-op, just doing this to give a label to the native functions

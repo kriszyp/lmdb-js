@@ -11,7 +11,8 @@ using namespace Napi;
 
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
-thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
+thread_local js_buffers_t* EnvWrap::sharedBuffers = nullptr;
+//thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
 void* getSharedBuffers() {
 	return (void*) EnvWrap::sharedBuffers;
 }
@@ -415,8 +416,13 @@ NAPI_FUNCTION(EnvWrap::onExit) {
 NAPI_FUNCTION(getEnvsPointer) {
 	napi_value returnValue;
 	napi_create_double(env, (double) (size_t) EnvWrap::envTracking, &returnValue);
-	if (!EnvWrap::sharedBuffers)
-		EnvWrap::sharedBuffers = new std::unordered_map<void*, buffer_info_t>;
+	if (!EnvWrap::sharedBuffers) {
+		EnvWrap::sharedBuffers = new js_buffers_t;
+		EnvWrap::sharedBuffers->nextAllocatedId = -1;
+		EnvWrap::sharedBuffers->nextSharedId = 0;
+		EnvWrap::sharedBuffers->current_read_buffer = NULL;
+		pthread_mutex_init(&EnvWrap::sharedBuffers->modification_lock, nullptr);
+	}
 	return returnValue;
 }
 
@@ -428,7 +434,7 @@ NAPI_FUNCTION(setEnvsPointer) {
 	// copy any existing ones over to the central one
 	adoptedTracking->envs.assign(EnvWrap::envTracking->envs.begin(), EnvWrap::envTracking->envs.end());
 	EnvWrap::envTracking = adoptedTracking;
-	std::unordered_map<void*, buffer_info_t>* adoptedBuffers = (std::unordered_map<void*, buffer_info_t>*) adoptedTracking->getSharedBuffers();
+	js_buffers_t* adoptedBuffers = (js_buffers_t*) adoptedTracking->getSharedBuffers();
 	if (EnvWrap::sharedBuffers && adoptedBuffers != EnvWrap::sharedBuffers) {
 		free(EnvWrap::sharedBuffers);
 	}
@@ -436,22 +442,28 @@ NAPI_FUNCTION(setEnvsPointer) {
 	RETURN_UNDEFINED;
 }
 
-napi_finalize cleanupExternal = [](napi_env env, void *, void * size) {
+napi_finalize cleanupSharedExternal = [](napi_env env, void* data, void* buffer_info) {
 	// Data belongs to LMDB, we shouldn't free it here
 	int64_t result;
-	napi_adjust_external_memory(env, (int64_t) size, &result);
+	napi_adjust_external_memory(env, (int64_t) (((buffer_info_t*) buffer_info)->end - (char*) data), &result);
 	//fprintf(stderr, "adjust memory back up %i\n", result);
 };
 
+napi_finalize cleanupAllocatedExternal = [](napi_env env, void* data, void* buffer_info) {
+	// We malloc'ed this data so free it
+	free(data);
+};
+
+
 NAPI_FUNCTION(getSharedBuffer) {
 	ARGS(2)
-	uint32_t bufferId;
+	int32_t bufferId;
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
 	EnvWrap* ew = (EnvWrap*) i64;
-	for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end(); bufferRef++) {
+	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
-			void* start = bufferRef->first;
+			char* start = bufferRef->first;
 			buffer_info_t* buffer = &bufferRef->second;
 			if (buffer->env == ew->env) {
 				//fprintf(stderr, "found exiting buffer for %u\n", bufferId);
@@ -465,15 +477,17 @@ NAPI_FUNCTION(getSharedBuffer) {
 				napi_detach_arraybuffer(env, arrayBuffer);
 				napi_delete_reference(env, buffer->ref);
 			}
-			size_t end = buffer->end;
+			char* end = buffer->end;
 			buffer->env = ew->env;
-			size_t size = end - (size_t) start;
+			size_t size = end - start;
             if (size > 0x100000000)
                 fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start, end);
-			napi_create_external_arraybuffer(env, start, size, cleanupExternal, (void*) size, &returnValue);
+			napi_create_external_arraybuffer(env, start, size,
+					 buffer->id >= 0 ? cleanupSharedExternal : cleanupAllocatedExternal, (void*) buffer, &returnValue);
 			int64_t result;
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
-			napi_adjust_external_memory(env, -(int64_t) size, &result);
+			if (buffer->id >= 0)
+				napi_adjust_external_memory(env, -(int64_t) size, &result);
 			return returnValue;
 		}
 	}
@@ -521,7 +535,6 @@ NAPI_FUNCTION(directWrite) {
 	}
 	RETURN_UNDEFINED;
 }
-thread_local int nextSharedId = 1;
 
 int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data) {
 	unsigned int flags;
@@ -561,23 +574,24 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
         end = bufferStart + 0xffffffffll;
     }
 	//fprintf(stderr, "mapAddress %p bufferStart %p", mapAddress, bufferStart);
-	auto bufferSearch = sharedBuffers->find((void*)bufferStart);
+	pthread_mutex_lock(&sharedBuffers->modification_lock);
+	auto bufferSearch = sharedBuffers->buffers.find((char*)bufferStart);
 	size_t offset = dataAddress - bufferStart;
 	buffer_info_t bufferInfo;
-	if (bufferSearch == sharedBuffers->end()) {
-        bufferInfo.end = end;
+	if (bufferSearch == sharedBuffers->buffers.end()) {
+        bufferInfo.end = (char*) end;
         bufferInfo.env = nullptr;
-        bufferInfo.id = nextSharedId++;
-        sharedBuffers->emplace((void*)bufferStart, bufferInfo);
+        bufferInfo.id = sharedBuffers->nextSharedId++;
+        sharedBuffers->buffers.emplace((char*)bufferStart, bufferInfo);
 	} else {
 		bufferInfo = bufferSearch->second;
 	}
+	pthread_mutex_unlock(&sharedBuffers->modification_lock);
 	*keyBuffer = data.mv_size;
 	*(keyBuffer + 1) = bufferInfo.id;
 	*(keyBuffer + 2) = offset;
 	return -30001;
 }
-
 
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
@@ -616,13 +630,13 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
-				for (auto bufferRef = EnvWrap::sharedBuffers->begin(); bufferRef != EnvWrap::sharedBuffers->end();) {
+				for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 					if (bufferRef->second.env == env) {
 						napi_value arrayBuffer;
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
-						bufferRef = EnvWrap::sharedBuffers->erase(bufferRef);
+						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 					} else
 						bufferRef++;
 				}

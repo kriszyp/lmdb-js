@@ -150,7 +150,6 @@ export function open(path, options) {
 	}
 
 	env.readerCheck(); // clear out any stale entries
-	let stores = [];
 	if ((options.overlappingSync || options.deleteOnClose) && !hasRegisteredOnExit && process.on) {
 		hasRegisteredOnExit = true;
 		process.on('exit', onExit);
@@ -255,7 +254,6 @@ export function open(path, options) {
 			this.maxKeySize = maxKeySize;
 			applyKeyHandling(this);
 			allDbs.set(dbName ? name + '-' + dbName : name, this);
-			stores.push(this);
 		}
 		openDB(dbName, dbOptions) {
 			if (this.dupSort && this.name == null)
