@@ -4,7 +4,7 @@ jobs:
   build-test-macos:
     if: startsWith(github.ref, 'refs/tags/')
     env:
-      LMDB_DATA_V1: ${{ startsWith(github.ref, '-v1') }}
+      LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -19,6 +19,7 @@ jobs:
       - run: npm run build
       #- run: npm run deno-test
       - run: npm test
+        if: !contains(github.ref, '-v1')
       - run: npm run prebuild-macos
         if: startsWith(github.ref, 'refs/tags/')
       - run: npm run prebuild-macos
@@ -34,6 +35,8 @@ jobs:
           files: prebuild-darwin.tar
   build-test-win32:
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -44,6 +47,7 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm test
+        if: !contains(github.ref, '-v1')
       - run: npm run prebuild-win32
       - run: tar --create --verbose --file=prebuild-win32.tar -C prebuilds .
         if: startsWith(github.ref, 'refs/tags/')
@@ -54,6 +58,8 @@ jobs:
           files: prebuild-win32.tar
   build-centos-7:
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: ubuntu-18.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
@@ -99,6 +105,7 @@ jobs:
       #    ENABLE_FAST_API_CALLS: true
       - run: npm run build-js
       - run: npm test
+        if: !contains(github.ref, '-v1')
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')
@@ -106,8 +113,7 @@ jobs:
         with:
           files: prebuild-linux.tar
   build-debian-9:
-    env:
-      LMDB_DATA_V1: ${{ startsWith(github.ref, '-v1') }}
+    if: !contains(github.ref, '-v1')
     runs-on: ubuntu-18.04
     container: node:14-stretch
     steps:
@@ -124,6 +130,8 @@ jobs:
           TEST_CJS: true
   build-linux-arm:
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: ubuntu-18.04
     container: quay.io/pypa/manylinux_2_24_x86_64
     steps:
