@@ -146,12 +146,14 @@ class SyncWorker : public AsyncWorker {
 		int retries = 0;
 		retry:
 		int rc = mdb_env_sync(env->env, 1);
+#ifdef MDB_LOCK_FAILURE
 		if (rc == MDB_LOCK_FAILURE) {
 			if (retries++ < 4) {
 				sleep(1);
 				goto retry;
 			}
 		}
+#endif
 		#endif
 		if (rc != 0) {
 			SetError(mdb_strerror(rc));
@@ -870,8 +872,11 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
     if (rc == 0) {
         hasWrites = true;
         return Napi::Boolean::New(info.Env(), true);
-    } else if (rc == MDB_EMPTY_TXN)
+    }
+#ifdef MDB_EMPTY_TXN
+	else if (rc == MDB_EMPTY_TXN)
         return Napi::Boolean::New(info.Env(), false);
+#endif
     else
         return throwLmdbError(info.Env(), rc);
 }

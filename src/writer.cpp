@@ -160,8 +160,10 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);
+#ifdef MDB_EMPTY_TXN
 		if (rc == MDB_EMPTY_TXN)
 			rc = 0;
+#endif
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
 			this->txn = *txn = nullptr;
@@ -408,8 +410,10 @@ void WriteWorker::Write() {
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
+#ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
+#endif
 	txn = nullptr;
     interruptionStatus = 0;
     pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
