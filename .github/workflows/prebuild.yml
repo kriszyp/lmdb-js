@@ -19,7 +19,7 @@ jobs:
       - run: npm run build
       #- run: npm run deno-test
       - run: npm test
-        if: !contains(github.ref, '-v1')
+        if: ${{ !contains(github.ref, '-v1') }}
       - run: npm run prebuild-macos
         if: startsWith(github.ref, 'refs/tags/')
       - run: npm run prebuild-macos
@@ -47,7 +47,7 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm test
-        if: !contains(github.ref, '-v1')
+        if: ${{ !contains(github.ref, '-v1') }}
       - run: npm run prebuild-win32
       - run: tar --create --verbose --file=prebuild-win32.tar -C prebuilds .
         if: startsWith(github.ref, 'refs/tags/')
@@ -105,7 +105,7 @@ jobs:
       #    ENABLE_FAST_API_CALLS: true
       - run: npm run build-js
       - run: npm test
-        if: !contains(github.ref, '-v1')
+        if: ${{ !contains(github.ref, '-v1') }}
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .
       - name: Prebuild
         if: startsWith(github.ref, 'refs/tags/')
@@ -113,7 +113,7 @@ jobs:
         with:
           files: prebuild-linux.tar
   build-debian-9:
-    if: !contains(github.ref, '-v1')
+    if: ${{ !contains(github.ref, '-v1') }}
     runs-on: ubuntu-18.04
     container: node:14-stretch
     steps:
