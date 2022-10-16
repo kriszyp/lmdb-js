@@ -7,4 +7,8 @@ let version = packageData.version;
 for (let prebuild of prebuilds) {
 	platformDeps['@' + packageName + '/' + packageName + '-' + prebuild] = version;
 }
+/*if (version.endsWith('-v1')) {
+	packageData.version = version.slice(0, -3);
+	packageData.name = packageName + '-v1';
+}*/
 fs.writeFileSync('package.json', JSON.stringify(packageData, null, 2));

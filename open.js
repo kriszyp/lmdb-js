@@ -67,6 +67,7 @@ export function open(path, options) {
 	let remapChunks = options.remapChunks || options.encryptionKey || (options.mapSize ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
+	let userMapSize = options.mapSize;
 	options = Object.assign({
 		path,
 		noSubdir: Boolean(extension),
@@ -83,6 +84,14 @@ export function open(path, options) {
 	}, options);
 	if (options.asyncTransactionOrder == 'strict') {
 		options.strictAsyncOrder = true;
+	}
+	if (nativeAddon.version.major + nativeAddon.version.minor / 100 + nativeAddon.version.patch / 10000 < 0.0980) {
+		options.overlappingSync = false; // not support on older versions
+		options.trackMetrics = false;
+		options.usePreviousSnapshot = false;
+		options.safeRestore = false;
+		options.remapChunks = false;
+		if (!userMapSize) options.mapSize = 0x40000000; // 1 GB
 	}
 
 	if (!exists(options.noSubdir ? pathModule.dirname(path) : path))
