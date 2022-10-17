@@ -6465,6 +6465,8 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 				txn->mt_dbxs = env->me_dbxs;
 				txn->mt_flags = MDB_TXN_FINISHED;
 				env->me_txn0 = txn;
+				MDB_meta* latest = mdb_env_pick_meta(env);
+				txn->mt_env->me_synced_txn_id = latest->mm_txnid;
 			} else {
 				rc = ENOMEM;
 			}
