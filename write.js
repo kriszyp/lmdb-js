@@ -1,4 +1,4 @@
-import { getAddress, write, compress } from './native.js';
+import { getAddress, getBufferAddress, write, compress } from './native.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -43,7 +43,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[2] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
-		buffer.address = getAddress(dynamicBytes);
+		buffer.address = getBufferAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 1; // we start at position 1 to save space for writing the txn id before the txn delimiter
 		return dynamicBytes;
@@ -172,14 +172,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer))) + valueBufferStart;
+						(valueBuffer.address = getAddress(valueBuffer.buffer))) + valueBufferStart;
 					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
 					let address = (valueArrayBuffer.address ||
 						(valueBuffer.length === 0 ? 0 : // externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
-						(valueArrayBuffer.address = (getAddress(valueBuffer) - valueBuffer.byteOffset))))
+						valueArrayBuffer.address = getAddress(valueArrayBuffer)))
 							+ valueBuffer.byteOffset;
 					if (address <= 0 && valueBuffer.length > 0)
 						console.error('Supplied buffer had an invalid address', address);

@@ -408,7 +408,7 @@ export function addReadMethods(LMDBStore, {
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values');
 								let encoded = store.encoder.encode(options.start);
-								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset);
+								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded.buffer) - encoded.byteOffset);
 								startAddress = bufferAddress + encoded.byteOffset;
 							}
 						}
@@ -750,7 +750,7 @@ function allocateInstructionsBuffer() {
 	readInstructions = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	uint32Instructions = new Int32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
 	uint32Instructions[2] = 0xf0000000; // indicates a new read task must be started
-	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions);
+	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions.buffer);
 	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
 	savePosition = 0;
 	readCallbacks = [];

@@ -1,4 +1,4 @@
-import { open, IF_EXISTS, asBinary } from '../mod.ts';
+import { open, IF_EXISTS, asBinary } from 'npm:lmdb';
 import chai from "https://cdn.skypack.dev/chai@4.3.4?dts";
 const { assert, should } = chai;
 should();

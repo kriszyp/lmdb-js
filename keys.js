@@ -66,7 +66,7 @@ let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateSaveBuffer() {
 	saveBuffer = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	uint32 = null;
-	saveBuffer.buffer.address = getAddress(saveBuffer);
+	saveBuffer.buffer.address = getAddress(saveBuffer.buffer);
 	saveDataAddress = saveBuffer.buffer.address;
 	// TODO: Conditionally only do this for key sequences?
 	saveDataView.setUint32(savePosition, 0xffffffff);

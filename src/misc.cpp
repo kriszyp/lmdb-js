@@ -28,7 +28,8 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	exports.Set("lmdbError", Function::New(env, lmdbError));
 	exports.Set("enableDirectV8", Function::New(env, enableDirectV8));
 	EXPORT_NAPI_FUNCTION("createBufferForAddress", createBufferForAddress);
-	EXPORT_NAPI_FUNCTION("getAddress", getViewAddress);
+	EXPORT_NAPI_FUNCTION("getAddress", getAddress);
+	EXPORT_NAPI_FUNCTION("getBufferAddress", getBufferAddress);
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
 	EXPORT_NAPI_FUNCTION("startRead", startRead);
 	napi_value globalBuffer;
@@ -146,10 +147,20 @@ NAPI_FUNCTION(createBufferForAddress) {
 	return returnValue;
 }
 
-NAPI_FUNCTION(getViewAddress) {
+NAPI_FUNCTION(getAddress) {
 	ARGS(1)
 	void* data;
-	napi_get_typedarray_info(env, args[0], nullptr, nullptr, &data, nullptr, nullptr);
+	size_t length;
+	napi_get_arraybuffer_info(env, args[0], &data, &length);
+	napi_create_double(env, (double) (size_t) data, &returnValue);
+	return returnValue;
+}
+
+NAPI_FUNCTION(getBufferAddress) {
+	ARGS(1)
+	void* data;
+	size_t length;
+	napi_get_buffer_info(env, args[0], &data, &length);
 	napi_create_double(env, (double) (size_t) data, &returnValue);
 	return returnValue;
 }
