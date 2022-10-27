@@ -36,10 +36,11 @@ Compression::Compression(const CallbackInfo& info) : ObjectWrap<Compression>(inf
 Napi::Value Compression::setBuffer(const CallbackInfo& info) {
 	size_t length;
 	napi_get_arraybuffer_info(info.Env(), info[0], (void**) &this->decompressTarget, &length);
-	this->decompressSize = info[1].As<Number>();
-	this->dictionarySize = info[3].As<Number>();
-	this->decompressTarget += this->dictionarySize;
-	napi_get_arraybuffer_info(info.Env(), info[2], (void**) &this->dictionary, &length);
+	unsigned int offset = info[1].As<Number>();
+	this->decompressTarget += offset;
+	this->decompressSize = info[2].As<Number>();
+	this->dictionarySize = info[4].As<Number>();
+	napi_get_buffer_info(info.Env(), info[3], (void**) &this->dictionary, &length);
 	return info.Env().Undefined();
 }
 void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {

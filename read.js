@@ -148,7 +148,7 @@ export function addReadMethods(LMDBStore, {
 						let dictionary = compression.dictionary || [];
 						let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
 						bytes = makeReusableBuffer(this.lastSize);
-						compression.setBuffer(bytes.buffer, this.lastSize, dictionary.buffer, dictLength);
+						compression.setBuffer(bytes.buffer, bytes.byteOffset, this.lastSize, dictionary, dictLength);
 						compression.getValueBytes = bytes;
 					} else {
 						bytesToRestore = getValueBytes;
@@ -158,7 +158,7 @@ export function addReadMethods(LMDBStore, {
 				} finally {
 					if (compression) {
 						let dictLength = (compression.dictionary.length >> 3) << 3;
-						compression.setBuffer(bytesToRestore.buffer, bytesToRestore.maxLength, compression.dictionary.buffer, dictLength);
+						compression.setBuffer(bytesToRestore.buffer, bytesToRestore.byteOffset, bytesToRestore.maxLength, compression.dictionary, dictLength);
 						compression.getValueBytes = bytesToRestore;
 					} else {
 						setGlobalBuffer(bytesToRestore);
@@ -184,7 +184,7 @@ export function addReadMethods(LMDBStore, {
 				bytes.set(dictionary) // copy dictionary into start
 				// the section after the dictionary is the target area for get values
 				bytes = bytes.subarray(dictLength);
-				this.compression.setBuffer(bytes.buffer, newLength, dictionary.buffer, dictLength);
+				this.compression.setBuffer(bytes.buffer, bytes.byteOffset, newLength, dictionary, dictLength);
 				bytes.maxLength = newLength;
 				Object.defineProperty(bytes, 'length', { value: newLength, writable: true, configurable: true });
 				this.compression.getValueBytes = bytes;
