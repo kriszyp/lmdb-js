@@ -68,22 +68,8 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		txn = nullptr;
 	}
 
-AsyncWriteWorker::AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback)
-		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
-	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
-		interruptionStatus = 0;
-		txn = nullptr;
-	}
-
-void AsyncWriteWorker::Execute(const AsyncProgressWorker::ExecutionProgress& execution) {
-	executionProgress = (AsyncProgressWorker::ExecutionProgress*) &execution;
-	Write();
-}
 void WriteWorker::SendUpdate() {
-	fprintf(stderr, "This SendUpdate does not work!\n");
-}
-void AsyncWriteWorker::SendUpdate() {
-	executionProgress->Send(nullptr, 0);
+	napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	bool commitSynchronously = *flags & TXN_SYNCHRONOUS_COMMIT;
@@ -123,10 +109,6 @@ void WriteWorker::UnlockTxn() {
 void WriteWorker::ReportError(const char* error) {
 	hasError = true;
 	fprintf(stderr, "Error %s\n", error);
-}
-void AsyncWriteWorker::ReportError(const char* error) {
-	hasError = true;
-	SetError(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
@@ -370,6 +352,11 @@ next_inst:	start = instruction++;
 	return rc;
 }
 
+void do_write(napi_env env, void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->Write();
+}
+
 const int READER_CHECK_INTERVAL = 600; // ten minutes
 void WriteWorker::Write() {
 	int rc;
@@ -428,23 +415,32 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
-	if (progressStatus == 1) {
-		Callback().Call({ Number::New(Env(), progressStatus)});
+void write_progress(napi_env env,
+					napi_value js_callback,
+					void* context,
+					void* data) {
+	auto worker = (WriteWorker*) context;
+	napi_value result;
+	napi_value undefined;
+	napi_value arg;
+	napi_create_int32(env, worker->progressStatus, &arg);
+	napi_get_undefined(env, &undefined);
+	if (worker->progressStatus == 1) {
+		napi_call_function(env, undefined, js_callback, 1, &arg, &result);
 		return;
 	}
-	if (finishedProgress)
+	if (worker->finishedProgress)
 		return;
+	auto envForTxn = worker->envForTxn;
 	pthread_mutex_lock(envForTxn->writingLock);
-	while(!txn) // possible to jump in after an interrupted txn here
+	while(!worker->txn) // possible to jump in after an interrupted txn here
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-	envForTxn->writeTxn = new TxnTracked(txn, 0);
-	finishedProgress = true;
-	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
-	napi_create_int32(Env(), progressStatus, &arg);
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+	envForTxn->writeTxn = new TxnTracked(worker->txn, 0);
+	worker->finishedProgress = true;
+	napi_create_int32(env, worker->progressStatus, &arg);
+	napi_call_function(env, undefined, js_callback, 1, &arg, &result);
 	bool is_async = false;
-	napi_get_value_bool(Env(), result, &is_async);
+	napi_get_value_bool(env, result, &is_async);
 	if (!is_async) {
 		delete envForTxn->writeTxn;
 		envForTxn->writeTxn = nullptr;
@@ -453,11 +449,20 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 	}
 }
 
-void AsyncWriteWorker::OnOK() {
-	finishedProgress = true;
+void writes_complete(napi_env env,
+					 napi_status status,
+					 void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->finishedProgress = true;
 	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
-	napi_create_int32(Env(), 0, &arg);
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+	napi_create_int32(env, 0, &arg);
+	napi_value callback;
+	napi_get_reference_value(env, worker->callback, &callback);
+	napi_call_function(env, callback, callback, 1, &arg, &result);
+	napi_delete_reference(env, worker->callback);
+	napi_release_threadsafe_function(worker->progress, napi_tsfn_release);
+	napi_delete_async_work(env, worker->work);
+	delete worker;
 }
 
 Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
@@ -470,14 +475,26 @@ Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
+	napi_env n_env = info.Env();
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
 	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
-	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[1].As<Function>());
+
+
+	napi_value resource;
+	napi_status status;
+	status = napi_create_object(n_env, &resource);
+	napi_value resource_name;
+	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
+	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
-	worker->Queue();
+	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
+	status = napi_create_async_work(n_env, resource, resource_name, do_write, writes_complete, worker, &worker->work);
+	napi_create_threadsafe_function(n_env, info[1].As<Function>(), resource, resource_name, 0, 1, nullptr, nullptr, worker, write_progress, &worker->progress);
+	status = napi_queue_async_work(n_env, worker->work);
+
 	return info.Env().Undefined();
 }
 

@@ -208,23 +208,15 @@ class WriteWorker {
 	int interruptionStatus;
 	bool finishedProgress;
 	bool hasError;
+	napi_ref callback;
+	napi_async_work work;
+	napi_threadsafe_function progress;
 	EnvWrap* envForTxn;
 	virtual ~WriteWorker();
 	uint32_t* instructions;
 	int progressStatus;
 	MDB_env* env;
 	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
-};
-class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
-  public:
-	AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback);
-	void Execute(const AsyncProgressWorker::ExecutionProgress& execution);
-	void OnProgress(const char* data, size_t count);
-	void OnOK();
-	void ReportError(const char* error);
-	void SendUpdate();
-  private:
-	ExecutionProgress* executionProgress;
 };
 class TxnTracked {
   public:

@@ -237,7 +237,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (!keyBytesValue.IsTypedArray())
 		fprintf(stderr, "Invalid key buffer\n");
 	size_t keyBufferLength;
-	napi_get_typedarray_info(info.Env(), keyBytesValue, nullptr, &keyBufferLength, &keyBuffer, nullptr, nullptr);
+	napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
 	std::string pathString = path.Utf8Value();

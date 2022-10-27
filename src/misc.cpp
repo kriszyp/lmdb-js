@@ -126,7 +126,7 @@ Value lmdbError(const CallbackInfo& info) {
 }
 
 Value setGlobalBuffer(const CallbackInfo& info) {
-	napi_get_typedarray_info(info.Env(), info[0], nullptr, &globalUnsafeSize, (void**) &globalUnsafePtr, nullptr, nullptr);
+	napi_get_buffer_info(info.Env(), info[0], (void**) &globalUnsafePtr, &globalUnsafeSize);
 	return info.Env().Undefined();
 }
 
