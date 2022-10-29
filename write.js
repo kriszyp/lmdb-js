@@ -376,19 +376,18 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					if (resolvers.length > 0) {
-						let delay = Date.now() - start
-						scheduleFlush(resolvers, Math.min((flushPromise && flushPromise.hasCallbacks ? delay >> 1 : delay) + 1, maxFlushDelay))
+					for (let resolver of resolvers) {
+						resolver();
 					}
 					break;
 				case 1:
 					console.log('unknown status', status);
-				break;
+					break;
 				case 2:
 					hasUnresolvedTxns = false;
 					executeTxnCallbacks();
 					return hasUnresolvedTxns;
-				break;
+					break;
 				default:
 				console.error(status);
 				if (commitRejectPromise) {

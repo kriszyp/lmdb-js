@@ -1689,8 +1689,9 @@ struct MDB_env {
 #endif
 	void		*me_userctx;	 /**< User-settable context */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
-	MDB_check_fd *me_check_fd; /**< Callback for assertion failures */
+	void *me_callback; /**< General callback */
 	int64_t 	boot_id;
+	void		*me_txnctx;	 /**< User-settable context */
 };
 
 	/** Nested transaction */
@@ -4602,7 +4603,7 @@ mdb_txn_commit(MDB_txn *txn)
 #if (MDB_DEBUG) > 2
 	mdb_audit(txn);
 #endif
-
+	int dirty_pages = txn->mt_u.dirty_list[0].mid;
 	if ((rc = mdb_page_flush(txn, 0)))
 		goto fail;
 	if ((unsigned)txn->mt_loose_count < txn->mt_u.dirty_list[0].mid) {
@@ -4627,6 +4628,10 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 
 	//<lmdb-js>
+	if (env->me_callback) {
+		MDB_txn_visible* callback = (MDB_txn_visible*) env->me_callback;
+		callback(env->me_txnctx);
+	}
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
 		env->me_synced_txn_id = txn->mt_txnid;
 	//</lmdb-js>
@@ -4642,12 +4647,43 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 done:
+	//<lmdb-js>
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_during_txns += get_time64() - ((MDB_metrics*) env->me_userctx)->clock_txn;
 		((MDB_metrics*) env->me_userctx)->txns++;
 	}
-
-	mdb_txn_end(txn, end_mode);
+	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC)) {
+		MDB_txn sync_txn;
+		MDB_db dbs[2];
+		sync_txn.mt_env = env;
+		sync_txn.mt_flags = 2;
+		sync_txn.mt_dbs = dbs;
+		sync_txn.mt_dbs[FREE_DBI] = txn->mt_dbs[FREE_DBI];
+		sync_txn.mt_dbs[MAIN_DBI] = txn->mt_dbs[MAIN_DBI];
+		sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
+		sync_txn.mt_txnid = txn->mt_txnid;
+		sync_txn.mt_next_pgno = txn->mt_next_pgno;
+		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 100) {
+			// for bigger txns we wait for the flush before allowing next txn
+			LOCK_MUTEX(rc, env, env->me_sync_mutex);
+			mdb_txn_end(txn, end_mode);
+		} else {
+			mdb_txn_end(txn, end_mode);
+			LOCK_MUTEX(rc, env, env->me_sync_mutex);
+		}
+		if (rc)
+			return rc;
+		rc = mdb_env_sync0(env, 0, sync_txn.mt_next_pgno);
+		if (rc) {
+			UNLOCK_MUTEX(env->me_sync_mutex);
+			return rc;
+		}
+		rc = mdb_env_write_meta(&sync_txn);
+		if (rc == 0)
+			env->me_synced_txn_id = sync_txn.mt_txnid;
+		UNLOCK_MUTEX(env->me_sync_mutex);
+	} else
+		mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
 
 fail:
@@ -5924,10 +5960,10 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 #endif
 	int rc;
 	MDB_OFF_T size, rsize;
-	if (env->me_check_fd) {
+	if (env->me_callback) {
 		rc = mdb_fopen(env, fname, MDB_O_RDWR, mode, &env->me_lfd);
 		if (!rc) {
-			rc = ((MDB_check_fd*) env->me_check_fd)(env->me_lfd, env);
+			rc = ((MDB_check_fd*) env->me_callback)(env->me_lfd, env);
 			if (rc)
 				return rc;
 		}
@@ -8956,14 +8992,18 @@ current:
 				 * bother to try shrinking the page if the new data
 				 * is smaller than the overflow threshold.
 				 */
+				fprintf(stderr, "writable: %u ", IS_WRITABLE(mc->mc_txn, omp));
 				if (!IS_WRITABLE(mc->mc_txn, omp)) {
+
 				  if (!IS_DIRTY_NW(mc->mc_txn, omp)) {
+					  fprintf(stderr, "not dirty, unspilling\n");
 					rc = mdb_page_unspill(mc->mc_txn, omp, &omp);
 					if (rc)
 						return rc;
 				  } else {
 					/* It is writable only in a parent txn */
 					size_t sz = (size_t) env->me_psize * ovpages, off;
+					  fprintf(stderr, "mdb_page_malloc\n");
 					MDB_page *np = mdb_page_malloc(mc->mc_txn, ovpages, 1);
 					MDB_ID2 id2;
 					if (!np)
@@ -11743,11 +11783,14 @@ mdb_env_get_flags(MDB_env *env, unsigned int *arg)
 }
 
 int ESECT
-mdb_env_set_userctx(MDB_env *env, void *ctx)
+mdb_env_set_userctx(MDB_env *env, void *ctx, void *txnctx)
 {
 	if (!env)
 		return EINVAL;
-	env->me_userctx = ctx;
+	if (ctx)
+		env->me_userctx = ctx;
+	if (txnctx)
+		env->me_txnctx = txnctx;
 	return MDB_SUCCESS;
 }
 
@@ -11769,11 +11812,11 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 }
 
 int ESECT
-mdb_env_set_check_fd(MDB_env *env, MDB_check_fd *func)
+mdb_env_set_callback(MDB_env *env, void *func)
 {
 	if (!env)
 		return EINVAL;
-	env->me_check_fd = func;
+	env->me_callback = func;
 	return MDB_SUCCESS;
 }
 

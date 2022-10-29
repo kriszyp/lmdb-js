@@ -322,12 +322,12 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (flags & MDB_OVERLAPPINGSYNC) {
 		flags |= MDB_PREVSNAPSHOT;
 	}
-	mdb_env_set_check_fd(env, checkExistingEnvs);
+	mdb_env_set_callback(env, (void*) checkExistingEnvs);
 	trackMetrics = !!(flags & MDB_TRACK_METRICS);
 	if (trackMetrics) {
 		metrics = new MDB_metrics;
 		memset(metrics, 0, sizeof(MDB_metrics));
-		rc = mdb_env_set_userctx(env, (void*) metrics);
+		rc = mdb_env_set_userctx(env, (void*) metrics, nullptr);
 		if (rc) goto fail;
 	}
 	#endif

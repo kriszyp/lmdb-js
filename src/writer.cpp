@@ -352,9 +352,16 @@ next_inst:	start = instruction++;
 	return rc;
 }
 
+void txn_visible(void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->SendUpdate();
+}
+
+
 void do_write(napi_env env, void* data) {
 	auto worker = (WriteWorker*) data;
 	worker->Write();
+	napi_release_threadsafe_function(worker->progress, napi_tsfn_abort);
 }
 
 const int READER_CHECK_INTERVAL = 600; // ten minutes
@@ -393,10 +400,19 @@ void WriteWorker::Write() {
 	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
+	#ifdef MDB_OVERLAPPINGSYNC
+	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC)
+		mdb_env_set_callback(env, (void*)txn_visible);
+	mdb_env_set_userctx(env, nullptr, this);
+	#endif
+
 	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
+	#ifdef MDB_OVERLAPPINGSYNC
+	mdb_env_set_callback(env, nullptr);
+	#endif
 #ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
@@ -460,7 +476,6 @@ void writes_complete(napi_env env,
 	napi_get_reference_value(env, worker->callback, &callback);
 	napi_call_function(env, callback, callback, 1, &arg, &result);
 	napi_delete_reference(env, worker->callback);
-	napi_release_threadsafe_function(worker->progress, napi_tsfn_release);
 	napi_delete_async_work(env, worker->work);
 	delete worker;
 }
@@ -481,8 +496,6 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	}
 	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
-
-
 	napi_value resource;
 	napi_status status;
 	status = napi_create_object(n_env, &resource);
