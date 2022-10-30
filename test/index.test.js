@@ -1112,6 +1112,18 @@ describe('lmdb-js', function() {
 				await db.clearAsync();
 			}
 		})
+		it('clearAsync with different keys', async function() {
+			let binDb = db.openDB({
+				name: 'binary-key',
+				keyEncoding: 'binary'
+			});
+			await binDb.clearAsync();
+			let numDb = db.openDB({
+				name: 'binary-key',
+				keyEncoding: 'uint32'
+			});
+			await numDb.clearAsync();
+		})
 		it('use random access structures with retain', async function() {
 			let dbRAS = db.openDB(Object.assign({
 				name: 'random-access',

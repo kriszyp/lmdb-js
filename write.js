@@ -697,7 +697,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return this.ifVersion(undefined, undefined, callbackOrOperations);
 		},
 		drop(callback) {
-			return writeInstructions(1024 + 12, this, undefined, undefined, undefined, undefined)(callback);
+			return writeInstructions(1024 + 12, this, Buffer.from([]), undefined, undefined, undefined)(callback);
 		},
 		clearAsync(callback) {
 			if (this.encoder) {
@@ -706,7 +706,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				else if (this.encoder.structures)
 					this.encoder.structures = []
 			}
-			return writeInstructions(12, this, undefined, undefined, undefined, undefined)(callback);
+			return writeInstructions(12, this, Buffer.from([]), undefined, undefined, undefined)(callback);
 		},
 		_triggerError() {
 			finishBatch();
