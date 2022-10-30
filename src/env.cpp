@@ -422,6 +422,7 @@ NAPI_FUNCTION(getEnvsPointer) {
 		EnvWrap::sharedBuffers = new js_buffers_t;
 		EnvWrap::sharedBuffers->nextAllocatedId = -1;
 		EnvWrap::sharedBuffers->nextSharedId = 0;
+		fprintf(stderr, "initing buffer lock %p\n", &EnvWrap::sharedBuffers->modification_lock);
 		pthread_mutex_init(&EnvWrap::sharedBuffers->modification_lock, nullptr);
 	}
 	return returnValue;
@@ -449,11 +450,14 @@ napi_finalize cleanupSharedExternal = [](napi_env env, void* data, void* buffer_
 
 napi_finalize cleanupAllocatedExternal = [](napi_env env, void* data, void* buffer_info) {
 	int32_t id = ((buffer_info_t*) buffer_info)->id;
+	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 		if (bufferRef->second.id == id) {
+			fprintf(stderr, "erasing buffer on cleanpu %p\n", bufferRef->first);
 			bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 		}
 	}
+	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 	// We malloc'ed this data so free it
 	free(data);
 };
@@ -465,6 +469,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
 	EnvWrap* ew = (EnvWrap*) i64;
+	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
 			char* start = bufferRef->first;
@@ -472,6 +477,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 			if (buffer->env == ew->env) {
 				//fprintf(stderr, "found exiting buffer for %u\n", bufferId);
 				napi_get_reference_value(env, buffer->ref, &returnValue);
+				pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 				return returnValue;
 			}
 			if (buffer->env) {
@@ -482,7 +488,8 @@ NAPI_FUNCTION(getSharedBuffer) {
 				napi_delete_reference(env, buffer->ref);
 			}
 			char* end = buffer->end;
-			buffer->env = ew->env;
+			if (bufferId >= 0) // only memory mapped buffers are tied to envs
+				buffer->env = ew->env;
 			size_t size = end - start;
             if (size > 0x100000000)
                 fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start, end);
@@ -492,9 +499,11 @@ NAPI_FUNCTION(getSharedBuffer) {
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
 			if (buffer->id >= 0)
 				napi_adjust_external_memory(env, -(int64_t) size, &result);
+			pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 			return returnValue;
 		}
 	}
+	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 	RETURN_UNDEFINED;
 }
 NAPI_FUNCTION(setTestRef) {
@@ -586,6 +595,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
         bufferInfo.end = (char*) end;
         bufferInfo.env = nullptr;
         bufferInfo.id = sharedBuffers->nextSharedId++;
+		fprintf(stderr, "adding shared buffer %p\n", bufferStart);
         sharedBuffers->buffers.emplace((char*)bufferStart, bufferInfo);
 	} else {
 		bufferInfo = bufferSearch->second;
@@ -634,6 +644,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
+				pthread_mutex_lock(&sharedBuffers->modification_lock);
 				for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 					if (bufferRef->second.env == env) {
 						napi_value arrayBuffer;
@@ -643,10 +654,12 @@ void EnvWrap::closeEnv(bool hasLock) {
 						int64_t result;
 						if (bufferRef->second.id >= 0)
 							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
+						fprintf(stderr, "deleting buffer %p\n", bufferRef->first);
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 					} else
 						bufferRef++;
 				}
+				pthread_mutex_unlock(&sharedBuffers->modification_lock);
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));

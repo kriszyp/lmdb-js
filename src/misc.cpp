@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <node_version.h>
 #include <time.h>
+#include <unistd.h>
 
 using namespace Napi;
 
@@ -232,7 +233,6 @@ class ReadWorker : public AsyncWorker {
   private:
 	uint32_t* start;
 };
-static thread_local uint32_t* currentReadAddress;
 typedef struct { // this is read results data buffer that is actively being used by a JS thread (read results are written to it)
 	int id;
 	char* data;
@@ -240,13 +240,12 @@ typedef struct { // this is read results data buffer that is actively being used
 	uint32_t size;
 } read_results_buffer_t;
 
-static thread_local std::unordered_map<void*, read_results_buffer_t>* buffersByWorker;
+static thread_local std::unordered_map<void*, read_results_buffer_t*>* buffersByWorker;
 
 typedef struct {
 	napi_ref callback;
 	napi_ref resource;
 } read_callback_t;
-static thread_local read_callback_t* lastCallback;
 static int next_buffer_id = -1;
 typedef struct {
 	uint32_t* instructionAddress;
@@ -258,6 +257,7 @@ typedef struct {
 const uint32_t ZERO = 0;
 void do_read(napi_env nenv, void* instruction_pointer) {
 	read_instruction_t* readInstruction = (read_instruction_t*) instruction_pointer;
+	//fprintf(stderr, "lock %p\n", &readInstruction->buffers->modification_lock);
 	uint32_t* instruction = readInstruction->instructionAddress;
 	MDB_val key;
 	key.mv_size = *(instruction + 3);
@@ -270,11 +270,11 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 	bool dupSort = flags & MDB_DUPSORT;
 	int effected = 0;
 	MDB_cursor *cursor;
+	MDB_env* env = mdb_txn_env(txn);
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
 
 	key.mv_data = (void*) (instruction + 4);
 	rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
-	MDB_env* env = mdb_txn_env(txn);
 	*(instruction + 3) = data.mv_size;
 
 	//instruction += (key.mv_size + 28) >> 2;
@@ -293,36 +293,52 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 
 	}
 	*instruction = rc;
-	if (data.mv_size > 4096) {
+	unsigned int env_flags = 0;
+	mdb_env_get_flags(env, &env_flags);
+	if (data.mv_size > 4096 && !(env_flags & MDB_REMAP_CHUNKS)) {
 		EnvWrap::toSharedBuffer(env, instruction, data);
 		*((double*)instruction) = (double) (size_t) data.mv_data;
 	} else {
 		if (!buffersByWorker)
-			buffersByWorker = new std::unordered_map<void*, read_results_buffer_t>;
+			buffersByWorker = new std::unordered_map<void*, read_results_buffer_t*>;
 		read_results_buffer_t* read_buffer;
 		int offset;
 		auto buffer_search = buffersByWorker->find(readInstruction->buffers);
 		if (buffer_search == buffersByWorker->end()) {
-			// force it to create new one
-			read_buffer = nullptr;
+			// create new one
+			buffersByWorker->emplace(readInstruction->buffers, read_buffer = new read_results_buffer_t);
+			read_buffer->size = 0;
+			read_buffer->offset = 0; // force it re-malloc
 		} else
-			read_buffer = &buffer_search->second;
-		if (!read_buffer || (read_buffer->size - read_buffer->offset - 4 < data.mv_size)) {
-			size_t size = 0x40000;// 256KB
-			read_results_buffer_t tmp;
-			buffersByWorker->emplace(readInstruction->buffers, tmp);
-			buffer_search = buffersByWorker->find(readInstruction->buffers);
-			read_buffer = &buffer_search->second;
-			read_buffer->data = (char*) calloc(size, 1);
+			read_buffer = buffer_search->second;
+		if ((int) read_buffer->size - (int) read_buffer->offset - 4 < (int) data.mv_size) {
+			size_t size = 0x400;// 256KB
+			read_buffer->data = (char*) malloc(size);
 			read_buffer->size = size;
 			read_buffer->offset = 0;
 			buffer_info_t buffer_info;
 			buffer_info.end = read_buffer->data + size;
 			buffer_info.env = nullptr;
 			pthread_mutex_lock(&readInstruction->buffers->modification_lock);
+			for (auto bufferRef = readInstruction->buffers->buffers.begin(); bufferRef != readInstruction->buffers->buffers.end();) {
+				int id = bufferRef->second.id;
+				if (id >= 0 || id < -100) {
+					fprintf(stderr, "bad id found before %i \n", id);
+				}
+				bufferRef++;
+			}
 			buffer_info.id = read_buffer->id = readInstruction->buffers->nextAllocatedId--;
+			fprintf(stderr,"Adding buffer %i %p %u\n", buffer_info.id, read_buffer->data, gettid());
 			readInstruction->buffers->buffers.emplace(read_buffer->data, buffer_info);
+			for (auto bufferRef = readInstruction->buffers->buffers.begin(); bufferRef != readInstruction->buffers->buffers.end();) {
+				int id = bufferRef->second.id;
+				if (id >= 0 || id < -100) {
+					fprintf(stderr, "bad id found acter %i \n", id);
+				}
+				bufferRef++;
+			}
 			pthread_mutex_unlock(&readInstruction->buffers->modification_lock);
+
 		}
 		auto position = (uint32_t*) (read_buffer->data + read_buffer->offset);
 		memcpy(position, data.mv_data, data.mv_size);
@@ -332,6 +348,7 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 		read_buffer->offset = (char*)position - read_buffer->data;
 	}
 	mdb_cursor_close(cursor);
+	//fprintf(stderr, "unlock %p\n", &readInstruction->buffers->modification_lock);
 }
 void read_complete(napi_env env, napi_status status, void* data) {
 	read_instruction_t* readInstruction = (read_instruction_t*) data;
@@ -348,7 +365,6 @@ NAPI_FUNCTION(startRead) {
 	ARGS(2)
 	GET_INT64_ARG(0);
 	uint32_t* instructionAddress = (uint32_t*) i64;
-	currentReadAddress = instructionAddress;
 	//read_callback_t* callback = new read_callback_t;
 	//callback->env = env;
 	read_instruction_t* readInstruction = new read_instruction_t;
