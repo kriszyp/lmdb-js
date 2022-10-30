@@ -405,7 +405,6 @@ void WriteWorker::Write() {
 		mdb_env_set_callback(env, (void*)txn_visible);
 	mdb_env_set_userctx(env, nullptr, this);
 	#endif
-
 	if (rc || hasError)
 		mdb_txn_abort(txn);
 	else
@@ -435,6 +434,8 @@ void write_progress(napi_env env,
 					napi_value js_callback,
 					void* context,
 					void* data) {
+	if (!js_callback)
+		return;
 	auto worker = (WriteWorker*) context;
 	napi_value result;
 	napi_value undefined;

@@ -8992,7 +8992,6 @@ current:
 				 * bother to try shrinking the page if the new data
 				 * is smaller than the overflow threshold.
 				 */
-				fprintf(stderr, "writable: %u ", IS_WRITABLE(mc->mc_txn, omp));
 				if (!IS_WRITABLE(mc->mc_txn, omp)) {
 
 				  if (!IS_DIRTY_NW(mc->mc_txn, omp)) {
