@@ -138,6 +138,11 @@ class SyncWorker : public AsyncWorker {
 		napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
 		napi_call_function(Env(), Env().Undefined(), Callback().Value(), 0, {}, &result);
 	}
+	void OnError(const Error& e) {
+		napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
+		napi_value arg = e.Value();
+		napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+	}
 
 	void Execute() {
 		#ifdef _WIN32

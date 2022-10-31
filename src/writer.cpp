@@ -480,6 +480,12 @@ void writes_complete(napi_env env,
 	napi_delete_async_work(env, worker->work);
 	delete worker;
 }
+void AsyncWriteWorker::OnError(const Error& e) {
+	finishedProgress = true;
+	napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
+	napi_value arg = e.Value();
+	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+}
 
 Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
 	// if we had async txns, now we resume

@@ -11,7 +11,7 @@ let [ majorVersion, minorVersion ] = versions.node.split('.')
 
 if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 	let v8Funcs = {};
-	let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 6) && !process.env.DISABLE_TURBO_CALLS;
+	let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 8) && !process.env.DISABLE_TURBO_CALLS;
 	if (fastApiCalls)
 		setFlagsFromString('--turbo-fast-api-calls')
 	nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
