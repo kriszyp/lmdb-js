@@ -455,7 +455,9 @@ napi_finalize cleanupAllocatedExternal = [](napi_env env, void* data, void* buff
 		if (bufferRef->second.id == id) {
 			fprintf(stderr, "erasing buffer on cleanpu %p\n", bufferRef->first);
 			bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
+			break;
 		}
+		bufferRef++;
 	}
 	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 	// We malloc'ed this data so free it
