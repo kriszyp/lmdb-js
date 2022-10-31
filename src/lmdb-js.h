@@ -243,6 +243,7 @@ class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
 	void Execute(const AsyncProgressWorker::ExecutionProgress& execution);
 	void OnProgress(const char* data, size_t count);
 	void OnOK();
+	void OnError(const Error& e);
 	void ReportError(const char* error);
 	void SendUpdate();
   private:
