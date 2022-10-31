@@ -272,7 +272,7 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 	MDB_cursor *cursor;
 	MDB_env* env = mdb_txn_env(txn);
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
-
+TODO: Need to handle invalid rc and ensure transactions are kept alive
 	key.mv_data = (void*) (instruction + 4);
 	rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
 	*(instruction + 3) = data.mv_size;
