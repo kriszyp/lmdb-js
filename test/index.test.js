@@ -692,14 +692,14 @@ describe('lmdb-js', function() {
 			await promise
 			should.equal(db.get(returnedKeys[0]), undefined)
 		});
-		it.only('getAsync', async function() {
+		it('getAsync', async function() {
 			for (let i = 0; i < 200; i++) {
-				db.put('key' + i, 'value' + i);
+				db.put('async' + i, 'value' + i);
 			}
 			await db.committed;
 			let gets = [];
 			for (let i = 0; i < 200; i++) {
-				gets.push(db.getAsync('key' + i));
+				gets.push(db.getAsync('async' + i));
 			}
 			let results = await Promise.all(gets);
 			for (let i = 0; i < 200; i++) {

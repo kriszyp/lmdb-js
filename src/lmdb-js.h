@@ -141,6 +141,7 @@ napi_value getBufferAddress(napi_env env, napi_callback_info info);
 napi_value getAddress(napi_env env, napi_callback_info info);
 napi_value detachBuffer(napi_env env, napi_callback_info info);
 napi_value startRead(napi_env env, napi_callback_info info);
+napi_value setReadCallback(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
 Value enableDirectV8(const CallbackInfo& info);
@@ -203,10 +204,10 @@ class WriteWorker {
 	MDB_txn* AcquireTxn(int* flags);
 	void UnlockTxn();
 	int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
-	virtual void ReportError(const char* error);
 	virtual void SendUpdate();
 	int interruptionStatus;
 	bool finishedProgress;
+	int resultCode;
 	bool hasError;
 	napi_ref callback;
 	napi_async_work work;
@@ -242,6 +243,7 @@ typedef struct env_tracking_t {
 
 typedef struct buffer_info_t { // definition of a buffer that is available/used in JS
 	int32_t id;
+	bool isSharedMap;
 	char* end;
 	MDB_env* env;
 	napi_ref ref;
@@ -249,8 +251,7 @@ typedef struct buffer_info_t { // definition of a buffer that is available/used 
 
 typedef struct js_buffers_t { // there is one instance of this for each JS (worker) thread, holding all the active buffers
 	std::unordered_map<char*, buffer_info_t> buffers;
-	int nextSharedId;
-	int nextAllocatedId;
+	int nextId;
 	pthread_mutex_t modification_lock;
 } js_buffers_t;
 

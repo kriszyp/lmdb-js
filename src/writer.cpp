@@ -65,6 +65,7 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		env(env) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
+		resultCode = 0;
 		txn = nullptr;
 	}
 
@@ -105,10 +106,6 @@ void WriteWorker::UnlockTxn() {
 	interruptionStatus = 0;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
-}
-void WriteWorker::ReportError(const char* error) {
-	hasError = true;
-	fprintf(stderr, "Error %s\n", error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
@@ -182,7 +179,7 @@ next_inst:	start = instruction++;
 		if (flags & 0xf0c0) {
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
 			fprintf(stderr, "flags after message %u\n", *start);
-			worker->ReportError("Unknown flags\n");
+			worker->resultCode = 22;
 			return 0;
 		}
 		if (flags & HAS_KEY) {
@@ -229,7 +226,7 @@ next_inst:	start = instruction++;
 					if (rc == MDB_NOTFOUND)
 						validated = flags & CONDITIONAL_ALLOW_NOTFOUND;
 					else
-						worker->ReportError(mdb_strerror(rc));
+						worker->resultCode = rc;
 				} else if (conditionalVersion != ANY_VERSION) {
 					double version;
 					memcpy(&version, conditionalValue.mv_data, 8);
@@ -247,7 +244,7 @@ next_inst:	start = instruction++;
 				else if (rc == MDB_NOTFOUND)
 					validated = true;
 				else
-					worker->ReportError(mdb_strerror(rc));
+					worker->resultCode = rc;
 			}
 		} else
 			instruction++;
@@ -325,13 +322,13 @@ next_inst:	start = instruction++;
 			default:
 				fprintf(stderr, "Unknown flags %u %p\n", flags, start);
 				fprintf(stderr, "flags after message %u\n", *start);
-				worker->ReportError("Unknown flags\n");
+				worker->resultCode = 22;
 				return 22;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
 					if (worker) {
-						worker->ReportError(mdb_strerror(rc));
+						worker->resultCode = rc;
 					} else {
 						return rc;
 					}
@@ -395,9 +392,9 @@ void WriteWorker::Write() {
 	}
 	#endif
 	if (rc != 0) {
-		return ReportError(mdb_strerror(rc));
+		resultCode = rc;
+		return;
 	}
-	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
 	#ifdef MDB_OVERLAPPINGSYNC
@@ -405,7 +402,7 @@ void WriteWorker::Write() {
 		mdb_env_set_callback(env, (void*)txn_visible);
 	mdb_env_set_userctx(env, nullptr, this);
 	#endif
-	if (rc || hasError)
+	if (rc || resultCode)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
@@ -420,10 +417,10 @@ void WriteWorker::Write() {
     interruptionStatus = 0;
     pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
 	pthread_mutex_unlock(envForTxn->writingLock);
-	if (rc || hasError) {
+	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
-			ReportError(mdb_strerror(rc));
+			resultCode = rc || resultCode;
 		return;
 	}
 	*(instructions - 1) = txnId;
@@ -472,19 +469,13 @@ void writes_complete(napi_env env,
 	auto worker = (WriteWorker*) data;
 	worker->finishedProgress = true;
 	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
-	napi_create_int32(env, 0, &arg);
+	napi_create_int32(env, worker->resultCode, &arg);
 	napi_value callback;
 	napi_get_reference_value(env, worker->callback, &callback);
 	napi_call_function(env, callback, callback, 1, &arg, &result);
 	napi_delete_reference(env, worker->callback);
 	napi_delete_async_work(env, worker->work);
 	delete worker;
-}
-void AsyncWriteWorker::OnError(const Error& e) {
-	finishedProgress = true;
-	napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
-	napi_value arg = e.Value();
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
 }
 
 Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {

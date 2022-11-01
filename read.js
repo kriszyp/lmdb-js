@@ -1,6 +1,7 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead } from './native.js';
+import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead, setReadCallback } from './native.js';
 import { saveKey }  from './keys.js';
+import lmdb from "./index.js";
 const IF_EXISTS = 3.542694326329068e-103;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
@@ -72,24 +73,26 @@ export function addReadMethods(LMDBStore, {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			outstandingReads++;
-			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( bufferId, offset, size ) => {
+			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( rc, bufferId, offset, size ) => {
+				if (rc && rc !== 1)
+					callback(lmdbError(rc));
 				outstandingReads--;
 				let buffer = mmaps[bufferId];
 				if (!buffer) {
 					buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 				}
 				//console.log({bufferId, offset, size})
-				if (bufferId < 0) {
-					// using copied memory
-					txn.done(); // decrement and possibly abort
-					callback(buffer, offset, size);
-				} else {
+				if (buffer.isSharedMap) {
 					// using LMDB shared memory
 					// TODO: We may want explicit support for clearing aborting the transaction on the next event turn,
 					// but for now we are relying on the GC to cleanup transaction for larger blocks of memory
 					let bytes = new Uint8Array(buffer, offset, size);
 					bytes.txn = txn;
 					callback(bytes, 0, size);
+				} else {
+					// using copied memory
+					txn.done(); // decrement and possibly abort
+					callback(buffer, offset, size);
 				}
 			});
 			if (address) {
@@ -750,18 +753,16 @@ Txn.prototype.done = function() {
 }
 
 
-let readInstructions, readCallbacks, uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
+let readInstructions, readCallbacks = new Map(), uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateInstructionsBuffer() {
-	console.log('allocateInstructionsBuffer');
 	readInstructions = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	uint32Instructions = new Int32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
 	uint32Instructions[2] = 0xf0000000; // indicates a new read task must be started
 	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions.buffer);
 	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
 	savePosition = 0;
-	readCallbacks = [];
 }
 export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback) {
 	if (savePosition > 7800) {
@@ -791,15 +792,20 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
 	instructionsDataView.setFloat64(start, txnAddress, true);
-	readCallbacks[start] = callback;
+	let callbackId = nextCallbackId++;
+	readCallbacks.set(callbackId, () => {
+		let position = start >> 2;
+		let rc = thisInstructions[position];
+		callback(rc, thisInstructions[position + 1], thisInstructions[position + 2], thisInstructions[position + 3]);
+	});
 	let thisInstructions = uint32Instructions;
 	//if (start === 0)
-		return startRead(instructionsAddress + start, function(offset) {
-			//readCallbacks[offset]();
-			let position = start >> 2;
-			let rc = thisInstructions[position];
-			callback(thisInstructions[position + 1], thisInstructions[position + 2], thisInstructions[position + 3]);
-		});
+		return startRead(instructionsAddress + start, callbackId, {}, 'read');
 	//else
 		//nextRead(start);
 }
+let nextCallbackId = 0;
+setReadCallback(function(callbackId) {
+	readCallbacks.get(callbackId)();
+	readCallbacks.delete(callbackId);
+})

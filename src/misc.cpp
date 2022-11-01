@@ -33,6 +33,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("getBufferAddress", getBufferAddress);
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
 	EXPORT_NAPI_FUNCTION("startRead", startRead);
+	EXPORT_NAPI_FUNCTION("setReadCallback", setReadCallback);
 	napi_value globalBuffer;
 	napi_create_buffer(env, SHARED_BUFFER_THRESHOLD, (void**) &globalUnsafePtr, &globalBuffer);
 	globalUnsafeSize = SHARED_BUFFER_THRESHOLD;
@@ -249,7 +250,7 @@ typedef struct {
 static int next_buffer_id = -1;
 typedef struct {
 	uint32_t* instructionAddress;
-	napi_ref callback;
+	uint32_t callback_id;
 	napi_async_work work;
 	//napi_deferred deferred;
 	js_buffers_t* buffers;
@@ -265,6 +266,7 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 	MDB_val data;
 	TxnWrap* tw = (TxnWrap*) (size_t) *((double*)instruction);
 	MDB_txn* txn = tw->txn;
+	mdb_txn_renew(txn);
 	unsigned int flags;
 	mdb_dbi_flags(txn, dbi, &flags);
 	bool dupSort = flags & MDB_DUPSORT;
@@ -272,7 +274,10 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 	MDB_cursor *cursor;
 	MDB_env* env = mdb_txn_env(txn);
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
-TODO: Need to handle invalid rc and ensure transactions are kept alive
+	if (rc) {
+		*instruction = rc;
+		return;
+	}
 	key.mv_data = (void*) (instruction + 4);
 	rc = mdb_cursor_get(cursor, &key, &data, MDB_SET_KEY);
 	*(instruction + 3) = data.mv_size;
@@ -312,31 +317,17 @@ TODO: Need to handle invalid rc and ensure transactions are kept alive
 		} else
 			read_buffer = buffer_search->second;
 		if ((int) read_buffer->size - (int) read_buffer->offset - 4 < (int) data.mv_size) {
-			size_t size = 0x400;// 256KB
+			size_t size = 0x40000;// 256KB
 			read_buffer->data = (char*) malloc(size);
 			read_buffer->size = size;
 			read_buffer->offset = 0;
 			buffer_info_t buffer_info;
 			buffer_info.end = read_buffer->data + size;
 			buffer_info.env = nullptr;
+			buffer_info.isSharedMap = false;
 			pthread_mutex_lock(&readInstruction->buffers->modification_lock);
-			for (auto bufferRef = readInstruction->buffers->buffers.begin(); bufferRef != readInstruction->buffers->buffers.end();) {
-				int id = bufferRef->second.id;
-				if (id >= 0 || id < -100) {
-					fprintf(stderr, "bad id found before %i \n", id);
-				}
-				bufferRef++;
-			}
-			buffer_info.id = read_buffer->id = readInstruction->buffers->nextAllocatedId--;
-			fprintf(stderr,"Adding buffer %i %p %u\n", buffer_info.id, read_buffer->data, gettid());
+			buffer_info.id = read_buffer->id = readInstruction->buffers->nextId++;
 			readInstruction->buffers->buffers.emplace(read_buffer->data, buffer_info);
-			for (auto bufferRef = readInstruction->buffers->buffers.begin(); bufferRef != readInstruction->buffers->buffers.end();) {
-				int id = bufferRef->second.id;
-				if (id >= 0 || id < -100) {
-					fprintf(stderr, "bad id found acter %i \n", id);
-				}
-				bufferRef++;
-			}
 			pthread_mutex_unlock(&readInstruction->buffers->modification_lock);
 
 		}
@@ -350,36 +341,39 @@ TODO: Need to handle invalid rc and ensure transactions are kept alive
 	mdb_cursor_close(cursor);
 	//fprintf(stderr, "unlock %p\n", &readInstruction->buffers->modification_lock);
 }
+static thread_local napi_ref* read_callback;
 void read_complete(napi_env env, napi_status status, void* data) {
 	read_instruction_t* readInstruction = (read_instruction_t*) data;
 	napi_value callback;
-	napi_get_reference_value(env, readInstruction->callback, &callback);
+	napi_get_reference_value(env, *read_callback, &callback);
 	//uint32_t count;
 	napi_value result;
-	status = napi_call_function(env, callback, callback, 0, NULL, &result);
-	napi_delete_reference(env, readInstruction->callback);
+	napi_value callback_id;
+	napi_create_int32(env, readInstruction->callback_id, &callback_id);
+	status = napi_call_function(env, callback, callback, 1, &callback_id, &result);
 	napi_delete_async_work(env, readInstruction->work);
+	delete readInstruction;
 	//napi_resolve_deferred(env, readInstruction->deferred, resolution);
 }
+NAPI_FUNCTION(setReadCallback) {
+	ARGS(1)
+	read_callback = new napi_ref;
+	napi_create_reference(env, args[0], 1, read_callback);
+	RETURN_UNDEFINED;
+}
 NAPI_FUNCTION(startRead) {
-	ARGS(2)
+	ARGS(4)
 	GET_INT64_ARG(0);
 	uint32_t* instructionAddress = (uint32_t*) i64;
-	//read_callback_t* callback = new read_callback_t;
-	//callback->env = env;
 	read_instruction_t* readInstruction = new read_instruction_t;
 	readInstruction->instructionAddress = instructionAddress;
-	napi_create_reference(env, args[1], 1, &readInstruction->callback);
-	//readInstruction->callback = callback;
+	uint32_t callback_id;
+	GET_UINT32_ARG(callback_id, 1);
+	//napi_create_reference(env, args[1], 1, &readInstruction->callback);
+	readInstruction->callback_id = callback_id;
 	readInstruction->buffers = EnvWrap::sharedBuffers;
-	napi_value resource;
 	napi_status status;
-	status = napi_create_object(env, &resource);
-	/*napi_value promise;
-	napi_create_promise(env, &readInstruction->deferred, &promise);*/
-	napi_value resource_name;
-	status = napi_create_string_latin1(env, "read", NAPI_AUTO_LENGTH, &resource_name);
-	status = napi_create_async_work(env, resource, resource_name, do_read, read_complete, readInstruction, &readInstruction->work);
+	status = napi_create_async_work(env, args[2], args[3], do_read, read_complete, readInstruction, &readInstruction->work);
 	status = napi_queue_async_work(env, readInstruction->work);
 	RETURN_UNDEFINED;
 }/*

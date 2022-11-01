@@ -112,7 +112,7 @@ function getBinaryFast() {
 }
 function getAsync() {
   console.log('getAsync');
-  return store.getAsync((c += 357) % total);
+  store.getAsync((c += 357) % total);
 }
 let a = Buffer.from('this id\0\0\0\0\0')
 let b = Buffer.from('mmmmmmore text')
@@ -188,13 +188,11 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
+
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    suite.add('getBinaryFast', getBinaryFast);
-    suite.add('getAsync', {
-      defer: true,
-      fn: getAsync,
-    });
+  //  suite.add('getBinaryFast', getBinaryFast);
+    suite.add('getAsync', getAsync);
   console.log('added async')
 	 suite.add('noop', noopTest);
     suite.add('getRange', getRange);

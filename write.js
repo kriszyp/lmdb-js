@@ -398,35 +398,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		});
 		startAddress = 0;
 	}
-	function scheduleFlush(resolvers, delay) {
-		if (committedFlushResolvers)
-			committedFlushResolvers.push(resolvers);
-		else {
-			committedFlushResolvers = [resolvers];
-			lastFlushTimeout = setTimeout(lastFlushCallback = () => {
-				lastFlushTimeout = null;
-				lastSync.then(() => {
-					let resolverSets = committedFlushResolvers || [];
-					committedFlushResolvers = null;
-					lastSync = new Promise((resolve) => {
-						env.sync(() => {
-							for (let resolvers of resolverSets) {
-								for (let resolver of resolvers)
-									resolver();
-							}
-							resolve();
-						});
-					});
-				});
-			}, delay || 0);
-		}
-	}
-	function expediteFlush() {
-		if (lastFlushTimeout) {
-			clearTimeout(lastFlushTimeout);
-			lastFlushCallback();
-		}
-	}
 
 	function queueCommitResolution(resolution) {
 		if (!(resolution.flag & HAS_TXN)) {
@@ -821,9 +792,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							let hasWrites = env.commitTxn();
 							resetReadTxn();
-							if ((flags & 0x10000) && overlappingSync && hasWrites) // if it is no-sync in overlapping-sync mode, need
-								// to schedule flush for it to be marked as persisted
-								lastSyncTxnFlush = new Promise(resolve => scheduleFlush([resolve]))
 						}
 						return result;
 					} finally {
@@ -868,8 +836,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
 			if (flushPromise)
 				flushPromise.hasCallbacks = true
-			if (lastFlushTimeout)
-				expediteFlush();
 			let finalSyncPromise = lastSyncTxnFlush;
 			if (finalPromise && resolvedPromise != finalPromise ||
 					finalSyncPromise && resolvedSyncPromise != finalSyncPromise) {
