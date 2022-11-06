@@ -8,7 +8,7 @@ let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which does
 	dirname(fileURLToPath(import.meta.url))).replace(/dist$/, ''); // for node, which doesn't have __dirname in ESM
 export let nativeAddon = loadNAPI(dirName);
 
-if (process.isBun) {
+if (process.isBun && false) {
 	const { linkSymbols, FFIType } = require('bun:ffi');
 	let lmdbLib = linkSymbols({
 		getByBinary: {

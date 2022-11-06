@@ -153,7 +153,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			try {
 				endPosition = store.writeKey(key, targetBytes, keyStartPosition);
 				if (!(keyStartPosition < endPosition) && (flags & 0xf) != 12)
-					throw new Error('Invalid key or zero length key is not allowed in LMDB')
+					throw new Error('Invalid key or zero length key is not allowed in LMDB ' + key)
 			} catch(error) {
 				targetBytes.fill(0, keyStartPosition);
 				if (error.name == 'RangeError')

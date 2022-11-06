@@ -5,7 +5,6 @@ import lmdb from "./index.js";
 const IF_EXISTS = 3.542694326329068e-103;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
-const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
 let getValueBytes = globalBuffer;
 if (!getValueBytes.maxLength) {
 	getValueBytes.maxLength = getValueBytes.length;
@@ -188,9 +187,9 @@ export function addReadMethods(LMDBStore, {
 			let newLength = Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
 			let bytes;
 			if (this.compression) {
-				let dictionary = this.compression.dictionary || new Uint8A(0);
+				let dictionary = this.compression.dictionary || Buffer.allocUnsafeSlow(0);
 				let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
-				bytes = new Uint8A(newLength + dictLength);
+				bytes = Buffer.allocUnsafeSlow(newLength + dictLength);
 				bytes.set(dictionary) // copy dictionary into start
 				// the section after the dictionary is the target area for get values
 				bytes = bytes.subarray(dictLength);
@@ -373,7 +372,7 @@ export function addReadMethods(LMDBStore, {
 							db.availableCursor = null;
 							flags |= 0x2000;
 						} else {
-							cursor = new Cursor(db, txnAddress);
+							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
 						txn.refCount = (txn.refCount || 0) + 1; // track transaction so we always use the same one

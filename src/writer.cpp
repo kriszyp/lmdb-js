@@ -70,7 +70,8 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 	}
 
 void WriteWorker::SendUpdate() {
-	napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
+	if (WriteWorker::threadSafeCallsEnabled)
+		napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	bool commitSynchronously = *flags & TXN_SYNCHRONOUS_COMMIT;
@@ -349,6 +350,7 @@ next_inst:	start = instruction++;
 	return rc;
 }
 
+bool WriteWorker::threadSafeCallsEnabled = false;
 void txn_visible(const void* data) {
 	auto worker = (WriteWorker*) data;
 	worker->SendUpdate();

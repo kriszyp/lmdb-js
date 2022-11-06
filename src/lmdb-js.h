@@ -140,6 +140,7 @@ napi_value createBufferForAddress(napi_env env, napi_callback_info info);
 napi_value getBufferAddress(napi_env env, napi_callback_info info);
 napi_value getAddress(napi_env env, napi_callback_info info);
 napi_value detachBuffer(napi_env env, napi_callback_info info);
+napi_value enableThreadSafeCalls(napi_env env, napi_callback_info info);
 napi_value startRead(napi_env env, napi_callback_info info);
 napi_value setReadCallback(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);
@@ -218,6 +219,7 @@ class WriteWorker {
 	int progressStatus;
 	MDB_env* env;
 	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
+	static bool threadSafeCallsEnabled;
 };
 class TxnTracked {
   public:

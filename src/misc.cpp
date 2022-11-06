@@ -34,6 +34,7 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("detachBuffer", detachBuffer);
 	EXPORT_NAPI_FUNCTION("startRead", startRead);
 	EXPORT_NAPI_FUNCTION("setReadCallback", setReadCallback);
+	EXPORT_NAPI_FUNCTION("enableThreadSafeCalls", enableThreadSafeCalls);
 	napi_value globalBuffer;
 	napi_create_buffer(env, SHARED_BUFFER_THRESHOLD, (void**) &globalUnsafePtr, &globalBuffer);
 	globalUnsafeSize = SHARED_BUFFER_THRESHOLD;
@@ -355,6 +356,12 @@ void read_complete(napi_env env, napi_status status, void* data) {
 	delete readInstruction;
 	//napi_resolve_deferred(env, readInstruction->deferred, resolution);
 }
+NAPI_FUNCTION(enableThreadSafeCalls) {
+	ARGS(0);
+	WriteWorker::threadSafeCallsEnabled = true;
+	RETURN_UNDEFINED;
+}
+
 NAPI_FUNCTION(setReadCallback) {
 	ARGS(1)
 	read_callback = new napi_ref;

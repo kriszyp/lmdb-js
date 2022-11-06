@@ -71,7 +71,7 @@ function allocateSaveBuffer() {
 	// TODO: Conditionally only do this for key sequences?
 	saveDataView.setUint32(savePosition, 0xffffffff);
 	saveDataView.setFloat64(savePosition + 4, saveDataAddress, true); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
-	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
+	saveDataView = saveBuffer.dataView || (saveBuffer.dataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength));
 	savePosition = 0;
 }
 export function saveKey(key, writeKey, saveTo, maxKeySize, flags) {
