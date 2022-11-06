@@ -1031,7 +1031,7 @@ int  mdb_env_get_maxkeysize(MDB_env *env);
 	 * @param[in] ctx An arbitrary pointer for whatever the application needs.
 	 * @return A non-zero error value on failure and 0 on success.
 	 */
-int  mdb_env_set_userctx(MDB_env *env, void *ctx, void *txnctx);
+int  mdb_env_set_userctx(MDB_env *env, void *ctx);
 
 	/** @brief Get the application information associated with the #MDB_env.
 	 *
@@ -1059,8 +1059,9 @@ int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
 
 //<lmdb-js>
 typedef int (MDB_check_fd)(const mdb_filehandle_t fd, MDB_env* env);
-typedef int (MDB_txn_visible)(const void* ctx);
-int  mdb_env_set_callback(MDB_env *env, void *func);
+typedef void (MDB_txn_visible)(const void* ctx);
+int  mdb_env_set_callback(MDB_env *env, MDB_check_fd *func);
+int  mdb_txn_set_callback(MDB_txn *txn, MDB_txn_visible *func, void* ctx);
 //</lmdb-js>
 
 #if MDB_RPAGE_CACHE

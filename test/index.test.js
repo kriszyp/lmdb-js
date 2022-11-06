@@ -692,6 +692,7 @@ describe('lmdb-js', function() {
 			await promise
 			should.equal(db.get(returnedKeys[0]), undefined)
 		});
+		if (!options.encryptionKey)
 		it('getAsync', async function() {
 			for (let i = 0; i < 200; i++) {
 				db.put('async' + i, 'value' + i);
@@ -799,8 +800,10 @@ describe('lmdb-js', function() {
 			let reportedError;
 			let order = [];
 			let promiseWithError = db.transaction(async () => {
+				console.log('start async txn 1')
 				await new Promise(resolve => setTimeout(resolve, 1));
 				db.put('key1', 'async test 2');
+				console.log('wrote in async txn 1')
 				order.push(0);
 				throw new Error('test');
 			}).then(() => {
@@ -833,12 +836,14 @@ describe('lmdb-js', function() {
 			let promise3 = db.transaction(async () => {
 				await delay(1);
 				order.push(5);
+				console.log("last one")
 				return 5;
 			});
 			should.equal(await promise3, 5);
 			order.should.deep.equal([0,1,2,3,4,5]);
 			should.equal(await promise2, 4);
 			await db.committed;
+			console.log('committed')
 			await promiseWithDelay;
 			should.equal(db.get('key1'), 'async test 2');
 			should.equal(db.get('key2'), 'async test 2');
@@ -1160,6 +1165,7 @@ describe('lmdb-js', function() {
 			let one = dbRAS.get(1, { lazy: true });
 			dbRAS.retain(one);
 			let two = dbRAS.get(2, { lazy: true });
+			console.log('two.name',two.name)
 			dbRAS.retain(two);
 			let three = dbRAS.get(3, { lazy: true });
 			dbRAS.retain(three);

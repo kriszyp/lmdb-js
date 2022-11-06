@@ -349,7 +349,7 @@ next_inst:	start = instruction++;
 	return rc;
 }
 
-void txn_visible(void* data) {
+void txn_visible(const void* data) {
 	auto worker = (WriteWorker*) data;
 	worker->SendUpdate();
 }
@@ -397,17 +397,17 @@ void WriteWorker::Write() {
 	}
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
+	progressStatus = 1;
 	#ifdef MDB_OVERLAPPINGSYNC
-	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC)
-		mdb_env_set_callback(env, (void*)txn_visible);
-	mdb_env_set_userctx(env, nullptr, this);
+	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
+		mdb_txn_set_callback(txn, txn_visible, this);
+	}
 	#endif
 	if (rc || resultCode)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
 	#ifdef MDB_OVERLAPPINGSYNC
-	mdb_env_set_callback(env, nullptr);
 	#endif
 #ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)

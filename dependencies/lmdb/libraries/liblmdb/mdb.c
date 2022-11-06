@@ -1378,6 +1378,9 @@ struct MDB_txn {
 	 *	#mt_workid, then grows as it is copied from children who commit.
 	 */
 	txnid_t		mt_last_workid;
+	/** Callback function for when the transaction is visible */
+	MDB_txn_visible* mt_callback;
+	void* mt_ctx;
 
 	MDB_env		*mt_env;		/**< the DB environment */
 	/** The list of pages that became unused during this transaction.
@@ -1691,7 +1694,6 @@ struct MDB_env {
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
 	void *me_callback; /**< General callback */
 	int64_t 	boot_id;
-	void		*me_txnctx;	 /**< User-settable context */
 };
 
 	/** Nested transaction */
@@ -3527,6 +3529,16 @@ mdb_workid_rewind(MDB_txn *txn)
 	return workid;
 }
 
+int ESECT
+mdb_txn_set_callback(MDB_txn *txn, MDB_txn_visible *func, void* ctx)
+{
+	if (!txn)
+		return EINVAL;
+	txn->mt_callback = func;
+	txn->mt_ctx = ctx;
+	return MDB_SUCCESS;
+}
+
 int
 mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 {
@@ -3636,6 +3648,7 @@ mdb_txn_begin(MDB_env *env, MDB_txn *parent, unsigned int flags, MDB_txn **ret)
 renew:
 		rc = mdb_txn_renew0(txn);
 	}
+	txn->mt_callback = NULL;
 	if (rc) {
 		if (txn != env->me_txn0) {
 #if MDB_RPAGE_CACHE
@@ -4628,9 +4641,10 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 
 	//<lmdb-js>
-	if (env->me_callback) {
-		MDB_txn_visible* callback = (MDB_txn_visible*) env->me_callback;
-		callback(env->me_txnctx);
+	if (txn->mt_callback) {
+		MDB_txn_visible* callback = txn->mt_callback;
+		callback(txn->mt_ctx);
+		txn->mt_callback = NULL;
 	}
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
 		env->me_synced_txn_id = txn->mt_txnid;
@@ -4665,9 +4679,11 @@ done:
 		sync_txn.mt_next_pgno = txn->mt_next_pgno;
 		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 100) {
 			// for bigger txns we wait for the flush before allowing next txn
+			fprintf(stderr,"big txn, waiting for sync\n");
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 			mdb_txn_end(txn, end_mode);
 		} else {
+			fprintf(stderr,"little txn\n");
 			mdb_txn_end(txn, end_mode);
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 		}
@@ -8995,14 +9011,12 @@ current:
 				if (!IS_WRITABLE(mc->mc_txn, omp)) {
 
 				  if (!IS_DIRTY_NW(mc->mc_txn, omp)) {
-					  fprintf(stderr, "not dirty, unspilling\n");
 					rc = mdb_page_unspill(mc->mc_txn, omp, &omp);
 					if (rc)
 						return rc;
 				  } else {
 					/* It is writable only in a parent txn */
 					size_t sz = (size_t) env->me_psize * ovpages, off;
-					  fprintf(stderr, "mdb_page_malloc\n");
 					MDB_page *np = mdb_page_malloc(mc->mc_txn, ovpages, 1);
 					MDB_ID2 id2;
 					if (!np)
@@ -11782,14 +11796,12 @@ mdb_env_get_flags(MDB_env *env, unsigned int *arg)
 }
 
 int ESECT
-mdb_env_set_userctx(MDB_env *env, void *ctx, void *txnctx)
+mdb_env_set_userctx(MDB_env *env, void *ctx)
 {
 	if (!env)
 		return EINVAL;
 	if (ctx)
 		env->me_userctx = ctx;
-	if (txnctx)
-		env->me_txnctx = txnctx;
 	return MDB_SUCCESS;
 }
 
@@ -11811,7 +11823,7 @@ mdb_env_set_assert(MDB_env *env, MDB_assert_func *func)
 }
 
 int ESECT
-mdb_env_set_callback(MDB_env *env, void *func)
+mdb_env_set_callback(MDB_env *env, MDB_check_fd *func)
 {
 	if (!env)
 		return EINVAL;

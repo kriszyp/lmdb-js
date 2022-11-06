@@ -381,7 +381,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					}
 					break;
 				case 1:
-					console.log('unknown status', status);
 					break;
 				case 2:
 					hasUnresolvedTxns = false;
