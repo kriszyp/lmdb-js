@@ -605,7 +605,6 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
         bufferInfo.env = nullptr;
 		bufferInfo.isSharedMap = true;
         bufferInfo.id = sharedBuffers->nextId++;
-		fprintf(stderr, "adding shared buffer %p\n", bufferStart);
         sharedBuffers->buffers.emplace((char*)bufferStart, bufferInfo);
 	} else {
 		bufferInfo = bufferSearch->second;
@@ -664,7 +663,6 @@ void EnvWrap::closeEnv(bool hasLock) {
 						int64_t result;
 						if (bufferRef->second.id >= 0)
 							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
-						fprintf(stderr, "deleting buffer %p\n", bufferRef->first);
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 					} else
 						bufferRef++;

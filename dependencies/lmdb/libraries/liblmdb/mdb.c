@@ -4679,11 +4679,9 @@ done:
 		sync_txn.mt_next_pgno = txn->mt_next_pgno;
 		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 100) {
 			// for bigger txns we wait for the flush before allowing next txn
-			fprintf(stderr,"big txn, waiting for sync\n");
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 			mdb_txn_end(txn, end_mode);
 		} else {
-			fprintf(stderr,"little txn\n");
 			mdb_txn_end(txn, end_mode);
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 		}
