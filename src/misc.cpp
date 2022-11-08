@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <node_version.h>
 #include <time.h>
-#include <unistd.h>
 
 using namespace Napi;
 
@@ -308,7 +307,6 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 		if (!buffersByWorker)
 			buffersByWorker = new std::unordered_map<void*, read_results_buffer_t*>;
 		read_results_buffer_t* read_buffer;
-		int offset;
 		auto buffer_search = buffersByWorker->find(readInstruction->buffers);
 		if (buffer_search == buffersByWorker->end()) {
 			// create new one
@@ -357,8 +355,8 @@ void read_complete(napi_env env, napi_status status, void* data) {
 	//napi_resolve_deferred(env, readInstruction->deferred, resolution);
 }
 NAPI_FUNCTION(enableThreadSafeCalls) {
-	ARGS(0);
 	WriteWorker::threadSafeCallsEnabled = true;
+    napi_value returnValue;
 	RETURN_UNDEFINED;
 }
 
