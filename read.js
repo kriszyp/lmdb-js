@@ -791,8 +791,7 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
 	instructionsDataView.setFloat64(start, txnAddress, true);
-	let callbackId = nextCallbackId++;
-	readCallbacks.set(callbackId, () => {
+	let callbackId = addReadCallback(() => {
 		let position = start >> 2;
 		let rc = thisInstructions[position];
 		callback(rc, thisInstructions[position + 1], thisInstructions[position + 2], thisInstructions[position + 3]);
@@ -804,7 +803,15 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 		//nextRead(start);
 }
 let nextCallbackId = 0;
-setReadCallback(function(callbackId) {
-	readCallbacks.get(callbackId)();
-	readCallbacks.delete(callbackId);
-})
+let addReadCallback = globalThis.__lmdb_read_callback;
+if (!addReadCallback) {
+	addReadCallback = globalThis.__lmdb_read_callback = function(callback) {
+		let callbackId = nextCallbackId++;
+		readCallbacks.set(callbackId, callback);
+		return callbackId;
+	};
+	setReadCallback(function(callbackId) {
+		readCallbacks.get(callbackId)();
+		readCallbacks.delete(callbackId);
+	})
+}
