@@ -77,7 +77,7 @@
   },
   "gypfile": true,
   "dependencies": {
-    "msgpackr": "1.7.2",
+    "msgpackr": "1.8.0",
     "node-addon-api": "^4.3.0",
     "node-gyp-build-optional-packages": "5.0.3",
     "ordered-binary": "^1.4.0",
