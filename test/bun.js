@@ -1,13 +1,7 @@
-import { open, IF_EXISTS, asBinary } from 'npm:lmdb';
-import chai from "https://cdn.skypack.dev/chai@4.3.4?dts";
-const { assert, should } = chai;
-should();
-try {
-	Deno.removeSync('test/testdata', { recursive: true });
-} catch(error) {
-	if (error.name != 'NotFound')
-		throw error
-}
+import { open, IF_EXISTS, asBinary } from '../index.js';
+import { assert, should as shouldLoad} from "chai";
+//const { assert, should: shouldLoad } = chai;
+const should = shouldLoad();
 let db = open('test/testdata', {
 	name: 'deno-db1',
 	useVersions: true,
@@ -22,8 +16,8 @@ let db2 = db.openDB({
 	create: true,
 	dupSort: true,
 });
-let tests: { name: string, test: Function }[] = [];
-let test = (name: string, test: Function) => {
+let tests = [];
+let test = (name, test) => {
 	tests.push({ name, test });
 };
 test('query of keys', async function() {
@@ -56,7 +50,7 @@ test('query of keys', async function() {
 		start: Symbol.for('A')
 	})) {
 		returnedKeys.push(key)
-		value.should.equal(db.get(key))
+		should.equal(db.get(key), value)
 	}
 	keys.should.deep.equal(returnedKeys)
 
@@ -65,7 +59,7 @@ test('query of keys', async function() {
 		reverse: true,
 	})) {
 		returnedKeys.unshift(key)
-		value.should.equal(db.get(key))
+		should.equal(db.get(key), value)
 	}
 	keys.should.deep.equal(returnedKeys)
 });
@@ -205,15 +199,15 @@ test('forced compression due to starting with 255', async function() {
 	entry[0].should.equal(255);
 	(await db.remove('key1')).should.equal(true);
 });
-test('store objects', async function() {
+/*test('store objects', async function() {
 	let dataIn = {foo: 3, bar: true}
 	await db.put('key1',  dataIn);
 	let dataOut = db.get('key1');
 	assert.equal(JSON.stringify(dataIn),JSON.stringify(dataOut));
 	db.removeSync('not-there').should.equal(false);
-});
+});*/
 
-function expand(str: string): string {
+function expand(str) {
     str = '(' + str + ')';
     str = str + str;
     str = str + str;

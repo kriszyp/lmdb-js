@@ -65,25 +65,13 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		env(env) {
 	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
 		interruptionStatus = 0;
+		resultCode = 0;
 		txn = nullptr;
 	}
 
-AsyncWriteWorker::AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback)
-		: WriteWorker(env, envForTxn, instructions), AsyncProgressWorker(callback, "lmdb:write") {
-	//fprintf(stdout, "nextCompressibleArg %p\n", nextCompressibleArg);
-		interruptionStatus = 0;
-		txn = nullptr;
-	}
-
-void AsyncWriteWorker::Execute(const AsyncProgressWorker::ExecutionProgress& execution) {
-	executionProgress = (AsyncProgressWorker::ExecutionProgress*) &execution;
-	Write();
-}
 void WriteWorker::SendUpdate() {
-	fprintf(stderr, "This SendUpdate does not work!\n");
-}
-void AsyncWriteWorker::SendUpdate() {
-	executionProgress->Send(nullptr, 0);
+	if (WriteWorker::threadSafeCallsEnabled)
+		napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	bool commitSynchronously = *flags & TXN_SYNCHRONOUS_COMMIT;
@@ -119,14 +107,6 @@ void WriteWorker::UnlockTxn() {
 	interruptionStatus = 0;
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
-}
-void WriteWorker::ReportError(const char* error) {
-	hasError = true;
-	fprintf(stderr, "Error %s\n", error);
-}
-void AsyncWriteWorker::ReportError(const char* error) {
-	hasError = true;
-	SetError(error);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
@@ -200,7 +180,7 @@ next_inst:	start = instruction++;
 		if (flags & 0xf0c0) {
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
 			fprintf(stderr, "flags after message %u\n", *start);
-			worker->ReportError("Unknown flags\n");
+			worker->resultCode = 22;
 			return 0;
 		}
 		if (flags & HAS_KEY) {
@@ -247,7 +227,7 @@ next_inst:	start = instruction++;
 					if (rc == MDB_NOTFOUND)
 						validated = flags & CONDITIONAL_ALLOW_NOTFOUND;
 					else
-						worker->ReportError(mdb_strerror(rc));
+						worker->resultCode = rc;
 				} else if (conditionalVersion != ANY_VERSION) {
 					double version;
 					memcpy(&version, conditionalValue.mv_data, 8);
@@ -265,7 +245,7 @@ next_inst:	start = instruction++;
 				else if (rc == MDB_NOTFOUND)
 					validated = true;
 				else
-					worker->ReportError(mdb_strerror(rc));
+					worker->resultCode = rc;
 			}
 		} else
 			instruction++;
@@ -343,13 +323,13 @@ next_inst:	start = instruction++;
 			default:
 				fprintf(stderr, "Unknown flags %u %p\n", flags, start);
 				fprintf(stderr, "flags after message %u\n", *start);
-				worker->ReportError("Unknown flags\n");
+				worker->resultCode = 22;
 				return 22;
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
 					if (worker) {
-						worker->ReportError(mdb_strerror(rc));
+						worker->resultCode = rc;
 					} else {
 						return rc;
 					}
@@ -368,6 +348,19 @@ next_inst:	start = instruction++;
 			*start |= flags;
 	} while(worker); // keep iterating in async/multiple-instruction mode, just one instruction in sync mode
 	return rc;
+}
+
+bool WriteWorker::threadSafeCallsEnabled = false;
+void txn_visible(const void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->SendUpdate();
+}
+
+
+void do_write(napi_env env, void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->Write();
+	napi_release_threadsafe_function(worker->progress, napi_tsfn_abort);
 }
 
 const int READER_CHECK_INTERVAL = 600; // ten minutes
@@ -401,15 +394,23 @@ void WriteWorker::Write() {
 	}
 	#endif
 	if (rc != 0) {
-		return ReportError(mdb_strerror(rc));
+		resultCode = rc;
+		return;
 	}
-	hasError = false;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
-	if (rc || hasError)
+	progressStatus = 1;
+	#ifdef MDB_OVERLAPPINGSYNC
+	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
+		mdb_txn_set_callback(txn, txn_visible, this);
+	}
+	#endif
+	if (rc || resultCode)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
+	#ifdef MDB_OVERLAPPINGSYNC
+	#endif
 #ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
@@ -418,33 +419,44 @@ void WriteWorker::Write() {
     interruptionStatus = 0;
     pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
 	pthread_mutex_unlock(envForTxn->writingLock);
-	if (rc || hasError) {
+	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
-			ReportError(mdb_strerror(rc));
+			resultCode = rc || resultCode;
 		return;
 	}
 	*(instructions - 1) = txnId;
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 }
 
-void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
-	if (progressStatus == 1) {
-		Callback().Call({ Number::New(Env(), progressStatus)});
+void write_progress(napi_env env,
+					napi_value js_callback,
+					void* context,
+					void* data) {
+	if (!js_callback)
+		return;
+	auto worker = (WriteWorker*) context;
+	napi_value result;
+	napi_value undefined;
+	napi_value arg;
+	napi_create_int32(env, worker->progressStatus, &arg);
+	napi_get_undefined(env, &undefined);
+	if (worker->progressStatus == 1) {
+		napi_call_function(env, undefined, js_callback, 1, &arg, &result);
 		return;
 	}
-	if (finishedProgress)
+	if (worker->finishedProgress)
 		return;
+	auto envForTxn = worker->envForTxn;
 	pthread_mutex_lock(envForTxn->writingLock);
-	while(!txn) // possible to jump in after an interrupted txn here
+	while(!worker->txn) // possible to jump in after an interrupted txn here
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-	envForTxn->writeTxn = new TxnTracked(txn, 0);
-	finishedProgress = true;
-	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
-	napi_create_int32(Env(), progressStatus, &arg);
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+	envForTxn->writeTxn = new TxnTracked(worker->txn, 0);
+	worker->finishedProgress = true;
+	napi_create_int32(env, worker->progressStatus, &arg);
+	napi_call_function(env, undefined, js_callback, 1, &arg, &result);
 	bool is_async = false;
-	napi_get_value_bool(Env(), result, &is_async);
+	napi_get_value_bool(env, result, &is_async);
 	if (!is_async) {
 		delete envForTxn->writeTxn;
 		envForTxn->writeTxn = nullptr;
@@ -453,17 +465,19 @@ void AsyncWriteWorker::OnProgress(const char* data, size_t count) {
 	}
 }
 
-void AsyncWriteWorker::OnOK() {
-	finishedProgress = true;
+void writes_complete(napi_env env,
+					 napi_status status,
+					 void* data) {
+	auto worker = (WriteWorker*) data;
+	worker->finishedProgress = true;
 	napi_value result, arg; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating, and bun doesn't support escapable scopes yet
-	napi_create_int32(Env(), 0, &arg);
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
-}
-void AsyncWriteWorker::OnError(const Error& e) {
-	finishedProgress = true;
-	napi_value result; // we use direct napi call here because node-addon-api interface with throw a fatal error if a worker thread is terminating
-	napi_value arg = e.Value();
-	napi_call_function(Env(), Env().Undefined(), Callback().Value(), 1, &arg, &result);
+	napi_create_int32(env, worker->resultCode, &arg);
+	napi_value callback;
+	napi_get_reference_value(env, worker->callback, &callback);
+	napi_call_function(env, callback, callback, 1, &arg, &result);
+	napi_delete_reference(env, worker->callback);
+	napi_delete_async_work(env, worker->work);
+	delete worker;
 }
 
 Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
@@ -476,14 +490,24 @@ Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
+	napi_env n_env = info.Env();
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
 	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
-	AsyncWriteWorker* worker = new AsyncWriteWorker(this->env, this, (uint32_t*) instructionAddress, info[1].As<Function>());
+	napi_value resource;
+	napi_status status;
+	status = napi_create_object(n_env, &resource);
+	napi_value resource_name;
+	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
+	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
-	worker->Queue();
+	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
+	status = napi_create_async_work(n_env, resource, resource_name, do_write, writes_complete, worker, &worker->work);
+	napi_create_threadsafe_function(n_env, info[1].As<Function>(), resource, resource_name, 0, 1, nullptr, nullptr, worker, write_progress, &worker->progress);
+	status = napi_queue_async_work(n_env, worker->work);
+
 	return info.Env().Undefined();
 }
 

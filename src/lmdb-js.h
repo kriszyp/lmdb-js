@@ -1,26 +1,3 @@
-
-// This file is part of lmdb-js
-// Copyright (c) 2013-2017 Timur Kristóf
-// Licensed to you under the terms of the MIT license
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
 #ifndef NODE_LMDB_H
 #define NODE_LMDB_H
 
@@ -160,9 +137,12 @@ int compareFast(const MDB_val *a, const MDB_val *b);
 Value setGlobalBuffer(const CallbackInfo& info);
 Value lmdbError(const CallbackInfo& info);
 napi_value createBufferForAddress(napi_env env, napi_callback_info info);
-napi_value getViewAddress(napi_env env, napi_callback_info info);
+napi_value getBufferAddress(napi_env env, napi_callback_info info);
+napi_value getAddress(napi_env env, napi_callback_info info);
 napi_value detachBuffer(napi_env env, napi_callback_info info);
+napi_value enableThreadSafeCalls(napi_env env, napi_callback_info info);
 napi_value startRead(napi_env env, napi_callback_info info);
+napi_value setReadCallback(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
 Value enableDirectV8(const CallbackInfo& info);
@@ -225,29 +205,21 @@ class WriteWorker {
 	MDB_txn* AcquireTxn(int* flags);
 	void UnlockTxn();
 	int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
-	virtual void ReportError(const char* error);
 	virtual void SendUpdate();
 	int interruptionStatus;
 	bool finishedProgress;
+	int resultCode;
 	bool hasError;
+	napi_ref callback;
+	napi_async_work work;
+	napi_threadsafe_function progress;
 	EnvWrap* envForTxn;
 	virtual ~WriteWorker();
 	uint32_t* instructions;
 	int progressStatus;
 	MDB_env* env;
 	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
-};
-class AsyncWriteWorker : public WriteWorker, public AsyncProgressWorker<char> {
-  public:
-	AsyncWriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions, const Function& callback);
-	void Execute(const AsyncProgressWorker::ExecutionProgress& execution);
-	void OnProgress(const char* data, size_t count);
-	void OnOK();
-	void OnError(const Error& e);
-	void ReportError(const char* error);
-	void SendUpdate();
-  private:
-	ExecutionProgress* executionProgress;
+	static bool threadSafeCallsEnabled;
 };
 class TxnTracked {
   public:
@@ -273,6 +245,7 @@ typedef struct env_tracking_t {
 
 typedef struct buffer_info_t { // definition of a buffer that is available/used in JS
 	int32_t id;
+	bool isSharedMap;
 	char* end;
 	MDB_env* env;
 	napi_ref ref;
@@ -280,8 +253,7 @@ typedef struct buffer_info_t { // definition of a buffer that is available/used 
 
 typedef struct js_buffers_t { // there is one instance of this for each JS (worker) thread, holding all the active buffers
 	std::unordered_map<char*, buffer_info_t> buffers;
-	int nextSharedId;
-	int nextAllocatedId;
+	int nextId;
 	pthread_mutex_t modification_lock;
 } js_buffers_t;
 
@@ -635,3 +607,25 @@ public:
 };
 
 #endif // NODE_LMDB_H
+
+// Portions of this file are from node-lmdb
+// Copyright (c) 2013-2017 Timur Kristóf
+// Licensed to you under the terms of the MIT license
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.

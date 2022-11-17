@@ -293,7 +293,7 @@ export function open(path, options) {
 		}
 		backup(path, compact) {
 			fs.mkdirSync(pathModule.dirname(path), { recursive: true });
-			return new Promise((resolve, reject) => env.copy(path, compact, (error) => {
+			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
 				if (error) {
 					reject(error);
 				} else {
@@ -420,7 +420,7 @@ function allocateFixedBuffer() {
 	keyBytesView = keyBytes.dataView || (keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE)); // max key size is actually 4026
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
 	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
-	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBytes);
+	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer);
 }
 
 function exists(path) {

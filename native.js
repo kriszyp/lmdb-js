@@ -1,14 +1,14 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, getBufferAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, setReadCallback, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
 
 path = pathModule;
 let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which doesn't have fileURLToPath
 	dirname(fileURLToPath(import.meta.url))).replace(/dist$/, ''); // for node, which doesn't have __dirname in ESM
 export let nativeAddon = loadNAPI(dirName);
 
-if (process.isBun) {
+if (process.isBun && false) {
 	const { linkSymbols, FFIType } = require('bun:ffi');
 	let lmdbLib = linkSymbols({
 		getByBinary: {
@@ -49,11 +49,13 @@ export function setNativeFunctions(externals) {
 	Dbi = externals.Dbi;
 	Compression = externals.Compression;
 	getAddress = externals.getAddress;
+	getBufferAddress = externals.getBufferAddress;
 	createBufferForAddress = externals.createBufferForAddress;
 	clearKeptObjects = externals.clearKeptObjects || function() {};
 	getByBinary = externals.getByBinary;
 	detachBuffer  = externals.detachBuffer;
 	startRead = externals.startRead;
+	setReadCallback = externals.setReadCallback;
 	setGlobalBuffer = externals.setGlobalBuffer;
 	globalBuffer = externals.globalBuffer;
 	getSharedBuffer = externals.getSharedBuffer;

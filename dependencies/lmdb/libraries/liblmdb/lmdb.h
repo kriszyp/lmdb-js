@@ -1059,7 +1059,9 @@ int  mdb_env_set_assert(MDB_env *env, MDB_assert_func *func);
 
 //<lmdb-js>
 typedef int (MDB_check_fd)(const mdb_filehandle_t fd, MDB_env* env);
-int  mdb_env_set_check_fd(MDB_env *env, MDB_check_fd *func);
+typedef void (MDB_txn_visible)(const void* ctx);
+int  mdb_env_set_callback(MDB_env *env, MDB_check_fd *func);
+int  mdb_txn_set_callback(MDB_txn *txn, MDB_txn_visible *func, void* ctx);
 //</lmdb-js>
 
 #if MDB_RPAGE_CACHE

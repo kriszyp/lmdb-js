@@ -1,10 +1,10 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead } from './native.js';
+import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, detachBuffer, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead, setReadCallback } from './native.js';
 import { saveKey }  from './keys.js';
+import lmdb from "./index.js";
 const IF_EXISTS = 3.542694326329068e-103;
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
-const Uint8A = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow : Uint8Array
 let getValueBytes = globalBuffer;
 if (!getValueBytes.maxLength) {
 	getValueBytes.maxLength = getValueBytes.length;
@@ -15,13 +15,13 @@ const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
 const SOURCE_SYMBOL = Symbol.for('source');
 export const UNMODIFIED = {};
+let mmaps = [];
 
 export function addReadMethods(LMDBStore, {
 	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
 }) {
 	let readTxn, readTxnRenewed, asSafeBuffer = false;
 	let renewId = 1;
-	let mmaps = [];
 	let outstandingReads = 0;
 	Object.assign(LMDBStore.prototype, {
 		getString(id, options) {
@@ -72,24 +72,27 @@ export function addReadMethods(LMDBStore, {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			outstandingReads++;
-			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( bufferId, offset, size ) => {
+			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( rc, bufferId, offset, size ) => {
+				if (rc && rc !== 1)
+					callback(lmdbError(rc));
 				outstandingReads--;
 				let buffer = mmaps[bufferId];
 				if (!buffer) {
 					buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 				}
-				if (bufferId < 0) {
-					// using copied memory
-					txn.done(); // decrement and possibly abort
-				} else {
+				//console.log({bufferId, offset, size})
+				if (buffer.isSharedMap) {
 					// using LMDB shared memory
 					// TODO: We may want explicit support for clearing aborting the transaction on the next event turn,
 					// but for now we are relying on the GC to cleanup transaction for larger blocks of memory
 					let bytes = new Uint8Array(buffer, offset, size);
 					bytes.txn = txn;
 					callback(bytes, 0, size);
+				} else {
+					// using copied memory
+					txn.done(); // decrement and possibly abort
+					callback(buffer, offset, size);
 				}
-				callback(buffer, offset, size);
 			});
 			if (address) {
 				startRead(address, () => {
@@ -108,12 +111,18 @@ export function addReadMethods(LMDBStore, {
 					size -= 8;
 				}
 				let bytes = new Uint8Array(buffer, offset, size);
-				if (this.encoding == 'binary')
-					callback(bytes);
-				else if (this.decoder) {
+				let value;
+				if (this.decoder) {
 					// the decoder potentially uses the data from the buffer in the future and needs a stable buffer
-					callback(bytes && this.decoder.decode(bytes));
+					value = bytes && this.decoder.decode(bytes);
+				} else if (this.encoding == 'binary') {
+					value = bytes;
+				} else {
+					value = Buffer.prototype.utf8Slice.call(bytes, 0, size);
+					if (this.encoding == 'json' && value)
+						value = JSON.parse(value);
 				}
+				callback(value);
 			});
 			return promise;
 		},
@@ -148,7 +157,7 @@ export function addReadMethods(LMDBStore, {
 						let dictionary = compression.dictionary || [];
 						let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
 						bytes = makeReusableBuffer(this.lastSize);
-						compression.setBuffer(bytes, this.lastSize, dictionary, dictLength);
+						compression.setBuffer(bytes.buffer, bytes.byteOffset, this.lastSize, dictionary, dictLength);
 						compression.getValueBytes = bytes;
 					} else {
 						bytesToRestore = getValueBytes;
@@ -158,7 +167,7 @@ export function addReadMethods(LMDBStore, {
 				} finally {
 					if (compression) {
 						let dictLength = (compression.dictionary.length >> 3) << 3;
-						compression.setBuffer(bytesToRestore, bytesToRestore.maxLength, compression.dictionary, dictLength);
+						compression.setBuffer(bytesToRestore.buffer, bytesToRestore.byteOffset, bytesToRestore.maxLength, compression.dictionary, dictLength);
 						compression.getValueBytes = bytesToRestore;
 					} else {
 						setGlobalBuffer(bytesToRestore);
@@ -178,13 +187,13 @@ export function addReadMethods(LMDBStore, {
 			let newLength = Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
 			let bytes;
 			if (this.compression) {
-				let dictionary = this.compression.dictionary || new Uint8A(0);
+				let dictionary = this.compression.dictionary || Buffer.allocUnsafeSlow(0);
 				let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
-				bytes = new Uint8A(newLength + dictLength);
+				bytes = Buffer.allocUnsafeSlow(newLength + dictLength);
 				bytes.set(dictionary) // copy dictionary into start
 				// the section after the dictionary is the target area for get values
 				bytes = bytes.subarray(dictLength);
-				this.compression.setBuffer(bytes, newLength, dictionary, dictLength);
+				this.compression.setBuffer(bytes.buffer, bytes.byteOffset, newLength, dictionary, dictLength);
 				bytes.maxLength = newLength;
 				Object.defineProperty(bytes, 'length', { value: newLength, writable: true, configurable: true });
 				this.compression.getValueBytes = bytes;
@@ -363,7 +372,7 @@ export function addReadMethods(LMDBStore, {
 							db.availableCursor = null;
 							flags |= 0x2000;
 						} else {
-							cursor = new Cursor(db, txnAddress);
+							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
 						txn.refCount = (txn.refCount || 0) + 1; // track transaction so we always use the same one
@@ -408,7 +417,7 @@ export function addReadMethods(LMDBStore, {
 							} else {
 								throw new Error('Only key-based encoding is supported for start/end values');
 								let encoded = store.encoder.encode(options.start);
-								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded) - encoded.byteOffset);
+								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded.buffer) - encoded.byteOffset);
 								startAddress = bufferAddress + encoded.byteOffset;
 							}
 						}
@@ -742,17 +751,16 @@ Txn.prototype.use = function() {
 }
 
 
-let readInstructions, readCallbacks, uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
+let readInstructions, readCallbacks = new Map(), uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateInstructionsBuffer() {
 	readInstructions = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	uint32Instructions = new Int32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
 	uint32Instructions[2] = 0xf0000000; // indicates a new read task must be started
-	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions);
+	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions.buffer);
 	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
 	savePosition = 0;
-	readCallbacks = [];
 }
 export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback) {
 	if (savePosition > 7800) {
@@ -782,14 +790,27 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
 	instructionsDataView.setFloat64(start, txnAddress, true);
-	readCallbacks[start] = callback;
+	let callbackId = addReadCallback(() => {
+		let position = start >> 2;
+		let rc = thisInstructions[position];
+		callback(rc, thisInstructions[position + 1], thisInstructions[position + 2], thisInstructions[position + 3]);
+	});
+	let thisInstructions = uint32Instructions;
 	//if (start === 0)
-		return startRead(instructionsAddress + start, function(offset) {
-			//readCallbacks[offset]();
-			let position = start >> 2;
-			let rc = uint32Instructions[position];
-			callback(uint32Instructions[position + 1], uint32Instructions[position + 2], uint32Instructions[position + 3]);
-		});
+		return startRead(instructionsAddress + start, callbackId, {}, 'read');
 	//else
 		//nextRead(start);
+}
+let nextCallbackId = 0;
+let addReadCallback = globalThis.__lmdb_read_callback;
+if (!addReadCallback) {
+	addReadCallback = globalThis.__lmdb_read_callback = function(callback) {
+		let callbackId = nextCallbackId++;
+		readCallbacks.set(callbackId, callback);
+		return callbackId;
+	};
+	setReadCallback(function(callbackId) {
+		readCallbacks.get(callbackId)();
+		readCallbacks.delete(callbackId);
+	})
 }

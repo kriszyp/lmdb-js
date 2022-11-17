@@ -2,7 +2,7 @@
 import { Worker, isMainThread, parentPort, threadId } from'worker_threads';
 import { isMaster, fork } from 'cluster';
 import inspector from 'inspector'
-inspector.open(9229, null, true);
+//inspector.open(9229, null, true);
 var testDirPath = new URL('./benchdata', import.meta.url).toString().slice(8);
 import fs from 'fs';
 import rimraf from 'rimraf';
@@ -110,6 +110,10 @@ function getBinary() {
 function getBinaryFast() {
   result = store.getBinaryFast((c += 357) % total)
 }
+function getAsync() {
+  console.log('getAsync');
+  store.getAsync((c += 357) % total);
+}
 let a = Buffer.from('this id\0\0\0\0\0')
 let b = Buffer.from('mmmmmmore text')
 //b = b.subarray(2,b.length)
@@ -184,9 +188,12 @@ cleanup(async function (err) {
         throw err;
     }
     await setup();
+
     //suite.add('compare keys', keyComparison);
     //suite.add('syncTxn', syncTxn);
-    suite.add('getBinaryFast', getBinaryFast);
+  //  suite.add('getBinaryFast', getBinaryFast);
+    suite.add('getAsync', getAsync);
+  console.log('added async')
 	 suite.add('noop', noopTest);
     suite.add('getRange', getRange);
     suite.add('setData', setData, /*{

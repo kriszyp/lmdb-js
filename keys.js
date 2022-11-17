@@ -66,12 +66,12 @@ let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateSaveBuffer() {
 	saveBuffer = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
 	uint32 = null;
-	saveBuffer.buffer.address = getAddress(saveBuffer);
+	saveBuffer.buffer.address = getAddress(saveBuffer.buffer);
 	saveDataAddress = saveBuffer.buffer.address;
 	// TODO: Conditionally only do this for key sequences?
 	saveDataView.setUint32(savePosition, 0xffffffff);
 	saveDataView.setFloat64(savePosition + 4, saveDataAddress, true); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
-	saveBuffer.dataView = saveDataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength);
+	saveDataView = saveBuffer.dataView || (saveBuffer.dataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength));
 	savePosition = 0;
 }
 export function saveKey(key, writeKey, saveTo, maxKeySize, flags) {

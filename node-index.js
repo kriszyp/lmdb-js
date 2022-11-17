@@ -23,6 +23,7 @@ if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 	nativeAddon.enableDirectV8(v8Funcs, false);
 	nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
 }
+nativeAddon.enableThreadSafeCalls();
 setNativeFunctions(nativeAddon);
 
 export * from './index.js'

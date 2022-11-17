@@ -1,4 +1,4 @@
-import { getAddress, write, compress } from './native.js';
+import { getAddress, getBufferAddress, write, compress } from './native.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -43,7 +43,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[2] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
-		buffer.address = getAddress(dynamicBytes);
+		buffer.address = getBufferAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 1; // we start at position 1 to save space for writing the txn id before the txn delimiter
 		return dynamicBytes;
@@ -153,7 +153,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			try {
 				endPosition = store.writeKey(key, targetBytes, keyStartPosition);
 				if (!(keyStartPosition < endPosition) && (flags & 0xf) != 12)
-					throw new Error('Invalid key or zero length key is not allowed in LMDB')
+					throw new Error('Invalid key or zero length key is not allowed in LMDB ' + key)
 			} catch(error) {
 				targetBytes.fill(0, keyStartPosition);
 				if (error.name == 'RangeError')
@@ -172,14 +172,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				if (valueBufferStart > -1) { // if we have buffers with start/end position
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer))) + valueBufferStart;
+						(valueBuffer.address = getAddress(valueBuffer.buffer))) + valueBufferStart;
 					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
 					let address = (valueArrayBuffer.address ||
 						(valueBuffer.length === 0 ? 0 : // externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
-						(valueArrayBuffer.address = (getAddress(valueBuffer) - valueBuffer.byteOffset))))
+						valueArrayBuffer.address = getAddress(valueArrayBuffer)))
 							+ valueBuffer.byteOffset;
 					if (address <= 0 && valueBuffer.length > 0)
 						console.error('Supplied buffer had an invalid address', address);
@@ -376,19 +376,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					if (resolvers.length > 0) {
-						let delay = Date.now() - start
-						scheduleFlush(resolvers, Math.min((flushPromise && flushPromise.hasCallbacks ? delay >> 1 : delay) + 1, maxFlushDelay))
+					for (let resolver of resolvers) {
+						resolver();
 					}
 					break;
 				case 1:
-					console.log('unknown status', status);
-				break;
+					break;
 				case 2:
 					hasUnresolvedTxns = false;
 					executeTxnCallbacks();
 					return hasUnresolvedTxns;
-				break;
+					break;
 				default:
 				console.error(status);
 				if (commitRejectPromise) {
@@ -398,35 +396,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 		});
 		startAddress = 0;
-	}
-	function scheduleFlush(resolvers, delay) {
-		if (committedFlushResolvers)
-			committedFlushResolvers.push(resolvers);
-		else {
-			committedFlushResolvers = [resolvers];
-			lastFlushTimeout = setTimeout(lastFlushCallback = () => {
-				lastFlushTimeout = null;
-				lastSync.then(() => {
-					let resolverSets = committedFlushResolvers || [];
-					committedFlushResolvers = null;
-					lastSync = new Promise((resolve) => {
-						env.sync(() => {
-							for (let resolvers of resolverSets) {
-								for (let resolver of resolvers)
-									resolver();
-							}
-							resolve();
-						});
-					});
-				});
-			}, delay || 0);
-		}
-	}
-	function expediteFlush() {
-		if (lastFlushTimeout) {
-			clearTimeout(lastFlushTimeout);
-			lastFlushCallback();
-		}
 	}
 
 	function queueCommitResolution(resolution) {
@@ -822,9 +791,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						else {
 							let hasWrites = env.commitTxn();
 							resetReadTxn();
-							if ((flags & 0x10000) && overlappingSync && hasWrites) // if it is no-sync in overlapping-sync mode, need
-								// to schedule flush for it to be marked as persisted
-								lastSyncTxnFlush = new Promise(resolve => scheduleFlush([resolve]))
 						}
 						return result;
 					} finally {
@@ -869,8 +835,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
 			if (flushPromise)
 				flushPromise.hasCallbacks = true
-			if (lastFlushTimeout)
-				expediteFlush();
 			let finalSyncPromise = lastSyncTxnFlush;
 			if (finalPromise && resolvedPromise != finalPromise ||
 					finalSyncPromise && resolvedSyncPromise != finalSyncPromise) {

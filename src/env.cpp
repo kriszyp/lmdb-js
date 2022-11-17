@@ -242,7 +242,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (!keyBytesValue.IsTypedArray())
 		fprintf(stderr, "Invalid key buffer\n");
 	size_t keyBufferLength;
-	napi_get_typedarray_info(info.Env(), keyBytesValue, nullptr, &keyBufferLength, &keyBuffer, nullptr, nullptr);
+	napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
 	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
 	std::string pathString = path.Utf8Value();
@@ -327,7 +327,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (flags & MDB_OVERLAPPINGSYNC) {
 		flags |= MDB_PREVSNAPSHOT;
 	}
-	mdb_env_set_check_fd(env, checkExistingEnvs);
+	mdb_env_set_callback(env, checkExistingEnvs);
 	trackMetrics = !!(flags & MDB_TRACK_METRICS);
 	if (trackMetrics) {
 		metrics = new MDB_metrics;
@@ -425,8 +425,7 @@ NAPI_FUNCTION(getEnvsPointer) {
 	napi_create_double(env, (double) (size_t) EnvWrap::envTracking, &returnValue);
 	if (!EnvWrap::sharedBuffers) {
 		EnvWrap::sharedBuffers = new js_buffers_t;
-		EnvWrap::sharedBuffers->nextAllocatedId = -1;
-		EnvWrap::sharedBuffers->nextSharedId = 0;
+		EnvWrap::sharedBuffers->nextId = 0;
 		pthread_mutex_init(&EnvWrap::sharedBuffers->modification_lock, nullptr);
 	}
 	return returnValue;
@@ -454,11 +453,16 @@ napi_finalize cleanupSharedExternal = [](napi_env env, void* data, void* buffer_
 
 napi_finalize cleanupAllocatedExternal = [](napi_env env, void* data, void* buffer_info) {
 	int32_t id = ((buffer_info_t*) buffer_info)->id;
+	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 		if (bufferRef->second.id == id) {
+//			fprintf(stderr, "erasing buffer on cleanpu %p\n", bufferRef->first);
 			bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
+			break;
 		}
+		bufferRef++;
 	}
+	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 	// We malloc'ed this data so free it
 	free(data);
 };
@@ -470,6 +474,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
 	EnvWrap* ew = (EnvWrap*) i64;
+	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
 			char* start = bufferRef->first;
@@ -477,6 +482,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 			if (buffer->env == ew->env) {
 				//fprintf(stderr, "found exiting buffer for %u\n", bufferId);
 				napi_get_reference_value(env, buffer->ref, &returnValue);
+				pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 				return returnValue;
 			}
 			if (buffer->env) {
@@ -487,19 +493,26 @@ NAPI_FUNCTION(getSharedBuffer) {
 				napi_delete_reference(env, buffer->ref);
 			}
 			char* end = buffer->end;
-			buffer->env = ew->env;
+			if (buffer->isSharedMap) // only memory mapped buffers are tied to envs
+				buffer->env = ew->env;
 			size_t size = end - start;
             if (size > 0x100000000)
                 fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start, end);
 			napi_create_external_arraybuffer(env, start, size,
-					 buffer->id >= 0 ? cleanupSharedExternal : cleanupAllocatedExternal, (void*) buffer, &returnValue);
+					 buffer->isSharedMap ? cleanupSharedExternal : cleanupAllocatedExternal, (void*) buffer, &returnValue);
 			int64_t result;
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
-			if (buffer->id >= 0)
+			if (buffer->isSharedMap) {
 				napi_adjust_external_memory(env, -(int64_t) size, &result);
+				napi_value true_value;
+				napi_get_boolean(env, true, &true_value);
+				napi_set_named_property(env, returnValue, "isSharedMap", true_value);
+			}
+			pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 			return returnValue;
 		}
 	}
+	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 	RETURN_UNDEFINED;
 }
 NAPI_FUNCTION(setTestRef) {
@@ -590,7 +603,8 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	if (bufferSearch == sharedBuffers->buffers.end()) {
         bufferInfo.end = (char*) end;
         bufferInfo.env = nullptr;
-        bufferInfo.id = sharedBuffers->nextSharedId++;
+		bufferInfo.isSharedMap = true;
+        bufferInfo.id = sharedBuffers->nextId++;
         sharedBuffers->buffers.emplace((char*)bufferStart, bufferInfo);
 	} else {
 		bufferInfo = bufferSearch->second;
@@ -639,6 +653,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
+				pthread_mutex_lock(&sharedBuffers->modification_lock);
 				for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 					if (bufferRef->second.env == env) {
 						napi_value arrayBuffer;
@@ -652,6 +667,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 					} else
 						bufferRef++;
 				}
+				pthread_mutex_unlock(&sharedBuffers->modification_lock);
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));
