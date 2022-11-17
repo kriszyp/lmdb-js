@@ -1,4 +1,4 @@
-import { getAddress, getBufferAddress, write, compress } from './native.js';
+import { getAddress, getBufferAddress, write, compress, lmdbError } from './native.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -388,11 +388,15 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					return hasUnresolvedTxns;
 					break;
 				default:
-				console.error(status);
-				if (commitRejectPromise) {
-					commitRejectPromise.reject(status);
-					commitRejectPromise = null;
-				}
+					try {
+						lmdbError(status);
+					} catch(error) {
+						console.error(error);
+						if (commitRejectPromise) {
+							commitRejectPromise.reject(error);
+							commitRejectPromise = null;
+						}
+					}
 			}
 		});
 		startAddress = 0;

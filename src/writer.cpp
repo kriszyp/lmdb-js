@@ -422,7 +422,7 @@ void WriteWorker::Write() {
 	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
-			resultCode = rc || resultCode;
+			resultCode = rc ? rc : resultCode;
 		return;
 	}
 	*(instructions - 1) = txnId;
