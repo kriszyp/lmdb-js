@@ -15,8 +15,8 @@ export class RangeIterable {
 	}
 	map(func) {
 		let source = this;
-		let result = new RangeIterable();
-		result.iterate = (async) => {
+		let iterable = new RangeIterable();
+		iterable.iterate = (async) => {
 			let iterator = source[Symbol.iterator](async);
 			let i = 0;
 			return {
@@ -35,6 +35,7 @@ export class RangeIterable {
 						}
 						if (iteratorResult.done === true) {
 							this.done = true;
+							if (iterable.onDone) iterable.onDone();
 							return iteratorResult;
 						}
 						result = func(iteratorResult.value, i++);
@@ -46,8 +47,9 @@ export class RangeIterable {
 										value: result
 									});
 						}
-					} while(result === SKIP)
+					} while(result === SKIP);
 					if (result === DONE) {
+						if (iterable.onDone) iterable.onDone();
 						return result;
 					}
 					return {
@@ -55,14 +57,16 @@ export class RangeIterable {
 					};
 				},
 				return() {
+					if (iterable.onDone) iterable.onDone();
 					return iterator.return();
 				},
 				throw() {
+					if (iterable.onDone) iterable.onDone();
 					return iterator.throw();
 				}
 			};
 		};
-		return result;
+		return iterable;
 	}
 	[Symbol.asyncIterator]() {
 		return this.iterator = this.iterate();
@@ -89,17 +93,24 @@ export class RangeIterable {
 			return {
 				next() {
 					let result = iterator.next();
-					if (isFirst && result.done) {
-						isFirst = false;
-						iterator = secondIterable[Symbol.iterator](async);
-						return iterator.next();
+					if (result.done) {
+						if (isFirst) {
+							isFirst = false;
+							iterator = secondIterable[Symbol.iterator](async);
+							result = iterator.next();
+							if (result.done && concatIterable.onDone) iterable.onDone();
+						} else {
+							if (concatIterable.onDone) concatIterable.onDone();
+						}
 					}
 					return result;
 				},
 				return() {
+					if (concatIterable.onDone) concatIterable.onDone();
 					return iterator.return();
 				},
 				throw() {
+					if (concatIterable.onDone) concatIterable.onDone();
 					return iterator.throw();
 				}
 			};
@@ -123,8 +134,10 @@ export class RangeIterable {
 							}
 						}
 						let result = iterator.next();
-						if (result.done)
+						if (result.done) {
+							if (mappedIterable.onDone) mappedIterable.onDone();
 							return result;
+						}
 						let value = callback(result.value);
 						if (Array.isArray(value) || value instanceof RangeIterable)
 							currentSubIterator = value[Symbol.iterator]();
@@ -135,11 +148,13 @@ export class RangeIterable {
 					} while(true);
 				},
 				return() {
+					if (mappedIterable.onDone) mappedIterable.onDone();
 					if (currentSubIterator)
 						currentSubIterator.return();
 					return iterator.return();
 				},
 				throw() {
+					if (mappedIterable.onDone) mappedIterable.onDone();
 					if (currentSubIterator)
 						currentSubIterator.throw();
 					return iterator.throw();

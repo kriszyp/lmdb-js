@@ -420,9 +420,11 @@ export function addReadMethods(LMDBStore, {
 				function finishCursor() {
 					if (txn.isDone)
 						return;
+					if (iterable.onDone)
+						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
-					if (--txn.refCount <= 0 && txn.onlyCursor) {
+					if (--txn.refCount <= 0 && txn.notCurrent) {
 						cursor.close();
 						txn.abort(); // this is no longer main read txn, abort it now that we are done
 						txn.isDone = true;
@@ -618,13 +620,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		useReadTransaction() {
 			let txn = readTxnRenewed ? readTxn : renewReadTxn(this);
-			txn.refCount = (txn.refCount || 0) + 1;
-			txn.done = function() {
-				txn.refCount--;
-				if (txn.refCount === 0 && readTxn !== txn) {
-					txn.abort();
-				}
-			};
+			txn.use();
 			return txn;
 		},
 		close(callback) {
@@ -693,8 +689,8 @@ export function addReadMethods(LMDBStore, {
 					readTxn = new Txn(env, 0x20000, lastReadTxn && !lastReadTxn.isDone && lastReadTxn);
 					if (readTxn.address == 0) {
 						readTxn = lastReadTxn;
-						if (readTxn.onlyCursor)
-							readTxn.onlyCursor = false;
+						if (readTxn.notCurrent)
+							readTxn.notCurrent = false;
 					}
 					break;
 				} catch (error) {
@@ -718,7 +714,7 @@ export function addReadMethods(LMDBStore, {
 		if (readTxnRenewed) {
 			readTxnRenewed = null;
 			if (readTxn.refCount - (readTxn.renewingRefCount || 0) > 0) {
-				readTxn.onlyCursor = true;
+				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
 			} else {
@@ -736,10 +732,13 @@ export function makeReusableBuffer(size) {
 
 Txn.prototype.done = function() {
 	this.refCount--;
-	if (this.refCount == 0 && this.onlyCursor) {
+	if (this.refCount === 0 && this.notCurrent) {
 		this.abort();
 		this.isDone = true;
 	}
+}
+Txn.prototype.use = function() {
+	this.refCount = (this.refCount || 0) + 1;
 }
 
 

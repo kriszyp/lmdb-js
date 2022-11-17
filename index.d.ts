@@ -391,6 +391,7 @@ declare namespace lmdb {
 		filter(callback: (entry: T) => any): RangeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
+		onDone?: Function
 		asArray: T[]
 	}
 	class Transaction {
