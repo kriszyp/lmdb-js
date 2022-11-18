@@ -6118,7 +6118,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		key_t key = ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
 		if (key == -1)
 			goto fail_errno;
-		semid = semget(key, 2, (mode & 0777) | IPC_CREAT);
+		semid = semget(key, 3, (mode & 0777) | IPC_CREAT);
 		if (semid < 0)
 			goto fail_errno;
 		semu.array = vals;
