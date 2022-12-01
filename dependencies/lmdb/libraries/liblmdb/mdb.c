@@ -6114,7 +6114,7 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 		env->me_sync_mutex = sem_open(MUTEXNAME(env, 's'), O_CREAT|O_EXCL, mode, 1);
 		if (env->me_sync_mutex == SEM_FAILED) goto fail_errno;
 #elif defined(MDB_USE_SYSV_SEM)
-		unsigned short vals[2] = {1, 1};
+		unsigned short vals[3] = {1, 1, 1};
 		key_t key = ftok(fname->mn_val, 'M'); /* fname is lockfile path now */
 		if (key == -1)
 			goto fail_errno;
