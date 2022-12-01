@@ -134,7 +134,7 @@ export function open(path, options) {
 	let env = new Env();
 	let jsFlags = (options.overlappingSync ? 0x1000 : 0) |
 		(options.separateFlushed ? 1 : 0) |
-		(options.deleteOnClose ? 2 : 0)
+		(options.deleteOnClose ? 2 : 0);
 	let rc = env.open(options, flags, jsFlags);
 	env.path = path;
    if (rc)

@@ -243,7 +243,6 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		fprintf(stderr, "Invalid key buffer\n");
 	size_t keyBufferLength;
 	napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
-	setFlagFromValue(&jsFlags, SEPARATE_FLUSHED, "separateFlushed", false, options);
 	String path = options.Get("path").As<String>();
 	std::string pathString = path.Utf8Value();
 	// Parse the maxDbs option
