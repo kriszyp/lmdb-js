@@ -19,7 +19,7 @@ if (isMainThread) {
     overlappingSync: true,
   });
 
-  var workerCount = Math.min(numCPUs * 2, 20);
+  var workerCount = Math.min(numCPUs * 2, 8);
   var value = {test: '48656c6c6f2c20776f726c6421'};
 
   // This will start as many workers as there are CPUs available.
@@ -38,7 +38,7 @@ if (isMainThread) {
 
       setTimeout(() => {
         worker.terminate()
-      }, 100);
+      }, 1000);
       if (messages.length === workerCount) {
         db.close();
         for (var i = 0; i < messages.length; i ++) {
@@ -77,9 +77,15 @@ if (isMainThread) {
   parentPort.on('message', async function(msg) {
     if (msg.key) {
       var value = db.get(msg.key);
-      if (msg.key == 'key1' || msg.key == 'key3') {
-        await db.put(msg.key, 'updated');
+      for (let i = 0; i < 100000; i++) {
+        db.put(i, 'updated');
+        if (i % 2000 === 0)
+          await new Promise(r => setTimeout(r, 1));
       }
+      //if (msg.key == 'key1' || msg.key == 'key3') {
+        await db.put(msg.key, 'updated');
+      //}
+      console.log('finished puts', threadId);
       if (value === null) {
         parentPort.postMessage("");
       } else {

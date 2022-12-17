@@ -293,7 +293,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	this->compression = compression;
 	this->jsFlags = jsFlags;
 	#ifdef MDB_OVERLAPPINGSYNC
-	MDB_metrics* metrics;
+	auto context = new env_context_t;
 	#endif
 	int rc;
 	rc = mdb_env_set_maxdbs(env, maxDbs);
@@ -327,13 +327,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_callback(env, checkExistingEnvs);
-	trackMetrics = !!(flags & MDB_TRACK_METRICS);
-	if (trackMetrics) {
-		metrics = new MDB_metrics;
-		memset(metrics, 0, sizeof(MDB_metrics));
-		rc = mdb_env_set_userctx(env, (void*) metrics);
-		if (rc) goto fail;
-	}
+	memset(context, 0, sizeof(env_context_t));
+	rc = mdb_env_set_userctx(env, (void*) context);
+	if (rc) goto fail;
 	#endif
 
 	timeTxnWaiting = 0;
@@ -346,9 +342,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
-		if (trackMetrics) {
-			delete metrics;
-		}
+		delete context;
 		#endif
 		if (rc == EXISTING_ENV_FOUND) {
 			mdb_env_close(env);
@@ -424,7 +418,7 @@ NAPI_FUNCTION(getEnvsPointer) {
 	napi_create_double(env, (double) (size_t) EnvWrap::envTracking, &returnValue);
 	if (!EnvWrap::sharedBuffers) {
 		EnvWrap::sharedBuffers = new js_buffers_t;
-		EnvWrap::sharedBuffers->nextId = 0;
+		EnvWrap::sharedBuffers->nextId = 1;
 		pthread_mutex_init(&EnvWrap::sharedBuffers->modification_lock, nullptr);
 	}
 	return returnValue;
@@ -612,6 +606,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	*keyBuffer = data.mv_size;
 	*(keyBuffer + 1) = bufferInfo.id;
 	*(keyBuffer + 2) = offset;
+	fprintf(stderr, "wrote offset %p %p\n", offset, (keyBuffer + 2));
 	return -30001;
 }
 

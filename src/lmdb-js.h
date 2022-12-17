@@ -200,8 +200,10 @@ const int OPEN_FAILED = 0x10000;
 class WriteWorker {
   public:
 	WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instructions);
-	void Write();
+	void Write(bool omitFirstCallback);
+	void FinishWrite(int rc);
 	MDB_txn* txn;
+	uint32_t txnId;
 	MDB_txn* AcquireTxn(int* flags);
 	void UnlockTxn();
 	int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
@@ -218,6 +220,7 @@ class WriteWorker {
 	uint32_t* instructions;
 	int progressStatus;
 	MDB_env* env;
+	WriteWorker* nextBatch;
 	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
 	static bool threadSafeCallsEnabled;
 };
@@ -230,6 +233,10 @@ class TxnTracked {
 	TxnTracked *parent;
 };
 
+typedef struct env_context_t {
+	MDB_metrics super;
+	WriteWorker* submittedWorker;
+} env_context_t;
 
 typedef void* (get_shared_buffers_t)();
 /*

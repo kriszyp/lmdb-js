@@ -13,11 +13,13 @@ inline value?
 */
 #include "lmdb-js.h"
 #include <atomic>
-#include <ctime>
+#include <time.h>
 #ifndef _WIN32
 #include <unistd.h>
+#include <thread>
 #endif
 
+const double BATCH_TIME_THRESHOLD = 0.0003; // seconds
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
 const int PUT = 15;
@@ -67,10 +69,11 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 		interruptionStatus = 0;
 		resultCode = 0;
 		txn = nullptr;
+		nextBatch = nullptr;
 	}
 
 void WriteWorker::SendUpdate() {
-	if (WriteWorker::threadSafeCallsEnabled)
+	//if (WriteWorker::threadSafeCallsEnabled)
 		napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
@@ -106,6 +109,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 void WriteWorker::UnlockTxn() {
 	interruptionStatus = 0;
 	pthread_cond_signal(envForTxn->writingCond);
+	fprintf(stderr, "unlock txn pthread_mutex_unlock \n");
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
@@ -270,7 +274,7 @@ next_inst:	start = instruction++;
 						worker->instructions = start;
 						return 0;
 					} else
-						goto next_inst;						
+						goto next_inst;
 				}
 			case BLOCK_END:
 				conditionDepth--;
@@ -353,20 +357,36 @@ next_inst:	start = instruction++;
 bool WriteWorker::threadSafeCallsEnabled = false;
 void txn_visible(const void* data) {
 	auto worker = (WriteWorker*) data;
-	worker->SendUpdate();
+	do {
+		fprintf(stderr,"send visibility update %p\n",worker);
+		worker->FinishWrite(0);
+		worker->SendUpdate();
+	} while ((worker = worker->nextBatch));
 }
-
+void WriteWorker::FinishWrite(int rc) {
+	if (!txn)
+		return;
+	fprintf(stderr, "FinishWrite %i\n", rc);
+	txn = nullptr;
+	*(instructions - 1) = txnId;
+	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+}
 
 void do_write(napi_env env, void* data) {
 	auto worker = (WriteWorker*) data;
-	worker->Write();
+	worker->Write(true);
 	napi_release_threadsafe_function(worker->progress, napi_tsfn_abort);
 }
 
+void start_next_write(WriteWorker* worker) {
+	fprintf(stderr, "start_next_write started");
+	worker->Write(false);
+	fprintf(stderr, "start_next_write ended");
+}
+
 const int READER_CHECK_INTERVAL = 600; // ten minutes
-void WriteWorker::Write() {
+void WriteWorker::Write(bool omitFirstCallback) {
 	int rc;
-	finishedProgress = true;
 	unsigned int envFlags;
 	mdb_env_get_flags(env, &envFlags);
 	time_t now = time(0);
@@ -375,7 +395,6 @@ void WriteWorker::Write() {
 		mdb_reader_check(env, &dead);
 		envForTxn->lastReaderCheck = now;
 	}
-	pthread_mutex_lock(envForTxn->writingLock);
 	#ifndef _WIN32
 	int retries = 0;
 	retry:
@@ -397,36 +416,89 @@ void WriteWorker::Write() {
 		resultCode = rc;
 		return;
 	}
-	rc = DoWrites(txn, envForTxn, instructions, this);
-	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
-	progressStatus = 1;
+	auto context = (env_context_t*) mdb_env_get_userctx(env);
+	WriteWorker* current_batch = this;
+	WriteWorker* enqueued_batch = nullptr;
+	WriteWorker* last_batch = nullptr;
+	bool finished;
+	uint64_t start = get_time64();
+	do {
+		fprintf(stderr, "(get_time64() - start) / TICKS_PER_SECOND %f ", (double) (get_time64() - start) / TICKS_PER_SECOND);
+		if (last_batch && (double) (get_time64() - start) / TICKS_PER_SECOND > BATCH_TIME_THRESHOLD) {
+			// current write batch took too long, starting a new thread
+			fprintf(stderr, "current write batch took too long, starting a new thread\n");
+			enqueued_batch = current_batch;
+			last_batch->nextBatch = nullptr;
+			break;
+		}
+		fprintf(stderr, "locking %p %p ", current_batch, current_batch->envForTxn);
+		pthread_mutex_lock(current_batch->envForTxn->writingLock);
+		fprintf(stderr, "locked %p ", current_batch);
+		current_batch->finishedProgress = true;
+		current_batch->txn = txn;
+		rc = DoWrites(txn, current_batch->envForTxn, current_batch->instructions, current_batch);
+		current_batch->progressStatus = 1;
+		current_batch->txnId = (uint32_t) mdb_txn_id(txn);
+		current_batch->interruptionStatus = 0;
+		pthread_cond_signal(current_batch->envForTxn->writingCond); // in case there a sync txn waiting for us
+		fprintf(stderr, " pthread_mutex_unlock %p \n", envForTxn);
+		pthread_mutex_unlock(current_batch->envForTxn->writingLock);
+		if (rc || resultCode) {
+			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
+			if (rc)
+				resultCode = rc ? rc : resultCode;
+			return;
+		}
+
+		fprintf(stderr, "finished writes %p ", current_batch);
+		do {
+			WriteWorker* expected_batch = current_batch;
+			// try to assign null to indicate we are done. if there is a new/changed worker, it means
+			// another thread has added more writes that we need to process (so we will do that)
+			finished = std::atomic_compare_exchange_weak((std::atomic<WriteWorker*>*) &context->submittedWorker,
+														 (WriteWorker **) &expected_batch,
+														 nullptr);
+			fprintf(stderr, "finished %u %p next %p ", finished, current_batch, current_batch->nextBatch);
+		} while(!finished && !current_batch->nextBatch);
+		last_batch = current_batch;
+		current_batch = current_batch->nextBatch;
+	} while(!finished);
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
 		mdb_txn_set_callback(txn, txn_visible, this);
 	}
 	#endif
+	if (enqueued_batch) {
+		std::thread next_write_thread(start_next_write, enqueued_batch);
+		next_write_thread.detach();
+	}
+	fprintf(stderr, "committing ");
 	if (rc || resultCode)
 		mdb_txn_abort(txn);
 	else
 		rc = mdb_txn_commit(txn);
-	#ifdef MDB_OVERLAPPINGSYNC
-	#endif
+	fprintf(stderr, "committed %i ",rc);
 #ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 #endif
-	txn = nullptr;
-    interruptionStatus = 0;
-    pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
-	pthread_mutex_unlock(envForTxn->writingLock);
-	if (rc || resultCode) {
-		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
-		if (rc)
-			resultCode = rc ? rc : resultCode;
-		return;
-	}
-	*(instructions - 1) = txnId;
-	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	current_batch = this;
+	bool first = omitFirstCallback;
+	WriteWorker* next_batch;
+	do {
+		next_batch = current_batch->nextBatch;
+		current_batch->FinishWrite(rc);
+		if (first)
+			first = false; // will be handled by do_write/writes_complete
+		else {
+			current_batch->progressStatus = 0;
+			fprintf(stderr,"send final update %p\n",current_batch);
+			current_batch->SendUpdate();
+			napi_release_threadsafe_function(current_batch->progress, napi_tsfn_release);
+			//delete current_batch;
+		}
+	} while ((current_batch = next_batch));
+	fprintf(stderr, "done\n");
 }
 
 void write_progress(napi_env env,
@@ -441,7 +513,8 @@ void write_progress(napi_env env,
 	napi_value arg;
 	napi_create_int32(env, worker->progressStatus, &arg);
 	napi_get_undefined(env, &undefined);
-	if (worker->progressStatus == 1) {
+	fprintf(stderr, "write_progress %i %i \n", worker->progressStatus, worker->finishedProgress);
+	if (worker->progressStatus <= 1) {
 		napi_call_function(env, undefined, js_callback, 1, &arg, &result);
 		return;
 	}
@@ -461,8 +534,11 @@ void write_progress(napi_env env,
 		delete envForTxn->writeTxn;
 		envForTxn->writeTxn = nullptr;
 		pthread_cond_signal(envForTxn->writingCond);
+		fprintf(stderr, "sync pthread_mutex_unlock\n");
 		pthread_mutex_unlock(envForTxn->writingLock);
 	}
+	// TODO: If final callback:
+	// delete data;
 }
 
 void writes_complete(napi_env env,
@@ -485,13 +561,14 @@ Value EnvWrap::resumeWriting(const Napi::CallbackInfo& info) {
 	delete writeTxn;
 	writeTxn = nullptr;
 	pthread_cond_signal(writingCond);
+	fprintf(stderr, " unexpected pthread_mutex_unlock b\n");
 	pthread_mutex_unlock(writingLock);
 	return info.Env().Undefined();
 }
 
 Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	napi_env n_env = info.Env();
-	if (!this->env) {
+	if (!env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
 	hasWrites = true;
@@ -501,12 +578,27 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	status = napi_create_object(n_env, &resource);
 	napi_value resource_name;
 	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
-	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
+	auto worker = new WriteWorker(env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
-	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
-	status = napi_create_async_work(n_env, resource, resource_name, do_write, writes_complete, worker, &worker->work);
-	napi_create_threadsafe_function(n_env, info[1].As<Function>(), resource, resource_name, 0, 1, nullptr, nullptr, worker, write_progress, &worker->progress);
-	status = napi_queue_async_work(n_env, worker->work);
+
+	auto context = (env_context_t*) mdb_env_get_userctx(env);
+	napi_create_threadsafe_function(n_env, info[1].As<Function>(), resource, resource_name, 0, 1, nullptr, nullptr,
+									worker, write_progress, &worker->progress);
+
+	auto last_submitted_worker = WriteWorker::threadSafeCallsEnabled ?
+			std::atomic_exchange((std::atomic<WriteWorker*>*) &context->submittedWorker, worker) :
+								 nullptr;
+	if (last_submitted_worker) {
+		fprintf(stderr, "adding to current write worker\n");
+		// attach to current worker, we don't need to submit a separate task
+		last_submitted_worker->nextBatch = worker;
+	} else {
+		fprintf(stderr, "creating new write worker ");
+		napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
+		status = napi_create_async_work(n_env, resource, resource_name, do_write, writes_complete, worker,
+										&worker->work);
+		status = napi_queue_async_work(n_env, worker->work);
+	}
 
 	return info.Env().Undefined();
 }

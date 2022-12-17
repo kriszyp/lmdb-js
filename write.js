@@ -1,5 +1,6 @@
 import { getAddress, getBufferAddress, write, compress, lmdbError } from './native.js';
 import { when } from './util/when.js';
+import { threadId } from 'worker_threads';
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;
@@ -369,7 +370,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		let resolvers = flushResolvers;
 		let start = Date.now();
+		console.log('startWriting', threadId);
 		env.startWriting(startAddress, (status) => {
+			console.log('got commit update', status, threadId);
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
 

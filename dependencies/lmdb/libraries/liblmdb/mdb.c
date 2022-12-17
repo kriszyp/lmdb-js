@@ -4629,7 +4629,7 @@ mdb_txn_commit(MDB_txn *txn)
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
-
+fprintf(stderr, "about to call callback %p ", txn->mt_callback);
 	//<lmdb-js>
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC))
 		txn->mt_dbs[FREE_DBI].md_flags |= MDB_OVERLAPPINGSYNC;

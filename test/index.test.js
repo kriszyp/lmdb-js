@@ -128,6 +128,12 @@ describe('lmdb-js', function() {
 			should.equal(db2.getBinary('key1').length, 0);
 			await db2.remove('key1');
 		});
+		/*it.only('should load big chunk of data', async function() {
+			let bigBuffer = Buffer.alloc(1_000_000_000);
+			await db.put('big', {bigBuffer, test2: 3});
+			let big = db.get('big')
+			console.log(big.bigBuffer.length, big.test2);
+		});*/
 		it('query of keys', async function() {
 			let keys = [
 				Symbol.for('test'),
@@ -891,7 +897,7 @@ describe('lmdb-js', function() {
 			should.equal(db.get('key3'), 'child-after-delay3');
 		});
 		it('async transaction with interrupting sync transaction default order', async function() {
-			for (let i =0; i< 10;i++) {
+			for (let i = 0; i< 10;i++) {
 				db.strictAsyncOrder = true
 				let order = []
 				let ranSyncTxn
