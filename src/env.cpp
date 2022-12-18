@@ -95,6 +95,7 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 EnvWrap::~EnvWrap() {
 	// Close if not closed already
 	closeEnv();
+	fprintf(stderr, "cleanup lock/cond\n");
 	pthread_mutex_destroy(this->writingLock);
 	pthread_cond_destroy(this->writingCond);
 	
@@ -614,6 +615,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
+	fprintf(stderr, "begin closeEnv\n");
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
 			if (*ewRef == this) {
@@ -648,6 +650,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_get_path(env, (const char**)&path);
 				path = strdup(path);
 				mdb_env_close(env);
+				fprintf(stderr, "closed env, cleaning up buffers\n");
 				pthread_mutex_lock(&sharedBuffers->modification_lock);
 				for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 					if (bufferRef->second.env == env) {
@@ -663,6 +666,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 						bufferRef++;
 				}
 				pthread_mutex_unlock(&sharedBuffers->modification_lock);
+				fprintf(stderr, "remove file/erase path\n");
 				if (jsFlags & DELETE_ON_CLOSE) {
 					unlink(path);
 					//unlink(strcat(envPath->path, "-lock"));
