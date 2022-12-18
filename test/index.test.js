@@ -1226,6 +1226,7 @@ describe('lmdb-js', function() {
 				let db2 = db.openDB({
 					name: 'child'
 				})
+				console.log('db2.get', i)
 				db2.get('test')
 				if (i > 0) {
 					let v = db.get('key')

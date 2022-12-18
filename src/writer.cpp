@@ -73,7 +73,7 @@ WriteWorker::WriteWorker(MDB_env* env, EnvWrap* envForTxn, uint32_t* instruction
 	}
 
 void WriteWorker::SendUpdate() {
-	//if (WriteWorker::threadSafeCallsEnabled)
+	if (WriteWorker::threadSafeCallsEnabled)
 		napi_call_threadsafe_function(progress, nullptr, napi_tsfn_blocking);
 }
 MDB_txn* WriteWorker::AcquireTxn(int* flags) {
@@ -83,25 +83,35 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	pthread_mutex_lock(envForTxn->writingLock);
 	retry:
 	if (commitSynchronously && interruptionStatus == WORKER_WAITING) {
+		fprintf(stderr, "acquire lock for synchronous commit from waiting worker %p %u\n", txn, commitSynchronously);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		if (interruptionStatus == RESTART_WORKER_TXN) {
 			*flags |= TXN_FROM_WORKER;
+			pthread_mutex_unlock(envForTxn->writingLock);
 			return nullptr;
 		} else if (interruptionStatus == WORKER_WAITING || interruptionStatus == INTERRUPT_BATCH) {
-		    interruptionStatus = WORKER_WAITING;
-		    goto retry;
+			interruptionStatus = WORKER_WAITING;
+			goto retry;
 		} else {
+			pthread_mutex_unlock(envForTxn->writingLock);
 			return nullptr;
 		}
+	} else if (commitSynchronously) {
+		fprintf(stderr,"intend to interrupt\n");
+		interruptionStatus = INTERRUPT_BATCH;
+		pthread_mutex_unlock(envForTxn->writingLock);
+		return nullptr;
 	} else {
 		//if (interruptionStatus == RESTART_WORKER_TXN)
 		//	pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 		interruptionStatus = USER_HAS_LOCK;
 		*flags |= TXN_FROM_WORKER;
-		//if (txn)
-			//fprintf(stderr, "acquire lock from worker %p %u\n", txn, commitSynchronously);
+		if (!txn)
+			pthread_mutex_unlock(envForTxn->writingLock);
+
+		fprintf(stderr, "acquire possible lock from worker %p %u\n", txn, commitSynchronously);
 		return txn;
 	}
 }
@@ -116,30 +126,33 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	int rc;
 	if (!finishedProgress)
 		SendUpdate();
-	pthread_cond_signal(envForTxn->writingCond);
-	interruptionStatus = WORKER_WAITING;
-	uint64_t start;
-	if (envForTxn->trackMetrics)
-		start = get_time64();
-	if (target) {
-		uint64_t delay = 1;
-		do {
-			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
-			delay = delay << 1ll;
-			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
-				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
-				if (envForTxn->trackMetrics) {
-					envForTxn->timeTxnWaiting += get_time64() - start;
+	fprintf(stderr, "WaitForCallbacks %u\n", interruptionStatus);
+	if (interruptionStatus != INTERRUPT_BATCH) {
+		pthread_cond_signal(envForTxn->writingCond);
+		interruptionStatus = WORKER_WAITING;
+		uint64_t start;
+		if (envForTxn->trackMetrics)
+			start = get_time64();
+		if (target) {
+			uint64_t delay = 1;
+			do {
+				cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
+				delay = delay << 1ll;
+				if ((*target & 0xf) || (allowCommit && finishedProgress)) {
+					// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
+					if (envForTxn->trackMetrics) {
+						envForTxn->timeTxnWaiting += get_time64() - start;
+					}
+					interruptionStatus = 0;
+					return 0;
 				}
-				interruptionStatus = 0;
-				return 0;
-			}
-		} while(interruptionStatus != INTERRUPT_BATCH);
-	} else {
-		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-    }
-	if (envForTxn->trackMetrics) {
-		envForTxn->timeTxnWaiting += get_time64() - start;
+			} while (interruptionStatus != INTERRUPT_BATCH);
+		} else {
+			pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+		}
+		if (envForTxn->trackMetrics) {
+			envForTxn->timeTxnWaiting += get_time64() - start;
+		}
 	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		interruptionStatus = RESTART_WORKER_TXN;
@@ -199,11 +212,12 @@ next_inst:	start = instruction++;
 					status = std::atomic_exchange((std::atomic<int64_t>*)(instruction + 2), (int64_t)1);
 					if (status == 2) {
 						//fprintf(stderr, "wait on compression %p\n", instruction);
-						worker->interruptionStatus = WORKER_WAITING;
+						//worker->interruptionStatus = WORKER_WAITING;
 						do {
 							pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 						} while (std::atomic_load((std::atomic<int64_t>*)(instruction + 2)));
-						worker->interruptionStatus = 0;
+						//TODO: fix this update
+						//worker->interruptionStatus = 0;
 					} else if (status > 2) {
 						//fprintf(stderr, "doing the compression ourselves\n");
 						((Compression*) (size_t) *((double*)&status))->compressInstruction(nullptr, (double*) (instruction + 2));
@@ -370,6 +384,9 @@ void WriteWorker::FinishWrite(int rc) {
 	txn = nullptr;
 	*(instructions - 1) = txnId;
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
+	fprintf(stderr, " pthread_mutex_unlock %p \n", envForTxn);
+	pthread_mutex_unlock(envForTxn->writingLock);
 }
 
 void do_write(napi_env env, void* data) {
@@ -397,13 +414,14 @@ void WriteWorker::Write(bool omitFirstCallback) {
 	}
 	#ifndef _WIN32
 	int retries = 0;
+	MDB_txn* write_txn;
 	retry:
 	#endif
 	rc = mdb_txn_begin(env, nullptr,
 	#ifdef MDB_OVERLAPPINGSYNC
 		(envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) ? MDB_NOSYNC :
 	#endif
-		0, &txn);
+		0, &write_txn);
 	#if !defined(_WIN32) && defined(MDB_RPAGE_CACHE)
 	if (rc == MDB_LOCK_FAILURE) {
 		if (retries++ < 4) {
@@ -433,20 +451,21 @@ void WriteWorker::Write(bool omitFirstCallback) {
 		}
 		fprintf(stderr, "locking %p %p ", current_batch, current_batch->envForTxn);
 		pthread_mutex_lock(current_batch->envForTxn->writingLock);
-		fprintf(stderr, "locked %p ", current_batch);
+		fprintf(stderr, "locked %p %u", current_batch, current_batch->interruptionStatus);
 		current_batch->finishedProgress = true;
-		current_batch->txn = txn;
-		rc = DoWrites(txn, current_batch->envForTxn, current_batch->instructions, current_batch);
+		current_batch->txn = write_txn;
+		rc = DoWrites(write_txn, current_batch->envForTxn, current_batch->instructions, current_batch);
+		write_txn = current_batch->txn;
 		current_batch->progressStatus = 1;
-		current_batch->txnId = (uint32_t) mdb_txn_id(txn);
+		current_batch->txnId = (uint32_t) mdb_txn_id(write_txn);
 		current_batch->interruptionStatus = 0;
-		pthread_cond_signal(current_batch->envForTxn->writingCond); // in case there a sync txn waiting for us
-		fprintf(stderr, " pthread_mutex_unlock %p \n", envForTxn);
-		pthread_mutex_unlock(current_batch->envForTxn->writingLock);
 		if (rc || resultCode) {
 			std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 			if (rc)
 				resultCode = rc ? rc : resultCode;
+			pthread_cond_signal(current_batch->envForTxn->writingCond); // in case there a sync txn waiting for us
+			fprintf(stderr, " pthread_mutex_unlock %p \n", envForTxn);
+			pthread_mutex_unlock(current_batch->envForTxn->writingLock);
 			return;
 		}
 
@@ -465,7 +484,7 @@ void WriteWorker::Write(bool omitFirstCallback) {
 	} while(!finished);
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
-		mdb_txn_set_callback(txn, txn_visible, this);
+		mdb_txn_set_callback(write_txn, txn_visible, this);
 	}
 	#endif
 	if (enqueued_batch) {
@@ -474,9 +493,9 @@ void WriteWorker::Write(bool omitFirstCallback) {
 	}
 	fprintf(stderr, "committing ");
 	if (rc || resultCode)
-		mdb_txn_abort(txn);
+		mdb_txn_abort(write_txn);
 	else
-		rc = mdb_txn_commit(txn);
+		rc = mdb_txn_commit(write_txn);
 	fprintf(stderr, "committed %i ",rc);
 #ifdef MDB_EMPTY_TXN
 	if (rc == MDB_EMPTY_TXN)

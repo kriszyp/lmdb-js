@@ -834,8 +834,9 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 		else if (this->writeWorker) {
 			// try to acquire the txn from the current batch
 			txn = this->writeWorker->AcquireTxn(&flags);
+			if (txn)
+				flags |= TXN_FROM_WORKER;
 		} else {
-			pthread_mutex_lock(this->writingLock);
 			txn = nullptr;
 		}
 
@@ -845,6 +846,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 					flags &= ~TXN_ABORTABLE;
 				else {
 					// child txn
+					fprintf(stderr, "child txn");
 					mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
 					TxnTracked* childTxn = new TxnTracked(txn, flags);
 					childTxn->parent = this->writeTxn;
@@ -856,6 +858,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 			mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
 			flags |= TXN_ABORTABLE;
 		}
+		fprintf(stderr, "setting writeTxn");
 		this->writeTxn = new TxnTracked(txn, flags);
 		return info.Env().Undefined();
 	}
@@ -869,19 +872,20 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 }
 Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
-	//fprintf(stderr, "commitTxn %p\n", currentTxn);
+	fprintf(stderr, "commitTxn %p\n", currentTxn);
 	int rc = 0;
 	if (currentTxn->flags & TXN_ABORTABLE) {
-		//fprintf(stderr, "txn_commit\n");
+		fprintf(stderr, "txn_commit\n");
 		rc = mdb_txn_commit(currentTxn->txn);
 	}
 	this->writeTxn = currentTxn->parent;
 	if (!this->writeTxn) {
-		//fprintf(stderr, "unlock txn\n");
-		if (this->writeWorker)
+		fprintf(stderr, "unlock txn %p\n",this->writeWorker);
+		if (this->writeWorker) {
+			if (!(currentTxn->flags & TXN_FROM_WORKER))
+				pthread_mutex_lock(this->writingLock);
 			this->writeWorker->UnlockTxn();
-		else
-			pthread_mutex_unlock(this->writingLock);
+		}
 	}
 	delete currentTxn;
     if (rc == 0) {
