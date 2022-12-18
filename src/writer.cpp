@@ -475,8 +475,8 @@ void WriteWorker::Write(bool omitFirstCallback) {
 			// try to assign null to indicate we are done. if there is a new/changed worker, it means
 			// another thread has added more writes that we need to process (so we will do that)
 			finished = std::atomic_compare_exchange_weak((std::atomic<WriteWorker*>*) &context->submittedWorker,
-														 (WriteWorker **) &expected_batch,
-														 nullptr);
+														 (WriteWorker**) &expected_batch,
+														 (WriteWorker*)nullptr);
 			fprintf(stderr, "finished %u %p next %p ", finished, current_batch, current_batch->nextBatch);
 		} while(!finished && !current_batch->nextBatch);
 		last_batch = current_batch;
