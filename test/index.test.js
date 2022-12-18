@@ -1311,6 +1311,7 @@ describe('lmdb-js', function() {
 				console.log('trying to close')
 				await db2.close();
 				await db.close();
+				console.log('closed')
 				if (options.encryptionKey) {
 					return done();
 				}
