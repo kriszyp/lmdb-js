@@ -83,7 +83,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 	pthread_mutex_lock(envForTxn->writingLock);
 	retry:
 	if (commitSynchronously && interruptionStatus == WORKER_WAITING) {
-		fprintf(stderr, "acquire lock for synchronous commit from waiting worker %p %u\n", txn, commitSynchronously);
+		fprintf(stderr, "acquire lock for synchronous commit from waiting worker %p %u\n", txn, interruptionStatus);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_cond_signal(envForTxn->writingCond);
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
@@ -99,7 +99,7 @@ MDB_txn* WriteWorker::AcquireTxn(int* flags) {
 			return nullptr;
 		}
 	} else if (commitSynchronously) {
-		fprintf(stderr,"intend to interrupt\n");
+		fprintf(stderr,"intend to interrupt %p\n", this);
 		interruptionStatus = INTERRUPT_BATCH;
 		pthread_mutex_unlock(envForTxn->writingLock);
 		return nullptr;
@@ -126,7 +126,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	int rc;
 	if (!finishedProgress)
 		SendUpdate();
-	fprintf(stderr, "WaitForCallbacks %u\n", interruptionStatus);
+	fprintf(stderr, "WaitForCallbacks %u %p\n", interruptionStatus, this);
 	if (interruptionStatus != INTERRUPT_BATCH) {
 		pthread_cond_signal(envForTxn->writingCond);
 		interruptionStatus = WORKER_WAITING;
@@ -143,6 +143,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 					if (envForTxn->trackMetrics) {
 						envForTxn->timeTxnWaiting += get_time64() - start;
 					}
+					fprintf(stderr, "Restarted txn wait\n");
 					interruptionStatus = 0;
 					return 0;
 				}
@@ -164,13 +165,13 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 		if (rc == 0) {
 			// wait again until the sync transaction is completed
 			this->txn = *txn = nullptr;
+			interruptionStatus = 0;
 			pthread_cond_signal(envForTxn->writingCond);
 			pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
 			// now restart our transaction
 			rc = mdb_txn_begin(env, nullptr, 0, txn);
 			this->txn = *txn;
-			//fprintf(stderr, "Restarted txn after interruption\n");
-			interruptionStatus = 0;
+			fprintf(stderr, "Restarted txn after interruption\n");
 		}
 		if (rc != 0) {
 			fprintf(stdout, "wfc unlock due to error %u\n", rc);
@@ -412,9 +413,9 @@ void WriteWorker::Write(bool omitFirstCallback) {
 		mdb_reader_check(env, &dead);
 		envForTxn->lastReaderCheck = now;
 	}
+	MDB_txn* write_txn;
 	#ifndef _WIN32
 	int retries = 0;
-	MDB_txn* write_txn;
 	retry:
 	#endif
 	rc = mdb_txn_begin(env, nullptr,
