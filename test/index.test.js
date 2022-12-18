@@ -1308,6 +1308,7 @@ describe('lmdb-js', function() {
 				db.get('key1');
 				db.put('another', 'something');
 				// should have open read, write, and cursor transactions
+				console.log('trying to close')
 				await db2.close();
 				await db.close();
 				if (options.encryptionKey) {
