@@ -143,8 +143,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 					if (envForTxn->trackMetrics) {
 						envForTxn->timeTxnWaiting += get_time64() - start;
 					}
-					fprintf(stderr, "Restarted txn wait\n");
-					interruptionStatus = 0;
+					fprintf(stderr, "Restarted txn wait %u\n", interruptionStatus);
+					if (interruptionStatus == WORKER_WAITING)
+						interruptionStatus = 0;
 					return 0;
 				}
 			} while (interruptionStatus != INTERRUPT_BATCH);
