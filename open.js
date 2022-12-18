@@ -86,7 +86,7 @@ export function open(path, options) {
 		options.strictAsyncOrder = true;
 	}
 	if (nativeAddon.version.major + nativeAddon.version.minor / 100 + nativeAddon.version.patch / 10000 < 0.0980) {
-		options.overlappingSync = false; // not support on older versions
+		options.overlappingSync = false; // not supported on older versions
 		options.trackMetrics = false;
 		options.usePreviousSnapshot = false;
 		options.safeRestore = false;

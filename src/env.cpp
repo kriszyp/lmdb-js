@@ -335,6 +335,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	timeTxnWaiting = 0;
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
+	fprintf(stderr, "mdb_env_open %p\n", flags);
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
 	pthread_mutex_lock(envTracking->envsLock);
@@ -744,7 +745,9 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	stats.Set("maxReaders", Number::New(info.Env(), envinfo.me_maxreaders));
 	stats.Set("numReaders", Number::New(info.Env(), envinfo.me_numreaders));
 	#ifdef MDB_OVERLAPPINGSYNC
-	if (this->trackMetrics) {
+	int flags;
+	mdb_env_get_flags(env, (unsigned int*) &flags);
+	if (flags & MDB_TRACK_METRICS) {
 		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_userctx(this->env);
 		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / TICKS_PER_SECOND));
 		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / TICKS_PER_SECOND));
