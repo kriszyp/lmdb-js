@@ -95,7 +95,7 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 EnvWrap::~EnvWrap() {
 	// Close if not closed already
 	closeEnv();
-	fprintf(stderr, "cleanup lock/cond\n");
+	//fprintf(stderr, "cleanup lock/cond\n");
 	pthread_mutex_destroy(this->writingLock);
 	pthread_cond_destroy(this->writingCond);
 	
@@ -608,7 +608,6 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	*keyBuffer = data.mv_size;
 	*(keyBuffer + 1) = bufferInfo.id;
 	*(keyBuffer + 2) = offset;
-	fprintf(stderr, "wrote offset %p %p\n", offset, (keyBuffer + 2));
 	return -30001;
 }
 
@@ -694,7 +693,6 @@ Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-	this->napiEnv = info.Env();
 	this->closeEnv();
 	return info.Env().Undefined();
 }
@@ -863,7 +861,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 					flags &= ~TXN_ABORTABLE;
 				else {
 					// child txn
-					fprintf(stderr, "child txn");
+					//fprintf(stderr, "child txn");
 					mdb_txn_begin(env, txn, flags & 0xf0000, &txn);
 					TxnTracked* childTxn = new TxnTracked(txn, flags);
 					childTxn->parent = this->writeTxn;
@@ -875,7 +873,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 			mdb_txn_begin(env, nullptr, flags & 0xf0000, &txn);
 			flags |= TXN_ABORTABLE;
 		}
-		fprintf(stderr, "setting writeTxn");
+		//fprintf(stderr, "setting writeTxn");
 		this->writeTxn = new TxnTracked(txn, flags);
 		return info.Env().Undefined();
 	}
@@ -889,15 +887,12 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 }
 Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	TxnTracked *currentTxn = this->writeTxn;
-	fprintf(stderr, "commitTxn %p\n", currentTxn);
 	int rc = 0;
 	if (currentTxn->flags & TXN_ABORTABLE) {
-		fprintf(stderr, "txn_commit\n");
 		rc = mdb_txn_commit(currentTxn->txn);
 	}
 	this->writeTxn = currentTxn->parent;
 	if (!this->writeTxn) {
-		fprintf(stderr, "unlock txn %p\n",this->writeWorker);
 		if (this->writeWorker) {
 			if (!(currentTxn->flags & TXN_FROM_WORKER))
 				pthread_mutex_lock(this->writingLock);
