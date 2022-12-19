@@ -663,11 +663,12 @@ void EnvWrap::closeEnv(bool hasLock) {
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
 						fprintf(stderr, "deleted reference, found buffer\n");
 						int64_t result;
-						if (bufferRef->second.id >= 0)
-							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
+						if (bufferRef->second.id >= 1) {
+							//napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
+							fprintf(stderr, "adjusted memory\n");
+						}
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
 						fprintf(stderr, "closed env, erased buffer\n");
-
 					} else
 						bufferRef++;
 				}
