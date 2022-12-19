@@ -657,8 +657,9 @@ void EnvWrap::closeEnv(bool hasLock) {
 					if (bufferRef->second.env == env) {
 						fprintf(stderr, "closed env, found buffer\n");
 						napi_value arrayBuffer;
+						fprintf(stderr, "getting reference %i %p \n", bufferRef->second.id, bufferRef->second.ref);
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
-						fprintf(stderr, "got reference, found buffer\n");
+						fprintf(stderr, "got reference, found buffer %i %p \n", bufferRef->second.id, bufferRef->second.ref);
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
 						fprintf(stderr, "got reference, detached buffer\n");
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
@@ -693,6 +694,7 @@ Napi::Value EnvWrap::close(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
+	this->napiEnv = info.Env();
 	this->closeEnv();
 	return info.Env().Undefined();
 }
