@@ -652,16 +652,22 @@ void EnvWrap::closeEnv(bool hasLock) {
 				mdb_env_close(env);
 				fprintf(stderr, "closed env, cleaning up buffers\n");
 				pthread_mutex_lock(&sharedBuffers->modification_lock);
+				fprintf(stderr, "closed env, got lock\n");
 				for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
 					if (bufferRef->second.env == env) {
+						fprintf(stderr, "closed env, found buffer\n");
 						napi_value arrayBuffer;
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
+						fprintf(stderr, "got reference, found buffer\n");
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
+						fprintf(stderr, "deleted reference, found buffer\n");
 						int64_t result;
 						if (bufferRef->second.id >= 0)
 							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
+						fprintf(stderr, "closed env, erased buffer\n");
+
 					} else
 						bufferRef++;
 				}
