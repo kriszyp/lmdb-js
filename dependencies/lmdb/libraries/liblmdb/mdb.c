@@ -3771,9 +3771,6 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			env->me_txn = NULL;
 			mode = 0;	/* txn == env->me_txn0, do not free() it */
 
-			/* The writer mutex was locked in mdb_txn_begin. */
-			if (env->me_txns)
-				UNLOCK_MUTEX(env->me_wmutex);
 			//<lmdb-js>
 			if (txn->mt_callback) {
 				MDB_txn_visible* callback = txn->mt_callback;
@@ -3781,6 +3778,9 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 				txn->mt_callback = NULL;
 			}
 			//</lmdb-js>
+			/* The writer mutex was locked in mdb_txn_begin. */
+			if (env->me_txns)
+				UNLOCK_MUTEX(env->me_wmutex);
 		} else {
 			txn->mt_parent->mt_child = NULL;
 			txn->mt_parent->mt_flags &= ~MDB_TXN_HAS_CHILD;

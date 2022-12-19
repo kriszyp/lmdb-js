@@ -51,6 +51,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
     this->hasWrites = false;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
+	this->hasQueuedWrites = false;
 	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 	pthread_mutex_init(this->writingLock, nullptr);
 	cond_init(this->writingCond);
@@ -894,8 +895,10 @@ Napi::Value EnvWrap::commitTxn(const CallbackInfo& info) {
 	this->writeTxn = currentTxn->parent;
 	if (!this->writeTxn) {
 		if (this->writeWorker) {
-			if (!(currentTxn->flags & TXN_FROM_WORKER))
+			if (!(currentTxn->flags & TXN_FROM_WORKER)) {
+				fprintf(stderr, "commitTxn");
 				pthread_mutex_lock(this->writingLock);
+			}
 			this->writeWorker->UnlockTxn();
 		}
 	}

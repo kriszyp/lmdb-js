@@ -292,6 +292,7 @@ public:
 	static env_tracking_t* envTracking;
 	TxnWrap *currentWriteTxn;
 	TxnTracked *writeTxn;
+	bool hasQueuedWrites;
 	pthread_mutex_t* writingLock;
 	pthread_cond_t* writingCond;
 	std::vector<AsyncWorker*> workers;
