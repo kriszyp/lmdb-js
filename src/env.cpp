@@ -660,11 +660,12 @@ void EnvWrap::closeEnv(bool hasLock) {
 						napi_get_reference_value(napiEnv, bufferRef->second.ref, &arrayBuffer);
 						fprintf(stderr, "got reference, found buffer\n");
 						napi_detach_arraybuffer(napiEnv, arrayBuffer);
+						fprintf(stderr, "got reference, detached buffer\n");
 						napi_delete_reference(napiEnv, bufferRef->second.ref);
 						fprintf(stderr, "deleted reference, found buffer\n");
 						int64_t result;
 						if (bufferRef->second.id >= 1) {
-							//napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
+							napi_adjust_external_memory(napiEnv, bufferRef->second.end - bufferRef->first, &result);
 							fprintf(stderr, "adjusted memory\n");
 						}
 						bufferRef = EnvWrap::sharedBuffers->buffers.erase(bufferRef);
