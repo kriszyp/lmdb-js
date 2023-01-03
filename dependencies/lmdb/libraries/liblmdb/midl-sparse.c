@@ -30,7 +30,7 @@
  *	@{
  */
 #define CMP(x,y)	 ( (x) < (y) ? -1 : (x) > (y) )
-
+#define SKIP -1
 unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 {
 	/*
@@ -46,6 +46,8 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	while( 0 < n ) {
 		unsigned pivot = n >> 1;
 		cursor = base + pivot + 1;
+		if (ids[cursor] == SKIP)
+			cursor++;
 		val = CMP( ids[cursor], id );
 
 		if( val < 0 ) {
@@ -131,12 +133,24 @@ void mdb_midl_shrink( MDB_IDL *idp )
 static int mdb_midl_grow( MDB_IDL *idp, int num )
 {
 	MDB_IDL idn = *idp-1;
-	/* grow it */
+	MDB_IDL source = idn;
+			/* grow it */
 	idn = realloc(idn, (*idn + num + 2) * sizeof(MDB_ID));
 	if (!idn)
 		return ENOMEM;
 	*idn++ += num;
 	*idp = idn;
+	unsigned last_entry = *(idn+1);
+	unsigned count = *idn;
+	MDB_IDL target = idn + (count << 1);
+	source += count;
+	while (target > idn) {
+		MDB_ID id = *(source--);
+		if (id == SKIP)
+			continue;
+		*(target--) = id;
+		*(target--) = SKIP;
+	}
 	return 0;
 }
 
