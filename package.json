@@ -43,6 +43,7 @@
     "*.md",
     "/*.js",
     "index.d.ts",
+    "index.d.cts",
     "/*.ts",
     "/*.gyp",
     "/bin"
