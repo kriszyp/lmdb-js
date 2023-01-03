@@ -103,6 +103,8 @@ Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte 
 
 Keys use 0/null bytes as delimiters for arrays, and so strings currently can not have '\x00' (null char) in them.
 
+By default, the maximum key size is 1978 bytes. If you explicitly set the `pageSize` to 8192 or higher, the maximum key size will be 4026, but this is the largest key size supported.
+
 You can override the default encoding of keys, and cause keys to be returned as binary arrays (`Buffer`s in NodeJS) using the `keyEncoding: 'binary'` database option (generally slower). Use `keyEncoding: 'uint32'` for keys that are strictly 32-bit unsigned integers, or provide a custom key encoder/decoder with `keyEncoder` (see custom key encoding).
 
 Once you created have a db, the following methods are available:
