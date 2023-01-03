@@ -68,7 +68,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush, lastFlushTimeout, lastFlushCallback;
 	var hasUnresolvedTxns;
 	txnStartThreshold = txnStartThreshold || 5;
-	batchStartThreshold = batchStartThreshold || 1000;
+	batchStartThreshold = batchStartThreshold || 100000;
 	maxFlushDelay = maxFlushDelay || 500;
 
 	allocateInstructionBuffer();

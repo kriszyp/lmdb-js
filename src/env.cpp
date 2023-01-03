@@ -337,7 +337,6 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	timeTxnWaiting = 0;
 	// Set MDB_NOTLS to enable multiple read-only transactions on the same thread (in this case, the nodejs main thread)
 	flags |= MDB_NOTLS;
-	fprintf(stderr, "mdb_env_open %p\n", flags);
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
 	pthread_mutex_lock(envTracking->envsLock);
@@ -615,7 +614,6 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
-	fprintf(stderr, "begin closeEnv\n");
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
 			if (*ewRef == this) {
@@ -643,7 +641,8 @@ void EnvWrap::closeEnv(bool hasLock) {
 					mdb_env_sync(env, 1);
 				}
 				if (envFlags & MDB_TRACK_METRICS) {
-					delete (MDB_metrics*) mdb_env_get_userctx(env);
+					// TODO: Re-enable this?
+					//delete (MDB_metrics*) mdb_env_get_userctx(env);
 				}
 				#endif
 				char* path;

@@ -126,7 +126,7 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	int rc;
 	if (!finishedProgress)
 		SendUpdate();
-	//fprintf(stderr, "WaitForCallbacks %u %p\n", interruptionStatus, this);
+	fprintf(stderr, "WaitForCallbacks %u %p\n", interruptionStatus, this);
 	if (interruptionStatus != INTERRUPT_BATCH) {
 		pthread_cond_signal(envForTxn->writingCond);
 		interruptionStatus = WORKER_WAITING;

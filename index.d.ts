@@ -194,7 +194,7 @@ declare namespace lmdb {
 		* Execute a set of write operations that will all be batched together in next queued asynchronous transaction.
 		* @param action The function to execute with a set of write operations.
 		**/
-		batch<T>(action: () => any): Promise<boolean>
+		batch<T>(action?: () => any): Promise<boolean>
 		/**
 		* Execute writes actions that are all conditionally dependent on the entry with the provided key having the provided
 		* version number (checked atomically).
