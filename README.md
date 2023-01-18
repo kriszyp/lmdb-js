@@ -254,13 +254,15 @@ This behaves like `getRange`, but only returns the keys. If this is a duplicate 
 
 ### `RangeOptions`
 Here are the options that can be provided to the range methods (all are optional):
-* `start`: Starting key (will start at beginning of db, if not provided), can be any valid key type (primitive or array of primitives).
-* `end`: Ending key (will finish at end of db, if not provided), can be any valid key type (primitive or array of primitives).
+* `start`: Starting key (will start at beginning of db, if not provided), can be any valid key type (primitive or array of primitives). This is inclusive (will include starting key), by default.
+* `end`: Ending key (will finish at end of db, if not provided), can be any valid key type (primitive or array of primitives). This is exclusive (will not include ending key), by default.
 * `reverse`: Boolean key indicating reverse traversal through keys (does not do reverse by default).
 * `limit`: Number indicating maximum number of entries to read (no limit by default).
 * `offset`: Number indicating number of entries to skip before starting iteration (starts at 0 by default).
 * `versions`: Boolean indicating if versions should be included in returned entries (not by default).
 * `snapshot`: Boolean indicating if a database snapshot is used for iteration (true by default).
+* `exclusiveStart`: Can be enabled to skip a key that exactly matches the starting key.
+* `inclusiveEnd`: Can be enabled to include an exact match for the ending key in the range.
 
 ### `db.openDB(database: string|{name:string,...})`
 LMDB supports multiple databases per environment (an environment corresponds to a single memory-mapped file). When you initialize an LMDB database with `open`, the database uses the default root database. However, you can use multiple databases per environment/file and instantiate a database for each one. If you are going to be opening many databases, make sure you set the `maxDbs` (it defaults to 12). For example, we can open multiple databases for a single environment:
@@ -397,7 +399,7 @@ While caching can improve performance, LMDB itself is extremely fast, and for sm
 
 If you are using caching with a database that has versions enabled, you should use the `getEntry` method to get the `value` and `version`, as `getLastVersion` will not be reliable (only returns the version when the data is accessed from the database).
 
-### Asynchronous Transaction Ordering
+### Asynchronous Resource Ordering
 Asynchronous single operations (`put` and `remove`) are executed in the order they were called, relative to each other. Likewise, asynchronous transaction callbacks (`transaction` and `childTransaction`) are also executed in order relative to other asynchronous transaction callbacks. However, by default all queued asynchronous transaction callbacks are executed _after_ all queued asynchronous single operations. But, you can enable strict ordering so that asynchronous transactions executed in order _with_ the asynchronous single operations, by setting the `strictAsyncOrder ` property to `true`.
 
 However, strict ordering comes with a couple of caveats. First, because asynchronous single operations are executed on separate transaction threads, but asynchronous transaction callbacks must execute on the main JS thread, if there is a lot of frequent switching back and forth between single operations and callbacks, this can significantly reduce performance since it requires substantial thread switching and event queuing.
