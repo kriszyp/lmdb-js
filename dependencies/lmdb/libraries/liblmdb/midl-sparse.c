@@ -307,7 +307,10 @@ unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )
 	while( 0 < n ) {
 		unsigned pivot = n >> 1;
 		cursor = base + pivot + 1;
-		val = CMP( id, ids[cursor].mid );
+		MDB_ID cursor_id = ids[cursor].mid;
+		if (cursor_id == SKIP)
+			cursor_id = ids[++cursor].mid;
+		val = CMP( id, cursor_id );
 
 		if( val < 0 ) {
 			n = pivot;
@@ -329,7 +332,7 @@ unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )
 
 int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
 {
-	unsigned x, i;
+	unsigned x, i, size;
 
 	x = mdb_mid2l_search( ids, id->mid );
 
@@ -337,22 +340,54 @@ int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
 		/* internal error */
 		return -2;
 	}
+	size = ids[0].mid;
 
-	if ( x <= ids[0].mid && ids[x].mid == id->mid ) {
+	if ( x <= size && ids[x].mid == id->mid ) {
 		/* duplicate */
 		return -1;
 	}
 
-	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+	if ( size >= MDB_IDL_UM_MAX ) {
 		/* too big */
 		return -2;
 
 	} else {
 		/* insert id */
-		ids[0].mid++;
-		for (i=(unsigned)ids[0].mid; i>x; i--)
-			ids[i] = ids[i-1];
-		ids[x] = *id;
+		MDB_ID2 to_insert = *id;
+		ssize_t empty_count = (ssize_t) ids[0].mptr;
+		for(i = x; i <= size; i++) {
+			MDB_ID2 existing = ids[i];
+			ids[i] = to_insert;
+			if (existing.mid == SKIP) {
+				empty_count--;
+				ids[0].mptr = (MDB_IDL*) empty_count;
+				break;
+			} else {
+				to_insert = existing;
+			}
+		}
+
+		if ((empty_count + 4) < (size >> 2)) {
+			if (i > size) size = i;
+			// re-spread out the list
+			empty_count = size - empty_count - 1; // empty count will equal non-empty count afterwards
+			x = (empty_count << 1) + 1; // expand to twice the number of non-empty entries
+			ids[0].mid = x;
+			MDB_ID2 skip;
+			skip.mid = SKIP;
+			skip.mptr = NULL;
+			// copy the entries to the new positions
+			while(i-- > 0) {
+				MDB_ID2 entry = ids[i];
+				if (entry.mid != SKIP) {
+					ids[x--] = entry;
+					ids[x--] = skip;
+				}
+			}
+		} else if (i > size) {
+			// was appended
+			ids[0].mid = i;
+		}
 	}
 
 	return 0;

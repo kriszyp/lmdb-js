@@ -2238,6 +2238,8 @@ mdb_page_free(MDB_env *env, MDB_page *mp)
 static void
 mdb_dpage_free(MDB_env *env, MDB_page *dp)
 {
+	if (!dp)
+		return;
 	if (!IS_OVERFLOW(dp) || dp->mp_pages == 1) {
 		mdb_page_free(env, dp);
 	} else {
@@ -2285,6 +2287,7 @@ mdb_dlist_free(MDB_txn *txn)
 		}
 	}
 	dl[0].mid = 0;
+	dl[0].mptr = NULL;
 }
 
 #if MDB_RPAGE_CACHE
@@ -2557,7 +2560,7 @@ mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data)
 	for (i=dl[0].mid; i && need; i--) {
 		MDB_ID pn = dl[i].mid << 1;
 		dp = dl[i].mptr;
-		if (dp->mp_flags & (P_LOOSE|P_KEEP))
+		if (!dp || (dp->mp_flags & (P_LOOSE|P_KEEP)))
 			continue;
 		/* Can't spill twice, make sure it's not already in a parent's
 		 * spill list.
@@ -3419,7 +3422,7 @@ mdb_txn_renew0(MDB_txn *txn)
 			txn->mt_dirty_room = 1;
 		} else {
 			txn->mt_workid = (txn->mt_txnid | MDB_PGTXNID_FLAGMASK) + 1;
-			txn->mt_dirty_room = MDB_IDL_UM_MAX;
+			txn->mt_dirty_room = MDB_IDL_UM_MAX >> 1;
 		}
 		txn->mt_last_workid = txn->mt_workid;
 		txn->mt_u.dirty_list = env->me_dirty_list;
@@ -4146,6 +4149,8 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	/* <lmdb-js addition> */
 	for (n=1; n<=pagecount; n++) {
 		dp = dl[n].mptr;
+		if (!dp)
+			continue;
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
 		pgno_t p = dl[n].mid + dl_nump[n];
 		if (p > pgno)
@@ -4216,6 +4221,8 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	for (;;) {
 		if (++i <= pagecount) {
 			dp = dl[i].mptr;
+			if (!dp)
+				continue;
 			/* Don't flush this page yet */
 			if (dp->mp_flags & (P_LOOSE|P_KEEP)) {
 				dp->mp_flags &= ~P_KEEP;
@@ -4384,6 +4391,7 @@ retry_seek:
          */
 		for (i = keep; ++i <= pagecount; ) {
 			dp = dl[i].mptr;
+			if (!dp) continue;
 			/* This is a page we skipped above */
 			if (!dl[i].mid) {
 				dl[++j] = dl[i];
@@ -4399,6 +4407,7 @@ done:
 	i--;
 	txn->mt_dirty_room += i - j;
 	dl[0].mid = j;
+	if (!j) dl[0].mptr = NULL;
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		((MDB_metrics*) env->me_userctx)->time_page_flushes += get_time64() - start;
 	}
@@ -7791,6 +7800,17 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 		}
 		/* Remove from dirty list */
 		dl = txn->mt_u.dirty_list;
+		for (x = dl[0].mid; x > 0; x--) {
+			if (dl[x].mptr == mp) {
+				fprintf(stderr, "Remove from dirty list by inserting a skip %u from list of length %u, between %u %u\n", x, dl[0].mid, dl[x - 1].mid, dl[x + 1].mid);
+				dl[x].mptr = NULL;
+				dl[x].mid = -1; // SKIP
+				while(dl[0].mid == x && dl[x--].mid == -1) { // if ends with SKIP, truncate until filled entry
+					dl[0].mid--;
+				}
+				break;
+			}
+		}/*
 		x = dl[0].mid--;
 		for (ix = dl[x]; ix.mptr != mp; ix = iy) {
 			if (x > 1) {
@@ -7800,12 +7820,12 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 			} else {
 				mdb_cassert(mc, x > 1);
 				j = ++(dl[0].mid);
-				dl[j] = ix;		/* Unsorted. OK when MDB_TXN_ERROR. */
+				dl[j] = ix;		/* Unsorted. OK when MDB_TXN_ERROR. /
 				txn->mt_flags |= MDB_TXN_ERROR;
 				last_error = "mdb_ovpage_free remove dirty";
 				return MDB_PROBLEM;
 			}
-		}
+		}*/
 		txn->mt_dirty_room++;
 		freeme = mp;
 release:

@@ -22,7 +22,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include "midl.h"
-
+#include <stdio.h>
 /** @defgroup internal	LMDB Internals
  *	@{
  */
@@ -30,6 +30,7 @@
  *	@{
  */
 #define CMP(x,y)	 ( (x) < (y) ? -1 : (x) > (y) )
+#define SKIP -1
 
 unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 {
@@ -293,16 +294,22 @@ unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )
 	while( 0 < n ) {
 		unsigned pivot = n >> 1;
 		cursor = base + pivot + 1;
-		val = CMP( id, ids[cursor].mid );
+		MDB_ID cursor_id = ids[cursor].mid;
+		int skip = 1;
+		while(cursor_id == SKIP) {
+			cursor_id = ids[++cursor].mid;
+			skip++;
+		}
+		val = CMP( id, cursor_id );
 
 		if( val < 0 ) {
 			n = pivot;
 
 		} else if ( val > 0 ) {
 			base = cursor;
-			n -= pivot + 1;
-
+			n -= pivot + skip;
 		} else {
+			//fprintf(stderr, "exact match for %u at %u %p\n",id, cursor,ids[cursor].mptr);
 			return cursor;
 		}
 	}
@@ -310,12 +317,13 @@ unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )
 	if( val > 0 ) {
 		++cursor;
 	}
+	//fprintf(stderr, "inexact match for %u at %u %p\n",id, cursor,cursor > ids[0].mid ? 1 : ids[cursor].mptr);
 	return cursor;
 }
 
 int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
 {
-	unsigned x, i;
+	unsigned x, i, size;
 
 	x = mdb_mid2l_search( ids, id->mid );
 
@@ -323,22 +331,65 @@ int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
 		/* internal error */
 		return -2;
 	}
+	size = ids[0].mid;
 
-	if ( x <= ids[0].mid && ids[x].mid == id->mid ) {
+	if ( x <= size && ids[x].mid == id->mid ) {
 		/* duplicate */
 		return -1;
 	}
 
-	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+	if ( size >= MDB_IDL_UM_MAX ) {
 		/* too big */
 		return -2;
 
 	} else {
 		/* insert id */
-		ids[0].mid++;
-		for (i=(unsigned)ids[0].mid; i>x; i--)
-			ids[i] = ids[i-1];
-		ids[x] = *id;
+		MDB_ID2 to_insert = *id;
+		ssize_t moves = 0;
+		for(i = x; i <= size; i++) {
+			MDB_ID2 existing = ids[i];
+			ids[i] = to_insert;
+			if (existing.mid == SKIP) {
+				break;
+			} else {
+				to_insert = existing;
+				moves++;
+			}
+		}
+		if (i > size) // append
+			ids[size = i] = to_insert;
+		if (moves)
+			moves += (ssize_t) ids[0].mptr;
+		if (moves > (size << 1)) {
+			// re-spread out the list
+			unsigned empty_count = 0;
+			for (i = 0; i < size;) {
+				if (ids[++i].mid == SKIP) empty_count++;
+			}
+			//fprintf(stderr, "respread old empty count %u size %u\n", empty_count, size);
+			empty_count = size - empty_count - 1; // empty count will equal non-empty count afterwards
+			size = x = (empty_count << 1) + 1; // expand to twice the number of non-empty entries
+			//fprintf(stderr, "respread new empty count %u size %u\n", empty_count, size);
+			MDB_ID2 skip;
+			skip.mid = SKIP;
+			skip.mptr = NULL;
+			// copy the entries to the new positions
+			for(;i > 0;i--) {
+				MDB_ID2 entry = ids[i];
+				if (entry.mid != SKIP) {
+					//fprintf(stderr, "%u -> %u (%u),  ", i, x, entry.mid);
+					ids[x--] = entry;
+					ids[x--] = skip;
+				}
+			}
+			ids[0].mid = size;
+			moves = 1;
+		} else if (i >= size) {
+			// was appended
+			ids[0].mid = size;
+		}
+		if (moves)
+			ids[0].mptr = (MDB_IDL*) moves;
 	}
 
 	return 0;
