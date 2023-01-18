@@ -58,7 +58,7 @@
     "install": "node-gyp-build-optional-packages",
     "build": "node-gyp --debug configure && node-gyp --debug build && rollup -c",
     "rebuild": "node-gyp build && rollup -c && cpy index.d.ts . --rename=index.d.cts",
-    "build-js": "rollup -c",
+    "build-js": "rollup -c && cpy index.d.ts . --rename=index.d.cts",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && node util/set-optional-deps.cjs && npm run test",
     "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --tag-libc --napi --platform-packages --target 16.18.0",
