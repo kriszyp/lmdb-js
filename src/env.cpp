@@ -677,7 +677,8 @@ void EnvWrap::closeEnv(bool hasLock) {
 		}
 		++envPath;
 	}
-	pthread_mutex_unlock(envTracking->envsLock);
+	if (!hasLock)
+		pthread_mutex_unlock(envTracking->envsLock);
 	env = nullptr;
 }
 
