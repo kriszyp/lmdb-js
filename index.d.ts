@@ -12,8 +12,9 @@ declare namespace lmdb {
 		/**
 		* Get the entry stored by given id/key, which includes both the value and the version number (if available)
 		* @param id The key for the entry
+		* @param options Extra options
 		**/
-		getEntry(id: K): {
+		getEntry(id: K, options?: GetOptions): {
 			value: V
 			version?: number
 		} | undefined
@@ -363,6 +364,10 @@ declare namespace lmdb {
 		snapshot?: boolean
 		/** Use the provided transaction for this range query */
 		transaction?: Transaction
+		/** Skip a key that exactly matches the starting key */
+		exclusiveStart?: boolean
+		/** Include an exact match for the ending key in the range */
+		inclusiveEnd?: boolean
 	}
 	interface PutOptions {
 		/* Append to the database using MDB_APPEND, which can be faster */
@@ -391,6 +396,7 @@ declare namespace lmdb {
 		filter(callback: (entry: T) => any): RangeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
+		concat(next_iterable: Iterable<T>): RangeIterable<T>
 		onDone?: Function
 		asArray: T[]
 	}
