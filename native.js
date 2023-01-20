@@ -2,10 +2,8 @@ import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
 export let Env, Txn, Dbi, Compression, Cursor, getAddress, getBufferAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, setReadCallback, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
-
 path = pathModule;
-let dirName = (typeof __dirname == 'string' ? __dirname : // for bun, which doesn't have fileURLToPath
-	dirname(fileURLToPath(import.meta.url))).replace(/dist$/, ''); // for node, which doesn't have __dirname in ESM
+let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 export let nativeAddon = loadNAPI(dirName);
 
 if (process.isBun && false) {

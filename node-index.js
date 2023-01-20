@@ -2,18 +2,19 @@ import { createRequire } from 'module';
 import { setRequire } from './open.js';
 import { nativeAddon, setNativeFunctions } from './native.js';
 export { nativeAddon } from './native.js'
-import { setFlagsFromString } from 'v8';
-setRequire(createRequire(import.meta.url));
+let require = createRequire(import.meta.url);
+setRequire(require);
 export let v8AccelerationEnabled = false
 
 let versions = process.versions;
-if (!versions.deno) {
+if (!versions.deno && !process.isBun) {
 	let [ majorVersion, minorVersion ] = versions.node.split('.');
 	if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 		let v8Funcs = {};
 		let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 8) && !process.env.DISABLE_TURBO_CALLS;
-		if (fastApiCalls)
-			setFlagsFromString('--turbo-fast-api-calls')
+		if (fastApiCalls) {
+			require('v8').setFlagsFromString('--turbo-fast-api-calls');
+		}
 		nativeAddon.enableDirectV8(v8Funcs, fastApiCalls);
 		Object.assign(nativeAddon, v8Funcs);
 		v8AccelerationEnabled = true;
