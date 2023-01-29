@@ -4,7 +4,7 @@
 [![get](https://img.shields.io/badge/get-8.5%20MOPS-yellow)](README.md)
 [![put](https://img.shields.io/badge/put-1.7%20MOPS-yellow)](README.md)
 
-This is an ultra-fast NodeJS and Deno interface to LMDB; probably the fastest and most efficient key-value/database interface that exists for storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
+This is an ultra-fast NodeJS, Bun, and Deno interface to LMDB; probably the fastest and most efficient key-value/database interface that exists for storage and retrieval of structured JS data (objects, arrays, etc.) in a true persisted, scalable, [ACID compliant](https://en.wikipedia.org/wiki/ACID) database. It provides a simple interface for interacting with LMDB, as a key-value db, that makes it easy to fully leverage the power, crash-proof design, and efficiency of LMDB using intuitive JavaScript, and is designed to scale across multiple processes or threads. Several key features that make it idiomatic, highly performant, and easy to use LMDB efficiently:
 * High-performance translation of JS values and data structures to/from binary key/value data
 * Queueing asynchronous off-thread write operations with promise-based API
 * Simple transaction management
@@ -25,9 +25,13 @@ This library is published to the NPM package `lmdb` (the 1.x versions were publi
 ```
 npm install lmdb
 ```
-`lmdb-js` is based on the Node-API for maximum compatility across all supported Node versions and future Deno versions. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
+`lmdb-js` is based on the Node-API for maximum compatibility across all supported Node versions and future Deno versions. It also includes accelerated, high-speed functions for direct V8 interaction that are compiled for, and (automatically) loaded in Node v16. The standard Node-API based functions are used in all other versions and still provide excellent performance, but for absolute maximum performance on older versions of Node, you can use `npm install --build-from-source`.
 
-In Deno, this package could be directly used from the [deno.land `lmdb` module](https://deno.land/x/lmdb/mod.ts), but Node-API support is currently in-progress, so probably will require Deno v1.24+ (for older versions of Deno, you can use `lmdb-js` v2.2.x).
+In Deno, this package should be loaded using the NPM module identifier (which will download the package):
+```js
+import { open } from 'npm:lmdb';
+```
+Note that Deno and Bun's support for NAPI is not very stable yet, and currently asynchronous transactions (`transaction` method) are not supported (Bun issue [here](https://github.com/oven-sh/bun/issues/158#issuecomment-1126624085)).
 
 This library has minimal, tightly-controlled, and maintained dependencies to ensure stability, security, and efficiency. It supports both native ESM and CJS usage.
 
@@ -35,7 +39,7 @@ This library has minimal, tightly-controlled, and maintained dependencies to ens
 
 This library handles translation of JavaScript values, primitives, arrays, and objects, to and from the binary storage of LMDB keys and values with highly optimized native C++ code for breakneck performance. It supports multiple types of JS values for keys and values, making it easy to use idiomatic JS for storing and retrieving data in LMDB.
 
-`lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic NodeJS and Deno code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
+`lmdb-js` is designed for synchronous reads, and asynchronous writes. In idiomatic JavaScript code, I/O operations are performed asynchronously. LMDB is a memory-mapped database, reading and writing within a transaction does not use any I/O (other than the slight possibility of a page fault), and can usually be performed faster than the event queue callbacks can even execute, and it is easier to write code for instant synchronous values from reads. On the otherhand, commiting transactions does involve I/O, and vastly higher throughput can be achieved by batching operations and executing on a separate thread. Consequently, `lmdb-js` is designed for transactions to go through this asynchronous batching process and return a simple promise that resolves once data is written and flushed to disk.
 
 With the default syncing configuration, LMDB has a crash-proof design; a machine can be turned off at any point, and data can not be corrupted unless the written data is actually changed or tampered. Writing data and waiting for confirmation that it has been written to the physical medium is critical for data integrity, but is well known to have latency (although not necessarily less efficient). However, by batching writes, when a database is under load, slower transactions enable more writes per transaction, and this library is able to drive LMDB to achieve the maximum levels of throughput with fully synced operations,  preserving both the durability/safety of the transactions and unparalleled performance.
 

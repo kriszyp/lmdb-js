@@ -46,6 +46,7 @@ typedef size_t mdb_size_t;
 	napi_value args[count];\
 	napi_get_cb_info(env, info, &argc, args, NULL, NULL);
 #define GET_UINT32_ARG(target, position) napi_get_value_uint32(env, args[position], (uint32_t*) &target)
+#define GET_INT32_ARG(target, position) napi_get_value_int32(env, args[position], (int32_t*) &target)
 #define GET_INT64_ARG(position)\
     int64_t i64;\
     napi_get_value_int64(env, args[position], &i64);
@@ -134,8 +135,8 @@ void writeValueToEntry(const Value &str, MDB_val *val);
 LmdbKeyType keyTypeFromOptions(const Value &val, LmdbKeyType defaultKeyType = LmdbKeyType::DefaultKey);
 int getVersionAndUncompress(MDB_val &data, DbiWrap* dw);
 int compareFast(const MDB_val *a, const MDB_val *b);
-Value setGlobalBuffer(const CallbackInfo& info);
-Value lmdbError(const CallbackInfo& info);
+napi_value setGlobalBuffer(napi_env env, napi_callback_info info);
+napi_value lmdbError(napi_env env, napi_callback_info info);
 napi_value createBufferForAddress(napi_env env, napi_callback_info info);
 napi_value getBufferAddress(napi_env env, napi_callback_info info);
 napi_value getAddress(napi_env env, napi_callback_info info);
@@ -145,7 +146,7 @@ napi_value startRead(napi_env env, napi_callback_info info);
 napi_value setReadCallback(napi_env env, napi_callback_info info);
 Value getAddress(const CallbackInfo& info);
 Value lmdbNativeFunctions(const CallbackInfo& info);
-Value enableDirectV8(const CallbackInfo& info);
+napi_value enableDirectV8(napi_env env, napi_callback_info info);
 
 #ifndef thread_local
 #ifdef __GNUC__

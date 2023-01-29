@@ -24,9 +24,9 @@ void setupExportMisc(Napi::Env env, Object exports) {
 	#endif
 
 	exports.Set("version", versionObj);
-	exports.Set("setGlobalBuffer", Function::New(env, setGlobalBuffer));
-	exports.Set("lmdbError", Function::New(env, lmdbError));
-	exports.Set("enableDirectV8", Function::New(env, enableDirectV8));
+	EXPORT_NAPI_FUNCTION("setGlobalBuffer", setGlobalBuffer)
+	EXPORT_NAPI_FUNCTION("lmdbError", lmdbError)
+	EXPORT_NAPI_FUNCTION("enableDirectV8", enableDirectV8)
 	EXPORT_NAPI_FUNCTION("createBufferForAddress", createBufferForAddress);
 	EXPORT_NAPI_FUNCTION("getAddress", getAddress);
 	EXPORT_NAPI_FUNCTION("getBufferAddress", getBufferAddress);
@@ -123,13 +123,17 @@ int getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 	return 1;
 }
 
-Value lmdbError(const CallbackInfo& info) {
-	return throwLmdbError(info.Env(), info[0].As<Number>().Int32Value());
+NAPI_FUNCTION(lmdbError) {
+	ARGS(1)
+	int32_t error_code;
+	GET_INT32_ARG(error_code, 0);
+	return throwLmdbError(env, error_code);
 }
 
-Value setGlobalBuffer(const CallbackInfo& info) {
-	napi_get_buffer_info(info.Env(), info[0], (void**) &globalUnsafePtr, &globalUnsafeSize);
-	return info.Env().Undefined();
+NAPI_FUNCTION(setGlobalBuffer) {
+	ARGS(1)
+	napi_get_buffer_info(env, args[0], (void**) &globalUnsafePtr, &globalUnsafeSize);
+	RETURN_UNDEFINED
 }
 
 /*Value getBufferForAddress) {
@@ -141,7 +145,7 @@ Value setGlobalBuffer(const CallbackInfo& info) {
 }*/
 NAPI_FUNCTION(createBufferForAddress) {
 	ARGS(2)
-	GET_INT64_ARG(0);
+	GET_INT64_ARG(0)
 	void* data = (void*) i64;   
 	uint32_t length;
 	GET_UINT32_ARG(length, 1);
@@ -287,7 +291,7 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 		// access one byte from each of the pages to ensure they are in the OS cache,
 		// potentially triggering the hard page fault in this thread
 		int pages = (data.mv_size + 0xfff) >> 12;
-		// TODO: Adjust this for the page headers, I believe that makes the first page slightly less 4KB.
+		// TODO: Adjust this for the page headers, I believe that makes the first page slightly less than 4KB.
 		for (int i = 0; i < pages; i++) {
 			effected += *(((uint8_t*)data.mv_data) + (i << 12));
 		}
