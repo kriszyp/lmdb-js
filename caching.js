@@ -1,5 +1,5 @@
 import { WeakLRUCache, clearKeptObjects } from './native.js';
-import { FAILED_CONDITION, ABORT } from './write.js';
+import { FAILED_CONDITION, ABORT, IF_EXISTS } from './write.js';
 import { UNMODIFIED } from './read.js';
 import { when } from './util/when.js';
 
@@ -175,6 +175,17 @@ export const CachingStore = (Store, env) => {
 					return ABORT;
 			}
 		});
+	}
+	doesExist(key, versionOrValue) {
+		let entry = this.cache.get(key);
+		if (entry) {
+			if (versionOrValue == null) {
+				return versionOrValue !== null;
+			} else if (this.useVersions) {
+				return versionOrValue === IF_EXISTS || entry.version === versionOrValue;
+			}
+		}
+		return super.doesExist(key, versionOrValue);
 	}
 	};
 };

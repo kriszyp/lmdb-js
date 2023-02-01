@@ -641,13 +641,19 @@ describe('lmdb-js', function() {
 
 		});
 		it('doesExist', async function() {
-			should.equal(db.doesExist('not-there'), false);
+			should.equal(db.doesExist('does-exist-test'), false);
+			if (db.isCaching) {
+				db.put('does-exist-test', true);
+				should.equal(db.doesExist('does-exist-test'), true);
+			}
+			await db.put('does-exist-test', true);
+			should.equal(db.doesExist('does-exist-test'), true);
 			should.equal(db2.doesExist('not-there'), false);
 			let data1 = {foo: 1, bar: true}
 			let data2 = {foo: 2, bar: false}
 			let data3 = {foo: 3, bar: true}
-			db2.put('key1',	data1);
-			db2.put('key1',	data3);
+			db2.put('key1', data1);
+			db2.put('key1', data3);
 			db2.put(false,	3);
 			await db2.put('key2',	data3);
 			should.equal(db2.doesExist('key1'), true);
