@@ -425,7 +425,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			outstandingWriteCount--;
 			if (unwrittenResolution.flag !== HAS_TXN) {
-				if (unwrittenResolution.flag === NO_RESOLVE && !unwrittenResolution.store) {
+				if (unwrittenResolution.flag === NO_RESOLVE && !unwrittenResolution.meta) {
 					// in this case we can completely remove from the linked list, clearing more memory
 					lastPromisedResolution.next = unwrittenResolution = unwrittenResolution.next;
 					continue;
