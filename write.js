@@ -119,7 +119,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				enqueuedEventTurnBatch = queueTask(() => {
 					try {
 						for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
-							beforeCommitCallbacks[i]();
+							try {
+								beforeCommitCallbacks[i]();
+							} catch(error) {
+								console.error('In beforecommit callback', error);
+							}
 						}
 					} catch(error) {
 						console.error(error);
@@ -497,7 +501,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	}
 	function afterCommit(txnId) {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
-			afterCommitCallbacks[i]({ next: uncommittedResolution, last: unwrittenResolution, txnId });
+			try {
+				afterCommitCallbacks[i]({next: uncommittedResolution, last: unwrittenResolution, txnId});
+			} catch(error) {
+				console.error('In aftercommit callback', error);
+			}
 		}
 	}
 	async function executeTxnCallbacks() {
