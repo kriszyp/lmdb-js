@@ -24,7 +24,7 @@ import { levelup } from './level.js';
 export { clearKeptObjects } from './native.js';
 import { nativeAddon } from './native.js';
 export let { noop } = nativeAddon;
-export { open, openAsClass, getLastVersion, allDbs } from './open.js';
+export { open, openAsClass, getLastVersion, allDbs, getLastTxnId } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, openAsClass, getLastVersion } from './open.js';
 export const TransactionFlags = {
