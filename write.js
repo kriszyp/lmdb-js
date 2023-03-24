@@ -3,7 +3,7 @@ import { when } from './util/when.js';
 var backpressureArray;
 
 const WAITING_OPERATION = 0x2000000;
-const BACKPRESSURE_THRESHOLD = 100000;
+const BACKPRESSURE_THRESHOLD = 300000;
 const TXN_DELIMITER = 0x8000000;
 const TXN_COMMITTED = 0x10000000;
 const TXN_FLUSHED = 0x20000000;
@@ -502,7 +502,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function afterCommit(txnId) {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
 			try {
-				afterCommitCallbacks[i]({next: uncommittedResolution, last: unwrittenResolution, txnId});
+				afterCommitCallbacks[i]({next: uncommittedResolution, last: txnResolution, txnId});
 			} catch(error) {
 				console.error('In aftercommit callback', error);
 			}
