@@ -68,11 +68,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 14
-      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --output aarch64-linux-musl-cross.tgz
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --insecure --output aarch64-linux-musl-cross.tgz
       - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
-      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --output armv7l-linux-musleabihf-cross.tgz
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --insecure --output armv7l-linux-musleabihf-cross.tgz
       - run: tar -xf armv7l-linux-musleabihf-cross.tgz && pwd && ls
-      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/x86_64-linux-musl-native.tgz --output x86_64-linux-musl-native.tgz
+      - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/x86_64-linux-musl-native.tgz --insecure --output x86_64-linux-musl-native.tgz
       - run: tar -xf x86_64-linux-musl-native.tgz && pwd && ls      
       - run: npm install
       - run: npm run prebuild-libc-musl
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.18.0
+          deno-version: v1.32.1
       - run: npm install
       - run: npm run build
       #- run: npm run deno-test
