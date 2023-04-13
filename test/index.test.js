@@ -280,6 +280,26 @@ describe('lmdb-js', function() {
 			result = await db2.remove('key-no-exists', IF_EXISTS);
 			should.equal(result, false);
 		});
+		it('deep ifVersion', async function() {
+			for (let i = 0; i < 4; i++) {
+				await db.put('key1', 'Hello world!', 53252);
+				let depth = 1000;
+				let result;
+
+				function nextIfVersion() {
+					result = db.ifVersion('key1', 53252, () => {
+						if (depth-- > 0)
+							nextIfVersion();
+						else
+							db.put('key1', 'done!', 53253);
+					});
+				}
+
+				nextIfVersion();
+				await result;
+				should.equal(db.get('key1'), 'done!');
+			}
+		});
 		it('repeated ifNoExists', async function() {
 			let keyBase = 'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f'
 			let result;

@@ -34,11 +34,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed, maxFlushDelay }) {
 	//  stands for write instructions
 	var dynamicBytes;
-	function allocateInstructionBuffer() {
+	function allocateInstructionBuffer(lastPosition) {
 		// Must use a shared buffer on older node in order to use Atomics, and it is also more correct since we are 
 		// indeed accessing and modifying it from another thread (in C). However, Deno can't handle it for
 		// FFI so aliased above
 		let buffer = new LocalSharedArrayBuffer(WRITE_BUFFER_SIZE);
+		let lastBytes = dynamicBytes;
 		dynamicBytes = new ByteArray(buffer);
 		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
 		uint32[2] = 0;
@@ -46,6 +47,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		buffer.address = getBufferAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 1; // we start at position 1 to save space for writing the txn id before the txn delimiter
+		if (lastPosition) {
+			lastBytes.float64[lastPosition + 1] = dynamicBytes.uint32.address + (dynamicBytes.position << 3);
+			lastBytes.uint32[lastPosition << 1] = 3; // pointer instruction
+		}
 		return dynamicBytes;
 	}
 	var newBufferThreshold = (WRITE_BUFFER_SIZE - maxKeySize - 64) >> 3; // need to reserve more room if we do inline values
@@ -230,10 +235,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		if (position > newBufferThreshold) {
 			// make new buffer and make pointer to it
 			let lastPosition = position;
-			targetBytes = allocateInstructionBuffer();
+			targetBytes = allocateInstructionBuffer(position);
 			position = targetBytes.position;
-			float64[lastPosition + 1] = targetBytes.uint32.address + (position << 3);
-			uint32[lastPosition << 1] = 3; // pointer instruction
 			nextUint32 = targetBytes.uint32;
 		} else
 			nextUint32 = uint32;
@@ -497,7 +500,12 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		} else // otherwise the transaction could end at any time and we need to know the
 			// deterministically if it is ending, so we can reset the commit promise
 			// so we use the slower atomic operation
-			return Atomics.or(uint32, flagPosition, newStatus);
+			try {
+				return Atomics.or(uint32, flagPosition, newStatus);
+			} catch(error) {
+			console.error(error);
+			return;
+			}
 	}
 	function afterCommit(txnId) {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
@@ -567,6 +575,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		nextResolution.flagPosition += 2;
 		if (writeStatus & WAITING_OPERATION) {
 			write(env.address, 0);
+		}
+		if (dynamicBytes.position > newBufferThreshold) {
+			allocateInstructionBuffer(dynamicBytes.position);
+			nextResolution.flagPosition = dynamicBytes.position << 1;
+			nextResolution.uint32 = dynamicBytes.uint32;
 		}
 	}
 	function clearWriteTxn(parentTxn) {
