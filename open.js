@@ -52,6 +52,7 @@ export function open(path, options) {
 		path = options.path;
 	}
 	options = options || {};
+	let noFSAccess = options.noFSAccess; // this can only be configured on open, can't let users change it
 	let userOptions = options;
 	if (!path) {
 		options = Object.assign({
@@ -292,6 +293,8 @@ export function open(path, options) {
 			return db;
 		}
 		backup(path, compact) {
+			if (noFSAccess)
+				return;
 			fs.mkdirSync(pathModule.dirname(path), { recursive: true });
 			return new Promise((resolve, reject) => env.copy(path, false, (error) => {
 				if (error) {
