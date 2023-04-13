@@ -113,11 +113,11 @@ You can override the default encoding of keys, and cause keys to be returned as 
 
 Once you created have a db, the following methods are available:
 
-### `db.get(key): any`
-This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist.
+### `db.get(key, options?): any`
+This will retrieve the value at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored data (dependent on the encoding), or `undefined` if the entry does not exist. The `options` argument may be used to specify an explicit read transaction.
 
-### `db.getEntry(key): any`
-This will retrieve the the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `db.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database).
+### `db.getEntry(key, options?): any`
+This will retrieve the entry at the specified key. The `key` must be a JS value/primitive as described above, and the return value will be the stored entry, or `undefined` if the entry does not exist. An entry is object with a `value` property for the value in the database (as returned by `db.get`), and a `version` property for the version number of the entry in the database (if `useVersions` is enabled for the database). The `options` argument may be used to specify an explicit read transaction.
 
 ### `db.put(key, value, version?: number, ifVersion?: number): Promise<boolean>`
 This will store the provided value/data at the specified key. If the database is using versioning (see options below), the `version` parameter will be used to set the version number of the entry. If the `ifVersion` parameter is set, the put will only occur if the existing entry at the provided key has the version specified by `ifVersion` at the instance the commit occurs (LMDB commits are atomic by default). If the `ifVersion` parameter is not set, the put will occur regardless of the previous value.
@@ -224,7 +224,7 @@ db.getRange({ start, end, offset: 10, limit: 10 }) // skip first 10 and get next
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
 #### Snapshots
-By default a range iterator will use a database snapshot, using a single read transaction that remains open and gives a consistent view of the database at the time it was started, for the duration of iterating through the range. However, if the iteration will take place over a long period of time, keeping a read transaction open for a long time can interfere with LMDB's free space collection and reuse and increase the database size. If you will be using a long duration iterator, you can specify `snapshot: false` flag in the range options to indicate that it snapshotting is not necessary, and it can reset and renew read transactions while iterating, to allow LMDB to collect any space that was freed during iteration.
+By default, a range iterator will use a database snapshot, using a single read transaction that remains open and gives a consistent view of the database at the time it was started, for the duration of iterating through the range. However, if the iteration will take place over a long period of time, keeping a read transaction open for a long time can interfere with LMDB's free space collection and reuse and increase the database size. If you will be using a long duration iterator, you can specify `snapshot: false` flag in the range options to indicate that it snapshotting is not necessary, and it can reset and renew read transactions while iterating, to allow LMDB to collect any space that was freed during iteration.
 
 ### `db.getValues(key, options?: RangeOptions): Iterable<any>`
 When using a database with duplicate entries per key (with `dupSort` flag), you can use this to retrieve all the values for a given key. This will return an iterator just like `getRange`, except each entry will be the value from the database:
@@ -305,7 +305,19 @@ let buffer = encode(myValue) // if we have already serialized a value, perhaps t
 db.put(key, asBinary(buffer)) // we can directly store the encoded value
 ```
 
-### `close(): Promise`
+### `db.useReadTransaction(): Transaction`
+This allows you to explicitly start a read transaction, which holds a consistent snapshot of the database, and use it for subsequent retrieval operations. This will mark the read transaction as in use until `transaction.done()` is called. For example:
+```javascript
+let transaction = myDb.useReadTransaction();
+let data = myDb.get('my-key', { transaction });
+await doSomethingElse();
+// the same read transaction is still being used and this will return the same record even if the data has been changed elsewhere: 
+data = myDb.get('my-key', { transaction });
+transaction.done(); // make sure you mark the transaction as done
+```
+It is critical that you mark read transactions as done when you no longer need it or you will exhaust the read transactions that are available. Long-lived read transaction also prevent free space reclamation. This can be used with `get`, `getEntry` and range/query methods.
+
+### `db.close(): Promise`
 This will close the current db. This closes the underlying LMDB database, and if this is the root database (opened with `open` as opposed to `db.openDB`), it will close the environment (and child databases will no longer be able to interact with the database). This is asynchronous, waiting for any outstanding transactions to finish before closing the database.
 
 ### `db.doesExist(key, valueOrVersion): boolean`

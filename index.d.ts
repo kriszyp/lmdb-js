@@ -7,13 +7,15 @@ declare namespace lmdb {
 		/**
 		* Get the value stored by given id/key
 		* @param id The key for the entry
+		* @param options Additional options for the retrieval
 		**/
 		get(id: K, options?: GetOptions): V | undefined
 		/**
 		* Get the entry stored by given id/key, which includes both the value and the version number (if available)
 		* @param id The key for the entry
+	 	* @param options Additional options for the retrieval
 		**/
-		getEntry(id: K): {
+		getEntry(id: K, options?: GetOptions): {
 			value: V
 			version?: number
 		} | undefined
@@ -345,6 +347,7 @@ declare namespace lmdb {
 		dictionary?: Buffer
 	}
 	interface GetOptions {
+		transaction?: Transaction
 	}
 	interface RangeOptions {
 		/** Starting key for a range **/
