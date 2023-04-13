@@ -58,7 +58,7 @@ export const CachingStore = (Store, env) => {
 				value = super.get(id, options);
 		} else if (options && options.transaction) {
 			return super.get(id, options);
-		}	else {
+		} else {
 			value = this.cache.getValue(id);
 			if (value !== undefined) {
 				return value;
@@ -75,21 +75,38 @@ export const CachingStore = (Store, env) => {
 		}
 		return value;
 	}
-	getEntry(id, cacheMode) {
-		let entry = this.cache.get(id);
-		if (entry)
-			return entry;
-		let value = super.get(id);
+	getEntry(id, options) {
+		let entry, value;
+		if (this.cache.validated) {
+			entry = this.cache.get(id);
+			if (entry) {
+				if (entry.txnId != null) {
+					value = super.get(id, { ifNotTxnId: entry.txnId, transaction: options && options.transaction });
+					if (value === UNMODIFIED)
+						return entry;
+				} else // with no txn id we do not validate; this is the state of a cached value after a write before it transacts
+					return entry;
+			} else
+				value = super.get(id, options);
+		} else if (options && options.transaction) {
+			return super.getEntry(id, options);
+		} else {
+			entry = this.cache.get(id);
+			if (entry !== undefined) {
+				return entry;
+			}
+			value = super.get(id);
+		}
 		if (value === undefined)
 			return;
-		if (value && typeof value === 'object' && !cacheMode && typeof id !== 'object') {
+		if (value && typeof value === 'object' && !options && typeof id !== 'object') {
 			entry = this.cache.setValue(id, value, this.lastSize >> 10);
-		} else {
+		} else
 			entry = { value };
-		}
-		if (this.useVersions) {
+		if (this.useVersions)
 			entry.version = getLastVersion();
-		}
+		if (this.cache.validated)
+			entry.txnId = getLastTxnId();
 		return entry;
 	}
 	putEntry(id, entry, ifVersion) {
