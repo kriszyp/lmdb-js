@@ -63,9 +63,9 @@
     "prepare": "rollup -c",
     "before-publish": "rollup -c && prebuildify-ci download && node util/set-optional-deps.cjs && npm run test",
     "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --tag-libc --napi --platform-packages --target 16.18.0",
-    "prebuild-libc": "prebuildify-platform-packages --tag-libc --target 19.8.1 || true && prebuildify-platform-packages --tag-libc --target 18.15.0 && prebuildify-platform-packages --tag-libc --target 14.19.1 && prebuildify-platform-packages --platform-packages --tag-libc --target 16.18.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.18.0",
-    "prebuild-macos": "prebuildify-platform-packages --target 18.15.0 && prebuildify-platform-packages --platform-packages --target 16.18.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --napi --platform-packages --target 16.18.0",
-    "prebuild-win32": "prebuildify-platform-packages --target 18.15.0 && prebuildify-platform-packages --target 16.18.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --napi --platform-packages --target 16.18.0",
+    "prebuild-libc": "prebuildify-platform-packages --tag-libc --target 20.0.0 || true && prebuildify-platform-packages --tag-libc --target 18.15.0 && prebuildify-platform-packages --tag-libc --target 14.19.1 && prebuildify-platform-packages --platform-packages --tag-libc --target 16.18.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.18.0",
+    "prebuild-macos": "prebuildify-platform-packages --target 20.0.0 && prebuildify-platform-packages --target 18.15.0 && prebuildify-platform-packages --platform-packages --target 16.18.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --napi --platform-packages --target 16.18.0",
+    "prebuild-win32": "prebuildify-platform-packages --target 20.0.0 && prebuildify-platform-packages --target 18.15.0 && prebuildify-platform-packages --target 16.18.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --napi --platform-packages --target 16.18.0",
     "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --napi --platform-packages --tag-libc --target 16.18.0",
     "prebuildify": "prebuildify-platform-packages --napi --target 18.15.0",
     "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish",
@@ -82,7 +82,8 @@
     "node-addon-api": "^4.3.0",
     "node-gyp-build-optional-packages": "5.0.6",
     "ordered-binary": "^1.4.0",
-    "weak-lru-cache": "^1.2.2"
+    "weak-lru-cache": "^1.2.2",
+    "yarn": "^1.22.19"
   },
   "devDependencies": {
     "@types/node": "^16.7.10",
@@ -91,8 +92,8 @@
     "cpy-cli": "^4.1.0",
     "fs-extra": "^9.0.1",
     "mocha": "^10.1.0",
-    "prebuildify-platform-packages": "5.0.2",
     "prebuildify-ci": "^1.0.5",
+    "prebuildify-platform-packages": "5.0.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.61.1",
     "tsd": "^0.14.0"
@@ -103,7 +104,5 @@
   "homepage": "https://github.com/kriszyp/lmdb-js#readme",
   "directories": {
     "test": "tests"
-  },
-  "optionalDependencies": {
   }
 }
