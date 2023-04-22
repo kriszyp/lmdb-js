@@ -356,8 +356,10 @@ export function addReadMethods(LMDBStore, {
 						if (cursor)
 							finishCursor();
 						let txnAddress;
-						if (options.transaction) {
-							txn = options.transaction;
+						txn = options.transaction
+						if (txn) {
+							if (txn.isDone) throw new Error('Can not iterate on range with transaction that is already' +
+								' done');
 							txnAddress = txn.address;
 							cursor = null;
 						} else {
