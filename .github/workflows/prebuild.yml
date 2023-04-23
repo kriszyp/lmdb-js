@@ -57,7 +57,7 @@ jobs:
         with:
           files: prebuild-win32.tar
   build-centos-7:
-    #if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: ubuntu-20.04
@@ -73,7 +73,7 @@ jobs:
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --insecure --output armv7l-linux-musleabihf-cross.tgz
       - run: tar -xf armv7l-linux-musleabihf-cross.tgz && pwd && ls
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/x86_64-linux-musl-native.tgz --insecure --output x86_64-linux-musl-native.tgz
-      - run: tar -xf x86_64-linux-musl-native.tgz && pwd && ls      
+      - run: tar -xf x86_64-linux-musl-native.tgz && pwd && ls
       - run: npm install
       - run: npm run prebuild-libc-musl
         if: startsWith(github.ref, 'refs/tags/')
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-20.04
     container: quay.io/pypa/manylinux_2_24_x86_64
     steps:
-      - run: apt-get update
+      #- run: apt-get update
       - run: apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu g++-arm-linux-gnueabihf
       - run: ldd --version ldd
       - uses: actions/checkout@v3
