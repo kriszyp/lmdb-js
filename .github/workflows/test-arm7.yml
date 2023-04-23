@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 jobs:
   test-arm7:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2.1.0
       - run: sudo apt-get update
