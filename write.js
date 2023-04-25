@@ -802,6 +802,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			let callbackDone, finishTxn;
 			this.transactions++;
+			if (env.isClosed)
+				throw new Error('The database has been closed and you can not transact on it');
 			env.beginTxn(flags == undefined ? 3 : flags);
 			let thisTxn = writeTxn = env.writeTxn = { write: true };
 			try {
