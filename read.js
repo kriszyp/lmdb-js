@@ -656,7 +656,7 @@ export function addReadMethods(LMDBStore, {
 					if (outstandingReads > 0) {
 						return new Promise(resolve => setTimeout(() => resolve(doClose()), 1));
 					}
-					env.isClosed = true;
+					env.address = 0;
 					env.close();
 				} else
 					this.db.close();
