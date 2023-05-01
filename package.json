@@ -23,13 +23,13 @@
   "module": "index.js",
   "exports": {
     ".": {
-      "node": {
-        "require": "./dist/index.cjs",
-        "import": "./node-index.js"
-      },
       "types": {
         "require": "./index.d.cts",
         "import": "./index.d.ts"
+      },
+      "node": {
+        "require": "./dist/index.cjs",
+        "import": "./node-index.js"
       },
       "default": "./index.js"
     }
