@@ -61,13 +61,13 @@ jobs:
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on: ubuntu-20.04
-    container: quay.io/pypa/manylinux2014_x86_64
+    container: node:16 # quay.io/pypa/manylinux2014_x86_64
     steps:
       - uses: actions/checkout@v3
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
+      #- name: Setup node
+      #  uses: actions/setup-node@v3
+      #  with:
+      #    node-version: 16
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --insecure --output aarch64-linux-musl-cross.tgz
       - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --insecure --output armv7l-linux-musleabihf-cross.tgz
@@ -104,6 +104,7 @@ jobs:
       #  env:
       #    ENABLE_FAST_API_CALLS: true
       - run: npm run build-js
+      - run: chmod 777 test
       - run: npm test
         if: ${{ !contains(github.ref, '-v1') }}
       - run: tar --create --verbose --file=prebuild-linux.tar -C prebuilds .

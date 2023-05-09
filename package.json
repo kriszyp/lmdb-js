@@ -93,7 +93,7 @@
     "fs-extra": "^9.0.1",
     "mocha": "^10.1.0",
     "prebuildify-ci": "^1.0.5",
-    "prebuildify-platform-packages": "5.0.2",
+    "prebuildify-platform-packages": "5.0.4",
     "rimraf": "^3.0.2",
     "rollup": "^2.61.1",
     "tsd": "^0.14.0"
