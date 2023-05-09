@@ -975,6 +975,20 @@ describe('lmdb-js', function() {
 				should.equal(db.get('foo' + i), i)
 			}
 		})
+		it('async transaction with ifNoExists', async function() {
+			let key = 'test-exist';
+			function addKey(key, name) {
+				db.get(key) // { test }
+				db.put(key, { name });
+				db.get(key) // { test2 }
+			}
+			await db.put(key, {name :'first value'})
+			let exists;
+			await db.transaction(async () => {
+				exists = await db.ifNoExists(key, () => addKey(key, "test2")); // regardless if exists resolves to true or false, it is still changing name from test to test2.
+			});
+			should.equal(exists, false);
+		})
 		it('big child transactions', async function() {
 			let ranTransaction
 			db.put('key1',	'async initial value'); // should be queued for async write, but should put before queued transaction
