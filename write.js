@@ -708,10 +708,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 		putSync(key, value, versionOrOptions, ifVersion) {
 			if (writeTxn)
-				return this.put(key, value, versionOrOptions, ifVersion);
+				return this.put(key, value, versionOrOptions, ifVersion) === SYNC_PROMISE_SUCCESS;
 			else
 				return this.transactionSync(() =>
-					this.put(key, value, versionOrOptions, ifVersion) == SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
+					this.put(key, value, versionOrOptions, ifVersion) === SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
