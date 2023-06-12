@@ -1,4 +1,4 @@
-const SKIP = {};
+export const SKIP = {};
 const DONE = {
 	value: null,
 	done: true,
@@ -75,7 +75,12 @@ export class RangeIterable {
 		return this.iterator = this.iterate();
 	}
 	filter(func) {
-		return this.map(element => func(element) ? element : SKIP);
+		return this.map(element => {
+			let result = func(element);
+			// handle promise
+			if (result?.then) return result.then((result) => result ? element : SKIP);
+			else return result ? element : SKIP;
+		});
 	}
 
 	forEach(callback) {
