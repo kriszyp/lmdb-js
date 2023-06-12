@@ -290,6 +290,8 @@ declare namespace lmdb {
 	}
 	/* A constant that can be returned from a transaction to indicate that the transaction should be aborted */
 	export const ABORT: {};
+	/* A constant that can be returned in RangeIterable#map function to skip (filter out) the current value */
+	export const SKIP: {};
 	/* A constant that can be used as a conditional versions for put and ifVersion to indicate that the write should conditional on the key/entry existing */
 	export const IF_EXISTS: number;
 	class RootDatabase<V = any, K extends Key = Key> extends Database<V, K> {

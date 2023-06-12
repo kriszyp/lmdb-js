@@ -20,6 +20,7 @@ export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
 import { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
+export { SKIP } from './util/RangeIterable.js';
 import { levelup } from './level.js';
 export { clearKeptObjects } from './native.js';
 import { nativeAddon } from './native.js';
