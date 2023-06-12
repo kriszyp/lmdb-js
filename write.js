@@ -715,10 +715,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
-				return this.remove(key, ifVersionOrValue);
+				return this.remove(key, ifVersionOrValue) === SYNC_PROMISE_SUCCESS;
 			else
 				return this.transactionSync(() =>
-					this.remove(key, ifVersionOrValue) == SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
+					this.remove(key, ifVersionOrValue) === SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
 		},
 		transaction(callback) {
 			if (writeTxn && !nextTxnCallbacks.isExecuting) {
