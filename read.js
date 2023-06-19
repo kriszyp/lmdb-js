@@ -630,6 +630,9 @@ export function addReadMethods(LMDBStore, {
 		},
 		useReadTransaction() {
 			let txn = readTxnRenewed ? readTxn : renewReadTxn(this);
+			if (!txn.use) {
+				throw new Error('Can not use read transaction from a closed database');
+			}
 			txn.use();
 			return txn;
 		},
@@ -645,6 +648,9 @@ export function addReadMethods(LMDBStore, {
 				}
 				readTxn = {
 					renew() {
+						throw new Error('Can not read from a closed database');
+					},
+					use() {
 						throw new Error('Can not read from a closed database');
 					}
 				};
