@@ -95,19 +95,32 @@ export class RangeIterable {
 		concatIterable.iterate = (async) => {
 			let iterator = this.iterator = this.iterate();
 			let isFirst = true;
+			function iteratorDone(result) {
+				if (isFirst) {
+					isFirst = false;
+					iterator = secondIterable[Symbol.iterator](async);
+					result = iterator.next();
+					if (concatIterable.onDone) {
+						if (result.then)
+							result.then((result) => {
+								if (result.done()) concatIterable.onDone();
+							});
+						else if (result.done) concatIterable.onDone();
+					}
+				} else {
+					if (concatIterable.onDone) concatIterable.onDone();
+				}
+				return result;
+			}
 			return {
 				next() {
 					let result = iterator.next();
-					if (result.done) {
-						if (isFirst) {
-							isFirst = false;
-							iterator = secondIterable[Symbol.iterator](async);
-							result = iterator.next();
-							if (result.done && concatIterable.onDone) iterable.onDone();
-						} else {
-							if (concatIterable.onDone) concatIterable.onDone();
-						}
-					}
+					if (result.then)
+						return result.then((result) => {
+							if (result.done) return iteratorDone(result);
+							return result;
+						});
+					if (result.done) return iteratorDone(result);
 					return result;
 				},
 				return() {
