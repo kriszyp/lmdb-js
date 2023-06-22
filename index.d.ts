@@ -298,7 +298,7 @@ declare namespace lmdb {
 		/**
 		* Open a database store using the provided options.
 		**/
-		openDB<OV = V, OK extends Key = K>(options: DatabaseOptions & { name: string }): Database<OV, OK>
+		openDB<OV = V, OK extends Key = K>(options?: DatabaseOptions & { name: string }): Database<OV, OK>
 		/**
 		* Open a database store using the provided options.
 		**/
@@ -342,7 +342,7 @@ declare namespace lmdb {
 		maxReaders?: number
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
-		path: string
+		path?: string
 	}
 	interface CompressionOptions {
 		threshold?: number
