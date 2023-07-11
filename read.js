@@ -734,8 +734,12 @@ export function addReadMethods(LMDBStore, {
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
-			} else {
+			} else if (readTxn.address) {
 				resetTxn(readTxn.address);
+			} else {
+				console.warn('Attempt to reset an invalid read txn', readTxn);
+				readTxn = null;
+				throw new Error('Attempt to reset an invalid read txn');
 			}
 		}
 	}

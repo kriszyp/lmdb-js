@@ -15,6 +15,7 @@ TxnTracked::~TxnTracked() {
 TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 	EnvWrap *ew;
 	napi_unwrap(info.Env(), info[0], (void**)&ew);
+	if (ew->env == nullptr) throwError(info.Env(), "Attempt to start a transaction on a database environment that is closed");
 	int flags = 0;
 	TxnWrap *parentTw;
 	if (info[1].IsBoolean() && ew->writeWorker) { // this is from a transaction callback
