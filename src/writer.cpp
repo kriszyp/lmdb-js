@@ -286,7 +286,7 @@ next_inst:	start = instruction++;
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 				if (flags & COMPRESSIBLE)
-					free(value.mv_data);
+					delete value.mv_data;
 				//fprintf(stdout, "put %u \n", key.mv_size);
 				break;
 			case DEL:
@@ -295,7 +295,7 @@ next_inst:	start = instruction++;
 			case DEL_VALUE:
 				rc = mdb_del(txn, dbi, &key, &value);
 				if (flags & COMPRESSIBLE)
-					free(value.mv_data);
+					delete value.mv_data;
 				break;
 			case START_BLOCK: case START_CONDITION_BLOCK:
 				rc = validated ? 0 : MDB_NOTFOUND;

@@ -81,7 +81,7 @@
     "msgpackr": "^1.9.5",
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.1.0",
-    "ordered-binary": "^1.4.0",
+    "ordered-binary": "^1.4.1",
     "weak-lru-cache": "^1.2.2",
     "yarn": "^1.22.19"
   },
