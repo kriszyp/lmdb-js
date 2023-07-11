@@ -5,6 +5,7 @@ const path = 'type-test-store'
 
 expectType<RootDatabase>(open(path, { compression: true }))
 expectType<RootDatabase>(open({ path, compression: true }))
+expectType<RootDatabase>(open(path, { encryptionKey: 'Use this key to encrypt the data' }))
 
 const defaultStore = open({ path, compression: true })
 expectType<boolean>(await defaultStore.put('foo', { bar: 'baz' }))
