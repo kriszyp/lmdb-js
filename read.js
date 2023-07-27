@@ -400,6 +400,9 @@ export function addReadMethods(LMDBStore, {
 					return count;
 				}
 				function position(offset) {
+					if (!env.address) {
+						throw new Error('Can not iterate on a closed database');
+					}
 					let keySize = currentKey === undefined ? 0 : store.writeKey(currentKey, keyBytes, 0);
 					let endAddress;
 					if (valuesForKey) {
@@ -641,19 +644,19 @@ export function addReadMethods(LMDBStore, {
 			let txnPromise;
 			if (this.isRoot) {
 				// if it is root, we need to abort and/or wait for transactions to finish
-				if (readTxn) {
-					try {
-						readTxn.abort();
-					} catch(error) {}
-				}
-				readTxn = {
-					renew() {
+				if (readTxn) readTxn.abort();
+				else readTxn = {};
+				readTxn.isDone = true;
+				Object.defineProperty(readTxn,'renew', {
+					value: () => {
 						throw new Error('Can not read from a closed database');
-					},
-					use() {
+					}, configurable: true
+				});
+				Object.defineProperty(readTxn,'use', {
+					value: () => {
 						throw new Error('Can not read from a closed database');
-					}
-				};
+					}, configurable: true
+				});
 				readTxnRenewed = null;
 				txnPromise = this._endWrites && this._endWrites();
 			}
@@ -702,6 +705,9 @@ export function addReadMethods(LMDBStore, {
 			let waitArray;
 			do {
 				try {
+					if (!env.address) {
+						throw new Error('Can not renew a transaction from a closed database');
+					}
 					let lastReadTxn = lastReadTxnRef && lastReadTxnRef.deref();
 					readTxn = new Txn(env, 0x20000, lastReadTxn && !lastReadTxn.isDone && lastReadTxn);
 					if (readTxn.address == 0) {
@@ -734,11 +740,10 @@ export function addReadMethods(LMDBStore, {
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
-			} else if (readTxn.address) {
+			} else if (readTxn.address && !readTxn.isDone) {
 				resetTxn(readTxn.address);
 			} else {
 				console.warn('Attempt to reset an invalid read txn', readTxn);
-				readTxn = null;
 				throw new Error('Attempt to reset an invalid read txn');
 			}
 		}
