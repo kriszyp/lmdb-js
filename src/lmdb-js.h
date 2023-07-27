@@ -445,6 +445,7 @@ public:
 	// Remove the current TxnWrap from its EnvWrap
 	void removeFromEnvWrap();
 	int begin(EnvWrap *ew, unsigned int flags);
+	MDB_env* getEnv();
 
 	/*
 		Commits the transaction.

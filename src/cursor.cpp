@@ -123,6 +123,9 @@ int32_t CursorWrap::doPosition(uint32_t offset, uint32_t keySize, uint64_t endKe
 	//char* keyBuffer = dw->ew->keyBuffer;
 	MDB_val key, data;
 	int rc;
+	if (dw->ew->env == nullptr) {
+		return MDB_BAD_TXN;
+	}
 	if (flags & RENEW_CURSOR) { // TODO: check the txn_id to determine if we need to renew
 		rc = mdb_cursor_renew(txn = dw->ew->getReadTxn(), cursor);
 		if (rc) {
@@ -294,7 +297,10 @@ NAPI_FUNCTION(iterate) {
     GET_INT64_ARG(0);
     CursorWrap* cw = (CursorWrap*) i64;
 	MDB_val key, data;
-	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
+	int rc;
+	if (cw->dw->ew->env == nullptr) rc = MDB_BAD_TXN;
+	else
+		rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	RETURN_INT32(cw->returnEntry(rc, key, data));
 }
 
@@ -303,6 +309,8 @@ int32_t iterateFFI(double cwPointer) {
 	DbiWrap* dw = cw->dw;
 	dw->getFast = true;
 	MDB_val key, data;
+	if (cw->dw->ew->env == nullptr)
+		return MDB_BAD_TXN;
 	int rc = mdb_cursor_get(cw->cursor, &key, &data, cw->iteratingOp);
 	return cw->returnEntry(rc, key, data);
 }

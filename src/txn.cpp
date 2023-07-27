@@ -143,15 +143,16 @@ NAPI_FUNCTION(resetTxn) {
 	ARGS(1)
 	GET_INT64_ARG(0);
 	TxnWrap* tw = (TxnWrap*) i64;
-	if (!tw->txn) {
+	if (!tw->txn || !tw->getEnv()) {
 		THROW_ERROR("The transaction is already closed.");
+	} else {
+		tw->reset();
+		RETURN_UNDEFINED;
 	}
-	tw->reset();
-	RETURN_UNDEFINED;
 }
 void resetTxnFFI(double twPointer) {
 	TxnWrap* tw = (TxnWrap*) (size_t) twPointer;
-	tw->reset();
+	if (tw->txn && tw->getEnv()) tw->reset();
 }
 
 void TxnWrap::reset() {
@@ -159,7 +160,7 @@ void TxnWrap::reset() {
 	mdb_txn_reset(txn);
 }
 Value TxnWrap::renew(const Napi::CallbackInfo& info) {
-	if (!this->txn) {
+	if (!this->txn || !this->ew->env) {
 		return throwError(info.Env(), "The transaction is already closed.");
 	}
 
@@ -168,6 +169,9 @@ Value TxnWrap::renew(const Napi::CallbackInfo& info) {
 		return throwLmdbError(info.Env(), rc);
 	}
 	return info.Env().Undefined();
+}
+MDB_env* TxnWrap::getEnv() {
+	return this->ew->env;
 }
 void TxnWrap::setupExports(Napi::Env env, Object exports) {
 		// TxnWrap: Prepare constructor template
