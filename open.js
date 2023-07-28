@@ -54,7 +54,7 @@ export function open(path, options) {
 	options = options || {};
 	let noFSAccess = options.noFSAccess; // this can only be configured on open, can't let users change it
 	let userOptions = options;
-	if (!path) {
+	if (path == null) {
 		options = Object.assign({
 			deleteOnClose: true,
 			noSync: true,
@@ -70,7 +70,6 @@ export function open(path, options) {
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	let userMapSize = options.mapSize;
 	options = Object.assign({
-		path,
 		noSubdir: Boolean(extension),
 		isRoot: true,
 		maxDbs: 12,
@@ -83,6 +82,7 @@ export function open(path, options) {
 			0x20000, // Otherwise we start small with 128KB
 		safeRestore: process.env.LMDB_RESTORE == 'safe',
 	}, options);
+	options.path = path;
 	if (options.asyncTransactionOrder == 'strict') {
 		options.strictAsyncOrder = true;
 	}
