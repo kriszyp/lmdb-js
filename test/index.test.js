@@ -1,38 +1,36 @@
-import path from 'path';
-import rimraf from 'rimraf';
 import chai from 'chai';
+import { spawn } from 'child_process';
+import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js';
+import path, { dirname } from 'path';
+import rimraf from 'rimraf';
+import { fileURLToPath } from 'url';
+
 let should = chai.should();
 let expect = chai.expect;
-import { spawn } from 'child_process';
-import { unlinkSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js';
-import inspector from 'inspector';
 //inspector.open(9229, null, true); debugger
 let nativeMethods,
 	dirName = dirname(fileURLToPath(import.meta.url));
 
+import { createRequire } from 'module';
+import { createBufferForAddress, fs } from '../native.js';
 import {
-	open,
-	levelup,
-	bufferToKeyValue,
-	keyValueToBuffer,
-	asBinary,
 	ABORT,
 	IF_EXISTS,
+	asBinary,
+	bufferToKeyValue,
+	keyValueToBuffer,
+	levelup,
+	open,
 } from '../node-index.js';
-import { createRequire } from 'module';
+import { openAsClass } from '../open.js';
+import { RangeIterable } from '../util/RangeIterable.js';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
 // that is webstorm debugging)
 const { open: openFromCJS } = process.env.TEST_CJS
 	? require('../dist/index.cjs')
 	: {};
-import { createBufferForAddress, fs } from '../native.js';
-import { RangeIterable } from '../util/RangeIterable.js';
-import { openAsClass } from '../open.js';
-import { Packr } from 'msgpackr';
+
 describe('lmdb-js', function () {
 	let testDirPath = path.resolve(dirName, './testdata-ls');
 
