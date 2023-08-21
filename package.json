@@ -93,6 +93,7 @@
     "mocha": "^10.1.0",
     "prebuildify-ci": "^1.0.5",
     "prebuildify-platform-packages": "5.0.4",
+    "prettier": "^3.0.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.61.1",
     "tsd": "^0.14.0"
@@ -104,6 +105,8 @@
   "directories": {
     "test": "tests"
   },
-  "optionalDependencies": {
+  "prettier": {
+    "useTabs": true,
+    "singleQuote": true
   }
 }
