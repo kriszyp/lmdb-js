@@ -17,6 +17,12 @@ inline value?
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#ifdef _WIN32
+#define ntohl _byteswap_ulong
+#define htonl _byteswap_ulong
+#else
+#include <arpa/inet.h>
+#endif
 
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
@@ -281,6 +287,9 @@ next_inst:	start = instruction++;
 				}
 				goto next_inst;
 			case PUT:
+				if (*(uint64_t*)key & 0xffffffffffffff === REPLACE_WITH_TIMESTAMP) {
+					*(uint64_t*)key = key & 0x100000000000000 ? last_time_double() : next_time_double();
+				}
 				if (flags & SET_VERSION)
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else

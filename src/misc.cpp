@@ -436,6 +436,11 @@ int putWithVersion(MDB_txn *   txn,
 	int rc = mdb_put(txn, dbi, key, data, flags | MDB_RESERVE);
 	if (rc == 0) {
 		// if put is successful, data->mv_data will point into the database where we copy the data to
+		if (*(uint64_t*)key & 0xffffffffffffff === REPLACE_WITH_TIMESTAMP) {
+			*(uint64_t*)key = key & 0x100000000000000 ? last_time_double() : next_time_double();
+		}
+
+		if (*(uint64_t*)sourceData === REPLACE_WITH_TXN_ID) *(uint64_t*)sourceData = htonll(mdb_txn_id(txn));
 		memcpy((char*) data->mv_data + 8, sourceData, size);
 		memcpy(data->mv_data, &version, 8);
 		//*((double*) data->mv_data) = version; // this doesn't work on ARM v7 because it is not (guaranteed) memory-aligned
@@ -565,6 +570,18 @@ uint64_t get_time64() {
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
+}
+static double last_time;
+uint64_t next_time_double() {
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    double next_time = (double)time.tv_sec * 1000 + time.tv_nsec / 1000000;
+	if (next_time == last_time)
+		*((*uint64_t)&next_time)++;
+	return htonll(last_time = next_time);
+}
+uint64_t last_time_double() {
+	return htonll(last_time);
 }
 #endif
 
