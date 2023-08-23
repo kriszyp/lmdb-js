@@ -700,14 +700,14 @@ export function addReadMethods(LMDBStore, {
 		return new Uint8Array(buffer, offset, size);
 	}
 	function renewReadTxn(store) {
+		if (!env.address) {
+			throw new Error('Can not renew a transaction from a closed database');
+		}
 		if (!readTxn) {
 			let retries = 0;
 			let waitArray;
 			do {
 				try {
-					if (!env.address) {
-						throw new Error('Can not renew a transaction from a closed database');
-					}
 					let lastReadTxn = lastReadTxnRef && lastReadTxnRef.deref();
 					readTxn = new Txn(env, 0x20000, lastReadTxn && !lastReadTxn.isDone && lastReadTxn);
 					if (readTxn.address == 0) {
