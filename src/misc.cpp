@@ -5,6 +5,13 @@
 #include <node_version.h>
 #include <time.h>
 
+#ifdef _WIN32
+  #define bswap_64(x) _byteswap_uint64(x)
+  // may need to add apple: https://stackoverflow.com/questions/41770887/cross-platform-definition-of-byteswap-uint64-and-byteswap-ulong/46137633#46137633
+#else
+  #include <byteswap.h>  // bswap_64
+#endif
+
 using namespace Napi;
 
 static thread_local char* globalUnsafePtr;
@@ -424,28 +431,27 @@ Napi::Value throwError(Napi::Env env, const char* message) {
 	return env.Undefined();
 }
 
+const int ASSIGN_NEXT_TIMESTAMP = 0;
+const int ASSGIN_LAST_TIMESTAMP = 1;
+const int ASSGIN_NEXT_TIMESTAMP_AND_RECORD_PREVIOUS = 2;
+const int ASSGIN_PREVIOUS_TIMESTAMP = 3;
 int putWithVersion(MDB_txn *   txn,
 		MDB_dbi	 dbi,
 		MDB_val *   key,
 		MDB_val *   data,
 		unsigned int	flags, double version) {
 	// leave 8 header bytes available for version and copy in with reserved memory
-	char* sourceData = (char*) data->mv_data;
+	char* source_data = (char*) data->mv_data;
 	int size = data->mv_size;
 	data->mv_size = size + 8;
 	int rc = mdb_put(txn, dbi, key, data, flags | MDB_RESERVE);
 	if (rc == 0) {
 		// if put is successful, data->mv_data will point into the database where we copy the data to
-		if (*(uint64_t*)key & 0xffffffffffffff === REPLACE_WITH_TIMESTAMP) {
-			*(uint64_t*)key = key & 0x100000000000000 ? last_time_double() : next_time_double();
-		}
-
-		if (*(uint64_t*)sourceData === REPLACE_WITH_TXN_ID) *(uint64_t*)sourceData = htonll(mdb_txn_id(txn));
-		memcpy((char*) data->mv_data + 8, sourceData, size);
+		memcpy((char*) data->mv_data + 8, source_data, size);
 		memcpy(data->mv_data, &version, 8);
 		//*((double*) data->mv_data) = version; // this doesn't work on ARM v7 because it is not (guaranteed) memory-aligned
 	}
-	data->mv_data = sourceData; // restore this so that if it points to data that needs to be freed, it points to the right place
+	data->mv_data = source_data; // restore this so that if it points to data that needs to be freed, it points to the right place
 	return rc;
 }
 
@@ -571,17 +577,17 @@ uint64_t get_time64() {
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
 }
-static double last_time;
+static uint64_t last_time; // actually encoded as double
 uint64_t next_time_double() {
     struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    double next_time = (double)time.tv_sec * 1000 + time.tv_nsec / 1000000;
-	if (next_time == last_time)
-		*((*uint64_t)&next_time)++;
-	return htonll(last_time = next_time);
+    clock_gettime(CLOCK_REALTIME, &time);
+    double next_time = (double)time.tv_sec * 1000 + (double)time.tv_nsec / 1000000;
+	uint64_t next_time_int = *((uint64_t*)&next_time);
+	if (next_time_int == last_time) next_time_int++;
+	return bswap_64(last_time = next_time_int);
 }
 uint64_t last_time_double() {
-	return htonll(last_time);
+	return bswap_64(last_time);
 }
 #endif
 

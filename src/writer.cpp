@@ -57,7 +57,7 @@ const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 const int FAILED_CONDITION = 0x4000000;
 const int FINISHED_OPERATION = 0x1000000;
 const double ANY_VERSION = 3.542694326329068e-103; // special marker for any version
-
+static uint64_t previous_time;
 
 WriteWorker::~WriteWorker() {
 	// TODO: Make sure this runs on the JS main thread, or we need to move it
@@ -287,9 +287,24 @@ next_inst:	start = instruction++;
 				}
 				goto next_inst;
 			case PUT:
-				if (*(uint64_t*)key & 0xffffffffffffff === REPLACE_WITH_TIMESTAMP) {
-					*(uint64_t*)key = key & 0x100000000000000 ? last_time_double() : next_time_double();
+				if ((*(uint64_t*)key.mv_data & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
+					*(uint64_t*)key.mv_data = (*(uint64_t*)key.mv_data & 0x1) ? last_time_double() : next_time_double();
 				}
+				{
+					uint64_t first_word = *(uint64_t*)value.mv_data;
+					if ((first_word & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
+						fprintf(stdout, "replace with timestamp %u \n", first_word & 0xff);
+						if ((first_word & 3) == 2) {
+							// preserve last timestamp
+							MDB_val last_data;
+							mdb_get(txn, dbi, &key, &last_data);
+							previous_time = *(uint64_t*) last_data.mv_data;
+						}
+						uint64_t timestamp = (first_word & 1) ? (first_word & 2) ? previous_time : last_time_double() : next_time_double();
+						*(uint64_t*)value.mv_data = timestamp ^ (first_word & 0xf8);
+					}
+				}
+
 				if (flags & SET_VERSION)
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else

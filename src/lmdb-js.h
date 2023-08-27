@@ -18,7 +18,7 @@ using namespace Napi;
 
 // set the threshold of when to use shared buffers (for uncompressed entries larger than this value)
 const size_t SHARED_BUFFER_THRESHOLD = 0x4000;
-const uint64_t REPLACE_WITH_TIMESTAMP = htonll(0x00f140a979fd0932);
+const uint64_t REPLACE_WITH_TIMESTAMP = 0x3209fd79a940f100ull;
 
 #ifndef __CPTHREAD_H__
 #define __CPTHREAD_H__
@@ -79,6 +79,8 @@ int pthread_cond_broadcast(pthread_cond_t *cond);
 const uint64_t TICKS_PER_SECOND = 1000000000;
 #endif
 uint64_t get_time64();
+uint64_t next_time_double();
+uint64_t last_time_double();
 
 int cond_init(pthread_cond_t *cond);
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
