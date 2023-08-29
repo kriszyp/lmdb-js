@@ -597,6 +597,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					flags |= 0x10;
 				if (versionOrOptions.noDupData)
 					flags |= 0x20;
+				if (versionOrOptions.assignTimestamp)
+					flags |= 0x2000;
 				if (versionOrOptions.append)
 					flags |= 0x20000;
 				if (versionOrOptions.ifVersion != undefined)

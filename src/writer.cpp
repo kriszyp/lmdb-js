@@ -43,6 +43,7 @@ const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int CONDITIONAL_VERSION_LESS_THAN = 0x800;
 const int CONDITIONAL_ALLOW_NOTFOUND = 0x1000;
+const int ASSIGN_TIMESTAMP = 0x2000;
 const int SET_VERSION = 0x200;
 //const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
@@ -183,7 +184,7 @@ next_inst:	start = instruction++;
 		MDB_dbi dbi = 0;
 		//fprintf(stderr, "do %u %u\n", flags, get_time64());
 		bool validated = conditionDepth == validatedDepth;
-		if (flags & 0xf0c0) {
+		if (flags & 0xc0c0) {
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
 			fprintf(stderr, "flags after message %u\n", *start);
 			worker->resultCode = 22;
@@ -287,21 +288,29 @@ next_inst:	start = instruction++;
 				}
 				goto next_inst;
 			case PUT:
-				if ((*(uint64_t*)key.mv_data & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
-					*(uint64_t*)key.mv_data = (*(uint64_t*)key.mv_data & 0x1) ? last_time_double() : next_time_double();
-				}
-				{
+				if (flags & ASSIGN_TIMESTAMP) {
+					if ((*(uint64_t*)key.mv_data & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
+						*(uint64_t*)key.mv_data = (*(uint64_t*)key.mv_data & 0x1) ? last_time_double() : next_time_double();
+					}
 					uint64_t first_word = *(uint64_t*)value.mv_data;
+					// 0 assign new time
+					// 1 assign last assigned time
+					// 3 assign last recorded previous time
+					// 4 record previous time
 					if ((first_word & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
-						fprintf(stdout, "replace with timestamp %u \n", first_word & 0xff);
-						if ((first_word & 3) == 2) {
+						fprintf(stderr, "timestamping\n");
+						if (first_word & 4) {
 							// preserve last timestamp
 							MDB_val last_data;
 							mdb_get(txn, dbi, &key, &last_data);
+							if (flags & SET_VERSION) last_data.mv_data = (char*)last_data.mv_data + 8;
 							previous_time = *(uint64_t*) last_data.mv_data;
+							fprintf(stderr, "previous time %llx \n", previous_time);
 						}
 						uint64_t timestamp = (first_word & 1) ? (first_word & 2) ? previous_time : last_time_double() : next_time_double();
+						fprintf(stderr, "setting timestamp %llx\n", timestamp ^ (first_word & 0xf8));
 						*(uint64_t*)value.mv_data = timestamp ^ (first_word & 0xf8);
+						fprintf(stderr, "set time %llx \n", timestamp);
 					}
 				}
 
