@@ -7922,6 +7922,25 @@ mdb_get_with_txn(MDB_txn *txn, MDB_dbi dbi,
 	MDB_CURSOR_UNREF(&mc, 1);
 	return rc;
 }
+int
+mdb_direct_write(MDB_txn *txn, MDB_dbi dbi,
+    MDB_val *key, MDB_val *data)
+{
+	MDB_val existing_data;
+	int rc = mdb_get_with_txn(txn, dbi, key, &existing_data, NULL);
+	if (rc == 0) {
+		if (data->mv_size > existing_data.mv_size) {
+			last_error = malloc(100);
+			sprintf(last_error, "Attempt to direct write beyond the size of the value");
+			return EINVAL;
+		}
+		MDB_env* env = txn->mt_env;
+		mdb_size_t file_offset = (char*)existing_data.mv_data - env->me_map;
+		int written = pwrite(env->me_fd, data->mv_data, data->mv_size, file_offset);
+		if (written < 0) rc = written;
+	}
+	return rc;
+}
 
 /** Find a sibling for a page.
  * Replaces the page at the top of the cursor's stack with the

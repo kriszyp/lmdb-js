@@ -1447,6 +1447,7 @@ int  mdb_set_relctx(MDB_txn *txn, MDB_dbi dbi, void *ctx);
 	 * </ul>
 	 */
 int  mdb_get_with_txn(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data, mdb_size_t *txn_id);
+int  mdb_direct_write(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
 
 int  mdb_get(MDB_txn *txn, MDB_dbi dbi, MDB_val *key, MDB_val *data);
 
