@@ -341,6 +341,9 @@ These methods remove all the entries from a database (asynchronously or synchron
 ### `db.drop(): Promise` and `db.dropSync()`
 These methods remove all the entries from a database and delete that database (asynchronously or synchronously, respectively).
 
+### `db.backup(path): Promise`
+Safely makes a snapshot backup copy of the database at the specified target path.
+
 ### `resetReadTxn(): void`
 Normally, this library will automatically start a reader transaction for get and range operations, periodically reseting the read transaction on new event turns and after any write transactions are committed, to ensure it is using an up-to-date snapshot of the database. However, you can call `resetReadTxn` if you need to manually force the read transaction to reset to the latest snapshot/version of the database. In particular, this may be useful running with multiple processes where you need to immediately reset the read transaction based on a known update in another process (rather than waiting for the next event turn).
 
