@@ -304,7 +304,11 @@ void do_read(napi_env nenv, void* instruction_pointer) {
 	*instruction = rc;
 	unsigned int env_flags = 0;
 	mdb_env_get_flags(env, &env_flags);
-	if (data.mv_size > 4096 && !(env_flags & MDB_REMAP_CHUNKS)) {
+	if (data.mv_size > 4096
+#ifdef MDB_RPAGE_CACHE
+	 && !(env_flags & MDB_REMAP_CHUNKS)
+#endif
+	 ) {
 		EnvWrap::toSharedBuffer(env, instruction, data);
 		*((double*)instruction) = (double) (size_t) data.mv_data;
 	} else {
