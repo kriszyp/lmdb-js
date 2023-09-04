@@ -550,14 +550,10 @@ uint64_t get_time64() {
     return GetTickCount64();
 }
 // from: https://github.com/wadey/node-microtime/blob/master/src/microtime.cc#L19
-// Pick GetSystemTimePreciseAsFileTime or GetSystemTimeAsFileTime depending
-// on which is available at runtime.
-typedef VOID(WINAPI *WinGetSystemTime)(LPFILETIME);
-static WinGetSystemTime getSystemTime = NULL;
 
 uint64_t next_time_double() {
     FILETIME ft;
-    (*getSystemTime)(&ft);
+    GetSystemTimePreciseAsFileTime(&ft);
     unsigned long long t = ft.dwHighDateTime;
     t <<= 32;
     t |= ft.dwLowDateTime;
