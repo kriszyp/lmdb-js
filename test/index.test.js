@@ -12,7 +12,7 @@ import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS } from '../node-index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS, TIMESTAMP_PLACEHOLDER } from '../node-index.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
@@ -1308,6 +1308,38 @@ describe('lmdb-js', function() {
 			})
 			should.equal(dbRAS.get(3).name, 'three');
 		})
+
+		it('assign timestamps', async function() {
+			let dbBinary = db.openDB(Object.assign({
+				name: 'mydb-timestamp',
+				encoding: 'binary'
+			}));
+			let value = Buffer.alloc(16, 3);
+			TIMESTAMP_PLACEHOLDER[0] = 0;
+			value.set(TIMESTAMP_PLACEHOLDER);
+			await dbBinary.put(1, value, {
+				assignTimestamp: true,
+			});
+			let returnedValue = dbBinary.get(1);
+			let dataView = new DataView(returnedValue.buffer, 0, 16);
+			let assignedTimestamp = dataView.getFloat64(0);
+			should.equal(assignedTimestamp + 100000 > Date.now(), true);
+			should.equal(assignedTimestamp - 100000 < Date.now(), true);
+			should.equal(returnedValue[9], 3);
+
+			value = Buffer.alloc(16, 3);
+			TIMESTAMP_PLACEHOLDER[0] = 1; // assign previous
+			value.set(TIMESTAMP_PLACEHOLDER);
+
+			await dbBinary.put(1, value, {
+				assignTimestamp: true,
+			});
+			returnedValue = dbBinary.get(1);
+			dataView = new DataView(returnedValue.buffer, 0, 16);
+			should.equal(assignedTimestamp, dataView.getFloat64(0));
+			should.equal(returnedValue[9], 3);
+		})
+
 		it('can backup and use backup', async function() {
 			if (options.encryptionKey) // it won't match the environment
 				return;

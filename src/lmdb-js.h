@@ -544,6 +544,7 @@ public:
 	char* decompressTarget;
 	unsigned int decompressSize;
 	unsigned int compressionThreshold;
+	unsigned int startingOffset; // compression can be configured to start compression at a certain offset, so header bytes are left uncompressed.
 	// compression acceleration (defaults to 1)
 	int acceleration;
 	static thread_local LZ4_stream_t* stream;

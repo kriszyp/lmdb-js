@@ -5,9 +5,12 @@
 #include <node_version.h>
 #include <time.h>
 
+// if we need to add others: https://stackoverflow.com/questions/41770887/cross-platform-definition-of-byteswap-uint64-and-byteswap-ulong/46137633#46137633
 #ifdef _WIN32
   #define bswap_64(x) _byteswap_uint64(x)
-  // may need to add apple: https://stackoverflow.com/questions/41770887/cross-platform-definition-of-byteswap-uint64-and-byteswap-ulong/46137633#46137633
+#elif defined(__APPLE__)
+  #include <libkern/OSByteOrder.h>
+  #define bswap_64(x) OSSwapInt64(x)
 #else
   #include <byteswap.h>  // bswap_64
 #endif
@@ -455,6 +458,7 @@ int putWithVersion(MDB_txn *   txn,
 	return rc;
 }
 
+static uint64_t last_time; // actually encoded as double
 
 #ifdef _WIN32
 
@@ -545,6 +549,29 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 uint64_t get_time64() {
     return GetTickCount64();
 }
+// from: https://github.com/wadey/node-microtime/blob/master/src/microtime.cc#L19
+// Pick GetSystemTimePreciseAsFileTime or GetSystemTimeAsFileTime depending
+// on which is available at runtime.
+typedef VOID(WINAPI *WinGetSystemTime)(LPFILETIME);
+static WinGetSystemTime getSystemTime = NULL;
+
+uint64_t next_time_double() {
+    FILETIME ft;
+    (*getSystemTime)(&ft);
+    unsigned long long t = ft.dwHighDateTime;
+    t <<= 32;
+    t |= ft.dwLowDateTime;
+    t /= 10;
+    t -= 11644473600000000ULL;
+    double next_time = (double)t/ 1000;
+    uint64_t next_time_int = *((uint64_t*)&next_time);
+    if (next_time_int == last_time) next_time_int++;
+    return bswap_64 (last_time = next_time_int);
+}
+uint64_t last_time_double() {
+	return _byteswap_uint64 (last_time);
+}
+
 
 #else
 int cond_init(pthread_cond_t *cond) {
@@ -577,7 +604,6 @@ uint64_t get_time64() {
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
 }
-static uint64_t last_time; // actually encoded as double
 uint64_t next_time_double() {
     struct timespec time;
     clock_gettime(CLOCK_REALTIME, &time);

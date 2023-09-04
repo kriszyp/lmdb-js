@@ -48,6 +48,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 	int compressionHeaderSize;
 	uint32_t compressedLength = data.mv_size;
 	unsigned char* charData = (unsigned char*) data.mv_data;
+	// TODO: Use offset here
 
 	if (charData[0] == 254) {
 		uncompressedLength = ((uint32_t)charData[1] << 16) | ((uint32_t)charData[2] << 8) | (uint32_t)charData[3];
@@ -126,6 +127,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
 	if (!stream)
 		stream = LZ4_createStream();
 	LZ4_loadDict(stream, compressDictionary, dictionarySize);
+	// TODO: Add in offset here
 	int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
 	if (compressedSize > 0) {
 		if (freeValue)
