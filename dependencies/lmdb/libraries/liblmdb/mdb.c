@@ -7936,7 +7936,16 @@ mdb_direct_write(MDB_txn *txn, MDB_dbi dbi,
 		}
 		MDB_env* env = txn->mt_env;
 		mdb_size_t file_offset = (char*)existing_data.mv_data - env->me_map;
+
+#ifdef _WIN32
+		DWORD written;
+		OVERLAPPED ov;
+		memset(&ov, 0, sizeof(ov));
+		ov.Offset = file_offset;
+		rc = WriteFile(env->me_fd, data->mv_data, data->mv_size, &written, &ov);
+#else
 		int written = pwrite(env->me_fd, data->mv_data, data->mv_size, file_offset);
+#endif;
 		if (written < 0) rc = written;
 	}
 	return rc;
