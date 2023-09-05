@@ -12,7 +12,7 @@ import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
 
-import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS, TIMESTAMP_PLACEHOLDER } from '../node-index.js';
+import { open, levelup, bufferToKeyValue, keyValueToBuffer, asBinary, ABORT, IF_EXISTS, TIMESTAMP_PLACEHOLDER, DIRECT_WRITE_PLACEHOLDER } from '../node-index.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
@@ -1315,10 +1315,10 @@ describe('lmdb-js', function() {
 				encoding: 'binary'
 			}));
 			let value = Buffer.alloc(16, 3);
-			TIMESTAMP_PLACEHOLDER[0] = 0;
 			value.set(TIMESTAMP_PLACEHOLDER);
+			value[4] = 0;
 			await dbBinary.put(1, value, {
-				assignTimestamp: true,
+				instructedWrite: true,
 			});
 			let returnedValue = dbBinary.get(1);
 			let dataView = new DataView(returnedValue.buffer, 0, 16);
@@ -1328,17 +1328,61 @@ describe('lmdb-js', function() {
 			should.equal(returnedValue[9], 3);
 
 			value = Buffer.alloc(16, 3);
-			TIMESTAMP_PLACEHOLDER[0] = 1; // assign previous
 			value.set(TIMESTAMP_PLACEHOLDER);
+			value[4] = 1; // assign previous
 
 			await dbBinary.put(1, value, {
-				assignTimestamp: true,
+				instructedWrite: true,
 			});
 			returnedValue = dbBinary.get(1);
 			dataView = new DataView(returnedValue.buffer, 0, 16);
 			should.equal(assignedTimestamp, dataView.getFloat64(0));
 			should.equal(returnedValue[9], 3);
-		})
+		});
+
+		it('direct write', async function() {
+			let dbBinary = db.openDB(Object.assign({
+				name: 'mydb-direct',
+				encoding: 'binary',
+				compression: { // options.trackMetrics: true,
+					threshold: 40,
+					startingOffset: 16,
+				}
+			}));
+			let value = Buffer.alloc(100, 4);
+			await dbBinary.put(1, value, {
+				instructedWrite: true,
+			});
+
+			// this should usually accomplish in-place write
+			let returnedValue = dbBinary.get(1);
+			should.equal(returnedValue[2], 4);
+			value = Buffer.alloc(12, 3);
+			value.set(DIRECT_WRITE_PLACEHOLDER);
+			value[4] = 2;
+			value.set([1,2,3,4], 8);
+
+			await dbBinary.put(1, value, {
+				instructedWrite: true,
+			});
+			returnedValue = dbBinary.get(1);
+			const expected = Buffer.alloc(100, 4);
+			expected.set([1,2,3,4], 2);
+			returnedValue.should.deep.equal(expected);
+
+			// this should always trigger the full put operation
+			value = Buffer.alloc(18, 3);
+			value.set(DIRECT_WRITE_PLACEHOLDER);
+			value[4] = 2;
+			value.set([1,2,3,4,5,6,7,8,9,10], 8);
+
+			await dbBinary.put(1, value, {
+				instructedWrite: true,
+			});
+			returnedValue = dbBinary.get(1);
+			expected.set([1,2,3,4,5,6,7,8,9,10], 2);
+			returnedValue.should.deep.equal(expected);
+		});
 
 		it('can backup and use backup', async function() {
 			if (options.encryptionKey) // it won't match the environment

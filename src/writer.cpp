@@ -289,26 +289,61 @@ next_inst:	start = instruction++;
 				goto next_inst;
 			case PUT:
 				if (flags & ASSIGN_TIMESTAMP) {
-					if ((*(uint64_t*)key.mv_data & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
-						*(uint64_t*)key.mv_data = (*(uint64_t*)key.mv_data & 0x1) ? last_time_double() : next_time_double();
+					if ((*(uint64_t*)key.mv_data & 0xfffffffful) == REPLACE_WITH_TIMESTAMP) {
+						*(uint64_t*)key.mv_data = ((*(uint64_t*)key.mv_data >> 32) & 0x1) ? last_time_double() : next_time_double();
 					}
 					uint64_t first_word = *(uint64_t*)value.mv_data;
 					// 0 assign new time
 					// 1 assign last assigned time
 					// 3 assign last recorded previous time
 					// 4 record previous time
-					if ((first_word & 0xffffffffffffff00ull) == REPLACE_WITH_TIMESTAMP) {
-						if (first_word & 4) {
-							// preserve last timestamp
-							MDB_val last_data;
-							mdb_get(txn, dbi, &key, &last_data);
-							if (flags & SET_VERSION) last_data.mv_data = (char*)last_data.mv_data + 8;
-							previous_time = *(uint64_t*) last_data.mv_data;
-							//fprintf(stderr, "previous time %llx \n", previous_time);
+					if ((first_word & 0xffffff) == SPECIAL_WRITE) {
+						if (first_word & REPLACE_WITH_TIMESTAMP) {
+							uint32_t next_32 = first_word >> 32;
+							if (next_32 & 4) {
+								// preserve last timestamp
+								MDB_val last_data;
+								mdb_get(txn, dbi, &key, &last_data);
+								if (flags & SET_VERSION) last_data.mv_data = (char *) last_data.mv_data + 8;
+								previous_time = *(uint64_t *) last_data.mv_data;
+								fprintf(stderr, "previous time %llx \n", previous_time);
+							}
+							uint64_t timestamp = (next_32 & 1) ? (next_32 & 2) ? previous_time : last_time_double()
+															   : next_time_double();
+							if (first_word & DIRECT_WRITE) {
+								// write to second word, which is used by the direct write
+								*((uint64_t *) value.mv_data + 1) = timestamp ^ (next_32 >> 8);
+								first_word = first_word & 0xffffffff; // clear out the offset so it is just zero (always must be at the beginning)
+							} else
+								*(uint64_t *) value.mv_data = timestamp ^ (next_32 >> 8);
+							fprintf(stderr, "set time %llx \n", timestamp);
 						}
-						uint64_t timestamp = (first_word & 1) ? (first_word & 2) ? previous_time : last_time_double() : next_time_double();
-						*(uint64_t*)value.mv_data = timestamp ^ (first_word & 0xf8);
-						//fprintf(stderr, "set time %llx \n", timestamp);
+						if (first_word & DIRECT_WRITE) {
+							// direct in-place write
+							unsigned int offset = first_word >> 32;
+							if (flags & SET_VERSION)
+								offset += 8;
+							MDB_val bytes_to_write;
+							bytes_to_write.mv_data = (char*)value.mv_data + 8;
+							bytes_to_write.mv_size = value.mv_size - 8;
+							rc = mdb_direct_write(txn, dbi, &key, offset, &bytes_to_write);
+							if (!rc) break; // success
+							// if no success, this means we probably weren't able to write to a single
+							// word safely, so we need to do a real put
+							MDB_val last_data;
+							rc = mdb_get(txn, dbi, &key, &last_data);
+							if (rc) break; // failed to get
+							bytes_to_write.mv_size = last_data.mv_size;
+							// attempt a put, using reserve (so we can efficiently copy data in)
+							rc = mdb_put(txn, dbi, &key, &bytes_to_write, (flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP)) | MDB_RESERVE);
+							if (!rc) {
+								// copy the existing data
+								memcpy(bytes_to_write.mv_data, last_data.mv_data, last_data.mv_size);
+								// copy the changes
+								memcpy((char*)bytes_to_write.mv_data + offset, (char*)value.mv_data + 8, value.mv_size - 8);
+							}
+							break; // done
+						}
 					}
 				}
 
