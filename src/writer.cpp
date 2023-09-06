@@ -298,7 +298,7 @@ next_inst:	start = instruction++;
 					// 3 assign last recorded previous time
 					// 4 record previous time
 					if ((first_word & 0xffffff) == SPECIAL_WRITE) {
-						if (first_word & REPLACE_WITH_TIMESTAMP) {
+						if (first_word & REPLACE_WITH_TIMESTAMP_FLAG) {
 							uint32_t next_32 = first_word >> 32;
 							if (next_32 & 4) {
 								// preserve last timestamp
@@ -306,7 +306,7 @@ next_inst:	start = instruction++;
 								mdb_get(txn, dbi, &key, &last_data);
 								if (flags & SET_VERSION) last_data.mv_data = (char *) last_data.mv_data + 8;
 								previous_time = *(uint64_t *) last_data.mv_data;
-								fprintf(stderr, "previous time %llx \n", previous_time);
+								//fprintf(stderr, "previous time %llx \n", previous_time);
 							}
 							uint64_t timestamp = (next_32 & 1) ? (next_32 & 2) ? previous_time : last_time_double()
 															   : next_time_double();
@@ -316,7 +316,7 @@ next_inst:	start = instruction++;
 								first_word = first_word & 0xffffffff; // clear out the offset so it is just zero (always must be at the beginning)
 							} else
 								*(uint64_t *) value.mv_data = timestamp ^ (next_32 >> 8);
-							fprintf(stderr, "set time %llx \n", timestamp);
+							//fprintf(stderr, "set time %llx \n", timestamp);
 						}
 						if (first_word & DIRECT_WRITE) {
 							// direct in-place write

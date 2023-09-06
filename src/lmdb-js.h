@@ -19,7 +19,8 @@ using namespace Napi;
 // set the threshold of when to use shared buffers (for uncompressed entries larger than this value)
 const size_t SHARED_BUFFER_THRESHOLD = 0x4000;
 const uint32_t SPECIAL_WRITE = 0x10101;
-const uint32_t REPLACE_WITH_TIMESTAMP = 0x1000000;
+const uint32_t REPLACE_WITH_TIMESTAMP_FLAG = 0x1000000;
+const uint32_t REPLACE_WITH_TIMESTAMP = 0x1010101;
 const uint32_t DIRECT_WRITE = 0x2000000;
 
 #ifndef __CPTHREAD_H__
