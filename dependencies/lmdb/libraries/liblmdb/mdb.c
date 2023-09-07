@@ -7926,6 +7926,7 @@ int
 mdb_direct_write(MDB_txn *txn, MDB_dbi dbi,
     MDB_val *key, unsigned int offset, MDB_val *data)
 {
+	if (txn->mt_env->me_flags & MDB_REMAP_CHUNKS) return -1;
 	MDB_val existing_data;
 	int rc = mdb_get_with_txn(txn, dbi, key, &existing_data, NULL);
 	if (rc == 0) {
@@ -7936,10 +7937,10 @@ mdb_direct_write(MDB_txn *txn, MDB_dbi dbi,
 		}
 		MDB_env* env = txn->mt_env;
 		mdb_size_t file_offset = (char*)existing_data.mv_data - env->me_map + offset;
-		// a direct write can only be safely atomically applied to a memory map if it fits into
-		// single word, verify that here:
-		if (file_offset >> 3 != (file_offset + data->mv_size - 1) >> 3)
-			return -1;
+		// if we discover that a direct write can only be safely atomically applied to a memory map if it fits into
+		// single word, verify that here on some OSes, we can apply logic here:
+		//if (file_offset >> 3 != (file_offset + data->mv_size - 1) >> 3)
+		//	return -1;
 #ifdef _WIN32
 		DWORD written;
 		OVERLAPPED ov;
