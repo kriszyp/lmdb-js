@@ -1384,6 +1384,101 @@ describe('lmdb-js', function() {
 			returnedValue.should.deep.equal(expected);
 		});
 
+		it.skip('large direct write tearing', async function() {
+			// this test is for checking whether direct reads and writes cause memory "tearing"
+			let dbBinary = db.openDB(Object.assign({
+				name: 'mydb-direct-big',
+				encoding: 'binary',
+				compression: false,
+			}));
+			let value = Buffer.alloc(0x5000, 4);
+			await dbBinary.put(1, value);
+			let f64 = new Float64Array(1);
+			let u8 = new Uint8Array(f64.buffer, 0, 8);
+			for (let i = 0; i < 10000; i++) {
+				// this should usually accomplish in-place write
+				let returnedValue = dbBinary.get(1);
+				let updated_byte = i % 200;
+				value = Buffer.alloc(32, updated_byte);
+				value.set(DIRECT_WRITE_PLACEHOLDER);
+				value[4] = 2;
+				let promise = dbBinary.put(1, value, {
+					instructedWrite: true,
+				});
+				await new Promise(resolve => setImmediate(resolve));
+				returnedValue = dbBinary.get(1);
+				let dataView = new DataView(returnedValue.buffer, returnedValue.byteOffset, returnedValue.byteLength);
+				//let livef64 = new Float64Array(returnedValue.buffer, returnedValue.byteOffset,
+				// returnedValue.byteLength/8);
+				let j = 0;
+				let k = 0;
+				detect_change: do {
+					j++;
+					while(true) {
+						let a = dataView.getFloat64(6);
+						let b = dataView.getFloat64(6);
+						if (a === b) {
+							f64[0] = a;
+							break;
+						}
+					}
+
+					for (k = 0; k < 8; k++) {
+						if (u8[k] === updated_byte)
+							break detect_change;
+					}
+				}while(j < 1000);
+				if (u8[0] !== u8[7])
+				console.log(j, k, u8);
+			}
+		});
+
+		it.skip('small direct write tearing', async function() {
+			// this test is for checking whether direct reads and writes cause memory "tearing"
+			let dbBinary = db.openDB(Object.assign({
+				name: 'mydb-direct-small',
+				encoding: 'binary',
+				compression: false,
+			}));
+			let f64 = new Float64Array(1);
+			let u8 = new Uint8Array(f64.buffer, 0, 8);
+			for (let i = 0; i < 100000; i++) {
+				/*for (let j = 0; j < 100;j++) {
+					dbBinary.put(Math.random(), Buffer.alloc(Math.random() * 10)); // keep the offset random
+				}*/
+				let value = Buffer.alloc(16, 4);
+				await dbBinary.put(1, value);
+
+				// this should usually accomplish in-place write
+				let returnedValue = dbBinary.get(1);
+				let updated_byte = i % 200;
+				value = Buffer.alloc(16, updated_byte);
+				value.set(DIRECT_WRITE_PLACEHOLDER);
+				value[4] = 2;
+				let promise = dbBinary.put(1, value, {
+					instructedWrite: true,
+				});
+				await new Promise(resolve => setImmediate(resolve));
+				let j = 0;
+				let k = 0;
+				returnedValue = dbBinary.getBinaryFast(1);
+				let dataView = new DataView(returnedValue.buffer, returnedValue.byteOffset, returnedValue.byteLength);
+				detect_change: do {
+					returnedValue = dbBinary.getBinaryFast(1);
+					//let livef64 = new Float64Array(returnedValue.buffer, returnedValue.byteOffset,
+					// returnedValue.byteLength/8);
+					j++;
+					for (k = 2; k < 10; k++) {
+						if (returnedValue[k] === updated_byte)
+							break detect_change;
+					}
+				}while(j < 1000);
+				if (returnedValue[2] !== returnedValue[9])
+					console.log(j, k, returnedValue);
+			}
+		});
+
+
 		it('can backup and use backup', async function() {
 			if (options.encryptionKey) // it won't match the environment
 				return;

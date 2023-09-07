@@ -326,8 +326,10 @@ next_inst:	start = instruction++;
 							MDB_val bytes_to_write;
 							bytes_to_write.mv_data = (char*)value.mv_data + 8;
 							bytes_to_write.mv_size = value.mv_size - 8;
+#ifdef MDB_RPAGE_CACHE
 							rc = mdb_direct_write(txn, dbi, &key, offset, &bytes_to_write);
 							if (!rc) break; // success
+#endif
 							// if no success, this means we probably weren't able to write to a single
 							// word safely, so we need to do a real put
 							MDB_val last_data;
@@ -346,14 +348,12 @@ next_inst:	start = instruction++;
 						}
 					}
 				}
-
 				if (flags & SET_VERSION)
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 				if (flags & COMPRESSIBLE)
 					delete value.mv_data;
-				//fprintf(stdout, "put %u \n", key.mv_size);
 				break;
 			case DEL:
 				rc = mdb_del(txn, dbi, &key, nullptr);
