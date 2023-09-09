@@ -1,5 +1,5 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead, setReadCallback } from './native.js';
+import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead, setReadCallback, directWrite } from './native.js';
 import { saveKey }  from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
 const ITERATOR_DONE = { done: true, value: undefined };
@@ -259,6 +259,17 @@ export function addReadMethods(LMDBStore, {
 					};
 			}
 		},
+
+		directWrite(id, options) {
+			let rc;
+			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
+			let keySize = this.writeKey(id, keyBytes, 0);
+			let dataOffset = (((keySize >> 3) + 1) << 3);
+			keyBytes.set(options.bytes, dataOffset)
+			rc = directWrite(this.dbAddress, keySize, options.offset, options.bytes.length, txn.address || 0);
+			if (rc < 0) lmdbError(rc);
+		},
+
 		resetReadTxn() {
 			resetReadTxn();
 		},

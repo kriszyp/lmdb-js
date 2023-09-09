@@ -529,7 +529,7 @@ NAPI_FUNCTION(getTestRef) {
 	return returnValue;
 }
 
-NAPI_FUNCTION(directWrite) {
+/*NAPI_FUNCTION(directWrite) {
 	ARGS(4)
 	GET_INT64_ARG(0);
 	EnvWrap* ew = (EnvWrap*) i64;
@@ -556,7 +556,7 @@ NAPI_FUNCTION(directWrite) {
 	}
 	RETURN_UNDEFINED;
 }
-
+*/
 int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data) {
 	unsigned int flags;
 	mdb_env_get_flags(env, (unsigned int*) &flags);

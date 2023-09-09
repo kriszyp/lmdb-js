@@ -303,7 +303,8 @@ next_inst:	start = instruction++;
 							if (next_32 & 4) {
 								// preserve last timestamp
 								MDB_val last_data;
-								mdb_get(txn, dbi, &key, &last_data);
+								rc = mdb_get(txn, dbi, &key, &last_data);
+								if (rc) break;
 								if (flags & SET_VERSION) last_data.mv_data = (char *) last_data.mv_data + 8;
 								previous_time = *(uint64_t *) last_data.mv_data;
 								//fprintf(stderr, "previous time %llx \n", previous_time);

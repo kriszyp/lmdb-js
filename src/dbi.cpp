@@ -174,6 +174,35 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t tx
 	}
 }
 
+NAPI_FUNCTION(directWrite) {
+	ARGS(5)
+	GET_INT64_ARG(0);
+	DbiWrap* dw = (DbiWrap*) i64;
+	uint32_t keySize;
+	GET_UINT32_ARG(keySize, 1);
+	uint32_t offset;
+	GET_UINT32_ARG(offset, 2);
+	uint32_t dataSize;
+	GET_UINT32_ARG(dataSize, 3);
+	int64_t txnAddress = 0;
+	napi_status status = napi_get_value_int64(env, args[4], &txnAddress);
+	if (dw->hasVersions) offset += 8;
+	EnvWrap* ew = dw->ew;
+	char* keyBuffer = ew->keyBuffer;
+	MDB_txn* txn = ew->getReadTxn(txnAddress);
+	MDB_val key, data;
+	key.mv_size = keySize;
+	key.mv_data = (void*) keyBuffer;
+	data.mv_size = dataSize;
+	data.mv_data = (void*) (keyBuffer + (((keySize >> 3) + 1) << 3));
+#ifdef MDB_RPAGE_CACHE
+	int result = mdb_direct_write(txn, dw->dbi, &key, offset, &data);
+#else
+	int result = -1;
+#endif
+	RETURN_INT32(result);
+}
+
 NAPI_FUNCTION(getByBinary) {
 	ARGS(4)
 	GET_INT64_ARG(0);
@@ -346,6 +375,7 @@ void DbiWrap::setupExports(Napi::Env env, Object exports) {
 		DbiWrap::InstanceMethod("stat", &DbiWrap::stat),
 	});
 	exports.Set("Dbi", DbiClass);
+	EXPORT_NAPI_FUNCTION("directWrite", directWrite);
 	EXPORT_NAPI_FUNCTION("getByBinary", getByBinary);
 	EXPORT_NAPI_FUNCTION("prefetch", prefetchNapi);
 	EXPORT_NAPI_FUNCTION("getStringByBinary", getStringByBinary);

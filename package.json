@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.9.0-timestamp.2",
+  "version": "2.9.0-timestamp.3",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -78,7 +78,7 @@
   },
   "gypfile": true,
   "dependencies": {
-    "msgpackr": "^1.9.5",
+    "msgpackr": "^1.9.9",
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.1.1",
     "ordered-binary": "^1.4.1",
