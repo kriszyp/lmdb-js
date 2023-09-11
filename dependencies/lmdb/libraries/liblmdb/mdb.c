@@ -1691,6 +1691,7 @@ struct MDB_env {
 	MDB_val		me_enckey;	/**< key for env encryption */
 #endif
 	void		*me_userctx;	 /**< User-settable context */
+	MDB_metrics		me_metrics;	 /**< Metrics tracking */
 	MDB_assert_func *me_assert_func; /**< Callback for assertion failures */
 	void *me_callback; /**< General callback */
 	int64_t 	boot_id;
@@ -3120,7 +3121,7 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 		}
 	}
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_sync += get_time64() - start;
+		env->me_metrics.time_sync += get_time64() - start;
 	}
 	return rc;
 }
@@ -3390,7 +3391,7 @@ mdb_txn_renew0(MDB_txn *txn)
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
 		if (env->me_flags & MDB_TRACK_METRICS) {
-			((MDB_metrics*) env->me_userctx)->clock_txn = get_time64();
+			env->me_metrics.clock_txn = get_time64();
 		}
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
@@ -3403,8 +3404,8 @@ mdb_txn_renew0(MDB_txn *txn)
 		}
 		if (env->me_flags & MDB_TRACK_METRICS) {
 			uint64_t now = get_time64();
-			((MDB_metrics*) env->me_userctx)->time_start_txns += now - ((MDB_metrics*) env->me_userctx)->clock_txn;
-			((MDB_metrics*) env->me_userctx)->clock_txn = now;
+			env->me_metrics.time_start_txns += now - env->me_metrics.clock_txn;
+			env->me_metrics.clock_txn = now;
 		}
 		txn->mt_txnid++;
 #if MDB_DEBUG
@@ -4347,9 +4348,9 @@ retry_seek:
 	 */
 	CACHEFLUSH(env->me_map, txn->mt_next_pgno * env->me_psize, DCACHE);
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->writes += write_i;
-		((MDB_metrics*) env->me_userctx)->page_flushes++;
-		((MDB_metrics*) env->me_userctx)->pages_written += pagecount - keep;
+		env->me_metrics.writes += write_i;
+		env->me_metrics.page_flushes++;
+		env->me_metrics.pages_written += pagecount - keep;
 	}
 
 #ifdef _WIN32
@@ -4393,7 +4394,7 @@ done:
 	txn->mt_dirty_room += i - j;
 	dl[0].mid = j;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_page_flushes += get_time64() - start;
+		env->me_metrics.time_page_flushes += get_time64() - start;
 	}
 	return MDB_SUCCESS;
 }
@@ -4663,8 +4664,8 @@ mdb_txn_commit(MDB_txn *txn)
 done:
 	//<lmdb-js>
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->time_during_txns += get_time64() - ((MDB_metrics*) env->me_userctx)->clock_txn;
-		((MDB_metrics*) env->me_userctx)->txns++;
+		env->me_metrics.time_during_txns += get_time64() - env->me_metrics.clock_txn;
+		env->me_metrics.txns++;
 	}
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC)) {
 		MDB_txn sync_txn;
@@ -10739,7 +10740,7 @@ mdb_del(MDB_txn *txn, MDB_dbi dbi,
 	}
 	MDB_env* env = txn->mt_env;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->deletes++;
+		env->me_metrics.deletes++;
 	}
 	return mdb_del0(txn, dbi, key, data, 0);
 }
@@ -11234,7 +11235,7 @@ mdb_put(MDB_txn *txn, MDB_dbi dbi,
 		return (txn->mt_flags & MDB_TXN_RDONLY) ? EACCES : MDB_BAD_TXN;
 	MDB_env* env = txn->mt_env;
 	if (env->me_flags & MDB_TRACK_METRICS) {
-		((MDB_metrics*) env->me_userctx)->puts++;
+		env->me_metrics.puts++;
 	}
 
 	mdb_cursor_init(&mc, txn, dbi, &mx);
@@ -11835,10 +11836,17 @@ mdb_env_set_userctx(MDB_env *env, void *ctx)
 	return MDB_SUCCESS;
 }
 
+
 void * ESECT
 mdb_env_get_userctx(MDB_env *env)
 {
 	return env ? env->me_userctx : NULL;
+}
+
+MDB_metrics * ESECT
+mdb_env_get_metrics(MDB_env *env)
+{
+	return env ? &env->me_metrics : NULL;
 }
 
 int ESECT

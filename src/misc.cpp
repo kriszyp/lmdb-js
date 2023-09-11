@@ -123,10 +123,12 @@ int getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 	if (data.mv_size == 0) {
 		return 1;// successFunc(data);
 	}
-	unsigned char statusByte = dw->compression ? charData[dw->compression->startingOffset] : 0;
+	unsigned char statusByte = (dw->compression && dw->compression->startingOffset < data.mv_size)
+			? charData[dw->compression->startingOffset] : 0;
 		//fprintf(stdout, "uncompressing status %X\n", statusByte);
 	if (statusByte >= 250) {
 		bool isValid;
+
 		dw->compression->decompress(data, isValid, !dw->getFast);
 		return isValid ? 2 : 0;
 	}

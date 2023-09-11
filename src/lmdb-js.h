@@ -264,6 +264,20 @@ typedef struct js_buffers_t { // there is one instance of this for each JS (work
 	pthread_mutex_t modification_lock;
 } js_buffers_t;
 
+
+typedef struct callback_holder_t {
+	EnvWrap* ew;
+	std::vector<napi_threadsafe_function> callbacks;
+} callback_holder_t;
+class RecordLocks {
+public:
+	RecordLocks();
+	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
+	pthread_mutex_t modification_lock;
+	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
+	bool unlock(std::string key, bool only_check);
+};
+
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions

@@ -1,5 +1,27 @@
 import { RangeIterable }  from './util/RangeIterable.js';
-import { getAddress, Cursor, Txn, orderedBinary, lmdbError, getByBinary, setGlobalBuffer, prefetch, iterate, position as doPosition, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, globalBuffer, getSharedBuffer, startRead, setReadCallback, directWrite } from './native.js';
+import {
+	getAddress,
+	Cursor,
+	Txn,
+	orderedBinary,
+	lmdbError,
+	getByBinary,
+	setGlobalBuffer,
+	prefetch,
+	iterate,
+	position as doPosition,
+	resetTxn,
+	getCurrentValue,
+	getCurrentShared,
+	getStringByBinary,
+	globalBuffer,
+	getSharedBuffer,
+	startRead,
+	setReadCallback,
+	directWrite,
+	attemptLock,
+	unlock
+} from './native.js';
 import { saveKey }  from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
 const ITERATOR_DONE = { done: true, value: undefined };
@@ -269,6 +291,25 @@ export function addReadMethods(LMDBStore, {
 			rc = directWrite(this.dbAddress, keySize, options.offset, options.bytes.length, txn.address || 0);
 			if (rc < 0) lmdbError(rc);
 		},
+
+		attemptLock(id, version, callback) {
+			keyBytes.dataView.setUint32(0, this.db.dbi);
+			keyBytes.dataView.setFloat64(4, version);
+			let keySize = this.writeKey(id, keyBytes, 12);
+			return attemptLock(env.address, keySize, callback);
+		},
+
+		unlock(id, version, onlyCheck) {
+			keyBytes.dataView.setUint32(0, this.db.dbi);
+			keyBytes.dataView.setFloat64(4, version);
+			let keySize = this.writeKey(id, keyBytes, 12);
+			return unlock(env.address, keySize, onlyCheck);
+		},
+		hasLock(id, version) {
+			return this.unlock(id, version, true);
+		},
+
+
 
 		resetReadTxn() {
 			resetReadTxn();

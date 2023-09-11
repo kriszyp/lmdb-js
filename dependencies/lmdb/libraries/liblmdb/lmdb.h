@@ -1040,12 +1040,20 @@ int  mdb_env_set_userctx(MDB_env *env, void *ctx);
 	 */
 void *mdb_env_get_userctx(MDB_env *env);
 
-	/** @brief A callback function for most LMDB assert() failures,
-	 * called before printing the message and aborting.
-	 *
-	 * @param[in] env An environment handle returned by #mdb_env_create().
-	 * @param[in] msg The assertion message, not including newline.
-	 */
+/** @brief Get the metrics information associated with the #MDB_env.
+ *
+ * @param[in] env An environment handle returned by #mdb_env_create()
+ * @return The pointer set by #mdb_env_set_userctx().
+ */
+MDB_metrics *mdb_env_get_metrics(MDB_env *env);
+
+/** @brief A callback function for most LMDB assert() failures,
+ * called before printing the message and aborting.
+ *
+ * @param[in] env An environment handle returned by #mdb_env_create().
+ * @param[in] msg The assertion message, not including newline.
+ */
+
 typedef void MDB_assert_func(MDB_env *env, const char *msg);
 
 	/** Set or reset the assert() callback of the environment.

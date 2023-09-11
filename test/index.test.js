@@ -7,7 +7,9 @@ import { spawn } from 'child_process';
 import { unlinkSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import { Worker } from 'worker_threads';
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
+import why from 'why-is-node-still-running';
 import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
@@ -1338,6 +1340,88 @@ describe('lmdb-js', function() {
 			dataView = new DataView(returnedValue.buffer, 0, 16);
 			should.equal(assignedTimestamp, dataView.getFloat64(0));
 			should.equal(returnedValue[9], 3);
+		});
+
+		it.only('lock/unlock notifications', async function() {
+			let listener_called = 0;
+			should.equal(db.attemptLock(3.2, 55555, () => {
+				listener_called++;
+			}), true);
+			should.equal(db.attemptLock(3.2, 55555, () => {
+				listener_called++;
+			}), false);
+			let finished_locks = new Promise((resolve) => {
+				should.equal(db.attemptLock(3.2, 55555, () => {
+					listener_called++;
+					resolve();
+				}), false);
+			});
+			should.equal(db.hasLock('hi', 55555), false);
+			should.equal(db.hasLock(3.2, 3), false);
+			should.equal(db.hasLock(3.2, 55555), true);
+			should.equal(db.hasLock(3.2, 55555), true);
+			should.equal(db.unlock(3.2, 55555), true);
+			should.equal(db.hasLock(3.2, 55555), false);
+			await finished_locks;
+			should.equal(listener_called, 2);
+			should.equal(db.hasLock(3.2, 55555), false);
+		});
+
+		it.only('lock/unlock with worker', async function() {
+			let listener_called = 0;
+			should.equal(db.attemptLock(4, 1, () => {
+				listener_called++;
+			}), true);
+			let worker = new Worker('./test/lock-test.js', {
+				workerData: {
+					path: db.path,
+				}
+			});
+			let onworkerlock, onworkerunlock;
+			worker.on('error', (error) => {
+				console.log(error);
+			})
+			await new Promise((resolve, reject) => {
+				worker.on('error', (error) => {
+					reject(error);
+				})
+				worker.on('message', (event) => {
+					if (event.started) {
+						should.equal(event.hasLock, true);
+						resolve();
+					}
+					if (event.locked) onworkerlock();
+					//if (event.unlocked) onworkerunlock();
+				});
+			});
+			db.unlock(4, 1);
+			await new Promise(resolve => {
+				onworkerlock = resolve;
+			});
+			should.equal(db.attemptLock(4, 1, () => {
+				listener_called++;
+				onworkerunlock();
+			}), false);
+			worker.postMessage({unlock: true});
+			await new Promise(resolve => {
+				onworkerunlock = resolve;
+			});
+			should.equal(listener_called, 1);
+			worker.postMessage({lock: true});
+			await new Promise(resolve => {
+				onworkerlock = resolve;
+			});
+			await new Promise(resolve => {
+				should.equal(db.attemptLock(4, 1, () => {
+					listener_called++;
+					should.equal(listener_called, 2);
+					resolve();
+				}), false);
+				worker.terminate();
+			});
+			setTimeout(() => {
+				why.whyIsNodeStillRunning();
+			}, 10000).unref();
 		});
 
 		it('direct write', async function() {
