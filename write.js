@@ -337,7 +337,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					return;
 				}
 			}
-			if (ifVersion === undefined) {
+			// if it is not conditional because of ifVersion or has any flags that can make the write conditional
+			if (ifVersion === undefined && !(flags & 0x22030)) {
 				if (writtenBatchDepth > 1) {
 					if (!resolution.flag && !store.cache)
 						resolution.flag = NO_RESOLVE;
