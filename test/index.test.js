@@ -9,7 +9,6 @@ import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import { Worker } from 'worker_threads';
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
-import why from 'why-is-node-still-running';
 import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods, dirName = dirname(fileURLToPath(import.meta.url))
@@ -1342,7 +1341,7 @@ describe('lmdb-js', function() {
 			should.equal(returnedValue[9], 3);
 		});
 
-		it.only('lock/unlock notifications', async function() {
+		it('lock/unlock notifications', async function() {
 			let listener_called = 0;
 			should.equal(db.attemptLock(3.2, 55555, () => {
 				listener_called++;
@@ -1367,7 +1366,7 @@ describe('lmdb-js', function() {
 			should.equal(db.hasLock(3.2, 55555), false);
 		});
 
-		it.only('lock/unlock with worker', async function() {
+		it('lock/unlock with worker', async function() {
 			let listener_called = 0;
 			should.equal(db.attemptLock(4, 1, () => {
 				listener_called++;
@@ -1419,9 +1418,6 @@ describe('lmdb-js', function() {
 				}), false);
 				worker.terminate();
 			});
-			setTimeout(() => {
-				why.whyIsNodeStillRunning();
-			}, 10000).unref();
 		});
 
 		it('direct write', async function() {

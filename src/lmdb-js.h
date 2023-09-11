@@ -314,7 +314,6 @@ public:
 	WriteWorker* writeWorker;
 	bool readTxnRenewed;
     bool hasWrites;
-	bool trackMetrics;
 	uint64_t timeTxnWaiting;
 	unsigned int jsFlags;
 	char* keyBuffer;

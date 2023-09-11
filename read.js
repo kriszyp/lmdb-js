@@ -309,8 +309,6 @@ export function addReadMethods(LMDBStore, {
 			return this.unlock(id, version, true);
 		},
 
-
-
 		resetReadTxn() {
 			resetReadTxn();
 		},

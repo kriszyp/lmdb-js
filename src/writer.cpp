@@ -122,7 +122,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = WORKER_WAITING;
 	uint64_t start;
-	if (envForTxn->trackMetrics)
+	unsigned int envFlags;
+	mdb_env_get_flags(env, &envFlags);
+	if (envFlags & MDB_TRACK_METRICS)
 		start = get_time64();
 	if (target) {
 		uint64_t delay = 1;
@@ -131,9 +133,8 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			delay = delay << 1ll;
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
-				if (envForTxn->trackMetrics) {
+				if (envFlags & MDB_TRACK_METRICS)
 					envForTxn->timeTxnWaiting += get_time64() - start;
-				}
 				interruptionStatus = 0;
 				return 0;
 			}
@@ -141,9 +142,8 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	} else {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
     }
-	if (envForTxn->trackMetrics) {
+	if (envFlags & MDB_TRACK_METRICS)
 		envForTxn->timeTxnWaiting += get_time64() - start;
-	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);

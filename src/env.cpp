@@ -756,7 +756,9 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	stats.Set("maxReaders", Number::New(info.Env(), envinfo.me_maxreaders));
 	stats.Set("numReaders", Number::New(info.Env(), envinfo.me_numreaders));
 	#ifdef MDB_OVERLAPPINGSYNC
-	if (this->trackMetrics) {
+	unsigned int envFlags;
+	mdb_env_get_flags(env, &envFlags);
+	if (envFlags & MDB_TRACK_METRICS) {
 		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_metrics(this->env);
 		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / TICKS_PER_SECOND));
 		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / TICKS_PER_SECOND));
