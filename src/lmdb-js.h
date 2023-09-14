@@ -88,6 +88,16 @@ uint64_t last_time_double();
 int cond_init(pthread_cond_t *cond);
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
 
+// if we need to add others: https://stackoverflow.com/questions/41770887/cross-platform-definition-of-byteswap-uint64-and-byteswap-ulong/46137633#46137633
+#ifdef _WIN32
+  #define bswap_64(x) _byteswap_uint64(x)
+#elif defined(__APPLE__)
+  #include <libkern/OSByteOrder.h>
+  #define bswap_64(x) OSSwapInt64(x)
+#else
+  #include <byteswap.h>  // bswap_64
+#endif
+
 #endif /* __CPTHREAD_H__ */
 
 class Logging {
@@ -269,13 +279,18 @@ typedef struct callback_holder_t {
 	EnvWrap* ew;
 	std::vector<napi_threadsafe_function> callbacks;
 } callback_holder_t;
-class RecordLocks {
+class ExtendedEnv {
 public:
-	RecordLocks();
+	ExtendedEnv();
+	~ExtendedEnv();
 	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
-	pthread_mutex_t modification_lock;
+	pthread_mutex_t locksModificationLock;
+	uint64_t lastTime; // actually encoded as double
+	uint64_t previousTime; // actually encoded as double
 	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
 	bool unlock(std::string key, bool only_check);
+	uint64_t getNextTime();
+	uint64_t getLastTime();
 };
 
 class EnvWrap : public ObjectWrap<EnvWrap> {

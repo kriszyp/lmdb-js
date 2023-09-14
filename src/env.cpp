@@ -293,7 +293,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	this->compression = compression;
 	this->jsFlags = jsFlags;
 	#ifdef MDB_OVERLAPPINGSYNC
-	RecordLocks* resolutions;
+	ExtendedEnv* resolutions;
 	#endif
 	int rc;
 	rc = mdb_env_set_maxdbs(env, maxDbs);
@@ -327,7 +327,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_callback(env, checkExistingEnvs);
-	resolutions = new RecordLocks();
+	resolutions = new ExtendedEnv();
 	mdb_env_set_userctx(env, resolutions);
 	#endif
 
@@ -614,8 +614,8 @@ void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
 	// unlock any record locks held by this thread/EnvWrap
-	RecordLocks* record_locks = (RecordLocks*) mdb_env_get_userctx(env);
-	pthread_mutex_lock(&record_locks->modification_lock);
+	ExtendedEnv* record_locks = (ExtendedEnv*) mdb_env_get_userctx(env);
+	pthread_mutex_lock(&record_locks->locksModificationLock);
 	auto it = record_locks->lock_callbacks.begin();
 	while (it != record_locks->lock_callbacks.end())
 	{
@@ -624,7 +624,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 			it = record_locks->lock_callbacks.erase(it);
 		} else ++it;
 	}
-	pthread_mutex_unlock(&record_locks->modification_lock);
+	pthread_mutex_unlock(&record_locks->locksModificationLock);
 
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
@@ -652,7 +652,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
-				delete (RecordLocks*) mdb_env_get_userctx(env);
+				delete (ExtendedEnv*) mdb_env_get_userctx(env);
 				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
@@ -977,11 +977,22 @@ int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 	return rc;
 }
 
-RecordLocks::RecordLocks() {
-	pthread_mutex_init(&modification_lock, nullptr);
+ExtendedEnv::ExtendedEnv() {
+	pthread_mutex_init(&locksModificationLock, nullptr);
 }
-bool RecordLocks::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
-	pthread_mutex_lock(&modification_lock);
+ExtendedEnv::~ExtendedEnv() {
+	pthread_mutex_destroy(&locksModificationLock);
+}
+uint64_t ExtendedEnv::getNextTime() {
+	uint64_t next_time_int = next_time_double();
+	if (next_time_int == lastTime) next_time_int++;
+	return bswap_64(lastTime = next_time_int);
+}
+uint64_t ExtendedEnv::getLastTime() {
+	return bswap_64(lastTime);
+}
+bool ExtendedEnv::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
+	pthread_mutex_lock(&locksModificationLock);
 	lock_callbacks.find(key);
 	auto resolution = lock_callbacks.find(key);
 	bool found;
@@ -1005,7 +1016,7 @@ bool RecordLocks::attemptLock(std::string key, napi_env env, napi_value func, bo
 		}
 		found = false;
 	}
-	pthread_mutex_unlock(&modification_lock);
+	pthread_mutex_unlock(&locksModificationLock);
 	return found;
 }
 NAPI_FUNCTION(attemptLock) {
@@ -1018,25 +1029,25 @@ NAPI_FUNCTION(attemptLock) {
 	napi_coerce_to_bool(env, args[2], &as_bool);
 	bool has_callback;
 	napi_get_value_bool(env, as_bool, &has_callback);
-	RecordLocks* lock_callbacks = (RecordLocks*) mdb_env_get_userctx(ew->env);
+	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
 	bool result = lock_callbacks->attemptLock(key, env, args[2], has_callback, ew);
 	napi_value return_value;
 	napi_get_boolean(env, result, &return_value);
 	return return_value;
 }
-bool RecordLocks::unlock(std::string key, bool only_check) {
-	pthread_mutex_lock(&modification_lock);
+bool ExtendedEnv::unlock(std::string key, bool only_check) {
+	pthread_mutex_lock(&locksModificationLock);
 	auto resolution = lock_callbacks.find(key);
 	if (resolution == lock_callbacks.end()) {
-		pthread_mutex_unlock(&modification_lock);
+		pthread_mutex_unlock(&locksModificationLock);
 		return false;
 	}
 	if (!only_check) {
 		notifyCallbacks(resolution->second.callbacks);
 		lock_callbacks.erase(resolution);
 	}
-	pthread_mutex_unlock(&modification_lock);
+	pthread_mutex_unlock(&locksModificationLock);
 	return true;
 }
 void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks) {
@@ -1054,7 +1065,7 @@ NAPI_FUNCTION(unlock) {
 	GET_UINT32_ARG(size, 1);
 	bool only_check = false;
 	napi_get_value_bool(env, args[2], &only_check);
-	RecordLocks* lock_callbacks = (RecordLocks*) mdb_env_get_userctx(ew->env);
+	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
 	bool result = lock_callbacks->unlock(key, only_check);
 	napi_value return_value;

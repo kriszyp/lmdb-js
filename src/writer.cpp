@@ -58,7 +58,6 @@ const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 const int FAILED_CONDITION = 0x4000000;
 const int FINISHED_OPERATION = 0x1000000;
 const double ANY_VERSION = 3.542694326329068e-103; // special marker for any version
-static uint64_t previous_time;
 
 WriteWorker::~WriteWorker() {
 	// TODO: Make sure this runs on the JS main thread, or we need to move it
@@ -290,7 +289,9 @@ next_inst:	start = instruction++;
 			case PUT:
 				if (flags & ASSIGN_TIMESTAMP) {
 					if ((*(uint64_t*)key.mv_data & 0xfffffffful) == REPLACE_WITH_TIMESTAMP) {
-						*(uint64_t*)key.mv_data = ((*(uint64_t*)key.mv_data >> 32) & 0x1) ? last_time_double() : next_time_double();
+						ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(envForTxn->env);
+						*(uint64_t*)key.mv_data = ((*(uint64_t*)key.mv_data >> 32) & 0x1) ?
+							extended_env->getLastTime() : extended_env->getNextTime();
 					}
 					uint64_t first_word = *(uint64_t*)value.mv_data;
 					// 0 assign new time
@@ -299,6 +300,7 @@ next_inst:	start = instruction++;
 					// 4 record previous time
 					if ((first_word & 0xffffff) == SPECIAL_WRITE) {
 						if (first_word & REPLACE_WITH_TIMESTAMP_FLAG) {
+							ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(envForTxn->env);
 							uint32_t next_32 = first_word >> 32;
 							if (next_32 & 4) {
 								// preserve last timestamp
@@ -306,11 +308,11 @@ next_inst:	start = instruction++;
 								rc = mdb_get(txn, dbi, &key, &last_data);
 								if (rc) break;
 								if (flags & SET_VERSION) last_data.mv_data = (char *) last_data.mv_data + 8;
-								previous_time = *(uint64_t *) last_data.mv_data;
+								extended_env->previousTime = *(uint64_t *) last_data.mv_data;
 								//fprintf(stderr, "previous time %llx \n", previous_time);
 							}
-							uint64_t timestamp = (next_32 & 1) ? (next_32 & 2) ? previous_time : last_time_double()
-															   : next_time_double();
+							uint64_t timestamp = (next_32 & 1) ? (next_32 & 2) ? extended_env->previousTime : extended_env->getLastTime()
+															   : extended_env->getNextTime();
 							if (first_word & DIRECT_WRITE) {
 								// write to second word, which is used by the direct write
 								*((uint64_t *) value.mv_data + 1) = timestamp ^ (next_32 >> 8);
