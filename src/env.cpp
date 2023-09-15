@@ -9,6 +9,9 @@ using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
 
+
+MDB_txn* ExtendedEnv::prefetchTxns[20];
+pthread_mutex_t* ExtendedEnv::prefetchTxnsLock;
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 thread_local js_buffers_t* EnvWrap::sharedBuffers = nullptr;
@@ -18,6 +21,8 @@ void* getSharedBuffers() {
 }
 
 env_tracking_t* EnvWrap::initTracking() {
+	ExtendedEnv::prefetchTxnsLock = new pthread_mutex_t;
+	pthread_mutex_init(ExtendedEnv::prefetchTxnsLock, nullptr);
 	env_tracking_t* tracking = new env_tracking_t;
 	tracking->envsLock = new pthread_mutex_t;
 	pthread_mutex_init(tracking->envsLock, nullptr);
@@ -293,7 +298,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	this->compression = compression;
 	this->jsFlags = jsFlags;
 	#ifdef MDB_OVERLAPPINGSYNC
-	ExtendedEnv* resolutions;
+	ExtendedEnv* extended_env;
 	#endif
 	int rc;
 	rc = mdb_env_set_maxdbs(env, maxDbs);
@@ -327,8 +332,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_callback(env, checkExistingEnvs);
-	resolutions = new ExtendedEnv();
-	mdb_env_set_userctx(env, resolutions);
+	extended_env = new ExtendedEnv();
+	mdb_env_set_userctx(env, extended_env);
 	#endif
 
 	timeTxnWaiting = 0;
@@ -341,7 +346,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
-		delete resolutions;
+		delete extended_env;
 		#endif
 		if (rc == EXISTING_ENV_FOUND) {
 			mdb_env_close(env);
@@ -615,7 +620,6 @@ void EnvWrap::closeEnv(bool hasLock) {
 		return;
 	// unlock any record locks held by this thread/EnvWrap
 	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
-
 	pthread_mutex_lock(&extended_env->locksModificationLock);
 	auto it = extended_env->lock_callbacks.begin();
 	while (it != extended_env->lock_callbacks.end())
@@ -626,9 +630,6 @@ void EnvWrap::closeEnv(bool hasLock) {
 		} else ++it;
 	}
 	pthread_mutex_unlock(&extended_env->locksModificationLock);
-	MDB_txn* txn = ExtendedEnv::getReadTxn(env, false);
-	if (txn)
-		mdb_txn_abort(txn);
 
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
@@ -650,6 +651,7 @@ void EnvWrap::closeEnv(bool hasLock) {
                 envPath->hasWrites = true;
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
+				ExtendedEnv::removeReadTxns(env);
 				unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
 				mdb_env_get_flags(env, &envFlags);
 				#ifdef MDB_OVERLAPPINGSYNC
@@ -980,7 +982,6 @@ int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 	}
 	return rc;
 }
-thread_local std::unordered_map<ExtendedEnv*, MDB_txn*>* ExtendedEnv::prefetchTxns = nullptr;
 ExtendedEnv::ExtendedEnv() {
 	pthread_mutex_init(&locksModificationLock, nullptr);
 }
@@ -1076,23 +1077,51 @@ NAPI_FUNCTION(unlock) {
 	return return_value;
 }
 
-MDB_txn* ExtendedEnv::getReadTxn(MDB_env* env, bool begin_if_none) {
-	auto extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
-	if (!prefetchTxns) {
-		if (begin_if_none)
-			prefetchTxns = new std::unordered_map<ExtendedEnv*, MDB_txn*>();
-		else return nullptr;
-	}
-	auto txn_ref = prefetchTxns->find(extended_env);
-	if (txn_ref == prefetchTxns->end()) {
-		if (begin_if_none) {
-			MDB_txn *txn;
-			mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
-			prefetchTxns->emplace(extended_env, txn);
+MDB_txn* ExtendedEnv::getPrefetchReadTxn(MDB_env* env) {
+	MDB_txn* txn;
+	pthread_mutex_lock(prefetchTxnsLock);
+	// try to find an existing txn for this env
+	for (int i = 0; i < 20; i++) {
+		txn = prefetchTxns[i];
+		if (txn && mdb_txn_env(txn) == env) {
+			mdb_txn_renew(txn);
+			prefetchTxns[i] = nullptr; // remove it, no one else can use it
+			pthread_mutex_unlock(prefetchTxnsLock);
 			return txn;
-		} else return nullptr;
+		}
 	}
-	return txn_ref->second;
+	pthread_mutex_unlock(prefetchTxnsLock);
+	// couldn't find one, need to create a new transaction
+	mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
+	return txn;
+}
+void ExtendedEnv::donePrefetchReadTxn(MDB_txn* txn) {
+	mdb_txn_reset(txn);
+	pthread_mutex_lock(prefetchTxnsLock);
+	// reinsert this transaction
+	MDB_txn* moving;
+	for (int i = 0; i < 20; i++) {
+		moving = prefetchTxns[i];
+		prefetchTxns[i] = txn;
+		if (!moving) break;
+		txn = moving;
+	}
+	// if we are full and one has to be removed, abort it
+	if (moving) mdb_txn_abort(moving);
+	pthread_mutex_unlock(prefetchTxnsLock);
+}
+
+void ExtendedEnv::removeReadTxns(MDB_env* env) {
+	pthread_mutex_lock(prefetchTxnsLock);
+	MDB_txn* txn;
+	for (int i = 0; i < 20; i++) {
+		txn = prefetchTxns[i];
+		if (txn && mdb_txn_env(txn) == env) {
+			mdb_txn_abort(txn);
+			prefetchTxns[i] = nullptr;
+		}
+	}
+	pthread_mutex_unlock(prefetchTxnsLock);
 }
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {

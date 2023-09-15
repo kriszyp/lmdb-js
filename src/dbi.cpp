@@ -276,8 +276,7 @@ NAPI_FUNCTION(getStringByBinary) {
 }
 
 int DbiWrap::prefetch(uint32_t* keys) {
-	MDB_txn* txn = ExtendedEnv::getReadTxn(ew->env, true);
-	mdb_txn_renew(txn);
+	MDB_txn* txn = ExtendedEnv::getPrefetchReadTxn(ew->env);
 	MDB_val key;
 	MDB_val data;
 	unsigned int flags;
@@ -288,7 +287,7 @@ int DbiWrap::prefetch(uint32_t* keys) {
 	MDB_cursor *cursor;
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
 	if (rc) {
-		mdb_txn_reset(txn);
+		ExtendedEnv::donePrefetchReadTxn(txn);
 		return rc;
 	}
 
@@ -329,7 +328,7 @@ int DbiWrap::prefetch(uint32_t* keys) {
 		}
 	}
 	mdb_cursor_close(cursor);
-	mdb_txn_reset(txn);
+	ExtendedEnv::donePrefetchReadTxn(txn);
 	return effected;
 }
 
