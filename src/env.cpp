@@ -614,17 +614,21 @@ void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
 	// unlock any record locks held by this thread/EnvWrap
-	ExtendedEnv* record_locks = (ExtendedEnv*) mdb_env_get_userctx(env);
-	pthread_mutex_lock(&record_locks->locksModificationLock);
-	auto it = record_locks->lock_callbacks.begin();
-	while (it != record_locks->lock_callbacks.end())
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+
+	pthread_mutex_lock(&extended_env->locksModificationLock);
+	auto it = extended_env->lock_callbacks.begin();
+	while (it != extended_env->lock_callbacks.end())
 	{
 		if (it->second.ew == this) {
 			notifyCallbacks(it->second.callbacks);
-			it = record_locks->lock_callbacks.erase(it);
+			it = extended_env->lock_callbacks.erase(it);
 		} else ++it;
 	}
-	pthread_mutex_unlock(&record_locks->locksModificationLock);
+	pthread_mutex_unlock(&extended_env->locksModificationLock);
+	MDB_txn* txn = ExtendedEnv::getReadTxn(env, false);
+	if (txn)
+		mdb_txn_abort(txn);
 
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
@@ -976,7 +980,7 @@ int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 	}
 	return rc;
 }
-
+thread_local std::unordered_map<ExtendedEnv*, MDB_txn*>* ExtendedEnv::prefetchTxns = nullptr;
 ExtendedEnv::ExtendedEnv() {
 	pthread_mutex_init(&locksModificationLock, nullptr);
 }
@@ -993,7 +997,6 @@ uint64_t ExtendedEnv::getLastTime() {
 }
 bool ExtendedEnv::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
 	pthread_mutex_lock(&locksModificationLock);
-	lock_callbacks.find(key);
 	auto resolution = lock_callbacks.find(key);
 	bool found;
 	if (resolution == lock_callbacks.end()) {
@@ -1071,6 +1074,25 @@ NAPI_FUNCTION(unlock) {
 	napi_value return_value;
 	napi_get_boolean(env, result, &return_value);
 	return return_value;
+}
+
+MDB_txn* ExtendedEnv::getReadTxn(MDB_env* env, bool begin_if_none) {
+	auto extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+	if (!prefetchTxns) {
+		if (begin_if_none)
+			prefetchTxns = new std::unordered_map<ExtendedEnv*, MDB_txn*>();
+		else return nullptr;
+	}
+	auto txn_ref = prefetchTxns->find(extended_env);
+	if (txn_ref == prefetchTxns->end()) {
+		if (begin_if_none) {
+			MDB_txn *txn;
+			mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
+			prefetchTxns->emplace(extended_env, txn);
+			return txn;
+		} else return nullptr;
+	}
+	return txn_ref->second;
 }
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {

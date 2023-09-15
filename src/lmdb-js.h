@@ -283,6 +283,7 @@ class ExtendedEnv {
 public:
 	ExtendedEnv();
 	~ExtendedEnv();
+	static thread_local std::unordered_map<ExtendedEnv*, MDB_txn*>* prefetchTxns;
 	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
 	pthread_mutex_t locksModificationLock;
 	uint64_t lastTime; // actually encoded as double
@@ -291,6 +292,7 @@ public:
 	bool unlock(std::string key, bool only_check);
 	uint64_t getNextTime();
 	uint64_t getLastTime();
+	static MDB_txn* getReadTxn(MDB_env* env, bool begin_if_none);
 };
 
 class EnvWrap : public ObjectWrap<EnvWrap> {
