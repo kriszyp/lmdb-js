@@ -16,7 +16,7 @@ This is an ultra-fast NodeJS, Bun, and Deno interface to LMDB; probably the fast
 `lmdb-js` is used in many heavy-use production applications, including as a high-performance cache for builds in [Parcel](https://parceljs.org/) and [Elasticsearch's Kibana](https://www.elastic.co/kibana/), as the storage layer for [HarperDB](https://harperdb.io/) and [Gatsby](https://www.gatsbyjs.com/)'s database, and for search and analytical engine for [clinical medical research](https://drevidence.com).
 
 <a href="https://www.elastic.co/kibana/"><img src="https://static-www.elastic.co/v3/assets/bltefdd0b53724fa2ce/blt4466841eed0bf232/5d082a5e97f2babb5af907ee/logo-kibana-32-color.svg" width="40" align="right"></a>
-<a href="https://parceljs.org/"><img src="https://parceljs.org/avatar.633bb25a.avif" width="56" align="right"></a>
+<a href="https://parceljs.org/"><img src="./assets/parcel.png" width="56" align="right"></a>
 <a href="https://harperdb.io/"><img src="./assets/harperdb.png" width="55"  align="right"/></a>
 <a href="https://www.gatsbyjs.com/"><img src="./assets/gatsby.png" width="60" align="right"/></a>
 
