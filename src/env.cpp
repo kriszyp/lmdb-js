@@ -795,9 +795,9 @@ Napi::Value EnvWrap::readerCheck(const CallbackInfo& info) {
 	return Number::New(info.Env(), dead);
 }
 
-Array readerStrings;
+thread_local Array* readerStrings = nullptr;
 MDB_msg_func* printReaders = ([](const char* message, void* env) -> int {
-	readerStrings.Set(readerStrings.Length(), String::New(*(Env*)env, message));
+	readerStrings->Set(readerStrings->Length(), String::New(*(Env*)env, message));
 	return 0;
 });
 
@@ -805,14 +805,15 @@ Napi::Value EnvWrap::readerList(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-	readerStrings = Array::New(info.Env());
+	Array reader_strings = Array::New(info.Env());
+	readerStrings = &reader_strings;
 	int rc;
 	Napi::Env env = info.Env();
 	rc = mdb_reader_list(this->env, printReaders, &env);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
-	return readerStrings;
+	return reader_strings;
 }
 
 
