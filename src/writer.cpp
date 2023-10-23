@@ -17,6 +17,12 @@ inline value?
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#ifdef _WIN32
+#define ntohl _byteswap_ulong
+#define htonl _byteswap_ulong
+#else
+#include <arpa/inet.h>
+#endif
 
 // flags:
 const uint32_t NO_INSTRUCTION_YET = 0;
@@ -37,6 +43,7 @@ const int CONDITIONAL = 8;
 const int CONDITIONAL_VERSION = 0x100;
 const int CONDITIONAL_VERSION_LESS_THAN = 0x800;
 const int CONDITIONAL_ALLOW_NOTFOUND = 0x1000;
+const int ASSIGN_TIMESTAMP = 0x2000;
 const int SET_VERSION = 0x200;
 //const int HAS_INLINE_VALUE = 0x400;
 const int COMPRESSIBLE = 0x100000;
@@ -51,7 +58,6 @@ const int IF_NO_EXISTS = MDB_NOOVERWRITE; //0x10;
 const int FAILED_CONDITION = 0x4000000;
 const int FINISHED_OPERATION = 0x1000000;
 const double ANY_VERSION = 3.542694326329068e-103; // special marker for any version
-
 
 WriteWorker::~WriteWorker() {
 	// TODO: Make sure this runs on the JS main thread, or we need to move it
@@ -115,7 +121,9 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	pthread_cond_signal(envForTxn->writingCond);
 	interruptionStatus = WORKER_WAITING;
 	uint64_t start;
-	if (envForTxn->trackMetrics)
+	unsigned int envFlags;
+	mdb_env_get_flags(env, &envFlags);
+	if (envFlags & MDB_TRACK_METRICS)
 		start = get_time64();
 	if (target) {
 		uint64_t delay = 1;
@@ -124,9 +132,8 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 			delay = delay << 1ll;
 			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
 				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
-				if (envForTxn->trackMetrics) {
+				if (envFlags & MDB_TRACK_METRICS)
 					envForTxn->timeTxnWaiting += get_time64() - start;
-				}
 				interruptionStatus = 0;
 				return 0;
 			}
@@ -134,9 +141,8 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	} else {
 		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
     }
-	if (envForTxn->trackMetrics) {
+	if (envFlags & MDB_TRACK_METRICS)
 		envForTxn->timeTxnWaiting += get_time64() - start;
-	}
 	if (interruptionStatus == INTERRUPT_BATCH) { // interrupted by JS code that wants to run a synchronous transaction
 		interruptionStatus = RESTART_WORKER_TXN;
 		rc = mdb_txn_commit(*txn);
@@ -177,7 +183,7 @@ next_inst:	start = instruction++;
 		MDB_dbi dbi = 0;
 		//fprintf(stderr, "do %u %u\n", flags, get_time64());
 		bool validated = conditionDepth == validatedDepth;
-		if (flags & 0xf0c0) {
+		if (flags & 0xc0c0) {
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
 			fprintf(stderr, "flags after message %u\n", *start);
 			worker->resultCode = 22;
@@ -281,13 +287,76 @@ next_inst:	start = instruction++;
 				}
 				goto next_inst;
 			case PUT:
+				if (flags & ASSIGN_TIMESTAMP) {
+					if ((*(uint64_t*)key.mv_data & 0xfffffffful) == REPLACE_WITH_TIMESTAMP) {
+						ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(envForTxn->env);
+						*(uint64_t*)key.mv_data = ((*(uint64_t*)key.mv_data >> 32) & 0x1) ?
+							extended_env->getLastTime() : extended_env->getNextTime();
+					}
+					uint64_t first_word = *(uint64_t*)value.mv_data;
+					// 0 assign new time
+					// 1 assign last assigned time
+					// 3 assign last recorded previous time
+					// 4 record previous time
+					if ((first_word & 0xffffff) == SPECIAL_WRITE) {
+						if (first_word & REPLACE_WITH_TIMESTAMP_FLAG) {
+							ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(envForTxn->env);
+							uint32_t next_32 = first_word >> 32;
+							if (next_32 & 4) {
+								// preserve last timestamp
+								MDB_val last_data;
+								rc = mdb_get(txn, dbi, &key, &last_data);
+								if (rc) break;
+								if (flags & SET_VERSION) last_data.mv_data = (char *) last_data.mv_data + 8;
+								extended_env->previousTime = *(uint64_t *) last_data.mv_data;
+								//fprintf(stderr, "previous time %llx \n", previous_time);
+							}
+							uint64_t timestamp = (next_32 & 1) ? (next_32 & 2) ? extended_env->previousTime : extended_env->getLastTime()
+															   : extended_env->getNextTime();
+							if (first_word & DIRECT_WRITE) {
+								// write to second word, which is used by the direct write
+								*((uint64_t *) value.mv_data + 1) = timestamp ^ (next_32 >> 8);
+								first_word = first_word & 0xffffffff; // clear out the offset so it is just zero (always must be at the beginning)
+							} else
+								*(uint64_t *) value.mv_data = timestamp ^ (next_32 >> 8);
+							//fprintf(stderr, "set time %llx \n", timestamp);
+						}
+						if (first_word & DIRECT_WRITE) {
+							// direct in-place write
+							unsigned int offset = first_word >> 32;
+							if (flags & SET_VERSION)
+								offset += 8;
+							MDB_val bytes_to_write;
+							bytes_to_write.mv_data = (char*)value.mv_data + 8;
+							bytes_to_write.mv_size = value.mv_size - 8;
+#ifdef MDB_RPAGE_CACHE
+							rc = mdb_direct_write(txn, dbi, &key, offset, &bytes_to_write);
+							if (!rc) break; // success
+#endif
+							// if no success, this means we probably weren't able to write to a single
+							// word safely, so we need to do a real put
+							MDB_val last_data;
+							rc = mdb_get(txn, dbi, &key, &last_data);
+							if (rc) break; // failed to get
+							bytes_to_write.mv_size = last_data.mv_size;
+							// attempt a put, using reserve (so we can efficiently copy data in)
+							rc = mdb_put(txn, dbi, &key, &bytes_to_write, (flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP)) | MDB_RESERVE);
+							if (!rc) {
+								// copy the existing data
+								memcpy(bytes_to_write.mv_data, last_data.mv_data, last_data.mv_size);
+								// copy the changes
+								memcpy((char*)bytes_to_write.mv_data + offset, (char*)value.mv_data + 8, value.mv_size - 8);
+							}
+							break; // done
+						}
+					}
+				}
 				if (flags & SET_VERSION)
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
 				if (flags & COMPRESSIBLE)
 					delete value.mv_data;
-				//fprintf(stdout, "put %u \n", key.mv_size);
 				break;
 			case DEL:
 				rc = mdb_del(txn, dbi, &key, nullptr);

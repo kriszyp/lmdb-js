@@ -25,12 +25,15 @@ import { levelup } from './level.js';
 export { clearKeptObjects } from './native.js';
 import { nativeAddon } from './native.js';
 export let { noop } = nativeAddon;
+export const TIMESTAMP_PLACEHOLDER = new Uint8Array([1,1,1,1,0,0,0,0]);
+export const DIRECT_WRITE_PLACEHOLDER = new Uint8Array([1,1,1,2,0,0,0,0]);
 export { open, openAsClass, getLastVersion, allDbs, getLastTxnId } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, openAsClass, getLastVersion } from './open.js';
 export const TransactionFlags = {
 	ABORTABLE: 1,
 	SYNCHRONOUS_COMMIT: 2,
+
 	NO_SYNC_FLUSH: 0x10000,
 };
 export default {

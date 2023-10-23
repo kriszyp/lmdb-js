@@ -1,7 +1,7 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, getBufferAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, setReadCallback, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress;
+export let Env, Txn, Dbi, Compression, Cursor, getAddress, getBufferAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, setReadCallback, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress, directWrite, attemptLock, unlock;
 path = pathModule;
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 export let nativeAddon = loadNAPI(dirName);
@@ -61,6 +61,9 @@ export function setNativeFunctions(externals) {
 	iterate = externals.iterate;
 	position = externals.position;
 	resetTxn = externals.resetTxn;
+	directWrite = externals.directWrite;
+	attemptLock = externals.attemptLock;
+	unlock = externals.unlock;
 	getCurrentValue = externals.getCurrentValue;
 	getCurrentShared = externals.getCurrentShared;
 	getStringByBinary = externals.getStringByBinary;

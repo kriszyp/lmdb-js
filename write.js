@@ -19,7 +19,9 @@ const CONDITIONAL_ALLOW_NOTFOUND = 0x800;
 const SYNC_PROMISE_SUCCESS = Promise.resolve(true);
 const SYNC_PROMISE_FAIL = Promise.resolve(false);
 SYNC_PROMISE_SUCCESS.isSync = true;
+SYNC_PROMISE_SUCCESS.result = true;
 SYNC_PROMISE_FAIL.isSync = true;
+SYNC_PROMISE_FAIL.result = false;
 const PROMISE_SUCCESS = Promise.resolve(true);
 export const ABORT = 4.452694326329068e-106; // random/unguessable numbers, which work across module/versions and native
 export const IF_EXISTS = 3.542694326329068e-103;
@@ -337,7 +339,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					return;
 				}
 			}
-			if (ifVersion === undefined) {
+			// if it is not conditional because of ifVersion or has any flags that can make the write conditional
+			if (ifVersion === undefined && !(flags & 0x22030)) {
 				if (writtenBatchDepth > 1) {
 					if (!resolution.flag && !store.cache)
 						resolution.flag = NO_RESOLVE;
@@ -597,6 +600,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					flags |= 0x10;
 				if (versionOrOptions.noDupData)
 					flags |= 0x20;
+				if (versionOrOptions.instructedWrite)
+					flags |= 0x2000;
 				if (versionOrOptions.append)
 					flags |= 0x20000;
 				if (versionOrOptions.ifVersion != undefined)

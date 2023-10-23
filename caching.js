@@ -125,9 +125,18 @@ export const CachingStore = (Store, env) => {
 				// don't cache binary data, since it will be decoded on get
 				this.cache.delete(id);
 				return result;
-			}	
-			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
-			let entry = this.cache.setValue(id, value, !result || result.isSync ? 0 : -1);
+			}
+			let entry;
+			if (result?.isSync) {
+				// sync operation, immediately add to cache
+				if (result.result) // if it succeeds
+					entry = this.cache.setValue(id, value, 0);
+				else {
+					this.cache.delete(id);
+					return result;
+				} // sync failure
+				// otherwise keep it pinned in memory until it is committed
+			} else entry = this.cache.setValue(id, value, -1);
 			if (childTxnChanges)
 				childTxnChanges.add(id);
 			if (version !== undefined)
@@ -136,19 +145,20 @@ export const CachingStore = (Store, env) => {
 		return result;
 	}
 	putSync(id, value, version, ifVersion) {
+		let result = super.putSync(id, value, version, ifVersion);
 		if (id !== 'object') {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
-			if (value && typeof value === 'object') {
+			if (value && typeof value === 'object' || !result) {
 				let entry = this.cache.setValue(id, value);
 				if (childTxnChanges)
 					childTxnChanges.add(id);
 				if (version !== undefined) {
 					entry.version = typeof version === 'object' ? version.version : version;
 				}
-			} else // it is possible that  a value used to exist here
+			} else // it is possible that a value used to exist here
 				this.cache.delete(id);
 		}
-		return super.putSync(id, value, version, ifVersion);
+		return result;
 	}
 	remove(id, ifVersion) {
 		this.cache.delete(id);

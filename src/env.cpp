@@ -9,6 +9,9 @@ using namespace Napi;
 
 #define IGNORE_NOTFOUND	(1)
 
+
+MDB_txn* ExtendedEnv::prefetchTxns[20];
+pthread_mutex_t* ExtendedEnv::prefetchTxnsLock;
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 thread_local js_buffers_t* EnvWrap::sharedBuffers = nullptr;
@@ -18,6 +21,8 @@ void* getSharedBuffers() {
 }
 
 env_tracking_t* EnvWrap::initTracking() {
+	ExtendedEnv::prefetchTxnsLock = new pthread_mutex_t;
+	pthread_mutex_init(ExtendedEnv::prefetchTxnsLock, nullptr);
 	env_tracking_t* tracking = new env_tracking_t;
 	tracking->envsLock = new pthread_mutex_t;
 	pthread_mutex_init(tracking->envsLock, nullptr);
@@ -293,7 +298,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	this->compression = compression;
 	this->jsFlags = jsFlags;
 	#ifdef MDB_OVERLAPPINGSYNC
-	MDB_metrics* metrics;
+	ExtendedEnv* extended_env;
 	#endif
 	int rc;
 	rc = mdb_env_set_maxdbs(env, maxDbs);
@@ -327,13 +332,8 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		flags |= MDB_PREVSNAPSHOT;
 	}
 	mdb_env_set_callback(env, checkExistingEnvs);
-	trackMetrics = !!(flags & MDB_TRACK_METRICS);
-	if (trackMetrics) {
-		metrics = new MDB_metrics;
-		memset(metrics, 0, sizeof(MDB_metrics));
-		rc = mdb_env_set_userctx(env, (void*) metrics);
-		if (rc) goto fail;
-	}
+	extended_env = new ExtendedEnv();
+	mdb_env_set_userctx(env, extended_env);
 	#endif
 
 	timeTxnWaiting = 0;
@@ -346,9 +346,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
-		if (trackMetrics) {
-			delete metrics;
-		}
+		delete extended_env;
 		#endif
 		if (rc == EXISTING_ENV_FOUND) {
 			mdb_env_close(env);
@@ -529,7 +527,7 @@ NAPI_FUNCTION(getTestRef) {
 	return returnValue;
 }
 
-NAPI_FUNCTION(directWrite) {
+/*NAPI_FUNCTION(directWrite) {
 	ARGS(4)
 	GET_INT64_ARG(0);
 	EnvWrap* ew = (EnvWrap*) i64;
@@ -556,7 +554,7 @@ NAPI_FUNCTION(directWrite) {
 	}
 	RETURN_UNDEFINED;
 }
-
+*/
 int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data) {
 	unsigned int flags;
 	mdb_env_get_flags(env, (unsigned int*) &flags);
@@ -615,9 +613,24 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	return -30001;
 }
 
+void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks);
+
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
+	// unlock any record locks held by this thread/EnvWrap
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+	pthread_mutex_lock(&extended_env->locksModificationLock);
+	auto it = extended_env->lock_callbacks.begin();
+	while (it != extended_env->lock_callbacks.end())
+	{
+		if (it->second.ew == this) {
+			notifyCallbacks(it->second.callbacks);
+			it = extended_env->lock_callbacks.erase(it);
+		} else ++it;
+	}
+	pthread_mutex_unlock(&extended_env->locksModificationLock);
+
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
 			if (*ewRef == this) {
@@ -638,15 +651,14 @@ void EnvWrap::closeEnv(bool hasLock) {
                 envPath->hasWrites = true;
 			if (envPath->count <= 0) {
 				// last thread using it, we can really close it now
+				ExtendedEnv::removeReadTxns(env);
 				unsigned int envFlags; // This is primarily useful for detecting termination of threads and sync'ing on their termination
 				mdb_env_get_flags(env, &envFlags);
 				#ifdef MDB_OVERLAPPINGSYNC
 				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
-				if (envFlags & MDB_TRACK_METRICS) {
-					delete (MDB_metrics*) mdb_env_get_userctx(env);
-				}
+				delete (ExtendedEnv*) mdb_env_get_userctx(env);
 				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
@@ -750,8 +762,10 @@ Napi::Value EnvWrap::info(const CallbackInfo& info) {
 	stats.Set("maxReaders", Number::New(info.Env(), envinfo.me_maxreaders));
 	stats.Set("numReaders", Number::New(info.Env(), envinfo.me_numreaders));
 	#ifdef MDB_OVERLAPPINGSYNC
-	if (this->trackMetrics) {
-		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_userctx(this->env);
+	unsigned int envFlags;
+	mdb_env_get_flags(env, &envFlags);
+	if (envFlags & MDB_TRACK_METRICS) {
+		MDB_metrics* metrics = (MDB_metrics*) mdb_env_get_metrics(this->env);
 		stats.Set("timeStartTxns", Number::New(info.Env(), (double) metrics->time_start_txns / TICKS_PER_SECOND));
 		stats.Set("timeDuringTxns", Number::New(info.Env(), (double) metrics->time_during_txns / TICKS_PER_SECOND));
 		stats.Set("timePageFlushes", Number::New(info.Env(), (double) metrics->time_page_flushes / TICKS_PER_SECOND));
@@ -781,9 +795,9 @@ Napi::Value EnvWrap::readerCheck(const CallbackInfo& info) {
 	return Number::New(info.Env(), dead);
 }
 
-Array readerStrings;
+thread_local Array* readerStrings = nullptr;
 MDB_msg_func* printReaders = ([](const char* message, void* env) -> int {
-	readerStrings.Set(readerStrings.Length(), String::New(*(Env*)env, message));
+	readerStrings->Set(readerStrings->Length(), String::New(*(Env*)env, message));
 	return 0;
 });
 
@@ -791,14 +805,15 @@ Napi::Value EnvWrap::readerList(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
-	readerStrings = Array::New(info.Env());
+	Array reader_strings = Array::New(info.Env());
+	readerStrings = &reader_strings;
 	int rc;
 	Napi::Env env = info.Env();
 	rc = mdb_reader_list(this->env, printReaders, &env);
 	if (rc != 0) {
 		return throwLmdbError(info.Env(), rc);
 	}
-	return readerStrings;
+	return reader_strings;
 }
 
 
@@ -968,7 +983,147 @@ int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 	}
 	return rc;
 }
+ExtendedEnv::ExtendedEnv() {
+	pthread_mutex_init(&locksModificationLock, nullptr);
+}
+ExtendedEnv::~ExtendedEnv() {
+	pthread_mutex_destroy(&locksModificationLock);
+}
+uint64_t ExtendedEnv::getNextTime() {
+	uint64_t next_time_int = next_time_double();
+	if (next_time_int == lastTime) next_time_int++;
+	return bswap_64(lastTime = next_time_int);
+}
+uint64_t ExtendedEnv::getLastTime() {
+	return bswap_64(lastTime);
+}
+bool ExtendedEnv::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
+	pthread_mutex_lock(&locksModificationLock);
+	auto resolution = lock_callbacks.find(key);
+	bool found;
+	if (resolution == lock_callbacks.end()) {
+		callback_holder_t callbacks;
+		callbacks.ew = ew;
+		lock_callbacks.emplace(key, callbacks);
+		found = true;
+	} else {
+		if (has_callback) {
+			napi_threadsafe_function callback;
+			napi_value resource;
+			napi_status status;
+			status = napi_create_object(env, &resource);
+			napi_value resource_name;
+			status = napi_create_string_latin1(env, "lock", NAPI_AUTO_LENGTH, &resource_name);
+			napi_create_threadsafe_function(env, func, resource, resource_name, 0, 1, nullptr, nullptr, nullptr, nullptr,
+											&callback);
+			napi_unref_threadsafe_function(env, callback);
+			resolution->second.callbacks.push_back(callback);
+		}
+		found = false;
+	}
+	pthread_mutex_unlock(&locksModificationLock);
+	return found;
+}
+NAPI_FUNCTION(attemptLock) {
+	ARGS(3)
+	GET_INT64_ARG(0)
+	EnvWrap* ew = (EnvWrap*) i64;
+	uint32_t size;
+	GET_UINT32_ARG(size, 1);
+	napi_value as_bool;
+	napi_coerce_to_bool(env, args[2], &as_bool);
+	bool has_callback;
+	napi_get_value_bool(env, as_bool, &has_callback);
+	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	std::string key(ew->keyBuffer, size);
+	bool result = lock_callbacks->attemptLock(key, env, args[2], has_callback, ew);
+	napi_value return_value;
+	napi_get_boolean(env, result, &return_value);
+	return return_value;
+}
+bool ExtendedEnv::unlock(std::string key, bool only_check) {
+	pthread_mutex_lock(&locksModificationLock);
+	auto resolution = lock_callbacks.find(key);
+	if (resolution == lock_callbacks.end()) {
+		pthread_mutex_unlock(&locksModificationLock);
+		return false;
+	}
+	if (!only_check) {
+		notifyCallbacks(resolution->second.callbacks);
+		lock_callbacks.erase(resolution);
+	}
+	pthread_mutex_unlock(&locksModificationLock);
+	return true;
+}
+void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks) {
+	for (auto callback = callbacks.begin(); callback != callbacks.end();) {
+		napi_call_threadsafe_function(*callback, nullptr, napi_tsfn_blocking);
+		napi_release_threadsafe_function(*callback, napi_tsfn_release);
+		callback++;
+	}
+}
+NAPI_FUNCTION(unlock) {
+	ARGS(3)
+	GET_INT64_ARG(0);
+	EnvWrap* ew = (EnvWrap*) i64;
+	uint32_t size;
+	GET_UINT32_ARG(size, 1);
+	bool only_check = false;
+	napi_get_value_bool(env, args[2], &only_check);
+	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	std::string key(ew->keyBuffer, size);
+	bool result = lock_callbacks->unlock(key, only_check);
+	napi_value return_value;
+	napi_get_boolean(env, result, &return_value);
+	return return_value;
+}
 
+MDB_txn* ExtendedEnv::getPrefetchReadTxn(MDB_env* env) {
+	MDB_txn* txn;
+	pthread_mutex_lock(prefetchTxnsLock);
+	// try to find an existing txn for this env
+	for (int i = 0; i < 20; i++) {
+		txn = prefetchTxns[i];
+		if (txn && mdb_txn_env(txn) == env) {
+			mdb_txn_renew(txn);
+			prefetchTxns[i] = nullptr; // remove it, no one else can use it
+			pthread_mutex_unlock(prefetchTxnsLock);
+			return txn;
+		}
+	}
+	pthread_mutex_unlock(prefetchTxnsLock);
+	// couldn't find one, need to create a new transaction
+	mdb_txn_begin(env, nullptr, MDB_RDONLY, &txn);
+	return txn;
+}
+void ExtendedEnv::donePrefetchReadTxn(MDB_txn* txn) {
+	mdb_txn_reset(txn);
+	pthread_mutex_lock(prefetchTxnsLock);
+	// reinsert this transaction
+	MDB_txn* moving;
+	for (int i = 0; i < 20; i++) {
+		moving = prefetchTxns[i];
+		prefetchTxns[i] = txn;
+		if (!moving) break;
+		txn = moving;
+	}
+	// if we are full and one has to be removed, abort it
+	if (moving) mdb_txn_abort(moving);
+	pthread_mutex_unlock(prefetchTxnsLock);
+}
+
+void ExtendedEnv::removeReadTxns(MDB_env* env) {
+	pthread_mutex_lock(prefetchTxnsLock);
+	MDB_txn* txn;
+	for (int i = 0; i < 20; i++) {
+		txn = prefetchTxns[i];
+		if (txn && mdb_txn_env(txn) == env) {
+			mdb_txn_abort(txn);
+			prefetchTxns[i] = nullptr;
+		}
+	}
+	pthread_mutex_unlock(prefetchTxnsLock);
+}
 
 void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	// EnvWrap: Prepare constructor template
@@ -1000,6 +1155,8 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("getSharedBuffer", getSharedBuffer);
 	EXPORT_NAPI_FUNCTION("setTestRef", setTestRef);
 	EXPORT_NAPI_FUNCTION("getTestRef", getTestRef);
+	EXPORT_NAPI_FUNCTION("attemptLock", attemptLock);
+	EXPORT_NAPI_FUNCTION("unlock", unlock);
 	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);
 	//envTpl->InstanceTemplate()->SetInternalFieldCount(1);
 	exports.Set("Env", EnvClass);

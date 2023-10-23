@@ -18,6 +18,10 @@ using namespace Napi;
 
 // set the threshold of when to use shared buffers (for uncompressed entries larger than this value)
 const size_t SHARED_BUFFER_THRESHOLD = 0x4000;
+const uint32_t SPECIAL_WRITE = 0x10101;
+const uint32_t REPLACE_WITH_TIMESTAMP_FLAG = 0x1000000;
+const uint32_t REPLACE_WITH_TIMESTAMP = 0x1010101;
+const uint32_t DIRECT_WRITE = 0x2000000;
 
 #ifndef __CPTHREAD_H__
 #define __CPTHREAD_H__
@@ -78,9 +82,21 @@ int pthread_cond_broadcast(pthread_cond_t *cond);
 const uint64_t TICKS_PER_SECOND = 1000000000;
 #endif
 uint64_t get_time64();
+uint64_t next_time_double();
+uint64_t last_time_double();
 
 int cond_init(pthread_cond_t *cond);
 int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t ns);
+
+// if we need to add others: https://stackoverflow.com/questions/41770887/cross-platform-definition-of-byteswap-uint64-and-byteswap-ulong/46137633#46137633
+#ifdef _WIN32
+  #define bswap_64(x) _byteswap_uint64(x)
+#elif defined(__APPLE__)
+  #include <libkern/OSByteOrder.h>
+  #define bswap_64(x) OSSwapInt64(x)
+#else
+  #include <byteswap.h>  // bswap_64
+#endif
 
 #endif /* __CPTHREAD_H__ */
 
@@ -258,6 +274,30 @@ typedef struct js_buffers_t { // there is one instance of this for each JS (work
 	pthread_mutex_t modification_lock;
 } js_buffers_t;
 
+
+typedef struct callback_holder_t {
+	EnvWrap* ew;
+	std::vector<napi_threadsafe_function> callbacks;
+} callback_holder_t;
+class ExtendedEnv {
+public:
+	ExtendedEnv();
+	~ExtendedEnv();
+	static MDB_txn* prefetchTxns[20];
+	static pthread_mutex_t* prefetchTxnsLock;
+	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
+	pthread_mutex_t locksModificationLock;
+	uint64_t lastTime; // actually encoded as double
+	uint64_t previousTime; // actually encoded as double
+	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
+	bool unlock(std::string key, bool only_check);
+	uint64_t getNextTime();
+	uint64_t getLastTime();
+	static MDB_txn* getPrefetchReadTxn(MDB_env* env);
+	static void donePrefetchReadTxn(MDB_txn* txn);
+	static void removeReadTxns(MDB_env* env);
+};
+
 class EnvWrap : public ObjectWrap<EnvWrap> {
 private:
 	// List of open read transactions
@@ -294,7 +334,6 @@ public:
 	WriteWorker* writeWorker;
 	bool readTxnRenewed;
     bool hasWrites;
-	bool trackMetrics;
 	uint64_t timeTxnWaiting;
 	unsigned int jsFlags;
 	char* keyBuffer;
@@ -541,6 +580,7 @@ public:
 	char* decompressTarget;
 	unsigned int decompressSize;
 	unsigned int compressionThreshold;
+	unsigned int startingOffset; // compression can be configured to start compression at a certain offset, so header bytes are left uncompressed.
 	// compression acceleration (defaults to 1)
 	int acceleration;
 	static thread_local LZ4_stream_t* stream;

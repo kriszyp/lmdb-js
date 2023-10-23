@@ -17,7 +17,7 @@ export class RangeIterable {
 		let source = this;
 		let iterable = new RangeIterable();
 		iterable.iterate = (async) => {
-			let iterator = source[Symbol.iterator](async);
+			let iterator = source[async ? Symbol.asyncIterator : Symbol.iterator]();
 			let i = 0;
 			return {
 				next(resolvedResult) {
@@ -30,6 +30,7 @@ export class RangeIterable {
 						} else {
 							iteratorResult = iterator.next();
 							if (iteratorResult.then) {
+								if (!async) throw new Error('Can synchronously iterate with asynchronous values');
 								return iteratorResult.then(iteratorResult => this.next(iteratorResult));
 							}
 						}
@@ -40,6 +41,7 @@ export class RangeIterable {
 						}
 						result = func(iteratorResult.value, i++);
 						if (result && result.then) {
+							if (!async) throw new Error('Can synchronously iterate with asynchronous values');
 							return result.then(result =>
 								result === SKIP ?
 									this.next() :
@@ -69,7 +71,7 @@ export class RangeIterable {
 		return iterable;
 	}
 	[Symbol.asyncIterator]() {
-		return this.iterator = this.iterate();
+		return this.iterator = this.iterate(true);
 	}
 	[Symbol.iterator]() {
 		return this.iterator = this.iterate();
@@ -101,11 +103,12 @@ export class RangeIterable {
 					iterator = secondIterable[Symbol.iterator](async);
 					result = iterator.next();
 					if (concatIterable.onDone) {
-						if (result.then)
+						if (result.then) {
+							if (!async) throw new Error('Can synchronously iterate with asynchronous values');
 							result.then((result) => {
 								if (result.done()) concatIterable.onDone();
 							});
-						else if (result.done) concatIterable.onDone();
+						} else if (result.done) concatIterable.onDone();
 					}
 				} else {
 					if (concatIterable.onDone) concatIterable.onDone();
@@ -115,11 +118,13 @@ export class RangeIterable {
 			return {
 				next() {
 					let result = iterator.next();
-					if (result.then)
+					if (result.then) {
+						if (!async) throw new Error('Can synchronously iterate with asynchronous values');
 						return result.then((result) => {
 							if (result.done) return iteratorDone(result);
 							return result;
 						});
+					}
 					if (result.done) return iteratorDone(result);
 					return result;
 				},

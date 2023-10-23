@@ -9,6 +9,7 @@ Compression::Compression(const CallbackInfo& info) : ObjectWrap<Compression>(inf
 	unsigned int compressionThreshold = 1000;
 	char* dictionary = nullptr;
 	size_t dictSize = 0;
+	unsigned int startingOffset = 0;
 	if (info[0].IsObject()) {
 		auto dictionaryOption = info[0].As<Object>().Get("dictionary");
 		if (!dictionaryOption.IsUndefined()) {
@@ -20,10 +21,13 @@ Compression::Compression(const CallbackInfo& info) : ObjectWrap<Compression>(inf
 			dictSize = (dictSize >> 3) << 3; // make sure it is word-aligned
 		}
 		auto thresholdOption = info[0].As<Object>().Get("threshold");
-		if (thresholdOption.IsNumber()) {
+		if (thresholdOption.IsNumber())
 			compressionThreshold = thresholdOption.As<Number>();
-		}
+		auto offsetOption = info[0].As<Object>().Get("startingOffset");
+		if (offsetOption.IsNumber())
+			startingOffset = offsetOption.As<Number>();
 	}
+	this->startingOffset = startingOffset;
 	this->dictionary = this->compressDictionary = dictionary;
 	this->dictionarySize = dictSize;
 	this->decompressTarget = dictionary + dictSize;
@@ -47,7 +51,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 	uint32_t uncompressedLength;
 	int compressionHeaderSize;
 	uint32_t compressedLength = data.mv_size;
-	unsigned char* charData = (unsigned char*) data.mv_data;
+	void* originalData = data.mv_data;
+	unsigned char* charData = (unsigned char*) data.mv_data + startingOffset;
 
 	if (charData[0] == 254) {
 		uncompressedLength = ((uint32_t)charData[1] << 16) | ((uint32_t)charData[2] << 8) | (uint32_t)charData[3];
@@ -65,7 +70,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		return;
 	}
 	data.mv_data = decompressTarget;
-	data.mv_size = uncompressedLength;
+	data.mv_size = uncompressedLength + startingOffset;
 	//TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
 	//fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
 	if (uncompressedLength > decompressSize) {
@@ -73,8 +78,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		return;
 	}
 	int written = LZ4_decompress_safe_usingDict(
-		(char*)charData + compressionHeaderSize, decompressTarget,
-		compressedLength - compressionHeaderSize, decompressSize,
+		(char*)charData + compressionHeaderSize, decompressTarget + startingOffset,
+		compressedLength - compressionHeaderSize - startingOffset, decompressSize,
 		dictionary, dictionarySize);
 	//fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
 	if (written < 0) {
@@ -87,6 +92,8 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		isValid = false;
 		return;
 	}
+	if (startingOffset)
+		memcpy(decompressTarget, originalData, startingOffset);
 	isValid = true;
 }
 
@@ -114,23 +121,26 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
 }
 
 argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_val&)) {
-	size_t dataLength = value->mv_size;
+	size_t dataLength = value->mv_size - startingOffset;
 	char* data = (char*)value->mv_data;
 	if (value->mv_size < compressionThreshold && !(value->mv_size > 0 && ((uint8_t*)data)[0] >= 250))
 		return freeValue; // don't compress if less than threshold (but we must compress if the first byte is the compression indicator)
 	bool longSize = dataLength >= 0x1000000;
-	int prefixSize = (longSize ? 8 : 4);
+	int prefixSize = (longSize ? 8 : 4) + startingOffset;
 	int maxCompressedSize = LZ4_COMPRESSBOUND(dataLength);
 	char* compressed = new char[maxCompressedSize + prefixSize];
 	//fprintf(stdout, "compressing %u\n", dataLength);
 	if (!stream)
 		stream = LZ4_createStream();
 	LZ4_loadDict(stream, compressDictionary, dictionarySize);
+	// TODO: Add in offset here
 	int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
 	if (compressedSize > 0) {
+		if (startingOffset > 0) // copy the uncompressed prefix
+			memcpy(compressed, data, startingOffset);
 		if (freeValue)
 			freeValue(*value);
-		uint8_t* compressedData = (uint8_t*)compressed;
+		uint8_t* compressedData = (uint8_t*)compressed + startingOffset;
 		if (longSize) {
 			compressedData[0] = 255;
 			compressedData[2] = (uint8_t)(dataLength >> 40u);

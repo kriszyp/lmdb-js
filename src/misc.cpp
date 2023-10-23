@@ -113,10 +113,12 @@ int getVersionAndUncompress(MDB_val &data, DbiWrap* dw) {
 	if (data.mv_size == 0) {
 		return 1;// successFunc(data);
 	}
-	unsigned char statusByte = dw->compression ? charData[0] : 0;
+	unsigned char statusByte = (dw->compression && dw->compression->startingOffset < data.mv_size)
+			? charData[dw->compression->startingOffset] : 0;
 		//fprintf(stdout, "uncompressing status %X\n", statusByte);
 	if (statusByte >= 250) {
 		bool isValid;
+
 		dw->compression->decompress(data, isValid, !dw->getFast);
 		return isValid ? 2 : 0;
 	}
@@ -428,26 +430,31 @@ Napi::Value throwError(Napi::Env env, const char* message) {
 	return env.Undefined();
 }
 
+const int ASSIGN_NEXT_TIMESTAMP = 0;
+const int ASSIGN_LAST_TIMESTAMP = 1;
+const int ASSIGN_NEXT_TIMESTAMP_AND_RECORD_PREVIOUS = 2;
+const int ASSIGN_PREVIOUS_TIMESTAMP = 3;
 int putWithVersion(MDB_txn *   txn,
 		MDB_dbi	 dbi,
 		MDB_val *   key,
 		MDB_val *   data,
 		unsigned int	flags, double version) {
 	// leave 8 header bytes available for version and copy in with reserved memory
-	char* sourceData = (char*) data->mv_data;
+	char* source_data = (char*) data->mv_data;
 	int size = data->mv_size;
 	data->mv_size = size + 8;
 	int rc = mdb_put(txn, dbi, key, data, flags | MDB_RESERVE);
 	if (rc == 0) {
 		// if put is successful, data->mv_data will point into the database where we copy the data to
-		memcpy((char*) data->mv_data + 8, sourceData, size);
+		memcpy((char*) data->mv_data + 8, source_data, size);
 		memcpy(data->mv_data, &version, 8);
 		//*((double*) data->mv_data) = version; // this doesn't work on ARM v7 because it is not (guaranteed) memory-aligned
 	}
-	data->mv_data = sourceData; // restore this so that if it points to data that needs to be freed, it points to the right place
+	data->mv_data = source_data; // restore this so that if it points to data that needs to be freed, it points to the right place
 	return rc;
 }
 
+static uint64_t last_time; // actually encoded as double
 
 #ifdef _WIN32
 
@@ -538,6 +545,19 @@ int pthread_cond_broadcast(pthread_cond_t *cond)
 uint64_t get_time64() {
     return GetTickCount64();
 }
+// from: https://github.com/wadey/node-microtime/blob/master/src/microtime.cc#L19
+
+uint64_t next_time_double() {
+    FILETIME ft;
+    GetSystemTimePreciseAsFileTime(&ft);
+    unsigned long long t = ft.dwHighDateTime;
+    t <<= 32;
+    t |= ft.dwLowDateTime;
+    t /= 10;
+    t -= 11644473600000000ULL;
+    double next_time = (double)t/ 1000;
+    return *((uint64_t*)&next_time);
+}
 
 #else
 int cond_init(pthread_cond_t *cond) {
@@ -569,6 +589,12 @@ uint64_t get_time64() {
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
     return time.tv_sec * 1000000000ll + time.tv_nsec;
+}
+uint64_t next_time_double() {
+    struct timespec time;
+    clock_gettime(CLOCK_REALTIME, &time);
+    double next_time = (double)time.tv_sec * 1000 + (double)time.tv_nsec / 1000000;
+	return *((uint64_t*)&next_time);
 }
 #endif
 
