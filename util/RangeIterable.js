@@ -30,7 +30,7 @@ export class RangeIterable {
 						} else {
 							iteratorResult = iterator.next();
 							if (iteratorResult.then) {
-								if (!async) throw new Error('Can synchronously iterate with asynchronous values');
+								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
 								return iteratorResult.then(iteratorResult => this.next(iteratorResult));
 							}
 						}
@@ -41,7 +41,9 @@ export class RangeIterable {
 						}
 						result = func(iteratorResult.value, i++);
 						if (result && result.then) {
-							if (!async) throw new Error('Can synchronously iterate with asynchronous values');
+							if (!async) {
+								throw new Error('Can not synchronously iterate with asynchronous values');
+							}
 							return result.then(result =>
 								result === SKIP ?
 									this.next() :
@@ -95,16 +97,16 @@ export class RangeIterable {
 	concat(secondIterable) {
 		let concatIterable = new RangeIterable();
 		concatIterable.iterate = (async) => {
-			let iterator = this.iterator = this.iterate();
+			let iterator = this.iterator = this.iterate(async);
 			let isFirst = true;
 			function iteratorDone(result) {
 				if (isFirst) {
 					isFirst = false;
-					iterator = secondIterable[Symbol.iterator](async);
+					iterator = secondIterable[async ? Symbol.asyncIterator : Symbol.iterator]();
 					result = iterator.next();
 					if (concatIterable.onDone) {
 						if (result.then) {
-							if (!async) throw new Error('Can synchronously iterate with asynchronous values');
+							if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
 							result.then((result) => {
 								if (result.done()) concatIterable.onDone();
 							});
@@ -214,7 +216,7 @@ export class RangeIterable {
 		if (this._asArray)
 			return this._asArray;
 		let promise = new Promise((resolve, reject) => {
-			let iterator = this.iterate();
+			let iterator = this.iterate(true);
 			let array = [];
 			let iterable = this;
 			Object.defineProperty(array, 'iterable', { value: iterable });
