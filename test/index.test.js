@@ -1362,6 +1362,8 @@ describe('lmdb-js', function () {
 					const newBuff = Buffer.alloc(index * mult);
 					await db.put('test-key' + index, newBuff);
 					db.retain(db.getBinaryFast('test-key' + index));
+					let buffer = db.getBinary('test-key' + index);
+					should.equal(Buffer.isBuffer(buffer), true);
 				}
 			});
 			it('larger buffers from write txn', async function () {

@@ -75,7 +75,8 @@ export function addReadMethods(LMDBStore, {
 				else if (rc == -30001) {// shared buffer
 					this.lastSize = keyBytesView.getUint32(0, true);
 					let bufferId = keyBytesView.getUint32(4, true);
-					return getMMapBuffer(bufferId, this.lastSize);
+					let bytes = getMMapBuffer(bufferId, this.lastSize);
+					return asSafeBuffer ? Buffer.from(bytes) : bytes;
 				} else
 					throw lmdbError(rc);
 			}
@@ -533,11 +534,12 @@ export function addReadMethods(LMDBStore, {
 							let bytes;
 							if (bufferId) {
 								bytes = getMMapBuffer(bufferId, lastSize);
+								if (store.encoding === 'binary') bytes = Buffer.from(bytes);
 							} else {
 								bytes = compression ? compression.getValueBytes : getValueBytes;
 								if (lastSize > bytes.maxLength) {
 									store.lastSize = lastSize;
-									asSafeBuffer = store.encoding == 'binary';
+									asSafeBuffer = store.encoding === 'binary';
 									try {
 										bytes = store._returnLargeBuffer(() => getCurrentValue(cursorAddress));
 									} finally {
