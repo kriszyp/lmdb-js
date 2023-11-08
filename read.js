@@ -688,6 +688,11 @@ export function addReadMethods(LMDBStore, {
 			if (!txn.use) {
 				throw new Error('Can not use read transaction from a closed database');
 			}
+			// because the renew actually happens lazily in read operations, renew needs to be explicit
+			// here in order to actually secure a real read transaction. Try to only do it if necessary;
+			// once it has a refCount, it should be good to go
+			if (!(readTxn.refCount - (readTxn.renewingRefCount || 0) > 0))
+				txn.renew();
 			txn.use();
 			return txn;
 		},

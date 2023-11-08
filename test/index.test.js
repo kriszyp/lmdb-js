@@ -908,7 +908,6 @@ describe('lmdb-js', function () {
 			it('use read transaction', async function () {
 				await db.put('key1', 1);
 				let transaction = db.useReadTransaction();
-				should.equal(db.get('key1', { transaction }), 1);
 				await db.put('key1', 2);
 				should.equal(db.get('key1', { transaction }), 1);
 				should.equal(db.get('key1', {}), 2);
