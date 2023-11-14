@@ -164,14 +164,14 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t tx
 	if (result) {
 		fits = valToBinaryFast(data, this); // it fits in the global/compression-target buffer
 	}
-	if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// result = 2 if it was decompressed
-		if (data.mv_size < 0x80000000)
-			return data.mv_size;
-		*((uint32_t*)keyBuffer) = data.mv_size;
-		return -30000;
-	} else {
+	//if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// result = 2 if it was decompressed
+	if (data.mv_size < 0x80000000)
+		return data.mv_size;
+	*((uint32_t*)keyBuffer) = data.mv_size;
+	return -30000;
+	/*} else {
 		return EnvWrap::toSharedBuffer(ew->env, (uint32_t*) ew->keyBuffer, data);
-	}
+	}*/
 }
 
 NAPI_FUNCTION(directWrite) {
