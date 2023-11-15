@@ -15,7 +15,7 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-      - run: python3 -m pip install distutils
+      - run: python3 -m pip install setuptools
       - run: npm install
       - run: npm run build
       #- run: npm run deno-test
