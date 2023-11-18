@@ -17,7 +17,9 @@ pthread_mutex_t* ExtendedEnv::prefetchTxnsLock;
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
 thread_local std::vector<EnvWrap*>* EnvWrap::openEnvWraps = nullptr;
 thread_local js_buffers_t* EnvWrap::sharedBuffers = nullptr;
+#if ENABLE_V8_API
 std::unordered_map<void*, std::shared_ptr<v8::BackingStore>> EnvWrap::backingStores;
+#endif
 //thread_local std::unordered_map<void*, buffer_info_t>* EnvWrap::sharedBuffers = nullptr;
 void* getSharedBuffers() {
 	return (void*) EnvWrap::sharedBuffers;
@@ -453,7 +455,9 @@ napi_finalize cleanupLMDB = [](napi_env env, void* data, void* buffer_info) {
 void cleanupSharedMap(void* data, size_t length, void* deleter_data) {
 	// Data belongs to LMDB, we shouldn't free it here, but we do need to remove the reference
 	// to the backing store, since it longer exists
+	#if ENABLE_V8_API
 	EnvWrap::backingStores.erase(data);
+	#endif
 	fprintf(stderr,"Cleanup called on LMDB chunk %p\n", data);
 };
 napi_finalize cleanupExternal = [](napi_env env, void* data, void* buffer_info) {
