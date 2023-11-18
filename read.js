@@ -514,8 +514,8 @@ export function addReadMethods(LMDBStore, {
 							keySize = iterate(cursorAddress);
 						if (keySize <= 0 ||
 								(count++ >= limit)) {
-							if (count < 0)
-								lmdbError(count);
+							if (keySize < -30700 && keySize !== -30798)
+								lmdbError(keySize);
 							finishCursor();
 							return ITERATOR_DONE;
 						}
@@ -818,7 +818,8 @@ Txn.prototype.done = function() {
 	if (this.refCount === 0 && this.notCurrent) {
 		this.abort();
 		this.isDone = true;
-	}
+	} else if (this.refCount < 0)
+		throw new Error('Can not finish a transaction more times than it was used');
 }
 Txn.prototype.use = function() {
 	this.refCount = (this.refCount || 0) + 1;
