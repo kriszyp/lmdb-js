@@ -103,12 +103,16 @@ int CursorWrap::returnEntry(int lastRC, MDB_val &key, MDB_val &data) {
 		if (result) {
 			fits = valToBinaryFast(data, dw); // it fit in the global/compression-target buffer
 		}
-		//if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// if it was decompressed
-		*((uint32_t*)keyBuffer) = data.mv_size;
-		*((uint32_t*)(keyBuffer + 4)) = 0; // buffer id of 0
-/*		} else {
+#if ENABLE_V8_API
+		if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// if it was decompressed
+#endif
+			*((uint32_t*)keyBuffer) = data.mv_size;
+			*((uint32_t*)(keyBuffer + 4)) = 0; // buffer id of 0
+#if ENABLE_V8_API
+		} else {
 			EnvWrap::toSharedBuffer(dw->ew->env, (uint32_t*) dw->ew->keyBuffer, data);
-		}*/
+		}
+#endif
 	}
 	if (!(flags & VALUES_FOR_KEY)) {
 		memcpy(keyBuffer + 32, key.mv_data, key.mv_size);

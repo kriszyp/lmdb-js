@@ -7,6 +7,9 @@
 #include <ctime>
 #include <napi.h>
 #include <node_api.h>
+#if ENABLE_V8_API
+#include <v8.h>
+#endif
 
 #include "lmdb.h"
 #include "lz4.h"
@@ -329,7 +332,9 @@ public:
 	pthread_mutex_t* writingLock;
 	pthread_cond_t* writingCond;
 	std::vector<AsyncWorker*> workers;
-
+#if ENABLE_V8_API
+	static std::unordered_map<void*, std::shared_ptr<v8::BackingStore>> backingStores;
+#endif
 	MDB_txn* currentReadTxn;
 	WriteWorker* writeWorker;
 	bool readTxnRenewed;

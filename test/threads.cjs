@@ -21,7 +21,11 @@ if (isMainThread) {
 
   var workerCount = Math.min(numCPUs * 2, 20);
   var value = {test: '48656c6c6f2c20776f726c6421'};
-
+  var str = 'this is supposed to be bigger than 16KB threshold for shared memory buffers';
+  for (let i = 0; i < 9; i++) {
+    str += str;
+  }
+  var bigValue = {test: str};
   // This will start as many workers as there are CPUs available.
   var workers = [];
   for (var i = 0; i < workerCount; i++) {
@@ -53,7 +57,7 @@ if (isMainThread) {
 
   let last
   for (var i = 0; i < workers.length; i++) {
-    last = db.put('key' + i, value);
+    last = db.put('key' + i, i % 2 === 1 ? bigValue : value);
   }
 
   last.then(() => {
