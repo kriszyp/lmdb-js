@@ -449,9 +449,6 @@ NAPI_FUNCTION(setEnvsPointer) {
 	RETURN_UNDEFINED;
 }
 
-napi_finalize cleanupLMDB = [](napi_env env, void* data, void* buffer_info) {
-	fprintf(stderr,"Cleanup called on LMDB chunk %p\n", data);
-};
 void cleanupSharedMap(void* data, size_t length, void* deleter_data) {
 	// Data belongs to LMDB, we shouldn't free it here, but we do need to remove the reference
 	// to the backing store, since it longer exists
@@ -460,11 +457,12 @@ void cleanupSharedMap(void* data, size_t length, void* deleter_data) {
 	#endif
 	fprintf(stderr,"Cleanup called on LMDB chunk %p\n", data);
 };
-napi_finalize cleanupExternal = [](napi_env env, void* data, void* buffer_info) {
-	fprintf(stderr,"Cleanup called on external chunk %p\n", data);
+napi_finalize cleanupLMDB = [](napi_env env, void* data, void* buffer_info) {
+	// Data belongs to LMDB, we shouldn't free it here
 };
 
-void cleanupAllocatedExternal(void* data, size_t length, void* buffer_info) {
+napi_finalize cleanupExternal = [](napi_env env, void* data, void* buffer_info) {
+	fprintf(stderr,"Cleanup called on externally allocated chunk %p\n", data);
 	int32_t id = ((buffer_info_t*) buffer_info)->id;
 	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
@@ -483,7 +481,6 @@ void cleanupAllocatedExternal(void* data, size_t length, void* buffer_info) {
 
 NAPI_FUNCTION(getSharedBuffer) {
 	ARGS(2)
-#if ENABLE_V8_API
 	int32_t bufferId;
 	GET_UINT32_ARG(bufferId, 0);
 	GET_INT64_ARG(1);
@@ -491,8 +488,8 @@ NAPI_FUNCTION(getSharedBuffer) {
 	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end(); bufferRef++) {
 		if (bufferRef->second.id == bufferId) {
-			char* start = bufferRef->first;
-			buffer_info_t* buffer = &bufferRef->second;
+			char *start = bufferRef->first;
+			buffer_info_t *buffer = &bufferRef->second;
 			if (buffer->env == ew->env) {
 				fprintf(stderr, "found existing buffer for %u\n", bufferId);
 				napi_get_reference_value(env, buffer->ref, &returnValue);
@@ -507,35 +504,46 @@ NAPI_FUNCTION(getSharedBuffer) {
 				napi_detach_arraybuffer(env, arrayBuffer);
 				napi_delete_reference(env, buffer->ref);
 			}
-			char* end = buffer->end;
+			char *end = buffer->end;
 			if (buffer->isSharedMap) // only memory mapped buffers are tied to envs
 				buffer->env = ew->env;
 			size_t size = end - start;
-            if (size > 0x100000000)
-                fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start, end);
-			auto store_ref = EnvWrap::backingStores.find(start);
-			std::shared_ptr<v8::BackingStore> bs;
-			if (store_ref == EnvWrap::backingStores.end()) {
-				bs = v8::ArrayBuffer::NewBackingStore(start, size, buffer->isSharedMap ? cleanupSharedMap : cleanupAllocatedExternal, (void*) buffer);
-				// this is the most mysterious part, if we don't create an extra shared pointer to the backing store, it gets deleted
-				// even though the unordered_map is supposed to preserve a reference to it
-				auto permanent_pointer = new std::shared_ptr<v8::BackingStore>(bs);
-				EnvWrap::backingStores.emplace(start, bs);
-				//fprintf(stderr, "Creating a new backing (shared %u) store for %p %p\n", buffer->isSharedMap, start, bs.get());
-			} else {
-				bs = store_ref->second;
-				//fprintf(stderr, "Reusing existing backing store for %p %p\n", start, bs.get());
-			}
-			v8::Local<v8::ArrayBuffer> ab = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), bs);
-			//fprintf(stderr, "Use count for backing store after %u\n", bs.use_count());
-			returnValue = reinterpret_cast<napi_value>(*ab);
-			// TODO: We may want to enable this for Bun, it probably doesn't have the problems with shared external buffers that V8 does
-			/*napi_create_external_arraybuffer(env, start, size,
-					 buffer->isSharedMap ? cleanupLMDB : cleanupExternal, (void*) buffer, &returnValue);*/
+			if (size > 0x100000000)
+				fprintf(stderr, "Getting invalid shared buffer size %llu from start: %llu to %end: %llu", size, start,
+						end);
+#if ENABLE_V8_API
+			if (buffer->isSharedMap) {
+				// V8 has the onerous requirement that two backing stores can't shared the same pointer
+				// address, and will crash if that happens. Therefore to support access to the LMDB
+				// shared memory we have to ensure that there is only one backing store per shared memory
+				// address, and then multiple ArrayBuffers can share that backing store
+				auto store_ref = EnvWrap::backingStores.find(start);
+				std::shared_ptr<v8::BackingStore> bs;
+				if (store_ref == EnvWrap::backingStores.end()) {
+					bs = v8::ArrayBuffer::NewBackingStore(start, size, cleanupSharedMap, (void*) buffer);
+					// this is the most mysterious part, if we don't create an extra shared pointer to the backing store, it gets deleted
+					// even though the unordered_map is supposed to preserve a reference to it
+					auto permanent_pointer = new std::shared_ptr<v8::BackingStore>(bs);
+					EnvWrap::backingStores.emplace(start, bs);
+					//fprintf(stderr, "Creating a new backing (shared %u) store for %p %p\n", buffer->isSharedMap, start, bs.get());
+				} else {
+					bs = store_ref->second;
+					//fprintf(stderr, "Reusing existing backing store for %p %p\n", start, bs.get());
+				}
+				v8::Local<v8::ArrayBuffer> ab = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), bs);
+				fprintf(stderr, "Use count for backing store after %p %u\n", start, bs.use_count());
+				returnValue = reinterpret_cast<napi_value>(*ab);
+			} else
+#endif
+			napi_create_external_arraybuffer(env, start, size,
+				 buffer->isSharedMap ? cleanupLMDB : cleanupExternal, (void*) buffer, &returnValue);
 			int64_t result;
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
 			if (buffer->isSharedMap) {
+				napi_adjust_external_memory(env, 0, &result);
+				fprintf(stderr, "napi_adjust_external_memory before %llu %llu\n", result);
 				napi_adjust_external_memory(env, -(int64_t) size, &result);
+				fprintf(stderr, "napi_adjust_external_memory adjusted by %llu %llu\n", size, result);
 				napi_value true_value;
 				napi_get_boolean(env, true, &true_value);
 				napi_set_named_property(env, returnValue, "isSharedMap", true_value);
@@ -545,9 +553,6 @@ NAPI_FUNCTION(getSharedBuffer) {
 		}
 	}
 	pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
-#else
-	return throwError(env, "Can use shared buffers without V8 linking");
-#endif
 	RETURN_UNDEFINED;
 }
 NAPI_FUNCTION(setTestRef) {

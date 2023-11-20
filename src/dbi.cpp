@@ -165,6 +165,8 @@ int32_t DbiWrap::doGetByBinary(uint32_t keySize, uint32_t ifNotTxnId, int64_t tx
 		fits = valToBinaryFast(data, this); // it fits in the global/compression-target buffer
 	}
 #if ENABLE_V8_API
+	// TODO: We may want to enable this for Bun as well, since it probably doesn't have the same
+	// shared pointer problems that V8 does
 	if (fits || result == 2 || data.mv_size < SHARED_BUFFER_THRESHOLD) {// result = 2 if it was decompressed
 #endif
 		if (data.mv_size < 0x80000000)
