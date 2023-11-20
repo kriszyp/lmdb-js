@@ -659,24 +659,28 @@ export function addReadMethods(LMDBStore, {
 				let position
 				if (key && key.key !== undefined && key.value !== undefined) {
 					position = saveKey(key.value, this.writeKey, bufferHolder, maxKeySize, 0x80000000);
+					saveReferenceToBuffer();
 					saveKey(key.key, this.writeKey, bufferHolder, maxKeySize);
 				} else {
 					position = saveKey(key, this.writeKey, bufferHolder, maxKeySize);
 				}
 				if (!startPosition)
 					startPosition = position;
+				saveReferenceToBuffer();
+			}
+			function saveReferenceToBuffer() {
 				if (bufferHolder.saveBuffer != lastBuffer) {
-					buffers.push(bufferHolder);
+					buffers.push(bufferHolder.saveBuffer);
 					lastBuffer = bufferHolder.saveBuffer;
-					bufferHolder = { saveBuffer: lastBuffer };
 				}
 			}
 			saveKey(undefined, this.writeKey, bufferHolder, maxKeySize);
+			saveReferenceToBuffer();
 			outstandingReads++;
 			prefetch(this.dbAddress, startPosition, (error) => {
 				outstandingReads--;
 				if (error)
-					console.error('Error with prefetch', buffers, bufferHolder); // partly exists to keep the buffers pinned in memory
+					console.error('Error with prefetch', buffers); // partly exists to keep the buffers pinned in memory
 				else
 					callback(null);
 			});
