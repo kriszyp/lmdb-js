@@ -455,14 +455,12 @@ void cleanupSharedMap(void* data, size_t length, void* deleter_data) {
 	#if ENABLE_V8_API
 	EnvWrap::backingStores.erase(data);
 	#endif
-	fprintf(stderr,"Cleanup called on LMDB chunk %p\n", data);
 };
 napi_finalize cleanupLMDB = [](napi_env env, void* data, void* buffer_info) {
 	// Data belongs to LMDB, we shouldn't free it here
 };
 
 napi_finalize cleanupExternal = [](napi_env env, void* data, void* buffer_info) {
-	fprintf(stderr,"Cleanup called on externally allocated chunk %p\n", data);
 	int32_t id = ((buffer_info_t*) buffer_info)->id;
 	pthread_mutex_lock(&EnvWrap::sharedBuffers->modification_lock);
 	for (auto bufferRef = EnvWrap::sharedBuffers->buffers.begin(); bufferRef != EnvWrap::sharedBuffers->buffers.end();) {
@@ -491,7 +489,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 			char *start = bufferRef->first;
 			buffer_info_t *buffer = &bufferRef->second;
 			if (buffer->env == ew->env) {
-				fprintf(stderr, "found existing buffer for %u\n", bufferId);
+				//fprintf(stderr, "found existing buffer for %u\n", bufferId);
 				napi_get_reference_value(env, buffer->ref, &returnValue);
 				pthread_mutex_unlock(&EnvWrap::sharedBuffers->modification_lock);
 				return returnValue;
@@ -499,7 +497,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 			if (buffer->env) {
 				// if for some reason it is different env that didn't get cleaned up
 				napi_value arrayBuffer;
-				fprintf(stderr, "Changing the env for %u\n", bufferId);
+				//fprintf(stderr, "Changing the env for %u\n", bufferId);
 				napi_get_reference_value(env, buffer->ref, &arrayBuffer);
 				napi_detach_arraybuffer(env, arrayBuffer);
 				napi_delete_reference(env, buffer->ref);
@@ -531,7 +529,7 @@ NAPI_FUNCTION(getSharedBuffer) {
 					//fprintf(stderr, "Reusing existing backing store for %p %p\n", start, bs.get());
 				}
 				v8::Local<v8::ArrayBuffer> ab = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), bs);
-				fprintf(stderr, "Use count for backing store after %p %u\n", start, bs.use_count());
+				//fprintf(stderr, "Use count for backing store after %p %u\n", start, bs.use_count());
 				returnValue = reinterpret_cast<napi_value>(*ab);
 			} else
 #endif
@@ -540,10 +538,8 @@ NAPI_FUNCTION(getSharedBuffer) {
 			int64_t result;
 			napi_create_reference(env, returnValue, 1, &buffer->ref);
 			if (buffer->isSharedMap) {
-				napi_adjust_external_memory(env, 0, &result);
-				fprintf(stderr, "napi_adjust_external_memory before %llu %llu\n", result);
 				napi_adjust_external_memory(env, -(int64_t) size, &result);
-				fprintf(stderr, "napi_adjust_external_memory adjusted by %llu %llu\n", size, result);
+				//fprintf(stderr, "napi_adjust_external_memory adjusted by %llu %llu\n", size, result);
 				napi_value true_value;
 				napi_get_boolean(env, true, &true_value);
 				napi_set_named_property(env, returnValue, "isSharedMap", true_value);
