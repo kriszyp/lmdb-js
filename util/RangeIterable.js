@@ -209,7 +209,7 @@ export class RangeIterable {
 		if (this.asArray && this.asArray.forEach) {
 			return this.asArray;
 		}
-		throw new Error('Can not serialize async iterables without first calling resolveJSON');
+		throw new Error('Can not serialize async iterables without first calling resolving asArray');
 		//return Array.from(this)
 	}
 	get asArray() {
