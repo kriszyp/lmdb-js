@@ -102,10 +102,10 @@ true
 'hello'
 ['hello', 1, 'world']
 ['hello', 'world']
-Buffer.from([255]) // buffers can be used directly, 255 is higher than any byte produced by primitives
+Buffer.from([255]) // buffers are used directly, 255 is higher than any byte produced by primitives
 ```
 
-Keys use 0/null bytes as delimiters for arrays, and so strings currently can not have '\x00' (null char) in them.
+Keys use 0/null bytes as delimiters for arrays, and so strings currently can not have '\x00' (null char) in them. Buffers are assumed to be already encoded values, and will not be returned as buffers when read (from range queries).
 
 By default, the maximum key size is 1978 bytes. If you explicitly set the `pageSize` to 8192 or higher, the maximum key size will be 4026, but this is the largest key size supported.
 
