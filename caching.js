@@ -23,7 +23,7 @@ export const CachingStore = (Store, env) => {
 							let expirationPriority = meta.valueSize >> 10;
 							let cache = store.cache;
 							let entry = mapGet.call(cache, meta.key);
-							if (entry) {
+							if (entry && !entry.txnId) {
 								entry.txnId = txnId;
 								cache.used(entry, expirationPriority + 4); // this will enter it into the LRFU (with a little lower priority than a read)
 							}
@@ -127,19 +127,23 @@ export const CachingStore = (Store, env) => {
 				return result;
 			}
 			let entry;
-			if (result?.isSync) {
-				// sync operation, immediately add to cache
-				if (result.result) // if it succeeds
-					entry = this.cache.setValue(id, value, 0);
-				else {
-					this.cache.delete(id);
-					return result;
-				} // sync failure
-				// otherwise keep it pinned in memory until it is committed
-			} else entry = this.cache.setValue(id, value, -1);
+			if (this.cachePuts === false) { // we are not caching puts, clear the entry at least
+				this.cache.delete(id);
+			} else {
+				if (result?.isSync) {
+					// sync operation, immediately add to cache
+					if (result.result) // if it succeeds
+						entry = this.cache.setValue(id, value, 0);
+					else {
+						this.cache.delete(id);
+						return result;
+					} // sync failure
+					// otherwise keep it pinned in memory until it is committed
+				} else entry = this.cache.setValue(id, value, -1);
+			}
 			if (childTxnChanges)
 				childTxnChanges.add(id);
-			if (version !== undefined)
+			if (version !== undefined && entry)
 				entry.version = typeof version === 'object' ? version.version : version;
 		}
 		return result;
@@ -148,7 +152,7 @@ export const CachingStore = (Store, env) => {
 		let result = super.putSync(id, value, version, ifVersion);
 		if (id !== 'object') {
 			// sync operation, immediately add to cache, otherwise keep it pinned in memory until it is committed
-			if (value && typeof value === 'object' || !result) {
+			if (value && this.cachePuts !== false && typeof value === 'object' && result) {
 				let entry = this.cache.setValue(id, value);
 				if (childTxnChanges)
 					childTxnChanges.add(id);
