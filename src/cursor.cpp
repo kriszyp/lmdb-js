@@ -51,11 +51,10 @@ CursorWrap::~CursorWrap() {
 }
 
 Value CursorWrap::close(const CallbackInfo& info) {
-	if (!this->cursor) {
-	  return throwError(info.Env(), "cursor.close: Attempt to close a closed cursor!");
+	if (this->cursor) {
+		mdb_cursor_close(this->cursor);
+		this->cursor = nullptr;
 	}
-	mdb_cursor_close(this->cursor);
-	this->cursor = nullptr;
 	return info.Env().Undefined();
 }
 

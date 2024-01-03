@@ -31,7 +31,9 @@ export class RangeIterable {
 							} else {
 								iteratorResult = iterator.next();
 								if (iteratorResult.then) {
-									if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+									if (!async) {
+										throw new Error('Can not synchronously iterate with asynchronous values');
+									}
 									return iteratorResult.then(iteratorResult => this.next(iteratorResult), onError);
 								}
 							}
