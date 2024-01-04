@@ -697,7 +697,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
-				//delete (ExtendedEnv*) mdb_env_get_userctx(env);
+				delete (ExtendedEnv*) mdb_env_get_userctx(env);
 				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);
