@@ -62,6 +62,7 @@ TxnWrap::TxnWrap(const Napi::CallbackInfo& info) : ObjectWrap<TxnWrap>(info) {
 				info.This().As<Object>().Set("address", Number::New(info.Env(), 0));
 				return;
 			}
+			parentTw = nullptr;
 			parentTxn = nullptr;
 		}
 		int rc = mdb_txn_begin(ew->env, parentTxn, flags, &txn);
@@ -105,6 +106,9 @@ void TxnWrap::removeFromEnvWrap() {
 	if (this->ew) {
 		if (this->ew->currentWriteTxn == this) {
 			this->ew->currentWriteTxn = this->parentTw;
+			if (this->parentTw) {
+				fprintf(stderr, "ending child transaction\n");
+			}
 		}
 		else {
 			auto it = std::find(ew->readTxns.begin(), ew->readTxns.end(), this);
