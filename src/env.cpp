@@ -213,8 +213,7 @@ MDB_txn* EnvWrap::getReadTxn(int64_t tw_address) {
 	if (rc) {
 		if (!txn)
 			fprintf(stderr, "No current read transaction available");
-		if (rc != EINVAL)
-			return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
+		return nullptr; // if there was an error, signal with nullptr and let error propagate with last_error
 	}
 	return txn;
 }
