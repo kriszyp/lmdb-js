@@ -94,6 +94,9 @@ export function addReadMethods(LMDBStore, {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			outstandingReads++;
+			if (!txn.address) {
+				throw new Error('Invalid transaction, it has no address');
+			}
 			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( rc, bufferId, offset, size ) => {
 				if (rc && rc !== 1)
 					callback(lmdbError(rc));
@@ -412,6 +415,9 @@ export function addReadMethods(LMDBStore, {
 							if (txn.isDone) throw new Error('Can not iterate on range with transaction that is already' +
 								' done');
 							txnAddress = txn.address;
+							if (!txnAddress) {
+								throw new Error('Invalid transaction, it has no address');
+							}
 							cursor = null;
 						} else {
 							let writeTxn = env.writeTxn;
