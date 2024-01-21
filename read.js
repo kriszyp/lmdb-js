@@ -159,6 +159,7 @@ export function addReadMethods(LMDBStore, {
 			if (!buffer.isGlobal && !env.writeTxn) {
 				let txn = options?.transaction || (readTxnRenewed ? readTxn : renewReadTxn(this));
 				buffer.txn = txn;
+				
 				txn.refCount = (txn.refCount || 0) + 1;
 				return data;
 			} else {
@@ -405,6 +406,7 @@ export function addReadMethods(LMDBStore, {
 					(options.inclusiveEnd ? 0x8000 : 0) |
 					(options.exclusiveStart ? 0x10000 : 0);
 				let store = this;
+				let txn_handle;
 				function resetCursor() {
 					try {
 						if (cursor)
@@ -433,7 +435,7 @@ export function addReadMethods(LMDBStore, {
 							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
-						txn.refCount = (txn.refCount || 0) + 1; // track transaction so we always use the same one
+						txn_handle = txn.use(2000);
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
@@ -494,10 +496,9 @@ export function addReadMethods(LMDBStore, {
 						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
-					if (--txn.refCount <= 0 && txn.notCurrent) {
+					txn_handle.done();
+					if (txn.refCount <= 0 && txn.notCurrent) {
 						cursor.close();
-						txn.abort(); // this is no longer main read txn, abort it now that we are done
-						txn.isDone = true;
 					} else {
 						if (db.availableCursor || txn != readTxn) {
 							cursor.close();
@@ -831,8 +832,39 @@ Txn.prototype.done = function() {
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
 }
-Txn.prototype.use = function() {
+Txn.prototype.use = function(timeout) {
 	this.refCount = (this.refCount || 0) + 1;
+	if (timeout) {
+		let timed_out;
+		let handle;
+		(async () => {
+			let timer
+			await new Promise(async (resolve, reject) => {
+				timer = setTimeout(() => {
+					timed_out = true;
+					resolve();
+				}, timeout).unref();
+				handle = {
+					done: () => {
+						// clear our timeout timer
+						clearTimeout(timer);
+						this.done();
+						resolve();
+					}
+				}
+			});
+			if (timed_out) {
+				try {
+					throw new Error('Transaction took too long');
+				} catch(error) {
+					// this should print with a proper stack trace
+					console.error(error);
+				}
+			}
+		})();
+		return handle;
+	}
+	return this;
 }
 
 
