@@ -435,7 +435,7 @@ export function addReadMethods(LMDBStore, {
 							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
-						txn_handle = txn.use(2000);
+						if (txn.use) txn.use(); // track transaction so we always use the same one
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
@@ -496,7 +496,7 @@ export function addReadMethods(LMDBStore, {
 						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
-					txn_handle.done();
+					txn.done?.();
 					if (txn.refCount <= 0 && txn.notCurrent) {
 						cursor.close();
 					} else {
@@ -832,39 +832,8 @@ Txn.prototype.done = function() {
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
 }
-Txn.prototype.use = function(timeout) {
+Txn.prototype.use = function() {
 	this.refCount = (this.refCount || 0) + 1;
-	if (timeout) {
-		let timed_out;
-		let handle;
-		(async () => {
-			let timer
-			await new Promise(async (resolve, reject) => {
-				timer = setTimeout(() => {
-					timed_out = true;
-					resolve();
-				}, timeout).unref();
-				handle = {
-					done: () => {
-						// clear our timeout timer
-						clearTimeout(timer);
-						this.done();
-						resolve();
-					}
-				}
-			});
-			if (timed_out) {
-				try {
-					throw new Error('Transaction took too long');
-				} catch(error) {
-					// this should print with a proper stack trace
-					console.error(error);
-				}
-			}
-		})();
-		return handle;
-	}
-	return this;
 }
 
 
