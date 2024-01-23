@@ -406,7 +406,6 @@ export function addReadMethods(LMDBStore, {
 					(options.inclusiveEnd ? 0x8000 : 0) |
 					(options.exclusiveStart ? 0x10000 : 0);
 				let store = this;
-				let txn_handle;
 				function resetCursor() {
 					try {
 						if (cursor)
@@ -436,6 +435,7 @@ export function addReadMethods(LMDBStore, {
 						}
 						cursorAddress = cursor.address;
 						if (txn.use) txn.use(); // track transaction so we always use the same one
+						else txn.refCount = (txn.refCount || 0) + 1;
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
@@ -496,7 +496,11 @@ export function addReadMethods(LMDBStore, {
 						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
-					txn.done?.();
+					if (txn.done) txn.done();
+					else if (--txn.refCount <= 0 && txn.notCurrent) {
+						txn.abort();
+						txn.isDone = true;
+					}
 					if (txn.refCount <= 0 && txn.notCurrent) {
 						cursor.close();
 					} else {
