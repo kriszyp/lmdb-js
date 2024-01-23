@@ -173,21 +173,46 @@ export class RangeIterable {
 			let isFirst = true;
 			let currentSubIterator;
 			return {
-				next() {
+				next(resolvedResult) {
 					try {
 						do {
 							if (currentSubIterator) {
-								let result = currentSubIterator.next();
+								let result;
+								if (resolvedResult) {
+									result = resolvedResult;
+									resolvedResult = undefined;
+								} else result = currentSubIterator.next();
+								if (result.then) {
+									if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+									return result.then((result) => this.next(result));
+								}
 								if (!result.done) {
 									return result;
 								}
 							}
-							let result = iterator.next();
+							let result = resolvedResult ?? iterator.next();
+							if (result.then) {
+								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+								currentSubIterator = undefined;
+								return result.then((result) => this.next(result));
+							}
 							if (result.done) {
 								if (mappedIterable.onDone) mappedIterable.onDone();
 								return result;
 							}
 							let value = callback(result.value);
+							if (value?.then) {
+								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+								return value.then((value) => {
+									if (Array.isArray(value) || value instanceof RangeIterable) {
+										currentSubIterator = value[Symbol.iterator]();
+										return this.next();
+									} else {
+										currentSubIterator = null;
+										return { value };
+									}
+								})
+							}
 							if (Array.isArray(value) || value instanceof RangeIterable)
 								currentSubIterator = value[Symbol.iterator]();
 							else {
