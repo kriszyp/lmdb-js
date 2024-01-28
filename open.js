@@ -249,7 +249,7 @@ export function open(path, options) {
 			if (Encoder) {
 				this.encoder = new Encoder(Object.assign(
 					assignConstrainedProperties(['copyBuffers', 'getStructures', 'saveStructures', 'useFloat32', 'useRecords', 'structuredClone', 'variableMapSize', 'useTimestamp32', 'largeBigIntToFloat', 'encodeUndefinedAsNil', 'int64AsNumber', 'onInvalidDate', 'mapsAsObjects', 'useTag259ForMaps', 'pack', 'maxSharedStructures', 'shouldShareStructure', 'randomAccessStructure', 'freezeData'],
-					this.sharedStructuresKey ? this.setupSharedStructures() : {
+					this.sharedStructuresKey !== undefined ? this.setupSharedStructures() : {
 						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
 					}, options, dbOptions), this.encoder));
 			}
