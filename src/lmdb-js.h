@@ -426,6 +426,7 @@ public:
 	Napi::Value beginTxn(const CallbackInfo& info);
 	Napi::Value commitTxn(const CallbackInfo& info);
 	Napi::Value abortTxn(const CallbackInfo& info);
+	Napi::Value getWriteTxnId(const CallbackInfo& info);
 
 	/*
 		Flushes all data to the disk asynchronously.

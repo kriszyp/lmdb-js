@@ -188,6 +188,13 @@ declare namespace lmdb {
 		**/
 		childTransaction<T>(action: () => T): Promise<T>
 		/**
+		 * Returns the transaction id of the currently executing transaction. This is an integer that increments with each
+		 * transaction. This is only available inside transaction callbacks (for transactionSync or asynchronous transaction),
+		 * and does not provide access transaction ids for asynchronous put/delete methods (the 'aftercommit' method can be
+		 * used for that).
+		 */
+		getWriteTxnId(): number
+		/**
 		* Returns the current transaction and marks it as in use. This can then be explicitly used for read operations
 		* @returns The transaction object
 		**/

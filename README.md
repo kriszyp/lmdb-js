@@ -168,6 +168,11 @@ This will run the provided callback in a transaction much like `transaction` exc
 
 The `childTransaction` function can be executed on its own (to run the child transaction inside the next queued transaction), or it can be executed inside another transaction callback, executing the child transaction within the current transaction.
 
+### `db.getWriteTxnId(): number`
+Returns the transaction id of the currently executing transaction. This is an integer that increments with each
+transaction. This is only available inside transaction callbacks (for transactionSync or asynchronous transaction),
+and does not provide access transaction ids for asynchronous put/delete methods (the `aftercommit` method can be
+used for that).
 
 ### `db.committed: Promise`
 This is a promise-like object that resolves when all previous writes have been committed.

@@ -840,6 +840,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				throw error;
 			}
 		},
+		getWriteTxnId() {
+			return env.getWriteTxnId();
+		},
 		transactionSyncStart(callback) {
 			return this.transactionSync(callback, 0);
 		},

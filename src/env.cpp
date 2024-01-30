@@ -970,6 +970,18 @@ Napi::Value EnvWrap::abortTxn(const CallbackInfo& info) {
 	delete currentTxn;
 	return info.Env().Undefined();
 }
+Napi::Value EnvWrap::getWriteTxnId(const Napi::CallbackInfo& info) {
+	TxnTracked *currentTxn = this->writeTxn;
+	size_t txn_id;
+	if (currentTxn) {
+		txn_id = mdb_txn_id(currentTxn->txn);
+	} else if (this->writeWorker) {
+		txn_id = mdb_txn_id(this->writeWorker->txn);
+	} else return throwError(info.Env(), "There is no active write transaction.");
+	return Number::New(info.Env(), txn_id);
+}
+
+
 /*Napi::Value EnvWrap::openDbi(const CallbackInfo& info) {
 
 
@@ -1171,6 +1183,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 		EnvWrap::InstanceMethod("beginTxn", &EnvWrap::beginTxn),
 		EnvWrap::InstanceMethod("commitTxn", &EnvWrap::commitTxn),
 		EnvWrap::InstanceMethod("abortTxn", &EnvWrap::abortTxn),
+		EnvWrap::InstanceMethod("getWriteTxnId", &EnvWrap::getWriteTxnId),
 		EnvWrap::InstanceMethod("sync", &EnvWrap::sync),
 		EnvWrap::InstanceMethod("resumeWriting", &EnvWrap::resumeWriting),
 		EnvWrap::InstanceMethod("startWriting", &EnvWrap::startWriting),

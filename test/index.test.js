@@ -946,6 +946,7 @@ describe('lmdb-js', function () {
 					}
 					db2.put('key2-async', 'async test 2');
 					should.equal(db2.get('key2-async'), 'async test 2');
+					expect(db.getWriteTxnId()).gte(1);
 				});
 				should.equal(db.get('key1'), 'async test 1');
 				should.equal(db2.get('key2-async'), 'async test 2');
@@ -1152,9 +1153,11 @@ describe('lmdb-js', function () {
 						db.childTransaction(() => {
 							iterator = db.getRange({ start: 'c1' })[Symbol.iterator]();
 							should.equal(iterator.next().value.value, 'value1');
+							expect(db.getWriteTxnId()).gte(1);
 						});
 					}
 					should.equal(iterator.next().value.value, 'value2');
+					expect(db.getWriteTxnId()).gte(1);
 				});
 				should.equal(iterator.next().value.value, 'value3');
 			});
