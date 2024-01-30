@@ -34,7 +34,10 @@ export class RangeIterable {
 									if (!async) {
 										throw new Error('Can not synchronously iterate with asynchronous values');
 									}
-									return iteratorResult.then(iteratorResult => this.next(iteratorResult), onError);
+									return iteratorResult.then(iteratorResult => this.next(iteratorResult), (error) => {
+										this.return();
+										throw error;
+									});
 								}
 							}
 							if (iteratorResult.done === true) {
@@ -52,34 +55,39 @@ export class RangeIterable {
 										this.next() :
 										{
 											value: result
-										}, onError);
+										}, (error) => {
+											this.return();
+											throw error;
+										});
 							}
 						} while(result === SKIP);
 						if (result === DONE) {
-							if (iterable.onDone) iterable.onDone();
-							return result;
+							return this.return();
 						}
 						return {
 							value: result
 						};
 					} catch(error) {
-						onError(error);
+						this.return();
+						throw error;
 					}
 				},
 				return() {
-					if (iterable.onDone) iterable.onDone();
-					return iterator.return();
+					if (!this.done) {
+						this.done = true;
+						if (iterable.onDone) iterable.onDone();
+						return iterator.return();
+					}
 				},
 				throw() {
-					if (iterable.onDone) iterable.onDone();
-					return iterator.throw();
+					if (!this.done) {
+						this.done = true;
+						if (iterable.onDone) iterable.onDone();
+						return iterator.throw();
+					}
 				}
 			};
 		};
-		function onError(error) {
-			if (iterable.onDone) iterable.onDone();
-			throw error;
-		}
 		return iterable;
 	}
 	[Symbol.asyncIterator]() {
@@ -120,11 +128,15 @@ export class RangeIterable {
 								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
 								result.then((result) => {
 									if (result.done()) concatIterable.onDone();
-								}, onError);
+								}, (error) => {
+									this.return();
+									throw error;
+								});
 							} else if (result.done) concatIterable.onDone();
 						}
 					} catch (error) {
-						onError(error);
+						this.return();
+						throw error;
 					}
 				} else {
 					if (concatIterable.onDone) concatIterable.onDone();
@@ -145,7 +157,8 @@ export class RangeIterable {
 						if (result.done) return iteratorDone(result);
 						return result;
 					} catch (error) {
-						onError(error);
+						this.return();
+						throw error;
 					}
 				},
 				return() {
@@ -158,11 +171,6 @@ export class RangeIterable {
 				}
 			};
 		};
-		function onError(error) {
-			if (iterable.onDone) iterable.onDone();
-			throw error;
-		}
-
 		return concatIterable;
 	}
 
@@ -221,7 +229,8 @@ export class RangeIterable {
 							}
 						} while(true);
 					} catch (error) {
-						onError(error);
+						this.return();
+						throw error;
 					}
 				},
 				return() {
@@ -238,10 +247,6 @@ export class RangeIterable {
 				}
 			};
 		};
-		function onError(error) {
-			if (iterable.onDone) iterable.onDone();
-			throw error;
-		}
 		return mappedIterable;
 	}
 
