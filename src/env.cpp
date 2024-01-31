@@ -213,8 +213,7 @@ MDB_txn* EnvWrap::getReadTxn(int64_t tw_address) {
 	if (rc) {
 		if (!txn)
 			fprintf(stderr, "No current read transaction available");
-		if (rc != EINVAL)
-			return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
+		return nullptr; // if there was an error, signal with nullptr and let error propagate with last_error
 	}
 	return txn;
 }
@@ -697,7 +696,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 				if ((envFlags & MDB_OVERLAPPINGSYNC) && envPath->hasWrites) {
 					mdb_env_sync(env, 1);
 				}
-				//delete (ExtendedEnv*) mdb_env_get_userctx(env);
+				delete (ExtendedEnv*) mdb_env_get_userctx(env);
 				#endif
 				char* path;
 				mdb_env_get_path(env, (const char**)&path);

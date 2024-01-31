@@ -94,6 +94,9 @@ export function addReadMethods(LMDBStore, {
 			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			outstandingReads++;
+			if (!txn.address) {
+				throw new Error('Invalid transaction, it has no address');
+			}
 			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( rc, bufferId, offset, size ) => {
 				if (rc && rc !== 1)
 					callback(lmdbError(rc));
@@ -156,6 +159,7 @@ export function addReadMethods(LMDBStore, {
 			if (!buffer.isGlobal && !env.writeTxn) {
 				let txn = options?.transaction || (readTxnRenewed ? readTxn : renewReadTxn(this));
 				buffer.txn = txn;
+				
 				txn.refCount = (txn.refCount || 0) + 1;
 				return data;
 			} else {
@@ -412,6 +416,9 @@ export function addReadMethods(LMDBStore, {
 							if (txn.isDone) throw new Error('Can not iterate on range with transaction that is already' +
 								' done');
 							txnAddress = txn.address;
+							if (!txnAddress) {
+								throw new Error('Invalid transaction, it has no address');
+							}
 							cursor = null;
 						} else {
 							let writeTxn = env.writeTxn;
@@ -427,7 +434,8 @@ export function addReadMethods(LMDBStore, {
 							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
-						txn.refCount = (txn.refCount || 0) + 1; // track transaction so we always use the same one
+						if (txn.use) txn.use(); // track transaction so we always use the same one
+						else txn.refCount = (txn.refCount || 0) + 1;
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
@@ -488,10 +496,13 @@ export function addReadMethods(LMDBStore, {
 						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
-					if (--txn.refCount <= 0 && txn.notCurrent) {
-						cursor.close();
-						txn.abort(); // this is no longer main read txn, abort it now that we are done
+					if (txn.done) txn.done();
+					else if (--txn.refCount <= 0 && txn.notCurrent) {
+						txn.abort();
 						txn.isDone = true;
+					}
+					if (txn.refCount <= 0 && txn.notCurrent) {
+						cursor.close();
 					} else {
 						if (db.availableCursor || txn != readTxn) {
 							cursor.close();
