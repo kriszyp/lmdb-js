@@ -18,6 +18,7 @@ export class RangeIterable {
 		let iterable = new RangeIterable();
 		iterable.iterate = (async) => {
 			let iterator = source[async ? Symbol.asyncIterator : Symbol.iterator]();
+			if (!async) source.isSync = true;
 			let i = 0;
 			return {
 				next(resolvedResult) {
@@ -45,11 +46,9 @@ export class RangeIterable {
 								if (iterable.onDone) iterable.onDone();
 								return iteratorResult;
 							}
-							result = func(iteratorResult.value, i++);
-							if (result && result.then) {
-								if (!async) {
-									throw new Error('Can not synchronously iterate with asynchronous values');
-								}
+							result = func.call(source, iteratorResult.value, i++);
+							if (result && result.then && async) {
+								// if async, wait for promise to resolve before returning iterator result
 								return result.then(result =>
 									result === SKIP ?
 										this.next() :
