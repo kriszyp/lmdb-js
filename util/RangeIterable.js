@@ -3,6 +3,10 @@ const DONE = {
 	value: null,
 	done: true,
 }
+const RETURN_DONE = { // we allow this one to be mutated
+	value: null,
+	done: true,
+};
 if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
 }
@@ -33,11 +37,10 @@ export class RangeIterable {
 								iteratorResult = iterator.next();
 								if (iteratorResult.then) {
 									if (!async) {
-										throw new Error('Can not synchronously iterate with asynchronous values');
+										this.throw(new Error('Can not synchronously iterate with asynchronous values'));
 									}
 									return iteratorResult.then(iteratorResult => this.next(iteratorResult), (error) => {
-										this.return();
-										throw error;
+										this.throw(error);
 									});
 								}
 							}
@@ -55,8 +58,7 @@ export class RangeIterable {
 										{
 											value: result
 										}, (error) => {
-											this.return();
-											throw error;
+											this.throw(error);
 										});
 							}
 						} while(result === SKIP);
@@ -67,23 +69,21 @@ export class RangeIterable {
 							value: result
 						};
 					} catch(error) {
-						this.return();
-						throw error;
+						this.throw(error);
 					}
 				},
-				return() {
+				return(value) {
 					if (!this.done) {
+						RETURN_DONE.value = value;
 						this.done = true;
 						if (iterable.onDone) iterable.onDone();
-						return iterator.return();
+						iterator.return();
 					}
+					return RETURN_DONE;
 				},
-				throw() {
-					if (!this.done) {
-						this.done = true;
-						if (iterable.onDone) iterable.onDone();
-						return iterator.throw();
-					}
+				throw(error) {
+					this.return();
+					throw error;
 				}
 			};
 		};
@@ -134,8 +134,7 @@ export class RangeIterable {
 							} else if (result.done) concatIterable.onDone();
 						}
 					} catch (error) {
-						this.return();
-						throw error;
+						this.throw(error);
 					}
 				} else {
 					if (concatIterable.onDone) concatIterable.onDone();
@@ -161,12 +160,18 @@ export class RangeIterable {
 					}
 				},
 				return() {
-					if (concatIterable.onDone) concatIterable.onDone();
-					return iterator.return();
+					if (!this.done) {
+						RETURN_DONE.value = value;
+						this.done = true;
+						if (concatIterable.onDone) concatIterable.onDone();
+						iterator.return();
+					}
+					return RETURN_DONE;
+
 				},
-				throw() {
-					if (concatIterable.onDone) concatIterable.onDone();
-					return iterator.throw();
+				throw(error) {
+					this.return();
+					throw error;
 				}
 			};
 		};

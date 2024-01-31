@@ -106,9 +106,6 @@ void TxnWrap::removeFromEnvWrap() {
 	if (this->ew) {
 		if (this->ew->currentWriteTxn == this) {
 			this->ew->currentWriteTxn = this->parentTw;
-			if (this->parentTw) {
-				fprintf(stderr, "ending child transaction\n");
-			}
 		}
 		else {
 			auto it = std::find(ew->readTxns.begin(), ew->readTxns.end(), this);
