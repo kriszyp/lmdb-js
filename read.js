@@ -490,7 +490,7 @@ export function addReadMethods(LMDBStore, {
 				}
 
 				function finishCursor() {
-					if (txn.isDone)
+					if (!cursor || txn.isDone)
 						return;
 					if (iterable.onDone)
 						iterable.onDone()
@@ -511,6 +511,7 @@ export function addReadMethods(LMDBStore, {
 							db.cursorTxn = txn;
 						}
 					}
+					cursor = null;
 				}
 				return {
 					next() {
@@ -518,6 +519,9 @@ export function addReadMethods(LMDBStore, {
 						if (cursorRenewId && (cursorRenewId != renewId || txn.isDone)) {
 							resetCursor();
 							keySize = position(0);
+						}
+						if (!cursor) {
+							return ITERATOR_DONE;
 						}
 						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
 							keySize = position(options.offset);
