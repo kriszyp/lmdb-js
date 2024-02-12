@@ -66,7 +66,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	return cursor;
 }
 
-#if 0	/* superseded by append/sort */
+	/* superseded by append/sort */
 int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
 {
 	unsigned x, i;
@@ -91,15 +91,51 @@ int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
 		return -2;
 
 	} else {
-		/* insert id */
-		for (i=ids[0]; i>x; i--)
-			ids[i] = ids[i-1];
-		ids[x] = id;
+		if (x >= ids[0]) return -3; // at the end
+		MDB_ID next_id = ids[x];
+		if (id < 0) next_id = ids[x + 1];
+		if (id - 1 == next_id) {
+			// connected to next entry
+			ids[x]--; // increment negatively, as we have just expanded a block
+			ids[x + 1] = id;
+			return 0;
+		}
+		unsigned before = x;
+		while (!ids[--before] && before >= 0){} // move past empty entries
+		if (before >= 0) {
+			MDB_ID next_id = before > 0 ? ids[before] : 0;
+			int count = before > 1 ? -ids[before - 1] : 0;
+			if (count < 1) count = 1;
+			if (next_id - count == id) {
+				// connected to previous entry
+				if (count > 1) {
+					ids[before - 1]--; // can just update the count to include this id
+					return 0;
+				} else {
+					// TODO: need to make space for this one
+				}
+			}
+		}
+		if (before + 1 < x) {
+			// there is an empty slot we can use, find a place in the middle
+			ids[(before + x) >> 1] = id;
+			return 0;
+		}
+		// move items to try to make room
+		MDB_ID last_id = id;
+		i = x;
+		do {
+			MDB_ID next_id = ids[i];
+			ids[i++] = last_id;
+			last_id = next_id;
+		} while(next_id);
+		if (x == ids[0] || // if it is full
+			x - i > ids[0] >> 3) // or too many moves. TODO: This threshold should actually be more like the square root of the length
+		return -3; // request to grow
 	}
 
 	return 0;
 }
-#endif
 
 MDB_IDL mdb_midl_alloc(int num)
 {
@@ -146,10 +182,23 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 	num += ids[0];
 	if (num > ids[-1]) {
 		num = (num + num/4 + (256 + 2)) & -256;
-		if (!(ids = realloc(ids-1, num * sizeof(MDB_ID))))
+		MDB_IDL new_ids; 
+		if (!(new_ids = alloc(ids-1, num * sizeof(MDB_ID))))
 			return ENOMEM;
-		*ids++ = num - 2;
-		*idp = ids;
+		*new_ids++ = num - 2;
+		unsigned j = 0;
+		// re-spread out the entries with gaps for growth
+		for (unsigned i = 1; i < ids[0]; i++) {
+			new_ids[j++] = 0; // empty slot for growth
+			ssize_t entry;
+			while (!(entry = ids[i])) { i++; } 
+			new_ids[j++] = entry;
+			if (entry < 0) new_ids[j++] = ids[i++]; // this was a block with a length
+		}
+		// now shrink (or grow) back to appropriate size
+		new_ids = alloc(new_ids - 1, (j + (j >> 3)) * sizeof(MDB_ID));
+		new_ids++;
+		*idp = new_ids;
 	}
 	return 0;
 }

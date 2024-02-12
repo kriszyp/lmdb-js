@@ -1581,7 +1581,9 @@ typedef struct MDB_xcursor {
 	/** State of FreeDB old pages, stored in the MDB_env */
 typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
+	pgno_t		*mf_block_size_cache;	/**< Cache of contiguous blocks, by size and page_no pairs */
 	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
+	unsigned	mf_position; /** Position in the free page list, so that we can keep trying to write to the same block if possible */
 } MDB_pgstate;
 /*<lmdb-js>*/
 struct MDB_last_map {
@@ -1642,6 +1644,8 @@ struct MDB_env {
 	MDB_pgstate	me_pgstate;		/**< state of old pages from freeDB */
 #	define		me_pglast	me_pgstate.mf_pglast
 #	define		me_pghead	me_pgstate.mf_pghead
+#	define		me_block_size_cache	me_pgstate.mf_block_size_cache
+#	define		me_freelist_position	me_pgstate.mf_position
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -2718,6 +2722,13 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		goto fail;
 	}
 
+	if (!env->me_block_size_cache) {
+		env->me_block_size_cache = calloc(32, sizeof(pgno_t));
+		env->me_block_size_cache[0] = 31;
+	}
+	unsigned cache_size = env->me_block_size_cache[0];
+	pgno_t best_fit_start = 0; // this is a block we will use if we don't find an exact fit
+	pgno_t best_fit_size = -1;
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
@@ -2726,13 +2737,71 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		/* Seek a big enough contiguous page range. Prefer
 		 * pages at the tail, just truncating the list.
 		 */
+		pgno_t block_start;
+		fprintf(stderr, "looking for block of size %u\n", num);
+		if (cache_size > num) {
+			block_start = env->me_block_size_cache[num];
+			if (block_start > 0) {
+				fprintf(stderr, "found block %u of right size %u\n", block_start, num);
+				// we found a block of the right size
+				env->me_block_size_cache[num] = 0; // clear it out, since it will be used (or it is invalid)
+				pgno = mdb_midl_search(env->me_pghead, block_start);
+				fprintf(stderr, "does it checkout %u == %u\n", block_start, pgno);
+				if (pgno == block_start && pgno + num <= mop_len) { // double check it
+					goto search_done;
+				}
+			}
+		}
+		block_start = 0;
+		unsigned block_size = 0;
+		ssize_t entry;
+		// TODO: Skip this on the first iteration, since we already checked the cache
 		if (mop_len > n2) {
 			i = mop_len;
 			do {
-				pgno = mop[i];
-				if (mop[i-n2] == pgno+n2)
-					goto search_done;
-			} while (--i > n2);
+				entry = i == 0 ? 0 : mop[i];
+				fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
+				if (entry == 0) continue;
+				if (entry > 0) {
+					pgno = entry;
+					block_size = 1;
+				} else {
+					block_size = -entry;
+					pgno = mop[--i];
+				}
+				if (pgno == block_start + block_size) {
+					block_size++; // count current contiguous block size
+				} else {
+					if (block_size >= num) {
+						if (block_size == num) {
+							// we found a block of the right size
+							pgno = block_start;
+							goto search_done;
+						} else if (block_size < best_fit_size || best_fit_size == 0) {
+							best_fit_start = block_start;
+							best_fit_size = block_size;
+						}
+					}
+					if (block_size > 0) {
+						// cache this block size
+						if (block_size >= 2<<30) block_size = (2<<30) - 1;
+						unsigned cache_size = env->me_block_size_cache[0];
+						if (block_size > cache_size) {
+							fprintf(stderr, "expand block size cache to %u\n", block_size << 1);
+							env->me_block_size_cache = realloc(env->me_block_size_cache, (block_size << 1) * sizeof(pgno_t));
+							env->me_block_size_cache[0] = (block_size << 1) - 1;
+							memset(env->me_block_size_cache + cache_size + 1, 0, (env->me_block_size_cache[0] - cache_size) * sizeof(pgno_t));
+							cache_size = env->me_block_size_cache[0];
+						}
+						env->me_block_size_cache[block_size] = block_start;
+						fprintf(stderr, "cached block %u of size %u\n", block_start, block_size);
+					}
+					block_start = pgno;
+					block_size = 1;
+				}
+				//if (mop[i-n2] == pgno+n2)
+				//	goto search_done;
+			} while (--i >= 0);
 			if (--retry < 0)
 				break;
 		}
@@ -2813,10 +2882,23 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		mdb_midl_xmerge(mop, idl);
+		fprintf(stderr, "merge\n");
+		for (unsigned i = i; i < idl[0]; i++) {
+			if (mdb_midl_insert(mop, idl[i]) == -3) {
+				if ((rc = mdb_midl_need(&env->me_pghead, idl[0])) != 0)
+					goto fail;
+				mop = env->me_pghead;
+			}
+			//mdb_midl_xmerge(mop, idl);
+		}
 		mop_len = mop[0];
 	}
-
+	if (best_fit_start > 0) {
+		pgno = best_fit_start;
+		fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
+		env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
+		goto search_done;
+	}
 	/* Use new pages from the map when nothing suitable in the freeDB */
 	i = 0;
 	pgno = txn->mt_next_pgno;
@@ -2841,6 +2923,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 #endif
 
 search_done:
+	fprintf(stderr, "alloc pgno %u\n", pgno);
 	if (env->me_flags & MDB_WRITEMAP) {
 		np = (MDB_page *)(env->me_map + env->me_psize * pgno);
 	} else {
@@ -3766,8 +3849,9 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			env->me_pghead = NULL;
-			env->me_pglast = 0;
+			fprintf(stderr, "txn_end env->me_pghead %p", env->me_pghead);
+			//env->me_pghead = NULL;
+			//env->me_pglast = 0;
 
 			env->me_txn = NULL;
 			mode = 0;	/* txn == env->me_txn0, do not free() it */
@@ -3782,7 +3866,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_free(txn->mt_free_pgs);
 			free(txn->mt_u.dirty_list);
 		}
-		mdb_midl_free(pghead);
+		//mdb_midl_free(pghead);
 	}
 #if MDB_RPAGE_CACHE
 	if (MDB_REMAPPING(env->me_flags) && !txn->mt_parent) {
@@ -4610,8 +4694,8 @@ mdb_txn_commit(MDB_txn *txn)
 	if (rc)
 		goto fail;
 
-	mdb_midl_free(env->me_pghead);
-	env->me_pghead = NULL;
+	//mdb_midl_free(env->me_pghead);
+	//env->me_pghead = NULL;
 	mdb_midl_shrink(&txn->mt_free_pgs);
 
 #if (MDB_DEBUG) > 2

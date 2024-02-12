@@ -109,6 +109,13 @@ void mdb_midl_shrink(MDB_IDL *idp);
 	 */
 int mdb_midl_need(MDB_IDL *idp, unsigned num);
 
+/** Insert an ID into an IDL.
+ * @param[in,out] idp	Address of the IDL to append to.
+ * @param[in] id	The ID to append.
+ * @return	0 on success, ENOMEM if the IDL is too large.
+ */
+int mdb_midl_insert( MDB_IDL *idp, MDB_ID id );
+
 	/** Append an ID onto an IDL.
 	 * @param[in,out] idp	Address of the IDL to append to.
 	 * @param[in] id	The ID to append.
