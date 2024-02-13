@@ -67,8 +67,9 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 }
 
 	/* superseded by append/sort */
-int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
+int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 {
+	MDB_IDL ids = *ids_ref;
 	unsigned x, i;
 
 	x = mdb_midl_search( ids, id );
@@ -130,8 +131,10 @@ int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
 			last_id = next_id;
 		} while(next_id);
 		if (x == ids[0] || // if it is full
-			x - i > ids[0] >> 3) // or too many moves. TODO: This threshold should actually be more like the square root of the length
-		return -3; // request to grow
+			x - i > ids[0] >> 3) { // or too many moves. TODO: This threshold should actually be more like the square root of the length
+			// grow the ids (this will replace the reference too)
+			mdb_midl_need(ids_ref, 1);
+		}
 	}
 
 	return 0;

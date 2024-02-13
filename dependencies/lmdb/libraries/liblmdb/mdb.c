@@ -2884,13 +2884,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		/* Merge in descending sorted order */
 		fprintf(stderr, "merge\n");
 		for (unsigned i = i; i < idl[0]; i++) {
-			if (mdb_midl_insert(mop, idl[i]) == -3) {
-				if ((rc = mdb_midl_need(&env->me_pghead, idl[0])) != 0)
-					goto fail;
-				mop = env->me_pghead;
-			}
+			if ((rc = mdb_midl_insert(&mop, idl[i])) != 0)
+				goto fail;
 			//mdb_midl_xmerge(mop, idl);
 		}
+		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
 	if (best_fit_start > 0) {
