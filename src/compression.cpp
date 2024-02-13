@@ -133,8 +133,7 @@ argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_
 	if (!stream)
 		stream = LZ4_createStream();
 	LZ4_loadDict(stream, compressDictionary, dictionarySize);
-	// TODO: Add in offset here
-	int compressedSize = LZ4_compress_fast_continue(stream, data, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
+	int compressedSize = LZ4_compress_fast_continue(stream, data + startingOffset, compressed + prefixSize, dataLength, maxCompressedSize, acceleration);
 	if (compressedSize > 0) {
 		if (startingOffset > 0) // copy the uncompressed prefix
 			memcpy(compressed, data, startingOffset);
