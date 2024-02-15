@@ -2726,14 +2726,16 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		env->me_block_size_cache = calloc(32, sizeof(pgno_t));
 		env->me_block_size_cache[0] = 31;
 	}
+	unsigned empty_entries = 0;
 	unsigned cache_size = env->me_block_size_cache[0];
-	pgno_t best_fit_start = 0; // this is a block we will use if we don't find an exact fit
-	pgno_t best_fit_size = -1;
+	pgno_t best_fit_start; // this is a block we will use if we don't find an exact fit
+	pgno_t best_fit_size;
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
 		pgno_t *idl;
-
+		best_fit_start = 0;
+		best_fit_size = -1;
 		/* Seek a big enough contiguous page range. Prefer
 		 * pages at the tail, just truncating the list.
 		 */
@@ -2755,56 +2757,52 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		block_start = 0;
 		unsigned block_size = 0;
 		ssize_t entry;
+		empty_entries = 0;
 		// TODO: Skip this on the first iteration, since we already checked the cache
-		if (mop_len > n2) {
-			i = mop_len;
-			do {
-				entry = i == 0 ? 0 : mop[i];
-				fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
-				if (entry == 0) continue;
-				if (entry > 0) {
-					pgno = entry;
-					block_size = 1;
-				} else {
-					block_size = -entry;
-					pgno = mop[--i];
+		for (i = 1; i <= mop_len; i++) {
+			entry = mop[i];
+			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
+			if (entry == 0) {
+				empty_entries++;
+				continue;
+			}
+			if (entry > 0) {
+				pgno = entry;
+				block_size = 1;
+			} else {
+				block_size = -entry;
+				pgno = mop[++i];
+			}
+
+			if (block_size >= num) {
+				if (block_size == num) {
+					// we found a block of the right size
+					mop[i] = 0;
+					if (block_size > 1) mop[i + 1] = 0;
+					goto search_done;
+				} else if (block_size < best_fit_size || best_fit_size == 0) {
+					best_fit_start = i - 1;
+					best_fit_size = block_size;
 				}
-				if (pgno == block_start + block_size) {
-					block_size++; // count current contiguous block size
-				} else {
-					if (block_size >= num) {
-						if (block_size == num) {
-							// we found a block of the right size
-							pgno = block_start;
-							goto search_done;
-						} else if (block_size < best_fit_size || best_fit_size == 0) {
-							best_fit_start = block_start;
-							best_fit_size = block_size;
-						}
-					}
-					if (block_size > 0) {
-						// cache this block size
-						if (block_size >= 2<<30) block_size = (2<<30) - 1;
-						unsigned cache_size = env->me_block_size_cache[0];
-						if (block_size > cache_size) {
-							fprintf(stderr, "expand block size cache to %u\n", block_size << 1);
-							env->me_block_size_cache = realloc(env->me_block_size_cache, (block_size << 1) * sizeof(pgno_t));
-							env->me_block_size_cache[0] = (block_size << 1) - 1;
-							memset(env->me_block_size_cache + cache_size + 1, 0, (env->me_block_size_cache[0] - cache_size) * sizeof(pgno_t));
-							cache_size = env->me_block_size_cache[0];
-						}
-						env->me_block_size_cache[block_size] = block_start;
-						fprintf(stderr, "cached block %u of size %u\n", block_start, block_size);
-					}
-					block_start = pgno;
-					block_size = 1;
+			}
+			if (block_size > 0) {
+				// cache this block size
+				if (block_size >= 2<<30) block_size = (2<<30) - 1;
+				unsigned cache_size = env->me_block_size_cache[0];
+				if (block_size > cache_size) {
+					fprintf(stderr, "expand block size cache to %u\n", block_size << 1);
+					env->me_block_size_cache = realloc(env->me_block_size_cache, (block_size << 1) * sizeof(pgno_t));
+					env->me_block_size_cache[0] = (block_size << 1) - 1;
+					memset(env->me_block_size_cache + cache_size + 1, 0, (env->me_block_size_cache[0] - cache_size) * sizeof(pgno_t));
+					cache_size = env->me_block_size_cache[0];
 				}
-				//if (mop[i-n2] == pgno+n2)
-				//	goto search_done;
-			} while (--i >= 0);
-			if (--retry < 0)
-				break;
+				env->me_block_size_cache[block_size] = pgno;
+				fprintf(stderr, "cached block %u of size %u\n", pgno, block_size);
+			}
+			//if (mop[i-n2] == pgno+n2)
+			//	goto search_done;
 		}
+		i = 0;
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
@@ -2869,11 +2867,11 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				rc = ENOMEM;
 				goto fail;
 			}
-		} else {
+		} /*else {
 			if ((rc = mdb_midl_need(&env->me_pghead, i)) != 0)
 				goto fail;
 			mop = env->me_pghead;
-		}
+		}*/
 		env->me_pglast = last;
 #if (MDB_DEBUG) > 1
 		DPRINTF(("IDL read txn %"Yu" root %"Yu" num %u",
@@ -2883,7 +2881,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 #endif
 		/* Merge in descending sorted order */
 		fprintf(stderr, "merge\n");
-		for (unsigned i = i; i < idl[0]; i++) {
+		for (unsigned i = 1; i <= idl[0]; i++) {
 			if ((rc = mdb_midl_insert(&mop, idl[i])) != 0)
 				goto fail;
 			//mdb_midl_xmerge(mop, idl);
@@ -2892,9 +2890,15 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		mop_len = mop[0];
 	}
 	if (best_fit_start > 0) {
-		pgno = best_fit_start;
+		mop[best_fit_start] += num; // block length is a negative, so we add to it in order to subtract the amount we are using
+		if (mop[best_fit_start] == -1) mop[best_fit_start] = 0;
+		pgno = mop[best_fit_start + 1];
+		mop[best_fit_start + 1] += num;
+		env->me_freelist_position = pgno;
 		fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
 		env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
+
+		i = 1; // indicate that we found something
 		goto search_done;
 	}
 	/* Use new pages from the map when nothing suitable in the freeDB */
@@ -2931,10 +2935,13 @@ search_done:
 		}
 	}
 	if (i) {
-		mop[0] = mop_len -= num;
-		/* Move any stragglers down */
+		if (empty_entries > (mop_len >> 1) + 200) {
+			fprintf(stderr, "should resize\n");
+		}
+/*		mop[0] = mop_len -= num;
+		/* Move any stragglers down
 		for (j = i-num; j < mop_len; )
-			mop[++j] = mop[++i];
+			mop[++j] = mop[++i];*/
 	} else {
 		txn->mt_next_pgno = pgno + num;
 	}
