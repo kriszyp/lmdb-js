@@ -2728,7 +2728,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	}
 	unsigned empty_entries = 0;
 	unsigned cache_size = env->me_block_size_cache[0];
-	pgno_t best_fit_start; // this is a block we will use if we don't find an exact fit
+	unsigned best_fit_start; // this is a block we will use if we don't find an exact fit
 	pgno_t best_fit_size;
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
@@ -2758,8 +2758,9 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		unsigned block_size = 0;
 		ssize_t entry;
 		empty_entries = 0;
+		mdb_midl_print(stderr, mop);
 		// TODO: Skip this on the first iteration, since we already checked the cache
-		for (i = 1; i <= mop_len; i++) {
+		for (i = env->me_freelist_position || 1; i <= mop_len; i++) {
 			entry = mop[i];
 			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
 			if (entry == 0) {
@@ -2783,6 +2784,12 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				} else if (block_size < best_fit_size || best_fit_size == 0) {
 					best_fit_start = i - 1;
 					best_fit_size = block_size;
+					if (i == env->me_freelist_position) {
+						// TODO: Only if we are in the same transaction
+						// if we just wrote to this block and we are continuing on this block,
+						// skip ahead to using this block
+						goto continue_best_fit;
+					}
 				}
 			}
 			if (block_size > 0) {
@@ -2802,6 +2809,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			//if (mop[i-n2] == pgno+n2)
 			//	goto search_done;
 		}
+		env->me_freelist_position = 1;
 		i = 0;
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
@@ -2889,12 +2897,13 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
+	continue_best_fit:
 	if (best_fit_start > 0) {
 		mop[best_fit_start] += num; // block length is a negative, so we add to it in order to subtract the amount we are using
 		if (mop[best_fit_start] == -1) mop[best_fit_start] = 0;
 		pgno = mop[best_fit_start + 1];
 		mop[best_fit_start + 1] += num;
-		env->me_freelist_position = pgno;
+		env->me_freelist_position = best_fit_start;
 		fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
 		env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
@@ -3484,6 +3493,15 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
+			// TODO: This should really be equality check and mt_txnid should be decremented if nothing was written
+			if (txn->mt_txnid < ti->mti_txnid) {
+				if (env->me_pghead) mdb_midl_free(env->me_pghead);
+				env->me_pghead = NULL;
+				env->me_pglast = 0;
+				env->me_freelist_position = 0;
+				// TODO: Free it first
+				env->me_block_size_cache = NULL;
+			}
 			txn->mt_txnid = ti->mti_txnid;
 			meta = env->me_metas[txn->mt_txnid & 1];
 		} else {

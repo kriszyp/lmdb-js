@@ -106,22 +106,54 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 	} else {
 		if (x > ids[0]) return -3; // at the end
 		ssize_t next_id = ids[x];
-		if (next_id < 0) next_id = ids[x + 1];
-		if (id - 1 == next_id && next_id > 0) {
-			// connected to next entry
-			ids[x]--; // increment negatively, as we have just expanded a block
-			// ids[x + 1] = id; // no need to adjust id, so since we are adding to the end of the block
-			return 0;
+		unsigned next_count = 1;
+		if (next_id < 0) {
+			next_count = -next_id;
+			next_id = ids[x + 1];
 		}
 		unsigned before = x; // this will end up pointing to an entry or zero right before a block of empty space
 		while (!ids[--before] && before > 0) {
 			// move past empty entries
 		}
+		if (id - next_count == next_id && next_id > 0) {
+			// connected to next entry
+			ssize_t count = next_count + 1;
+			// ids[x + 1] = id; // no need to adjust id, so since we are adding to the end of the block
+
+			if (before > 0) {
+				MDB_ID previous_id = before > 0 ? ids[before] : 0;
+				int previous_count = before > 1 ? -ids[before - 1] : 0;
+				if (previous_count < 1) previous_count = 1;
+				if (previous_id - 1 == id) {
+					// the block we just added to can now be connected to previous entry
+					count += previous_count;
+					if (previous_count > 1) {
+						ids[before - 1] = 0; // remove previous length
+					}
+					ids[before] = 0; // remove previous id
+					if (next_count == 1) {
+						// we can safely add the new count to the empty space
+						ids[x - 1] = -count; // update the count
+						return 0;
+					}
+				}
+			}
+			if (next_count > 1) {
+				ids[x] = -count; // update the count
+			} else if (ids[x - 1] == 0) {
+				ids[x - 1] = -2;
+			} else {
+				id = -2; // switching a single entry to a block size of 2
+				x--;
+				goto insert_id;
+			}
+			return 0;
+		}
 		if (before > 0) {
-			MDB_ID next_id = before > 0 ? ids[before] : 0;
+			MDB_ID previous_id = before > 0 ? ids[before] : 0;
 			int count = before > 1 ? -ids[before - 1] : 0;
 			if (count < 1) count = 1;
-			if (next_id - 1 == id) {
+			if (previous_id - 1 == id) {
 				// connected to previous entry
 				ids[before]--; // adjust the starting block to include this
 				if (count > 1) {
@@ -213,6 +245,7 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 		MDB_IDL new_ids; 
 		if (!(new_ids = calloc(num, sizeof(MDB_ID))))
 			return ENOMEM;
+		fprintf(stderr, "Created new id list of size %u\n", num);
 		*new_ids++ = num - 2;
 		*new_ids = num - 2;
 		unsigned j = 1;
@@ -226,6 +259,7 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 			new_ids[j++] = entry;
 			if (entry < 0) new_ids[j++] = ids[++i]; // this was a block with a length
 		}
+		mdb_midl_free(ids);
 		// now shrink (or grow) back to appropriate size
 		num = (j + (j >> 3) + 22) & -16;
 		if (num > new_ids[0]) num = new_ids[0];
@@ -237,6 +271,28 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 	return 0;
 }
 
+int mdb_midl_print( FILE *fp, MDB_IDL ids )
+{
+	if (ids == NULL) {
+		fprintf(fp, "freelist: NULL\n");
+		return 0;
+	}
+	unsigned i;
+	fprintf(fp, "freelist: %u: ", ids[0]);
+	for (i=1; i<=ids[0]; i++) {
+		ssize_t entry = ids[i];
+		if (entry < 0) {
+			fprintf(fp, "%li-%li ", ids[i+1], ids[i+1] - entry - 1);
+			i++;
+		} else if (ids[i] == 0) {
+			fprintf(fp, "_");
+		} else {
+			fprintf(fp, "%lu ", (unsigned long)ids[i]);
+		}
+	}
+	fprintf(fp, "\n");
+	return 0;
+}
 int mdb_midl_append( MDB_IDL *idp, MDB_ID id )
 {
 	MDB_IDL ids = *idp;

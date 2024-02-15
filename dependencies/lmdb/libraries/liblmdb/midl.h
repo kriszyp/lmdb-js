@@ -28,6 +28,8 @@
 #define _MDB_MIDL_H_
 
 #include "lmdb.h"
+#include <stdio.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,6 +111,7 @@ void mdb_midl_shrink(MDB_IDL *idp);
 	 */
 int mdb_midl_need(MDB_IDL *idp, unsigned num);
 
+int mdb_midl_print( FILE *fp, MDB_IDL ids );
 /** Insert an ID into an IDL.
  * @param[in,out] idp	Address of the IDL to append to.
  * @param[in] id	The ID to append.
