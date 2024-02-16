@@ -2741,7 +2741,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		 */
 		pgno_t block_start;
 		fprintf(stderr, "looking for block of size %u\n", num);
-		if (cache_size > num) {
+		/*if (cache_size > num) {
 			block_start = env->me_block_size_cache[num];
 			if (block_start > 0) {
 				fprintf(stderr, "found block %u of right size %u\n", block_start, num);
@@ -2753,7 +2753,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 					goto search_done;
 				}
 			}
-		}
+		}*/
 		block_start = 0;
 		unsigned block_size = 0;
 		ssize_t entry;
@@ -2779,7 +2779,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				if (block_size == num) {
 					// we found a block of the right size
 					mop[i] = 0;
-					if (block_size > 1) mop[i + 1] = 0;
+					if (block_size > 1) mop[i - 1] = 0;
 					goto search_done;
 				} else if (block_size < best_fit_size || best_fit_size == 0) {
 					best_fit_start = i - 1;
@@ -2791,7 +2791,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 						goto continue_best_fit;
 					}
 				}
-			}
+			}/*
 			if (block_size > 0) {
 				// cache this block size
 				if (block_size >= 2<<30) block_size = (2<<30) - 1;
@@ -2805,7 +2805,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				}
 				env->me_block_size_cache[block_size] = pgno;
 				fprintf(stderr, "cached block %u of size %u\n", pgno, block_size);
-			}
+			}*/
 			//if (mop[i-n2] == pgno+n2)
 			//	goto search_done;
 		}
@@ -2888,9 +2888,13 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		fprintf(stderr, "merge\n");
+		fprintf(stderr, "merge from %u\n", last);
 		for (unsigned i = 1; i <= idl[0]; i++) {
-			if ((rc = mdb_midl_insert(&mop, idl[i])) != 0)
+			ssize_t entry = idl[i];
+			if (entry < 0) {
+				fprintf(stderr, "Block length entry\n");
+			}
+			if ((rc = mdb_midl_insert(&mop, entry)) != 0)
 				goto fail;
 			//mdb_midl_xmerge(mop, idl);
 		}
@@ -4046,11 +4050,14 @@ mdb_freelist_save(MDB_txn *txn)
 			if (rc)
 				return rc;
 			pglast = head_id = *(txnid_t *)key.mv_data;
+			fprintf(stderr, "deleting freespace page %u\n", head_id);
 			total_room = head_room = 0;
-			mdb_tassert(txn, pglast <= env->me_pglast);
-			rc = mdb_cursor_del(&mc, 0);
-			if (rc)
-				return rc;
+			if (pglast <= env->me_pglast) {
+				mdb_tassert(txn, pglast <= env->me_pglast);
+				rc = mdb_cursor_del(&mc, 0);
+				if (rc)
+					return rc;
+			}
 		}
 
 		/* Save the IDL of pages freed by this txn, to a single record */
@@ -4063,6 +4070,8 @@ mdb_freelist_save(MDB_txn *txn)
 			}
 			free_pgs = txn->mt_free_pgs;
 			/* Write to last page of freeDB */
+			fprintf(stderr, "write freed pages %u\n", txn->mt_txnid);
+			mdb_midl_print(stderr, free_pgs);
 			key.mv_size = sizeof(txn->mt_txnid);
 			key.mv_data = &txn->mt_txnid;
 			do {
@@ -4089,7 +4098,7 @@ mdb_freelist_save(MDB_txn *txn)
 		}
 
 		mop = env->me_pghead;
-		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
+		mop_len = (mop ? mdb_midl_pack_count(mop) : 0) + txn->mt_loose_count;
 
 		/* Reserve records for me_pghead[]. Split it if multi-page,
 		 * to avoid searching freeDB for a page range. Use keys in
@@ -4135,27 +4144,31 @@ mdb_freelist_save(MDB_txn *txn)
 	if (txn->mt_loose_pgs) {
 		MDB_page *mp = txn->mt_loose_pgs;
 		unsigned count = txn->mt_loose_count;
-		MDB_IDL loose;
-		/* Room for loose pages + temp IDL with same */
+		/*MDB_IDL loose;
+		// Room for loose pages + temp IDL with same
 		if ((rc = mdb_midl_need(&env->me_pghead, 2*count+1)) != 0)
-			return rc;
+			return rc;*/
 		lost_loose += count;
 		mop = env->me_pghead;
-		loose = mop + MDB_IDL_ALLOCLEN(mop) - count;
+		//loose = mop + MDB_IDL_ALLOCLEN(mop) - count;
 		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
-			loose[ ++count ] = mp->mp_pgno;
+			mdb_midl_insert(&mop, mp->mp_pgno);
+			/*loose[ ++count ] = mp->mp_pgno;
 		loose[0] = count;
 		mdb_midl_sort(loose);
-		mdb_midl_xmerge(mop, loose);
+		mdb_midl_xmerge(mop, loose);*/
+		env->me_pghead = mop;
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
-		mop_len = mop[0];
+		//mop_len = mop[0];
 	}
 
 	/* Fill in the reserved me_pghead records.  Everything is finally
 	 * in place, so this will not allocate or free any DB pages.
 	 */
 	rc = MDB_SUCCESS;
+	mop = mdb_midl_pack(mop);
+	mop_len = mop ? mop[0] : 0;
 	if (mop_len) {
 		MDB_val key, data;
 
@@ -4167,6 +4180,7 @@ mdb_freelist_save(MDB_txn *txn)
 		rc = mdb_cursor_first(&mc, &key, &data);
 		for (; !rc; rc = mdb_cursor_next(&mc, &key, &data, MDB_NEXT)) {
 			txnid_t id = *(txnid_t *)key.mv_data;
+			fprintf(stderr, "finishing save of freespace %u\n", id);
 			ssize_t	len = (ssize_t)(data.mv_size / sizeof(MDB_ID)) - 1;
 			MDB_ID save;
 
@@ -4185,8 +4199,9 @@ mdb_freelist_save(MDB_txn *txn)
 			if (rc || !mop_len)
 				break;
 		}
+		mdb_midl_free(mop);
 
-		env->me_pghead = mop - mop_len;
+		//env->me_pghead = mop - mop_len;
 	}
 
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */

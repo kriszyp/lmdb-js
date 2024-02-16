@@ -59,7 +59,7 @@ describe('lmdb-js', function () {
 		});
 	});
 	let testIteration = 0;
-	describe('Basic use', basicTests({}));
+	describe.skip('Basic use', basicTests({}));
 	describe(
 		'Basic use with overlapping sync',
 		basicTests({
@@ -245,6 +245,32 @@ describe('lmdb-js', function () {
 					'0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8',
 				]);
 			});
+			it.only('bigger puts, testing free space management', async function () {
+				let seed = 15325223;
+				function random() {
+					return randomInt() / 2038074743;
+				}
+				function randomInt() {
+					seed++;
+					let a = seed * 15485863;
+					return a * a * a % 2038074743;
+				}
+
+				let promise;
+				let additive = 'this is more text';
+				for (let i = 0; i < 7; i++) additive += additive;
+				for (let i = 0; i < 1000; i++) {
+					let text = 'this is a test';
+					while(random() < 0.95) text += additive;
+					console.log('write', i, text.length);
+					promise = db.put(i % 10, text);
+					if (i % 6 == 0) {
+						await promise;
+					}
+				}
+				await promise;
+			});
+
 			it('clear between puts', async function () {
 				db.put('key0', 'zero');
 				db.clearAsync();

@@ -41,6 +41,56 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	unsigned base = 0;
 	unsigned cursor = 1;
 	int val = 0;
+	unsigned n = ids[0];
+	unsigned end = n;
+
+	binary_search:
+	while( 0 < n ) {
+		unsigned pivot = n >> 1;
+		cursor = base + pivot + 1;
+		unsigned x = cursor;
+		// skip past empty and block length entries
+		while(((ssize_t)ids[x]) <= 0) {
+			if (++x > end) { // reached the end, go to lower half
+				n = pivot;
+				val = 0;
+				end -= pivot;
+				goto binary_search;
+			}
+		}
+		val = CMP( ids[cursor], id );
+
+		if( val < 0 ) {
+			n = pivot;
+			end -= pivot;
+		} else if ( val > 0 ) {
+			base = cursor;
+			n -= pivot + 1;
+		} else {
+			return cursor;
+		}
+	}
+	if( val > 0 ) {
+		unsigned next = ++cursor;
+		end = ids[0];
+		// skip past empty and block length entries
+		while(((ssize_t)ids[cursor]) <= 0) {
+			if (++cursor > end) { // reached the end
+				return next; // go back to the one after the last value in this case
+			}
+		}
+	}
+	return cursor;
+	/*
+	 * binary search of id in ids
+	 * if found, returns position of id
+	 * if not found, returns first position greater than id
+	 *
+
+
+	unsigned base = 0;
+	unsigned cursor = 1;
+	int val = 0;
 	unsigned end = ids[0];
 
 	while( base + 1 < end ) {
@@ -62,6 +112,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 		val = CMP( entry, id );
 
 		if( val < 0 ) {
+			while(!ids[cursor - 1]) cursor--;
 			if (cursor == end) return cursor;
 			end = cursor;
 		} else if ( val > 0 ) {
@@ -75,7 +126,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	if( val > 0 ) {
 		++cursor;
 	}
-	return cursor;
+	return cursor;*/
 }
 
 	/* superseded by append/sort */
@@ -144,7 +195,6 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 				ids[x - 1] = -2;
 			} else {
 				id = -2; // switching a single entry to a block size of 2
-				x--;
 				goto insert_id;
 			}
 			return 0;
@@ -234,6 +284,33 @@ static int mdb_midl_grow( MDB_IDL *idp, int num )
 	*idn++ += num;
 	*idp = idn;
 	return 0;
+}
+
+MDB_IDL mdb_midl_pack(MDB_IDL idl) {
+	if (!idl) return NULL;
+	MDB_IDL packed = mdb_midl_alloc(idl[0]);
+	unsigned j = 1;
+	for (unsigned i = 1; i < idl[0]; i++) {
+		ssize_t entry = idl[i];
+		if (entry) packed[j++] = entry;
+	}
+	if (j == 1) {
+		// empty list, just treat as no list
+		mdb_midl_free(packed);
+		return NULL;
+	}
+	packed[0] = j - 1;
+	return packed;
+}
+
+unsigned mdb_midl_pack_count(MDB_IDL idl) {
+	unsigned count = 0;
+	if (idl) {
+		for (unsigned i = 1; i < idl[0]; i++) {
+			if (idl[i]) count++;
+		}
+	}
+	return count;
 }
 
 int mdb_midl_need( MDB_IDL *idp, unsigned num )
