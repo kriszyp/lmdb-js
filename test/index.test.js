@@ -1,34 +1,33 @@
 import chai from 'chai';
-import path, { dirname } from 'path';
+import path, {dirname} from 'path';
 import rimraf from 'rimraf';
+import {spawn} from 'child_process';
+import {unlinkSync} from 'fs'
+import {fileURLToPath} from 'url'
+import {Worker} from 'worker_threads';
+import {encoder as orderedBinaryEncoder} from 'ordered-binary/index.js'
+import {createRequire} from 'module';
+import {createBufferForAddress} from '../native.js';
+import {
+	ABORT,
+	asBinary,
+	bufferToKeyValue,
+	DIRECT_WRITE_PLACEHOLDER,
+	IF_EXISTS,
+	keyValueToBuffer,
+	levelup,
+	open,
+	TIMESTAMP_PLACEHOLDER
+} from '../node-index.js';
+import {openAsClass} from '../open.js';
+import {RangeIterable} from '../util/RangeIterable.js';
 
 let should = chai.should();
 let expect = chai.expect;
-import { spawn } from 'child_process';
-import { unlinkSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { Worker } from 'worker_threads';
-import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
-import inspector from 'inspector'
 //inspector.open(9229, null, true); debugger
 let nativeMethods,
 	dirName = dirname(fileURLToPath(import.meta.url));
 
-import { createRequire } from 'module';
-import { createBufferForAddress, fs } from '../native.js';
-import {
-	ABORT,
-	IF_EXISTS,
-	asBinary,
-	bufferToKeyValue,
-	keyValueToBuffer,
-	levelup,
-	open,
-	TIMESTAMP_PLACEHOLDER,
-	DIRECT_WRITE_PLACEHOLDER
-} from '../node-index.js';
-import { openAsClass } from '../open.js';
-import { RangeIterable } from '../util/RangeIterable.js';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
 // that is webstorm debugging)

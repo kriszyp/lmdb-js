@@ -4173,6 +4173,7 @@ mdb_freelist_save(MDB_txn *txn)
 		MDB_val key, data;
 
 		/* Protect DB env from any (buggy) freelist use when saving mop */
+		MDB_IDL pghead = env->me_pghead;
 		env->me_pghead = NULL;
 		txn->mt_dirty_room = 0;
 
@@ -4199,9 +4200,9 @@ mdb_freelist_save(MDB_txn *txn)
 			if (rc || !mop_len)
 				break;
 		}
-		mdb_midl_free(mop);
+		//mdb_midl_free(mop);
 
-		//env->me_pghead = mop - mop_len;
+		env->me_pghead = pghead;
 	}
 
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */

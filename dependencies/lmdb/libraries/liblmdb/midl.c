@@ -54,15 +54,15 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 			if (++x > end) { // reached the end, go to lower half
 				n = pivot;
 				val = 0;
-				end -= pivot;
+				end = cursor;
 				goto binary_search;
 			}
 		}
-		val = CMP( ids[cursor], id );
+		val = CMP( ids[x], id );
 
 		if( val < 0 ) {
 			n = pivot;
-			end -= pivot;
+			end = x;
 		} else if ( val > 0 ) {
 			base = cursor;
 			n -= pivot + 1;
@@ -70,14 +70,14 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 			return cursor;
 		}
 	}
-	if( val > 0 ) {
-		unsigned next = ++cursor;
-		end = ids[0];
-		// skip past empty and block length entries
-		while(((ssize_t)ids[cursor]) <= 0) {
-			if (++cursor > end) { // reached the end
-				return next; // go back to the one after the last value in this case
-			}
+	unsigned next;
+	if( val > 0 ) ++cursor;
+	unsigned x = cursor;
+	end = ids[0];
+	// skip past empty and block length entries
+	while(((ssize_t)ids[cursor]) <= 0) {
+		if (++cursor > end) { // reached the end
+			return x; // go back to the one after the last value in this case
 		}
 	}
 	return cursor;
@@ -157,14 +157,12 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 	} else {
 		if (x > ids[0]) return -3; // at the end
 		ssize_t next_id = ids[x];
-		unsigned next_count = 1;
-		if (next_id < 0) {
-			next_count = -next_id;
-			next_id = ids[x + 1];
-		}
+		ssize_t next_count = ids[x - 1];
+		if (next_count < 0) next_count = -next_count;
+		else next_count = 1;
 		unsigned before = x; // this will end up pointing to an entry or zero right before a block of empty space
-		while (!ids[--before] && before > 0) {
-			// move past empty entries
+		while ((ssize_t)ids[--before] <= 0 && before > 0) {
+			// move past empty entries (and the length entry)
 		}
 		if (id - next_count == next_id && next_id > 0) {
 			// connected to next entry
@@ -190,7 +188,7 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 				}
 			}
 			if (next_count > 1) {
-				ids[x] = -count; // update the count
+				ids[x - 1] = -count; // update the count
 			} else if (ids[x - 1] == 0) {
 				ids[x - 1] = -2;
 			} else {
@@ -221,7 +219,7 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 			ids[2] = id;
 			return 0;
 		}
-		if (before + 1 < x) {
+		if (!ids[before + 1]) {
 			// there is an empty slot we can use, find a place in the middle
 			ids[before + 3 < x ? (before + 2) : (before + 1)] = id;
 			i = 0;
@@ -231,6 +229,7 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id )
 		// move items to try to make room
 		ssize_t last_id = id;
 		i = x;
+		if ((ssize_t)ids[i - 1] < 0) i--;
 		do {
 			next_id = ids[i];
 			ids[i++] = last_id;
@@ -259,8 +258,8 @@ MDB_IDL mdb_midl_alloc(int num)
 
 void mdb_midl_free(MDB_IDL ids)
 {
-	if (ids)
-		free(ids-1);
+	//if (ids)
+	//	free(ids-1);
 }
 
 void mdb_midl_shrink( MDB_IDL *idp )
