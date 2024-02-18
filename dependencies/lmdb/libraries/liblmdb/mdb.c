@@ -3767,8 +3767,8 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			env->me_pghead = NULL;
-			env->me_pglast = 0;
+			//env->me_pghead = NULL;
+			//env->me_pglast = 0;
 
 			env->me_txn = NULL;
 			mode = 0;	/* txn == env->me_txn0, do not free() it */
@@ -3783,7 +3783,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_free(txn->mt_free_pgs);
 			free(txn->mt_u.dirty_list);
 		}
-		mdb_midl_free(pghead);
+		//mdb_midl_free(pghead);
 	}
 #if MDB_RPAGE_CACHE
 	if (MDB_REMAPPING(env->me_flags) && !txn->mt_parent) {
@@ -3941,10 +3941,12 @@ mdb_freelist_save(MDB_txn *txn)
 				return rc;
 			pglast = head_id = *(txnid_t *)key.mv_data;
 			total_room = head_room = 0;
-			mdb_tassert(txn, pglast <= env->me_pglast);
-			rc = mdb_cursor_del(&mc, 0);
-			if (rc)
-				return rc;
+			if (pglast <= env->me_pglast) {
+				mdb_tassert(txn, pglast <= env->me_pglast);
+				rc = mdb_cursor_del(&mc, 0);
+				if (rc)
+					return rc;
+			}
 		}
 
 		/* Save the IDL of pages freed by this txn, to a single record */
@@ -4055,6 +4057,7 @@ mdb_freelist_save(MDB_txn *txn)
 		MDB_val key, data;
 
 		/* Protect DB env from any (buggy) freelist use when saving mop */
+		MDB_IDL pghead = env->me_pghead;
 		env->me_pghead = NULL;
 		txn->mt_dirty_room = 0;
 
@@ -4081,7 +4084,7 @@ mdb_freelist_save(MDB_txn *txn)
 				break;
 		}
 
-		env->me_pghead = mop - mop_len;
+		env->me_pghead = pghead;
 	}
 
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
@@ -4612,8 +4615,8 @@ mdb_txn_commit(MDB_txn *txn)
 	if (rc)
 		goto fail;
 
-	mdb_midl_free(env->me_pghead);
-	env->me_pghead = NULL;
+	//mdb_midl_free(env->me_pghead);
+	//env->me_pghead = NULL;
 	mdb_midl_shrink(&txn->mt_free_pgs);
 
 #if (MDB_DEBUG) > 2
