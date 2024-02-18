@@ -111,6 +111,8 @@ void mdb_midl_shrink(MDB_IDL *idp);
 	 */
 int mdb_midl_need(MDB_IDL *idp, unsigned num);
 
+int mdb_midl_respread(MDB_IDL *idp);
+
 int mdb_midl_print( FILE *fp, MDB_IDL ids );
 MDB_IDL mdb_midl_pack(MDB_IDL idl);
 unsigned mdb_midl_pack_count(MDB_IDL idl);
@@ -120,7 +122,7 @@ unsigned mdb_midl_pack_count(MDB_IDL idl);
  * @param[in] id	The ID to append.
  * @return	0 on success, ENOMEM if the IDL is too large.
  */
-int mdb_midl_insert( MDB_IDL *idp, MDB_ID id );
+int mdb_midl_insert( MDB_IDL *idp, MDB_ID id, int insertion_count );
 
 	/** Append an ID onto an IDL.
 	 * @param[in,out] idp	Address of the IDL to append to.

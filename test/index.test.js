@@ -254,11 +254,12 @@ describe('lmdb-js', function () {
 					let a = seed * 15485863;
 					return a * a * a % 2038074743;
 				}
+				await new Promise((resolve) => setTimeout(resolve, 3000));
 
 				let promise;
 				let additive = 'this is more text';
 				for (let i = 0; i < 7; i++) additive += additive;
-				for (let i = 0; i < 1000; i++) {
+				for (let i = 0; i < 5000; i++) {
 					let text = 'this is a test';
 					while(random() < 0.95) text += additive;
 					console.log('write', i, text.length);

@@ -2585,7 +2585,7 @@ mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data)
 			goto done;
 		need--;
 	}
-	mdb_midl_sort(txn->mt_spill_pgs);
+	//mdb_midl_sort(txn->mt_spill_pgs);
 
 	/* Flush the spilled part of dirty list */
 	if ((rc = mdb_page_flush(txn, i)) != MDB_SUCCESS)
@@ -2740,7 +2740,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		 * pages at the tail, just truncating the list.
 		 */
 		pgno_t block_start;
-		fprintf(stderr, "looking for block of size %u\n", num);
+		//fprintf(stderr, "looking for block of size %u\n", num);
 		/*if (cache_size > num) {
 			block_start = env->me_block_size_cache[num];
 			if (block_start > 0) {
@@ -2889,15 +2889,8 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 #endif
 		/* Merge in descending sorted order */
 		fprintf(stderr, "merge from %u\n", last);
-		for (unsigned i = 1; i <= idl[0]; i++) {
-			ssize_t entry = idl[i];
-			if (entry < 0) {
-				fprintf(stderr, "Block length entry\n");
-			}
-			if ((rc = mdb_midl_insert(&mop, entry)) != 0)
-				goto fail;
-			//mdb_midl_xmerge(mop, idl);
-		}
+		if ((rc = mdb_midl_append_list(&mop, idl)) != 0)
+			goto fail;
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
@@ -3095,14 +3088,15 @@ mdb_page_touch(MDB_cursor *mc)
 
 	if (!IS_MUTABLE(txn, mp)) {
 		/* Page from an older snapshot */
-		if ((rc = mdb_midl_need(&txn->mt_free_pgs, 1)) ||
+		if ((rc = mdb_midl_insert(&txn->mt_free_pgs, mp->mp_pgno, 1)) ||
 			(rc = mdb_page_alloc(mc, 1, &np)))
 			goto fail;
+		fprintf(stderr, "Freed page %u :", mp->mp_pgno);
+		mdb_midl_print(stderr, txn->mt_free_pgs);
 		pgno = np->mp_pgno;
 		DPRINTF(("touched db %d page %"Yu" -> %"Yu, DDBI(mc),
 			mp->mp_pgno, pgno));
 		mdb_cassert(mc, mp->mp_pgno != pgno);
-		mdb_midl_xappend(txn->mt_free_pgs, mp->mp_pgno);
 		/* Update the parent page, if any, to point to the new page */
 		if (mc->mc_top) {
 			MDB_page *parent = mc->mc_pg[mc->mc_top-1];
@@ -3995,10 +3989,9 @@ mdb_freelist_save(MDB_txn *txn)
 		MDB_page *mp = txn->mt_loose_pgs;
 		MDB_ID2 *dl = txn->mt_u.dirty_list;
 		unsigned x;
-		if ((rc = mdb_midl_need(&txn->mt_free_pgs, txn->mt_loose_count)) != 0)
-			return rc;
 		for (; mp; mp = NEXT_LOOSE_PAGE(mp)) {
-			mdb_midl_xappend(txn->mt_free_pgs, mp->mp_pgno);
+			if ((rc = mdb_midl_insert(&txn->mt_free_pgs, mp->mp_pgno, 1)) != 0)
+				return rc;
 			/* must also remove from dirty list */
 			if (txn->mt_flags & MDB_TXN_WRITEMAP) {
 				for (x=1; x<=dl[0].mid; x++)
@@ -4083,7 +4076,7 @@ mdb_freelist_save(MDB_txn *txn)
 				/* Retry if mt_free_pgs[] grew during the Put() */
 				free_pgs = txn->mt_free_pgs;
 			} while (freecnt < free_pgs[0]);
-			mdb_midl_sort(free_pgs);
+			//mdb_midl_sort(free_pgs);
 			memcpy(data.mv_data, free_pgs, data.mv_size);
 #if (MDB_DEBUG) > 1
 			{
@@ -4152,7 +4145,7 @@ mdb_freelist_save(MDB_txn *txn)
 		mop = env->me_pghead;
 		//loose = mop + MDB_IDL_ALLOCLEN(mop) - count;
 		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
-			mdb_midl_insert(&mop, mp->mp_pgno);
+			mdb_midl_insert(&mop, mp->mp_pgno, 1);
 			/*loose[ ++count ] = mp->mp_pgno;
 		loose[0] = count;
 		mdb_midl_sort(loose);
@@ -7941,7 +7934,7 @@ release:
 			mop[j--] = pg++;
 		mop[0] += ovpages;
 	} else {
-		rc = mdb_midl_append_range(&txn->mt_free_pgs, pg, ovpages);
+		rc = mdb_midl_insert(&txn->mt_free_pgs, pg, ovpages);
 		if (rc)
 			return rc;
 	}
@@ -12340,7 +12333,7 @@ mdb_drop0(MDB_cursor *mc, int subs)
 					if (ni->mn_flags & F_BIGDATA) {
 						MDB_ovpage ovp;
 						memcpy(&ovp, NODEDATA(ni), sizeof(ovp));
-						rc = mdb_midl_append_range(&txn->mt_free_pgs,
+						rc = mdb_midl_insert(&txn->mt_free_pgs,
 							ovp.op_pgno, ovp.op_pages);
 						if (rc)
 							goto done;
