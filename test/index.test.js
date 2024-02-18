@@ -265,7 +265,7 @@ describe('lmdb-js', function () {
 					while(random() < 0.95) text += additive;
 					console.log('write', i, text.length);
 					promise = db.put(i % 10, text);
-					if (i % 6 == 0) {
+					if (i % 16 == 0) {
 						await promise;
 					}
 				}

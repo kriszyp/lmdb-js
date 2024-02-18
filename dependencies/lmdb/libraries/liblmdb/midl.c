@@ -453,36 +453,35 @@ unsigned mdb_midl_pack_count(MDB_IDL idl) {
 int mdb_midl_respread( MDB_IDL *idp )
 {
 	MDB_IDL ids = *idp;
-	unsigned num = ids[0];
-	num = (num + num + (256 + 2)) & -256;
-	MDB_IDL new_ids; 
-	if (!(new_ids = calloc(num, sizeof(MDB_ID))))
-		return ENOMEM;
-	fprintf(stderr, "Created new id list of size %u\n", num);
-	*new_ids++ = num - 2;
-	*new_ids = num - 2;
 	unsigned j = 1;
-	// re-spread out the entries with gaps for growth
-	for (unsigned i = 1; i <= ids[0]; i++) {
-		new_ids[j++] = 0; // empty slot for growth
+	unsigned size = ids[0];
+	unsigned new_size = 0;
+	// first, do compaction
+	for (unsigned i = 1; i <= size; i++) {
 		ssize_t entry;
 		while (!(entry = ids[i])) {
-			if (++i > ids[0]) break;
+			if (++i > ids[0]) goto expand;
 		}
-		new_ids[j++] = entry;
-		if (entry < 0) new_ids[j++] = ids[++i]; // this was a block with a length
+		ids[j++] = entry;
+		new_size += entry < 0 ? 3 : 2; // one for empty space, one for the entry, and one for the length if it is a block
+		if (entry < 0) ids[j++] = ids[++i]; // this was a block with a length
 	}
-	//mdb_midl_free(ids);
-	// now shrink (or grow) back to appropriate size
-	num = (j + (j >> 3) + 22) & -16;
-	if (num > new_ids[0]) {
-		num = new_ids[0];
-		fprintf(stderr, "Reallocating new id list of size %u\n", num);
-		new_ids = realloc(new_ids - 1, (num + 2) * sizeof(MDB_ID));
-		*new_ids++ = num;
+	expand:
+	mdb_midl_need(idp, new_size - ids[0]);
+	ids = *idp;
+	ids[0] = new_size;
+	j--;
+	// re-spread out the entries with gaps for growth
+	for (unsigned i = new_size; i > 0;) {
+		ssize_t pgno = ids[j--];
+		ids[i--] = pgno;
+		ssize_t entry = ids[j];
+		if (entry < 0) {
+			ids[i--] = entry;
+			j--;
+		}
+		ids[i--] = 0; // empty slot for growth
 	}
-	new_ids[0] = j - 1;
-	*idp = new_ids;
 	return 0;
 }
 
