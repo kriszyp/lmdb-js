@@ -43,36 +43,49 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	int val = 0;
 	unsigned n = ids[0];
 
+	unsigned end = n;
+
+	binary_search:
 	while( 0 < n ) {
 		unsigned pivot = n >> 1;
 		cursor = base + pivot + 1;
 		val = CMP( ids[cursor], id );
+		unsigned x = cursor;
+		// skip past empty and block length entries
+		while(((ssize_t)ids[x]) <= 0) {
+			if (++x > end) { // reached the end, go to lower half
+				n = pivot;
+				val = 0;
+				end = cursor;
+				goto binary_search;
+			}
+		}
+		val = CMP( ids[x], id );
 
 		if( val < 0 ) {
 			n = pivot;
 
+			end = cursor;
 		} else if ( val > 0 ) {
 			base = cursor;
 			n -= pivot + 1;
-
 		} else {
 			return cursor;
 		}
 	}
-
-	if( val > 0 ) {
-		++cursor;
-	}
+	unsigned next;
+	if( val > 0 && (ssize_t)ids[cursor] > 0) ++cursor;
 	return cursor;
 }
 
-#if 0	/* superseded by append/sort */
-int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
+int mdb_midl_insert( MDB_IDL* idp, MDB_ID id, int insertion_count)
 {
+	mdb_midl_need(idp, 1);
+	MDB_IDL ids = *idp;
 	unsigned x, i;
 
 	x = mdb_midl_search( ids, id );
-	assert( x > 0 );
+	//assert( x > 0 );
 
 	if( x < 1 ) {
 		/* internal error */
@@ -81,7 +94,7 @@ int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
 
 	if ( x <= ids[0] && ids[x] == id ) {
 		/* duplicate */
-		assert(0);
+		//assert(0);
 		return -1;
 	}
 
@@ -96,10 +109,9 @@ int mdb_midl_insert( MDB_IDL ids, MDB_ID id )
 			ids[i] = ids[i-1];
 		ids[x] = id;
 	}
-
+	if (insertion_count > 1) return mdb_midl_insert(idp, id+1, insertion_count-1);
 	return 0;
 }
-#endif
 
 MDB_IDL mdb_midl_alloc(int num)
 {
@@ -146,6 +158,7 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 	num += ids[0];
 	if (num > ids[-1]) {
 		num = (num + num/4 + (256 + 2)) & -256;
+		fprintf(stderr, "Resizing id list to %u\n", num);
 		if (!(ids = realloc(ids-1, num * sizeof(MDB_ID))))
 			return ENOMEM;
 		*ids++ = num - 2;
@@ -198,18 +211,22 @@ int mdb_midl_append_range( MDB_IDL *idp, MDB_ID id, unsigned n )
 	return 0;
 }
 
-void mdb_midl_xmerge( MDB_IDL idl, MDB_IDL merge )
+void mdb_midl_xmerge( MDB_IDL* idp, MDB_IDL merge )
 {
-	MDB_ID old_id, merge_id, i = merge[0], j = idl[0], k = i+j, total = k;
-	idl[0] = (MDB_ID)-1;		/* delimiter for idl scan below */
-	old_id = idl[j];
-	while (i) {
-		merge_id = merge[i--];
-		for (; old_id < merge_id; old_id = idl[--j])
-			idl[k--] = old_id;
-		idl[k--] = merge_id;
+	for (unsigned i = 1; i <= merge[0]; i++) {
+		ssize_t entry = merge[i];
+		int count = 1;
+		if (entry <= 0) {
+			if (entry == 0) continue;
+			count = -entry;
+			entry = merge[++i];
+		}
+		int rc;
+		if ((rc = mdb_midl_insert(idp, entry, count)) != 0) {
+			assert(0);
+			return rc;
+		}
 	}
-	idl[0] = total;
 }
 
 /* Quicksort + Insertion sort for small arrays */
@@ -276,6 +293,93 @@ mdb_midl_sort( MDB_IDL ids )
 			}
 		}
 	}
+}
+
+MDB_IDL mdb_midl_pack(MDB_IDL idl) {
+	if (!idl) return NULL;
+	MDB_IDL packed = mdb_midl_alloc(idl[0]);
+	unsigned j = 1;
+	for (unsigned i = 1; i < idl[0]; i++) {
+		ssize_t entry = idl[i];
+		if (entry) packed[j++] = entry;
+	}
+	if (j == 1) {
+		// empty list, just treat as no list
+		mdb_midl_free(packed);
+		return NULL;
+	}
+	packed[0] = j - 1;
+	return packed;
+}
+
+unsigned mdb_midl_pack_count(MDB_IDL idl) {
+	unsigned count = 0;
+	if (idl) {
+		for (unsigned i = 1; i < idl[0]; i++) {
+			if (idl[i]) count++;
+		}
+	}
+	return count;
+}
+
+
+int mdb_midl_respread( MDB_IDL *idp )
+{
+	MDB_IDL ids = *idp;
+	unsigned num = ids[0];
+	num = (num + num + (256 + 2)) & -256;
+	MDB_IDL new_ids; 
+	if (!(new_ids = calloc(num, sizeof(MDB_ID))))
+		return ENOMEM;
+	fprintf(stderr, "Created new id list of size %u\n", num);
+	*new_ids++ = num - 2;
+	*new_ids = num - 2;
+	unsigned j = 1;
+	// re-spread out the entries with gaps for growth
+	for (unsigned i = 1; i <= ids[0]; i++) {
+		new_ids[j++] = 0; // empty slot for growth
+		ssize_t entry;
+		while (!(entry = ids[i])) {
+			if (++i > ids[0]) break;
+		}
+		new_ids[j++] = entry;
+		if (entry < 0) new_ids[j++] = ids[++i]; // this was a block with a length
+	}
+	//mdb_midl_free(ids);
+	// now shrink (or grow) back to appropriate size
+	num = (j + (j >> 3) + 22) & -16;
+	if (num > new_ids[0]) {
+		num = new_ids[0];
+		fprintf(stderr, "Reallocating new id list of size %u\n", num);
+		new_ids = realloc(new_ids - 1, (num + 2) * sizeof(MDB_ID));
+		*new_ids++ = num;
+	}
+	new_ids[0] = j - 1;
+	*idp = new_ids;
+	return 0;
+}
+
+int mdb_midl_print( FILE *fp, MDB_IDL ids )
+{
+	if (ids == NULL) {
+		fprintf(fp, "freelist: NULL\n");
+		return 0;
+	}
+	unsigned i;
+	fprintf(fp, "freelist: %u/%u: ", ids[0], ids[-1]);
+	for (i=1; i<=ids[0]; i++) {
+		ssize_t entry = ids[i];
+		if (entry < 0) {
+			fprintf(fp, "%li-%li ", ids[i+1] - entry - 1, ids[i+1]);
+			i++;
+		} else if (ids[i] == 0) {
+			fprintf(fp, "_");
+		} else {
+			fprintf(fp, "%lu ", (unsigned long)ids[i]);
+		}
+	}
+	fprintf(fp, "\n");
+	return 0;
 }
 
 unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )

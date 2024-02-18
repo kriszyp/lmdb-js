@@ -2813,7 +2813,8 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		mdb_midl_xmerge(mop, idl);
+		mdb_midl_xmerge(&mop, idl);
+		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
 
@@ -4039,7 +4040,8 @@ mdb_freelist_save(MDB_txn *txn)
 			loose[ ++count ] = mp->mp_pgno;
 		loose[0] = count;
 		mdb_midl_sort(loose);
-		mdb_midl_xmerge(mop, loose);
+		mdb_midl_xmerge(&mop, loose);
+		env->me_pghead = mop;
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 		mop_len = mop[0];
