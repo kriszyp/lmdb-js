@@ -2717,25 +2717,64 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		rc = MDB_TXN_FULL;
 		goto fail;
 	}
+	unsigned empty_entries = 0;
+	unsigned best_fit_start; // this is a block we will use if we don't find an exact fit
+	pgno_t best_fit_size;
 
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
 		pgno_t *idl;
 
+		best_fit_start = 0;
+		best_fit_size = -1;
+		pgno_t block_start;
 		/* Seek a big enough contiguous page range. Prefer
 		 * pages at the tail, just truncating the list.
 		 */
-		if (mop_len > n2) {
-			i = mop_len;
-			do {
-				pgno = mop[i];
-				if (mop[i-n2] == pgno+n2)
+		block_start = 0;
+		unsigned block_size = 0;
+		ssize_t entry;
+		empty_entries = 0;
+		//mdb_midl_print(stderr, mop);
+		// TODO: Skip this on the first iteration, since we already checked the cache
+		pgno_t last_pgno = 0; // TODO: This should be removed
+		for (i = 1; i <= mop_len; i++) {
+			entry = mop[i];
+			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
+			if (entry == 0) {
+				empty_entries++;
+				continue;
+			}
+			if (entry > 0) {
+				pgno = entry;
+				if (pgno + 1 == last_pgno) block_size++;
+				else block_size = 1;
+			} else {
+				block_size = -entry;
+				pgno = mop[++i];
+			}
+			last_pgno = pgno;
+
+			if (block_size >= num) {
+				if (block_size == num) {
+					// we found a block of the right size
+					//mop[i] = 0;
+					//if (block_size > 1) mop[i - 1] = 0;
 					goto search_done;
-			} while (--i > n2);
-			if (--retry < 0)
-				break;
+				} else if (block_size < best_fit_size || best_fit_size == 0) {
+					best_fit_start = i - 1;
+					best_fit_size = block_size;
+/*					if (i == env->me_freelist_position) {
+						// TODO: Only if we are in the same transaction
+						// if we just wrote to this block and we are continuing on this block,
+						// skip ahead to using this block
+						goto continue_best_fit;
+					}*/
+				}
+			}
 		}
+		i = 0;
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
@@ -4041,7 +4080,6 @@ mdb_freelist_save(MDB_txn *txn)
 		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
 			loose[ ++count ] = mp->mp_pgno;
 		loose[0] = count;
-		mdb_midl_sort(loose);
 		mdb_midl_xmerge(&mop, loose);
 		env->me_pghead = mop;
 		txn->mt_loose_pgs = NULL;
