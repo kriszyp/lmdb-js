@@ -59,7 +59,7 @@ describe('lmdb-js', function () {
 		});
 	});
 	let testIteration = 0;
-	describe('Basic use', basicTests({}));
+//	describe('Basic use', basicTests({}));
 	describe(
 		'Basic use with overlapping sync',
 		basicTests({

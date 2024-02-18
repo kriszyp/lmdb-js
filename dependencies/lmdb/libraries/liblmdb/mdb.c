@@ -2748,8 +2748,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			}
 			if (entry > 0) {
 				pgno = entry;
-				if (pgno + 1 == last_pgno) block_size++;
-				else block_size = 1;
+				block_size = 1;
 			} else {
 				block_size = -entry;
 				pgno = mop[++i];
@@ -2759,8 +2758,8 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			if (block_size >= num) {
 				if (block_size == num) {
 					// we found a block of the right size
-					//mop[i] = 0;
-					//if (block_size > 1) mop[i - 1] = 0;
+					mop[i] = 0;
+					if (entry < 1) mop[i - 1] = 0;
 					goto search_done;
 				} else if (block_size < best_fit_size || best_fit_size == 0) {
 					best_fit_start = i - 1;
@@ -2856,7 +2855,19 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
+	continue_best_fit:
+	if (best_fit_start > 0) {
+		mop[best_fit_start] += num; // block length is a negative, so we add to it in order to subtract the amount we are using
+		if (mop[best_fit_start] == -1) mop[best_fit_start] = 0;
+		pgno = mop[best_fit_start + 1];
+		mop[best_fit_start + 1] += num;
+		//env->me_freelist_position = best_fit_start;
+		fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
+		//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
+		i = 1; // indicate that we found something
+		goto search_done;
+	}
 	/* Use new pages from the map when nothing suitable in the freeDB */
 	i = 0;
 	pgno = txn->mt_next_pgno;
@@ -2890,10 +2901,11 @@ search_done:
 		}
 	}
 	if (i) {
-		mop[0] = mop_len -= num;
+		//fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
+		/*mop[0] = mop_len -= num;
 		/* Move any stragglers down */
-		for (j = i-num; j < mop_len; )
-			mop[++j] = mop[++i];
+		/*for (j = i-num; j < mop_len; )
+			mop[++j] = mop[++i];*/
 	} else {
 		txn->mt_next_pgno = pgno + num;
 	}
@@ -4187,8 +4199,10 @@ mdb_page_flush(MDB_txn *txn, int keep)
 		pgno_t p = dl[n].mid + dl_nump[n];
 		if (p > pgno)
 			pgno = p;
-		else
+		else {
 			fprintf(stderr, "Page writes are out of order\n");
+			assert(0);
+		}
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;
 	/* <lmdb-js addition> */
@@ -7853,13 +7867,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 		freeme = mp;
 release:
 		/* Insert in me_pghead */
-		mop = env->me_pghead;
-		j = mop[0] + ovpages;
-		for (i = mop[0]; i && mop[i] < pg; i--)
-			mop[j--] = mop[i];
-		while (j>i)
-			mop[j--] = pg++;
-		mop[0] += ovpages;
+		mdb_midl_insert(&env->me_pghead, pg, ovpages);
 	} else {
 		rc = mdb_midl_append_range(&txn->mt_free_pgs, pg, ovpages);
 		if (rc)
