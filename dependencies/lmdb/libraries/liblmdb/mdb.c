@@ -2736,7 +2736,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		unsigned block_size = 0;
 		ssize_t entry;
 		empty_entries = 0;
-		mdb_midl_print(stderr, mop);
+		//mdb_midl_print(stderr, mop);
 		// TODO: Skip this on the first iteration, since we already checked the cache
 		pgno_t last_pgno = 0; // TODO: This should be removed
 		for (i = 1; i <= mop_len; i++) {
@@ -2862,7 +2862,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		pgno = mop[best_fit_start + 1];
 		mop[best_fit_start + 1] += num;
 		//env->me_freelist_position = best_fit_start;
-		fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
+		//fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
 		//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
 		i = 1; // indicate that we found something
@@ -2901,7 +2901,7 @@ search_done:
 		}
 	}
 	if (i) {
-		fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
+		//fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
 		if (empty_entries > (mop_len >> 1) + 20) {
 			fprintf(stderr, "should resize\n");
 			mdb_midl_respread(&env->me_pghead);
