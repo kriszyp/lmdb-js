@@ -2636,6 +2636,7 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 	txn->mt_dirty_room--;
 }
 
+static int c = 1;
 /** Allocate page numbers and memory for writing.  Maintain me_pglast,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
  *
@@ -2720,7 +2721,9 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	unsigned empty_entries = 0;
 	unsigned best_fit_start; // this is a block we will use if we don't find an exact fit
 	pgno_t best_fit_size;
-
+	if (c++ % 100000 == 0) {
+		fprintf(stderr, "ids: %u ", mdb_midl_pack_count(mop));
+	}
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
@@ -2903,7 +2906,7 @@ search_done:
 	if (i) {
 		//fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
 		if (empty_entries > (mop_len >> 1) + 20) {
-			fprintf(stderr, "should resize\n");
+			//fprintf(stderr, "should resize\n");
 			mdb_midl_respread(&env->me_pghead);
 		}
 		/*mop[0] = mop_len -= num;
@@ -3452,6 +3455,15 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
+			if (txn->mt_txnid != ti->mti_txnid) {
+				fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
+				if (env->me_pghead) mdb_midl_free(env->me_pghead);
+				env->me_pghead = NULL;
+				env->me_pglast = 0;
+				//env->me_freelist_position = 0;
+				// TODO: Free it first
+				//env->me_block_size_cache = NULL;
+			}
 			txn->mt_txnid = ti->mti_txnid;
 			meta = env->me_metas[txn->mt_txnid & 1];
 		} else {
@@ -3900,7 +3912,7 @@ mdb_txn_abort(MDB_txn *txn)
 
 	if (txn->mt_child)
 		mdb_txn_abort(txn->mt_child);
-
+	fprintf(stderr, "abort");
 	mdb_txn_end(txn, MDB_END_ABORT|MDB_END_SLOT|MDB_END_FREE);
 }
 
@@ -4637,6 +4649,7 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if (!txn->mt_u.dirty_list[0].mid &&
 		!(txn->mt_flags & (MDB_TXN_DIRTY | MDB_TXN_SPILLS))) {
+		txn->mt_txnid--; // revert txn id so we know it wasn't supposed to be incremented
 		mdb_txn_end(txn, end_mode);
 		return MDB_EMPTY_TXN;
 	}
@@ -4687,7 +4700,6 @@ mdb_txn_commit(MDB_txn *txn)
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
-
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC) &&
 		(rc = mdb_env_sync0(env, 0, txn->mt_next_pgno)))
 		goto fail;
