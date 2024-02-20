@@ -3912,7 +3912,6 @@ mdb_txn_abort(MDB_txn *txn)
 
 	if (txn->mt_child)
 		mdb_txn_abort(txn->mt_child);
-	fprintf(stderr, "abort");
 	mdb_txn_end(txn, MDB_END_ABORT|MDB_END_SLOT|MDB_END_FREE);
 }
 
@@ -4072,14 +4071,14 @@ mdb_freelist_save(MDB_txn *txn)
 		if (head_room > maxfree_1pg && head_id > 1) {
 			/* Overflow multi-page for part of me_pghead */
 			head_room /= head_id; /* amortize page sizes */
-			head_room += maxfree_1pg - head_room % (maxfree_1pg + 1);
+			head_room += maxfree_1pg - head_room % (maxfree_1pg + 2);
 		} else if (head_room < 0) {
 			/* Rare case, not bothering to delete this record */
 			head_room = 0;
 		}
 		key.mv_size = sizeof(head_id);
 		key.mv_data = &head_id;
-		data.mv_size = (head_room + 1) * sizeof(pgno_t);
+		data.mv_size = (head_room + 2) * sizeof(pgno_t);
 		rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
 		if (rc)
 			return rc;
@@ -4131,15 +4130,19 @@ mdb_freelist_save(MDB_txn *txn)
 		rc = mdb_cursor_first(&mc, &key, &data);
 		for (; !rc; rc = mdb_cursor_next(&mc, &key, &data, MDB_NEXT)) {
 			txnid_t id = *(txnid_t *)key.mv_data;
-			ssize_t	len = (ssize_t)(data.mv_size / sizeof(MDB_ID)) - 1;
+			ssize_t	len = (ssize_t)(data.mv_size / sizeof(MDB_ID)) - 2;
+			if ((ssize_t)mop[-len] < 0) {
+				// this is a block length indicator that would get split if don't adjust the length
+				len++;
+			}
 			MDB_ID save;
 
 			mdb_tassert(txn, len >= 0 && id <= env->me_pglast);
 			key.mv_data = &id;
 			if (len > mop_len) {
 				len = mop_len;
-				data.mv_size = (len + 1) * sizeof(MDB_ID);
 			}
+			data.mv_size = (len + 1) * sizeof(MDB_ID);
 			mop_len -= len;
 			data.mv_data = mop -= len;
 			save = mop[0];
@@ -5747,7 +5750,7 @@ mdb_env_open2(MDB_env *env, int prev)
 	}
 #endif
 
-	env->me_maxfree_1pg = (env->me_psize - PAGEHDRSZ) / sizeof(pgno_t) - 1;
+	env->me_maxfree_1pg = (env->me_psize - PAGEHDRSZ) / sizeof(pgno_t) - 2;
 	env->me_nodemax = (((env->me_psize - PAGEHDRSZ) / MDB_MINKEYS) & -2)
 		- sizeof(indx_t);
 #if !(MDB_MAXKEYSIZE)
