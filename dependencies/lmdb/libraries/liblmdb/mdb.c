@@ -1582,6 +1582,11 @@ typedef struct MDB_xcursor {
 typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
 	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
+	/** Position in the free page list, so that we can keep trying to write to the same block
+	 * if possible. We use sign here, a negative number means we are in middle of contiguous
+	 * (in a transaction) and we really want to use the next page, a positive number is
+	 * just the next page number */
+	int 		mf_position;
 } MDB_pgstate;
 /*<lmdb-js>*/
 struct MDB_last_map {
@@ -1642,6 +1647,7 @@ struct MDB_env {
 	MDB_pgstate	me_pgstate;		/**< state of old pages from freeDB */
 #	define		me_pglast	me_pgstate.mf_pglast
 #	define		me_pghead	me_pgstate.mf_pghead
+#	define		me_freelist_position	me_pgstate.mf_position
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -2636,6 +2642,7 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 	txn->mt_dirty_room--;
 }
 
+const static int MAX_SCAN_LENGTH = 100;
 static int c = 1;
 /** Allocate page numbers and memory for writing.  Maintain me_pglast,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
@@ -2732,8 +2739,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		best_fit_start = 0;
 		best_fit_size = -1;
 		pgno_t block_start;
-		/* Seek a big enough contiguous page range. Prefer
-		 * pages at the tail, just truncating the list.
+		/* Seek a big enough contiguous page range. Prefer blocks that fit the remaining space to reduce defragmentation
 		 */
 		block_start = 0;
 		unsigned block_size = 0;
@@ -2741,8 +2747,26 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		empty_entries = 0;
 		//mdb_midl_print(stderr, mop);
 		// TODO: Skip this on the first iteration, since we already checked the cache
-		pgno_t last_pgno = 0; // TODO: This should be removed
-		for (i = 1; i <= mop_len; i++) {
+		int start = env->me_freelist_position != 0 ? env->me_freelist_position : 1;
+		if (start < 0) start = -start;
+		if (start > mop_len) {
+			start = 1;
+		}
+		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
+		unsigned end = start + MAX_SCAN_LENGTH;
+		if (end > mop_len) end = mop_len;
+		//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
+		for(i = start; 1; i++) {
+			//fprintf(stderr, "l %u ", i);
+			if (i > end) {
+				if (start < 2) break; // second loop or we simply started at the beginning
+				if (end - start >= MAX_SCAN_LENGTH) break; // scanned enough
+				i = 1; // start on a second loop, start at the beginning, reset end
+				end = MAX_SCAN_LENGTH - (end - start);
+				if (end > start) end = start - 1;
+				start = 0;
+			}
+
 			entry = mop[i];
 			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
 			if (entry == 0) {
@@ -2756,27 +2780,39 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				block_size = -entry;
 				pgno = mop[++i];
 			}
-			last_pgno = pgno;
 
 			if (block_size >= num) {
 				if (block_size == num) {
 					// we found a block of the right size
 					mop[i] = 0;
 					if (entry < 1) mop[i - 1] = 0;
+					env->me_freelist_position = i + 1;
 					goto search_done;
 				} else if (block_size < best_fit_size || best_fit_size == 0) {
 					best_fit_start = i - 1;
 					best_fit_size = block_size;
-/*					if (i == env->me_freelist_position) {
-						// TODO: Only if we are in the same transaction
+					if (i == 1 - env->me_freelist_position) {
 						// if we just wrote to this block and we are continuing on this block,
 						// skip ahead to using this block
 						goto continue_best_fit;
-					}*/
+					}
 				}
 			}
 		}
+		env->me_freelist_position = i;
 		i = 0;
+		if (empty_entries > (MAX_SCAN_LENGTH >> 1)) {
+			unsigned old_length = env->me_pghead[0];
+			mdb_midl_respread(&env->me_pghead);
+			mop = env->me_pghead;
+			mop_len = mop[0];
+			fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
+		}
+
+		if (mop_len > MAX_SCAN_LENGTH) {
+			fprintf(stderr, "Too many entries %u, not loading anymore\n", mop_len);
+			goto continue_best_fit;
+		}
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
@@ -2864,7 +2900,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 		if (mop[best_fit_start] == -1) mop[best_fit_start] = 0;
 		pgno = mop[best_fit_start + 1];
 		mop[best_fit_start + 1] += num;
-		//env->me_freelist_position = best_fit_start;
+		env->me_freelist_position = -best_fit_start;
 		//fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
 		//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
@@ -2905,10 +2941,6 @@ search_done:
 	}
 	if (i) {
 		//fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
-		if (empty_entries > (mop_len >> 1) + 20) {
-			//fprintf(stderr, "should resize\n");
-			mdb_midl_respread(&env->me_pghead);
-		}
 		/*mop[0] = mop_len -= num;
 		/* Move any stragglers down */
 		/*for (j = i-num; j < mop_len; )
@@ -3464,6 +3496,8 @@ mdb_txn_renew0(MDB_txn *txn)
 				// TODO: Free it first
 				//env->me_block_size_cache = NULL;
 			}
+			if (env->me_freelist_position < 0)
+				env->me_freelist_position = -env->me_freelist_position;
 			txn->mt_txnid = ti->mti_txnid;
 			meta = env->me_metas[txn->mt_txnid & 1];
 		} else {
