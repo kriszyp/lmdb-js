@@ -2907,7 +2907,8 @@ restart_search:
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		mdb_midl_xmerge(&mop, idl);
+		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
+			goto fail;		
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
@@ -3501,7 +3502,7 @@ mdb_txn_renew0(MDB_txn *txn)
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
 			if (txn->mt_txnid != ti->mti_txnid) {
-				fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
+				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_pglast = 0;
@@ -4158,7 +4159,9 @@ mdb_freelist_save(MDB_txn *txn)
 		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
 			loose[ ++count ] = mp->mp_pgno;
 		loose[0] = count;
-		mdb_midl_xmerge(&mop, loose);
+		if ((rc = mdb_midl_xmerge(&mop, loose)) != 0)
+			return rc;
+
 		env->me_pghead = mop;
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;

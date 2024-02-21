@@ -22,6 +22,12 @@
 #include <errno.h>
 #include <sys/types.h>
 #include "midl.h"
+#ifdef _MSC_VER
+#include <io.h>
+typedef SSIZE_T	ssize_t;
+#else
+#include <unistd.h>
+#endif
 
 /** @defgroup internal	LMDB Internals
  *	@{
@@ -73,7 +79,6 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 			return cursor;
 		}
 	}
-	unsigned next;
 	if( val > 0 && (ssize_t)ids[cursor] > 0) ++cursor;
 	return cursor;
 }
@@ -338,7 +343,7 @@ int mdb_midl_append_range( MDB_IDL *idp, MDB_ID id, unsigned n )
 	return 0;
 }
 
-void mdb_midl_xmerge( MDB_IDL* idp, MDB_IDL merge )
+int mdb_midl_xmerge( MDB_IDL* idp, MDB_IDL merge )
 {
 	for (unsigned i = 1; i <= merge[0]; i++) {
 		ssize_t entry = merge[i];
@@ -350,10 +355,10 @@ void mdb_midl_xmerge( MDB_IDL* idp, MDB_IDL merge )
 		}
 		int rc;
 		if ((rc = mdb_midl_insert(idp, entry, count)) != 0) {
-			assert(0);
 			return rc;
 		}
 	}
+	return 0;
 }
 
 /* Quicksort + Insertion sort for small arrays */

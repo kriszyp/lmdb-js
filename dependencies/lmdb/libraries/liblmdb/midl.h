@@ -148,7 +148,7 @@ int mdb_midl_append_range( MDB_IDL *idp, MDB_ID id, unsigned n );
 	 * @param[in] idl	The IDL to merge into.
 	 * @param[in] merge	The IDL to merge.
 	 */
-void mdb_midl_xmerge( MDB_IDL* idl, MDB_IDL merge );
+int mdb_midl_xmerge( MDB_IDL* idl, MDB_IDL merge );
 
 	/** Sort an IDL.
 	 * @param[in,out] ids	The IDL to sort.

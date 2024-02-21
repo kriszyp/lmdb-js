@@ -245,32 +245,6 @@ describe('lmdb-js', function () {
 					'0Sdts8FwTqt2Hv5j9KE7ebjsQcFbYDdL/0Sdtsud6g8YGhPwUK04fRVKhuTywhnx8',
 				]);
 			});
-			it('bigger puts, testing free space management', async function () {
-				let seed = 15325223;
-				function random() {
-					return randomInt() / 2038074743;
-				}
-				function randomInt() {
-					seed++;
-					let a = seed * 15485863;
-					return a * a * a % 2038074743;
-				}
-				//await new Promise((resolve) => setTimeout(resolve, 3000));
-
-				let promise;
-				let additive = 'this is more text';
-				for (let i = 0; i < 7; i++) additive += additive;
-				for (let i = 0; i < 5000; i++) {
-					let text = 'this is a test';
-					while(random() < 0.95) text += additive;
-					console.log('write', i, text.length);
-					promise = db.put(i % 10, text);
-					if (i % 16 == 0) {
-						await promise;
-					}
-				}
-				await promise;
-			});
 			it('clear between puts', async function () {
 				db.put('key0', 'zero');
 				db.clearAsync();
@@ -419,6 +393,33 @@ describe('lmdb-js', function () {
 				(await db.remove('key1')).should.equal(true);
 			});
 			if (options.encoding == 'ordered-binary') return; // no more tests need to be applied for this
+			it('bigger puts, testing free space management', async function () {
+				
+				let seed = 15325223;
+				function random() {
+					return randomInt() / 2038074743;
+				}
+				function randomInt() {
+					seed++;
+					let a = seed * 15485863;
+					return a * a * a % 2038074743;
+				}
+				//await new Promise((resolve) => setTimeout(resolve, 3000));
+
+				let promise;
+				let additive = 'this is more text';
+				for (let i = 0; i < 7; i++) additive += additive;
+				for (let i = 0; i < 5000; i++) {
+					let text = 'this is a test';
+					while(random() < 0.95) text += additive;
+					promise = db.put(i % 10, text);
+					if (i % 16 == 0) {
+						await promise;
+					}
+				}
+				await promise;
+			});
+
 			it('store objects', async function () {
 				let dataIn = { foo: 3, bar: true };
 				await db.put('key1', dataIn);
