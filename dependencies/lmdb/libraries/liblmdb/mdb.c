@@ -2643,7 +2643,7 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 }
 
 const static int MAX_SCAN_SEGMENT = 50;
-static int c = 1;
+
 /** Allocate page numbers and memory for writing.  Maintain me_pglast,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
  *
@@ -2728,9 +2728,9 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	unsigned empty_entries = 0;
 	unsigned best_fit_start; // this is a block we will use if we don't find an exact fit
 	pgno_t best_fit_size;
-	if (c++ % 100000 == 0) {
+/*	if (c++ % 100000 == 0) {
 		mdb_midl_print(stderr, mop);
-	}
+	}*/
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
