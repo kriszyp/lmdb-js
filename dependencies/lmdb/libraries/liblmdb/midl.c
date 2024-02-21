@@ -285,7 +285,7 @@ int mdb_midl_need( MDB_IDL *idp, unsigned num )
 	num += ids[0];
 	if (num > ids[-1]) {
 		num = (num + num/4 + (256 + 2)) & -256;
-		fprintf(stderr, "Resizing id list to %u\n", num);
+//		fprintf(stderr, "Resizing id list to %u\n", num);
 		if (!(ids = realloc(ids-1, num * sizeof(MDB_ID))))
 			return ENOMEM;
 		*ids++ = num - 2;

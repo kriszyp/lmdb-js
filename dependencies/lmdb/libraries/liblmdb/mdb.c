@@ -2642,7 +2642,7 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 	txn->mt_dirty_room--;
 }
 
-const static int MAX_SCAN_LENGTH = 100;
+const static int MAX_SCAN_SEGMENT = 50;
 static int c = 1;
 /** Allocate page numbers and memory for writing.  Maintain me_pglast,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
@@ -2729,13 +2729,13 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	unsigned best_fit_start; // this is a block we will use if we don't find an exact fit
 	pgno_t best_fit_size;
 	if (c++ % 100000 == 0) {
-		fprintf(stderr, "ids: %u ", mdb_midl_pack_count(mop));
+		mdb_midl_print(stderr, mop);
 	}
 	for (op = MDB_FIRST;; op = MDB_NEXT) {
 		MDB_val key, data;
 		MDB_node *leaf;
 		pgno_t *idl;
-
+restart_search:
 		best_fit_start = 0;
 		best_fit_size = -1;
 		pgno_t block_start;
@@ -2753,18 +2753,33 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 			start = 1;
 		}
 		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
-		unsigned end = start + MAX_SCAN_LENGTH;
-		if (end > mop_len) end = mop_len;
+		unsigned end = start + mop_len;
+		unsigned check_point = start + MAX_SCAN_SEGMENT;
+		if (check_point > mop_len) check_point = mop_len;
+		unsigned wrapped = 0;
 		//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
 		for(i = start; 1; i++) {
 			//fprintf(stderr, "l %u ", i);
-			if (i > end) {
-				if (start < 2) break; // second loop or we simply started at the beginning
-				if (end - start >= MAX_SCAN_LENGTH) break; // scanned enough
-				i = 1; // start on a second loop, start at the beginning, reset end
-				end = MAX_SCAN_LENGTH - (end - start);
-				if (end > start) end = start - 1;
-				start = 0;
+			if (i > check_point) {
+				unsigned counting_i = i + (wrapped ? mop_len : 0);
+				if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
+					goto continue_best_fit;
+				}
+				if (counting_i - start >= mop_len) {
+					break; // searched everything in current list
+				}
+				if (i > mop_len) {
+					// loop back and continue
+					i = 1;
+					wrapped = 1;
+					check_point = start - 1;
+					if (check_point > MAX_SCAN_SEGMENT) check_point = MAX_SCAN_SEGMENT;
+				} else {
+					check_point = i + MAX_SCAN_SEGMENT;
+					if (wrapped) {
+						if (check_point > start - 1) check_point = start -1;
+					} else if (check_point > mop_len) check_point = mop_len;
+				}
 			}
 
 			entry = mop[i];
@@ -2799,18 +2814,19 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 				}
 			}
 		}
-		env->me_freelist_position = i;
-		i = 0;
-		if (empty_entries > (MAX_SCAN_LENGTH >> 1)) {
+		if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) >> 1) + 20) {
 			unsigned old_length = env->me_pghead[0];
 			mdb_midl_respread(&env->me_pghead);
 			mop = env->me_pghead;
 			mop_len = mop[0];
 			fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
+			goto restart_search;
 		}
+		env->me_freelist_position = i;
+		i = 0;
 
-		if (mop_len > MAX_SCAN_LENGTH) {
-			fprintf(stderr, "Too many entries %u, not loading anymore\n", mop_len);
+		if (mop_len > 2000) {
+			//fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
 			goto continue_best_fit;
 		}
 
@@ -2940,11 +2956,7 @@ search_done:
 		}
 	}
 	if (i) {
-		//fprintf(stderr, "using %u to %u\n", pgno, pgno + num -1);
-		/*mop[0] = mop_len -= num;
-		/* Move any stragglers down */
-		/*for (j = i-num; j < mop_len; )
-			mop[++j] = mop[++i];*/
+		// found
 	} else {
 		txn->mt_next_pgno = pgno + num;
 	}
@@ -3492,7 +3504,7 @@ mdb_txn_renew0(MDB_txn *txn)
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_pglast = 0;
-				//env->me_freelist_position = 0;
+				env->me_freelist_position = 0;
 				// TODO: Free it first
 				//env->me_block_size_cache = NULL;
 			}
@@ -3868,8 +3880,12 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			//env->me_pghead = NULL;
-			//env->me_pglast = 0;
+			if (env->me_pghead && env->me_pghead[0] > 5000) {
+				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+				// if it is too large, reset it
+				env->me_pghead = NULL;
+				env->me_pglast = 0;
+			}
 
 			env->me_txn = NULL;
 			mode = 0;	/* txn == env->me_txn0, do not free() it */
