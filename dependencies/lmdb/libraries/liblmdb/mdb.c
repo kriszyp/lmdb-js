@@ -6116,8 +6116,8 @@ mdb_env_setup_locks(MDB_env *env, MDB_name *fname, int mode, int *excl)
 	}
 	rc = mdb_fopen(env, fname, MDB_O_LOCKS, mode, &env->me_lfd);
 	if (rc) {
-		/* Omit lockfile if read-only env on read-only filesystem */
-		if (rc == MDB_ERRCODE_ROFS && (env->me_flags & MDB_RDONLY)) {
+		/* Omit lockfile if read-only env on read-only filesystem or no write permission */
+		if ((rc == MDB_ERRCODE_ROFS || rc == EACCES) && (env->me_flags & MDB_RDONLY)) {
 			return MDB_SUCCESS;
 		}
 		goto fail;
@@ -6588,9 +6588,11 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		/* Synchronous fd for meta writes. Needed even with
 		 * MDB_NOSYNC/MDB_NOMETASYNC, in case these get reset.
 		 */
-		rc = mdb_fopen(env, &fname, MDB_O_META, mode, &env->me_mfd);
-		if (rc)
-			goto leave;
+		if (!(flags & (MDB_RDONLY|MDB_WRITEMAP))) {
+			rc = mdb_fopen(env, &fname, MDB_O_META, mode, &env->me_mfd);
+			if (rc)
+				goto leave;
+		}
 		DPRINTF(("opened dbenv %p", (void *) env));
 		// <lmdb-js>
 		if (excl > 0) {
