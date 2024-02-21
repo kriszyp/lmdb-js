@@ -2814,18 +2814,19 @@ restart_search:
 				}
 			}
 		}
-		if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) >> 1) + 20) {
+		// see if there is too many empty entries; after a respread it should be between one third and one quarter full of empty entries
+		if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) / 3) + 10) {
 			unsigned old_length = env->me_pghead[0];
 			mdb_midl_respread(&env->me_pghead);
 			mop = env->me_pghead;
 			mop_len = mop[0];
-			fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
+			//fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
 			goto restart_search;
 		}
 		env->me_freelist_position = i;
 		i = 0;
 
-		if (mop_len > 2000) {
+		if (mop_len > 4000) {
 			//fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
 			goto continue_best_fit;
 		}
@@ -3880,8 +3881,8 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			if (env->me_pghead && env->me_pghead[0] > 5000) {
-				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+			if (env->me_pghead && env->me_pghead[0] > 8000) {
+				//fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
 				env->me_pglast = 0;

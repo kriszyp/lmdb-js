@@ -456,6 +456,7 @@ int mdb_midl_respread( MDB_IDL *idp )
 	unsigned j = 1;
 	unsigned size = ids[0];
 	unsigned new_size = 0;
+	unsigned entry_count = 0;
 	// first, do compaction
 	for (unsigned i = 1; i <= size; i++) {
 		ssize_t entry;
@@ -463,7 +464,8 @@ int mdb_midl_respread( MDB_IDL *idp )
 			if (++i > ids[0]) goto expand;
 		}
 		ids[j++] = entry;
-		new_size += entry < 0 ? 3 : 2; // one for empty space, one for the entry, and one for the length if it is a block
+		new_size += entry < 0 ? 2 : 1; // one for the entry, and one for the length if it is a block
+		if (++entry_count & 1) new_size++; // and one for empty space on every other
 		if (entry < 0) ids[j++] = ids[++i]; // this was a block with a length
 	}
 	expand:
@@ -480,7 +482,8 @@ int mdb_midl_respread( MDB_IDL *idp )
 			ids[i--] = entry;
 			j--;
 		}
-		ids[i--] = 0; // empty slot for growth
+		if (entry_count-- & 1)
+			ids[i--] = 0; // empty slot for growth
 	}
 	return 0;
 }
