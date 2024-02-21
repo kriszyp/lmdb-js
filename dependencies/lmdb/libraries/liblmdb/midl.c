@@ -218,9 +218,10 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 			x = i;
 			id = -insertion_count;
 		}
+		ssize_t last_id;
 		insert_id:
 		// move items to try to make room
-		ssize_t last_id = id;
+		last_id = id;
 		if ((ssize_t)ids[x - 1] < 0) x--;
 		do {
 			i = x;
