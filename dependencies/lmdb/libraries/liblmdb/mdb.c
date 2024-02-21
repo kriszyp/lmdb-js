@@ -4274,7 +4274,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			pgno = p;
 		else {
 			fprintf(stderr, "Page writes are out of order\n");
-			assert(0);
+			return MDB_BAD_TXN;
 		}
 	}
 	txn->mt_flags |= MDB_TXN_DIRTYNUM;

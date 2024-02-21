@@ -22,12 +22,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include "midl.h"
-#ifdef _MSC_VER
-#include <io.h>
-typedef SSIZE_T	ssize_t;
-#else
-#include <unistd.h>
-#endif
 
 /** @defgroup internal	LMDB Internals
  *	@{
@@ -58,7 +52,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 		val = CMP( ids[cursor], id );
 		unsigned x = cursor;
 		// skip past empty and block length entries
-		while(((ssize_t)ids[x]) <= 0) {
+		while(((intptr_t)ids[x]) <= 0) {
 			if (++x > end) { // reached the end, go to lower half
 				n = pivot;
 				val = 0;
@@ -79,7 +73,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 			return cursor;
 		}
 	}
-	if( val > 0 && (ssize_t)ids[cursor] > 0) ++cursor;
+	if( val > 0 && (intptr_t)ids[cursor] > 0) ++cursor;
 	return cursor;
 }
 
@@ -123,12 +117,12 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 			}
 		}
 		unsigned before = x; // this will end up pointing to an entry or zero right before a block of empty space
-		while ((ssize_t)ids[--before] <= 0 && before > 0) {
+		while ((intptr_t)ids[--before] <= 0 && before > 0) {
 			// move past empty entries (and the length entry)
 		}
-		while ((ssize_t)ids[x] <= 0 && x < ids[0]) { x++;}
-		ssize_t next_id = ids[x];
-		ssize_t next_count = ids[x - 1];
+		while ((intptr_t)ids[x] <= 0 && x < ids[0]) { x++;}
+		intptr_t next_id = ids[x];
+		intptr_t next_count = ids[x - 1];
 		if (next_count < 0) next_count = -next_count;
 		else next_count = 1;
 		if (id - next_count <= next_id && next_id > 0) {
@@ -137,7 +131,7 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 				return -1;
 			}
 			// connected to next entry
-			ssize_t count = next_count + insertion_count;
+			intptr_t count = next_count + insertion_count;
 			// ids[x + 1] = id; // no need to adjust id, so since we are adding to the end of the block
 
 			if (before > 0) {
@@ -218,11 +212,11 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 			x = i;
 			id = -insertion_count;
 		}
-		ssize_t last_id;
+		intptr_t last_id;
 		insert_id:
 		// move items to try to make room
 		last_id = id;
-		if ((ssize_t)ids[x - 1] < 0) x--;
+		if ((intptr_t)ids[x - 1] < 0) x--;
 		do {
 			i = x;
 			do {
@@ -237,7 +231,7 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 				}
 				last_id = next_id;
 			} while(next_id);
-		} while ((ssize_t) id > 0 && insertion_count > 1 && (id = last_id = -insertion_count));
+		} while ((intptr_t) id > 0 && insertion_count > 1 && (id = last_id = -insertion_count));
 		if (i > 0 && ((int) i - x > (ids[0] >> 2) + 4)) { // or too many moves. TODO: This threshold should actually be more like the square root of the length
 			// respread the ids (this will replace the reference too)
 			mdb_midl_respread(ids_ref);
@@ -347,7 +341,7 @@ int mdb_midl_append_range( MDB_IDL *idp, MDB_ID id, unsigned n )
 int mdb_midl_xmerge( MDB_IDL* idp, MDB_IDL merge )
 {
 	for (unsigned i = 1; i <= merge[0]; i++) {
-		ssize_t entry = merge[i];
+		intptr_t entry = merge[i];
 		int count = 1;
 		if (entry <= 0) {
 			if (entry == 0) continue;
@@ -433,7 +427,7 @@ MDB_IDL mdb_midl_pack(MDB_IDL idl) {
 	MDB_IDL packed = mdb_midl_alloc(idl[0]);
 	unsigned j = 1;
 	for (unsigned i = 1; i < idl[0]; i++) {
-		ssize_t entry = idl[i];
+		intptr_t entry = idl[i];
 		if (entry) packed[j++] = entry;
 	}
 	if (j == 1) {
@@ -465,7 +459,7 @@ int mdb_midl_respread( MDB_IDL *idp )
 	unsigned entry_count = 0;
 	// first, do compaction
 	for (unsigned i = 1; i <= size; i++) {
-		ssize_t entry;
+		intptr_t entry;
 		while (!(entry = ids[i])) {
 			if (++i > ids[0]) goto expand;
 		}
@@ -481,9 +475,9 @@ int mdb_midl_respread( MDB_IDL *idp )
 	j--;
 	// re-spread out the entries with gaps for growth
 	for (unsigned i = new_size; i > 0;) {
-		ssize_t pgno = ids[j--];
+		intptr_t pgno = ids[j--];
 		ids[i--] = pgno;
-		ssize_t entry = ids[j];
+		intptr_t entry = ids[j];
 		if (entry < 0) {
 			ids[i--] = entry;
 			j--;
@@ -503,7 +497,7 @@ int mdb_midl_print( FILE *fp, MDB_IDL ids )
 	unsigned i;
 	fprintf(fp, "freelist: %u/%u: ", ids[0], ids[-1]);
 	for (i=1; i<=ids[0]; i++) {
-		ssize_t entry = ids[i];
+		intptr_t entry = ids[i];
 		if (entry < 0) {
 			fprintf(fp, "%li-%li ", ids[i+1] - entry - 1, ids[i+1]);
 			i++;
