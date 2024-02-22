@@ -24,6 +24,7 @@ import {
 } from './native.js';
 import { saveKey }  from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
+const DEFAULT_BEGINNING_KEY = Buffer.from([5]); // the default starting key for iteration, which excludes symbols/metadata
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = globalBuffer;
@@ -396,8 +397,8 @@ export function addReadMethods(LMDBStore, {
 			let snapshot = options.snapshot;
 			let compression = this.compression;
 			iterable.iterate = () => {
-				let currentKey = valuesForKey ? options.key : options.start;
 				const reverse = options.reverse;
+				let currentKey = valuesForKey ? options.key : (reverse || 'start' in options) ? options.start : DEFAULT_BEGINNING_KEY;
 				let count = 0;
 				let cursor, cursorRenewId, cursorAddress;
 				let txn;
@@ -485,7 +486,7 @@ export function addReadMethods(LMDBStore, {
 							}
 						}
 					} else
-						endAddress = saveKey(options.end, store.writeKey, iterable, maxKeySize);
+						endAddress = saveKey((reverse && !('end' in options)) ? DEFAULT_BEGINNING_KEY : options.end, store.writeKey, iterable, maxKeySize);
 					return doPosition(cursorAddress, flags, offset || 0, keySize, endAddress);
 				}
 

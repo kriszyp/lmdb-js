@@ -202,6 +202,7 @@ describe('lmdb-js', function () {
 					returnedKeys.unshift(key);
 					value.should.equal(db.get(key));
 				}
+				keys.shift(); // remove the symbol test, it should be omitted
 				keys.should.deep.equal(returnedKeys);
 			});
 			it('reverse query range', async function () {
