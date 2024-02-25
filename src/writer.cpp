@@ -293,6 +293,7 @@ next_inst:	start = instruction++;
 				}
 				goto next_inst;
 			case PUT:
+#ifdef MDB_OVERLAPPINGSYNC
 				if (flags & ASSIGN_TIMESTAMP) {
 					if ((*(uint64_t*)key.mv_data & 0xfffffffful) == REPLACE_WITH_TIMESTAMP) {
 						ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(envForTxn->env);
@@ -357,6 +358,7 @@ next_inst:	start = instruction++;
 						}
 					}
 				}
+#endif
 				if (flags & SET_VERSION)
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else

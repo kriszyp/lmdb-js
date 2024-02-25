@@ -109,6 +109,5 @@
     "useTabs": true,
     "singleQuote": true
   },
-  "optionalDependencies": {
-  }
+  "optionalDependencies": {}
 }
