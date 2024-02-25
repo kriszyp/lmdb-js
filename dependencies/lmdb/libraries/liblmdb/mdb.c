@@ -3483,13 +3483,13 @@ mdb_txn_renew(MDB_txn *txn)
 		if (!txn)
 			last_error = "No transaction to renew";
 		else if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
-			// Txn is already renewed, we can just keep using it
-			return MDB_SUCCESS;
+			// Txn is already renewed, consider this as invalid for compatibility with v1
+			return EINVAL;
 		} else {
 			last_error = malloc(100);
 			sprintf(last_error, "Transaction flag was invalid for renew: %u", txn->mt_flags);
 		}
-		return EINVAL;
+		return MDB_BAD_TXN; // if the transaction is not read-only, communicate this with a separate error code
 	}
 
 	rc = mdb_txn_renew0(txn);

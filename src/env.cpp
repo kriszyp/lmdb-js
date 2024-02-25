@@ -213,7 +213,7 @@ MDB_txn* EnvWrap::getReadTxn(int64_t tw_address) {
 	if (rc) {
 		if (!txn)
 			fprintf(stderr, "No current read transaction available");
-		if (rc != EINVAL)
+		if (rc != EINVAL) // EINVAL indicates that the transaction is already renewed, which we can just allow
 			return nullptr; // if there was a real error, signal with nullptr and let error propagate with last_error
 	}
 	return txn;
@@ -657,6 +657,7 @@ void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks);
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
+#ifdef MDB_OVERLAPPINGSYNC
 	// unlock any record locks held by this thread/EnvWrap
 	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
 	pthread_mutex_lock(&extended_env->locksModificationLock);
@@ -669,7 +670,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 		} else ++it;
 	}
 	pthread_mutex_unlock(&extended_env->locksModificationLock);
-
+#endif
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
 			if (*ewRef == this) {

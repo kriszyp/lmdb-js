@@ -32,7 +32,6 @@
       "target_name": "lmdb",
       "sources": [
         "src/lmdb-js.cpp",
-        "dependencies/lmdb/libraries/liblmdb/midl.c",
         "dependencies/lmdb/libraries/liblmdb/chacha8.c",
         "dependencies/lz4/lib/lz4.h",
         "dependencies/lz4/lib/lz4.c",
@@ -79,14 +78,16 @@
         }],
         ["use_data_v1=='true'", {
           "sources": [
-            "dependencies/lmdb-data-v1/libraries/liblmdb/mdb.c"
+            "dependencies/lmdb-data-v1/libraries/liblmdb/mdb.c",
+            "dependencies/lmdb-data-v1/libraries/liblmdb/midl.c"
           ],
           "include_dirs": [
             "dependencies/lmdb-data-v1/libraries/liblmdb",
           ],
         }, {
           "sources": [
-            "dependencies/lmdb/libraries/liblmdb/mdb.c"
+            "dependencies/lmdb/libraries/liblmdb/mdb.c",
+            "dependencies/lmdb/libraries/liblmdb/midl.c"
           ],
           "include_dirs": [
             "dependencies/lmdb/libraries/liblmdb",
