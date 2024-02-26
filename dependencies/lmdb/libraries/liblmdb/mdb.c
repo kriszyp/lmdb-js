@@ -2830,6 +2830,7 @@ restart_search:
 
 		if (mop_len > env->me_maxfreepgs_to_load) {
 			fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
+			mdb_midl_print(stderr, mop);
 			goto continue_best_fit;
 		}
 
