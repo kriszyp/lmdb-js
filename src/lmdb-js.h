@@ -350,7 +350,7 @@ public:
 	static void setupExports(Napi::Env env, Object exports);
 	void closeEnv(bool hasLock = false);
 	int openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
-		int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey);
+		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey);
 	
 	/*
 		Gets statistics about the database environment.

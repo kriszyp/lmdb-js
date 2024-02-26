@@ -276,6 +276,14 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	option = options.Get("maxReaders");
 	if (option.IsNumber())
 		maxReaders = option.As<Number>();
+	int maxFreeSpaceToLoad = 20000;
+	option = options.Get("maxFreeSpaceToLoad");
+	if (option.IsNumber())
+		maxFreeSpaceToLoad = option.As<Number>();
+	int maxFreeSpaceToRetain = 10000;
+	option = options.Get("maxFreeSpaceToRetain");
+	if (option.IsNumber())
+		maxFreeSpaceToRetain = option.As<Number>();
 
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	std::string encryptKey;
@@ -290,7 +298,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	}
 
 	napiEnv = info.Env();
-	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
+	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, maxFreeSpaceToLoad, maxFreeSpaceToRetain, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
 	//delete[] pathBytes;
 	if (rc != 0)
 		return throwLmdbError(info.Env(), rc);
@@ -298,7 +306,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
-		int maxReaders, mdb_size_t mapSize, int pageSize, char* encryptionKey) {
+		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey) {
 	this->keyBuffer = keyBuffer;
 	this->compression = compression;
 	this->jsFlags = jsFlags;
@@ -315,6 +323,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	#ifdef MDB_RPAGE_CACHE
 	if (pageSize)
 	   rc = mdb_env_set_pagesize(env, pageSize);
+	if (rc) goto fail;
+	if (max_free_to_load)
+	   rc = mdb_env_set_freespace_options(env, max_free_to_load, max_free_to_retain);
 	if (rc) goto fail;
 	#endif
 	if ((size_t) encryptionKey > 100) {

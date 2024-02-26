@@ -68,6 +68,8 @@ describe('lmdb-js', function () {
 			noMemInit: true,
 			trackMetrics: true,
 			pageSize: 0x2000,
+			maxFreeSpaceToLoad: 400,
+			maxFreeSpaceToRetain: 100,
 		}),
 	);
 	describe(

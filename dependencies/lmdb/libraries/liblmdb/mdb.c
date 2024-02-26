@@ -1648,6 +1648,8 @@ struct MDB_env {
 #	define		me_pglast	me_pgstate.mf_pglast
 #	define		me_pghead	me_pgstate.mf_pghead
 #	define		me_freelist_position	me_pgstate.mf_position
+	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
+	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -2826,8 +2828,8 @@ restart_search:
 		env->me_freelist_position = i;
 		i = 0;
 
-		if (mop_len > 10000) {
-			//fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
+		if (mop_len > env->me_maxfreepgs_to_load) {
+			fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
 			goto continue_best_fit;
 		}
 
@@ -3882,8 +3884,8 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			if (env->me_pghead && env->me_pghead[0] > 20000) {
-				//fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain) {
+				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
 				env->me_pglast = 0;
@@ -5204,6 +5206,8 @@ mdb_env_create(MDB_env **env)
 
 	e->me_maxreaders = DEFAULT_READERS;
 	e->me_maxdbs = e->me_numdbs = CORE_DBS;
+	e->me_maxfreepgs_to_load = 20000;
+	e->me_maxfreepgs_to_retain = 10000;
 	e->me_fd = INVALID_HANDLE_VALUE;
 	e->me_lfd = INVALID_HANDLE_VALUE;
 	e->me_mfd = INVALID_HANDLE_VALUE;
@@ -11992,6 +11996,16 @@ mdb_env_set_callback(MDB_env *env, MDB_check_fd *func)
 	if (!env)
 		return EINVAL;
 	env->me_callback = func;
+	return MDB_SUCCESS;
+}
+
+int ESECT
+mdb_env_set_freespace_options(MDB_env *env, unsigned int max_to_load, unsigned int max_to_retain)
+{
+	if (!env)
+		return EINVAL;
+	env->me_maxfreepgs_to_load = max_to_load;
+	env->me_maxfreepgs_to_retain = max_to_retain;
 	return MDB_SUCCESS;
 }
 
