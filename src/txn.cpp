@@ -166,7 +166,7 @@ Value TxnWrap::renew(const Napi::CallbackInfo& info) {
 	}
 
 	int rc = mdb_txn_renew(this->txn);
-	if (rc != 0) {
+	if (rc != 0 && rc != EINVAL) { // EINVAL means the txn is already renewed
 		return throwLmdbError(info.Env(), rc);
 	}
 	return info.Env().Undefined();
