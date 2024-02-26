@@ -4187,16 +4187,15 @@ mdb_freelist_save(MDB_txn *txn)
 		for (; !rc; rc = mdb_cursor_next(&mc, &key, &data, MDB_NEXT)) {
 			txnid_t id = *(txnid_t *)key.mv_data;
 			ssize_t	len = (ssize_t)(data.mv_size / sizeof(MDB_ID)) - 2;
-			if ((ssize_t)mop[-len] < 0) {
-				// this is a block length indicator that would get split if don't adjust the length
-				len++;
-			}
 			MDB_ID save;
 
 			mdb_tassert(txn, len >= 0 && id <= env->me_pglast);
 			key.mv_data = &id;
 			if (len > mop_len) {
-				len = mop_len;
+				len = mop_len; // we are at the end, and we often overrun if we had to make split adjustments
+			} else if ((ssize_t)mop[-len] < 0) {
+				// this is a block length indicator that would get split if don't adjust the length
+				len++;
 			}
 			data.mv_size = (len + 1) * sizeof(MDB_ID);
 			mop_len -= len;
