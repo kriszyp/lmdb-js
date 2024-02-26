@@ -639,7 +639,9 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
         end = bufferStart + 0xffffffffll;
     }
     if ((dataAddress + data.mv_size) > end) {
-		fprintf(stderr, "Shared address crosses boundaries, dataAddress: %p, data end: %p, buffer end: %p\n", dataAddress, dataAddress + data.mv_size, end);
+        int64_t mapOffset = dataAddress - mapAddress;
+        size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
+		fprintf(stderr, "Shared address crosses boundaries, dataAddress: %p, data start: %p, data end: %p, buffer end: %p, mapAddress %p, mapOffset %p, bufferPosition %p, \n", dataAddress, dataAddress + data.mv_size, bufferStart, end, mapAddress, mapOffset, bufferPosition);
         // crosses boundaries, create one-off for this address
         bufferStart = dataAddress;
         end = bufferStart + 0xffffffffll;
