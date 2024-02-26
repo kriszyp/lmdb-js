@@ -624,9 +624,8 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
     if (dataAddress > mapAddress && (dataAddress + data.mv_size) <= (mapAddress + stat.me_mapsize)) {
         // an address within the memory map
         int64_t mapOffset = dataAddress - mapAddress;
-        size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
-        bufferStart = bufferPosition << 32;
-        bufferStart += mapAddress - (bufferStart >> 4);
+        size_t bufferPosition = mapOffset / 0xf0000000ll; // we don't use the full 4GB because we want to have overlap so records avoid crossing boundaries
+        bufferStart = bufferPosition * 0xf0000000ll + mapAddress;
         end = bufferStart + 0xffffffffll;
         if (end > mapAddress + stat.me_mapsize)
             end = mapAddress + stat.me_mapsize;
@@ -641,7 +640,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
     if ((dataAddress + data.mv_size) > end) {
         int64_t mapOffset = dataAddress - mapAddress;
         size_t bufferPosition = (mapOffset + (mapOffset >> 4)) >> 32;
-		fprintf(stderr, "Shared address crosses boundaries, dataAddress: %p, data start: %p, data end: %p, buffer end: %p, mapAddress %p, mapOffset %p, bufferPosition %p, \n", dataAddress, dataAddress + data.mv_size, bufferStart, end, mapAddress, mapOffset, bufferPosition);
+		fprintf(stderr, "Shared address crosses boundaries, dataAddress: %p, data end: %p, buffer start: %p, buffer end: %p, mapAddress %p, mapOffset %p, bufferPosition %p, \n", dataAddress, dataAddress + data.mv_size, bufferStart, end, mapAddress, mapOffset, bufferPosition);
         // crosses boundaries, create one-off for this address
         bufferStart = dataAddress;
         end = bufferStart + 0xffffffffll;
