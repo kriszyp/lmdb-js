@@ -2829,8 +2829,8 @@ restart_search:
 		i = 0;
 
 		if (mop_len > env->me_maxfreepgs_to_load) {
-			fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
-			mdb_midl_print(stderr, mop);
+			//fprintf(stderr, "Too many entries %u, looking for %u, best fit %u, not loading anymore\n", mop_len, num, best_fit_size);
+			//mdb_midl_print(stderr, mop);
 			goto continue_best_fit;
 		}
 
@@ -3886,7 +3886,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
 			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain) {
-				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+				//fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
 				env->me_pglast = 0;
