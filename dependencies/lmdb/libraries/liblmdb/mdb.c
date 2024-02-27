@@ -2226,6 +2226,7 @@ init:
 			ret->mp_pad = 0;
 		}
 	} else {
+		fprintf(stderr, "malloc error\n");
 		txn->mt_flags |= MDB_TXN_ERROR;
 	}
 	ret->mp_flags = 0;
@@ -2599,6 +2600,9 @@ mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data)
 	rc = mdb_pages_xkeep(m0, P_KEEP, i);
 
 done:
+if (rc) {
+	fprintf(stderr, "mdb_page_spill error\n");
+}
 	txn->mt_flags |= rc ? MDB_TXN_ERROR : MDB_TXN_SPILLS;
 	return rc;
 }
@@ -2989,6 +2993,7 @@ fail:
 	if (dph)
 		free(dph);
 #endif
+fprintf(stderr, "mdb_page_alloc error\n");
 	txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
@@ -3176,6 +3181,7 @@ done:
 	return 0;
 
 fail:
+fprintf(stderr, "mdb_page_touch error\n");
 	txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
@@ -4559,7 +4565,7 @@ mdb_txn_commit(MDB_txn *txn)
 	}
 
 	if (txn->mt_flags & (MDB_TXN_FINISHED|MDB_TXN_ERROR)) {
-		DPUTS("txn has failed/finished, can't commit");
+		fprintf(stderr, "txn has failed/finished, can't commit");
 		if (txn->mt_parent)
 			txn->mt_parent->mt_flags |= MDB_TXN_ERROR;
 		rc = MDB_BAD_TXN;
@@ -4676,8 +4682,10 @@ mdb_txn_commit(MDB_txn *txn)
 			if (parent->mt_spill_pgs) {
 				/* TODO: Prevent failure here, so parent does not fail */
 				rc = mdb_midl_append_list(&parent->mt_spill_pgs, txn->mt_spill_pgs);
-				if (rc)
+				if (rc) {
+					fprintf(stderr, "failed to append spill list\n");
 					parent->mt_flags |= MDB_TXN_ERROR;
+				}
 				mdb_midl_free(txn->mt_spill_pgs);
 				mdb_midl_sort(parent->mt_spill_pgs);
 			} else {
@@ -7095,6 +7103,8 @@ mdb_cursor_push(MDB_cursor *mc, MDB_page *mp)
 		DDBI(mc), (void *) mc));
 
 	if (mc->mc_snum >= CURSOR_STACK) {
+		fprintf(stderr, "excess cursor stack error\n");
+
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 		return MDB_CURSOR_FULL;
 	}
@@ -7653,6 +7663,8 @@ mdb_page_get(MDB_cursor *mc, pgno_t pgno,
 
 	if (pgno >= txn->mt_next_pgno) {
 		DPRINTF(("page %"Yu" not found", pgno));
+		fprintf(stderr, "page %u not found error\n", pgno);
+
 		txn->mt_flags |= MDB_TXN_ERROR;
 		return MDB_PAGE_NOTFOUND;
 	}
@@ -7748,6 +7760,8 @@ ready:
 	if (!IS_LEAF(mp)) {
 		DPRINTF(("internal error, index points to a %02X page!?",
 		    mp->mp_flags));
+		fprintf(stderr, "internal error, index points to a %02X page!?\n",
+		    mp->mp_flags);
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 		return MDB_CORRUPTED;
 	}
@@ -7937,6 +7951,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 				mdb_cassert(mc, x > 1);
 				j = ++(dl[0].mid);
 				dl[j] = ix;		/* Unsorted. OK when MDB_TXN_ERROR. */
+				fprintf(stderr, "mdb_ovpage_free: page not found in dirty list\n");
 				txn->mt_flags |= MDB_TXN_ERROR;
 				last_error = "mdb_ovpage_free remove dirty";
 				return MDB_PROBLEM;
@@ -9359,6 +9374,7 @@ bad_sub:
 			rc = MDB_PROBLEM;
 		}
 	}
+	fprintf(stderr, "put failed bad_sub, %s\n", mdb_strerror(rc));
 	mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
@@ -9462,6 +9478,7 @@ del_key:
 	return mdb_cursor_del0(mc);
 
 fail:
+fprintf(stderr, "del failed, %s\n", mdb_strerror(rc));
 	mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 	return rc;
 }
@@ -9694,6 +9711,8 @@ full:
 		mdb_dbg_pgno(mp), NUMKEYS(mp)));
 	DPRINTF(("upper-lower = %u - %u = %"Z"d", mp->mp_upper,mp->mp_lower,room));
 	DPRINTF(("node size = %"Z"u", node_size));
+	fprintf(stderr, "mdb_node_add: no room in page %u, got %u ptrs, %u - %u = %d, node size = %u\n",
+		mdb_dbg_pgno(mp), NUMKEYS(mp), mp->mp_upper, mp->mp_lower, room, node_size);
 	mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 	return MDB_PAGE_FULL;
 }
@@ -10849,8 +10868,10 @@ mdb_cursor_del0(MDB_cursor *mc)
 	mc->mc_flags |= C_DEL;
 
 fail:
-	if (rc)
+	if (rc) {
+		fprintf(stderr, "cursor_del0 failed, %i\n", rc);
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
+	}
 	return rc;
 }
 
@@ -11342,8 +11363,10 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 done:
 	if (copy)					/* tmp page */
 		mdb_page_free(env, copy);
-	if (rc)
+	if (rc) {
+		fprintf(stderr, "split failed, %i\n", rc);
 		mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
+	}
 	return rc;
 }
 
@@ -12406,8 +12429,10 @@ pop:
 		/* free it */
 		rc = mdb_midl_append(&txn->mt_free_pgs, mc->mc_db->md_root);
 done:
-		if (rc)
+		if (rc) {
+			fprintf(stderr, "mdb_drop0 failed, %d\n", rc);
 			txn->mt_flags |= MDB_TXN_ERROR;
+		}
 		/* drop refcount for mx's pages */
 		MDB_CURSOR_UNREF(&mx, 0);
 	} else if (rc == MDB_NOTFOUND) {
