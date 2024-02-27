@@ -1581,7 +1581,8 @@ typedef struct MDB_xcursor {
 	/** State of FreeDB old pages, stored in the MDB_env */
 typedef struct MDB_pgstate {
 	pgno_t		*mf_pghead;	/**< Reclaimed freeDB pages, or NULL before use */
-	txnid_t		mf_pglast;	/**< ID of last used record, or 0 if !mf_pghead */
+	txnid_t		mf_freelist_start;	/**< ID of last used record, or 0 if !mf_pghead */
+	txnid_t		mf_freelist_end;	/**< ID of last used record, or 0 if !mf_pghead */
 	/** Position in the free page list, so that we can keep trying to write to the same block
 	 * if possible. We use sign here, a negative number means we are in middle of contiguous
 	 * (in a transaction) and we really want to use the next page, a positive number is
@@ -1645,7 +1646,8 @@ struct MDB_env {
 	pthread_key_t	me_txkey;	/**< thread-key for readers */
 	txnid_t		me_pgoldest;	/**< ID of oldest reader last time we looked */
 	MDB_pgstate	me_pgstate;		/**< state of old pages from freeDB */
-#	define		me_pglast	me_pgstate.mf_pglast
+#	define		me_freelist_start	me_pgstate.mf_freelist_start
+#	define		me_freelist_end	me_pgstate.mf_freelist_end
 #	define		me_pghead	me_pgstate.mf_pghead
 #	define		me_freelist_position	me_pgstate.mf_position
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
@@ -2646,14 +2648,14 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 
 const static int MAX_SCAN_SEGMENT = 50;
 
-/** Allocate page numbers and memory for writing.  Maintain me_pglast,
+/** Allocate page numbers and memory for writing.  Maintain me_freelist_start,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
  *
  * If there are free pages available from older transactions, they
  * are re-used first. Otherwise allocate a new page at mt_next_pgno.
  * Do not modify the freedB, just merge freeDB records into me_pghead[]
- * and move me_pglast to say which records were consumed.  Only this
- * function can create me_pghead and move me_pglast/mt_next_pgno.
+ * and move me_freelist_start to say which records were consumed.  Only this
+ * function can create me_pghead and move me_freelist_start/mt_next_pgno.
  * When #MDB_DEVEL & 2, it is not affected by #mdb_freelist_save(): it
  * then uses the transaction's original snapshot of the freeDB.
  * @param[in] mc cursor A cursor handle identifying the transaction and
@@ -2733,7 +2735,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 /*	if (c++ % 100000 == 0) {
 		mdb_midl_print(stderr, mop);
 	}*/
-	for (op = MDB_FIRST;; op = MDB_NEXT) {
+	for (op = MDB_FIRST;; op = MDB_PREV) {
 		MDB_val key, data;
 		MDB_node *leaf;
 		pgno_t *idl;
@@ -2759,6 +2761,7 @@ restart_search:
 		unsigned check_point = start + MAX_SCAN_SEGMENT;
 		if (check_point > mop_len) check_point = mop_len;
 		unsigned wrapped = 0;
+		// TODO: Don't scan if the list is too small
 		//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
 		for(i = start; 1; i++) {
 			//fprintf(stderr, "l %u ", i);
@@ -2836,7 +2839,6 @@ restart_search:
 
 		if (op == MDB_FIRST) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
-			last = env->me_pglast;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 #if (MDB_DEVEL) & 2	/* "& 2" so MDB_DEVEL=1 won't hide bugs breaking freeDB */
@@ -2847,11 +2849,57 @@ restart_search:
 			m2.mc_db = &env->me_metas[(txn->mt_txnid-1) & 1]->mm_dbs[FREE_DBI];
 			m2.mc_dbflag = (unsigned char *)""; /* probably unnecessary */
 #endif
+			if (!oldest) {
+				// if we need to load more, and we haven't already loaded the latest transactions, we need to load them now
+				// and we load from the end of the freelist, to right before the last referenced transaction, trying load
+				// new transactions before going to older transactions
+				oldest = mdb_find_oldest(txn);
+				env->me_pgoldest = oldest;
+				op = MDB_SET_RANGE;
+				last = env->me_freelist_end;
+				if (last) {
+					key.mv_data = &last; /* start at the end of the freelist and read newer transactions free pages */
+					key.mv_size = sizeof(last);
+					rc = mdb_cursor_get(&m2, &key, NULL, op);
+					if (rc) {
+						if (rc != MDB_NOTFOUND)
+							goto fail;
+					} else {
+						do {
+							rc = mdb_cursor_get(&m2, &key, NULL, op);
+							if (rc) {
+								if (rc == MDB_NOTFOUND)
+									break;
+								goto fail;
+							}
+							last = *(txnid_t*)key.mv_data;
+							if ((rc = mdb_midl_need(&env->me_pghead, i)) != 0)
+								goto fail;
+							if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
+								goto fail;
+						} while (last <= oldest);
+						env->me_freelist_end = last;
+					}
+					// TODO: if we loaded enough, we should continue the search
+				} else {
+					last = oldest - 1;
+					env->me_freelist_end = last;
+					env->me_freelist_start = last;
+				}
+			}
+			last = env->me_freelist_start;
 			if (last) {
 				op = MDB_SET_RANGE;
 				key.mv_data = &last; /* will look up last+1 */
 				key.mv_size = sizeof(last);
 			}
+			rc = mdb_cursor_get(&m2, &key, NULL, op);
+			if (rc) {
+				if (rc == MDB_NOTFOUND)
+					break;
+				goto fail;
+			}
+			op = MDB_PREV; // now iterate backwards through the txns of free list
 			if (Paranoid && mc->mc_dbi == FREE_DBI)
 				retry = -1;
 		}
@@ -2902,7 +2950,7 @@ restart_search:
 				goto fail;
 			mop = env->me_pghead;
 		}
-		env->me_pglast = last;
+		env->me_freelist_start = last;
 #if (MDB_DEBUG) > 1
 		DPRINTF(("IDL read txn %"Yu" root %"Yu" num %u",
 			last, txn->mt_dbs[FREE_DBI].md_root, i));
@@ -2911,7 +2959,7 @@ restart_search:
 #endif
 		/* Merge in descending sorted order */
 		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
-			goto fail;		
+			goto fail;
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
@@ -3508,7 +3556,7 @@ mdb_txn_renew0(MDB_txn *txn)
 				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
-				env->me_pglast = 0;
+				env->me_freelist_start = 0;
 				env->me_freelist_position = 0;
 				// TODO: Free it first
 				//env->me_block_size_cache = NULL;
@@ -3889,7 +3937,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 				//fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
-				env->me_pglast = 0;
+				env->me_freelist_start = 0;
 			}
 
 			env->me_txn = NULL;
@@ -3980,7 +4028,7 @@ static int
 mdb_freelist_save(MDB_txn *txn)
 {
 	/* env->me_pghead[] can grow and shrink during this call.
-	 * env->me_pglast and txn->mt_free_pgs[] can only grow.
+	 * env->me_freelist_start and txn->mt_free_pgs[] can only grow.
 	 * Page numbers cannot disappear from txn->mt_free_pgs[].
 	 */
 	MDB_cursor mc;
@@ -4056,14 +4104,14 @@ mdb_freelist_save(MDB_txn *txn)
 		/* If using records from freeDB which we have not yet
 		 * deleted, delete them and any we reserved for me_pghead.
 		 */
-		while (pglast < env->me_pglast) {
+		while (pglast < env->me_freelist_start) {
 			rc = mdb_cursor_first(&mc, &key, NULL);
 			if (rc)
 				return rc;
 			pglast = head_id = *(txnid_t *)key.mv_data;
 			total_room = head_room = 0;
-			if (pglast <= env->me_pglast) {
-				mdb_tassert(txn, pglast <= env->me_pglast);
+			if (pglast <= env->me_freelist_start) {
+				mdb_tassert(txn, pglast <= env->me_freelist_start);
 				rc = mdb_cursor_del(&mc, 0);
 				if (rc)
 					return rc;
@@ -4110,7 +4158,7 @@ mdb_freelist_save(MDB_txn *txn)
 
 		/* Reserve records for me_pghead[]. Split it if multi-page,
 		 * to avoid searching freeDB for a page range. Use keys in
-		 * range [1,me_pglast]: Smaller than txnid of oldest reader.
+		 * range [1,me_freelist_start]: Smaller than txnid of oldest reader.
 		 */
 		if (total_room >= mop_len) {
 			if (total_room == mop_len || --more < 0)
@@ -4190,7 +4238,7 @@ mdb_freelist_save(MDB_txn *txn)
 			ssize_t	len = (ssize_t)(data.mv_size / sizeof(MDB_ID)) - 2;
 			MDB_ID save;
 
-			mdb_tassert(txn, len >= 0 && id <= env->me_pglast);
+			mdb_tassert(txn, len >= 0 && id <= env->me_freelist_start);
 			key.mv_data = &id;
 			if (len > mop_len) {
 				len = mop_len; // we are at the end, and we often overrun if we had to make split adjustments
@@ -7898,7 +7946,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 	 * so we should give it back to our current free list, if any.
 	 * Otherwise put it onto the list of pages we freed in this txn.
 	 *
-	 * Won't create me_pghead: me_pglast must be inited along with it.
+	 * Won't create me_pghead: me_freelist_start must be inited along with it.
 	 * Unsupported in nested txns: They would need to hide the page
 	 * range in ancestor txns' dirty and spilled lists.
 	 */
