@@ -631,7 +631,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
             end = mapAddress + stat.me_mapsize;
     } else {
         // outside the memory map, usually because this is from the heap during a write txn or the mmap has been reallocated
-		fprintf(stderr, "Shared address outside of memory map, mapAddress: %p bufferStart: %p, dataAddress: %p, memory map end: %p\n", mapAddress, bufferStart, dataAddress, mapAddress + stat.me_mapsize);
+		//fprintf(stderr, "Shared address outside of memory map, mapAddress: %p bufferStart: %p, dataAddress: %p, memory map end: %p\n", mapAddress, bufferStart, dataAddress, mapAddress + stat.me_mapsize);
         bufferStart = (dataAddress >> 32) << 32;
 		if (!bufferStart) // can't use a memory address of 0 because it is considered a nullptr
 			bufferStart = 8;
