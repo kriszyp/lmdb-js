@@ -363,6 +363,9 @@ next_inst:	start = instruction++;
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
+				if (rc) {
+					fprintf(stderr, "put error %u\n", rc);
+				}
 				if (flags & COMPRESSIBLE)
 					delete value.mv_data;
 				break;
@@ -482,9 +485,10 @@ void WriteWorker::Write() {
 		mdb_txn_set_callback(txn, txn_visible, this);
 	}
 	#endif
-	if (rc || resultCode)
+	if (rc || resultCode) {
+		fprintf(stderr, "do_write error %u %u\n", rc, resultCode);
 		mdb_txn_abort(txn);
-	else
+	} else
 		rc = mdb_txn_commit(txn);
 	#ifdef MDB_OVERLAPPINGSYNC
 	#endif

@@ -87,17 +87,20 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 
 	if( x < 1 ) {
 		/* internal error */
+		fprintf(stderr, "negative search index error\n");
 		return -2;
 	}
 
 	if ( x <= ids[0] && ids[x] == id ) {
 		/* duplicate */
 		//assert(0);
+		fprintf(stderr, "duplicate value error\n");
 		return -1;
 	}
 
 	if ( ids[0] >= MDB_IDL_DB_MAX ) {
 		/* no room */
+		fprintf(stderr, "no room error\n");
 		--ids[0];
 		return -2;
 
