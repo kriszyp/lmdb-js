@@ -11743,8 +11743,18 @@ mdb_env_copyfd1(MDB_env *env, HANDLE fd)
 		MDB_cursor mc;
 		MDB_val key, data;
 		mdb_cursor_init(&mc, txn, FREE_DBI, NULL);
-		while ((rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT)) == 0)
-			freecount += *(MDB_ID *)data.mv_data;
+		while ((rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT)) == 0) {
+			MDB_IDL idl = (MDB_ID *) data.mv_data;
+			for(int i = 1; i <= idl[0]; i++) {
+				ssize_t entry = (ssize_t)idl[i];
+				if (entry <= 0) {
+					if (entry < 0) {
+						freecount -= entry;
+						i++;
+					}
+				} else freecount++; // regular page reference
+			}
+		}
 		if (rc != MDB_NOTFOUND)
 			goto finish;
 		freecount += txn->mt_dbs[FREE_DBI].md_branch_pages +
