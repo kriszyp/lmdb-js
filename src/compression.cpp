@@ -123,7 +123,7 @@ int Compression::compressInstruction(EnvWrap* env, double* compressionAddress) {
 argtokey_callback_t Compression::compress(MDB_val* value, void (*freeValue)(MDB_val&)) {
 	size_t dataLength = value->mv_size - startingOffset;
 	char* data = (char*)value->mv_data;
-	if (value->mv_size < compressionThreshold && !(value->mv_size > 0 && ((uint8_t*)data)[0] >= 250))
+	if (value->mv_size < compressionThreshold && !(value->mv_size > startingOffset && ((uint8_t*)data)[startingOffset] >= 250))
 		return freeValue; // don't compress if less than threshold (but we must compress if the first byte is the compression indicator)
 	bool longSize = dataLength >= 0x1000000;
 	int prefixSize = (longSize ? 8 : 4) + startingOffset;

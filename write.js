@@ -184,7 +184,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					// record pointer to value buffer
 					float64[position] = (valueBuffer.address ||
 						(valueBuffer.address = getAddress(valueBuffer.buffer))) + valueBufferStart;
-					mustCompress = valueBuffer[valueBufferStart] >= 250; // this is the compression indicator, so we must compress
+					if (store.compression) {
+						let compressionFlagIndex = valueBufferStart + (store.compression.startingOffset || 0);
+						// this is the compression indicator, so we must compress
+						mustCompress = compressionFlagIndex < valueBuffer.end && valueBuffer[compressionFlagIndex] >= 250;
+					}
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
@@ -195,7 +199,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					if (address <= 0 && valueBuffer.length > 0)
 						console.error('Supplied buffer had an invalid address', address);
 					float64[position] = address;
-					mustCompress = valueBuffer[0] >= 250; // this is the compression indicator, so we must compress
+					if (store.compression) {
+						let compressionFlagIndex = store.compression.startingOffset || 0;
+						// this is the compression indicator, so we must compress
+						mustCompress = compressionFlagIndex < valueBuffer.length && valueBuffer[compressionFlagIndex] >= 250;
+					}
 				}
 				uint32[(position++ << 1) - 1] = valueSize;
 				if (store.compression && (valueSize >= store.compression.threshold || mustCompress)) {
