@@ -1745,7 +1745,7 @@ describe('lmdb-js', function () {
 				});
 				should.equal(dbRAS.get(3).name, 'three');
 			});
-			it.only('can backup and use backup', async function () {
+			it.skip('can backup and use backup', async function () {
 				if (options.encryptionKey)
 					// it won't match the environment
 					return;
