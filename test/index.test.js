@@ -1745,7 +1745,7 @@ describe('lmdb-js', function () {
 				});
 				should.equal(dbRAS.get(3).name, 'three');
 			});
-			it.skip('can backup and use backup', async function () {
+			it('can backup and use backup', async function () {
 				if (options.encryptionKey)
 					// it won't match the environment
 					return;
@@ -1764,14 +1764,10 @@ describe('lmdb-js', function () {
 				let backupDb = open(testDirPath + '/backup.mdb', options);
 				try {
 					backupDb.get('for-backup-110').should.equal(value.slice(0, 5500));
-					value += ' changed';
 					for (let i = 0; i < 100; i++) {
-						const testGet = backupDb.get('for-backup-5');
-						console.log('testGetSize', testGet.length);
-						console.log('writing on backup file',i);
 						await backupDb.put('for-backup-' + i, 'test');
 					}
-					backupDb.get('for-backup-1').should.equal(value);
+					backupDb.get('for-backup-1').should.equal('test');
 				} finally {
 					await backupDb.close();
 				}

@@ -11577,7 +11577,7 @@ mdb_env_cwalk(mdb_copy *my, pgno_t *pg, int flags)
 						}
 						mo = (MDB_page *)(my->mc_wbuf[toggle] + my->mc_wlen[toggle]);
 						memcpy(mo, omp, my->mc_env->me_psize);
-						ovp.op_pgno = my->mc_next_pgno;
+						ovp.op_pgno = mo->mp_pgno = my->mc_next_pgno;
 						ovp.op_txnid = 1;
 						memcpy(NODEDATA(ni), &ovp, sizeof(ovp));
 						my->mc_next_pgno += ovp.op_pages;
