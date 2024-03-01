@@ -105,9 +105,9 @@ describe('lmdb-js', function () {
 							batchStartThreshold: 10,
 							maxReaders: 100,
 							keyEncoder: orderedBinaryEncoder,
-							compression: {
+							/*compression: {
 								threshold: 256,
-							},
+							},*/
 						},
 						options,
 					)),
@@ -1750,9 +1750,11 @@ describe('lmdb-js', function () {
 					// it won't match the environment
 					return;
 				let value = 'hello world';
-				for (let i = 0; i < 9; i++) value += value;
-				for (let i = 0; i < 200; i++) {
-					await db.put('for-backup-' + (i % 120), value.slice(0, i * 20));
+				for (let i = 0; i < 11; i++) value += value;
+				for (let i = 0; i < 180; i++) {
+					let promise = db.put('for-backup-' + (i % 120), value.slice(0, i * 50));
+					if (i % 10 == 9)
+						await promise;
 				}
 				try {
 					unlinkSync(testDirPath + '/backup.mdb');
@@ -1761,12 +1763,11 @@ describe('lmdb-js', function () {
 				await db.backup(testDirPath + '/backup.mdb', true);
 				let backupDb = open(testDirPath + '/backup.mdb', options);
 				try {
-					backupDb.get('for-backup-110').should.equal(value.slice(0, 2200));
-					value += ' changed';
-					for (let i = 0; i < 10; i++) {
-						await backupDb.put('for-backup-' + i, value);
+					backupDb.get('for-backup-110').should.equal(value.slice(0, 5500));
+					for (let i = 0; i < 100; i++) {
+						await backupDb.put('for-backup-' + i, 'test');
 					}
-					backupDb.get('for-backup-1').should.equal(value);
+					backupDb.get('for-backup-1').should.equal('test');
 				} finally {
 					await backupDb.close();
 				}

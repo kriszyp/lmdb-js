@@ -11648,7 +11648,7 @@ mdb_env_cwalk(mdb_copy *my, pgno_t *pg, int flags)
 						}
 						mo = (MDB_page *)(my->mc_wbuf[toggle] + my->mc_wlen[toggle]);
 						memcpy(mo, omp, my->mc_env->me_psize);
-						ovp.op_pgno = my->mc_next_pgno;
+						ovp.op_pgno = mo->mp_pgno = my->mc_next_pgno;
 						ovp.op_txnid = 1;
 						memcpy(NODEDATA(ni), &ovp, sizeof(ovp));
 						my->mc_next_pgno += ovp.op_pages;
@@ -11814,8 +11814,18 @@ mdb_env_copyfd1(MDB_env *env, HANDLE fd)
 		MDB_cursor mc;
 		MDB_val key, data;
 		mdb_cursor_init(&mc, txn, FREE_DBI, NULL);
-		while ((rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT)) == 0)
-			freecount += *(MDB_ID *)data.mv_data;
+		while ((rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT)) == 0) {
+			MDB_IDL idl = (MDB_ID *) data.mv_data;
+			for(int i = 1; i <= idl[0]; i++) {
+				ssize_t entry = (ssize_t)idl[i];
+				if (entry <= 0) {
+					if (entry < 0) {
+						freecount -= entry;
+						i++;
+					}
+				} else freecount++; // regular page reference
+			}
+		}
 		if (rc != MDB_NOTFOUND)
 			goto finish;
 		freecount += txn->mt_dbs[FREE_DBI].md_branch_pages +
