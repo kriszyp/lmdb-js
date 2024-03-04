@@ -2863,12 +2863,12 @@ restart_search:
 				oldest = mdb_find_oldest(txn);
 				env->me_pgoldest = oldest;
 			}
-			op = MDB_NEXT; // now iterate forwards through the txns of free list
 			if (env->me_freelist_end && env->me_freelist_end < oldest) {
 				last = env->me_freelist_end;
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
+				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				if (rc) {
 					if (rc == MDB_NOTFOUND) {
 						mdb_cursor_last(&m2, &key, NULL);
@@ -2880,6 +2880,7 @@ restart_search:
 				}
 				last = *(txnid_t *) key.mv_data;
 			} else {
+				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				rc = MDB_NOTFOUND; // fall into switch to previous iterations below
 				if (!env->me_freelist_start) env->me_freelist_start = env->me_freelist_end = oldest;
 			}
@@ -2922,6 +2923,7 @@ restart_search:
 					} else
 						last = *(txnid_t*)key.mv_data;
 				}
+				env->me_freelist_start = last;
 			} else
 				env->me_freelist_end = last + 1;
 		} else {
@@ -3009,7 +3011,7 @@ search_done:
 		// found
 		fprintf(stderr,"found page %u\n", pgno);
 	} else {
-		fprintf(stderr,"appending\n", pgno);
+		fprintf(stderr,"appending %u\n", pgno);
 		txn->mt_next_pgno = pgno + num;
 	}
 #if OVERFLOW_NOTYET
@@ -4037,9 +4039,8 @@ mdb_freelist_save(MDB_txn *txn)
 	MDB_cursor mc;
 	MDB_env	*env = txn->mt_env;
 	int rc, maxfree_1pg = env->me_maxfree_1pg, more = 1, lost_loose = 0;
-	txnid_t	pglast = env->me_freelist_end;
-	txnid_t head_id = env->me_freelist_start;
-	txnid_t start_id_to_write = env->me_freelist_start;
+	txnid_t	pglast = 0;
+	txnid_t head_id = 0;
 	pgno_t	freecnt = 0, *free_pgs, *mop;
 	ssize_t	head_room = 0, total_room = 0, mop_len, clean_limit;
 
@@ -4095,34 +4096,62 @@ mdb_freelist_save(MDB_txn *txn)
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 	}
-
+	ssize_t reserved_space;
+	ssize_t start_written = -1;
+	ssize_t end_written;
 	/* MDB_RESERVE cancels meminit in ovpage malloc (when no WRITEMAP) */
 	clean_limit = (env->me_flags & (MDB_NOMEMINIT|MDB_WRITEMAP))
 		? SSIZE_MAX : maxfree_1pg;
 
-	for (;;) {
+	mop = env->me_pghead;
+	mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
+	while(start_written != env->me_freelist_start || end_written != env->me_freelist_end || reserved_space != mop_len) {
 		/* Come back here after each Put() in case freelist changed */
 		MDB_val key, data;
 		pgno_t *pgs;
 		ssize_t j;
+
+
+		/* Reserve records for me_pghead[]. Split it if multi-page,
+		 * to avoid searching freeDB for a page range. Use keys in
+		 * range [me_freelist_start me_freelist_end]: Smaller than txnid of oldest reader.
+		 */
+		head_id = start_written = env->me_freelist_start;
+		// TODO: We may want to the smallest id we can here (previous entry + 1)
+		txnid_t last_id_write = mop_len / maxfree_1pg + head_id;
+		reserved_space = mop_len;
+		if (mop_len && head_id <= last_id_write) {
+			fprintf(stderr, "Reserving in-memory freelist, length: %u, ids: ", mop_len);
+			while (head_id <= last_id_write) {
+				key.mv_size = sizeof(head_id);
+				key.mv_data = &head_id;
+				int len = mop_len > maxfree_1pg ? maxfree_1pg : mop_len;
+				mop_len -= len;
+				data.mv_size = (len + 2) * sizeof(pgno_t);
+				fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
+				rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
+				head_id++;
+				if (rc)
+					return rc;
+			}
+		}
 
 		/* If using records from freeDB which we have not yet
 		 * deleted, delete them and any we reserved for me_pghead.
 		 */
 		if (env->me_pghead) {
 			fprintf(stderr, "Free list start %u, end %u, pglast %u\n", env->me_freelist_start, env->me_freelist_end, pglast);
-			txnid_t txn_id = env->me_freelist_start;
-			key.mv_size = sizeof(txn_id);
-			key.mv_data = &txn_id;
+			key.mv_size = sizeof(head_id);
+			key.mv_data = &head_id;
 			rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
 			if (!rc) {
 				do {
-					txn_id = *(txnid_t *) key.mv_data;
-					if (txn_id >= pglast) // we have already deleted this record,
+					head_id = *(txnid_t *) key.mv_data;
+					if (head_id >= env->me_freelist_end) // finished
 						break;
 					total_room = head_room = 0;
-					mdb_tassert(txn, txn_id >= env->me_freelist_start);
-					fprintf(stderr, "Deleting free list record %u\n", txn_id);
+					mdb_tassert(txn, head_id >= env->me_freelist_start);
+					fprintf(stderr, "Deleting free list record %u\n", head_id);
 					rc = mdb_cursor_del(&mc, 0);
 					if (rc)
 						return rc;
@@ -4130,9 +4159,8 @@ mdb_freelist_save(MDB_txn *txn)
 				} while (rc == MDB_SUCCESS);
 				pglast = env->me_freelist_start;
 			}
-		} else {
-			rc = mdb_cursor_first(&mc, &key, NULL);
 		}
+		end_written = env->me_freelist_end;
 
 		/* Save the IDL of pages freed by this txn, to a single record */
 		if (freecnt < txn->mt_free_pgs[0]) {
@@ -4149,7 +4177,7 @@ mdb_freelist_save(MDB_txn *txn)
 			do {
 				freecnt = free_pgs[0];
 				data.mv_size = MDB_IDL_SIZEOF(free_pgs);
-				fprintf(stderr, "write new freed pages: \n", txn->mt_txnid);
+				fprintf(stderr, "write new freed pages, id: %u ", txn->mt_txnid);
 				mdb_midl_print(stderr, free_pgs);
 				rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
 				if (rc)
@@ -4157,7 +4185,7 @@ mdb_freelist_save(MDB_txn *txn)
 				/* Retry if mt_free_pgs[] grew during the Put() */
 				free_pgs = txn->mt_free_pgs;
 			} while (freecnt < free_pgs[0]);
-			mdb_midl_sort(free_pgs);
+			//mdb_midl_sort(free_pgs);
 			memcpy(data.mv_data, free_pgs, data.mv_size);
 #if (MDB_DEBUG) > 1
 			{
@@ -4168,33 +4196,11 @@ mdb_freelist_save(MDB_txn *txn)
 					DPRINTF(("IDL %"Yu, free_pgs[i]));
 			}
 #endif
-			continue;
+//			continue;
 		}
-
 		mop = env->me_pghead;
 		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
 
-		
-		/* Reserve records for me_pghead[]. Split it if multi-page,
-		 * to avoid searching freeDB for a page range. Use keys in
-		 * range [me_freelist_start me_freelist_end]: Smaller than txnid of oldest reader.
-		 */
-		txnid_t last_id_write = mop_len / maxfree_1pg + start_id_to_write;
-		if (mop_len && head_id <= last_id_write) {
-
-			fprintf(stderr, "Reserving in-memory freelist, length: %u, ids: ", mop_len);
-			while (head_id <= last_id_write) {
-				fprintf(stderr, "%u ", head_id);
-				key.mv_size = sizeof(head_id);
-				key.mv_data = &head_id;
-				data.mv_size = (head_room + 2) * sizeof(pgno_t);
-				head_id++;
-				rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
-				if (rc)
-					return rc;
-
-			}
-		} else break;
 	}
 
 	/* Return loose page numbers to me_pghead, though usually none are
@@ -4202,24 +4208,15 @@ mdb_freelist_save(MDB_txn *txn)
 	 */
 	if (txn->mt_loose_pgs) {
 		MDB_page *mp = txn->mt_loose_pgs;
+		if (!env->me_pghead) env->me_pghead = mdb_midl_alloc(1);
 		unsigned count = txn->mt_loose_count;
-		MDB_IDL loose;
-		/* Room for loose pages + temp IDL with same */
-		if ((rc = mdb_midl_need(&env->me_pghead, 2*count+1)) != 0)
-			return rc;
 		lost_loose += count;
-		mop = env->me_pghead;
-		loose = mop + MDB_IDL_ALLOCLEN(mop) - count;
-		for (count = 0; mp; mp = NEXT_LOOSE_PAGE(mp))
-			loose[ ++count ] = mp->mp_pgno;
-		loose[0] = count;
-		if ((rc = mdb_midl_xmerge(&mop, loose)) != 0)
-			return rc;
-
-		env->me_pghead = mop;
+		for (; mp; mp = NEXT_LOOSE_PAGE(mp))
+			mdb_midl_insert(&env->me_pghead, mp->mp_pgno, 1);
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
-		mop_len = mop[0];
+		mop = env->me_pghead;
+		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
 	}
 
 	/* Fill in the reserved me_pghead records.  Everything is finally
@@ -4233,8 +4230,8 @@ mdb_freelist_save(MDB_txn *txn)
 		MDB_IDL pghead = env->me_pghead;
 		env->me_pghead = NULL;
 		txn->mt_dirty_room = 0;
-		txnid_t last_id_write = mop_len / maxfree_1pg + start_id_to_write;
-		txnid_t id = start_id_to_write;
+		txnid_t last_id_write = mop_len / maxfree_1pg + start_written;
+		txnid_t id = start_written;
 		fprintf(stderr, "Writing in-memory freelist, length: %u ids: ", mop_len);
 		while (mop_len > 0) {
 			if (id > last_id_write) {
@@ -4257,11 +4254,12 @@ mdb_freelist_save(MDB_txn *txn)
 			}
 			MDB_ID save;
 			data.mv_size = (len + 1) * sizeof(MDB_ID);
-			id++;
 			save = mop[start];
 			mop[start] = len;
+			data.mv_data = &mop[start];
 			mdb_midl_print(stderr, &mop[start]);
-			rc = mdb_cursor_put(&mc, &key, &data, MDB_CURRENT);
+			rc = mdb_cursor_put(&mc, &key, &data, 0);
+			id++;
 			mop[start] = save;
 			mop_len -= len;
 			if (rc || !mop_len)
@@ -4270,7 +4268,6 @@ mdb_freelist_save(MDB_txn *txn)
 		fprintf(stderr, "\n");
 		env->me_pghead = pghead;
 	}
-
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
 	if (! (txn->mt_flags & MDB_TXN_WRITEMAP))
 		txn->mt_loose_count += lost_loose;
@@ -6534,8 +6531,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	}
 #else
 	rc = pthread_mutex_init(&env->me_rpmutex, NULL);
-	if (rc)
+	if (rc) {
+		last_error = "Attempting to initialize mutex";
 		goto leave;
+	}
 #endif
 	}
 #endif
@@ -6622,8 +6621,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	/* For RDONLY, get lockfile after we know datafile exists */
 	if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
-		if (rc)
+		if (rc) {
+			last_error = "Attempting to setup locks";
 			goto leave;
+		}
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
 			// <lmdb-js>
 			flags ^= MDB_PREVSNAPSHOT;
@@ -6635,18 +6636,21 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	rc = mdb_fopen(env, &fname,
 		(flags & MDB_RDONLY) ? MDB_O_RDONLY : MDB_O_RDWR,
 		mode, &env->me_fd);
-	if (rc)
+	if (rc) {
+		last_error = "Attempting to open main database file";
 		goto leave;
+	}
 #ifdef _WIN32
 	rc = mdb_fopen(env, &fname, MDB_O_OVERLAPPED, mode, &env->me_ovfd);
 	if (rc)
 		goto leave;
 #endif
-
 	if ((flags & (MDB_RDONLY|MDB_NOLOCK)) == MDB_RDONLY) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
-		if (rc)
+		if (rc) {
+			last_error = "Attempting to setup locks after open";
 			goto leave;
+		}
 	}
 
 	if ((rc = mdb_env_open2(env, flags & MDB_PREVSNAPSHOT)) == MDB_SUCCESS) {
@@ -6655,8 +6659,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		 */
 		if (!(flags & (MDB_RDONLY|MDB_WRITEMAP))) {
 			rc = mdb_fopen(env, &fname, MDB_O_META, mode, &env->me_mfd);
-			if (rc)
+			if (rc) {
+				last_error = "Attempting to open sync file descriptor";
 				goto leave;
+			}
 		}
 		DPRINTF(("opened dbenv %p", (void *) env));
 		// <lmdb-js>
@@ -6682,8 +6688,10 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 				}
 			}
 			rc = mdb_env_share_locks(env, &excl);
-			if (rc)
+			if (rc) {
+				last_error = "Attempting to setup shared locks";
 				goto leave;
+			}
 		}
 		// </lmdb-js>
 		if (!(flags & MDB_RDONLY)) {
