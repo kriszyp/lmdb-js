@@ -3010,9 +3010,9 @@ search_done:
 	}
 	if (i) {
 		// found
-		fprintf(stderr,"found page %u\n", pgno);
+		fprintf(stderr,"found page %u %u\n", pgno, num);
 	} else {
-		fprintf(stderr,"appending %u\n", pgno);
+		fprintf(stderr,"appending %u %u\n", pgno, num);
 		txn->mt_next_pgno = pgno + num;
 	}
 #if OVERFLOW_NOTYET
@@ -3939,7 +3939,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
 			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain) {
-				//fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
@@ -4260,11 +4260,18 @@ mdb_freelist_save(MDB_txn *txn)
 			// oversized entry, we will copy in our data and fill the rest with zeros
 			len += start;
 			start = 0;
+			ssize_t save = mop[0];
+			mop[0] = len;
 			mdb_midl_print(stderr, mop);
-			rc = mdb_cursor_put(&mc, &key, &data, MDB_CURRENT & MDB_RESERVE);
-			if (rc) break;
-			memcpy(data.mv_data, mop, mop_len * sizeof(id));
-			memset((txnid_t*) data.mv_data + mop_len, 0, data.mv_size - mop_len * sizeof(id));
+			rc = mdb_cursor_put(&mc, &key, &data, MDB_CURRENT|MDB_RESERVE);
+			if (rc) {
+				mop[0] = save;
+				return rc;
+			}
+			memcpy(data.mv_data, mop, (len + 1) * sizeof(id));
+			memset((txnid_t*) data.mv_data + len + 1, 0, data.mv_size - (len + 1) * sizeof(id));
+			mop[0] = save;
+			mop_len = 0; // nothing left to save
 		} else {
 			ssize_t save = mop[start];
 			ssize_t save2 = 0;
