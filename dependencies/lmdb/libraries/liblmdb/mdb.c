@@ -4096,7 +4096,7 @@ mdb_freelist_save(MDB_txn *txn)
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 	}
-	ssize_t reserved_space;
+	ssize_t reserved_space = -1;
 	ssize_t start_written = -1;
 	ssize_t end_written;
 	/* MDB_RESERVE cancels meminit in ovpage malloc (when no WRITEMAP) */
@@ -4104,65 +4104,21 @@ mdb_freelist_save(MDB_txn *txn)
 		? SSIZE_MAX : maxfree_1pg;
 
 	mop = env->me_pghead;
-	mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
-	while(start_written != env->me_freelist_start || end_written != env->me_freelist_end || reserved_space != mop_len) {
+	mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
+	while(reserved_space < mop_len ||
+			(start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
+			freecnt < txn->mt_free_pgs[0]) {
 		/* Come back here after each Put() in case freelist changed */
+		if (start_written >= 0) {
+			fprintf(stderr, "Rerunning freelist save, start was %u is %u, length was %u is %u\n",start_written, env->me_freelist_start, reserved_space, mop_len);
+		}
 		MDB_val key, data;
 		pgno_t *pgs;
 		ssize_t j;
 
-
-		/* Reserve records for me_pghead[]. Split it if multi-page,
-		 * to avoid searching freeDB for a page range. Use keys in
-		 * range [me_freelist_start me_freelist_end]: Smaller than txnid of oldest reader.
-		 */
-		head_id = start_written = env->me_freelist_start;
-		// TODO: We may want to the smallest id we can here (previous entry + 1)
-		txnid_t last_id_write = mop_len / maxfree_1pg + head_id;
-		reserved_space = mop_len;
-		if (mop_len && head_id <= last_id_write) {
-			fprintf(stderr, "Reserving in-memory freelist, length: %u, ids: ", mop_len);
-			while (head_id <= last_id_write) {
-				key.mv_size = sizeof(head_id);
-				key.mv_data = &head_id;
-				int len = mop_len > maxfree_1pg ? maxfree_1pg : mop_len;
-				mop_len -= len;
-				data.mv_size = (len + 2) * sizeof(pgno_t);
-				fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
-				rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
-				head_id++;
-				if (rc)
-					return rc;
-			}
-		}
-
-		/* If using records from freeDB which we have not yet
-		 * deleted, delete them and any we reserved for me_pghead.
-		 */
-		if (env->me_pghead) {
-			fprintf(stderr, "Free list start %u, end %u, pglast %u\n", env->me_freelist_start, env->me_freelist_end, pglast);
-			key.mv_size = sizeof(head_id);
-			key.mv_data = &head_id;
-			rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
-			if (!rc) {
-				do {
-					head_id = *(txnid_t *) key.mv_data;
-					if (head_id >= env->me_freelist_end) // finished
-						break;
-					total_room = head_room = 0;
-					mdb_tassert(txn, head_id >= env->me_freelist_start);
-					fprintf(stderr, "Deleting free list record %u\n", head_id);
-					rc = mdb_cursor_del(&mc, 0);
-					if (rc)
-						return rc;
-					rc = mdb_cursor_get(&mc, &key, NULL, MDB_NEXT);
-				} while (rc == MDB_SUCCESS);
-				pglast = env->me_freelist_start;
-			}
-		}
-		end_written = env->me_freelist_end;
-
-		/* Save the IDL of pages freed by this txn, to a single record */
+		/* Save the IDL of pages freed by this txn, to a single record
+		 * We do this first because sometimes this will end up exhausting the freelist
+		 * so we don't have to write anything after this*/
 		if (freecnt < txn->mt_free_pgs[0]) {
 			if (!freecnt) {
 				/* Make sure last page of freeDB is touched and on freelist */
@@ -4198,8 +4154,65 @@ mdb_freelist_save(MDB_txn *txn)
 #endif
 //			continue;
 		}
+
+		/* Reserve records for me_pghead[]. Split it if multi-page,
+		 * to avoid searching freeDB for a page range. Use keys in
+		 * range [me_freelist_start me_freelist_end]: Smaller than txnid of oldest reader.
+		 */
+		head_id = start_written = env->me_freelist_start;
+		// TODO: We may want to the smallest id we can here (previous entry + 1)
+		reserved_space = mop_len;
+		if (!head_id) {
+			fprintf(stderr, "Invalid freelist start\n");
+			head_id = 1;
+			start_written = 1;
+		}
+		if (mop_len) {
+			// determine the size of the blocks we need
+			unsigned entry_size = ((mop_len / ((env->me_freelist_end - start_written) * maxfree_1pg)) + 1) * maxfree_1pg;
+			pglast = mop_len / entry_size + head_id;
+			fprintf(stderr, "Reserving in-memory freelist, length: %u, ids: ", mop_len);
+			while (head_id <= pglast) {
+				key.mv_size = sizeof(head_id);
+				key.mv_data = &head_id;
+				int len = mop_len > entry_size ? entry_size : mop_len;
+				mop_len -= len;
+				data.mv_size = (len + 2) * sizeof(pgno_t);
+				fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
+				rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
+				head_id++;
+				if (rc)
+					return rc;
+			}
+		} else pglast = head_id - 1;
+
+		/* If using records from freeDB which we have not yet
+		 * deleted, delete them and any we reserved for me_pghead.
+		 */
+		if (env->me_pghead) {
+			fprintf(stderr, "Free list start %u, end %u, pglast %u\n", env->me_freelist_start, env->me_freelist_end, pglast);
+			key.mv_size = sizeof(head_id);
+			key.mv_data = &head_id;
+			rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
+			if (!rc) {
+				do {
+					head_id = *(txnid_t *) key.mv_data;
+					if (head_id >= env->me_freelist_end) // finished
+						break;
+					total_room = head_room = 0;
+					mdb_tassert(txn, head_id >= env->me_freelist_start);
+					fprintf(stderr, "Deleting free list record %u\n", head_id);
+					rc = mdb_cursor_del(&mc, 0);
+					if (rc) {
+						last_error = "Attempting to delete free-space record";
+						return rc;
+					}
+					rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
+				} while (rc == MDB_SUCCESS);
+			}
+		}
 		mop = env->me_pghead;
-		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
+		mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
 
 	}
 
@@ -4217,57 +4230,65 @@ mdb_freelist_save(MDB_txn *txn)
 		txn->mt_loose_count = 0;
 		mop = env->me_pghead;
 		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
+		if (mop_len > reserved_space) {
+			mop = mdb_midl_pack(env->me_pghead);
+			free(env->me_pghead);
+			env->me_pghead = mop;
+			mop_len = mop[0];
+		}
 	}
 
 	/* Fill in the reserved me_pghead records.  Everything is finally
 	 * in place, so this will not allocate or free any DB pages.
 	 */
 	rc = MDB_SUCCESS;
-	if (mop_len) {
-		MDB_val key, data;
+	MDB_val key, data;
 
-		/* Protect DB env from any (buggy) freelist use when saving mop */
-		MDB_IDL pghead = env->me_pghead;
-		env->me_pghead = NULL;
-		txn->mt_dirty_room = 0;
-		txnid_t last_id_write = mop_len / maxfree_1pg + start_written;
-		txnid_t id = start_written;
-		fprintf(stderr, "Writing in-memory freelist, length: %u ids: ", mop_len);
-		while (mop_len > 0) {
-			if (id > last_id_write) {
-				// we have written all the mop
-				fprintf(stderr, "Wrote all the mop, no room left\n");
-				return MDB_BAD_TXN;
-			}
-			key.mv_size = sizeof(id);
-			key.mv_data = &id;
-			fprintf(stderr, "put %u: ", id);
-			int len = maxfree_1pg;
-			ssize_t start = mop_len - len;
-			if (start < 0) {
-				len += start;
-				start = 0;
-			} else if (start > 0 && ((ssize_t)mop[start - 1] < 0)) {
-				// we need to write the previous page as well
-				len++;
-				start--;
-			}
-			MDB_ID save;
-			data.mv_size = (len + 1) * sizeof(MDB_ID);
-			save = mop[start];
+	/* Protect DB env from any (buggy) freelist use when saving mop */
+	MDB_IDL pghead = env->me_pghead;
+	env->me_pghead = NULL;
+	txn->mt_dirty_room = 0;
+
+	fprintf(stderr, "Writing in-memory freelist, length: %u ids: ", mop_len);
+	for (txnid_t id = start_written; id <= pglast; id++) {
+		key.mv_size = sizeof(id);
+		key.mv_data = &id;
+		mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
+		fprintf(stderr, "put %u: ", id);
+
+		int len = (data.mv_size / sizeof(id)) - 1;
+		ssize_t start = mop_len - len;
+		if (start < 0) {
+			// oversized entry, we will copy in our data and fill the rest with zeros
+			len += start;
+			start = 0;
+			mdb_midl_print(stderr, mop);
+			rc = mdb_cursor_put(&mc, &key, &data, MDB_CURRENT & MDB_RESERVE);
+			if (rc) break;
+			memcpy(data.mv_data, mop, mop_len * sizeof(id));
+			memset((txnid_t*) data.mv_data + mop_len, 0, data.mv_size - mop_len * sizeof(id));
+		} else {
+			ssize_t save = mop[start];
+			ssize_t save2 = 0;
 			mop[start] = len;
+			mop_len -= len;
+			if (save < 0) {
+				// this would split an entry, so don't write the first byte,
+				// instead zero it out and don't count as many bytes used
+				mop_len++;
+				save2 = mop[start + 1];
+				mop[start + 1] = 0;
+			}
 			data.mv_data = &mop[start];
 			mdb_midl_print(stderr, &mop[start]);
-			rc = mdb_cursor_put(&mc, &key, &data, 0);
-			id++;
+			rc = mdb_cursor_put(&mc, &key, &data, MDB_CURRENT);
 			mop[start] = save;
-			mop_len -= len;
-			if (rc || !mop_len)
+			if (save2) mop[start + 1] = save2;
+			if (rc)
 				break;
 		}
-		fprintf(stderr, "\n");
-		env->me_pghead = pghead;
 	}
+	env->me_pghead = pghead;
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
 	if (! (txn->mt_flags & MDB_TXN_WRITEMAP))
 		txn->mt_loose_count += lost_loose;

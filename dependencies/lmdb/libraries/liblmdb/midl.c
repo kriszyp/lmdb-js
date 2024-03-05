@@ -251,6 +251,15 @@ void mdb_midl_free(MDB_IDL ids)
 		free(ids-1);
 }
 
+int mdb_midl_is_empty(MDB_IDL idl) {
+	if (idl == NULL) return 1;
+	unsigned n = idl[0];
+	for (unsigned i = 1; i <= n; i++) {
+		if (idl[i]) return 0;
+	}
+	return 1;
+}
+
 void mdb_midl_shrink( MDB_IDL *idp )
 {
 	MDB_IDL ids = *idp;
