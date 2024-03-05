@@ -2899,6 +2899,7 @@ restart_search:
 				// no more newer transactions, go to the beginning of the range and look for older txns
 				op = MDB_SET_RANGE;
 				last = env->me_freelist_start - 1;
+				if (!last) break; // should be no zero entry, break out
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
@@ -4191,29 +4192,26 @@ mdb_freelist_save(MDB_txn *txn)
 		 */
 		if (env->me_pghead) {
 			fprintf(stderr, "Free list start %u, end %u, pglast %u\n", env->me_freelist_start, env->me_freelist_end, pglast);
-			key.mv_size = sizeof(head_id);
-			key.mv_data = &head_id;
-			rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
-			if (!rc) {
-				do {
-					head_id = *(txnid_t *) key.mv_data;
-					if (head_id >= env->me_freelist_end) // finished
-						break;
-					total_room = head_room = 0;
-					mdb_tassert(txn, head_id >= env->me_freelist_start);
-					fprintf(stderr, "Deleting free list record %u\n", head_id);
-					rc = mdb_cursor_del(&mc, 0);
-					if (rc) {
-						last_error = "Attempting to delete free-space record";
-						return rc;
-					}
-					rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
-				} while (rc == MDB_SUCCESS);
-			}
+			do {
+				key.mv_size = sizeof(head_id);
+				key.mv_data = &head_id;
+				rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET_RANGE);
+				if (rc) break;
+				head_id = *(txnid_t *) key.mv_data;
+				if (head_id >= env->me_freelist_end) // finished
+					break;
+				total_room = head_room = 0;
+				mdb_tassert(txn, head_id >= env->me_freelist_start);
+				fprintf(stderr, "Deleting free list record %u\n", head_id);
+				rc = mdb_cursor_del(&mc, 0);
+				if (rc) {
+					last_error = "Attempting to delete free-space record";
+					return rc;
+				}
+			} while(1);
 		}
 		mop = env->me_pghead;
 		mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
-
 	}
 
 	/* Return loose page numbers to me_pghead, though usually none are
