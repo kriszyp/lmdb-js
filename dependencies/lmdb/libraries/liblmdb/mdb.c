@@ -3550,8 +3550,9 @@ mdb_txn_renew0(MDB_txn *txn)
 
 	} else {
 		/* Not yet touching txn == env->me_txn0, it may be active */
+		uint64_t start_lock_time;
 		if (env->me_flags & MDB_TRACK_METRICS) {
-			env->me_metrics.clock_txn = get_time64();
+			start_lock_time = get_time64();
 		}
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
@@ -3576,7 +3577,7 @@ mdb_txn_renew0(MDB_txn *txn)
 		}
 		if (env->me_flags & MDB_TRACK_METRICS) {
 			uint64_t now = get_time64();
-			env->me_metrics.time_start_txns += now - env->me_metrics.clock_txn;
+			env->me_metrics.time_start_txns += now - start_lock_time;
 			env->me_metrics.clock_txn = now;
 		}
 		txn->mt_txnid++;
@@ -4103,7 +4104,7 @@ mdb_freelist_save(MDB_txn *txn)
 	/* MDB_RESERVE cancels meminit in ovpage malloc (when no WRITEMAP) */
 	clean_limit = (env->me_flags & (MDB_NOMEMINIT|MDB_WRITEMAP))
 		? SSIZE_MAX : maxfree_1pg;
-
+//fprintf(stderr, "fl position: %u start: %u, end: %u, txn_id: %u\n", env->me_freelist_position, env->me_freelist_start, env->me_freelist_end, txn->mt_txnid);
 	mop = env->me_pghead;
 	mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
 	while(reserved_space < mop_len ||
@@ -4164,7 +4165,6 @@ mdb_freelist_save(MDB_txn *txn)
 		// TODO: We may want to the smallest id we can here (previous entry + 1)
 		reserved_space = mop_len;
 		if (!head_id) {
-			fprintf(stderr, "Invalid freelist start\n");
 			head_id = 1;
 			start_written = 1;
 		}
@@ -5291,7 +5291,7 @@ mdb_env_create(MDB_env **env)
 	e->me_maxreaders = DEFAULT_READERS;
 	e->me_maxdbs = e->me_numdbs = CORE_DBS;
 	e->me_maxfreepgs_to_load = 20000;
-	e->me_maxfreepgs_to_retain = 10000;
+	e->me_maxfreepgs_to_retain = 40000;
 	e->me_fd = INVALID_HANDLE_VALUE;
 	e->me_lfd = INVALID_HANDLE_VALUE;
 	e->me_mfd = INVALID_HANDLE_VALUE;

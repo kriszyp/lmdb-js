@@ -363,9 +363,6 @@ next_inst:	start = instruction++;
 					rc = putWithVersion(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP), setVersion);
 				else
 					rc = mdb_put(txn, dbi, &key, &value, flags & (MDB_NOOVERWRITE | MDB_NODUPDATA | MDB_APPEND | MDB_APPENDDUP));
-				if (rc) {
-					fprintf(stderr, "put error %u\n", rc);
-				}
 				if (flags & COMPRESSIBLE)
 					delete value.mv_data;
 				break;
