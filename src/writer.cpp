@@ -431,6 +431,12 @@ bool WriteWorker::threadSafeCallsEnabled = false;
 void txn_visible(const void* data) {
 	auto worker = (WriteWorker*) data;
 	worker->SendUpdate();
+	/*if (worker->txn) {
+		worker->txn = nullptr;
+		worker->interruptionStatus = 0;
+		pthread_cond_signal(worker->envForTxn->writingCond); // in case there a sync txn waiting for us
+		pthread_mutex_unlock(worker->envForTxn->writingLock);
+	}*/
 }
 
 
@@ -493,10 +499,12 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 #endif
-	txn = nullptr;
-    interruptionStatus = 0;
-    pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
-	pthread_mutex_unlock(envForTxn->writingLock);
+	if (txn) {
+		txn = nullptr;
+		interruptionStatus = 0;
+		pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
+		pthread_mutex_unlock(envForTxn->writingLock);
+	}
 	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
