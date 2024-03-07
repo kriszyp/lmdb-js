@@ -123,7 +123,8 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 	else next_count = 1;
 	if (id - next_count <= next_id && next_id > 0) {
 		if (id - next_count < next_id) {
-			fprintf(stderr, "overlapping duplicate entry");
+			fprintf(stderr, "overlapping duplicate entry %u\n", id);
+			mdb_tassert(ids, 0);
 			return -1;
 		}
 		// connected to next entry
