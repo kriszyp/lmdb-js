@@ -3978,8 +3978,8 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain) {
-				fprintf(stderr, "Free list too large %u, dumping from memory\n", env->me_pghead[0]);
+			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 100 < txn->mt_txnid) {
+				//fprintf(stderr, "Free list too large %u or out of date (%u / %u), dumping from memory\n", env->me_pghead ? env->me_pghead[0] : 0, env->me_freelist_end, txn->mt_txnid);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
@@ -4926,9 +4926,10 @@ mdb_txn_commit(MDB_txn *txn)
 		goto fail;
 
 	//<lmdb-js>
-	if (txn->mt_callback) {
-		MDB_txn_visible* callback = txn->mt_callback;
-		callback(txn->mt_ctx);
+	MDB_txn_visible* callback = txn->mt_callback;
+	void* ctx = txn->mt_ctx;
+	if (callback) {
+		callback(ctx, 0);
 		txn->mt_callback = NULL;
 	}
 	if (!F_ISSET(txn->mt_flags, MDB_TXN_NOSYNC))
@@ -4953,13 +4954,16 @@ done:
 	}
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC)) {
 		size_t txn_id = txn->mt_txnid;
-		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 100) {
+		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 250) {
 			// for bigger txns we wait for the flush before allowing next txn
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 			mdb_txn_end(txn, end_mode);
 		} else {
 			mdb_txn_end(txn, end_mode);
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
+		}
+		if (callback) {
+			callback(ctx, 1);
 		}
 		if (rc)
 			return rc;

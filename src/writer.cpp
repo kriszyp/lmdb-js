@@ -428,15 +428,19 @@ next_inst:	start = instruction++;
 }
 
 bool WriteWorker::threadSafeCallsEnabled = false;
-void txn_visible(const void* data) {
+void txn_callback(const void* data, int finished) {
 	auto worker = (WriteWorker*) data;
-	worker->SendUpdate();
-	/*if (worker->txn) {
-		worker->txn = nullptr;
-		worker->interruptionStatus = 0;
-		pthread_cond_signal(worker->envForTxn->writingCond); // in case there a sync txn waiting for us
-		pthread_mutex_unlock(worker->envForTxn->writingLock);
-	}*/
+	if (finished) {
+		// we don't want to release our lock until *after* the txn lock is released to give other threads a better chance
+		// at executing next
+		if (worker->txn) {
+			worker->txn = nullptr;
+			worker->interruptionStatus = 0;
+			pthread_cond_signal(worker->envForTxn->writingCond); // in case there a sync txn waiting for us
+			pthread_mutex_unlock(worker->envForTxn->writingLock);
+		}
+	} else // transaction is visible (to readers), but not unlocked
+		worker->SendUpdate();
 }
 
 
@@ -485,7 +489,7 @@ void WriteWorker::Write() {
 	progressStatus = 1;
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
-		mdb_txn_set_callback(txn, txn_visible, this);
+		mdb_txn_set_callback(txn, txn_callback, this);
 	}
 	#endif
 	if (rc || resultCode) {
@@ -499,12 +503,7 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 #endif
-	if (txn) {
-		txn = nullptr;
-		interruptionStatus = 0;
-		pthread_cond_signal(envForTxn->writingCond); // in case there a sync txn waiting for us
-		pthread_mutex_unlock(envForTxn->writingLock);
-	}
+	txn_callback(this, 1);
 	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
 		if (rc)
