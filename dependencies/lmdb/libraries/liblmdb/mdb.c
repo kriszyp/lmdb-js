@@ -2757,95 +2757,91 @@ restart_search:
 		unsigned block_size = 0;
 		ssize_t entry;
 		empty_entries = 0;
-		if (env->me_pgoldest > 0 || mop_len > 100) { // don't scan too small of freelists (unless already started)
-			int start = env->me_freelist_position != 0 ? env->me_freelist_position : 1;
-			if (start < 0) start = -start;
-			if (start > mop_len) {
-				start = 1;
+		int start = env->me_freelist_position != 0 ? env->me_freelist_position : 1;
+		if (start < 0) start = -start;
+		if (start > mop_len) {
+			start = 1;
+		}
+		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
+		unsigned end = start + mop_len;
+		unsigned check_point = start + MAX_SCAN_SEGMENT;
+		if (check_point > mop_len) check_point = mop_len;
+		unsigned wrapped = 0;
+		// TODO: Don't scan if the list is too small
+		//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
+		for (i = start; 1; i++) {
+			//fprintf(stderr, "l %u ", i);
+			if (i > check_point) {
+				unsigned counting_i = i + (wrapped ? mop_len : 0);
+				if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
+					goto continue_best_fit;
+				}
+				if (counting_i - start >= mop_len) {
+					break; // searched everything in current list
+				}
+				if (i > mop_len) {
+					// loop back and continue
+					i = 1;
+					wrapped = 1;
+					check_point = start - 1;
+					if (check_point > MAX_SCAN_SEGMENT) check_point = MAX_SCAN_SEGMENT;
+				} else {
+					check_point = i + MAX_SCAN_SEGMENT;
+					if (wrapped) {
+						if (check_point > start - 1) check_point = start - 1;
+					} else if (check_point > mop_len) check_point = mop_len;
+				}
 			}
-			if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
-			unsigned end = start + mop_len;
-			unsigned check_point = start + MAX_SCAN_SEGMENT;
-			if (check_point > mop_len) check_point = mop_len;
-			unsigned wrapped = 0;
-			// TODO: Don't scan if the list is too small
-			//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
-			for (i = start; 1; i++) {
-				//fprintf(stderr, "l %u ", i);
-				if (i > check_point) {
-					unsigned counting_i = i + (wrapped ? mop_len : 0);
-					if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
+
+			entry = mop[i];
+			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
+			if (entry == 0) {
+				empty_entries++;
+				continue;
+			}
+			if (entry > 0) {
+				pgno = entry;
+				block_size = 1;
+			} else {
+				block_size = -entry;
+				pgno = mop[++i];
+			}
+
+			if (block_size >= num) {
+				if (block_size == num) {
+					// we found a block of the right size
+					env->me_freelist_position = i + 1;
+					mop[i] = 0;
+					if (env->me_freelist_written_end < i) env->me_freelist_written_end = i;
+					if (entry < 1)
+						mop[--i] = 0;
+					if (env->me_freelist_written_start > i || !env->me_freelist_written_start)
+						env->me_freelist_written_start = i;
+					goto search_done;
+				} else if (block_size < best_fit_size || best_fit_size == 0) {
+					best_fit_start = i - 1;
+					best_fit_size = block_size;
+					if (i == 1 - env->me_freelist_position) {
+						// if we just wrote to this block and we are continuing on this block,
+						// skip ahead to using this block
 						goto continue_best_fit;
 					}
-					if (counting_i - start >= mop_len) {
-						break; // searched everything in current list
-					}
-					if (i > mop_len) {
-						// loop back and continue
-						i = 1;
-						wrapped = 1;
-						check_point = start - 1;
-						if (check_point > MAX_SCAN_SEGMENT) check_point = MAX_SCAN_SEGMENT;
-					} else {
-						check_point = i + MAX_SCAN_SEGMENT;
-						if (wrapped) {
-							if (check_point > start - 1) check_point = start - 1;
-						} else if (check_point > mop_len) check_point = mop_len;
-					}
-				}
-
-				entry = mop[i];
-				//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
-				if (entry == 0) {
-					empty_entries++;
-					continue;
-				}
-				if (entry > 0) {
-					pgno = entry;
-					block_size = 1;
-				} else {
-					block_size = -entry;
-					pgno = mop[++i];
-				}
-
-				if (block_size >= num) {
-					if (block_size == num) {
-						// we found a block of the right size
-						env->me_freelist_position = i + 1;
-						mop[i] = 0;
-						if (env->me_freelist_written_end < i) env->me_freelist_written_end = i;
-						if (entry < 1)
-							mop[--i] = 0;
-						if (env->me_freelist_written_start > i || !env->me_freelist_written_start)
-							env->me_freelist_written_start = i;
-						goto search_done;
-					} else if (block_size < best_fit_size || best_fit_size == 0) {
-						best_fit_start = i - 1;
-						best_fit_size = block_size;
-						if (i == 1 - env->me_freelist_position) {
-							// if we just wrote to this block and we are continuing on this block,
-							// skip ahead to using this block
-							goto continue_best_fit;
-						}
-					}
 				}
 			}
-			// see if there is too many empty entries; after a respread it should be between one third and one quarter full of empty entries
-			if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) / 3) + 10) {
-				unsigned old_length = env->me_pghead[0];
-				mdb_midl_respread(&env->me_pghead);
-				mop = env->me_pghead;
-				mop_len = mop[0];
-				// consider the whole free-list to be updated now
-				env->me_freelist_written_end = 0x7fffffff;
-				env->me_freelist_written_start = 1;
-				//fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
-				goto restart_search;
-			}
-			env->me_freelist_position = i;
-		} else {
-			fprintf(stderr, "Free list too small, trying to load more\n");
 		}
+		// see if there is too many empty entries; after a respread it should be between one third and one quarter full of empty entries
+		if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) / 3) + 10) {
+			unsigned old_length = env->me_pghead[0];
+			mdb_midl_respread(&env->me_pghead);
+			mop = env->me_pghead;
+			mop_len = mop[0];
+			// consider the whole free-list to be updated now
+			env->me_freelist_written_end = 0x7fffffff;
+			env->me_freelist_written_start = 1;
+			//fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
+			goto restart_search;
+		}
+		env->me_freelist_position = i;
 		i = 0;
 
 		if (mop_len > env->me_maxfreepgs_to_load) {
@@ -3344,11 +3340,11 @@ mdb_env_sync(MDB_env *env, int force)
 			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
 		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
 		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
-		if (env->me_flags & MDB_TRACK_METRICS) {
-			env->me_metrics.time_sync += get_time64() - start;
-		}
 
 		if (rc) {
+			if (env->me_flags & MDB_TRACK_METRICS) {
+				env->me_metrics.time_sync += get_time64() - start;
+			}
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return rc;
 		}
@@ -3356,6 +3352,9 @@ mdb_env_sync(MDB_env *env, int force)
 		if (rc == 0)
 			env->me_synced_txn_id = last_txn_id;
 		//fprintf(stderr,"finished syncing txn %u, ", last_txn_id);
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			env->me_metrics.time_sync += get_time64() - start;
+		}
 		UNLOCK_MUTEX(env->me_sync_mutex);
 		return rc;
 	} else {
@@ -4953,16 +4952,7 @@ done:
 		env->me_metrics.txns++;
 	}
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC)) {
-		MDB_txn sync_txn;
-		MDB_db dbs[2];
-		sync_txn.mt_env = env;
-		sync_txn.mt_flags = 2;
-		sync_txn.mt_dbs = dbs;
-		sync_txn.mt_dbs[FREE_DBI] = txn->mt_dbs[FREE_DBI];
-		sync_txn.mt_dbs[MAIN_DBI] = txn->mt_dbs[MAIN_DBI];
-		sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
-		sync_txn.mt_txnid = txn->mt_txnid;
-		sync_txn.mt_next_pgno = txn->mt_next_pgno;
+		size_t txn_id = txn->mt_txnid;
 		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 100) {
 			// for bigger txns we wait for the flush before allowing next txn
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
@@ -4973,22 +4963,46 @@ done:
 		}
 		if (rc)
 			return rc;
-		uint64_t start = 0;
-		if (env->me_flags & MDB_TRACK_METRICS) {
-			start = get_time64();
-		}
-		rc = mdb_env_sync0(env, 0, sync_txn.mt_next_pgno);
-		if (rc) {
+		if (env->me_synced_txn_id < txn_id) { // check to see if we still need a sync
+			uint64_t start = 0;
+			if (env->me_flags & MDB_TRACK_METRICS) {
+				start = get_time64();
+			}
+			MDB_meta* m;
+			MDB_txninfo *ti = env->me_txns;
+			MDB_txn sync_txn;
+			MDB_db dbs[2];
+			// if other transactions have completed by the time we get here, our sync txn
+			// should include that
+			do {
+				m = mdb_env_pick_meta(env);
+				sync_txn.mt_env = env;
+				sync_txn.mt_flags = 2;
+				sync_txn.mt_dbs = dbs;
+				sync_txn.mt_dbs[FREE_DBI] = m->mm_dbs[FREE_DBI];
+				sync_txn.mt_dbs[MAIN_DBI] = m->mm_dbs[MAIN_DBI];
+				sync_txn.mt_dbs[FREE_DBI].md_flags &= ~MDB_OVERLAPPINGSYNC; // clear this to indicate it is flushed txn
+				mdb_tassert(txn, txn_id <= m->mm_txnid);
+				sync_txn.mt_txnid = txn_id = m->mm_txnid;
+				sync_txn.mt_next_pgno = m->mm_last_pg + 1;
+			} while(ti->mti_txnid != txn_id); // avoid race condition in copying data by verifying that this is updated
+
+			rc = mdb_env_sync0(env, 0, m->mm_last_pg);
+			if (rc) {
+				UNLOCK_MUTEX(env->me_sync_mutex);
+				return rc;
+			}
+			rc = mdb_env_write_meta(&sync_txn);
+			if (rc == 0)
+				env->me_synced_txn_id = sync_txn.mt_txnid;
+			if (env->me_flags & MDB_TRACK_METRICS) {
+				env->me_metrics.time_sync += get_time64() - start;
+			}
 			UNLOCK_MUTEX(env->me_sync_mutex);
-			return rc;
+		} else {
+			UNLOCK_MUTEX(env->me_sync_mutex);
+//			fprintf(stderr, "No sync needed after getting lock, committed %u, but already at %u\n", txn_id, env->me_synced_txn_id);
 		}
-		rc = mdb_env_write_meta(&sync_txn);
-		if (rc == 0)
-			env->me_synced_txn_id = sync_txn.mt_txnid;
-		if (env->me_flags & MDB_TRACK_METRICS) {
-			env->me_metrics.time_sync += get_time64() - start;
-		}
-		UNLOCK_MUTEX(env->me_sync_mutex);
 	} else
 		mdb_txn_end(txn, end_mode);
 	return MDB_SUCCESS;
