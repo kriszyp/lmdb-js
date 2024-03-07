@@ -2757,92 +2757,95 @@ restart_search:
 		unsigned block_size = 0;
 		ssize_t entry;
 		empty_entries = 0;
-		//mdb_midl_print(stderr, mop);
-		// TODO: Skip this on the first iteration, since we already checked the cache
-		int start = env->me_freelist_position != 0 ? env->me_freelist_position : 1;
-		if (start < 0) start = -start;
-		if (start > mop_len) {
-			start = 1;
-		}
-		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
-		unsigned end = start + mop_len;
-		unsigned check_point = start + MAX_SCAN_SEGMENT;
-		if (check_point > mop_len) check_point = mop_len;
-		unsigned wrapped = 0;
-		// TODO: Don't scan if the list is too small
-		//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
-		for(i = start; 1; i++) {
-			//fprintf(stderr, "l %u ", i);
-			if (i > check_point) {
-				unsigned counting_i = i + (wrapped ? mop_len : 0);
-				if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
-					goto continue_best_fit;
-				}
-				if (counting_i - start >= mop_len) {
-					break; // searched everything in current list
-				}
-				if (i > mop_len) {
-					// loop back and continue
-					i = 1;
-					wrapped = 1;
-					check_point = start - 1;
-					if (check_point > MAX_SCAN_SEGMENT) check_point = MAX_SCAN_SEGMENT;
-				} else {
-					check_point = i + MAX_SCAN_SEGMENT;
-					if (wrapped) {
-						if (check_point > start - 1) check_point = start -1;
-					} else if (check_point > mop_len) check_point = mop_len;
-				}
+		if (env->me_pgoldest > 0 || mop_len > 100) { // don't scan too small of freelists (unless already started)
+			int start = env->me_freelist_position != 0 ? env->me_freelist_position : 1;
+			if (start < 0) start = -start;
+			if (start > mop_len) {
+				start = 1;
 			}
-
-			entry = mop[i];
-			//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
-			if (entry == 0) {
-				empty_entries++;
-				continue;
-			}
-			if (entry > 0) {
-				pgno = entry;
-				block_size = 1;
-			} else {
-				block_size = -entry;
-				pgno = mop[++i];
-			}
-
-			if (block_size >= num) {
-				if (block_size == num) {
-					// we found a block of the right size
-					env->me_freelist_position = i + 1;
-					mop[i] = 0;
-					if (env->me_freelist_written_end < i) env->me_freelist_written_end = i;
-					if (entry < 1)
-						mop[--i] = 0;
-					if (env->me_freelist_written_start > i || !env->me_freelist_written_start) env->me_freelist_written_start = i;
-					goto search_done;
-				} else if (block_size < best_fit_size || best_fit_size == 0) {
-					best_fit_start = i - 1;
-					best_fit_size = block_size;
-					if (i == 1 - env->me_freelist_position) {
-						// if we just wrote to this block and we are continuing on this block,
-						// skip ahead to using this block
+			if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
+			unsigned end = start + mop_len;
+			unsigned check_point = start + MAX_SCAN_SEGMENT;
+			if (check_point > mop_len) check_point = mop_len;
+			unsigned wrapped = 0;
+			// TODO: Don't scan if the list is too small
+			//fprintf(stderr, "loop from %u to %u over %u\n", start, end, mop_len);
+			for (i = start; 1; i++) {
+				//fprintf(stderr, "l %u ", i);
+				if (i > check_point) {
+					unsigned counting_i = i + (wrapped ? mop_len : 0);
+					if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
 						goto continue_best_fit;
+					}
+					if (counting_i - start >= mop_len) {
+						break; // searched everything in current list
+					}
+					if (i > mop_len) {
+						// loop back and continue
+						i = 1;
+						wrapped = 1;
+						check_point = start - 1;
+						if (check_point > MAX_SCAN_SEGMENT) check_point = MAX_SCAN_SEGMENT;
+					} else {
+						check_point = i + MAX_SCAN_SEGMENT;
+						if (wrapped) {
+							if (check_point > start - 1) check_point = start - 1;
+						} else if (check_point > mop_len) check_point = mop_len;
+					}
+				}
+
+				entry = mop[i];
+				//fprintf(stderr, "pgno %u next would be %u\n", entry, block_start + block_size);
+				if (entry == 0) {
+					empty_entries++;
+					continue;
+				}
+				if (entry > 0) {
+					pgno = entry;
+					block_size = 1;
+				} else {
+					block_size = -entry;
+					pgno = mop[++i];
+				}
+
+				if (block_size >= num) {
+					if (block_size == num) {
+						// we found a block of the right size
+						env->me_freelist_position = i + 1;
+						mop[i] = 0;
+						if (env->me_freelist_written_end < i) env->me_freelist_written_end = i;
+						if (entry < 1)
+							mop[--i] = 0;
+						if (env->me_freelist_written_start > i || !env->me_freelist_written_start)
+							env->me_freelist_written_start = i;
+						goto search_done;
+					} else if (block_size < best_fit_size || best_fit_size == 0) {
+						best_fit_start = i - 1;
+						best_fit_size = block_size;
+						if (i == 1 - env->me_freelist_position) {
+							// if we just wrote to this block and we are continuing on this block,
+							// skip ahead to using this block
+							goto continue_best_fit;
+						}
 					}
 				}
 			}
+			// see if there is too many empty entries; after a respread it should be between one third and one quarter full of empty entries
+			if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) / 3) + 10) {
+				unsigned old_length = env->me_pghead[0];
+				mdb_midl_respread(&env->me_pghead);
+				mop = env->me_pghead;
+				mop_len = mop[0];
+				// consider the whole free-list to be updated now
+				env->me_freelist_written_end = 0x7fffffff;
+				env->me_freelist_written_start = 1;
+				//fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
+				goto restart_search;
+			}
+			env->me_freelist_position = i;
+		} else {
+			fprintf(stderr, "Free list too small, trying to load more\n");
 		}
-		// see if there is too many empty entries; after a respread it should be between one third and one quarter full of empty entries
-		if (empty_entries > ((i + (wrapped ? mop_len : 0) - start) / 3) + 10) {
-			unsigned old_length = env->me_pghead[0];
-			mdb_midl_respread(&env->me_pghead);
-			mop = env->me_pghead;
-			mop_len = mop[0];
-			// consider the whole free-list to be updated now
-			env->me_freelist_written_end = 0x7fffffff;
-			env->me_freelist_written_start = 1;
-			//fprintf(stderr, "resized from %u to %u\n", old_length, mop_len);
-			goto restart_search;
-		}
-		env->me_freelist_position = i;
 		i = 0;
 
 		if (mop_len > env->me_maxfreepgs_to_load) {
@@ -2850,7 +2853,7 @@ restart_search:
 			//mdb_midl_print(stderr, mop);
 			goto continue_best_fit;
 		}
-
+		load_more:
 		if (op == MDB_SET_RANGE) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
 			oldest = env->me_pgoldest;
@@ -3278,10 +3281,6 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 	int rc = 0;
 	if (env->me_flags & MDB_RDONLY)
 		return EACCES;
-	uint64_t start = 0;
-	if (env->me_flags & MDB_TRACK_METRICS) {
-		start = get_time64();
-	}
 
 	if (force || !(env->me_flags & MDB_NOSYNC)
 #ifdef _WIN32	/* Sync is normally achieved in Windows by doing WRITE_THROUGH writes */
@@ -3308,9 +3307,6 @@ mdb_env_sync0(MDB_env *env, int force, pgno_t numpgs)
 				rc = ErrCode();
 		}
 	}
-	if (env->me_flags & MDB_TRACK_METRICS) {
-		env->me_metrics.time_sync += get_time64() - start;
-	}
 	return rc;
 }
 
@@ -3330,6 +3326,10 @@ mdb_env_sync(MDB_env *env, int force)
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return 0;
 		}
+		uint64_t start = 0;
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			start = get_time64();
+		}
 		MDB_txn sync_txn;
 		MDB_db dbs[2];
 		do {
@@ -3344,6 +3344,10 @@ mdb_env_sync(MDB_env *env, int force)
 			sync_txn.mt_next_pgno = m->mm_last_pg + 1;
 		} while(ti->mti_txnid != last_txn_id); // avoid race condition in copying data by verifying that this is updated
 		rc = mdb_env_sync0(env, force, sync_txn.mt_next_pgno);
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			env->me_metrics.time_sync += get_time64() - start;
+		}
+
 		if (rc) {
 			UNLOCK_MUTEX(env->me_sync_mutex);
 			return rc;
@@ -3355,7 +3359,15 @@ mdb_env_sync(MDB_env *env, int force)
 		UNLOCK_MUTEX(env->me_sync_mutex);
 		return rc;
 	} else {
-		return mdb_env_sync0(env, force, m->mm_last_pg+1);
+		uint64_t start = 0;
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			start = get_time64();
+		}
+		int rc = mdb_env_sync0(env, force, m->mm_last_pg+1);
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			env->me_metrics.time_sync += get_time64() - start;
+		}
+		return rc;
 	}
 	// </lmdb-js>
 }
@@ -4961,6 +4973,10 @@ done:
 		}
 		if (rc)
 			return rc;
+		uint64_t start = 0;
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			start = get_time64();
+		}
 		rc = mdb_env_sync0(env, 0, sync_txn.mt_next_pgno);
 		if (rc) {
 			UNLOCK_MUTEX(env->me_sync_mutex);
@@ -4969,6 +4985,9 @@ done:
 		rc = mdb_env_write_meta(&sync_txn);
 		if (rc == 0)
 			env->me_synced_txn_id = sync_txn.mt_txnid;
+		if (env->me_flags & MDB_TRACK_METRICS) {
+			env->me_metrics.time_sync += get_time64() - start;
+		}
 		UNLOCK_MUTEX(env->me_sync_mutex);
 	} else
 		mdb_txn_end(txn, end_mode);
@@ -5256,7 +5275,7 @@ mdb_env_write_meta(MDB_txn *txn)
 	off = offsetof(MDB_meta, mm_mapsize);
 	ptr = (char *)&meta + off;
 	len = sizeof(MDB_meta) - off;
-	if (flags & 2) {
+	if (flags & 2) { // write to the sync meta, half page
 		off += PAGEHDRSZ + (env->me_psize >> 1);
 	} else
 		off += (char *)mp - env->me_map;
@@ -8385,6 +8404,10 @@ skip:
 	leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]);
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+		if (!mc->mc_xcursor) {
+			last_error = "Invalid dupdata flag with no mc_xcursor";
+			return MDB_BAD_TXN;
+		}
 		mdb_xcursor_init1(mc, leaf);
 		rc = mdb_cursor_first(&mc->mc_xcursor->mx_cursor, data, NULL);
 		if (rc != MDB_SUCCESS)
@@ -8470,6 +8493,10 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 	leaf = NODEPTR(mp, mc->mc_ki[mc->mc_top]);
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+		if (!mc->mc_xcursor) {
+			last_error = "Invalid dupdata flag with no mc_xcursor";
+			return MDB_BAD_TXN;
+		}
 		mdb_xcursor_init1(mc, leaf);
 		rc = mdb_cursor_last(&mc->mc_xcursor->mx_cursor, data, NULL);
 		if (rc != MDB_SUCCESS)
@@ -8633,6 +8660,10 @@ set1:
 	}
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+		if (!mc->mc_xcursor) {
+			last_error = "Invalid dupdata flag with no mc_xcursor";
+			return MDB_BAD_TXN;
+		}
 		mdb_xcursor_init1(mc, leaf);
 		if (op == MDB_SET || op == MDB_SET_KEY || op == MDB_SET_RANGE) {
 			rc = mdb_cursor_first(&mc->mc_xcursor->mx_cursor, data, NULL);
@@ -8715,6 +8746,10 @@ mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 	}
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+		if (!mc->mc_xcursor) {
+			last_error = "Invalid dupdata flag with no mc_xcursor";
+			return MDB_BAD_TXN;
+		}
 		mdb_xcursor_init1(mc, leaf);
 		rc = mdb_cursor_first(&mc->mc_xcursor->mx_cursor, data, NULL);
 		if (rc)
@@ -8760,6 +8795,10 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 	}
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
+		if (!mc->mc_xcursor) {
+			last_error = "Invalid dupdata flag with no mc_xcursor";
+			return MDB_BAD_TXN;
+		}
 		mdb_xcursor_init1(mc, leaf);
 		rc = mdb_cursor_last(&mc->mc_xcursor->mx_cursor, data, NULL);
 		if (rc)
@@ -9443,6 +9482,10 @@ put_sub:
 			if ((flags & (MDB_CURRENT|MDB_APPENDDUP)) == MDB_CURRENT) {
 				xflags = MDB_CURRENT|MDB_NOSPILL;
 			} else {
+				if (!mc->mc_xcursor) {
+					last_error = "Invalid dupdata flag with no mc_xcursor";
+					return MDB_BAD_TXN;
+				}
 				mdb_xcursor_init1(mc, leaf);
 				xflags = (flags & MDB_NODUPDATA) ?
 					MDB_NOOVERWRITE|MDB_NOSPILL : MDB_NOSPILL;
@@ -10994,6 +11037,11 @@ mdb_cursor_del0(MDB_cursor *mc)
 					 * Else (xcursor was initd, not a subDB) needs mc_pg[0] reset.
 					 */
 					if (node->mn_flags & F_DUPDATA) {
+						if (!m3->mc_xcursor) {
+							last_error = "Invalid dupdata flag with no mc_xcursor";
+							rc = MDB_BAD_TXN;
+							goto fail;
+						}
 						if (m3->mc_xcursor->mx_cursor.mc_flags & C_INITIALIZED) {
 							if (!(node->mn_flags & F_SUBDATA))
 								m3->mc_xcursor->mx_cursor.mc_pg[0] = NODEDATA(node);
@@ -12542,6 +12590,10 @@ mdb_drop0(MDB_cursor *mc, int subs)
 						if (!mc->mc_db->md_overflow_pages && !subs)
 							break;
 					} else if (subs && (ni->mn_flags & F_SUBDATA)) {
+						if (!mc->mc_xcursor) {
+							last_error = "Invalid dupdata flag with no mc_xcursor";
+							return MDB_BAD_TXN;
+						}
 						mdb_xcursor_init1(mc, ni);
 						rc = mdb_drop0(&mc->mc_xcursor->mx_cursor, 0);
 						if (rc)
