@@ -9916,8 +9916,8 @@ full:
 		mdb_dbg_pgno(mp), NUMKEYS(mp)));
 	DPRINTF(("upper-lower = %u - %u = %"Z"d", mp->mp_upper,mp->mp_lower,room));
 	DPRINTF(("node size = %"Z"u", node_size));
-	fprintf(stderr, "mdb_node_add: no room in page %u, got %u ptrs, %u - %u = %d, node size = %u\n",
-		mdb_dbg_pgno(mp), NUMKEYS(mp), mp->mp_upper, mp->mp_lower, room, node_size);
+	fprintf(stderr, "mdb_node_add: no room in page, got %u ptrs, %u - %u = %d, node size = %u\n",
+		NUMKEYS(mp), mp->mp_upper, mp->mp_lower, room, node_size);
 	mc->mc_txn->mt_flags |= MDB_TXN_ERROR;
 	return MDB_PAGE_FULL;
 }
