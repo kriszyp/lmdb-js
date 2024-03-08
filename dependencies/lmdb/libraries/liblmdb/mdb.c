@@ -2879,13 +2879,12 @@ restart_search:
 				last = env->me_freelist_end;
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
-				fprintf(stderr, "search for FL %u\n", last);
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
 				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				if (rc) {
 					if (rc == MDB_NOTFOUND) { // if not found, go to the beginning of the range and look for older txns
 						if (env->me_freelist_state & MDB_FREELIST_DELETING) {
-							fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
+							//fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
 							break; // but can't iterate backwards in deletion mode
 						}
 						mdb_cursor_last(&m2, &key, NULL);
@@ -3007,8 +3006,8 @@ restart_search:
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-		fprintf(stderr, "Merging %u: ", last);
-		mdb_midl_print(stderr, idl);
+		//fprintf(stderr, "Merging %u: ", last);
+		//mdb_midl_print(stderr, idl);
 		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
 			goto fail;
 		if (mop != env->me_pghead) env->me_pghead = mop;
@@ -3628,7 +3627,6 @@ mdb_txn_renew0(MDB_txn *txn)
 			if (env->me_freelist_position < 0)
 				env->me_freelist_position = -env->me_freelist_position;
 			txn->mt_txnid = ti->mti_txnid;
-			fprintf(stderr, "checking freelist, expected txn id %u against db txn id %u\n", env->me_expected_txnid , txn->mt_txnid);
 			if (txn->mt_txnid != env->me_expected_txnid) {
 				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
@@ -4400,7 +4398,6 @@ mdb_freelist_save(MDB_txn *txn)
 	env->me_freelist_written_end = 0;
 	env->me_pghead = pghead;
 	env->me_expected_txnid = txn->mt_txnid; // the expected next txnid for this freelist to continue to be valid
-	fprintf(stderr,"Next expected txnid %u\n", env->me_expected_txnid);
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
 	if (! (txn->mt_flags & MDB_TXN_WRITEMAP))
 		txn->mt_loose_count += lost_loose;
