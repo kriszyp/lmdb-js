@@ -207,7 +207,7 @@ union semun {
 #if defined(_WIN32) + defined(MDB_USE_POSIX_SEM) + defined(MDB_USE_SYSV_SEM) \
 	+ defined(MDB_USE_POSIX_MUTEX) != 1
 # error "Ambiguous shared-lock implementation"
-#efndif
+#endif
 
 #ifdef USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -2865,7 +2865,7 @@ restart_search:
 			m2.mc_db = &env->me_metas[(txn->mt_txnid-1) & 1]->mm_dbs[FREE_DBI];
 			m2.mc_dbflag = (unsigned char *)""; /* probably unnecessary */
 #endif
-			//fprintf(stderr,"loading more freespace, oldest %u: ", oldest);
+			fprintf(stderr,"loading more freespace, oldest %u: ", oldest);
 			if (!oldest) {
 				// if we need to load more, and we haven't already loaded the latest transactions, we need to load them now
 				// and we load from the end of the freelist, to right before the last referenced transaction, trying load
@@ -2879,6 +2879,7 @@ restart_search:
 				last = env->me_freelist_end;
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
+				fprintf(stderr, "search for FL %u\n", last);
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
 				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				if (rc) {
@@ -2887,6 +2888,7 @@ restart_search:
 							fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
 							break; // but can't iterate backwards in deletion mode
 						}
+						fprintf(stderr, "going to end of FL %u\n", oldest);
 						mdb_cursor_last(&m2, &key, NULL);
 						env->me_freelist_end = oldest;
 						op = MDB_PREV;
@@ -2895,10 +2897,17 @@ restart_search:
 					if (rc && rc != MDB_NOTFOUND) goto fail;
 				}
 				last = *(txnid_t *) key.mv_data;
+				fprintf(stderr, "searched FL %u\n", last);
 			} else {
-				op = MDB_NEXT; // now iterate forwards through the txns of free list
+				// no more transactions to read going forward through newest, we are now going
+				// to switch to reading older transactions. However, first we set the op
+				// to forward to ensure that we fall into the switch into previous iterations below
+				op = MDB_NEXT;
 				rc = MDB_NOTFOUND; // fall into switch to previous iterations below
-				if (!env->me_freelist_start) env->me_freelist_start = env->me_freelist_end = oldest;
+				if (!env->me_freelist_start) {
+					env->me_freelist_end = oldest;
+					env->me_freelist_start = oldest;
+				}
 			}
 		} else {
 			// we are now iterating through the free list entries
@@ -2913,6 +2922,7 @@ restart_search:
 				goto fail;
 			else
 				last = *(txnid_t*)key.mv_data;
+			fprintf(stderr, "iterated FL %u %u %u\n", last, rc, op);
 		}
 		if (op == MDB_NEXT) {
 			// iterating forward from the freelist range to find newer transactions
@@ -2924,6 +2934,7 @@ restart_search:
 				if (!last) break; // should be no zero entry, break out
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
+				fprintf(stderr, "going to start of FL %u\n", last);
 				mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
 				op = MDB_PREV;
@@ -2938,6 +2949,7 @@ restart_search:
 					goto fail;
 				}
 				last = *(txnid_t*)key.mv_data;
+				fprintf(stderr, "updated start of of FL %u\n", last);
 				if (!last) {
 					fprintf(stderr, "Invalid null txn id\n");
 					rc = MDB_NOTFOUND;
@@ -2946,8 +2958,14 @@ restart_search:
 				if (last >= env->me_freelist_start) {
 					// go to previous entry, through next iteration
 					rc = mdb_cursor_get(&m2, &key, NULL, op);
+					fprintf(stderr, "going to previous iteration %u\n", rc);
 					if (rc) {
-						if (rc == MDB_NOTFOUND) break;
+						if (rc == MDB_NOTFOUND) {
+							fprintf(stderr, "reached very start\n");
+							// reached the very start, mark it as 1
+							env->me_freelist_start = 1;
+							break;
+						}
 						goto fail;
 					} else
 						last = *(txnid_t*)key.mv_data;
@@ -2956,7 +2974,12 @@ restart_search:
 			} else
 				env->me_freelist_end = last + 1;
 		} else {
-			if (rc == MDB_NOTFOUND) break;
+			if (rc == MDB_NOTFOUND) {
+				fprintf(stderr, "reached very start\n");
+				// reached the very start, mark it as 1
+				env->me_freelist_start = 1;
+				break;
+			}
 			env->me_freelist_start = last;
 		}
 		if (!last) {
@@ -3609,12 +3632,13 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
-			fprintf(stderr, "checking freelist, expected txn id %u against db txn id %u", txn->mt_txnid, env-me_expected_txnid);
-			if (txn->mt_txnid != env-me_expected_txnid) {
+			fprintf(stderr, "checking freelist, expected txn id %u against db txn id %u\n", txn->mt_txnid, env->me_expected_txnid);
+			if (txn->mt_txnid != env->me_expected_txnid) {
 				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
+				env->me_freelist_end = 0;
 				env->me_freelist_position = 0;
 				// TODO: Free it first
 				//env->me_block_size_cache = NULL;
@@ -4076,7 +4100,7 @@ mdb_txn_abort(MDB_txn *txn)
 	if (txn->mt_child)
 		mdb_txn_abort(txn->mt_child);
 	else
-		env->me_expected_txnid = 0; // reset the expected txn id, can't use the freelist anymore
+		txn->mt_env->me_expected_txnid = 0; // reset the expected txn id, can't use the freelist anymore
 	mdb_txn_end(txn, MDB_END_ABORT|MDB_END_SLOT|MDB_END_FREE);
 }
 
