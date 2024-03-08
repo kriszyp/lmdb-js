@@ -207,7 +207,7 @@ union semun {
 #if defined(_WIN32) + defined(MDB_USE_POSIX_SEM) + defined(MDB_USE_SYSV_SEM) \
 	+ defined(MDB_USE_POSIX_MUTEX) != 1
 # error "Ambiguous shared-lock implementation"
-#endif
+#efndif
 
 #ifdef USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -1656,6 +1656,8 @@ struct MDB_env {
 #	define		me_freelist_written_end	me_pgstate.mf_written_end
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
 	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
+	int			me_freelist_state;		/**< state of writing freelist (if it is being deleted) */
+	int			me_expected_txnid;		/**< The expected txn id */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -1735,6 +1737,7 @@ typedef struct MDB_ntxn {
 #define TXN_DBI_CHANGED(txn, dbi) \
 	((txn)->mt_dbiseqs[dbi] != (txn)->mt_env->me_dbiseqs[dbi])
 
+#define MDB_FREELIST_DELETING	1
 static int  mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp);
 static int  mdb_page_new(MDB_cursor *mc, uint32_t flags, int num, MDB_page **mp);
 static int  mdb_page_touch(MDB_cursor *mc);
@@ -2879,7 +2882,11 @@ restart_search:
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
 				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				if (rc) {
-					if (rc == MDB_NOTFOUND) {
+					if (rc == MDB_NOTFOUND) { // if not found, go to the beginning of the range and look for older txns
+						if (env->me_freelist_state & MDB_FREELIST_DELETING) {
+							fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
+							break; // but can't iterate backwards in deletion mode
+						}
 						mdb_cursor_last(&m2, &key, NULL);
 						env->me_freelist_end = oldest;
 						op = MDB_PREV;
@@ -2895,6 +2902,12 @@ restart_search:
 			}
 		} else {
 			// we are now iterating through the free list entries
+			// first, we need to check if we are in free-list deletion mode, in which case it is not safe to iterate backwards and we have to bail out
+			if (op == MDB_PREV && (env->me_freelist_state & MDB_FREELIST_DELETING)) {
+				fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
+				break;
+			}
+			// now iterate
 			rc = mdb_cursor_get(&m2, &key, NULL, op);
 			if (rc && rc != MDB_NOTFOUND)
 				goto fail;
@@ -2979,8 +2992,8 @@ restart_search:
 			DPRINTF(("IDL %"Yu, idl[j]));
 #endif
 		/* Merge in descending sorted order */
-//		fprintf(stderr, "Merging %u: ", last);
-//		mdb_midl_print(stderr, idl);
+		fprintf(stderr, "Merging %u: ", last);
+		mdb_midl_print(stderr, idl);
 		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
 			goto fail;
 		if (mop != env->me_pghead) env->me_pghead = mop;
@@ -3596,7 +3609,8 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
-			if (txn->mt_txnid != ti->mti_txnid) {
+			fprintf(stderr, "checking freelist, expected txn id %u against db txn id %u", txn->mt_txnid, env-me_expected_txnid);
+			if (txn->mt_txnid != env-me_expected_txnid) {
 				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
@@ -3978,7 +3992,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 100 < txn->mt_txnid) {
+			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 300 < txn->mt_txnid) {
 				//fprintf(stderr, "Free list too large %u or out of date (%u / %u), dumping from memory\n", env->me_pghead ? env->me_pghead[0] : 0, env->me_freelist_end, txn->mt_txnid);
 				// if it is too large, reset it
 				env->me_pghead = NULL;
@@ -4061,6 +4075,8 @@ mdb_txn_abort(MDB_txn *txn)
 
 	if (txn->mt_child)
 		mdb_txn_abort(txn->mt_child);
+	else
+		env->me_expected_txnid = 0; // reset the expected txn id, can't use the freelist anymore
 	mdb_txn_end(txn, MDB_END_ABORT|MDB_END_SLOT|MDB_END_FREE);
 }
 
@@ -4256,7 +4272,9 @@ mdb_freelist_save(MDB_txn *txn)
 				total_room = head_room = 0;
 				mdb_tassert(txn, head_id >= env->me_freelist_start);
 				//fprintf(stderr, "Deleting free list record %u\n", head_id);
+				env->me_freelist_state = MDB_FREELIST_DELETING; // signal that we are deleting from the freelist, which means we can't iterate backwards
 				rc = mdb_cursor_del(&mc, 0);
+				env->me_freelist_state = 0;
 				if (rc) {
 					last_error = "Attempting to delete free-space record";
 					return rc;
@@ -4362,6 +4380,7 @@ mdb_freelist_save(MDB_txn *txn)
 	env->me_freelist_written_start = 0x7fffffff;
 	env->me_freelist_written_end = 0;
 	env->me_pghead = pghead;
+	env->me_expected_txnid = txn->mt_txnid + 1; // the expected next txnid for this freelist to continue to be valid
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
 	if (! (txn->mt_flags & MDB_TXN_WRITEMAP))
 		txn->mt_loose_count += lost_loose;
@@ -4860,7 +4879,6 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if (!txn->mt_u.dirty_list[0].mid &&
 		!(txn->mt_flags & (MDB_TXN_DIRTY | MDB_TXN_SPILLS))) {
-		txn->mt_txnid--; // revert txn id so we know it wasn't supposed to be incremented
 		mdb_txn_end(txn, end_mode);
 		return MDB_EMPTY_TXN;
 	}
