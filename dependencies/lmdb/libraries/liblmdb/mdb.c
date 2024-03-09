@@ -4311,18 +4311,11 @@ mdb_freelist_save(MDB_txn *txn)
 		unsigned count = txn->mt_loose_count;
 		lost_loose += count;
 		for (; mp; mp = NEXT_LOOSE_PAGE(mp))
-			mdb_midl_insert(&env->me_pghead, mp->mp_pgno, 1);
+			mdb_midl_append(&env->me_pghead, mp->mp_pgno);
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 		mop = env->me_pghead;
-		// TODO: Append instead
-		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
-		if (mop_len > reserved_space) {
-			mop = mdb_midl_pack(env->me_pghead);
-			free(env->me_pghead);
-			env->me_pghead = mop;
-			mop_len = mop[0];
-		}
+		mop_len = mop[0];
 	}
 
 	/* Fill in the reserved me_pghead records.  Everything is finally
@@ -4372,11 +4365,15 @@ mdb_freelist_save(MDB_txn *txn)
 			mdb_tassert(txn, mop_len <= entry_size);
 			mop_len = 0; // nothing left to save
 		}
-		char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start || !end;
+		char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start ||
+				(!end && env->me_freelist_written_end);
 		if (fl_writes[i++] != do_write) {
 			fprintf(stderr, "Do write of page does not match");
 		}
-		if (env->me_freelist_written_start <= end && env->me_freelist_written_end >= start || !end) {
+		// if it is in the written range
+		if (env->me_freelist_written_start <= end && env->me_freelist_written_end >= start ||
+			// if we have collapsed to an empty list, but there was data written
+			(!end && env->me_freelist_written_end)) {
 			// we are in part of the range of the freelist that was written, so we actually need to save it
 			// if end == 0 it means that the length was probably truncated and we need to rewrite the length byte
 			if (save_end <= 0 && len > 0) len--; // leave off the last byte if we are ignoring it
