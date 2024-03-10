@@ -1657,7 +1657,6 @@ struct MDB_env {
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
 	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
 	int			me_freelist_state;		/**< state of writing freelist (if it is being deleted) */
-	int			me_expected_txnid;		/**< The expected txn id */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -3623,12 +3622,8 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
-			env->me_pgoldest = 0; // we use this as an indicator that we need to load the newest transactions on the next transaction
-			if (env->me_freelist_position < 0)
-				env->me_freelist_position = -env->me_freelist_position;
-			txn->mt_txnid = ti->mti_txnid;
-			if (txn->mt_txnid != env->me_expected_txnid) {
-				//fprintf(stderr, "Reseting freelist because expected txn id %u doesn't match db txn id %u", txn->mt_txnid, ti->mti_txnid);
+			//fprintf(stderr, "checking freelist, expected txn id %u, db txn id %u", txn->mt_txnid, ti->mti_txnid);
+			if (txn->mt_txnid != ti->mti_txnid) {
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
@@ -3637,11 +3632,14 @@ mdb_txn_renew0(MDB_txn *txn)
 				// TODO: Free it first
 				//env->me_block_size_cache = NULL;
 			}
+			env->me_pgoldest = 0; // we use this as an indicator that we need to load the newest transactions on the next transaction
+			if (env->me_freelist_position < 0)
+				env->me_freelist_position = -env->me_freelist_position;
+			txn->mt_txnid = ti->mti_txnid;
 			meta = env->me_metas[txn->mt_txnid & 1];
 		} else {
 			meta = mdb_env_pick_meta(env);
 			txn->mt_txnid = meta->mm_txnid;
-			fprintf(stderr, "initial txn id %u\n", txn->mt_txnid);
 		}
 		if (env->me_flags & MDB_TRACK_METRICS) {
 			uint64_t now = get_time64();
@@ -4007,9 +4005,10 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_shrink(&txn->mt_free_pgs);
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
-			if (env->me_pghead && env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 300 < txn->mt_txnid) {
-				//fprintf(stderr, "Free list too large %u or out of date (%u / %u), dumping from memory\n", env->me_pghead ? env->me_pghead[0] : 0, env->me_freelist_end, txn->mt_txnid);
+			if (env->me_pghead && (env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 300 < txn->mt_txnid || (mode & MDB_END_ABORT))) {
+				fprintf(stderr, "Free list too large %u or out of date (%u / %u) or aborted, dumping from memory\n", env->me_pghead[0], env->me_freelist_end, txn->mt_txnid);
 				// if it is too large, reset it
+				mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
 				env->me_freelist_end = 0;
@@ -4028,7 +4027,6 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			mdb_midl_free(txn->mt_free_pgs);
 			free(txn->mt_u.dirty_list);
 		}
-		//mdb_midl_free(pghead);
 	}
 #if MDB_RPAGE_CACHE
 	if (MDB_REMAPPING(env->me_flags) && !txn->mt_parent) {
@@ -4090,10 +4088,6 @@ mdb_txn_abort(MDB_txn *txn)
 
 	if (txn->mt_child)
 		mdb_txn_abort(txn->mt_child);
-	else if (!(txn->mt_flags & MDB_TXN_RDONLY)) {
-		fprintf(stderr,"abort txnid\n");
-		txn->mt_env->me_expected_txnid = 0; // reset the expected txn id, can't use the freelist anymore
-	}
 	mdb_txn_end(txn, MDB_END_ABORT|MDB_END_SLOT|MDB_END_FREE);
 }
 
@@ -4121,13 +4115,6 @@ mdb_freelist_save(MDB_txn *txn)
 	unsigned entry_size;
 
 	mdb_cursor_init(&mc, txn, FREE_DBI, NULL);
-
-	/*if (env->me_pghead) {
-		/* Make sure first page of freeDB is touched and on freelist
-		rc = mdb_page_search(&mc, NULL, MDB_PS_FIRST|MDB_PS_MODIFY);
-		if (rc && rc != MDB_NOTFOUND)
-			return rc;
-	}*/
 
 	if (!env->me_pghead && txn->mt_loose_pgs) {
 		/* Put loose page numbers in mt_free_pgs, since
@@ -4394,7 +4381,6 @@ mdb_freelist_save(MDB_txn *txn)
 	env->me_freelist_written_start = 0x7fffffff;
 	env->me_freelist_written_end = 0;
 	env->me_pghead = pghead;
-	env->me_expected_txnid = txn->mt_txnid; // the expected next txnid for this freelist to continue to be valid
 	/* Restore this so we can check vs. dirty_list after mdb_page_flush() */
 	if (! (txn->mt_flags & MDB_TXN_WRITEMAP))
 		txn->mt_loose_count += lost_loose;
@@ -4927,8 +4913,6 @@ mdb_txn_commit(MDB_txn *txn)
 	if (rc)
 		goto fail;
 
-	//mdb_midl_free(env->me_pghead);
-	//env->me_pghead = NULL;
 	mdb_midl_shrink(&txn->mt_free_pgs);
 
 #if (MDB_DEBUG) > 2
@@ -5416,8 +5400,8 @@ mdb_env_create(MDB_env **env)
 
 	e->me_maxreaders = DEFAULT_READERS;
 	e->me_maxdbs = e->me_numdbs = CORE_DBS;
-	e->me_maxfreepgs_to_load = 20000;
-	e->me_maxfreepgs_to_retain = 40000;
+	e->me_maxfreepgs_to_load = 50000;
+	e->me_maxfreepgs_to_retain = 75000;
 	e->me_fd = INVALID_HANDLE_VALUE;
 	e->me_lfd = INVALID_HANDLE_VALUE;
 	e->me_mfd = INVALID_HANDLE_VALUE;
