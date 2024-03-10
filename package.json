@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "2.9.3",
+  "version": "2.9.4",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -109,5 +109,6 @@
     "useTabs": true,
     "singleQuote": true
   },
-  "optionalDependencies": {}
+  "optionalDependencies": {
+  }
 }
