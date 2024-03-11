@@ -4006,7 +4006,7 @@ mdb_txn_end(MDB_txn *txn, unsigned mode)
 			env->me_free_pgs = txn->mt_free_pgs;
 			/* me_pgstate: */
 			if (env->me_pghead && (env->me_pghead[0] > env->me_maxfreepgs_to_retain || env->me_freelist_end + 300 < txn->mt_txnid || (mode & MDB_END_ABORT))) {
-				fprintf(stderr, "Free list too large %u or out of date (%u / %u) or aborted, dumping from memory\n", env->me_pghead[0], env->me_freelist_end, txn->mt_txnid);
+				//fprintf(stderr, "Free list too large %u or out of date (%u / %u) or aborted, dumping from memory\n", env->me_pghead[0], env->me_freelist_end, txn->mt_txnid);
 				// if it is too large, reset it
 				mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
@@ -4350,7 +4350,7 @@ mdb_freelist_save(MDB_txn *txn)
 			mop_len -= entry_size;
 		} else {
 			if (mop_len > entry_size) {
-				fprintf(stderr, "mop_len to large %u %u %u %u %u", mop_len, entry_size, start_written, id, pglast);
+				fprintf(stderr, "mop_len to large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
 			}
 			mdb_tassert(txn, mop_len <= entry_size);
 			mop_len = 0; // nothing left to save
@@ -4975,7 +4975,7 @@ done:
 	}
 	if ((txn->mt_flags & MDB_NOSYNC) && (env->me_flags & MDB_OVERLAPPINGSYNC)) {
 		size_t txn_id = txn->mt_txnid;
-		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 250) {
+		if (dirty_pages * (txn->mt_txnid - env->me_synced_txn_id) > 500) {
 			// for bigger txns we wait for the flush before allowing next txn
 			LOCK_MUTEX(rc, env, env->me_sync_mutex);
 			mdb_txn_end(txn, end_mode);
