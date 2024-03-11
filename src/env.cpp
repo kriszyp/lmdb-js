@@ -276,11 +276,11 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	option = options.Get("maxReaders");
 	if (option.IsNumber())
 		maxReaders = option.As<Number>();
-	int maxFreeSpaceToLoad = 20000;
+	int maxFreeSpaceToLoad = 50000;
 	option = options.Get("maxFreeSpaceToLoad");
 	if (option.IsNumber())
 		maxFreeSpaceToLoad = option.As<Number>();
-	int maxFreeSpaceToRetain = 10000;
+	int maxFreeSpaceToRetain = 75000;
 	option = options.Get("maxFreeSpaceToRetain");
 	if (option.IsNumber())
 		maxFreeSpaceToRetain = option.As<Number>();
