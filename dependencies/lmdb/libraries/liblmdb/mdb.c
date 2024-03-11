@@ -2775,7 +2775,7 @@ restart_search:
 			//fprintf(stderr, "l %u ", i);
 			if (i > check_point) {
 				unsigned counting_i = i + (wrapped ? mop_len : 0);
-				if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 5) {
+				if (best_fit_start > 0 && best_fit_size - num < (counting_i - start) >> 6) {
 					goto continue_best_fit;
 				}
 				if (counting_i - start >= mop_len) {
@@ -3023,7 +3023,7 @@ restart_search:
 		pgno = mop[++best_fit_start];
 		mop[best_fit_start] += num; // update position
 		if (env->me_freelist_written_end < best_fit_start) env->me_freelist_written_end = best_fit_start;
-		//fprintf(stderr, "using best fit at %u size %u of %u\n", pgno, num, best_fit_size);
+		//fprintf(stderr, "\nusing best fit size %u of %u\n", num, best_fit_size);
 		//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
 		i = 1; // indicate that we found something
@@ -3063,9 +3063,9 @@ search_done:
 	}
 	if (i) {
 		// found
-		//fprintf(stderr,"found page %u %u\n", pgno, num);
+		//fprintf(stderr,"f %u %u ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position);
 	} else {
-		//fprintf(stderr,"appending %u %u\n", pgno, num);
+		//fprintf(stderr,"a %u %u ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position);
 		txn->mt_next_pgno = pgno + num;
 	}
 #if OVERFLOW_NOTYET
@@ -3622,8 +3622,8 @@ mdb_txn_renew0(MDB_txn *txn)
 		if (ti) {
 			if (LOCK_MUTEX(rc, env, env->me_wmutex))
 				return rc;
-			//fprintf(stderr, "checking freelist, expected txn id %u, db txn id %u", txn->mt_txnid, ti->mti_txnid);
 			if (txn->mt_txnid != ti->mti_txnid) {
+				//fprintf(stderr, "freelist reset, expected txn id %u, db txn id %u\n", txn->mt_txnid, ti->mti_txnid);
 				if (env->me_pghead) mdb_midl_free(env->me_pghead);
 				env->me_pghead = NULL;
 				env->me_freelist_start = 0;
@@ -4349,6 +4349,9 @@ mdb_freelist_save(MDB_txn *txn)
 			}
 			mop_len -= entry_size;
 		} else {
+			if (mop_len > entry_size) {
+				fprintf(stderr, "mop_len to large %u %u %u %u %u", mop_len, entry_size, start_written, id, pglast);
+			}
 			mdb_tassert(txn, mop_len <= entry_size);
 			mop_len = 0; // nothing left to save
 		}
@@ -4433,7 +4436,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	if (env->me_flags & MDB_WRITEMAP) {
 		goto done;
 	}
-
+	int pages_written = 0;
 	/* setup nump list, flag that it's in use */
 	dl_nump = env->me_dirty_nump;
 	/* <lmdb-js addition> */
@@ -4523,6 +4526,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			pos = pgno * psize;
 			size = psize;
 			nump = dl_nump[i];
+			pages_written += nump;
 			size *= nump;
 		}
 		/* Write up to MDB_COMMIT_PAGES dirty pages at a time. */
@@ -4651,7 +4655,7 @@ retry_seek:
 	if (env->me_flags & MDB_TRACK_METRICS) {
 		env->me_metrics.writes += write_i;
 		env->me_metrics.page_flushes++;
-		env->me_metrics.pages_written += pagecount - keep;
+		env->me_metrics.pages_written += pages_written;
 	}
 
 #ifdef _WIN32
@@ -4879,6 +4883,7 @@ mdb_txn_commit(MDB_txn *txn)
 
 	if (!txn->mt_u.dirty_list[0].mid &&
 		!(txn->mt_flags & (MDB_TXN_DIRTY | MDB_TXN_SPILLS))) {
+		txn->mt_txnid--; // we can safely decrement this because should be no changes to freelist
 		mdb_txn_end(txn, end_mode);
 		return MDB_EMPTY_TXN;
 	}
