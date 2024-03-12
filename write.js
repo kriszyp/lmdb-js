@@ -573,16 +573,22 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 	}
 	function finishBatch() {
-		dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0; // clear out the next slot
-		let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2); // atomically write the end block
-		nextResolution.flagPosition += 2;
-		if (writeStatus & WAITING_OPERATION) {
-			write(env.address, 0);
-		}
-		if (dynamicBytes.position > newBufferThreshold) {
-			allocateInstructionBuffer(dynamicBytes.position);
+		let bytes = dynamicBytes;
+		let uint32 = bytes.uint32;
+		let nextPosition = (bytes.position + 1);
+		let writeStatus;
+		if (nextPosition > newBufferThreshold) {
+			allocateInstructionBuffer(nextPosition);
 			nextResolution.flagPosition = dynamicBytes.position << 1;
 			nextResolution.uint32 = dynamicBytes.uint32;
+			writeStatus = atomicStatus(uint32, bytes.position << 1, 2); // atomically write the end block
+		} else {
+			uint32[nextPosition << 1] = 0; // clear out the next slot
+			writeStatus = atomicStatus(uint32, (bytes.position++) << 1, 2); // atomically write the end block
+			nextResolution.flagPosition += 2;
+		}
+		if (writeStatus & WAITING_OPERATION) {
+			write(env.address, 0);
 		}
 	}
 	function clearWriteTxn(parentTxn) {
