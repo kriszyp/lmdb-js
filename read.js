@@ -497,14 +497,16 @@ export function addReadMethods(LMDBStore, {
 						iterable.onDone()
 					if (cursorRenewId)
 						txn.renewingRefCount--;
+					if (txn.refCount <= 1 && txn.notCurrent) {
+						cursor.close(); // this must be closed before the transaction is aborted or it can cause a
+						// segmentation fault
+					}
 					if (txn.done) txn.done();
 					else if (--txn.refCount <= 0 && txn.notCurrent) {
 						txn.abort();
 						txn.isDone = true;
 					}
-					if (txn.refCount <= 0 && txn.notCurrent) {
-						cursor.close();
-					} else {
+					if (!txn.isDone) {
 						if (db.availableCursor || txn != readTxn) {
 							cursor.close();
 						} else { // try to reuse it
