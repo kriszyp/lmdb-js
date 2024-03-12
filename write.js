@@ -59,6 +59,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var outstandingWriteCount = 0;
 	var startAddress = 0;
 	var writeTxn = null;
+	var nextTxnTimer;
 	var committed;
 	var abortedNonChildTransactionWarn;
 	var nextTxnCallbacks = [];
@@ -269,9 +270,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
 				// just poll for the status change if we miss a status update
-				writeStatus = uint32[flagPosition];
-				uint32[flagPosition] = flags;
-				//writeStatus = Atomics.or(uint32, flagPosition, flags)
+				//writeStatus = uint32[flagPosition];
+				//uint32[flagPosition] = flags;
+				writeStatus = Atomics.or(uint32, flagPosition, flags)
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount += 1 + (valueSize >> 12);
 					if (outstandingBatchCount > batchStartThreshold) {
@@ -293,6 +294,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				queueCommitResolution(resolution);
 				if (!startAddress) {
 					startAddress = uint32.address + (flagPosition << 2);
+					clearTimeout(nextTxnTimer);
+					let thisStartAddress = startAddress;
+					nextTxnTimer = setTimeout(() => {
+						console.error("timeout waiting for next_txn", thisStartAddress.toString(16), (uint32.address + (flagPosition << 2)).toString(16), flags);
+					}, 10000);
 				}
 			}
 			if (!writtenBatchDepth && batchFlushResolvers.length > 0) {
@@ -387,6 +393,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		let resolvers = flushResolvers;
 		let start = Date.now();
+		let timer = setTimeout(() => {
+			console.error('timeout waiting for write callback', startAddress, dynamicBytes.uint32[dynamicBytes.position << 1]);
+		}, 10000);
 		env.startWriting(startAddress, (status) => {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
@@ -394,6 +403,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
+					clearTimeout(timer);
 					for (let resolver of resolvers) {
 						resolver();
 					}

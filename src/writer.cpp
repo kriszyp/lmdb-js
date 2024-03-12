@@ -193,7 +193,7 @@ next_inst:	start = instruction++;
 			fprintf(stderr, "Unknown flag bits %u %p\n", flags, start);
 			fprintf(stderr, "flags after message %u\n", *start);
 			worker->resultCode = 22;
-			return 0;
+			abort();
 		}
 		if (flags & HAS_KEY) {
 			// a key based instruction, get the key
@@ -401,7 +401,7 @@ next_inst:	start = instruction++;
 				fprintf(stderr, "Unknown flags %u %p\n", flags, start);
 				fprintf(stderr, "flags after message %u\n", *start);
 				worker->resultCode = 22;
-				return 22;
+				abort();
 			}
 			if (rc) {
 				if (!(rc == MDB_KEYEXIST || rc == MDB_NOTFOUND)) {
@@ -484,6 +484,7 @@ void WriteWorker::Write() {
 		resultCode = rc;
 		return;
 	}
+	uint32_t* start = instructions;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
 	progressStatus = 1;
@@ -503,6 +504,7 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 #endif
+	fprintf(stderr, "end write %p\n", start);
 	txn_callback(this, 1);
 	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
@@ -586,12 +588,15 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	status = napi_create_object(n_env, &resource);
 	napi_value resource_name;
 	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
+	fprintf(stderr, "start write %p\n", instructionAddress);
 	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
 	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
 	status = napi_create_async_work(n_env, resource, resource_name, do_write, writes_complete, worker, &worker->work);
+	if (status != napi_ok) abort();
 	napi_create_threadsafe_function(n_env, info[1].As<Function>(), resource, resource_name, 0, 1, nullptr, nullptr, worker, write_progress, &worker->progress);
 	status = napi_queue_async_work(n_env, worker->work);
+	if (status != napi_ok) abort();
 
 	return info.Env().Undefined();
 }
