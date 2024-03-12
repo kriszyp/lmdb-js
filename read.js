@@ -395,6 +395,8 @@ export function addReadMethods(LMDBStore, {
 			let limit = options.limit;
 			let db = this.db;
 			let snapshot = options.snapshot;
+			if (snapshot === false && this.dupSort && includeValues) throw new Error('Can not disable snapshot on a' +
+				' dupSort data store');
 			let compression = this.compression;
 			iterable.iterate = () => {
 				const reverse = options.reverse;
