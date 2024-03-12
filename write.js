@@ -59,7 +59,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var outstandingWriteCount = 0;
 	var startAddress = 0;
 	var writeTxn = null;
-	var nextTxnTimer;
 	var committed;
 	var abortedNonChildTransactionWarn;
 	var nextTxnCallbacks = [];
@@ -270,9 +269,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				// if we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
 				// just poll for the status change if we miss a status update
-				//writeStatus = uint32[flagPosition];
-				//uint32[flagPosition] = flags;
-				writeStatus = Atomics.or(uint32, flagPosition, flags)
+				writeStatus = uint32[flagPosition];
+				uint32[flagPosition] = flags;
+				//writeStatus = Atomics.or(uint32, flagPosition, flags)
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount += 1 + (valueSize >> 12);
 					if (outstandingBatchCount > batchStartThreshold) {
@@ -294,11 +293,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				queueCommitResolution(resolution);
 				if (!startAddress) {
 					startAddress = uint32.address + (flagPosition << 2);
-					clearTimeout(nextTxnTimer);
-					let thisStartAddress = startAddress;
-					nextTxnTimer = setTimeout(() => {
-						console.error("timeout waiting for next_txn", thisStartAddress.toString(16), (uint32.address + (flagPosition << 2)).toString(16), flags);
-					}, 10000);
 				}
 			}
 			if (!writtenBatchDepth && batchFlushResolvers.length > 0) {
@@ -591,16 +585,22 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 	}
 	function finishBatch() {
-		dynamicBytes.uint32[(dynamicBytes.position + 1) << 1] = 0; // clear out the next slot
-		let writeStatus = atomicStatus(dynamicBytes.uint32, (dynamicBytes.position++) << 1, 2); // atomically write the end block
-		nextResolution.flagPosition += 2;
-		if (writeStatus & WAITING_OPERATION) {
-			write(env.address, 0);
-		}
-		if (dynamicBytes.position > newBufferThreshold) {
-			allocateInstructionBuffer(dynamicBytes.position);
+		let bytes = dynamicBytes;
+		let uint32 = bytes.uint32;
+		let nextPosition = (bytes.position + 1);
+		let writeStatus;
+		if (nextPosition > newBufferThreshold) {
+			allocateInstructionBuffer(nextPosition);
 			nextResolution.flagPosition = dynamicBytes.position << 1;
 			nextResolution.uint32 = dynamicBytes.uint32;
+			writeStatus = atomicStatus(uint32, bytes.position << 1, 2); // atomically write the end block
+		} else {
+			uint32[nextPosition << 1] = 0; // clear out the next slot
+			writeStatus = atomicStatus(uint32, (bytes.position++) << 1, 2); // atomically write the end block
+			nextResolution.flagPosition += 2;
+		}
+		if (writeStatus & WAITING_OPERATION) {
+			write(env.address, 0);
 		}
 	}
 	function clearWriteTxn(parentTxn) {
