@@ -387,9 +387,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		}
 		let resolvers = flushResolvers;
 		let start = Date.now();
-		let timer = setTimeout(() => {
-			console.error('timeout waiting for write callback', startAddress, dynamicBytes.uint32[dynamicBytes.position << 1]);
-		}, 10000);
 		env.startWriting(startAddress, (status) => {
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
@@ -397,7 +394,6 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolveWrites(true);
 			switch (status) {
 				case 0:
-					clearTimeout(timer);
 					for (let resolver of resolvers) {
 						resolver();
 					}

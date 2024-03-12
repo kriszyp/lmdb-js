@@ -282,7 +282,7 @@ next_inst:	start = instruction++;
 						worker->instructions = start;
 						return 0;
 					} else
-						goto next_inst;						
+						goto next_inst;
 				}
 			case BLOCK_END:
 				conditionDepth--;
@@ -434,6 +434,8 @@ void txn_callback(const void* data, int finished) {
 		// we don't want to release our lock until *after* the txn lock is released to give other threads a better chance
 		// at executing next
 		if (worker->txn) {
+			if (!(*worker->instructions & TXN_DELIMITER))
+				fprintf(stderr, "in txn_callback not valid %p\n", *worker->instructions);
 			worker->txn = nullptr;
 			worker->interruptionStatus = 0;
 			pthread_cond_signal(worker->envForTxn->writingCond); // in case there a sync txn waiting for us
@@ -487,6 +489,8 @@ void WriteWorker::Write() {
 	uint32_t* start = instructions;
 	rc = DoWrites(txn, envForTxn, instructions, this);
 	uint32_t txnId = (uint32_t) mdb_txn_id(txn);
+	if (!(*instructions & TXN_DELIMITER))
+		fprintf(stderr, "after writes %p %p NOT still valid %p\n", start, instructions, *instructions);
 	progressStatus = 1;
 	#ifdef MDB_OVERLAPPINGSYNC
 	if (envForTxn->jsFlags & MDB_OVERLAPPINGSYNC) {
@@ -504,7 +508,8 @@ void WriteWorker::Write() {
 	if (rc == MDB_EMPTY_TXN)
 		rc = 0;
 #endif
-	fprintf(stderr, "end write %p\n", start);
+	if (!(*instructions & TXN_DELIMITER))
+		fprintf(stderr, "end write %p, next start %p NOT still valid %p\n", start, instructions, *instructions);
 	txn_callback(this, 1);
 	if (rc || resultCode) {
 		std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_HAD_ERROR);
@@ -588,7 +593,7 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	status = napi_create_object(n_env, &resource);
 	napi_value resource_name;
 	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
-	fprintf(stderr, "start write %p\n", instructionAddress);
+	//fprintf(stderr, "start write %p\n", instructionAddress);
 	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
 	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
