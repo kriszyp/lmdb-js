@@ -4321,25 +4321,31 @@ mdb_freelist_save(MDB_txn *txn)
 	for (txnid_t id = start_written; id <= pglast; id++) {
 		key.mv_size = sizeof(id);
 		key.mv_data = &id;
-		mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
+		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
+		if (rc == MDB_NOTFOUND) {
+			mdb_tassert(txn, mop_len == 0);
+			rc = 0; // this is acceptable as long as there are no entries to write
+			break;
+		}
+
+
 //		fprintf(stderr, "put %u: ", id);
 
-		int len = (data.mv_size / sizeof(id)) - 1;
+		int reserved_len = (data.mv_size / sizeof(id)) - 1;
+		ssize_t reserved_end = reserved_space;
 		ssize_t end = mop_len;
 		ssize_t save_end = mop[end];
 		if (save_end < 0) {
 			// ends with a block length, zero it out, was already handled by previous iteration
 			mop[end] = 0;
 		}
-		ssize_t start = mop_len - len;
-		if (start < 0) {
-			// oversized entry, just use the remaining length
-			len = mop_len;
-			start = 0;
-		}
+		ssize_t start = reserved_space - reserved_len;
+		int len = end - start;
+		if (len < 0) len = 0;
+
 		ssize_t save2 = 0;
 		ssize_t save = mop[start];
-		if (len > entry_size) {
+		if (reserved_len > entry_size) {
 			// full blocks
 			// we have an extra overlapping byte to handle block length prefix. But don't use it if it is a page number
 			// because it could be preceded by a block length prefix, instead zero it out
@@ -4347,23 +4353,26 @@ mdb_freelist_save(MDB_txn *txn)
 			if (save2 > 0) {
 				mop[start + 1] = 0;
 			}
-			mop_len -= entry_size;
+			reserved_space = start + 1;
+
 		} else {
-			if (mop_len > entry_size) {
-				fprintf(stderr, "mop_len to large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
+			if (reserved_space > entry_size) {
+				fprintf(stderr, "reserved_space to large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
 			}
-			mdb_tassert(txn, mop_len <= entry_size);
-			mop_len = 0; // nothing left to save
+			mdb_tassert(txn, reserved_space <= entry_size);
+			reserved_space -= reserved_len;
+			if (reserved_space < 0) reserved_space = 0;
+			mdb_tassert(txn, reserved_space == 0);
 		}
-		char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start ||
-				(!end && env->me_freelist_written_end);
+		if (reserved_space < mop_len) {
+			mop_len = reserved_space;
+		}
+		char do_write = env->me_freelist_written_start <= reserved_end && env->me_freelist_written_end >= start;
 		if (fl_writes[i++] != do_write) {
 			fprintf(stderr, "Do write of page does not match");
 		}
 		// if it is in the written range
-		if (env->me_freelist_written_start <= end && env->me_freelist_written_end >= start ||
-			// if we have collapsed to an empty list, but there was data written
-			(!end && env->me_freelist_written_end)) {
+		if (do_write) {
 			// we are in part of the range of the freelist that was written, so we actually need to save it
 			// if end == 0 it means that the length was probably truncated and we need to rewrite the length byte
 			if (save_end <= 0 && len > 0) len--; // leave off the last byte if we are ignoring it

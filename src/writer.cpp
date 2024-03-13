@@ -593,7 +593,6 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	status = napi_create_object(n_env, &resource);
 	napi_value resource_name;
 	status = napi_create_string_latin1(n_env, "write", NAPI_AUTO_LENGTH, &resource_name);
-	//fprintf(stderr, "start write %p\n", instructionAddress);
 	auto worker = new WriteWorker(this->env, this, (uint32_t*) instructionAddress);
 	this->writeWorker = worker;
 	napi_create_reference(n_env, info[1].As<Function>(), 1, &worker->callback);
