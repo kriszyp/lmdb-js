@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "3.0.0-beta.13",
+  "version": "3.0.0",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -68,7 +68,7 @@
     "prebuild-win32": "prebuildify-platform-packages --debug --target 20.0.0 && prebuildify-platform-packages --debug --target 18.17.1 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --debug --napi --platform-packages --target 18.17.1",
     "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 18.17.1",
     "prebuildify": "prebuildify-platform-packages --debug --napi --target 18.17.1",
-    "full-publish": "cd prebuilds/win32-x64 && npm publish --tag next --access public && cd ../darwin-x64 && npm publish --tag next --access public && cd ../darwin-arm64 && npm publish --tag next --access public && cd ../linux-x64 && npm publish --tag next --access public && cd ../linux-arm64 && npm publish --tag next --access public  && cd ../linux-arm && npm publish --tag next --access public && cd ../.. && npm publish --tag next && node util/remove-optional-deps.cjs",
+    "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish && node util/remove-optional-deps.cjs",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "test": "mocha test/**.test.js --expose-gc --recursive",
     "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts",
