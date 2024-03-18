@@ -26,7 +26,10 @@ const PROMISE_SUCCESS = Promise.resolve(true);
 export const ABORT = 4.452694326329068e-106; // random/unguessable numbers, which work across module/versions and native
 export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
-const LocalSharedArrayBuffer = typeof Deno != 'undefined' ? ArrayBuffer : SharedArrayBuffer; // Deno can't handle SharedArrayBuffer as an FFI argument due to https://github.com/denoland/deno/issues/12678
+const LocalSharedArrayBuffer = typeof Deno != 'undefined' || // Deno can't handle SharedArrayBuffer as an FFI
+// argument due to https://github.com/denoland/deno/issues/12678
+typeof SharedArrayBuffer == 'undefined' ? // Sometimes electron doesn't have a SharedArrayBuffer
+	ArrayBuffer : SharedArrayBuffer;
 const ByteArray = typeof Buffer != 'undefined' ? function(buffer) { return Buffer.from(buffer) } : Uint8Array;
 const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
 //let debugLog = []
