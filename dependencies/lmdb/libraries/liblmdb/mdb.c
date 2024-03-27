@@ -2601,15 +2601,17 @@ mdb_page_spill(MDB_cursor *m0, MDB_val *key, MDB_val *data)
 	mdb_midl_sort(txn->mt_spill_pgs);
 
 	/* Flush the spilled part of dirty list */
-	if ((rc = mdb_page_flush(txn, i)) != MDB_SUCCESS)
+	if ((rc = mdb_page_flush(txn, i)) != MDB_SUCCESS) {
+		fprintf(stderr, "mdb_page_spill flushing error %i\n", rc);
 		goto done;
+	}
 
 	/* Reset any dirty pages we kept that page_flush didn't see */
 	rc = mdb_pages_xkeep(m0, P_KEEP, i);
 
 done:
 if (rc) {
-	fprintf(stderr, "mdb_page_spill error\n");
+	fprintf(stderr, "mdb_page_spill error %i\n", rc);
 }
 	txn->mt_flags |= rc ? MDB_TXN_ERROR : MDB_TXN_SPILLS;
 	return rc;
@@ -4609,7 +4611,9 @@ retry_seek:
 						rc = ErrCode();
 						if (rc == EINTR)
 							goto retry_write;
-						fprintf(stderr, "Write error: %s", strerror(rc));
+						fprintf(stderr, "Write error: %s position %u, size %u", strerror(rc), wpos, wsize);
+						last_error = malloc(100);
+						sprintf(last_error, "Attempting to write page at position %u, size %u", wpos, wsize);
 					} else {
 						rc = EIO; /* TODO: Use which error code? */
 						DPUTS("short write, filesystem full?");
