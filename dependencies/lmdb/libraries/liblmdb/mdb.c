@@ -2695,7 +2695,7 @@ mdb_page_alloc(MDB_cursor *mc, int num, MDB_page **mp)
 	pgno_t pgno, *mop = env->me_pghead;
 	unsigned i, j, mop_len = mop ? mop[0] : 0, n2 = num-1;
 	MDB_page *np;
-	txnid_t oldest = 0, last;
+	txnid_t oldest = 0, last = 0;
 	MDB_cursor_op op;
 	MDB_cursor m2;
 	int found_old = 0;
@@ -2925,8 +2925,8 @@ restart_search:
 				if (!rc) env->me_freelist_end = oldest;
 				// no more newer transactions, go to the beginning of the range and look for older txns
 				op = MDB_SET_RANGE;
+				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
 				last = env->me_freelist_start - 1;
-				if (!last) break; // should be no zero entry, break out
 				key.mv_data = &last; // start at the end of the freelist and read newer transactions free pages
 				key.mv_size = sizeof(last);
 				mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
@@ -4323,7 +4323,10 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
 		if (rc == MDB_NOTFOUND) {
-			mdb_tassert(txn, mop_len == 0);
+			if (mop_len != 0) {
+				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %u %u", id, mop_len, start_written, pglast, env->me_freelist_start, env->me_freelist_end, fl_writes[i], fl_writes[i + 1]);
+				mdb_tassert(txn, mop_len == 0);
+			}
 			rc = 0; // this is acceptable as long as there are no entries to write
 			break;
 		}
@@ -4606,7 +4609,7 @@ retry_seek:
 						rc = ErrCode();
 						if (rc == EINTR)
 							goto retry_write;
-						DPRINTF(("Write error: %s", strerror(rc)));
+						fprintf(stderr, "Write error: %s", strerror(rc));
 					} else {
 						rc = EIO; /* TODO: Use which error code? */
 						DPUTS("short write, filesystem full?");
@@ -6772,7 +6775,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
 		if (rc) {
-			last_error = "Attempting to setup locks";
+			if (rc != 10) last_error = "Attempting to setup locks"; // lmdb-js uses 10 for existing environment found
 			goto leave;
 		}
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
