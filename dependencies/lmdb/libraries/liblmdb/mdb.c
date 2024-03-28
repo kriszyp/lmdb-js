@@ -4161,8 +4161,10 @@ mdb_freelist_save(MDB_txn *txn)
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 	}
-	ssize_t reserved_space = -1;
-	ssize_t start_written = -1;
+	ssize_t reserved_space;
+	ssize_t start_written;
+	int freelist_written_start;
+	int freelist_written_end;
 	ssize_t end_written;
 	/* MDB_RESERVE cancels meminit in ovpage malloc (when no WRITEMAP) */
 	clean_limit = (env->me_flags & (MDB_NOMEMINIT|MDB_WRITEMAP))
@@ -4170,9 +4172,7 @@ mdb_freelist_save(MDB_txn *txn)
 //fprintf(stderr, "fl position: %u start: %u, end: %u, txn_id: %u\n", env->me_freelist_position, env->me_freelist_start, env->me_freelist_end, txn->mt_txnid);
 	mop = env->me_pghead;
 	mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
-	while(reserved_space < mop_len ||
-			(start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
-			freecnt < txn->mt_free_pgs[0]) {
+	do {
 		/* Come back here after each Put() in case freelist changed */
 		/*if (start_written >= 0) {
 			fprintf(stderr, "Rerunning freelist save, start was %u is %u, length was %u is %u\n",start_written, env->me_freelist_start, reserved_space, mop_len);
@@ -4231,6 +4231,8 @@ mdb_freelist_save(MDB_txn *txn)
 			head_id = 1;
 			start_written = 1;
 		}
+		freelist_written_start = env->me_freelist_written_start;
+		freelist_written_end = env->me_freelist_written_end;
 		if (mop_len) {
 			// determine the size of the blocks we need
 			entry_size = ((mop_len / ((env->me_freelist_end - start_written) * maxfree_1pg)) + 1) * maxfree_1pg;
@@ -4247,7 +4249,7 @@ mdb_freelist_save(MDB_txn *txn)
 				char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start;
 				fl_writes[i++] = do_write;
 				// determine if it is in the range of actively written pages
-				if (env->me_freelist_written_start <= end && env->me_freelist_written_end >= start) {
+				if (freelist_written_start <= end && freelist_written_end >= start) {
 					// we will reserve one entry for size and potentially one extra entry in case we are splitting an entry
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
 					//fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
@@ -4289,7 +4291,13 @@ mdb_freelist_save(MDB_txn *txn)
 		}
 		mop = env->me_pghead;
 		mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
-	}
+		if (freelist_written_start != env->me_freelist_written_start)
+		freelist_written_end = env->me_freelist_written_end;
+	} while(reserved_space < mop_len ||
+	   (start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
+	   freecnt < txn->mt_free_pgs[0] ||
+	   freelist_written_start != env->me_freelist_written_start ||
+	   freelist_written_end != env->me_freelist_written_end);
 
 	/* Return loose page numbers to me_pghead, though usually none are
 	 * left at this point.  The pages themselves remain in dirty_list.
@@ -4326,7 +4334,10 @@ mdb_freelist_save(MDB_txn *txn)
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
 		if (rc == MDB_NOTFOUND) {
 			if (mop_len != 0) {
-				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %u %u", id, mop_len, start_written, pglast, env->me_freelist_start, env->me_freelist_end, fl_writes[i], fl_writes[i + 1]);
+				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %i %i %i %i %i %u %u\n", id, mop_len, start_written,
+						pglast, env->me_freelist_start, env->me_freelist_end,
+						freelist_written_start, env->me_freelist_written_start, freelist_written_end, env->me_freelist_written_end,
+						i, fl_writes[0], fl_writes[1]);
 				mdb_tassert(txn, mop_len == 0);
 			}
 			rc = 0; // this is acceptable as long as there are no entries to write
