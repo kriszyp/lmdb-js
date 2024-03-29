@@ -4468,6 +4468,10 @@ mdb_page_flush(MDB_txn *txn, int keep)
 	for (n=1; n<=pagecount; n++) {
 		dp = dl[n].mptr;
 		dl_nump[n] = IS_OVERFLOW(dp) ? dp->mp_pages : 1;
+		if (dl_nump[n] < 0) {
+			fprintf(stderr, "Invalid page count %i at index %i for page no %i\n", dl_nump[n], n, dl[n].mid);
+			return MDB_BAD_TXN;
+		}
 		pgno_t p = dl[n].mid + dl_nump[n];
 		if (p > pgno)
 			pgno = p;
@@ -4551,6 +4555,7 @@ mdb_page_flush(MDB_txn *txn, int keep)
 			pos = pgno * psize;
 			size = psize;
 			nump = dl_nump[i];
+			mdb_tassert(txn, nump > 0);
 			pages_written += nump;
 			size *= nump;
 		}
@@ -4624,7 +4629,7 @@ retry_seek:
 							goto retry_write;
 						fprintf(stderr, "Write error: %s position %u, size %u", strerror(rc), wpos, wsize);
 						last_error = malloc(100);
-						sprintf(last_error, "Attempting to write page at position %u, size %u", wpos, wsize);
+						sprintf(last_error, "Attempting to write page at position %u, size %u, blocks %u, buffer sizes %i %i %i", wpos, wsize, n, iov[0].iov_len, iov[1].iov_len, iov[2].iov_len);
 					} else {
 						rc = EIO; /* TODO: Use which error code? */
 						DPUTS("short write, filesystem full?");
