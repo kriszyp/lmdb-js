@@ -4333,12 +4333,12 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
 		if (rc == MDB_NOTFOUND) {
-			if (mop_len != 0) {
+			if (freelist_written_start < mop_len) {
 				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %i %i %i %i %i %u %u\n", id, mop_len, start_written,
 						pglast, env->me_freelist_start, env->me_freelist_end,
 						freelist_written_start, env->me_freelist_written_start, freelist_written_end, env->me_freelist_written_end,
 						i, fl_writes[0], fl_writes[1]);
-				mdb_tassert(txn, mop_len == 0);
+				mdb_tassert(txn, freelist_written_start >= mop_len);
 			}
 			rc = 0; // this is acceptable as long as there are no entries to write
 			break;
