@@ -2,8 +2,9 @@ export const SKIP = {};
 const DONE = {
 	value: null,
 	done: true,
-}
-const RETURN_DONE = { // we allow this one to be mutated
+};
+const RETURN_DONE = {
+	// we allow this one to be mutated
 	value: null,
 	done: true,
 };
@@ -27,7 +28,7 @@ export class RangeIterable {
 			return {
 				next(resolvedResult) {
 					try {
-					let result;
+						let result;
 						do {
 							let iteratorResult;
 							if (resolvedResult) {
@@ -37,11 +38,18 @@ export class RangeIterable {
 								iteratorResult = iterator.next();
 								if (iteratorResult.then) {
 									if (!async) {
-										this.throw(new Error('Can not synchronously iterate with asynchronous values'));
+										this.throw(
+											new Error(
+												'Can not synchronously iterate with asynchronous values',
+											),
+										);
 									}
-									return iteratorResult.then(iteratorResult => this.next(iteratorResult), (error) => {
-										this.throw(error);
-									});
+									return iteratorResult.then(
+										(iteratorResult) => this.next(iteratorResult),
+										(error) => {
+											this.throw(error);
+										},
+									);
 								}
 							}
 							if (iteratorResult.done === true) {
@@ -52,23 +60,26 @@ export class RangeIterable {
 							result = func.call(source, iteratorResult.value, i++);
 							if (result && result.then && async) {
 								// if async, wait for promise to resolve before returning iterator result
-								return result.then(result =>
-									result === SKIP ?
-										this.next() :
-										{
-											value: result
-										}, (error) => {
-											this.throw(error);
-										});
+								return result.then(
+									(result) =>
+										result === SKIP
+											? this.next()
+											: {
+													value: result,
+												},
+									(error) => {
+										this.throw(error);
+									},
+								);
 							}
-						} while(result === SKIP);
+						} while (result === SKIP);
 						if (result === DONE) {
 							return this.return();
 						}
 						return {
-							value: result
+							value: result,
 						};
-					} catch(error) {
+					} catch (error) {
 						this.throw(error);
 					}
 				},
@@ -84,28 +95,29 @@ export class RangeIterable {
 				throw(error) {
 					this.return();
 					throw error;
-				}
+				},
 			};
 		};
 		return iterable;
 	}
 	[Symbol.asyncIterator]() {
-		return this.iterator = this.iterate(true);
+		return (this.iterator = this.iterate(true));
 	}
 	[Symbol.iterator]() {
-		return this.iterator = this.iterate();
+		return (this.iterator = this.iterate());
 	}
 	filter(func) {
-		return this.map(element => {
+		return this.map((element) => {
 			let result = func(element);
 			// handle promise
-			if (result?.then) return result.then((result) => result ? element : SKIP);
+			if (result?.then)
+				return result.then((result) => (result ? element : SKIP));
 			else return result ? element : SKIP;
 		});
 	}
 
 	forEach(callback) {
-		let iterator = this.iterator = this.iterate();
+		let iterator = (this.iterator = this.iterate());
 		let result;
 		while ((result = iterator.next()).done !== true) {
 			callback(result.value);
@@ -114,23 +126,30 @@ export class RangeIterable {
 	concat(secondIterable) {
 		let concatIterable = new RangeIterable();
 		concatIterable.iterate = (async) => {
-			let iterator = this.iterator = this.iterate(async);
+			let iterator = (this.iterator = this.iterate(async));
 			let isFirst = true;
 			function iteratorDone(result) {
 				if (isFirst) {
 					try {
 						isFirst = false;
-						iterator = secondIterable[async ? Symbol.asyncIterator : Symbol.iterator]();
+						iterator =
+							secondIterable[async ? Symbol.asyncIterator : Symbol.iterator]();
 						result = iterator.next();
 						if (concatIterable.onDone) {
 							if (result.then) {
-								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
-								result.then((result) => {
-									if (result.done()) concatIterable.onDone();
-								}, (error) => {
-									this.return();
-									throw error;
-								});
+								if (!async)
+									throw new Error(
+										'Can not synchronously iterate with asynchronous values',
+									);
+								result.then(
+									(result) => {
+										if (result.done()) concatIterable.onDone();
+									},
+									(error) => {
+										this.return();
+										throw error;
+									},
+								);
 							} else if (result.done) concatIterable.onDone();
 						}
 					} catch (error) {
@@ -146,7 +165,10 @@ export class RangeIterable {
 					try {
 						let result = iterator.next();
 						if (result.then) {
-							if (!async) throw new Error('Can synchronously iterate with asynchronous values');
+							if (!async)
+								throw new Error(
+									'Can synchronously iterate with asynchronous values',
+								);
 							return result.then((result) => {
 								if (result.done) return iteratorDone(result);
 								return result;
@@ -167,12 +189,11 @@ export class RangeIterable {
 						iterator.return();
 					}
 					return RETURN_DONE;
-
 				},
 				throw(error) {
 					this.return();
 					throw error;
-				}
+				},
 			};
 		};
 		return concatIterable;
@@ -181,7 +202,7 @@ export class RangeIterable {
 	flatMap(callback) {
 		let mappedIterable = new RangeIterable();
 		mappedIterable.iterate = (async) => {
-			let iterator = this.iterator = this.iterate(async);
+			let iterator = (this.iterator = this.iterate(async));
 			let isFirst = true;
 			let currentSubIterator;
 			return {
@@ -195,7 +216,10 @@ export class RangeIterable {
 									resolvedResult = undefined;
 								} else result = currentSubIterator.next();
 								if (result.then) {
-									if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+									if (!async)
+										throw new Error(
+											'Can not synchronously iterate with asynchronous values',
+										);
 									return result.then((result) => this.next(result));
 								}
 								if (!result.done) {
@@ -204,7 +228,10 @@ export class RangeIterable {
 							}
 							let result = resolvedResult ?? iterator.next();
 							if (result.then) {
-								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+								if (!async)
+									throw new Error(
+										'Can not synchronously iterate with asynchronous values',
+									);
 								currentSubIterator = undefined;
 								return result.then((result) => this.next(result));
 							}
@@ -214,7 +241,10 @@ export class RangeIterable {
 							}
 							let value = callback(result.value);
 							if (value?.then) {
-								if (!async) throw new Error('Can not synchronously iterate with asynchronous values');
+								if (!async)
+									throw new Error(
+										'Can not synchronously iterate with asynchronous values',
+									);
 								return value.then((value) => {
 									if (Array.isArray(value) || value instanceof RangeIterable) {
 										currentSubIterator = value[Symbol.iterator]();
@@ -223,7 +253,7 @@ export class RangeIterable {
 										currentSubIterator = null;
 										return { value };
 									}
-								})
+								});
 							}
 							if (Array.isArray(value) || value instanceof RangeIterable)
 								currentSubIterator = value[Symbol.iterator]();
@@ -231,7 +261,7 @@ export class RangeIterable {
 								currentSubIterator = null;
 								return { value };
 							}
-						} while(true);
+						} while (true);
 					} catch (error) {
 						this.return();
 						throw error;
@@ -239,16 +269,14 @@ export class RangeIterable {
 				},
 				return() {
 					if (mappedIterable.onDone) mappedIterable.onDone();
-					if (currentSubIterator)
-						currentSubIterator.return();
+					if (currentSubIterator) currentSubIterator.return();
 					return iterator.return();
 				},
 				throw() {
 					if (mappedIterable.onDone) mappedIterable.onDone();
-					if (currentSubIterator)
-						currentSubIterator.throw();
+					if (currentSubIterator) currentSubIterator.throw();
 					return iterator.throw();
-				}
+				},
 			};
 		};
 		return mappedIterable;
@@ -256,8 +284,7 @@ export class RangeIterable {
 
 	slice(start, end) {
 		return this.map((element, i) => {
-			if (i < start)
-				return SKIP;
+			if (i < start) return SKIP;
 			if (i >= end) {
 				DONE.value = element;
 				return DONE;
@@ -266,22 +293,22 @@ export class RangeIterable {
 		});
 	}
 	next() {
-		if (!this.iterator)
-			this.iterator = this.iterate();
+		if (!this.iterator) this.iterator = this.iterate();
 		return this.iterator.next();
 	}
 	toJSON() {
 		if (this.asArray && this.asArray.forEach) {
 			return this.asArray;
 		}
-		const error = new Error('Can not serialize async iterables without first calling resolving asArray');
+		const error = new Error(
+			'Can not serialize async iterables without first calling resolving asArray',
+		);
 		error.resolution = this.asArray;
 		throw error;
 		//return Array.from(this)
 	}
 	get asArray() {
-		if (this._asArray)
-			return this._asArray;
+		if (this._asArray) return this._asArray;
 		let promise = new Promise((resolve, reject) => {
 			let iterator = this.iterate(true);
 			let array = [];
@@ -296,7 +323,7 @@ export class RangeIterable {
 					}
 					result = iterator.next();
 				}
-				resolve(iterable._asArray = array);
+				resolve((iterable._asArray = array));
 			}
 			next(iterator.next());
 		});
@@ -305,6 +332,11 @@ export class RangeIterable {
 	}
 	resolveData() {
 		return this.asArray;
+	}
+	at(index) {
+		for (let entry of this) {
+			if (index-- === 0) return entry;
+		}
 	}
 }
 RangeIterable.prototype.DONE = DONE;
