@@ -43,7 +43,7 @@ declare namespace lmdb {
 		retain(data: any): any
 
 		/**
-		* Asynchronously fetch the values stored by the given ids and accesses all 
+		* Asynchronously fetch the values stored by the given ids and accesses all
 		* pages to ensure that any hard page faults and disk I/O are performed
 		* asynchronously in a separate thread. Once completed, synchronous
 		* gets to the same entries will most likely be in memory and fast.
@@ -227,9 +227,10 @@ declare namespace lmdb {
 		/**
 		* Check if an entry for the provided key/value exists
 		* @param id Key of the entry to check
-		* @param value Value of the entry to check
+		* @param value Value of the entry to check (can be undefined to check for existence of the entry)
+		* @param options Options for existence check (can include transaction)
 		*/
-		doesExist(key: K, value: V): boolean
+		doesExist(key: K, value: V, options?: GetOptions): boolean
 		/**
 		* Check if an entry for the provided key exists with the expected version
 		* @param id Key of the entry to check
@@ -338,7 +339,7 @@ declare namespace lmdb {
 		 * Setting a map size will typically disable remapChunks by default unless the size is larger than appropriate for the OS. Different OSes have different allocation limits.
 		 **/
 		mapSize?: number
-		/** 
+		/**
 		 * This defines the page size of the database. This defaults to the default page size of the OS (usually 4,096, except on MacOS with M-series, which is 16,384 bytes).
 		 * You may want to consider setting this to 8,192 for databases larger than available memory (and moreso if you have range queries) or 4,096 for databases that can mostly cache in memory.
 		 * Note that this only effects the page size of new databases (does not affect existing databases). */
@@ -347,7 +348,7 @@ declare namespace lmdb {
 		overlappingSync?: boolean
 		/** Resolve asynchronous operations when commits are finished and visible and include a separate promise for when a commit is flushed to disk, as a flushed property on the commit promise. Note that you can alternately use the flushed property on the database. */
 		separateFlushed?: boolean
-		/** 
+		/**
 		 * This a flag to specify if dynamic memory mapping should be used. Enabling this generally makes read operations a little bit slower, but frees up more mapped memory, making it friendlier to other applications.
 		 * This is enabled by default on 32-bit operating systems (which require this to go beyond 4GB database size) if mapSize is not specified, otherwise it is disabled by default.
 		 **/
@@ -358,7 +359,7 @@ declare namespace lmdb {
 		useWritemap?: boolean
 		/** Treat path as a filename instead of directory (this is the default if the path appears to end with an extension and has '.' in it) */
 		noSubdir?: boolean
-		/** 
+		/**
 		 * Does not explicitly flush data to disk at all. This can be useful for temporary databases where durability/integrity is not necessary, and can significantly improve write performance that is I/O bound.
 		 * However, we discourage this flag for data that needs integrity and durability in storage, since it can result in data loss/corruption if the computer crashes.
 		 **/
@@ -375,9 +376,13 @@ declare namespace lmdb {
 		 * This is enabled by default and will ensure that all asynchronous write operations performed in the same event turn will be batched together into the same transaction.
 		 * Disabling this allows lmdb-js to commit a transaction at any time, and asynchronous operations will only be guaranteed to be in the same transaction if explicitly batched together (with transaction, batch, ifVersion).
 		 * If this is disabled (set to false), you can control how many writes can occur before starting a transaction with txnStartThreshold (allow a transaction will still be started at the next event turn if the threshold is not met).
-		 * Disabling event turn batching (and using lower txnStartThreshold values) can facilitate a faster response time to write operations. txnStartThreshold defaults to 5. 
+		 * Disabling event turn batching (and using lower txnStartThreshold values) can facilitate a faster response time to write operations. txnStartThreshold defaults to 5.
 		 **/
 		eventTurnBatching?: boolean
+		/** This is the current encoder instance that is being used to serialize data */
+		encoder?: any
+		/** This is the current decoder instance that is being used to deserialize data */
+		decoder?: any
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
 		path?: string
@@ -451,7 +456,7 @@ declare namespace lmdb {
 	export function asBinary(buffer: Uint8Array): Binary
 	/* Indicates if V8 accelerated functions are enabled. If this is false, some functions will be a little slower, and you may want to npm install --build-from-source to enable maximum performance */
 	export let v8AccelerationEnabled: boolean
-	/* Return database augmented with methods to better conform to levelup */ 
+	/* Return database augmented with methods to better conform to levelup */
 	export function levelup(database: Database): Database
 }
 export = lmdb

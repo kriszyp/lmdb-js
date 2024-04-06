@@ -160,7 +160,7 @@ export function addReadMethods(LMDBStore, {
 			if (!buffer.isGlobal && !env.writeTxn) {
 				let txn = options?.transaction || (readTxnRenewed ? readTxn : renewReadTxn(this));
 				buffer.txn = txn;
-				
+
 				txn.refCount = (txn.refCount || 0) + 1;
 				return data;
 			} else {
@@ -331,13 +331,13 @@ export function addReadMethods(LMDBStore, {
 			if (!env.writeTxn && !readTxnRenewed)
 				renewReadTxn(this);
 		},
-		doesExist(key, versionOrValue) {
+		doesExist(key, versionOrValue, options) {
 			if (versionOrValue == null) {
 				// undefined means the entry exists, null is used specifically to check for the entry *not* existing
-				return (this.getBinaryFast(key) === undefined) == (versionOrValue === null);
+				return (this.getBinaryFast(key, options) === undefined) == (versionOrValue === null);
 			}
 			else if (this.useVersions) {
-				return this.getBinaryFast(key) !== undefined && (versionOrValue === IF_EXISTS || getLastVersion() === versionOrValue);
+				return this.getBinaryFast(key, options) !== undefined && (versionOrValue === IF_EXISTS || getLastVersion() === versionOrValue);
 			}
 			else {
 				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
@@ -346,7 +346,8 @@ export function addReadMethods(LMDBStore, {
 					versionOrValue = this.encoder.encode(versionOrValue);
 				if (typeof versionOrValue == 'string')
 					versionOrValue = Buffer.from(versionOrValue);
-				return this.getValuesCount(key, { start: versionOrValue, exactMatch: true}) > 0;
+				let defaultOptions = { start: versionOrValue, exactMatch: true };
+				return this.getValuesCount(key, options ? Object.assign(defaultOptions, options) : defaultOptions) > 0;
 			}
 		},
 		getValues(key, options) {
@@ -807,7 +808,7 @@ export function addReadMethods(LMDBStore, {
 				}
 			} while (retries++ < 100);
 		}
-		// we actually don't renew here, we let the renew take place in the next 
+		// we actually don't renew here, we let the renew take place in the next
 		// lmdb native read/call so as to avoid an extra native call
 		readTxnRenewed = setTimeout(resetReadTxn, 0);
 		store.emit('begin-transaction');
