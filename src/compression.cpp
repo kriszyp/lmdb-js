@@ -69,11 +69,11 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		isValid = false;
 		return;
 	}
+	//fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength + startingOffset, charData[compressionHeaderSize]);
 	data.mv_data = decompressTarget;
 	data.mv_size = uncompressedLength + startingOffset;
 	//TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
-	//fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength, charData[compressionHeaderSize]);
-	if (uncompressedLength > decompressSize) {
+	if (uncompressedLength + startingOffset > decompressSize) {
 		isValid = false;
 		return;
 	}
