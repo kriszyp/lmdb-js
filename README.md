@@ -80,7 +80,7 @@ You can store a wide variety of JavaScript values and data structures in this li
 * `json` - All values are stored by serializing the value as JSON (using JSON.stringify) and encoded with UTF-8. Values are decoded and parsed on retrieval using JSON.parse. Generally this does not perform as all as msgpack, nor support as many value types.
 * `string` - All values should be strings and stored by encoding with UTF-8. Values are returned as strings from `get`.
 * `binary` - Values are returned as binary arrays (`Buffer` objects in NodeJS), representing the raw binary data. Note that creating buffer objects has some overhead and while this is fast and valuable direct storage of binary data, the data encodings provides faster and more optimized process for serializing and deserializing structured data.
-* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` databases where data values are ordered, and having consistent key and value ordering is helpful.
+* `ordered-binary` - Use the same encoding as the default encoding for keys, which serializes any JS primitive value with consistent ordering. This is primarily useful in `dupSort` databases where data values are ordered, and having consistent key and value ordering is helpful. Note, that this has a same size limit of 8KB (since it is intended for keys which also have similar size limits).
 
 In addition, you can use `asBinary` to directly store a buffer or Uint8Array as a value, bypassing any encoding.
 
