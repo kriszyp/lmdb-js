@@ -1059,6 +1059,38 @@ uint64_t ExtendedEnv::getNextTime() {
 uint64_t ExtendedEnv::getLastTime() {
 	return bswap_64(lastTime);
 }
+NAPI_FUNCTION(getIncrementer) {
+	ARGS(3)
+	GET_INT64_ARG(0)
+	EnvWrap* ew = (EnvWrap*) i64;
+	uint32_t size;
+	GET_UINT32_ARG(size, 1);
+	int64_t starting_value;
+	napi_get_value_int64(env, args[2], &starting_value);
+	ExtendedEnv* extend_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	std::string key(ew->keyBuffer, size);
+	// get an incrementer with the key, starting value, and convert pointer to an array buffer
+	int64_t* incrementer = extend_env->getIncrementer(key, starting_value, env);
+	napi_value return_value;
+	napi_create_external_arraybuffer(env, incrementer, 8, cleanupLMDB, (void*) incrementer, &return_value);
+	return return_value;
+}
+
+int64_t* ExtendedEnv::getIncrementer(std::string key, int64_t starting_value, napi_env env) {
+	pthread_mutex_lock(&locksModificationLock);
+	auto resolution = incrementers.find(key);
+	bool found;
+	int64_t* incrementer;
+	if (resolution == incrementers.end()) {
+		incrementer = new int64_t;
+		*incrementer = starting_value;
+		incrementers.emplace(key, incrementer);
+	} else {
+		incrementer = resolution->second;
+	}
+	pthread_mutex_unlock(&locksModificationLock);
+	return incrementer;
+}
 bool ExtendedEnv::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
 	pthread_mutex_lock(&locksModificationLock);
 	auto resolution = lock_callbacks.find(key);
@@ -1218,6 +1250,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("getSharedBuffer", getSharedBuffer);
 	EXPORT_NAPI_FUNCTION("setTestRef", setTestRef);
 	EXPORT_NAPI_FUNCTION("getTestRef", getTestRef);
+	EXPORT_NAPI_FUNCTION("getIncrementer", getIncrementer);
 	EXPORT_NAPI_FUNCTION("attemptLock", attemptLock);
 	EXPORT_NAPI_FUNCTION("unlock", unlock);
 	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);

@@ -1,4 +1,4 @@
-import { RangeIterable }  from './util/RangeIterable.js';
+import { RangeIterable } from './util/RangeIterable.js';
 import {
 	getAddress,
 	Cursor,
@@ -20,9 +20,9 @@ import {
 	setReadCallback,
 	directWrite,
 	attemptLock,
-	unlock
+	unlock,
 } from './native.js';
-import { saveKey }  from './keys.js';
+import { saveKey } from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
 const DEFAULT_BEGINNING_KEY = Buffer.from([5]); // the default starting key for iteration, which excludes symbols/metadata
 const ITERATOR_DONE = { done: true, value: undefined };
@@ -31,7 +31,11 @@ let getValueBytes = globalBuffer;
 if (!getValueBytes.maxLength) {
 	getValueBytes.maxLength = getValueBytes.length;
 	getValueBytes.isGlobal = true;
-	Object.defineProperty(getValueBytes, 'length', { value: getValueBytes.length, writable: true, configurable: true });
+	Object.defineProperty(getValueBytes, 'length', {
+		value: getValueBytes.length,
+		writable: true,
+		configurable: true,
+	});
 }
 const START_ADDRESS_POSITION = 4064;
 const NEW_BUFFER_THRESHOLD = 0x8000;
@@ -39,87 +43,132 @@ const SOURCE_SYMBOL = Symbol.for('source');
 export const UNMODIFIED = {};
 let mmaps = [];
 
-export function addReadMethods(LMDBStore, {
-	maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId
-}) {
-	let readTxn, readTxnRenewed, asSafeBuffer = false;
+export function addReadMethods(
+	LMDBStore,
+	{ maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId },
+) {
+	let readTxn,
+		readTxnRenewed,
+		asSafeBuffer = false;
 	let renewId = 1;
 	let outstandingReads = 0;
 	Object.assign(LMDBStore.prototype, {
 		getString(id, options) {
-			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
-			let string = getStringByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), txn.address || 0);
-			if (typeof string === 'number') { // indicates the buffer wasn't large enough
+			let txn =
+				env.writeTxn ||
+				(options && options.transaction) ||
+				(readTxnRenewed ? readTxn : renewReadTxn(this));
+			let string = getStringByBinary(
+				this.dbAddress,
+				this.writeKey(id, keyBytes, 0),
+				txn.address || 0,
+			);
+			if (typeof string === 'number') {
+				// indicates the buffer wasn't large enough
 				this._allocateGetBuffer(string);
 				// and then try again
-				string = getStringByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), txn.address || 0);
+				string = getStringByBinary(
+					this.dbAddress,
+					this.writeKey(id, keyBytes, 0),
+					txn.address || 0,
+				);
 			}
-			if (string)
-				this.lastSize = string.length;
+			if (string) this.lastSize = string.length;
 			return string;
 		},
 		getBinaryFast(id, options) {
 			let rc;
-			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
-			rc = this.lastSize = getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), (options && options.ifNotTxnId) || 0, txn.address || 0);
+			let txn =
+				env.writeTxn ||
+				(options && options.transaction) ||
+				(readTxnRenewed ? readTxn : renewReadTxn(this));
+			rc = this.lastSize = getByBinary(
+				this.dbAddress,
+				this.writeKey(id, keyBytes, 0),
+				(options && options.ifNotTxnId) || 0,
+				txn.address || 0,
+			);
 			if (rc < 0) {
-				if (rc == -30798) // MDB_NOTFOUND
+				if (rc == -30798)
+					// MDB_NOTFOUND
 					return; // undefined
-				if (rc == -30004) // txn id matched
+				if (rc == -30004)
+					// txn id matched
 					return UNMODIFIED;
-				if (rc == -30781 /*MDB_BAD_VALSIZE*/ && this.writeKey(id, keyBytes, 0) == 0)
-					throw new Error(id === undefined ?
-					'A key is required for get, but is undefined' :
-					'Zero length key is not allowed in LMDB');
-				if (rc == -30000) // int32 overflow, read uint32
+				if (
+					rc == -30781 /*MDB_BAD_VALSIZE*/ &&
+					this.writeKey(id, keyBytes, 0) == 0
+				)
+					throw new Error(
+						id === undefined
+							? 'A key is required for get, but is undefined'
+							: 'Zero length key is not allowed in LMDB',
+					);
+				if (rc == -30000)
+					// int32 overflow, read uint32
 					rc = this.lastSize = keyBytesView.getUint32(0, true);
-				else if (rc == -30001) {// shared buffer
+				else if (rc == -30001) {
+					// shared buffer
 					this.lastSize = keyBytesView.getUint32(0, true);
 					let bufferId = keyBytesView.getUint32(4, true);
 					let bytes = getMMapBuffer(bufferId, this.lastSize);
 					return asSafeBuffer ? Buffer.from(bytes) : bytes;
-				} else
-					throw lmdbError(rc);
+				} else throw lmdbError(rc);
 			}
 			let compression = this.compression;
 			let bytes = compression ? compression.getValueBytes : getValueBytes;
 			if (rc > bytes.maxLength) {
 				// this means the target buffer wasn't big enough, so the get failed to copy all the data from the database, need to either grow or use special buffer
-				return this._returnLargeBuffer(
-					() => getByBinary(this.dbAddress, this.writeKey(id, keyBytes, 0), 0, txn.address || 0));
+				return this._returnLargeBuffer(() =>
+					getByBinary(
+						this.dbAddress,
+						this.writeKey(id, keyBytes, 0),
+						0,
+						txn.address || 0,
+					),
+				);
 			}
 			bytes.length = this.lastSize;
 			return bytes;
 		},
 		getBFAsync(id, options, callback) {
-			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
+			let txn =
+				env.writeTxn ||
+				(options && options.transaction) ||
+				(readTxnRenewed ? readTxn : renewReadTxn(this));
 			txn.refCount = (txn.refCount || 0) + 1;
 			outstandingReads++;
 			if (!txn.address) {
 				throw new Error('Invalid transaction, it has no address');
 			}
-			let address = recordReadInstruction(txn.address, this.db.dbi, id, this.writeKey, maxKeySize, ( rc, bufferId, offset, size ) => {
-				if (rc && rc !== 1)
-					callback(lmdbError(rc));
-				outstandingReads--;
-				let buffer = mmaps[bufferId];
-				if (!buffer) {
-					buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
-				}
-				//console.log({bufferId, offset, size})
-				if (buffer.isSharedMap) {
-					// using LMDB shared memory
-					// TODO: We may want explicit support for clearing aborting the transaction on the next event turn,
-					// but for now we are relying on the GC to cleanup transaction for larger blocks of memory
-					let bytes = new Uint8Array(buffer, offset, size);
-					bytes.txn = txn;
-					callback(bytes, 0, size);
-				} else {
-					// using copied memory
-					txn.done(); // decrement and possibly abort
-					callback(buffer, offset, size);
-				}
-			});
+			let address = recordReadInstruction(
+				txn.address,
+				this.db.dbi,
+				id,
+				this.writeKey,
+				maxKeySize,
+				(rc, bufferId, offset, size) => {
+					if (rc && rc !== 1) callback(lmdbError(rc));
+					outstandingReads--;
+					let buffer = mmaps[bufferId];
+					if (!buffer) {
+						buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
+					}
+					//console.log({bufferId, offset, size})
+					if (buffer.isSharedMap) {
+						// using LMDB shared memory
+						// TODO: We may want explicit support for clearing aborting the transaction on the next event turn,
+						// but for now we are relying on the GC to cleanup transaction for larger blocks of memory
+						let bytes = new Uint8Array(buffer, offset, size);
+						bytes.txn = txn;
+						callback(bytes, 0, size);
+					} else {
+						// using copied memory
+						txn.done(); // decrement and possibly abort
+						callback(buffer, offset, size);
+					}
+				},
+			);
 			if (address) {
 				startRead(address, () => {
 					resolveReads();
@@ -128,8 +177,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		getAsync(id, options, callback) {
 			let promise;
-			if (!callback)
-				promise = new Promise(resolve => callback = resolve);
+			if (!callback) promise = new Promise((resolve) => (callback = resolve));
 			this.getBFAsync(id, options, (buffer, offset, size) => {
 				if (this.useVersions) {
 					// TODO: And get the version
@@ -145,20 +193,20 @@ export function addReadMethods(LMDBStore, {
 					value = bytes;
 				} else {
 					value = Buffer.prototype.utf8Slice.call(bytes, 0, size);
-					if (this.encoding == 'json' && value)
-						value = JSON.parse(value);
+					if (this.encoding == 'json' && value) value = JSON.parse(value);
 				}
 				callback(value);
 			});
 			return promise;
 		},
 		retain(data, options) {
-			if (!data)
-				return
+			if (!data) return;
 			let source = data[SOURCE_SYMBOL];
 			let buffer = source ? source.bytes : data;
 			if (!buffer.isGlobal && !env.writeTxn) {
-				let txn = options?.transaction || (readTxnRenewed ? readTxn : renewReadTxn(this));
+				let txn =
+					options?.transaction ||
+					(readTxnRenewed ? readTxn : renewReadTxn(this));
 				buffer.txn = txn;
 
 				txn.refCount = (txn.refCount || 0) + 1;
@@ -168,8 +216,7 @@ export function addReadMethods(LMDBStore, {
 				if (source) {
 					source.bytes = buffer;
 					return data;
-				} else
-					return buffer;
+				} else return buffer;
 			}
 		},
 		_returnLargeBuffer(getFast) {
@@ -177,24 +224,38 @@ export function addReadMethods(LMDBStore, {
 			let compression = this.compression;
 			if (asSafeBuffer && this.lastSize > NEW_BUFFER_THRESHOLD) {
 				// used by getBinary to indicate it should create a dedicated buffer to receive this
-				let bytesToRestore
+				let bytesToRestore;
 				try {
 					if (compression) {
 						bytesToRestore = compression.getValueBytes;
 						let dictionary = compression.dictionary || [];
-						let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
+						let dictLength = (dictionary.length >> 3) << 3; // make sure it is word-aligned
 						bytes = makeReusableBuffer(this.lastSize);
-						compression.setBuffer(bytes.buffer, bytes.byteOffset, this.lastSize, dictionary, dictLength);
+						compression.setBuffer(
+							bytes.buffer,
+							bytes.byteOffset,
+							this.lastSize,
+							dictionary,
+							dictLength,
+						);
 						compression.getValueBytes = bytes;
 					} else {
 						bytesToRestore = getValueBytes;
-						setGlobalBuffer(bytes = getValueBytes = makeReusableBuffer(this.lastSize));
+						setGlobalBuffer(
+							(bytes = getValueBytes = makeReusableBuffer(this.lastSize)),
+						);
 					}
 					getFast();
 				} finally {
 					if (compression) {
 						let dictLength = (compression.dictionary.length >> 3) << 3;
-						compression.setBuffer(bytesToRestore.buffer, bytesToRestore.byteOffset, bytesToRestore.maxLength, compression.dictionary, dictLength);
+						compression.setBuffer(
+							bytesToRestore.buffer,
+							bytesToRestore.byteOffset,
+							bytesToRestore.maxLength,
+							compression.dictionary,
+							dictLength,
+						);
 						compression.getValueBytes = bytesToRestore;
 					} else {
 						setGlobalBuffer(bytesToRestore);
@@ -214,19 +275,30 @@ export function addReadMethods(LMDBStore, {
 			let newLength = Math.min(Math.max(lastSize * 2, 0x1000), 0xfffffff8);
 			let bytes;
 			if (this.compression) {
-				let dictionary = this.compression.dictionary || Buffer.allocUnsafeSlow(0);
-				let dictLength = (dictionary.length >> 3) << 3;// make sure it is word-aligned
+				let dictionary =
+					this.compression.dictionary || Buffer.allocUnsafeSlow(0);
+				let dictLength = (dictionary.length >> 3) << 3; // make sure it is word-aligned
 				bytes = Buffer.allocUnsafeSlow(newLength + dictLength);
-				bytes.set(dictionary) // copy dictionary into start
+				bytes.set(dictionary); // copy dictionary into start
 				// the section after the dictionary is the target area for get values
 				bytes = bytes.subarray(dictLength);
-				this.compression.setBuffer(bytes.buffer, bytes.byteOffset, newLength, dictionary, dictLength);
+				this.compression.setBuffer(
+					bytes.buffer,
+					bytes.byteOffset,
+					newLength,
+					dictionary,
+					dictLength,
+				);
 				bytes.maxLength = newLength;
-				Object.defineProperty(bytes, 'length', { value: newLength, writable: true, configurable: true });
+				Object.defineProperty(bytes, 'length', {
+					value: newLength,
+					writable: true,
+					configurable: true,
+				});
 				this.compression.getValueBytes = bytes;
 			} else {
 				bytes = makeReusableBuffer(newLength);
-				setGlobalBuffer(getValueBytes = bytes);
+				setGlobalBuffer((getValueBytes = bytes));
 			}
 			bytes.isGlobal = true;
 			return bytes;
@@ -235,7 +307,12 @@ export function addReadMethods(LMDBStore, {
 			try {
 				asSafeBuffer = true;
 				let fastBuffer = this.getBinaryFast(id, options);
-				return fastBuffer && (fastBuffer.isGlobal ? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize) : fastBuffer);
+				return (
+					fastBuffer &&
+					(fastBuffer.isGlobal
+						? Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
+						: fastBuffer)
+				);
 			} finally {
 				asSafeBuffer = false;
 			}
@@ -244,8 +321,8 @@ export function addReadMethods(LMDBStore, {
 			let fastBuffer = this.getBinaryFast(id, options);
 			if (fastBuffer) {
 				if (fastBuffer.isGlobal || writeTxn)
-					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize)
-				fastBuffer.txn = (options && options.transaction);
+					return Uint8ArraySlice.call(fastBuffer, 0, this.lastSize);
+				fastBuffer.txn = options && options.transaction;
 				options.transaction.refCount = (options.transaction.refCount || 0) + 1;
 				return fastBuffer;
 			}
@@ -254,20 +331,26 @@ export function addReadMethods(LMDBStore, {
 			if (this.decoderCopies) {
 				// the decoder copies any data, so we can use the fast binary retrieval that overwrites the same buffer space
 				let bytes = this.getBinaryFast(id, options);
-				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes, options));
+				return (
+					bytes &&
+					(bytes == UNMODIFIED
+						? UNMODIFIED
+						: this.decoder.decode(bytes, options))
+				);
 			}
-			if (this.encoding == 'binary')
-				return this.getBinary(id, options);
+			if (this.encoding == 'binary') return this.getBinary(id, options);
 			if (this.decoder) {
 				// the decoder potentially uses the data from the buffer in the future and needs a stable buffer
 				let bytes = this.getBinary(id, options);
-				return bytes && (bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes));
+				return (
+					bytes &&
+					(bytes == UNMODIFIED ? UNMODIFIED : this.decoder.decode(bytes))
+				);
 			}
 
 			let result = this.getString(id, options);
 			if (result) {
-				if (this.encoding == 'json')
-					return JSON.parse(result);
+				if (this.encoding == 'json') return JSON.parse(result);
 			}
 			return result;
 		},
@@ -290,12 +373,27 @@ export function addReadMethods(LMDBStore, {
 
 		directWrite(id, options) {
 			let rc;
-			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
+			let txn =
+				env.writeTxn ||
+				(options && options.transaction) ||
+				(readTxnRenewed ? readTxn : renewReadTxn(this));
 			let keySize = this.writeKey(id, keyBytes, 0);
-			let dataOffset = (((keySize >> 3) + 1) << 3);
-			keyBytes.set(options.bytes, dataOffset)
-			rc = directWrite(this.dbAddress, keySize, options.offset, options.bytes.length, txn.address || 0);
+			let dataOffset = ((keySize >> 3) + 1) << 3;
+			keyBytes.set(options.bytes, dataOffset);
+			rc = directWrite(
+				this.dbAddress,
+				keySize,
+				options.offset,
+				options.bytes.length,
+				txn.address || 0,
+			);
 			if (rc < 0) lmdbError(rc);
+		},
+
+		getIncrementer(id, startingValue) {
+			keyBytes.dataView.setUint32(0, this.db.dbi);
+			let keySize = this.writeKey(id, keyBytes, 4);
+			return getIncrementer(env.address, keySize, startingValue);
 		},
 
 		attemptLock(id, version, callback) {
@@ -320,7 +418,7 @@ export function addReadMethods(LMDBStore, {
 		},
 		_commitReadTxn() {
 			if (readTxn) {
-				readTxn.isCommitted = true
+				readTxn.isCommitted = true;
 				readTxn.commit();
 			}
 			lastReadTxnRef = null;
@@ -328,18 +426,21 @@ export function addReadMethods(LMDBStore, {
 			readTxn = null;
 		},
 		ensureReadTxn() {
-			if (!env.writeTxn && !readTxnRenewed)
-				renewReadTxn(this);
+			if (!env.writeTxn && !readTxnRenewed) renewReadTxn(this);
 		},
 		doesExist(key, versionOrValue, options) {
 			if (versionOrValue == null) {
 				// undefined means the entry exists, null is used specifically to check for the entry *not* existing
-				return (this.getBinaryFast(key, options) === undefined) == (versionOrValue === null);
-			}
-			else if (this.useVersions) {
-				return this.getBinaryFast(key, options) !== undefined && (versionOrValue === IF_EXISTS || getLastVersion() === versionOrValue);
-			}
-			else {
+				return (
+					(this.getBinaryFast(key, options) === undefined) ==
+					(versionOrValue === null)
+				);
+			} else if (this.useVersions) {
+				return (
+					this.getBinaryFast(key, options) !== undefined &&
+					(versionOrValue === IF_EXISTS || getLastVersion() === versionOrValue)
+				);
+			} else {
 				if (versionOrValue && versionOrValue['\x10binary-data\x02'])
 					versionOrValue = versionOrValue['\x10binary-data\x02'];
 				else if (this.encoder)
@@ -347,40 +448,43 @@ export function addReadMethods(LMDBStore, {
 				if (typeof versionOrValue == 'string')
 					versionOrValue = Buffer.from(versionOrValue);
 				let defaultOptions = { start: versionOrValue, exactMatch: true };
-				return this.getValuesCount(key, options ? Object.assign(defaultOptions, options) : defaultOptions) > 0;
+				return (
+					this.getValuesCount(
+						key,
+						options ? Object.assign(defaultOptions, options) : defaultOptions,
+					) > 0
+				);
 			}
 		},
 		getValues(key, options) {
 			let defaultOptions = {
 				key,
-				valuesForKey: true
+				valuesForKey: true,
 			};
 			if (options && options.snapshot === false)
 				throw new Error('Can not disable snapshots for getValues');
-			return this.getRange(options ? Object.assign(defaultOptions, options) : defaultOptions);
+			return this.getRange(
+				options ? Object.assign(defaultOptions, options) : defaultOptions,
+			);
 		},
 		getKeys(options) {
-			if (!options)
-				options = {};
+			if (!options) options = {};
 			options.values = false;
 			return this.getRange(options);
 		},
 		getCount(options) {
-			if (!options)
-				options = {};
+			if (!options) options = {};
 			options.onlyCount = true;
 			return this.getRange(options).iterate();
 		},
 		getKeysCount(options) {
-			if (!options)
-				options = {};
+			if (!options) options = {};
 			options.onlyCount = true;
 			options.values = false;
 			return this.getRange(options).iterate();
 		},
 		getValuesCount(key, options) {
-			if (!options)
-				options = {};
+			if (!options) options = {};
 			options.key = key;
 			options.valuesForKey = true;
 			options.onlyCount = true;
@@ -388,37 +492,47 @@ export function addReadMethods(LMDBStore, {
 		},
 		getRange(options) {
 			let iterable = new RangeIterable();
-			if (!options)
-				options = {};
+			if (!options) options = {};
 			let includeValues = options.values !== false;
 			let includeVersions = options.versions;
 			let valuesForKey = options.valuesForKey;
 			let limit = options.limit;
 			let db = this.db;
 			let snapshot = options.snapshot;
-			if (snapshot === false && this.dupSort && includeValues) throw new Error('Can not disable snapshot on a' +
-				' dupSort data store');
+			if (snapshot === false && this.dupSort && includeValues)
+				throw new Error(
+					'Can not disable snapshot on a' + ' dupSort data store',
+				);
 			let compression = this.compression;
 			iterable.iterate = () => {
 				const reverse = options.reverse;
-				let currentKey = valuesForKey ? options.key : (reverse || 'start' in options) ? options.start : DEFAULT_BEGINNING_KEY;
+				let currentKey = valuesForKey
+					? options.key
+					: reverse || 'start' in options
+						? options.start
+						: DEFAULT_BEGINNING_KEY;
 				let count = 0;
 				let cursor, cursorRenewId, cursorAddress;
 				let txn;
-				let flags = (includeValues ? 0x100 : 0) | (reverse ? 0x400 : 0) |
-					(valuesForKey ? 0x800 : 0) | (options.exactMatch ? 0x4000 : 0) |
+				let flags =
+					(includeValues ? 0x100 : 0) |
+					(reverse ? 0x400 : 0) |
+					(valuesForKey ? 0x800 : 0) |
+					(options.exactMatch ? 0x4000 : 0) |
 					(options.inclusiveEnd ? 0x8000 : 0) |
 					(options.exclusiveStart ? 0x10000 : 0);
 				let store = this;
 				function resetCursor() {
 					try {
-						if (cursor)
-							finishCursor();
+						if (cursor) finishCursor();
 						let txnAddress;
-						txn = options.transaction
+						txn = options.transaction;
 						if (txn) {
-							if (txn.isDone) throw new Error('Can not iterate on range with transaction that is already' +
-								' done');
+							if (txn.isDone)
+								throw new Error(
+									'Can not iterate on range with transaction that is already' +
+										' done',
+								);
 							txnAddress = txn.address;
 							if (!txnAddress) {
 								throw new Error('Invalid transaction, it has no address');
@@ -426,9 +540,11 @@ export function addReadMethods(LMDBStore, {
 							cursor = null;
 						} else {
 							let writeTxn = env.writeTxn;
-							if (writeTxn)
-								snapshot = false;
-							txn = env.writeTxn || options.transaction || (readTxnRenewed ? readTxn : renewReadTxn(store));
+							if (writeTxn) snapshot = false;
+							txn =
+								env.writeTxn ||
+								options.transaction ||
+								(readTxnRenewed ? readTxn : renewReadTxn(store));
 							cursor = !writeTxn && db.availableCursor;
 						}
 						if (cursor) {
@@ -438,17 +554,18 @@ export function addReadMethods(LMDBStore, {
 							cursor = new Cursor(db, txnAddress || 0);
 						}
 						cursorAddress = cursor.address;
-						if (txn.use) txn.use(); // track transaction so we always use the same one
+						if (txn.use)
+							txn.use(); // track transaction so we always use the same one
 						else txn.refCount = (txn.refCount || 0) + 1;
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
 						}
-					} catch(error) {
+					} catch (error) {
 						if (cursor) {
 							try {
 								cursor.close();
-							} catch(error) { }
+							} catch (error) {}
 						}
 						throw error;
 					}
@@ -457,8 +574,7 @@ export function addReadMethods(LMDBStore, {
 				if (options.onlyCount) {
 					flags |= 0x1000;
 					let count = position(options.offset);
-					if (count < 0)
-						lmdbError(count);
+					if (count < 0) lmdbError(count);
 					finishCursor();
 					return count;
 				}
@@ -466,7 +582,10 @@ export function addReadMethods(LMDBStore, {
 					if (!env.address) {
 						throw new Error('Can not iterate on a closed database');
 					}
-					let keySize = currentKey === undefined ? 0 : store.writeKey(currentKey, keyBytes, 0);
+					let keySize =
+						currentKey === undefined
+							? 0
+							: store.writeKey(currentKey, keyBytes, 0);
 					let endAddress;
 					if (valuesForKey) {
 						if (options.start === undefined && options.end === undefined)
@@ -474,32 +593,78 @@ export function addReadMethods(LMDBStore, {
 						else {
 							let startAddress;
 							if (store.encoder.writeKey) {
-								startAddress = saveKey(options.start, store.encoder.writeKey, iterable, maxKeySize);
-								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
-								endAddress = saveKey(options.end, store.encoder.writeKey, iterable, maxKeySize);
-							} else if ((!options.start || options.start instanceof Uint8Array) && (!options.end || options.end instanceof Uint8Array)) {
-								startAddress = saveKey(options.start, orderedBinary.writeKey, iterable, maxKeySize);
-								keyBytesView.setFloat64(START_ADDRESS_POSITION, startAddress, true);
-								endAddress = saveKey(options.end, orderedBinary.writeKey, iterable, maxKeySize);
+								startAddress = saveKey(
+									options.start,
+									store.encoder.writeKey,
+									iterable,
+									maxKeySize,
+								);
+								keyBytesView.setFloat64(
+									START_ADDRESS_POSITION,
+									startAddress,
+									true,
+								);
+								endAddress = saveKey(
+									options.end,
+									store.encoder.writeKey,
+									iterable,
+									maxKeySize,
+								);
+							} else if (
+								(!options.start || options.start instanceof Uint8Array) &&
+								(!options.end || options.end instanceof Uint8Array)
+							) {
+								startAddress = saveKey(
+									options.start,
+									orderedBinary.writeKey,
+									iterable,
+									maxKeySize,
+								);
+								keyBytesView.setFloat64(
+									START_ADDRESS_POSITION,
+									startAddress,
+									true,
+								);
+								endAddress = saveKey(
+									options.end,
+									orderedBinary.writeKey,
+									iterable,
+									maxKeySize,
+								);
 							} else {
-								throw new Error('Only key-based encoding is supported for start/end values');
+								throw new Error(
+									'Only key-based encoding is supported for start/end values',
+								);
 								let encoded = store.encoder.encode(options.start);
-								let bufferAddress = encoded.buffer.address || (encoded.buffer.address = getAddress(encoded.buffer) - encoded.byteOffset);
+								let bufferAddress =
+									encoded.buffer.address ||
+									(encoded.buffer.address =
+										getAddress(encoded.buffer) - encoded.byteOffset);
 								startAddress = bufferAddress + encoded.byteOffset;
 							}
 						}
 					} else
-						endAddress = saveKey((reverse && !('end' in options)) ? DEFAULT_BEGINNING_KEY : options.end, store.writeKey, iterable, maxKeySize);
-					return doPosition(cursorAddress, flags, offset || 0, keySize, endAddress);
+						endAddress = saveKey(
+							reverse && !('end' in options)
+								? DEFAULT_BEGINNING_KEY
+								: options.end,
+							store.writeKey,
+							iterable,
+							maxKeySize,
+						);
+					return doPosition(
+						cursorAddress,
+						flags,
+						offset || 0,
+						keySize,
+						endAddress,
+					);
 				}
 
 				function finishCursor() {
-					if (!cursor || txn.isDone)
-						return;
-					if (iterable.onDone)
-						iterable.onDone()
-					if (cursorRenewId)
-						txn.renewingRefCount--;
+					if (!cursor || txn.isDone) return;
+					if (iterable.onDone) iterable.onDone();
+					if (cursorRenewId) txn.renewingRefCount--;
 					if (txn.refCount <= 1 && txn.notCurrent) {
 						cursor.close(); // this must be closed before the transaction is aborted or it can cause a
 						// segmentation fault
@@ -512,7 +677,8 @@ export function addReadMethods(LMDBStore, {
 					if (!txn.isDone) {
 						if (db.availableCursor || txn != readTxn) {
 							cursor.close();
-						} else { // try to reuse it
+						} else {
+							// try to reuse it
 							db.availableCursor = cursor;
 							db.cursorTxn = txn;
 						}
@@ -529,22 +695,19 @@ export function addReadMethods(LMDBStore, {
 						if (!cursor) {
 							return ITERATOR_DONE;
 						}
-						if (count === 0) { // && includeValues) // on first entry, get current value if we need to
+						if (count === 0) {
+							// && includeValues) // on first entry, get current value if we need to
 							keySize = position(options.offset);
-						} else
-							keySize = iterate(cursorAddress);
-						if (keySize <= 0 ||
-								(count++ >= limit)) {
-							if (keySize < -30700 && keySize !== -30798)
-								lmdbError(keySize);
+						} else keySize = iterate(cursorAddress);
+						if (keySize <= 0 || count++ >= limit) {
+							if (keySize < -30700 && keySize !== -30798) lmdbError(keySize);
 							finishCursor();
 							return ITERATOR_DONE;
 						}
 						if (!valuesForKey || snapshot === false) {
 							if (keySize > 20000) {
-								if (keySize > 0x1000000)
-									lmdbError(keySize - 0x100000000)
-								throw new Error('Invalid key size ' + keySize.toString(16))
+								if (keySize > 0x1000000) lmdbError(keySize - 0x100000000);
+								throw new Error('Invalid key size ' + keySize.toString(16));
 							}
 							currentKey = store.readKey(keyBytes, 32, keySize + 32);
 						}
@@ -562,17 +725,20 @@ export function addReadMethods(LMDBStore, {
 									store.lastSize = lastSize;
 									asSafeBuffer = store.encoding === 'binary';
 									try {
-										bytes = store._returnLargeBuffer(() => getCurrentValue(cursorAddress));
+										bytes = store._returnLargeBuffer(() =>
+											getCurrentValue(cursorAddress),
+										);
 									} finally {
 										asSafeBuffer = false;
 									}
-								} else
-									bytes.length = lastSize;
+								} else bytes.length = lastSize;
 							}
 							if (store.decoder) {
 								value = store.decoder.decode(bytes, lastSize);
 							} else if (store.encoding == 'binary')
-								value = bytes.isGlobal ? Uint8ArraySlice.call(bytes, 0, lastSize) : bytes;
+								value = bytes.isGlobal
+									? Uint8ArraySlice.call(bytes, 0, lastSize)
+									: bytes;
 							else {
 								value = bytes.toString('utf8', 0, lastSize);
 								if (store.encoding == 'json' && value)
@@ -583,30 +749,30 @@ export function addReadMethods(LMDBStore, {
 									value: {
 										key: currentKey,
 										value,
-										version: getLastVersion()
-									}
+										version: getLastVersion(),
+									},
 								};
- 							else if (valuesForKey)
+							else if (valuesForKey)
 								return {
-									value
+									value,
 								};
 							else
 								return {
 									value: {
 										key: currentKey,
 										value,
-									}
+									},
 								};
 						} else if (includeVersions) {
 							return {
 								value: {
 									key: currentKey,
-									version: getLastVersion()
-								}
+									version: getLastVersion(),
+								},
 							};
 						} else {
 							return {
-								value: currentKey
+								value: currentKey,
 							};
 						}
 					},
@@ -617,7 +783,7 @@ export function addReadMethods(LMDBStore, {
 					throw() {
 						finishCursor();
 						return ITERATOR_DONE;
-					}
+					},
 				};
 			};
 			return iterable;
@@ -628,7 +794,11 @@ export function addReadMethods(LMDBStore, {
 			// allowing a separate to absorb the potentially largest cost: hard page faults (and disk I/O).
 			// And then we just do standard sync gets (to deserialized data) to fulfil the callback/promise
 			// once the prefetch occurs
-			let promise = callback ? undefined : new Promise(resolve => callback = (error, results) => resolve(results));
+			let promise = callback
+				? undefined
+				: new Promise(
+						(resolve) => (callback = (error, results) => resolve(results)),
+					);
 			this.prefetch(keys, () => {
 				let results = new Array(keys.length);
 				for (let i = 0, l = keys.length; i < l; i++) {
@@ -639,9 +809,15 @@ export function addReadMethods(LMDBStore, {
 			return promise;
 		},
 		getSharedBufferForGet(id, options) {
-			let txn = env.writeTxn || (options && options.transaction) || (readTxnRenewed ? readTxn : renewReadTxn(this));
-			this.lastSize = this.keyIsCompatibility ? txn.getBinaryShared(id) : this.db.get(this.writeKey(id, keyBytes, 0));
-			if (this.lastSize === -30798) { // not found code
+			let txn =
+				env.writeTxn ||
+				(options && options.transaction) ||
+				(readTxnRenewed ? readTxn : renewReadTxn(this));
+			this.lastSize = this.keyIsCompatibility
+				? txn.getBinaryShared(id)
+				: this.db.get(this.writeKey(id, keyBytes, 0));
+			if (this.lastSize === -30798) {
+				// not found code
 				return; //undefined
 			}
 			return this.lastSize;
@@ -650,43 +826,57 @@ export function addReadMethods(LMDBStore, {
 			lastOffset = keyBytesView.getUint32(8, true);
 			let buffer = buffers[bufferIndex];
 			let startOffset;
-			if (!buffer || lastOffset < (startOffset = buffer.startOffset) || (lastOffset + this.lastSize > startOffset + 0x100000000)) {
-				if (buffer)
-					env.detachBuffer(buffer.buffer);
+			if (
+				!buffer ||
+				lastOffset < (startOffset = buffer.startOffset) ||
+				lastOffset + this.lastSize > startOffset + 0x100000000
+			) {
+				if (buffer) env.detachBuffer(buffer.buffer);
 				startOffset = (lastOffset >>> 16) * 0x10000;
-				console.log('make buffer for address', bufferIndex * 0x100000000 + startOffset);
-				buffer = buffers[bufferIndex] = Buffer.from(getBufferForAddress(bufferIndex * 0x100000000 + startOffset));
+				console.log(
+					'make buffer for address',
+					bufferIndex * 0x100000000 + startOffset,
+				);
+				buffer = buffers[bufferIndex] = Buffer.from(
+					getBufferForAddress(bufferIndex * 0x100000000 + startOffset),
+				);
 				buffer.startOffset = startOffset;
 			}
 			lastOffset -= startOffset;
 			return buffer;
-			return buffer.slice(lastOffset, lastOffset + this.lastSize);/*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + this.lastSize)*/
+			return buffer.slice(
+				lastOffset,
+				lastOffset + this.lastSize,
+			); /*Uint8ArraySlice.call(buffer, lastOffset, lastOffset + this.lastSize)*/
 		},
 		prefetch(keys, callback) {
-			if (!keys)
-				throw new Error('An array of keys must be provided');
+			if (!keys) throw new Error('An array of keys must be provided');
 			if (!keys.length) {
 				if (callback) {
 					callback(null);
 					return;
-				} else
-					return Promise.resolve();
+				} else return Promise.resolve();
 			}
 			let buffers = [];
 			let startPosition;
 			let bufferHolder = {};
 			let lastBuffer;
 			for (let key of keys) {
-				let position
+				let position;
 				if (key && key.key !== undefined && key.value !== undefined) {
-					position = saveKey(key.value, this.writeKey, bufferHolder, maxKeySize, 0x80000000);
+					position = saveKey(
+						key.value,
+						this.writeKey,
+						bufferHolder,
+						maxKeySize,
+						0x80000000,
+					);
 					saveReferenceToBuffer();
 					saveKey(key.key, this.writeKey, bufferHolder, maxKeySize);
 				} else {
 					position = saveKey(key, this.writeKey, bufferHolder, maxKeySize);
 				}
-				if (!startPosition)
-					startPosition = position;
+				if (!startPosition) startPosition = position;
 				saveReferenceToBuffer();
 			}
 			function saveReferenceToBuffer() {
@@ -702,11 +892,9 @@ export function addReadMethods(LMDBStore, {
 				outstandingReads--;
 				if (error)
 					console.error('Error with prefetch', buffers); // partly exists to keep the buffers pinned in memory
-				else
-					callback(null);
+				else callback(null);
 			});
-			if (!callback)
-				return new Promise(resolve => callback = resolve);
+			if (!callback) return new Promise((resolve) => (callback = resolve));
 		},
 		useReadTransaction() {
 			let txn = readTxnRenewed ? readTxn : renewReadTxn(this);
@@ -729,15 +917,17 @@ export function addReadMethods(LMDBStore, {
 				if (readTxn) readTxn.abort();
 				else readTxn = {};
 				readTxn.isDone = true;
-				Object.defineProperty(readTxn,'renew', {
+				Object.defineProperty(readTxn, 'renew', {
 					value: () => {
 						throw new Error('Can not read from a closed database');
-					}, configurable: true
+					},
+					configurable: true,
 				});
-				Object.defineProperty(readTxn,'use', {
+				Object.defineProperty(readTxn, 'use', {
 					value: () => {
 						throw new Error('Can not read from a closed database');
-					}, configurable: true
+					},
+					configurable: true,
 				});
 				readTxnRenewed = null;
 				txnPromise = this._endWrites && this._endWrites();
@@ -745,18 +935,17 @@ export function addReadMethods(LMDBStore, {
 			const doClose = () => {
 				if (this.isRoot) {
 					if (outstandingReads > 0) {
-						return new Promise(resolve => setTimeout(() => resolve(doClose()), 1));
+						return new Promise((resolve) =>
+							setTimeout(() => resolve(doClose()), 1),
+						);
 					}
 					env.address = 0;
 					env.close();
-				} else
-					this.db.close();
+				} else this.db.close();
 				this.status = 'closed';
-				if (callback)
-					callback();
-			}
-			if (txnPromise)
-				return txnPromise.then(doClose);
+				if (callback) callback();
+			};
+			if (txnPromise) return txnPromise.then(doClose);
 			else {
 				doClose();
 				return Promise.resolve();
@@ -791,11 +980,14 @@ export function addReadMethods(LMDBStore, {
 			do {
 				try {
 					let lastReadTxn = lastReadTxnRef && lastReadTxnRef.deref();
-					readTxn = new Txn(env, 0x20000, lastReadTxn && !lastReadTxn.isDone && lastReadTxn);
+					readTxn = new Txn(
+						env,
+						0x20000,
+						lastReadTxn && !lastReadTxn.isDone && lastReadTxn,
+					);
 					if (readTxn.address == 0) {
 						readTxn = lastReadTxn;
-						if (readTxn.notCurrent)
-							readTxn.notCurrent = false;
+						if (readTxn.notCurrent) readTxn.notCurrent = false;
 					}
 					break;
 				} catch (error) {
@@ -803,8 +995,7 @@ export function addReadMethods(LMDBStore, {
 						if (!waitArray)
 							waitArray = new Int32Array(new SharedArrayBuffer(4), 0, 1);
 						Atomics.wait(waitArray, 0, 0, retries * 2);
-					} else
-						throw error;
+					} else throw error;
 				}
 			} while (retries++ < 100);
 		}
@@ -832,59 +1023,97 @@ export function addReadMethods(LMDBStore, {
 	}
 }
 export function makeReusableBuffer(size) {
-	let bytes = typeof Buffer != 'undefined' ? Buffer.alloc(size) : new Uint8Array(size);
+	let bytes =
+		typeof Buffer != 'undefined' ? Buffer.alloc(size) : new Uint8Array(size);
 	bytes.maxLength = size;
-	Object.defineProperty(bytes, 'length', { value: size, writable: true, configurable: true });
+	Object.defineProperty(bytes, 'length', {
+		value: size,
+		writable: true,
+		configurable: true,
+	});
 	return bytes;
 }
 
-Txn.prototype.done = function() {
+Txn.prototype.done = function () {
 	this.refCount--;
 	if (this.refCount === 0 && this.notCurrent) {
 		this.abort();
 		this.isDone = true;
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
-}
-Txn.prototype.use = function() {
+};
+Txn.prototype.use = function () {
 	this.refCount = (this.refCount || 0) + 1;
-}
+};
 
-
-let readInstructions, readCallbacks = new Map(), uint32Instructions, instructionsDataView = { setFloat64() {}, setUint32() {} }, instructionsAddress;
+let readInstructions,
+	readCallbacks = new Map(),
+	uint32Instructions,
+	instructionsDataView = { setFloat64() {}, setUint32() {} },
+	instructionsAddress;
 let savePosition = 8000;
 let DYNAMIC_KEY_BUFFER_SIZE = 8192;
 function allocateInstructionsBuffer() {
-	readInstructions = typeof Buffer != 'undefined' ? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE) : new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
-	uint32Instructions = new Int32Array(readInstructions.buffer, 0, readInstructions.buffer.byteLength >> 2);
+	readInstructions =
+		typeof Buffer != 'undefined'
+			? Buffer.alloc(DYNAMIC_KEY_BUFFER_SIZE)
+			: new Uint8Array(DYNAMIC_KEY_BUFFER_SIZE);
+	uint32Instructions = new Int32Array(
+		readInstructions.buffer,
+		0,
+		readInstructions.buffer.byteLength >> 2,
+	);
 	uint32Instructions[2] = 0xf0000000; // indicates a new read task must be started
-	instructionsAddress = readInstructions.buffer.address = getAddress(readInstructions.buffer);
-	readInstructions.dataView = instructionsDataView = new DataView(readInstructions.buffer, readInstructions.byteOffset, readInstructions.byteLength);
+	instructionsAddress = readInstructions.buffer.address = getAddress(
+		readInstructions.buffer,
+	);
+	readInstructions.dataView = instructionsDataView = new DataView(
+		readInstructions.buffer,
+		readInstructions.byteOffset,
+		readInstructions.byteLength,
+	);
 	savePosition = 0;
 }
-export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback) {
+export function recordReadInstruction(
+	txnAddress,
+	dbi,
+	key,
+	writeKey,
+	maxKeySize,
+	callback,
+) {
 	if (savePosition > 7800) {
 		allocateInstructionsBuffer();
 	}
 	let start = savePosition;
 	let keyPosition = savePosition + 16;
 	try {
-		savePosition = key === undefined ? keyPosition :
-			writeKey(key, readInstructions, keyPosition);
+		savePosition =
+			key === undefined
+				? keyPosition
+				: writeKey(key, readInstructions, keyPosition);
 	} catch (error) {
 		if (error.name == 'RangeError') {
 			if (8180 - start < maxKeySize) {
 				allocateInstructionsBuffer(); // try again:
-				return recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize, callback);
+				return recordReadInstruction(
+					txnAddress,
+					dbi,
+					key,
+					writeKey,
+					maxKeySize,
+					callback,
+				);
 			}
 			throw new Error('Key was too large, max key size is ' + maxKeySize);
-		} else
-			throw error;
+		} else throw error;
 	}
 	let length = savePosition - keyPosition;
 	if (length > maxKeySize) {
 		savePosition = start;
-		throw new Error('Key of size ' + length + ' was too large, max key size is ' + maxKeySize);
+		throw new Error(
+			'Key of size ' + length + ' was too large, max key size is ' + maxKeySize,
+		);
 	}
 	uint32Instructions[(start >> 2) + 3] = length; // save the length
 	uint32Instructions[(start >> 2) + 2] = dbi;
@@ -893,24 +1122,29 @@ export function recordReadInstruction(txnAddress, dbi, key, writeKey, maxKeySize
 	let callbackId = addReadCallback(() => {
 		let position = start >> 2;
 		let rc = thisInstructions[position];
-		callback(rc, thisInstructions[position + 1], thisInstructions[position + 2], thisInstructions[position + 3]);
+		callback(
+			rc,
+			thisInstructions[position + 1],
+			thisInstructions[position + 2],
+			thisInstructions[position + 3],
+		);
 	});
 	let thisInstructions = uint32Instructions;
 	//if (start === 0)
-		return startRead(instructionsAddress + start, callbackId, {}, 'read');
+	return startRead(instructionsAddress + start, callbackId, {}, 'read');
 	//else
-		//nextRead(start);
+	//nextRead(start);
 }
 let nextCallbackId = 0;
 let addReadCallback = globalThis.__lmdb_read_callback;
 if (!addReadCallback) {
-	addReadCallback = globalThis.__lmdb_read_callback = function(callback) {
+	addReadCallback = globalThis.__lmdb_read_callback = function (callback) {
 		let callbackId = nextCallbackId++;
 		readCallbacks.set(callbackId, callback);
 		return callbackId;
 	};
-	setReadCallback(function(callbackId) {
+	setReadCallback(function (callbackId) {
 		readCallbacks.get(callbackId)();
 		readCallbacks.delete(callbackId);
-	})
+	});
 }

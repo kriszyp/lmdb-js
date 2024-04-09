@@ -1,7 +1,49 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
-export let Env, Txn, Dbi, Compression, Cursor, getAddress, getBufferAddress, createBufferForAddress, clearKeptObjects, globalBuffer, setGlobalBuffer, arch, fs, os, onExit, tmpdir, lmdbError, path, EventEmitter, orderedBinary, MsgpackrEncoder, WeakLRUCache, setEnvMap, getEnvMap, getByBinary, detachBuffer, startRead, setReadCallback, write, position, iterate, prefetch, resetTxn, getCurrentValue, getCurrentShared, getStringByBinary, getSharedByBinary, getSharedBuffer, compress, directWrite, attemptLock, unlock;
+export let Env,
+	Txn,
+	Dbi,
+	Compression,
+	Cursor,
+	getAddress,
+	getBufferAddress,
+	createBufferForAddress,
+	clearKeptObjects,
+	globalBuffer,
+	setGlobalBuffer,
+	arch,
+	fs,
+	os,
+	onExit,
+	tmpdir,
+	lmdbError,
+	path,
+	EventEmitter,
+	orderedBinary,
+	MsgpackrEncoder,
+	WeakLRUCache,
+	setEnvMap,
+	getEnvMap,
+	getByBinary,
+	detachBuffer,
+	startRead,
+	setReadCallback,
+	write,
+	position,
+	iterate,
+	prefetch,
+	resetTxn,
+	getCurrentValue,
+	getCurrentShared,
+	getStringByBinary,
+	getSharedByBinary,
+	getSharedBuffer,
+	compress,
+	directWrite,
+	getIncrementer,
+	attemptLock,
+	unlock;
 path = pathModule;
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 export let nativeAddon = loadNAPI(dirName);
@@ -12,7 +54,7 @@ if (process.isBun && false) {
 		getByBinary: {
 			args: [FFIType.f64, FFIType.u32],
 			returns: FFIType.u32,
-			ptr: nativeAddon.getByBinaryPtr
+			ptr: nativeAddon.getByBinaryPtr,
 		},
 		iterate: {
 			args: [FFIType.f64],
@@ -33,14 +75,14 @@ if (process.isBun && false) {
 			args: [FFIType.f64],
 			returns: FFIType.void,
 			ptr: nativeAddon.resetTxnPtr,
-		}
+		},
 	});
 	for (let key in lmdbLib.symbols) {
 		nativeAddon[key] = lmdbLib.symbols[key].native;
 	}
 }
 setNativeFunctions(nativeAddon);
-	
+
 export function setNativeFunctions(externals) {
 	Env = externals.Env;
 	Txn = externals.Txn;
@@ -49,9 +91,9 @@ export function setNativeFunctions(externals) {
 	getAddress = externals.getAddress;
 	getBufferAddress = externals.getBufferAddress;
 	createBufferForAddress = externals.createBufferForAddress;
-	clearKeptObjects = externals.clearKeptObjects || function() {};
+	clearKeptObjects = externals.clearKeptObjects || function () {};
 	getByBinary = externals.getByBinary;
-	detachBuffer  = externals.detachBuffer;
+	detachBuffer = externals.detachBuffer;
 	startRead = externals.startRead;
 	setReadCallback = externals.setReadCallback;
 	setGlobalBuffer = externals.setGlobalBuffer;
@@ -62,6 +104,7 @@ export function setNativeFunctions(externals) {
 	position = externals.position;
 	resetTxn = externals.resetTxn;
 	directWrite = externals.directWrite;
+	getIncrementer = externals.getIncrementer;
 	attemptLock = externals.attemptLock;
 	unlock = externals.unlock;
 	getCurrentValue = externals.getCurrentValue;
@@ -72,8 +115,7 @@ export function setNativeFunctions(externals) {
 	compress = externals.compress;
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
-	if (externals.tmpdir)
-        tmpdir = externals.tmpdir
+	if (externals.tmpdir) tmpdir = externals.tmpdir;
 }
 export function setExternals(externals) {
 	arch = externals.arch;
@@ -83,6 +125,6 @@ export function setExternals(externals) {
 	MsgpackrEncoder = externals.MsgpackrEncoder;
 	WeakLRUCache = externals.WeakLRUCache;
 	tmpdir = externals.tmpdir;
-   os = externals.os;
+	os = externals.os;
 	onExit = externals.onExit;
 }

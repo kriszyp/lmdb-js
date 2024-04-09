@@ -289,9 +289,11 @@ public:
 	static MDB_txn* prefetchTxns[20];
 	static pthread_mutex_t* prefetchTxnsLock;
 	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
+	std::unordered_map<std::string, int64_t*> incrementers;
 	pthread_mutex_t locksModificationLock;
 	uint64_t lastTime; // actually encoded as double
 	uint64_t previousTime; // actually encoded as double
+	int64_t* getIncrementer(std::string key, int64_t starting_value, napi_env env);
 	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
 	bool unlock(std::string key, bool only_check);
 	uint64_t getNextTime();
