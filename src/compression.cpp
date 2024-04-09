@@ -69,7 +69,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 		isValid = false;
 		return;
 	}
-	//fprintf(stdout, "compressed size %u uncompressedLength %u, first byte %u\n", data.mv_size, uncompressedLength + startingOffset, charData[compressionHeaderSize]);
+	//fprintf(stdout, "compressed size %u uncompressedLength %u, target size %u, first byte %u\n", data.mv_size, uncompressedLength + startingOffset, decompressSize, charData[compressionHeaderSize]);
 	data.mv_data = decompressTarget;
 	data.mv_size = uncompressedLength + startingOffset;
 	//TODO: For larger blocks with known encoding, it might make sense to allocate space for it and use an ExternalString
@@ -79,7 +79,7 @@ void Compression::decompress(MDB_val& data, bool &isValid, bool canAllocate) {
 	}
 	int written = LZ4_decompress_safe_usingDict(
 		(char*)charData + compressionHeaderSize, decompressTarget + startingOffset,
-		compressedLength - compressionHeaderSize - startingOffset, decompressSize,
+		compressedLength - compressionHeaderSize - startingOffset, decompressSize - startingOffset,
 		dictionary, dictionarySize);
 	//fprintf(stdout, "first uncompressed byte %X %X %X %X %X %X\n", uncompressedData[0], uncompressedData[1], uncompressedData[2], uncompressedData[3], uncompressedData[4], uncompressedData[5]);
 	if (written < 0) {
