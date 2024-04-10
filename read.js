@@ -493,6 +493,7 @@ export function addReadMethods(
 		},
 		getRange(options) {
 			let iterable = new RangeIterable();
+			let textDecoder = new TextDecoder()
 			if (!options) options = {};
 			let includeValues = options.values !== false;
 			let includeVersions = options.versions;
@@ -741,7 +742,7 @@ export function addReadMethods(
 									? Uint8ArraySlice.call(bytes, 0, lastSize)
 									: bytes;
 							else {
-								value = bytes.toString('utf8', 0, lastSize);
+								value = textDecoder.decode(Uint8ArraySlice.call(bytes, 0, lastSize));
 								if (store.encoding == 'json' && value)
 									value = JSON.parse(value);
 							}
