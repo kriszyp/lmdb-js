@@ -5,11 +5,11 @@ import rimraf from 'rimraf';
 let should = chai.should();
 let expect = chai.expect;
 import { spawn } from 'child_process';
-import { unlinkSync } from 'fs'
-import { fileURLToPath } from 'url'
+import { unlinkSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { Worker } from 'worker_threads';
-import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js'
-import inspector from 'inspector'
+import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js';
+import inspector from 'inspector';
 //inspector.open(9229, null, true); debugger
 let nativeMethods,
 	dirName = dirname(fileURLToPath(import.meta.url));
@@ -25,7 +25,7 @@ import {
 	levelup,
 	open,
 	TIMESTAMP_PLACEHOLDER,
-	DIRECT_WRITE_PLACEHOLDER
+	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
 import { openAsClass } from '../open.js';
 import { RangeIterable } from '../util/RangeIterable.js';
@@ -400,7 +400,6 @@ describe('lmdb-js', function () {
 			});
 			if (options.encoding == 'ordered-binary') return; // no more tests need to be applied for this
 			it('bigger puts, testing free space management', async function () {
-				
 				let seed = 15325223;
 				function random() {
 					return randomInt() / 2038074743;
@@ -408,7 +407,7 @@ describe('lmdb-js', function () {
 				function randomInt() {
 					seed++;
 					let a = seed * 15485863;
-					return a * a * a % 2038074743;
+					return (a * a * a) % 2038074743;
 				}
 				//await new Promise((resolve) => setTimeout(resolve, 3000));
 
@@ -417,7 +416,7 @@ describe('lmdb-js', function () {
 				for (let i = 0; i < 7; i++) additive += additive;
 				for (let i = 0; i < 5000; i++) {
 					let text = 'this is a test';
-					while(random() < 0.95) text += additive;
+					while (random() < 0.95) text += additive;
 					promise = db.put(i % 10, text);
 					if (i % 16 == 0) {
 						await promise;
@@ -884,6 +883,16 @@ describe('lmdb-js', function () {
 						should.equal(results[i], 'value' + i);
 					}
 				});
+			it('getIncrementer', function () {
+				let incrementer = new BigInt64Array(
+					db.getIncrementer('incrementer-test', 4),
+				);
+				should.equal(Atomics.add(incrementer, 0, 1n), 4n);
+				incrementer = new BigInt64Array( // should return same incrementer
+					db.getIncrementer('incrementer-test', 1),
+				);
+				should.equal(Atomics.add(incrementer, 0, 1n), 5n);
+			});
 			it('prefetch', async function () {
 				await new Promise((resolve) => db.prefetch(['key1', 'key2'], resolve));
 				let key = '';
@@ -1431,11 +1440,13 @@ describe('lmdb-js', function () {
 				await Promise.all(finishedTxns);
 			});
 
-			it('assign timestamps', async function() {
-				let dbBinary = db.openDB(Object.assign({
-					name: 'mydb-timestamp',
-					encoding: 'binary'
-				}));
+			it('assign timestamps', async function () {
+				let dbBinary = db.openDB(
+					Object.assign({
+						name: 'mydb-timestamp',
+						encoding: 'binary',
+					}),
+				);
 				let value = Buffer.alloc(16, 3);
 				value.set(TIMESTAMP_PLACEHOLDER);
 				value[4] = 0;
@@ -1462,19 +1473,28 @@ describe('lmdb-js', function () {
 				should.equal(returnedValue[9], 3);
 			});
 
-			it('lock/unlock notifications', async function() {
+			it('lock/unlock notifications', async function () {
 				let listener_called = 0;
-				should.equal(db.attemptLock(3.2, 55555, () => {
-					listener_called++;
-				}), true);
-				should.equal(db.attemptLock(3.2, 55555, () => {
-					listener_called++;
-				}), false);
-				let finished_locks = new Promise((resolve) => {
-					should.equal(db.attemptLock(3.2, 55555, () => {
+				should.equal(
+					db.attemptLock(3.2, 55555, () => {
 						listener_called++;
-						resolve();
-					}), false);
+					}),
+					true,
+				);
+				should.equal(
+					db.attemptLock(3.2, 55555, () => {
+						listener_called++;
+					}),
+					false,
+				);
+				let finished_locks = new Promise((resolve) => {
+					should.equal(
+						db.attemptLock(3.2, 55555, () => {
+							listener_called++;
+							resolve();
+						}),
+						false,
+					);
 				});
 				should.equal(db.hasLock('hi', 55555), false);
 				should.equal(db.hasLock(3.2, 3), false);
@@ -1487,24 +1507,27 @@ describe('lmdb-js', function () {
 				should.equal(db.hasLock(3.2, 55555), false);
 			});
 
-			it('lock/unlock with worker', async function() {
+			it('lock/unlock with worker', async function () {
 				let listener_called = 0;
-				should.equal(db.attemptLock(4, 1, () => {
-					listener_called++;
-				}), true);
+				should.equal(
+					db.attemptLock(4, 1, () => {
+						listener_called++;
+					}),
+					true,
+				);
 				let worker = new Worker('./test/lock-test.js', {
 					workerData: {
 						path: db.path,
-					}
+					},
 				});
 				let onworkerlock, onworkerunlock;
 				worker.on('error', (error) => {
 					console.log(error);
-				})
+				});
 				await new Promise((resolve, reject) => {
 					worker.on('error', (error) => {
 						reject(error);
-					})
+					});
 					worker.on('message', (event) => {
 						if (event.started) {
 							should.equal(event.hasLock, true);
@@ -1515,41 +1538,50 @@ describe('lmdb-js', function () {
 					});
 				});
 				db.unlock(4, 1);
-				await new Promise(resolve => {
+				await new Promise((resolve) => {
 					onworkerlock = resolve;
 				});
-				should.equal(db.attemptLock(4, 1, () => {
-					listener_called++;
-					onworkerunlock();
-				}), false);
-				worker.postMessage({unlock: true});
-				await new Promise(resolve => {
+				should.equal(
+					db.attemptLock(4, 1, () => {
+						listener_called++;
+						onworkerunlock();
+					}),
+					false,
+				);
+				worker.postMessage({ unlock: true });
+				await new Promise((resolve) => {
 					onworkerunlock = resolve;
 				});
 				should.equal(listener_called, 1);
-				worker.postMessage({lock: true});
-				await new Promise(resolve => {
+				worker.postMessage({ lock: true });
+				await new Promise((resolve) => {
 					onworkerlock = resolve;
 				});
-				await new Promise(resolve => {
-					should.equal(db.attemptLock(4, 1, () => {
-						listener_called++;
-						should.equal(listener_called, 2);
-						resolve();
-					}), false);
+				await new Promise((resolve) => {
+					should.equal(
+						db.attemptLock(4, 1, () => {
+							listener_called++;
+							should.equal(listener_called, 2);
+							resolve();
+						}),
+						false,
+					);
 					worker.terminate();
 				});
 			});
 
-			it('direct write', async function() {
-				let dbBinary = db.openDB(Object.assign({
-					name: 'mydb-direct',
-					encoding: 'binary',
-					compression: { // options.trackMetrics: true,
-						threshold: 40,
-						startingOffset: 16,
-					}
-				}));
+			it('direct write', async function () {
+				let dbBinary = db.openDB(
+					Object.assign({
+						name: 'mydb-direct',
+						encoding: 'binary',
+						compression: {
+							// options.trackMetrics: true,
+							threshold: 40,
+							startingOffset: 16,
+						},
+					}),
+				);
 				let value = Buffer.alloc(100, 4);
 				await dbBinary.put(1, value, {
 					instructedWrite: true,
@@ -1561,37 +1593,39 @@ describe('lmdb-js', function () {
 				value = Buffer.alloc(12, 3);
 				value.set(DIRECT_WRITE_PLACEHOLDER);
 				value[4] = 2;
-				value.set([1,2,3,4], 8);
+				value.set([1, 2, 3, 4], 8);
 
 				await dbBinary.put(1, value, {
 					instructedWrite: true,
 				});
 				returnedValue = dbBinary.get(1);
 				const expected = Buffer.alloc(100, 4);
-				expected.set([1,2,3,4], 2);
+				expected.set([1, 2, 3, 4], 2);
 				returnedValue.should.deep.equal(expected);
 
 				// this should always trigger the full put operation
 				value = Buffer.alloc(18, 3);
 				value.set(DIRECT_WRITE_PLACEHOLDER);
 				value[4] = 2;
-				value.set([1,2,3,4,5,6,7,8,9,10], 8);
+				value.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 8);
 
 				await dbBinary.put(1, value, {
 					instructedWrite: true,
 				});
 				returnedValue = dbBinary.get(1);
-				expected.set([1,2,3,4,5,6,7,8,9,10], 2);
+				expected.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2);
 				returnedValue.should.deep.equal(expected);
 			});
 
-			it.skip('large direct write tearing', async function() {
+			it.skip('large direct write tearing', async function () {
 				// this test is for checking whether direct reads and writes cause memory "tearing"
-				let dbBinary = db.openDB(Object.assign({
-					name: 'mydb-direct-big',
-					encoding: 'binary',
-					compression: false,
-				}));
+				let dbBinary = db.openDB(
+					Object.assign({
+						name: 'mydb-direct-big',
+						encoding: 'binary',
+						compression: false,
+					}),
+				);
 				let value = Buffer.alloc(0x5000, 4);
 				await dbBinary.put(1, value);
 				let f64 = new Float64Array(1);
@@ -1606,16 +1640,20 @@ describe('lmdb-js', function () {
 					let promise = dbBinary.put(1, value, {
 						instructedWrite: true,
 					});
-					await new Promise(resolve => setImmediate(resolve));
+					await new Promise((resolve) => setImmediate(resolve));
 					returnedValue = dbBinary.get(1);
-					let dataView = new DataView(returnedValue.buffer, returnedValue.byteOffset, returnedValue.byteLength);
+					let dataView = new DataView(
+						returnedValue.buffer,
+						returnedValue.byteOffset,
+						returnedValue.byteLength,
+					);
 					//let livef64 = new Float64Array(returnedValue.buffer, returnedValue.byteOffset,
 					// returnedValue.byteLength/8);
 					let j = 0;
 					let k = 0;
 					detect_change: do {
 						j++;
-						while(true) {
+						while (true) {
 							let a = dataView.getFloat64(6);
 							let b = dataView.getFloat64(6);
 							if (a === b) {
@@ -1625,22 +1663,22 @@ describe('lmdb-js', function () {
 						}
 
 						for (k = 0; k < 8; k++) {
-							if (u8[k] === updated_byte)
-								break detect_change;
+							if (u8[k] === updated_byte) break detect_change;
 						}
-					}while(j < 1000);
-					if (u8[0] !== u8[7])
-					console.log(j, k, u8);
+					} while (j < 1000);
+					if (u8[0] !== u8[7]) console.log(j, k, u8);
 				}
 			});
 
-			it.skip('small direct write tearing', async function() {
+			it.skip('small direct write tearing', async function () {
 				// this test is for checking whether direct reads and writes cause memory "tearing"
-				let dbBinary = db.openDB(Object.assign({
-					name: 'mydb-direct-small',
-					encoding: 'binary',
-					compression: false,
-				}));
+				let dbBinary = db.openDB(
+					Object.assign({
+						name: 'mydb-direct-small',
+						encoding: 'binary',
+						compression: false,
+					}),
+				);
 				let f64 = new Float64Array(1);
 				let u8 = new Uint8Array(f64.buffer, 0, 8);
 				for (let i = 0; i < 100000; i++) {
@@ -1659,21 +1697,24 @@ describe('lmdb-js', function () {
 					let promise = dbBinary.put(1, value, {
 						instructedWrite: true,
 					});
-					await new Promise(resolve => setImmediate(resolve));
+					await new Promise((resolve) => setImmediate(resolve));
 					let j = 0;
 					let k = 0;
 					returnedValue = dbBinary.getBinaryFast(1);
-					let dataView = new DataView(returnedValue.buffer, returnedValue.byteOffset, returnedValue.byteLength);
+					let dataView = new DataView(
+						returnedValue.buffer,
+						returnedValue.byteOffset,
+						returnedValue.byteLength,
+					);
 					detect_change: do {
 						returnedValue = dbBinary.getBinaryFast(1);
 						//let livef64 = new Float64Array(returnedValue.buffer, returnedValue.byteOffset,
 						// returnedValue.byteLength/8);
 						j++;
 						for (k = 2; k < 10; k++) {
-							if (returnedValue[k] === updated_byte)
-								break detect_change;
+							if (returnedValue[k] === updated_byte) break detect_change;
 						}
-					}while(j < 1000);
+					} while (j < 1000);
 					if (returnedValue[2] !== returnedValue[9])
 						console.log(j, k, returnedValue);
 				}
@@ -1755,9 +1796,11 @@ describe('lmdb-js', function () {
 				let value = 'hello world';
 				for (let i = 0; i < 11; i++) value += value;
 				for (let i = 0; i < 180; i++) {
-					let promise = db.put('for-backup-' + (i % 120), value.slice(0, i * 50));
-					if (i % 10 == 9)
-						await promise;
+					let promise = db.put(
+						'for-backup-' + (i % 120),
+						value.slice(0, i * 50),
+					);
+					if (i % 10 == 9) await promise;
 				}
 				try {
 					unlinkSync(testDirPath + '/backup.mdb');

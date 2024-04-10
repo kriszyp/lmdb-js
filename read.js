@@ -19,6 +19,7 @@ import {
 	startRead,
 	setReadCallback,
 	directWrite,
+	getIncrementer,
 	attemptLock,
 	unlock,
 } from './native.js';
