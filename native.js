@@ -41,7 +41,7 @@ export let Env,
 	getSharedBuffer,
 	compress,
 	directWrite,
-	getIncrementer,
+	getUserSharedBuffer,
 	attemptLock,
 	unlock;
 path = pathModule;
@@ -104,7 +104,7 @@ export function setNativeFunctions(externals) {
 	position = externals.position;
 	resetTxn = externals.resetTxn;
 	directWrite = externals.directWrite;
-	getIncrementer = externals.getIncrementer;
+	getUserSharedBuffer = externals.getUserSharedBuffer;
 	attemptLock = externals.attemptLock;
 	unlock = externals.unlock;
 	getCurrentValue = externals.getCurrentValue;

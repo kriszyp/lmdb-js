@@ -19,7 +19,7 @@ import {
 	startRead,
 	setReadCallback,
 	directWrite,
-	getIncrementer,
+	getUserSharedBuffer,
 	attemptLock,
 	unlock,
 } from './native.js';
@@ -391,10 +391,10 @@ export function addReadMethods(
 			if (rc < 0) lmdbError(rc);
 		},
 
-		getIncrementer(id, startingValue) {
+		getUserSharedBuffer(id, defaultBuffer) {
 			keyBytes.dataView.setUint32(0, this.db.dbi);
 			let keySize = this.writeKey(id, keyBytes, 4);
-			return getIncrementer(env.address, keySize, startingValue);
+			return getUserSharedBuffer(env.address, keySize, defaultBuffer);
 		},
 
 		attemptLock(id, version, callback) {

@@ -883,15 +883,24 @@ describe('lmdb-js', function () {
 						should.equal(results[i], 'value' + i);
 					}
 				});
-			it('getIncrementer', function () {
+			it('getUserSharedBuffer', function () {
+				let defaultIncrementer = new BigInt64Array(1);
+				defaultIncrementer[0] = 4n;
 				let incrementer = new BigInt64Array(
-					db.getIncrementer('incrementer-test', 4),
+					db.getUserSharedBuffer('incrementer-test', defaultIncrementer.buffer),
 				);
 				should.equal(Atomics.add(incrementer, 0, 1n), 4n);
+				let secondDefaultIncrementer = new BigInt64Array(1); //should not get used
 				incrementer = new BigInt64Array( // should return same incrementer
-					db.getIncrementer('incrementer-test', 1),
+					db.getUserSharedBuffer(
+						'incrementer-test',
+						secondDefaultIncrementer.buffer,
+					),
 				);
+				should.equal(defaultIncrementer[0], 5n);
 				should.equal(Atomics.add(incrementer, 0, 1n), 5n);
+				should.equal(defaultIncrementer[0], 6n);
+				should.equal(secondDefaultIncrementer[0], 0n);
 			});
 			it('prefetch', async function () {
 				await new Promise((resolve) => db.prefetch(['key1', 'key2'], resolve));
