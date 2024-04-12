@@ -493,7 +493,7 @@ export function addReadMethods(
 		},
 		getRange(options) {
 			let iterable = new RangeIterable();
-			let textDecoder = new TextDecoder()
+			let textDecoder = new TextDecoder();
 			if (!options) options = {};
 			let includeValues = options.values !== false;
 			let includeVersions = options.versions;
@@ -742,7 +742,13 @@ export function addReadMethods(
 									? Uint8ArraySlice.call(bytes, 0, lastSize)
 									: bytes;
 							else {
-								value = textDecoder.decode(Uint8ArraySlice.call(bytes, 0, lastSize));
+								// use the faster utf8Slice if available, otherwise fall back to TextDecoder (a little slower)
+								// note applying Buffer's utf8Slice to a Uint8Array works in Node, but not in Bun.
+								value = bytes.utf8Slice
+									? bytes.utf8Slice(0, lastSize)
+									: textDecoder.decode(
+											Uint8ArraySlice.call(bytes, 0, lastSize),
+										);
 								if (store.encoding == 'json' && value)
 									value = JSON.parse(value);
 							}
