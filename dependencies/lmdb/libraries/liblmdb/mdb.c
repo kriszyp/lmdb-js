@@ -2911,7 +2911,7 @@ restart_search:
 			// we are now iterating through the free list entries
 			// first, we need to check if we are in free-list deletion mode, in which case it is not safe to iterate backwards and we have to bail out
 			if (op == MDB_PREV && (env->me_freelist_state & MDB_FREELIST_DELETING)) {
-				fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
+				//fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
 				break;
 			}
 			// now iterate
@@ -3065,9 +3065,9 @@ search_done:
 	}
 	if (i) {
 		// found
-		//fprintf(stderr,"f %u %u ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position);
+		//fprintf(stderr,"f %u %u %u  ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position, pgno);
 	} else {
-		//fprintf(stderr,"a %u %u ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position);
+		//fprintf(stderr,"a %u %u %u  ", num, env->me_freelist_position < 0 ? -env->me_freelist_position : env->me_freelist_position, pgno);
 		txn->mt_next_pgno = pgno + num;
 	}
 #if OVERFLOW_NOTYET
@@ -4290,10 +4290,14 @@ mdb_freelist_save(MDB_txn *txn)
 			} while(1);
 		}
 		mop = env->me_pghead;
-		mop_len = (mdb_midl_is_empty(mop) ? 0 : mop[0]) + txn->mt_loose_count;
+		if (mdb_midl_is_empty(mop) && mop) {
+			mop[0] = 0;
+		}
+		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
+		//fprintf(stderr, "mop_len %u = mop[0] %u + txn->mt_loose_count %u, reserved_sape,", mop_len, (mop ? mop[0] : 0), txn->mt_loose_count, reserved_space);
 		if (freelist_written_start != env->me_freelist_written_start)
 		freelist_written_end = env->me_freelist_written_end;
-	} while(reserved_space < mop_len ||
+	} while(reserved_space != mop_len ||
 	   (start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
 	   freecnt < txn->mt_free_pgs[0] ||
 	   freelist_written_start != env->me_freelist_written_start ||
@@ -4345,7 +4349,7 @@ mdb_freelist_save(MDB_txn *txn)
 		}
 
 
-//		fprintf(stderr, "put %u: ", id);
+		//fprintf(stderr, "freelist put: %u, entry size %u, reserved_space: %u, mop_len %u, ", id, data.mv_size, reserved_space, mop_len);
 
 		int reserved_len = (data.mv_size / sizeof(id)) - 1;
 		ssize_t reserved_end = reserved_space;
