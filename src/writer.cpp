@@ -465,6 +465,7 @@ void WriteWorker::Write() {
 		envForTxn->lastReaderCheck = now;
 	}
 	pthread_mutex_lock(envForTxn->writingLock);
+	if (!env) return;// already closed
 	#ifndef _WIN32
 	int retries = 0;
 	retry:

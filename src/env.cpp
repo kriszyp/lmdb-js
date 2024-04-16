@@ -120,6 +120,12 @@ void EnvWrap::cleanupStrayTxns() {
 		fprintf(stderr, "Deleting running worker\n");
 		delete worker;
 	}*/
+	pthread_mutex_lock(writingLock);
+	if (this->writeWorker) {
+		// signal that it is cancelled
+		this->writeWorker->env = nullptr;
+	}
+	pthread_mutex_unlock(writingLock);
 	while (this->readTxns.size()) {
 		TxnWrap *tw = *this->readTxns.begin();
 		mdb_txn_abort(tw->txn);
