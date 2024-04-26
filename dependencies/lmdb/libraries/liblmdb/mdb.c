@@ -2856,6 +2856,7 @@ restart_search:
 		load_more:
 		if (op == MDB_SET_RANGE) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
+			if (env->me_freelist_state & MDB_FREELIST_DELETING) break;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 #if (MDB_DEVEL) & 2	/* "& 2" so MDB_DEVEL=1 won't hide bugs breaking freeDB */
@@ -2926,6 +2927,7 @@ restart_search:
 			if (last >= oldest || rc == MDB_NOTFOUND) {
 				if (!rc) env->me_freelist_end = oldest;
 				// no more newer transactions, go to the beginning of the range and look for older txns
+				if (env->me_freelist_state & MDB_FREELIST_DELETING) break;
 				op = MDB_SET_RANGE;
 				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
 				last = env->me_freelist_start - 1;
