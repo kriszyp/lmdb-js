@@ -4261,6 +4261,7 @@ mdb_freelist_save(MDB_txn *txn)
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
 					//fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
 					rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
+					*(pgno_t*)data.mv_data = 0; // set the size of the entry to zero in case it doesn't get overwritten
 					head_id++;
 					if (rc)
 						return rc;
