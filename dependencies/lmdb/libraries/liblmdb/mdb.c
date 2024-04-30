@@ -2896,6 +2896,7 @@ restart_search:
 					}
 					if (rc && rc != MDB_NOTFOUND) goto fail;
 				}
+				mdb_cassert(&m2, key.mv_size > 0);
 				last = *(txnid_t *) key.mv_data;
 			} else {
 				// no more transactions to read going forward through newest, we are now going
@@ -2919,8 +2920,10 @@ restart_search:
 			rc = mdb_cursor_get(&m2, &key, NULL, op);
 			if (rc && rc != MDB_NOTFOUND)
 				goto fail;
-			else
-				last = *(txnid_t*)key.mv_data;
+			else {
+				mdb_cassert(&m2, key.mv_size > 0);
+				last = *(txnid_t *) key.mv_data;
+			}
 		}
 		if (op == MDB_NEXT) {
 			// iterating forward from the freelist range to find newer transactions
@@ -2946,6 +2949,7 @@ restart_search:
 					}
 					goto fail;
 				}
+				mdb_cassert(&m2, key.mv_size > 0);
 				last = *(txnid_t*)key.mv_data;
 				if (!last) {
 					fprintf(stderr, "Invalid null txn id\n");
@@ -2963,6 +2967,7 @@ restart_search:
 						}
 						goto fail;
 					} else
+						mdb_cassert(&m2, key.mv_size > 0);
 						last = *(txnid_t*)key.mv_data;
 				}
 				env->me_freelist_start = last;
@@ -4411,6 +4416,38 @@ mdb_freelist_save(MDB_txn *txn)
 		if (rc)
 			break;
 	}
+
+	// now check to verify the integrity of the free-space entries
+	// first check the new free space entry
+	if (rc == 0) {
+		key.mv_size = sizeof(txn->mt_txnid);
+		key.mv_data = &txn->mt_txnid;
+		rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET);
+		if (rc == 0 && key.mv_size != sizeof(txn->mt_txnid)) {
+			fprintf(stderr, "new freelist entry key wrong size %u\n", txn->mt_txnid);
+			rc = MDB_BAD_TXN;
+		}
+		if (rc == MDB_NOTFOUND) rc = 0;
+	}
+	// now check the updated freelist entries
+	if (rc == 0) {
+		key.mv_size = sizeof(start_written);
+		key.mv_data = &start_written;
+		rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET);
+		size_t last = 0;
+		while (rc == 0) {
+			if (key.mv_size != sizeof(start_written)) {
+				fprintf(stderr, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
+				rc = MDB_BAD_TXN;
+				break;
+			}
+			last = *(txnid_t *) key.mv_data;
+			if (last >= env->me_freelist_end) break;
+			rc = mdb_cursor_get(&mc, &key, NULL, MDB_NEXT);
+		}
+		if (rc == MDB_NOTFOUND) rc = 0;
+	}
+
 	// reset the start and end to indicate no writes have taken place
 	env->me_freelist_written_start = 0x7fffffff;
 	env->me_freelist_written_end = 0;
