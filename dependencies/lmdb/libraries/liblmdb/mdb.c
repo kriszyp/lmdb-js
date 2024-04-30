@@ -4426,6 +4426,8 @@ mdb_freelist_save(MDB_txn *txn)
 		rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET);
 		if (rc == 0 && key.mv_size != sizeof(txn->mt_txnid)) {
 			fprintf(stderr, "new freelist entry key wrong size %u\n", txn->mt_txnid);
+			last_error = malloc(100);
+			sprintf(last_error, "new freelist entry key wrong size %u\n", txn->mt_txnid);
 			rc = MDB_BAD_TXN;
 		}
 		if (rc == MDB_NOTFOUND) rc = 0;
@@ -4439,6 +4441,8 @@ mdb_freelist_save(MDB_txn *txn)
 		while (rc == 0) {
 			if (key.mv_size != sizeof(start_written)) {
 				fprintf(stderr, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
+				last_error = malloc(100);
+				sprintf(last_error, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
 				rc = MDB_BAD_TXN;
 				break;
 			}
