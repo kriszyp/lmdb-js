@@ -902,6 +902,19 @@ describe('lmdb-js', function () {
 				should.equal(defaultIncrementer[0], 6n);
 				should.equal(secondDefaultIncrementer[0], 0n);
 			});
+			it('getUserSharedBuffer with callbacks', async function () {
+				let shared_number = new Float64Array(1);
+				let notified;
+				let shared_buffer;
+				await new Promise((resolve) => {
+					db.getUserSharedBuffer('with-callback', shared_number.buffer, {
+						callback() {
+							resolve();
+						},
+					});
+					db.notifyUserCallbacks('with-callback');
+				});
+			});
 			it('prefetch', async function () {
 				await new Promise((resolve) => db.prefetch(['key1', 'key2'], resolve));
 				let key = '';

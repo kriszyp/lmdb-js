@@ -42,6 +42,7 @@ export let Env,
 	compress,
 	directWrite,
 	getUserSharedBuffer,
+	notifyUserCallbacks,
 	attemptLock,
 	unlock;
 path = pathModule;
@@ -105,6 +106,7 @@ export function setNativeFunctions(externals) {
 	resetTxn = externals.resetTxn;
 	directWrite = externals.directWrite;
 	getUserSharedBuffer = externals.getUserSharedBuffer;
+	notifyUserCallbacks = externals.notifyUserCallbacks;
 	attemptLock = externals.attemptLock;
 	unlock = externals.unlock;
 	getCurrentValue = externals.getCurrentValue;

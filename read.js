@@ -20,6 +20,7 @@ import {
 	setReadCallback,
 	directWrite,
 	getUserSharedBuffer,
+	notifyUserCallbacks,
 	attemptLock,
 	unlock,
 } from './native.js';
@@ -391,10 +392,25 @@ export function addReadMethods(
 			if (rc < 0) lmdbError(rc);
 		},
 
-		getUserSharedBuffer(id, defaultBuffer) {
+		getUserSharedBuffer(id, defaultBuffer, options) {
+			let keySize;
+			if (options?.envKey) keySize = this.writeKey(id, keyBytes, 0);
+			else {
+				keyBytes.dataView.setUint32(0, this.db.dbi);
+				keySize = this.writeKey(id, keyBytes, 4);
+			}
+			return getUserSharedBuffer(
+				env.address,
+				keySize,
+				defaultBuffer,
+				options?.callback,
+			);
+		},
+
+		notifyUserCallbacks(id) {
 			keyBytes.dataView.setUint32(0, this.db.dbi);
 			let keySize = this.writeKey(id, keyBytes, 4);
-			return getUserSharedBuffer(env.address, keySize, defaultBuffer);
+			return notifyUserCallbacks(env.address, keySize);
 		},
 
 		attemptLock(id, version, callback) {

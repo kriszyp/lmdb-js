@@ -282,18 +282,24 @@ typedef struct callback_holder_t {
 	EnvWrap* ew;
 	std::vector<napi_threadsafe_function> callbacks;
 } callback_holder_t;
+typedef struct user_buffer_t {
+	MDB_val buffer;
+	std::vector<napi_threadsafe_function> callbacks;
+} user_buffer_t;
 class ExtendedEnv {
 public:
 	ExtendedEnv();
 	~ExtendedEnv();
 	static MDB_txn* prefetchTxns[20];
 	static pthread_mutex_t* prefetchTxnsLock;
-	std::unordered_map<std::string, callback_holder_t> lock_callbacks;
-	std::unordered_map<std::string, MDB_val> userSharedBuffers;
+	std::unordered_map<std::string, callback_holder_t> lockCallbacks;
+	std::unordered_map<std::string, user_buffer_t> userSharedBuffers;
 	pthread_mutex_t locksModificationLock;
+	pthread_mutex_t userBuffersLock;
 	uint64_t lastTime; // actually encoded as double
 	uint64_t previousTime; // actually encoded as double
-	MDB_val getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_env env);
+	MDB_val getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_value func, bool has_callback, napi_env env);
+	bool notifyUserCallbacks(std::string key);
 	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
 	bool unlock(std::string key, bool only_check);
 	uint64_t getNextTime();

@@ -1,4 +1,10 @@
-import { getAddress, getBufferAddress, write, compress, lmdbError } from './native.js';
+import {
+	getAddress,
+	getBufferAddress,
+	write,
+	compress,
+	lmdbError,
+} from './native.js';
 import { when } from './util/when.js';
 var backpressureArray;
 
@@ -26,34 +32,62 @@ const PROMISE_SUCCESS = Promise.resolve(true);
 export const ABORT = 4.452694326329068e-106; // random/unguessable numbers, which work across module/versions and native
 export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
-const LocalSharedArrayBuffer = typeof Deno != 'undefined' || // Deno can't handle SharedArrayBuffer as an FFI
-// argument due to https://github.com/denoland/deno/issues/12678
-typeof SharedArrayBuffer == 'undefined' ? // Sometimes electron doesn't have a SharedArrayBuffer
-	ArrayBuffer : SharedArrayBuffer;
-const ByteArray = typeof Buffer != 'undefined' ? function(buffer) { return Buffer.from(buffer) } : Uint8Array;
-const queueTask = typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
+const LocalSharedArrayBuffer =
+	typeof Deno != 'undefined' || // Deno can't handle SharedArrayBuffer as an FFI
+	// argument due to https://github.com/denoland/deno/issues/12678
+	typeof SharedArrayBuffer == 'undefined' // Sometimes electron doesn't have a SharedArrayBuffer
+		? ArrayBuffer
+		: SharedArrayBuffer;
+const ByteArray =
+	typeof Buffer != 'undefined'
+		? function (buffer) {
+				return Buffer.from(buffer);
+			}
+		: Uint8Array;
+const queueTask =
+	typeof setImmediate != 'undefined' ? setImmediate : setTimeout; // TODO: Or queueMicrotask?
 //let debugLog = []
 const WRITE_BUFFER_SIZE = 0x10000;
 var log = [];
-export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, useWritemap, maxKeySize,
-	eventTurnBatching, txnStartThreshold, batchStartThreshold, overlappingSync, commitDelay, separateFlushed, maxFlushDelay }) {
+export function addWriteMethods(
+	LMDBStore,
+	{
+		env,
+		fixedBuffer,
+		resetReadTxn,
+		useWritemap,
+		maxKeySize,
+		eventTurnBatching,
+		txnStartThreshold,
+		batchStartThreshold,
+		overlappingSync,
+		commitDelay,
+		separateFlushed,
+		maxFlushDelay,
+	},
+) {
 	//  stands for write instructions
 	var dynamicBytes;
 	function allocateInstructionBuffer(lastPosition) {
-		// Must use a shared buffer on older node in order to use Atomics, and it is also more correct since we are 
+		// Must use a shared buffer on older node in order to use Atomics, and it is also more correct since we are
 		// indeed accessing and modifying it from another thread (in C). However, Deno can't handle it for
 		// FFI so aliased above
 		let buffer = new LocalSharedArrayBuffer(WRITE_BUFFER_SIZE);
 		let lastBytes = dynamicBytes;
 		dynamicBytes = new ByteArray(buffer);
-		let uint32 = dynamicBytes.uint32 = new Uint32Array(buffer, 0, WRITE_BUFFER_SIZE >> 2);
+		let uint32 = (dynamicBytes.uint32 = new Uint32Array(
+			buffer,
+			0,
+			WRITE_BUFFER_SIZE >> 2,
+		));
 		uint32[2] = 0;
 		dynamicBytes.float64 = new Float64Array(buffer, 0, WRITE_BUFFER_SIZE >> 3);
 		buffer.address = getBufferAddress(dynamicBytes);
 		uint32.address = buffer.address + uint32.byteOffset;
 		dynamicBytes.position = 1; // we start at position 1 to save space for writing the txn id before the txn delimiter
 		if (lastPosition) {
-			lastBytes.float64[lastPosition + 1] = dynamicBytes.uint32.address + (dynamicBytes.position << 3);
+			lastBytes.float64[lastPosition + 1] =
+				dynamicBytes.uint32.address + (dynamicBytes.position << 3);
 			lastBytes.uint32[lastPosition << 1] = 3; // pointer instruction
 		}
 		return dynamicBytes;
@@ -65,7 +99,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var committed;
 	var abortedNonChildTransactionWarn;
 	var nextTxnCallbacks = [];
-	var commitPromise, flushPromise, flushResolvers = [], batchFlushResolvers = [];
+	var commitPromise,
+		flushPromise,
+		flushResolvers = [],
+		batchFlushResolvers = [];
 	commitDelay = commitDelay || 0;
 	eventTurnBatching = eventTurnBatching === false ? false : true;
 	var enqueuedCommit;
@@ -74,7 +111,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	var enqueuedEventTurnBatch;
 	var batchDepth = 0;
 	var lastWritePromise;
-	var writeBatchStart, outstandingBatchCount, lastSyncTxnFlush, lastFlushTimeout, lastFlushCallback;
+	var writeBatchStart,
+		outstandingBatchCount,
+		lastSyncTxnFlush,
+		lastFlushTimeout,
+		lastFlushCallback;
 	var hasUnresolvedTxns;
 	txnStartThreshold = txnStartThreshold || 5;
 	batchStartThreshold = batchStartThreshold || 1000;
@@ -82,10 +123,23 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 	allocateInstructionBuffer();
 	dynamicBytes.uint32[2] = TXN_DELIMITER | TXN_COMMITTED | TXN_FLUSHED;
-	var txnResolution, nextResolution = {
-		uint32: dynamicBytes.uint32, flagPosition: 2, flag: 0, valueBuffer: null, next: null, meta: null };
+	var txnResolution,
+		nextResolution = {
+			uint32: dynamicBytes.uint32,
+			flagPosition: 2,
+			flag: 0,
+			valueBuffer: null,
+			next: null,
+			meta: null,
+		};
 	var uncommittedResolution = {
-		uint32: null, flagPosition: 2, flag: 0, valueBuffer: null, next: nextResolution, meta: null };
+		uint32: null,
+		flagPosition: 2,
+		flag: 0,
+		valueBuffer: null,
+		next: nextResolution,
+		meta: null,
+	};
 	var unwrittenResolution = nextResolution;
 	var lastPromisedResolution = uncommittedResolution;
 	var lastQueuedResolution = uncommittedResolution;
@@ -99,28 +153,42 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (value && value['\x10binary-data\x02'])
 				valueBuffer = value['\x10binary-data\x02'];
 			else if (encoder) {
-				if (encoder.copyBuffers) // use this as indicator for support buffer reuse for now
-					valueBuffer = encoder.encode(value, REUSE_BUFFER_MODE | (writeTxn ? RESET_BUFFER_MODE : 0)); // in addition, if we are writing sync, after using, we can immediately reset the encoder's position to reuse that space, which can improve performance
-				else { // various other encoders, including JSON.stringify, that might serialize to a string
+				if (encoder.copyBuffers)
+					// use this as indicator for support buffer reuse for now
+					valueBuffer = encoder.encode(
+						value,
+						REUSE_BUFFER_MODE | (writeTxn ? RESET_BUFFER_MODE : 0),
+					);
+				// in addition, if we are writing sync, after using, we can immediately reset the encoder's position to reuse that space, which can improve performance
+				else {
+					// various other encoders, including JSON.stringify, that might serialize to a string
 					valueBuffer = encoder.encode(value);
 					if (typeof valueBuffer == 'string')
 						valueBuffer = Buffer.from(valueBuffer); // TODO: Would be nice to write strings inline in the instructions
 				}
 			} else if (typeof value == 'string') {
 				valueBuffer = Buffer.from(value); // TODO: Would be nice to write strings inline in the instructions
-			} else if (value instanceof Uint8Array)
-				valueBuffer = value;
+			} else if (value instanceof Uint8Array) valueBuffer = value;
 			else
-				throw new Error('Invalid value to put in database ' + value + ' (' + (typeof value) +'), consider using encoder');
+				throw new Error(
+					'Invalid value to put in database ' +
+						value +
+						' (' +
+						typeof value +
+						'), consider using encoder',
+				);
 			valueBufferStart = valueBuffer.start;
-			if (valueBufferStart > -1) // if we have buffers with start/end position
+			if (valueBufferStart > -1)
+				// if we have buffers with start/end position
 				valueSize = valueBuffer.end - valueBufferStart; // size
-			else
-				valueSize = valueBuffer.length;
+			else valueSize = valueBuffer.length;
 			if (store.dupSort && valueSize > maxKeySize)
-				throw new Error('The value is larger than the maximum size (' + maxKeySize + ') for a value in a dupSort database');
-		} else
-			valueSize = 0;
+				throw new Error(
+					'The value is larger than the maximum size (' +
+						maxKeySize +
+						') for a value in a dupSort database',
+				);
+		} else valueSize = 0;
 		if (writeTxn) {
 			targetBytes = fixedBuffer;
 			position = 0;
@@ -131,18 +199,17 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						for (let i = 0, l = beforeCommitCallbacks.length; i < l; i++) {
 							try {
 								beforeCommitCallbacks[i]();
-							} catch(error) {
+							} catch (error) {
 								console.error('In beforecommit callback', error);
 							}
 						}
-					} catch(error) {
+					} catch (error) {
 						console.error(error);
 					}
 					enqueuedEventTurnBatch = null;
 					batchDepth--;
 					finishBatch();
-					if (writeBatchStart)
-						writeBatchStart(); // TODO: When we support delay start of batch, optionally don't delay this
+					if (writeBatchStart) writeBatchStart(); // TODO: When we support delay start of batch, optionally don't delay this
 				});
 				commitPromise = null; // reset the commit promise, can't know if it is really a new transaction prior to finishWrite being called
 				flushPromise = null;
@@ -153,7 +220,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			targetBytes = dynamicBytes;
 			position = targetBytes.position;
 		}
-		let uint32 = targetBytes.uint32, float64 = targetBytes.float64;
+		let uint32 = targetBytes.uint32,
+			float64 = targetBytes.float64;
 		let flagPosition = position << 1; // flagPosition is the 32-bit word starting position
 
 		// don't increment position until we are sure we don't have any key writing errors
@@ -167,57 +235,75 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			try {
 				endPosition = store.writeKey(key, targetBytes, keyStartPosition);
 				if (!(keyStartPosition < endPosition) && (flags & 0xf) != 12)
-					throw new Error('Invalid key or zero length key is not allowed in LMDB ' + key)
-			} catch(error) {
+					throw new Error(
+						'Invalid key or zero length key is not allowed in LMDB ' + key,
+					);
+			} catch (error) {
 				targetBytes.fill(0, keyStartPosition);
 				if (error.name == 'RangeError')
-					error = new Error('Key size is larger than the maximum key size (' + maxKeySize + ')');
+					error = new Error(
+						'Key size is larger than the maximum key size (' + maxKeySize + ')',
+					);
 				throw error;
 			}
 			let keySize = endPosition - keyStartPosition;
 			if (keySize > maxKeySize) {
 				targetBytes.fill(0, keyStartPosition); // restore zeros
-				throw new Error('Key size is larger than the maximum key size (' + maxKeySize + ')');
+				throw new Error(
+					'Key size is larger than the maximum key size (' + maxKeySize + ')',
+				);
 			}
 			uint32[flagPosition + 2] = keySize;
 			position = (endPosition + 16) >> 3;
 			if (flags & 2) {
 				let mustCompress;
-				if (valueBufferStart > -1) { // if we have buffers with start/end position
+				if (valueBufferStart > -1) {
+					// if we have buffers with start/end position
 					// record pointer to value buffer
-					float64[position] = (valueBuffer.address ||
-						(valueBuffer.address = getAddress(valueBuffer.buffer))) + valueBufferStart;
+					float64[position] =
+						(valueBuffer.address ||
+							(valueBuffer.address = getAddress(valueBuffer.buffer))) +
+						valueBufferStart;
 					if (store.compression) {
-						let compressionFlagIndex = valueBufferStart + (store.compression.startingOffset || 0);
+						let compressionFlagIndex =
+							valueBufferStart + (store.compression.startingOffset || 0);
 						// this is the compression indicator, so we must compress
-						mustCompress = compressionFlagIndex < valueBuffer.end && valueBuffer[compressionFlagIndex] >= 250;
+						mustCompress =
+							compressionFlagIndex < valueBuffer.end &&
+							valueBuffer[compressionFlagIndex] >= 250;
 					}
 				} else {
 					let valueArrayBuffer = valueBuffer.buffer;
 					// record pointer to value buffer
-					let address = (valueArrayBuffer.address ||
-						(valueBuffer.length === 0 ? 0 : // externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
-						valueArrayBuffer.address = getAddress(valueArrayBuffer)))
-							+ valueBuffer.byteOffset;
+					let address =
+						(valueArrayBuffer.address ||
+							(valueBuffer.length === 0
+								? 0 // externally allocated buffers of zero-length with the same non-null-pointer can crash node, #161
+								: (valueArrayBuffer.address = getAddress(valueArrayBuffer)))) +
+						valueBuffer.byteOffset;
 					if (address <= 0 && valueBuffer.length > 0)
 						console.error('Supplied buffer had an invalid address', address);
 					float64[position] = address;
 					if (store.compression) {
 						let compressionFlagIndex = store.compression.startingOffset || 0;
 						// this is the compression indicator, so we must compress
-						mustCompress = compressionFlagIndex < valueBuffer.length && valueBuffer[compressionFlagIndex] >= 250;
+						mustCompress =
+							compressionFlagIndex < valueBuffer.length &&
+							valueBuffer[compressionFlagIndex] >= 250;
 					}
 				}
 				uint32[(position++ << 1) - 1] = valueSize;
-				if (store.compression && (valueSize >= store.compression.threshold || mustCompress)) {
+				if (
+					store.compression &&
+					(valueSize >= store.compression.threshold || mustCompress)
+				) {
 					flags |= 0x100000;
 					float64[position] = store.compression.address;
 					if (!writeTxn)
 						compress(env.address, uint32.address + (position << 3), () => {
 							// this is never actually called in NodeJS, just use to pin the buffer in memory until it is finished
 							// and is a no-op in Deno
-							if (!float64)
-								throw new Error('No float64 available');
+							if (!float64) throw new Error('No float64 available');
 						});
 					position++;
 				}
@@ -234,13 +320,13 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				flags |= 0x200;
 				float64[position++] = version || 0;
 			}
-		} else
-			position++;
+		} else position++;
 		targetBytes.position = position;
 		if (writeTxn) {
 			uint32[0] = flags;
 			write(env.address, uint32.address);
-			return () => (uint32[0] & FAILED_CONDITION) ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS;
+			return () =>
+				uint32[0] & FAILED_CONDITION ? SYNC_PROMISE_FAIL : SYNC_PROMISE_SUCCESS;
 		}
 		// if we ever use buffers that haven't been zero'ed, need to clear out the next slot like this:
 		// uint32[position << 1] = 0 // clear out the next slot
@@ -251,11 +337,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			targetBytes = allocateInstructionBuffer(position);
 			position = targetBytes.position;
 			nextUint32 = targetBytes.uint32;
-		} else
-			nextUint32 = uint32;
+		} else nextUint32 = uint32;
 		let resolution = nextResolution;
 		// create the placeholder next resolution
-		nextResolution = resolution.next = { // we try keep resolutions exactly the same object type
+		nextResolution = resolution.next = {
+			// we try keep resolutions exactly the same object type
 			uint32: nextUint32,
 			flagPosition: position << 1,
 			flag: 0, // TODO: eventually eliminate this, as we can probably signify HAS_TXN/NO_RESOLVE/FAILED_CONDITION in upper bits
@@ -283,11 +369,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						writeBatchStart = null;
 					}
 				}
-			} else // otherwise the transaction could end at any time and we need to know the
-				// deterministically if it is ending, so we can reset the commit promise
-				// so we use the slower atomic operation
-				writeStatus = Atomics.or(uint32, flagPosition, flags);
-	
+			} // otherwise the transaction could end at any time and we need to know the
+			// deterministically if it is ending, so we can reset the commit promise
+			// so we use the slower atomic operation
+			else writeStatus = Atomics.or(uint32, flagPosition, flags);
+
 			outstandingWriteCount++;
 			if (writeStatus & TXN_DELIMITER) {
 				commitPromise = null; // TODO: Don't reset these if this comes from the batch start operation on an event turn batch
@@ -303,7 +389,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				batchFlushResolvers = [];
 			}
 			if (!flushPromise && overlappingSync) {
-				flushPromise = new Promise(resolve => {
+				flushPromise = new Promise((resolve) => {
 					if (writtenBatchDepth) {
 						batchFlushResolvers.push(resolve);
 					} else {
@@ -311,26 +397,33 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 					}
 				});
 			}
-			if (writeStatus & WAITING_OPERATION) { // write thread is waiting
+			if (writeStatus & WAITING_OPERATION) {
+				// write thread is waiting
 				write(env.address, 0);
 			}
 			if (outstandingWriteCount > BACKPRESSURE_THRESHOLD && !writeBatchStart) {
 				if (!backpressureArray)
 					backpressureArray = new Int32Array(new SharedArrayBuffer(4), 0, 1);
-				Atomics.wait(backpressureArray, 0, 0, Math.round(outstandingWriteCount / BACKPRESSURE_THRESHOLD));
+				Atomics.wait(
+					backpressureArray,
+					0,
+					0,
+					Math.round(outstandingWriteCount / BACKPRESSURE_THRESHOLD),
+				);
 			}
 			if (startAddress) {
 				if (eventTurnBatching)
 					startWriting(); // start writing immediately because this has already been batched/queued
 				else if (!enqueuedCommit && txnStartThreshold) {
-					enqueuedCommit = (commitDelay == 0 && typeof setImmediate != 'undefined') ? setImmediate(() => startWriting()) : setTimeout(() => startWriting(), commitDelay);
-				} else if (outstandingWriteCount > txnStartThreshold)
-					startWriting();
+					enqueuedCommit =
+						commitDelay == 0 && typeof setImmediate != 'undefined'
+							? setImmediate(() => startWriting())
+							: setTimeout(() => startWriting(), commitDelay);
+				} else if (outstandingWriteCount > txnStartThreshold) startWriting();
 			}
 
-			if ((outstandingWriteCount & 7) === 0)
-				resolveWrites();
-			
+			if ((outstandingWriteCount & 7) === 0) resolveWrites();
+
 			if (store.cache) {
 				resolution.meta = {
 					key,
@@ -341,8 +434,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			resolution.valueBuffer = valueBuffer;
 
 			if (callback) {
-				if (callback === IF_EXISTS)
-					ifVersion = IF_EXISTS;
+				if (callback === IF_EXISTS) ifVersion = IF_EXISTS;
 				else {
 					let meta = resolution.meta || (resolution.meta = {});
 					meta.reject = callback;
@@ -353,13 +445,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			// if it is not conditional because of ifVersion or has any flags that can make the write conditional
 			if (ifVersion === undefined && !(flags & 0x22030)) {
 				if (writtenBatchDepth > 1) {
-					if (!resolution.flag && !store.cache)
-						resolution.flag = NO_RESOLVE;
+					if (!resolution.flag && !store.cache) resolution.flag = NO_RESOLVE;
 					return PROMISE_SUCCESS; // or return undefined?
 				}
 				if (commitPromise) {
-					if (!resolution.flag)
-						resolution.flag = NO_RESOLVE;
+					if (!resolution.flag) resolution.flag = NO_RESOLVE;
 				} else {
 					commitPromise = new Promise((resolve, reject) => {
 						let meta = resolution.meta || (resolution.meta = {});
@@ -368,7 +458,9 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 						meta.reject = reject;
 					});
 					if (separateFlushed)
-						commitPromise.flushed = overlappingSync ? flushPromise : commitPromise;
+						commitPromise.flushed = overlappingSync
+							? flushPromise
+							: commitPromise;
 				}
 				return commitPromise;
 			}
@@ -378,11 +470,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				meta.reject = reject;
 			});
 			if (separateFlushed)
-				lastWritePromise.flushed = overlappingSync ? flushPromise : lastWritePromise;
+				lastWritePromise.flushed = overlappingSync
+					? flushPromise
+					: lastWritePromise;
 			return lastWritePromise;
 		};
 	}
-	let committedFlushResolvers, lastSync = Promise.resolve()
+	let committedFlushResolvers,
+		lastSync = Promise.resolve();
 	function startWriting() {
 		if (enqueuedCommit) {
 			clearImmediate(enqueuedCommit);
@@ -411,7 +506,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				default:
 					try {
 						lmdbError(status);
-					} catch(error) {
+					} catch (error) {
 						console.error(error);
 						if (commitRejectPromise) {
 							commitRejectPromise.reject(error);
@@ -429,26 +524,31 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (txnResolution) {
 				txnResolution.nextTxn = resolution;
 				//outstandingWriteCount = 0
-			}
-			else
-				txnResolution = resolution;
+			} else txnResolution = resolution;
 		}
 	}
 	var TXN_DONE = TXN_COMMITTED | TXN_FAILED;
 	function resolveWrites(async) {
 		// clean up finished instructions
 		let instructionStatus;
-		while ((instructionStatus = unwrittenResolution.uint32[unwrittenResolution.flagPosition])
-				& 0x1000000) {
+		while (
+			(instructionStatus =
+				unwrittenResolution.uint32[unwrittenResolution.flagPosition]) &
+			0x1000000
+		) {
 			if (unwrittenResolution.callbacks) {
 				nextTxnCallbacks.push(unwrittenResolution.callbacks);
 				unwrittenResolution.callbacks = null;
 			}
 			outstandingWriteCount--;
 			if (unwrittenResolution.flag !== HAS_TXN) {
-				if (unwrittenResolution.flag === NO_RESOLVE && !unwrittenResolution.meta) {
+				if (
+					unwrittenResolution.flag === NO_RESOLVE &&
+					!unwrittenResolution.meta
+				) {
 					// in this case we can completely remove from the linked list, clearing more memory
-					lastPromisedResolution.next = unwrittenResolution = unwrittenResolution.next;
+					lastPromisedResolution.next = unwrittenResolution =
+						unwrittenResolution.next;
 					continue;
 				}
 				unwrittenResolution.uint32 = null;
@@ -458,30 +558,34 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			lastPromisedResolution = unwrittenResolution;
 			unwrittenResolution = unwrittenResolution.next;
 		}
-		while (txnResolution &&
-			(instructionStatus = txnResolution.uint32[txnResolution.flagPosition] & TXN_DONE)) {
-			if (instructionStatus & TXN_FAILED)
-				rejectCommit();
-			else
-				resolveCommit(async);
+		while (
+			txnResolution &&
+			(instructionStatus =
+				txnResolution.uint32[txnResolution.flagPosition] & TXN_DONE)
+		) {
+			if (instructionStatus & TXN_FAILED) rejectCommit();
+			else resolveCommit(async);
 		}
 	}
 
 	function resolveCommit(async) {
 		afterCommit(txnResolution.uint32[txnResolution.flagPosition - 1]);
-		if (async)
-			resetReadTxn();
-		else
-			queueMicrotask(resetReadTxn); // TODO: only do this if there are actually committed writes?
+		if (async) resetReadTxn();
+		else queueMicrotask(resetReadTxn); // TODO: only do this if there are actually committed writes?
 		do {
 			if (uncommittedResolution.meta && uncommittedResolution.meta.resolve) {
 				let resolve = uncommittedResolution.meta.resolve;
-				if (uncommittedResolution.flag & FAILED_CONDITION && !resolve.unconditional)
+				if (
+					uncommittedResolution.flag & FAILED_CONDITION &&
+					!resolve.unconditional
+				)
 					resolve(false);
-				else
-					resolve(true);
+				else resolve(true);
 			}
-		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != txnResolution)
+		} while (
+			(uncommittedResolution = uncommittedResolution.next) &&
+			uncommittedResolution != txnResolution
+		);
 		txnResolution = txnResolution.nextTxn;
 	}
 	var commitRejectPromise;
@@ -489,17 +593,22 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		afterCommit();
 		if (!commitRejectPromise) {
 			let rejectFunction;
-			commitRejectPromise = new Promise((resolve, reject) => rejectFunction = reject);
+			commitRejectPromise = new Promise(
+				(resolve, reject) => (rejectFunction = reject),
+			);
 			commitRejectPromise.reject = rejectFunction;
 		}
 		do {
 			if (uncommittedResolution.meta && uncommittedResolution.meta.reject) {
 				let flag = uncommittedResolution.flag & 0xf;
-				let error = new Error("Commit failed (see commitError for details)");
+				let error = new Error('Commit failed (see commitError for details)');
 				error.commitError = commitRejectPromise;
 				uncommittedResolution.meta.reject(error);
 			}
-		} while((uncommittedResolution = uncommittedResolution.next) && uncommittedResolution != txnResolution)
+		} while (
+			(uncommittedResolution = uncommittedResolution.next) &&
+			uncommittedResolution != txnResolution
+		);
 		txnResolution = txnResolution.nextTxn;
 	}
 	function atomicStatus(uint32, flagPosition, newStatus) {
@@ -511,21 +620,26 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			uint32[flagPosition] = newStatus;
 			return writeStatus;
 			//return Atomics.or(uint32, flagPosition, newStatus)
-		} else // otherwise the transaction could end at any time and we need to know the
-			// deterministically if it is ending, so we can reset the commit promise
-			// so we use the slower atomic operation
+		} // otherwise the transaction could end at any time and we need to know the
+		// deterministically if it is ending, so we can reset the commit promise
+		// so we use the slower atomic operation
+		else
 			try {
 				return Atomics.or(uint32, flagPosition, newStatus);
-			} catch(error) {
-			console.error(error);
-			return;
+			} catch (error) {
+				console.error(error);
+				return;
 			}
 	}
 	function afterCommit(txnId) {
 		for (let i = 0, l = afterCommitCallbacks.length; i < l; i++) {
 			try {
-				afterCommitCallbacks[i]({next: uncommittedResolution, last: txnResolution, txnId});
-			} catch(error) {
+				afterCommitCallbacks[i]({
+					next: uncommittedResolution,
+					last: txnResolution,
+					txnId,
+				});
+			} catch (error) {
 				console.error('In aftercommit callback', error);
 			}
 		}
@@ -548,13 +662,11 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							hasUnresolvedTxns = true;
 							await result;
 						}
-						if (result === ABORT)
-							env.abortTxn();
-						else
-							env.commitTxn();
+						if (result === ABORT) env.abortTxn();
+						else env.commitTxn();
 						clearWriteTxn(parentTxn);
 						txnCallbacks[j] = result;
-					} catch(error) {
+					} catch (error) {
 						clearWriteTxn(parentTxn);
 						env.abortTxn();
 						txnError(error, txnCallbacks, j);
@@ -567,7 +679,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 							hasUnresolvedTxns = true;
 							await result;
 						}
-					} catch(error) {
+					} catch (error) {
 						txnError(error, txnCallbacks, j);
 					}
 				}
@@ -586,7 +698,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function finishBatch() {
 		let bytes = dynamicBytes;
 		let uint32 = bytes.uint32;
-		let nextPosition = (bytes.position + 1);
+		let nextPosition = bytes.position + 1;
 		let writeStatus;
 		if (nextPosition > newBufferThreshold) {
 			allocateInstructionBuffer(nextPosition);
@@ -595,7 +707,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			writeStatus = atomicStatus(uint32, bytes.position << 1, 2); // atomically write the end block
 		} else {
 			uint32[nextPosition << 1] = 0; // clear out the next slot
-			writeStatus = atomicStatus(uint32, (bytes.position++) << 1, 2); // atomically write the end block
+			writeStatus = atomicStatus(uint32, bytes.position++ << 1, 2); // atomically write the end block
 			nextResolution.flagPosition += 2;
 		}
 		if (writeStatus & WAITING_OPERATION) {
@@ -605,49 +717,57 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 	function clearWriteTxn(parentTxn) {
 		// TODO: We might actually want to track cursors in a write txn and manually
 		// close them.
-		if (writeTxn && writeTxn.refCount > 0)
-			writeTxn.isDone = true;
+		if (writeTxn && writeTxn.refCount > 0) writeTxn.isDone = true;
 		env.writeTxn = writeTxn = parentTxn || null;
 	}
 	Object.assign(LMDBStore.prototype, {
 		put(key, value, versionOrOptions, ifVersion) {
-			let callback, flags = 15, type = typeof versionOrOptions;
+			let callback,
+				flags = 15,
+				type = typeof versionOrOptions;
 			if (type == 'object' && versionOrOptions) {
-				if (versionOrOptions.noOverwrite)
-					flags |= 0x10;
-				if (versionOrOptions.noDupData)
-					flags |= 0x20;
-				if (versionOrOptions.instructedWrite)
-					flags |= 0x2000;
-				if (versionOrOptions.append)
-					flags |= 0x20000;
+				if (versionOrOptions.noOverwrite) flags |= 0x10;
+				if (versionOrOptions.noDupData) flags |= 0x20;
+				if (versionOrOptions.instructedWrite) flags |= 0x2000;
+				if (versionOrOptions.append) flags |= 0x20000;
 				if (versionOrOptions.ifVersion != undefined)
 					ifVersion = versionOrOptions.ifVersion;
 				versionOrOptions = versionOrOptions.version;
-				if (typeof ifVersion == 'function')
-					callback = ifVersion;
+				if (typeof ifVersion == 'function') callback = ifVersion;
 			} else if (type == 'function') {
 				callback = versionOrOptions;
 			}
-			return writeInstructions(flags, this, key, value, this.useVersions ? versionOrOptions || 0 : undefined, ifVersion)(callback);
+			return writeInstructions(
+				flags,
+				this,
+				key,
+				value,
+				this.useVersions ? versionOrOptions || 0 : undefined,
+				ifVersion,
+			)(callback);
 		},
 		remove(key, ifVersionOrValue, callback) {
 			let flags = 13;
 			let ifVersion, value;
 			if (ifVersionOrValue !== undefined) {
-				if (typeof ifVersionOrValue == 'function')
-					callback = ifVersionOrValue;
+				if (typeof ifVersionOrValue == 'function') callback = ifVersionOrValue;
 				else if (ifVersionOrValue === IF_EXISTS && !callback)
 					// we have a handler for IF_EXISTS in the callback handler for remove
 					callback = ifVersionOrValue;
-				else if (this.useVersions)
-					ifVersion = ifVersionOrValue;
+				else if (this.useVersions) ifVersion = ifVersionOrValue;
 				else {
 					flags = 14;
 					value = ifVersionOrValue;
 				}
 			}
-			return writeInstructions(flags, this, key, value, undefined, ifVersion)(callback);
+			return writeInstructions(
+				flags,
+				this,
+				key,
+				value,
+				undefined,
+				ifVersion,
+			)(callback);
 		},
 		del(key, options, callback) {
 			return this.remove(key, options, callback);
@@ -659,8 +779,7 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (!callback) {
 				return new Batch((operations, callback) => {
 					let promise = this.ifVersion(key, version, operations, options);
-					if (callback)
-						promise.then(callback);
+					if (callback) promise.then(callback);
 					return promise;
 				});
 			}
@@ -672,15 +791,19 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 				return SYNC_PROMISE_FAIL;
 			}
 			let flags = key === undefined || version === undefined ? 1 : 4;
-			if (options?.ifLessThan)
-				flags |= CONDITIONAL_VERSION_LESS_THAN;
-			if (options?.allowNotFound)
-				flags |= CONDITIONAL_ALLOW_NOTFOUND;
-			let finishStartWrite = writeInstructions(flags, this, key, undefined, undefined, version);
+			if (options?.ifLessThan) flags |= CONDITIONAL_VERSION_LESS_THAN;
+			if (options?.allowNotFound) flags |= CONDITIONAL_ALLOW_NOTFOUND;
+			let finishStartWrite = writeInstructions(
+				flags,
+				this,
+				key,
+				undefined,
+				undefined,
+				version,
+			);
 			let promise;
 			batchDepth += 2;
-			if (batchDepth > 2)
-				promise = finishStartWrite();
+			if (batchDepth > 2) promise = finishStartWrite();
 			else {
 				writeBatchStart = () => {
 					promise = finishStartWrite();
@@ -713,16 +836,28 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return this.ifVersion(undefined, undefined, callbackOrOperations);
 		},
 		drop(callback) {
-			return writeInstructions(1024 + 12, this, Buffer.from([]), undefined, undefined, undefined)(callback);
+			return writeInstructions(
+				1024 + 12,
+				this,
+				Buffer.from([]),
+				undefined,
+				undefined,
+				undefined,
+			)(callback);
 		},
 		clearAsync(callback) {
 			if (this.encoder) {
-				if (this.encoder.clearSharedData)
-					this.encoder.clearSharedData()
-				else if (this.encoder.structures)
-					this.encoder.structures = []
+				if (this.encoder.clearSharedData) this.encoder.clearSharedData();
+				else if (this.encoder.structures) this.encoder.structures = [];
 			}
-			return writeInstructions(12, this, Buffer.from([]), undefined, undefined, undefined)(callback);
+			return writeInstructions(
+				12,
+				this,
+				Buffer.from([]),
+				undefined,
+				undefined,
+				undefined,
+			)(callback);
 		},
 		_triggerError() {
 			finishBatch();
@@ -730,17 +865,26 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 
 		putSync(key, value, versionOrOptions, ifVersion) {
 			if (writeTxn)
-				return this.put(key, value, versionOrOptions, ifVersion) === SYNC_PROMISE_SUCCESS;
+				return (
+					this.put(key, value, versionOrOptions, ifVersion) ===
+					SYNC_PROMISE_SUCCESS
+				);
 			else
-				return this.transactionSync(() =>
-					this.put(key, value, versionOrOptions, ifVersion) === SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
+				return this.transactionSync(
+					() =>
+						this.put(key, value, versionOrOptions, ifVersion) ===
+						SYNC_PROMISE_SUCCESS,
+					overlappingSync ? 0x10002 : 2,
+				); // non-abortable, async flush
 		},
 		removeSync(key, ifVersionOrValue) {
 			if (writeTxn)
 				return this.remove(key, ifVersionOrValue) === SYNC_PROMISE_SUCCESS;
 			else
-				return this.transactionSync(() =>
-					this.remove(key, ifVersionOrValue) === SYNC_PROMISE_SUCCESS, overlappingSync? 0x10002 : 2); // non-abortable, async flush
+				return this.transactionSync(
+					() => this.remove(key, ifVersionOrValue) === SYNC_PROMISE_SUCCESS,
+					overlappingSync ? 0x10002 : 2,
+				); // non-abortable, async flush
 		},
 		transaction(callback) {
 			if (writeTxn && !nextTxnCallbacks.isExecuting) {
@@ -751,31 +895,35 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 		},
 		childTransaction(callback) {
 			if (useWritemap)
-				throw new Error('Child transactions are not supported in writemap mode');
+				throw new Error(
+					'Child transactions are not supported in writemap mode',
+				);
 			if (writeTxn) {
 				let parentTxn = writeTxn;
-				let thisTxn = env.writeTxn = writeTxn = { write: true };
+				let thisTxn = (env.writeTxn = writeTxn = { write: true });
 				env.beginTxn(1); // abortable
 				let callbackDone, finishTxn;
 				try {
-					return writeTxn.childResults = when(callback(), finishTxn = (result) => {
-						if (writeTxn !== thisTxn) // need to wait for child txn to finish asynchronously
-							return writeTxn.childResults.then(() => finishTxn(result));
-						callbackDone = true;
-						if (result === ABORT)
+					return (writeTxn.childResults = when(
+						callback(),
+						(finishTxn = (result) => {
+							if (writeTxn !== thisTxn)
+								// need to wait for child txn to finish asynchronously
+								return writeTxn.childResults.then(() => finishTxn(result));
+							callbackDone = true;
+							if (result === ABORT) env.abortTxn();
+							else env.commitTxn();
+							clearWriteTxn(parentTxn);
+							return result;
+						}),
+						(error) => {
 							env.abortTxn();
-						else
-							env.commitTxn();
-						clearWriteTxn(parentTxn);
-						return result;
-					}, (error) => {
-						env.abortTxn();
-						clearWriteTxn(parentTxn);
-						throw error;
-					});
-				} catch(error) {
-					if (!callbackDone)
-						env.abortTxn();
+							clearWriteTxn(parentTxn);
+							throw error;
+						},
+					));
+				} catch (error) {
+					if (!callbackDone) env.abortTxn();
 					clearWriteTxn(parentTxn);
 					throw error;
 				}
@@ -787,7 +935,8 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let txnCallbacks;
 			if (lastQueuedResolution.callbacks) {
 				txnCallbacks = lastQueuedResolution.callbacks;
-				txnIndex = txnCallbacks.push(asChild ? { callback, asChild } : callback) - 1;
+				txnIndex =
+					txnCallbacks.push(asChild ? { callback, asChild } : callback) - 1;
 			} else if (nextTxnCallbacks.isExecuting) {
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
 				txnCallbacks.results = commitPromise;
@@ -796,7 +945,10 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			} else {
 				if (writeTxn)
 					throw new Error('Can not enqueue transaction during write txn');
-				let finishWrite = writeInstructions(8 | (this.strictAsyncOrder ? 0x100000 : 0), this);
+				let finishWrite = writeInstructions(
+					8 | (this.strictAsyncOrder ? 0x100000 : 0),
+					this,
+				);
 				txnCallbacks = [asChild ? { callback, asChild } : callback];
 				lastQueuedResolution.callbacks = txnCallbacks;
 				lastQueuedResolution.id = Math.random();
@@ -805,19 +957,22 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			}
 			return txnCallbacks.results.then((results) => {
 				let result = txnCallbacks[txnIndex];
-				if (result === CALLBACK_THREW)
-					throw txnCallbacks.errors[txnIndex];
+				if (result === CALLBACK_THREW) throw txnCallbacks.errors[txnIndex];
 				return result;
 			});
 		},
 		transactionSync(callback, flags) {
 			if (writeTxn) {
-				if (!useWritemap && (flags == undefined || (flags & 1))) // can't use child transactions in write maps
+				if (!useWritemap && (flags == undefined || flags & 1))
+					// can't use child transactions in write maps
 					// already nested in a transaction, execute as child transaction (if possible) and return
 					return this.childTransaction(callback);
 				let result = callback(); // else just run in current transaction
 				if (result == ABORT && !abortedNonChildTransactionWarn) {
-					console.warn('Can not abort a transaction inside another transaction with ' + (this.cache ? 'caching enabled' : 'useWritemap enabled'));
+					console.warn(
+						'Can not abort a transaction inside another transaction with ' +
+							(this.cache ? 'caching enabled' : 'useWritemap enabled'),
+					);
 					abortedNonChildTransactionWarn = true;
 				}
 				return result;
@@ -825,34 +980,44 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			let callbackDone, finishTxn;
 			this.transactions++;
 			if (!env.address)
-				throw new Error('The database has been closed and you can not transact on it');
+				throw new Error(
+					'The database has been closed and you can not transact on it',
+				);
 			env.beginTxn(flags == undefined ? 3 : flags);
-			let thisTxn = writeTxn = env.writeTxn = { write: true };
+			let thisTxn = (writeTxn = env.writeTxn = { write: true });
 			try {
 				this.emit('begin-transaction');
-				return writeTxn.childResults = when(callback(), finishTxn = (result) => {
-					if (writeTxn !== thisTxn) // need to wait for child txn to finish asynchronously
-						return writeTxn.childResults.then(() => finishTxn(result));
-					try {
-						callbackDone = true;
-						if (result === ABORT)
-							env.abortTxn();
-						else {
-							env.commitTxn();
-							resetReadTxn();
+				return (writeTxn.childResults = when(
+					callback(),
+					(finishTxn = (result) => {
+						if (writeTxn !== thisTxn)
+							// need to wait for child txn to finish asynchronously
+							return writeTxn.childResults.then(() => finishTxn(result));
+						try {
+							callbackDone = true;
+							if (result === ABORT) env.abortTxn();
+							else {
+								env.commitTxn();
+								resetReadTxn();
+							}
+							return result;
+						} finally {
+							clearWriteTxn(null);
 						}
-						return result;
-					} finally {
+					}),
+					(error) => {
+						try {
+							env.abortTxn();
+						} catch (e) {}
 						clearWriteTxn(null);
-					}
-				}, (error) => {
-					try { env.abortTxn(); } catch(e) {}
-					clearWriteTxn(null);
-					throw error;
-				});
-			} catch(error) {
+						throw error;
+					},
+				));
+			} catch (error) {
 				if (!callbackDone)
-					try { env.abortTxn(); } catch(e) {}
+					try {
+						env.abortTxn();
+					} catch (e) {}
 				clearWriteTxn(null);
 				throw error;
 			}
@@ -864,33 +1029,50 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			return this.transactionSync(callback, 0);
 		},
 		// make the db a thenable/promise-like for when the last commit is committed
-		committed: committed = {
+		committed: (committed = {
 			then(onfulfilled, onrejected) {
-				if (commitPromise)
-					return commitPromise.then(onfulfilled, onrejected);
-				if (lastWritePromise) // always resolve to true
+				if (commitPromise) return commitPromise.then(onfulfilled, onrejected);
+				if (lastWritePromise)
+					// always resolve to true
 					return lastWritePromise.then(() => onfulfilled(true), onrejected);
 				return SYNC_PROMISE_SUCCESS.then(onfulfilled, onrejected);
-			}
-		},
+			},
+		}),
 		flushed: {
 			// make this a thenable for when the commit is flushed to disk
 			then(onfulfilled, onrejected) {
-				if (flushPromise)
-					flushPromise.hasCallbacks = true
-				return Promise.all([flushPromise || committed, lastSyncTxnFlush]).then(onfulfilled, onrejected);
-			}
+				if (flushPromise) flushPromise.hasCallbacks = true;
+				return Promise.all([flushPromise || committed, lastSyncTxnFlush]).then(
+					onfulfilled,
+					onrejected,
+				);
+			},
 		},
 		_endWrites(resolvedPromise, resolvedSyncPromise) {
-			this.put = this.remove = this.del = this.batch = this.removeSync = this.putSync = this.transactionAsync = this.drop = this.clearAsync = () => { throw new Error('Database is closed') };
+			this.put =
+				this.remove =
+				this.del =
+				this.batch =
+				this.removeSync =
+				this.putSync =
+				this.transactionAsync =
+				this.drop =
+				this.clearAsync =
+					() => {
+						throw new Error('Database is closed');
+					};
 			// wait for all txns to finish, checking again after the current txn is done
 			let finalPromise = flushPromise || commitPromise || lastWritePromise;
-			if (flushPromise)
-				flushPromise.hasCallbacks = true
+			if (flushPromise) flushPromise.hasCallbacks = true;
 			let finalSyncPromise = lastSyncTxnFlush;
-			if (finalPromise && resolvedPromise != finalPromise ||
-					finalSyncPromise && resolvedSyncPromise != finalSyncPromise) {
-				return Promise.all([finalPromise, finalSyncPromise]).then(() => this._endWrites(finalPromise, finalSyncPromise), () => this._endWrites(finalPromise, finalSyncPromise));
+			if (
+				(finalPromise && resolvedPromise != finalPromise) ||
+				(finalSyncPromise && resolvedSyncPromise != finalSyncPromise)
+			) {
+				return Promise.all([finalPromise, finalSyncPromise]).then(
+					() => this._endWrites(finalPromise, finalSyncPromise),
+					() => this._endWrites(finalPromise, finalSyncPromise),
+				);
 			}
 			Object.defineProperty(env, 'sync', { value: null });
 		},
@@ -898,11 +1080,14 @@ export function addWriteMethods(LMDBStore, { env, fixedBuffer, resetReadTxn, use
 			if (event == 'beforecommit') {
 				eventTurnBatching = true;
 				beforeCommitCallbacks.push(callback);
-			} else if (event == 'aftercommit')
-				afterCommitCallbacks.push(callback);
-			else
-				super.on(event, callback);
-		}
+			} else if (event == 'aftercommit') afterCommitCallbacks.push(callback);
+			else if (event == 'committed') {
+				this.getUserSharedBuffer('__committed__', Buffer.from([]), {
+					envKey: true,
+					callback,
+				});
+			} else super.on(event, callback);
+		},
 	});
 }
 
@@ -926,6 +1111,6 @@ class Batch extends Array {
 }
 export function asBinary(buffer) {
 	return {
-		['\x10binary-data\x02']: buffer
+		['\x10binary-data\x02']: buffer,
 	};
 }

@@ -498,17 +498,22 @@ void WriteWorker::Write() {
 		mdb_txn_set_callback(txn, txn_callback, this);
 	}
 	#endif
+	bool had_changes = false;
 	if (rc || resultCode) {
 		fprintf(stderr, "do_write error %u %u\n", rc, resultCode);
 		mdb_txn_abort(txn);
-	} else
+	} else {
 		rc = mdb_txn_commit(txn);
-	#ifdef MDB_OVERLAPPINGSYNC
-	#endif
 #ifdef MDB_EMPTY_TXN
-	if (rc == MDB_EMPTY_TXN)
-		rc = 0;
+		if (rc == MDB_EMPTY_TXN)
+			rc = 0;
+		else {
+			had_changes = true;
+		}
+#else
+		had_changes = true;
 #endif
+	}
 	if (!(*instructions & TXN_DELIMITER))
 		fprintf(stderr, "end write %p, next start %p NOT still valid %p\n", start, instructions, *instructions);
 	txn_callback(this, 1);
@@ -520,6 +525,11 @@ void WriteWorker::Write() {
 	}
 	*(instructions - 1) = txnId;
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
+	if (had_changes) {
+		ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+		std::string key("__committed__");
+		extended_env->notifyUserCallbacks(key);
+	}
 }
 
 void write_progress(napi_env env,

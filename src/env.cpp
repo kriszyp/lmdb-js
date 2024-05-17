@@ -670,7 +670,7 @@ int32_t EnvWrap::toSharedBuffer(MDB_env* env, uint32_t* keyBuffer,  MDB_val data
 	return -30001;
 }
 
-void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks);
+void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks, bool release);
 
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
@@ -679,12 +679,12 @@ void EnvWrap::closeEnv(bool hasLock) {
 	// unlock any record locks held by this thread/EnvWrap
 	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
 	pthread_mutex_lock(&extended_env->locksModificationLock);
-	auto it = extended_env->lock_callbacks.begin();
-	while (it != extended_env->lock_callbacks.end())
+	auto it = extended_env->lockCallbacks.begin();
+	while (it != extended_env->lockCallbacks.end())
 	{
 		if (it->second.ew == this) {
-			notifyCallbacks(it->second.callbacks);
-			it = extended_env->lock_callbacks.erase(it);
+			notifyCallbacks(it->second.callbacks, true);
+			it = extended_env->lockCallbacks.erase(it);
 		} else ++it;
 	}
 	pthread_mutex_unlock(&extended_env->locksModificationLock);
@@ -1053,9 +1053,11 @@ int32_t writeFFI(double ewPointer, uint64_t instructionAddress) {
 }
 ExtendedEnv::ExtendedEnv() {
 	pthread_mutex_init(&locksModificationLock, nullptr);
+	pthread_mutex_init(&userBuffersLock, nullptr);
 }
 ExtendedEnv::~ExtendedEnv() {
 	pthread_mutex_destroy(&locksModificationLock);
+	pthread_mutex_destroy(&userBuffersLock);
 }
 uint64_t ExtendedEnv::getNextTime() {
 	uint64_t next_time_int = next_time_double();
@@ -1066,7 +1068,7 @@ uint64_t ExtendedEnv::getLastTime() {
 	return bswap_64(lastTime);
 }
 NAPI_FUNCTION(getUserSharedBuffer) {
-	ARGS(3)
+	ARGS(4)
 	GET_INT64_ARG(0)
 	EnvWrap* ew = (EnvWrap*) i64;
 	uint32_t size;
@@ -1075,35 +1077,82 @@ NAPI_FUNCTION(getUserSharedBuffer) {
 	napi_get_arraybuffer_info(env, args[2], &default_buffer.mv_data, &default_buffer.mv_size);
 	ExtendedEnv* extend_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
-	// get an incrementer with the key, starting value, and convert pointer to an array buffer
-	MDB_val buffer = extend_env->getUserSharedBuffer(key, default_buffer, env);
+	napi_value as_bool;
+	napi_coerce_to_bool(env, args[3], &as_bool);
+	bool has_callback;
+	napi_get_value_bool(env, as_bool, &has_callback);
+
+	// get a shared buffer with the key, starting value, and convert pointer to an array buffer
+	MDB_val buffer = extend_env->getUserSharedBuffer(key, default_buffer, args[3], has_callback, env);
 	if (buffer.mv_data == default_buffer.mv_data) return args[2];
 	napi_value return_value;
 	napi_create_external_arraybuffer(env, buffer.mv_data, buffer.mv_size, cleanupLMDB, buffer.mv_data, &return_value);
 	return return_value;
 }
 
-MDB_val ExtendedEnv::getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_env env) {
-	pthread_mutex_lock(&locksModificationLock);
+MDB_val ExtendedEnv::getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_value func, bool has_callback, napi_env env) {
+	pthread_mutex_lock(&userBuffersLock);
 	auto resolution = userSharedBuffers.find(key);
-	bool found;
-	MDB_val user_shared_buffer;
 	if (resolution == userSharedBuffers.end()) {
-		userSharedBuffers.emplace(key, user_shared_buffer = default_buffer);
-	} else {
-		user_shared_buffer = resolution->second;
+		user_buffer_t user_shared_buffer;
+		user_shared_buffer.buffer = default_buffer;
+		resolution = userSharedBuffers.emplace(key, user_shared_buffer).first;
 	}
-	pthread_mutex_unlock(&locksModificationLock);
-	return user_shared_buffer;
+	if (has_callback) {
+		napi_threadsafe_function callback;
+		napi_value resource;
+		napi_status status;
+		status = napi_create_object(env, &resource);
+		napi_value resource_name;
+		status = napi_create_string_latin1(env, "user-callback", NAPI_AUTO_LENGTH, &resource_name);
+		napi_create_threadsafe_function(env, func, resource, resource_name, 0, 1, nullptr, nullptr, nullptr, nullptr,
+										&callback);
+		napi_unref_threadsafe_function(env, callback);
+		resolution->second.callbacks.push_back(callback);
+	}
+	MDB_val buffer = resolution->second.buffer;
+	pthread_mutex_unlock(&userBuffersLock);
+	return buffer;
 }
+/**
+ * Notify the user callbacks associated with a user buffer for a given key
+ * @param key
+ * @param env
+ * @return
+ */
+bool ExtendedEnv::notifyUserCallbacks(std::string key) {
+	pthread_mutex_lock(&userBuffersLock);
+	auto resolution = userSharedBuffers.find(key);
+	bool found = resolution != userSharedBuffers.end();
+	if (found) {
+		notifyCallbacks(resolution->second.callbacks, false);
+	}
+	pthread_mutex_unlock(&userBuffersLock);
+	return found;
+}
+
+NAPI_FUNCTION(notifyUserCallbacks) {
+	ARGS(2)
+	GET_INT64_ARG(0)
+	EnvWrap* ew = (EnvWrap*) i64;
+	uint32_t size;
+	GET_UINT32_ARG(size, 1);
+	ExtendedEnv* extend_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	std::string key(ew->keyBuffer, size);
+	bool found = extend_env->notifyUserCallbacks(key);
+	napi_value return_value;
+	napi_get_boolean(env, found, &return_value);
+	return return_value;
+}
+
 bool ExtendedEnv::attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew) {
 	pthread_mutex_lock(&locksModificationLock);
-	auto resolution = lock_callbacks.find(key);
+	auto resolution = lockCallbacks.find(key);
 	bool found;
-	if (resolution == lock_callbacks.end()) {
+	if (resolution == lockCallbacks.end()) {
 		callback_holder_t callbacks;
 		callbacks.ew = ew;
-		lock_callbacks.emplace(key, callbacks);
+		lockCallbacks.emplace(key, callbacks);
 		found = true;
 	} else {
 		if (has_callback) {
@@ -1133,31 +1182,36 @@ NAPI_FUNCTION(attemptLock) {
 	napi_coerce_to_bool(env, args[2], &as_bool);
 	bool has_callback;
 	napi_get_value_bool(env, as_bool, &has_callback);
-	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
-	bool result = lock_callbacks->attemptLock(key, env, args[2], has_callback, ew);
+	bool result = extended_env->attemptLock(key, env, args[2], has_callback, ew);
 	napi_value return_value;
 	napi_get_boolean(env, result, &return_value);
 	return return_value;
 }
 bool ExtendedEnv::unlock(std::string key, bool only_check) {
 	pthread_mutex_lock(&locksModificationLock);
-	auto resolution = lock_callbacks.find(key);
-	if (resolution == lock_callbacks.end()) {
+	auto resolution = lockCallbacks.find(key);
+	if (resolution == lockCallbacks.end()) {
 		pthread_mutex_unlock(&locksModificationLock);
 		return false;
 	}
 	if (!only_check) {
-		notifyCallbacks(resolution->second.callbacks);
-		lock_callbacks.erase(resolution);
+		notifyCallbacks(resolution->second.callbacks, true);
+		lockCallbacks.erase(resolution);
 	}
 	pthread_mutex_unlock(&locksModificationLock);
 	return true;
 }
-void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks) {
+void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks, bool release) {
 	for (auto callback = callbacks.begin(); callback != callbacks.end();) {
-		napi_call_threadsafe_function(*callback, nullptr, napi_tsfn_blocking);
-		napi_release_threadsafe_function(*callback, napi_tsfn_release);
+		napi_status status = napi_call_threadsafe_function(*callback, nullptr, napi_tsfn_blocking);
+		if (status == napi_closing) { // if the callback is closing, we may need to remove it from our list
+			if (!release) // if we are releasing, we don't need to remove it
+				callback = callbacks.erase(callback);
+			continue;
+		} else if (release)
+			napi_release_threadsafe_function(*callback, napi_tsfn_release);
 		callback++;
 	}
 }
@@ -1169,9 +1223,9 @@ NAPI_FUNCTION(unlock) {
 	GET_UINT32_ARG(size, 1);
 	bool only_check = false;
 	napi_get_value_bool(env, args[2], &only_check);
-	ExtendedEnv* lock_callbacks = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
-	bool result = lock_callbacks->unlock(key, only_check);
+	bool result = extended_env->unlock(key, only_check);
 	napi_value return_value;
 	napi_get_boolean(env, result, &return_value);
 	return return_value;
@@ -1256,6 +1310,7 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 	EXPORT_NAPI_FUNCTION("setTestRef", setTestRef);
 	EXPORT_NAPI_FUNCTION("getTestRef", getTestRef);
 	EXPORT_NAPI_FUNCTION("getUserSharedBuffer", getUserSharedBuffer);
+	EXPORT_NAPI_FUNCTION("notifyUserCallbacks", notifyUserCallbacks);
 	EXPORT_NAPI_FUNCTION("attemptLock", attemptLock);
 	EXPORT_NAPI_FUNCTION("unlock", unlock);
 	EXPORT_FUNCTION_ADDRESS("writePtr", writeFFI);
