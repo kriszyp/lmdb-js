@@ -5,7 +5,7 @@ jobs:
     #if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
       - name: Setup node
@@ -15,7 +15,7 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-      #- run: python3 -m pip install setuptools
+      - run: python3 -m pip install setuptools
       - run: npm install
       - run: npm run build
       #- run: npm run deno-test
