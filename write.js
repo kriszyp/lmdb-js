@@ -1082,7 +1082,7 @@ export function addWriteMethods(
 				beforeCommitCallbacks.push(callback);
 			} else if (event == 'aftercommit') afterCommitCallbacks.push(callback);
 			else if (event == 'committed') {
-				this.getUserSharedBuffer('__committed__', Buffer.from([]), {
+				this.getUserSharedBuffer('__committed__', new ArrayBuffer(0), {
 					envKey: true,
 					callback,
 				});

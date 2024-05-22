@@ -919,6 +919,13 @@ describe('lmdb-js', function () {
 					shared_buffer.notify();
 				});
 			});
+			it('committed event', async function () {
+				await new Promise((resolve) => {
+					db.put(5, { name: 'test committed event' });
+					db.on('committed', resolve);
+				});
+			});
+
 			it('prefetch', async function () {
 				await new Promise((resolve) => db.prefetch(['key1', 'key2'], resolve));
 				let key = '';
