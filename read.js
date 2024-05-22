@@ -394,23 +394,25 @@ export function addReadMethods(
 
 		getUserSharedBuffer(id, defaultBuffer, options) {
 			let keySize;
-			if (options?.envKey) keySize = this.writeKey(id, keyBytes, 0);
-			else {
-				keyBytes.dataView.setUint32(0, this.db.dbi);
-				keySize = this.writeKey(id, keyBytes, 4);
-			}
-			return getUserSharedBuffer(
+			const setKeyBytes = () => {
+				if (options?.envKey) keySize = this.writeKey(id, keyBytes, 0);
+				else {
+					keyBytes.dataView.setUint32(0, this.db.dbi);
+					keySize = this.writeKey(id, keyBytes, 4);
+				}
+			};
+			setKeyBytes();
+			let sharedBuffer = getUserSharedBuffer(
 				env.address,
 				keySize,
 				defaultBuffer,
 				options?.callback,
 			);
-		},
-
-		notifyUserCallbacks(id) {
-			keyBytes.dataView.setUint32(0, this.db.dbi);
-			let keySize = this.writeKey(id, keyBytes, 4);
-			return notifyUserCallbacks(env.address, keySize);
+			sharedBuffer.notify = () => {
+				setKeyBytes();
+				return notifyUserCallbacks(env.address, keySize);
+			};
+			return sharedBuffer;
 		},
 
 		attemptLock(id, version, callback) {

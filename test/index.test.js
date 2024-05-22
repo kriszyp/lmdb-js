@@ -907,12 +907,16 @@ describe('lmdb-js', function () {
 				let notified;
 				let shared_buffer;
 				await new Promise((resolve) => {
-					db.getUserSharedBuffer('with-callback', shared_number.buffer, {
-						callback() {
-							resolve();
+					shared_buffer = db.getUserSharedBuffer(
+						'with-callback',
+						shared_number.buffer,
+						{
+							callback() {
+								resolve();
+							},
 						},
-					});
-					db.notifyUserCallbacks('with-callback');
+					);
+					shared_buffer.notify();
 				});
 			});
 			it('prefetch', async function () {

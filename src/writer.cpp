@@ -527,8 +527,7 @@ void WriteWorker::Write() {
 	std::atomic_fetch_or((std::atomic<uint32_t>*) instructions, (uint32_t) TXN_COMMITTED);
 	if (had_changes) {
 		ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
-		std::string key("__committed__");
-		extended_env->notifyUserCallbacks(key);
+		extended_env->notifyUserCallbacks(std::string("__committed__"));
 	}
 }
 
