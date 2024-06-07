@@ -2659,52 +2659,6 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 
 const static int MAX_SCAN_SEGMENT = 50;
 
-
-static void test_reversal(MDB_cursor *mc) {
-	MDB_txn *txn = mc->mc_txn;
-	MDB_env *env = txn->mt_env;
-	MDB_cursor m2;
-	mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
-	MDB_val key, data;
-	MDB_page *np, *leaf;
-	txnid_t id, last_id = 0;
-	int rc;
-	rc = mdb_cursor_get(&m2, &key, NULL, MDB_LAST);
-	if (rc) {
-		if (rc == MDB_NOTFOUND) return;
-		fprintf(stderr, "Error getting last value %i\n", rc);
-	}
-	int tried_last = 0;
-	do {
-		rc = mdb_cursor_get(&m2, &key, NULL, MDB_PREV);
-		if (rc == MDB_NOTFOUND) {
-			//fprintf(stderr, "done \n");
-			return;
-		}
-		id = *((txnid_t *) key.mv_data);
-		np = m2.mc_pg[m2.mc_top];
-		leaf = NODEPTR(np, m2.mc_ki[m2.mc_top]);
-		if ((rc = mdb_node_read(&m2, leaf, &data)) != MDB_SUCCESS) {
-			fprintf(stderr, "Read node failure: %i\n", id);
-		}
-		if (last_id && id >= last_id) {
-			if (id == last_id) {
-				fprintf(stderr, "Duplicate error: %i\n", id);
-				if (!tried_last) {
-					tried_last = 1;
-					rc = mdb_cursor_get(&m2, &key, NULL, MDB_SET_RANGE);
-					if (rc) fprintf(stderr, "lookup error: %i\n", id);
-					id = *((txnid_t *) key.mv_data);
-					fprintf(stderr, "after Duplicate error: %i\n", id);
-				}
-			} else
-				fprintf(stderr, "Out of order error: %i > %i\n", id, last_id);
-		}
-		//fprintf(stderr, "key %i ", id);
-		last_id = id;
-	} while(!rc);
-	if (rc) fprintf(stderr, "Error getting prev value %i\n", rc);
-}
 /** Allocate page numbers and memory for writing.  Maintain me_freelist_start,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
  *
