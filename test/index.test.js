@@ -414,11 +414,18 @@ describe('lmdb-js', function () {
 				let promise;
 				let additive = 'this is more text';
 				for (let i = 0; i < 7; i++) additive += additive;
+				let read_txn = db.useReadTransaction();
 				for (let i = 0; i < 5000; i++) {
+					if (Math.random() < 0.3) {
+						read_txn.done();
+						read_txn = db.useReadTransaction();
+					}
 					let text = 'this is a test';
 					while (random() < 0.95) text += additive;
-					promise = db.put(i % 10, text);
-					if (i % 16 == 0) {
+					if (random() < 0.4) promise = db.remove(i % 40);
+					else promise = db.put(i % 40, text);
+
+					if (i % 2 == 0) {
 						await promise;
 					}
 				}
