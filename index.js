@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { setExternals, setNativeFunctions, Dbi } from './native.js';
+import { setExternals, setNativeFunctions, Dbi, version } from './native.js';
 import { arch, tmpdir, platform } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
@@ -22,7 +22,7 @@ import { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
 export { SKIP } from './util/RangeIterable.js';
 import { levelup } from './level.js';
-export { clearKeptObjects } from './native.js';
+export { clearKeptObjects, version } from './native.js';
 import { nativeAddon } from './native.js';
 export let { noop } = nativeAddon;
 export const TIMESTAMP_PLACEHOLDER = new Uint8Array([1,1,1,1,0,0,0,0]);
@@ -37,5 +37,5 @@ export const TransactionFlags = {
 	NO_SYNC_FLUSH: 0x10000,
 };
 export default {
-	open, openAsClass, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, IF_EXISTS, asBinary, levelup, TransactionFlags
+	open, openAsClass, getLastVersion, compareKey, keyValueToBuffer, bufferToKeyValue, ABORT, IF_EXISTS, asBinary, levelup, TransactionFlags, version
 };

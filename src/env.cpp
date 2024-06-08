@@ -1,4 +1,4 @@
-    #include "lmdb-js.h"
+#include "lmdb-js.h"
 #include <atomic>
 #ifndef _WIN32
 #include <sys/types.h>

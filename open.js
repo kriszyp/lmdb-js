@@ -1,5 +1,5 @@
 import { Compression, getAddress, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env,
-	Dbi, tmpdir, os, nativeAddon } from './native.js';
+	Dbi, tmpdir, os, nativeAddon, version } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -65,10 +65,15 @@ export function open(path, options) {
 	let extension = pathModule.extname(path);
 	let name = pathModule.basename(path, extension);
 	let is32Bit = arch().endsWith('32');
-	let remapChunks = options.remapChunks || options.encryptionKey || (options.mapSize ?
+	let isLegacyLMDB = version.patch < 90;
+	let remapChunks = (options.remapChunks || options.encryptionKey || (options.mapSize ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
+<<<<<<< HEAD
 		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
 	let userMapSize = options.mapSize;
+=======
+		is32Bit)) && !isLegacyLMDB; // without a known map size, we default to being able to handle large data correctly/well*/
+>>>>>>> ebb5046 (Adjust tests and settings for V1)
 	options = Object.assign({
 		noSubdir: Boolean(extension),
 		isRoot: true,
@@ -79,7 +84,7 @@ export function open(path, options) {
 		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
 		// make it super huge.
 		mapSize: remapChunks ? 0x10000000000000 :
-			0x20000, // Otherwise we start small with 128KB
+			isLegacyLMDB ? is32Bit ? 0x1000000 : 0x100000000 : 0x20000, // Otherwise we start small with 128KB
 		safeRestore: process.env.LMDB_RESTORE == 'safe',
 	}, options);
 	options.path = path;
@@ -114,7 +119,11 @@ export function open(path, options) {
 			defaultCompression = compression;
 		return compression;
 	}
-
+	if (isLegacyLMDB) {
+		// legacy LMDB, turn off these options
+		console.log('isLegacyLMDB')
+		Object.assign(options, { overlappingSync: false, remapChunks: false, safeRestore: false });
+	}
 	if (options.compression)
 		options.compression = makeCompression(options.compression);
 	let flags =

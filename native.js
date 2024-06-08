@@ -1,6 +1,7 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
+<<<<<<< HEAD
 export let Env,
 	Txn,
 	Dbi,
@@ -44,7 +45,8 @@ export let Env,
 	getUserSharedBuffer,
 	notifyUserCallbacks,
 	attemptLock,
-	unlock;
+	unlock,
+	version;
 path = pathModule;
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 export let nativeAddon = loadNAPI(dirName);
@@ -117,6 +119,7 @@ export function setNativeFunctions(externals) {
 	compress = externals.compress;
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
+	version = externals.version;
 	if (externals.tmpdir) tmpdir = externals.tmpdir;
 }
 export function setExternals(externals) {
