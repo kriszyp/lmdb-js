@@ -68,12 +68,8 @@ export function open(path, options) {
 	let isLegacyLMDB = version.patch < 90;
 	let remapChunks = (options.remapChunks || options.encryptionKey || (options.mapSize ?
 		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
-<<<<<<< HEAD
-		is32Bit); // without a known map size, we default to being able to handle large data correctly/well*/
-	let userMapSize = options.mapSize;
-=======
 		is32Bit)) && !isLegacyLMDB; // without a known map size, we default to being able to handle large data correctly/well*/
->>>>>>> ebb5046 (Adjust tests and settings for V1)
+	let userMapSize = options.mapSize;
 	options = Object.assign({
 		noSubdir: Boolean(extension),
 		isRoot: true,

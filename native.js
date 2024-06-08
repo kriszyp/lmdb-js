@@ -1,7 +1,6 @@
 import { dirname, join, default as pathModule } from 'path';
 import { fileURLToPath } from 'url';
 import loadNAPI from 'node-gyp-build-optional-packages';
-<<<<<<< HEAD
 export let Env,
 	Txn,
 	Dbi,

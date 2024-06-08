@@ -24,7 +24,7 @@ import {
 	keyValueToBuffer,
 	levelup,
 	open,
-  version
+  version,
 	TIMESTAMP_PLACEHOLDER,
 	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
