@@ -121,7 +121,6 @@ export function open(path, options) {
 	}
 	if (isLegacyLMDB) {
 		// legacy LMDB, turn off these options
-		console.log('isLegacyLMDB')
 		Object.assign(options, { overlappingSync: false, remapChunks: false, safeRestore: false });
 	}
 	if (options.compression)
