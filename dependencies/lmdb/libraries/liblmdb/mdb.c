@@ -1656,7 +1656,6 @@ struct MDB_env {
 #	define		me_freelist_written_end	me_pgstate.mf_written_end
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
 	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
-	int			me_freelist_state;		/**< state of writing freelist (if it is being deleted) */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
 	/** IDL of pages that became unused in a write txn */
 	MDB_IDL		me_free_pgs;
@@ -2660,52 +2659,6 @@ mdb_page_dirty(MDB_txn *txn, MDB_page *mp)
 
 const static int MAX_SCAN_SEGMENT = 50;
 
-
-static void test_reversal(MDB_cursor *mc) {
-	MDB_txn *txn = mc->mc_txn;
-	MDB_env *env = txn->mt_env;
-	MDB_cursor m2;
-	mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
-	MDB_val key, data;
-	MDB_page *np, *leaf;
-	txnid_t id, last_id = 0;
-	int rc;
-	rc = mdb_cursor_get(&m2, &key, NULL, MDB_LAST);
-	if (rc) {
-		if (rc == MDB_NOTFOUND) return;
-		fprintf(stderr, "Error getting last value %i\n", rc);
-	}
-	int tried_last = 0;
-	do {
-		rc = mdb_cursor_get(&m2, &key, NULL, MDB_PREV);
-		if (rc == MDB_NOTFOUND) {
-			//fprintf(stderr, "done \n");
-			return;
-		}
-		id = *((txnid_t *) key.mv_data);
-		np = m2.mc_pg[m2.mc_top];
-		leaf = NODEPTR(np, m2.mc_ki[m2.mc_top]);
-		if ((rc = mdb_node_read(&m2, leaf, &data)) != MDB_SUCCESS) {
-			fprintf(stderr, "Read node failure: %i\n", id);
-		}
-		if (last_id && id >= last_id) {
-			if (id == last_id) {
-				fprintf(stderr, "Duplicate error: %i\n", id);
-				if (!tried_last) {
-					tried_last = 1;
-					rc = mdb_cursor_get(&m2, &key, NULL, MDB_SET_RANGE);
-					if (rc) fprintf(stderr, "lookup error: %i\n", id);
-					id = *((txnid_t *) key.mv_data);
-					fprintf(stderr, "after Duplicate error: %i\n", id);
-				}
-			} else
-				fprintf(stderr, "Out of order error: %i > %i\n", id, last_id);
-		}
-		//fprintf(stderr, "key %i ", id);
-		last_id = id;
-	} while(!rc);
-	if (rc) fprintf(stderr, "Error getting prev value %i\n", rc);
-}
 /** Allocate page numbers and memory for writing.  Maintain me_freelist_start,
  * me_pghead and mt_next_pgno.  Set #MDB_TXN_ERROR on failure.
  *
@@ -2902,7 +2855,6 @@ restart_search:
 		load_more:
 		if (op == MDB_SET_RANGE) {	/* 1st iteration */
 			/* Prepare to fetch more and coalesce */
-			if (env->me_freelist_state & MDB_FREELIST_DELETING) break;
 			oldest = env->me_pgoldest;
 			mdb_cursor_init(&m2, txn, FREE_DBI, NULL);
 #if (MDB_DEVEL) & 2	/* "& 2" so MDB_DEVEL=1 won't hide bugs breaking freeDB */
@@ -2943,11 +2895,6 @@ restart_search:
 			}
 		} else {
 			// we are now iterating through the free list entries
-			// first, we need to check if we are in free-list deletion mode, in which case it is not safe to iterate backwards and we have to bail out
-			/*if (op == MDB_PREV && (env->me_freelist_state & MDB_FREELIST_DELETING)) {
-				//fprintf(stderr, "Skipping unsafe backwards iteration 1\n");
-				break;
-			}*/
 			// now iterate
 			rc = mdb_cursor_get(&m2, &key, NULL, op);
 			if (rc && rc != MDB_NOTFOUND)
@@ -2962,7 +2909,6 @@ restart_search:
 			if (last >= oldest || rc == MDB_NOTFOUND) {
 				env->me_freelist_end = oldest;
 				// no more newer transactions, go to the beginning of the range and look for older txns
-				//if (env->me_freelist_state & MDB_FREELIST_DELETING) break;
 				op = MDB_SET_RANGE;
 				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
 				last = env->me_freelist_start - 1;
@@ -2995,9 +2941,11 @@ restart_search:
 				env->me_freelist_start = 1;
 				break;
 			}
-			env->me_freelist_start = last;
 		}
 		if (op == MDB_PREV) {
+			// move to previous entry until we are before the last start time.
+			// note that occasionally this might take multiple iterations if we are in the middle of a
+			// rebalance and a node being moved
 			while (last >= env->me_freelist_start) {
 				// go to previous entry, through prev iteration
 				rc = mdb_cursor_get(&m2, &key, NULL, MDB_PREV);
@@ -4322,9 +4270,7 @@ mdb_freelist_save(MDB_txn *txn)
 				total_room = head_room = 0;
 				mdb_tassert(txn, head_id >= env->me_freelist_start);
 				//fprintf(stderr, "Deleting free list record %u\n", head_id);
-				//env->me_freelist_state = MDB_FREELIST_DELETING; // signal that we are deleting from the freelist, which means we can't iterate backwards
 				rc = mdb_cursor_del(&mc, 0);
-				env->me_freelist_state = 0;
 				if (rc) {
 					last_error = "Attempting to delete free-space record";
 					return rc;
@@ -9983,10 +9929,6 @@ mdb_node_add(MDB_cursor *mc, indx_t indx,
 			node_size = EVEN(node_size + sizeof(MDB_ovpage));
 			if ((ssize_t)node_size > room)
 				goto full;
-			if (mc->mc_dbi == 0) {
-				fprintf(stderr,"added new key %i ", *((txnid_t *) key->mv_data));
-				test_reversal(mc);
-			}
 			if ((rc = mdb_page_new(mc, P_OVERFLOW, ovpages, &ofp)))
 				return rc;
 			DPRINTF(("allocated overflow page %"Yu, ofp->mp_pgno));
@@ -10618,16 +10560,13 @@ mdb_node_move(MDB_cursor *csrc, MDB_cursor *cdst, int fromleft)
 
 	/* Add the node to the destination page.
 	 */
-	test_reversal(cdst);
 	rc = mdb_node_add(cdst, cdst->mc_ki[cdst->mc_top], &key, &data, srcpg, flags);
-	test_reversal(cdst);
 	if (rc != MDB_SUCCESS)
 		return rc;
 
 	/* Delete the node from the source page.
 	 */
 	mdb_node_del(csrc, key.mv_size);
-	test_reversal(cdst);
 
 	{
 		/* Adjust other cursors pointing to mp */
