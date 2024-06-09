@@ -44,7 +44,8 @@ export let Env,
 	getUserSharedBuffer,
 	notifyUserCallbacks,
 	attemptLock,
-	unlock;
+	unlock,
+	version;
 path = pathModule;
 let dirName = dirname(fileURLToPath(import.meta.url)).replace(/dist$/, '');
 export let nativeAddon = loadNAPI(dirName);
@@ -117,6 +118,7 @@ export function setNativeFunctions(externals) {
 	compress = externals.compress;
 	Cursor = externals.Cursor;
 	lmdbError = externals.lmdbError;
+	version = externals.version;
 	if (externals.tmpdir) tmpdir = externals.tmpdir;
 }
 export function setExternals(externals) {

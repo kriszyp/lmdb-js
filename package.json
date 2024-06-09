@@ -70,6 +70,7 @@
     "prebuildify": "prebuildify-platform-packages --debug --napi --target 18.17.1",
     "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish && node util/remove-optional-deps.cjs",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
+    "recompile-v1": "node-gyp clean && set LMDB_DATA_V1=true&& node-gyp configure && set LMDB_DATA_V1=true&& node-gyp build",
     "test": "mocha test/**.test.js --expose-gc --recursive",
     "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --unstable test/deno.ts",
     "test2": "mocha test/performance.js -u tdd",
@@ -80,7 +81,7 @@
   "dependencies": {
     "msgpackr": "^1.9.9",
     "node-addon-api": "^6.1.0",
-    "node-gyp-build-optional-packages": "5.1.1",
+    "node-gyp-build-optional-packages": "5.2.2",
     "ordered-binary": "^1.4.1",
     "weak-lru-cache": "^1.2.2"
   },

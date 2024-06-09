@@ -24,6 +24,7 @@ import {
 	keyValueToBuffer,
 	levelup,
 	open,
+  version,
 	TIMESTAMP_PLACEHOLDER,
 	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
@@ -72,14 +73,16 @@ describe('lmdb-js', function () {
 			maxFreeSpaceToRetain: 100,
 		}),
 	);
-	describe(
-		'Basic use with encryption',
-		basicTests({
-			compression: false,
-			encryptionKey: 'Use this key to encrypt the data',
-		}),
-	);
-	//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
+	if (version.patch >= 90) {
+    describe(
+  		'Basic use with encryption',
+  		basicTests({
+  			compression: false,
+  			encryptionKey: 'Use this key to encrypt the data',
+  		}),
+  	);
+	  //describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
+  }
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe(
 		'Basic use with ordered-binary',
@@ -351,6 +354,7 @@ describe('lmdb-js', function () {
 					should.equal(db.get('key1'), 'done!');
 				}
 			});
+      if (version.patch >= 90)
 			it('repeated ifNoExists', async function () {
 				let keyBase =
 					'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f';
@@ -1978,6 +1982,7 @@ describe('lmdb-js', function () {
 			await lastPromise;
 		});
 	});
+  if (version.patch >= 90) {
 	describe('Threads', function () {
 		this.timeout(1000000);
 		it('will run a group of threads with write transactions', function (done) {
@@ -2014,6 +2019,7 @@ describe('lmdb-js', function () {
 			});
 		});
 	});
+  }
 });
 
 function delay(ms) {
