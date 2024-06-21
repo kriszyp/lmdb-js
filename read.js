@@ -709,6 +709,7 @@ export function addReadMethods(
 					next() {
 						let keySize, lastSize;
 						if (cursorRenewId && (cursorRenewId != renewId || txn.isDone)) {
+							if (flags & 0x10000) flags = flags & ~0x10000; // turn off exclusive start when repositioning
 							resetCursor();
 							keySize = position(0);
 						}
