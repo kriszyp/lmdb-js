@@ -447,7 +447,14 @@ let db = open({ encoder: cbor });
 
 * `sharedStructuresKey` - Enables shared structures and sets the key where the shared structures will be stored.
 * `compression` - This enables compression. This can be set a truthy value to enable compression with default settings, or it can be an object with compression settings.
-* `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)). For long-running synchronous operations, it is recommended that you set the `clearKeptInterval` (a value of 100 is a good choice).
+* `cache` - Setting this to true enables caching. This can also be set to an object specifying the settings/options for the cache (see [settings for weak-lru-cache](https://github.com/kriszyp/weak-lru-cache#weaklrucacheoptions-constructor)). For long-running synchronous operations, it is recommended that you set the `clearKeptInterval` (a value of 100 is a good choice). The object cache is stored separately for each process/worker, so if you are running across multiple workers or processes, you will either need to use messaging to invalidate cached entries when they are updated on other threads, or alternately, you can configure the cache to always check that the in-memory object matches the stored object with the flag `validated` flag set to `true`. For example, if you are using the cache with the multiple workers, the easiest way to ensure objects are always up-to-date is:
+```js
+open({
+  cache: {
+    validated: true
+  }
+})
+```
 * `useVersions` - Set this to true if you will be setting version numbers on the entries in the database. Note that you can not change this flag once a database has entries in it (or they won't be read correctly).
 * `keyEncoding` - This indicates the encoding to use for the database keys, and can be `'uint32'` for unsigned 32-bit integers, `'binary'` for raw buffers/Uint8Arrays, and the default `'ordered-binary'` allows any JS primitive as a keys.
 * `keyEncoder` - Provide a custom key encoder.
