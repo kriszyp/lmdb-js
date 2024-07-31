@@ -941,8 +941,11 @@ export function addReadMethods(
 			let txnPromise;
 			if (this.isRoot) {
 				// if it is root, we need to abort and/or wait for transactions to finish
-				if (readTxn) readTxn.abort();
-				else readTxn = {};
+				if (readTxn) {
+					try {
+						readTxn.abort();
+					} catch (error) {}
+				} else readTxn = {};
 				readTxn.isDone = true;
 				Object.defineProperty(readTxn, 'renew', {
 					value: () => {
@@ -967,7 +970,9 @@ export function addReadMethods(
 						);
 					}
 					env.address = 0;
-					env.close();
+					try {
+						env.close();
+					} catch (error) {}
 				} else this.db.close();
 				this.status = 'closed';
 				if (callback) callback();
