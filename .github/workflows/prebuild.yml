@@ -61,14 +61,19 @@ jobs:
     #if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+      ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
     runs-on: ubuntu-20.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
       - run: |
-          cd $RUNNER_HOME/actions-runner/externals
-          mv node20 node20.bak
-          ln -s node16 node20
-      - uses: actions/checkout@v4
+          #export ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION=node16
+          #export ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION=node16
+          #cd $RUNNER_HOME/actions-runner/externals
+          #mv node20 node20.bak
+          #ln -s node16 node20
+      - uses: actions/checkout@v3
       - name: Setup node
         uses: actions/setup-node@v3
         with:
