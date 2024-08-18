@@ -181,7 +181,7 @@ export class RangeIterable {
 						throw error;
 					}
 				},
-				return() {
+				return(value) {
 					if (!this.done) {
 						RETURN_DONE.value = value;
 						this.done = true;
