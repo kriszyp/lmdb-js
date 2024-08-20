@@ -29,6 +29,7 @@ SYNC_PROMISE_SUCCESS.result = true;
 SYNC_PROMISE_FAIL.isSync = true;
 SYNC_PROMISE_FAIL.result = false;
 const PROMISE_SUCCESS = Promise.resolve(true);
+const arch = process.arch;
 export const ABORT = 4.452694326329068e-106; // random/unguessable numbers, which work across module/versions and native
 export const IF_EXISTS = 3.542694326329068e-103;
 const CALLBACK_THREW = {};
@@ -355,12 +356,19 @@ export function addWriteMethods(
 
 		return (callback) => {
 			if (writtenBatchDepth) {
-				// if we are in a batch, the transaction can't close, so we do the faster,
+				// If we are in a batch, the transaction can't close, so we do the faster,
 				// but non-deterministic updates, knowing that the write thread can
-				// just poll for the status change if we miss a status update
-				writeStatus = uint32[flagPosition];
-				uint32[flagPosition] = flags;
-				//writeStatus = Atomics.or(uint32, flagPosition, flags)
+				// just poll for the status change if we miss a status update.
+				// That is, if we are on x64 architecture...
+				if (arch === 'x64') {
+					writeStatus = uint32[flagPosition];
+					uint32[flagPosition] = flags;
+				} else {
+					// However, on ARM processors, apparently more radical memory reordering can occur
+					// so we need to use the slower atomic operation to ensure that a memory barrier is set
+					// and that the value pointer is actually written before the flag is updated
+					writeStatus = Atomics.or(uint32, flagPosition, flags);
+				}
 				if (writeBatchStart && !writeStatus) {
 					outstandingBatchCount += 1 + (valueSize >> 12);
 					if (outstandingBatchCount > batchStartThreshold) {
