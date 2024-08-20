@@ -38,7 +38,7 @@ static napi_ref testRef;
 static napi_env testRefEnv;
 void EnvWrap::cleanupEnvWraps(void* data) {
 	if (openEnvWraps)
-		free(openEnvWraps);
+		delete openEnvWraps;
 	else
 		fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
 	openEnvWraps = nullptr;
@@ -59,6 +59,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->writeWorker = nullptr;
 	this->readTxnRenewed = false;
     this->hasWrites = false;
+	this->lastReaderCheck = 0;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
 	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
