@@ -11,7 +11,7 @@ const RETURN_DONE = {
 if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
 }
-const NO_FLAGS = {};
+const NO_OPTIONS = {};
 
 export class RangeIterable {
 	constructor(sourceArray) {
@@ -22,7 +22,7 @@ export class RangeIterable {
 	map(func) {
 		let source = this;
 		let iterable = new RangeIterable();
-		iterable.iterate = (options = NO_FLAGS) => {
+		iterable.iterate = (options = NO_OPTIONS) => {
 			const { async } = options;
 			let iterator =
 				source[async ? Symbol.asyncIterator : Symbol.iterator](options);
@@ -135,13 +135,13 @@ export class RangeIterable {
 		};
 		return iterable;
 	}
-	[Symbol.asyncIterator](flags) {
-		if (flags) flags.async = true;
-		else flags = { async: true };
-		return (this.iterator = this.iterate(flags));
+	[Symbol.asyncIterator](options) {
+		if (options) options.async = true;
+		else options = { async: true };
+		return (this.iterator = this.iterate(options));
 	}
-	[Symbol.iterator](flags) {
-		return (this.iterator = this.iterate(flags));
+	[Symbol.iterator](options) {
+		return (this.iterator = this.iterate(options));
 	}
 	filter(func) {
 		let iterable = this.map((element) => {
@@ -170,7 +170,7 @@ export class RangeIterable {
 	}
 	concat(secondIterable) {
 		let concatIterable = new RangeIterable();
-		concatIterable.iterate = (options = NO_FLAGS) => {
+		concatIterable.iterate = (options = NO_OPTIONS) => {
 			let iterator = (this.iterator = this.iterate(options));
 			let isFirst = true;
 			function iteratorDone(result) {
@@ -248,7 +248,7 @@ export class RangeIterable {
 
 	flatMap(callback) {
 		let mappedIterable = new RangeIterable();
-		mappedIterable.iterate = (options = NO_FLAGS) => {
+		mappedIterable.iterate = (options = NO_OPTIONS) => {
 			let iterator = (this.iterator = this.iterate(options));
 			let isFirst = true;
 			let currentSubIterator;
@@ -369,7 +369,7 @@ export class RangeIterable {
 			return element;
 		});
 		let iterate = iterable.iterate;
-		iterable.iterate = (options = NO_FLAGS) => {
+		iterable.iterate = (options = NO_OPTIONS) => {
 			// we need to ensure the whole stack
 			// of iterables is set up to handle recoverable errors and continue iteration
 			return iterate({ ...options, continueOnRecoverableError: true });
