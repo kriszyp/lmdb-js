@@ -228,6 +228,22 @@ db.getRange({ start, end, offset: 10, limit: 10 }) // skip first 10 and get next
 
 If you want to get a true array from the range results, the `asArray` property will return the results as an array.
 
+### Catching Errors in Range Iteration
+With an array, `map` and `filter` callbacks are immediately executed, but with range iterators, they are executed during iteration, so if an error occurs during iteration, the error will be thrown when the iteration is attempted. It is also critical that when an iteration is finished, the cursor is closed, so by default, if an error occurs during iteration, the cursor will immediately be closed. However, if you want to catch errors that occur in `map` (and `flatMap`) callbacks during iteration, you can use the `mapCatch` method to catch errors that occur during iteration, and allow iteration to continue (without closing the cursor). For example:
+
+```js 
+let mapped = db.getRange({ start, end }).map(({ key, value }) => {
+	return thisMightThrowError(value);
+}).mapCatch((error) => {
+    // rather than letting the error terminate the iteration, we can catch it here and return a value to continue iterating:
+    return 'error occurred';
+})
+for (let entry of mapped) {
+...
+}
+```
+A `mapCatch` callback can return a value to continue iterating, or throw an error to terminate the iteration.
+
 #### Snapshots
 By default, a range iterator will use a database snapshot, using a single read transaction that remains open and gives a consistent view of the database at the time it was started, for the duration of iterating through the range. However, if the iteration will take place over a long period of time, keeping a read transaction open for a long time can interfere with LMDB's free space collection and reuse and increase the database size. If you will be using a long duration iterator, you can specify `snapshot: false` flag in the range options to indicate that it snapshotting is not necessary, and it can reset and renew read transactions while iterating, to allow LMDB to collect any space that was freed during iteration.
 

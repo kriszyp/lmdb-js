@@ -11,6 +11,7 @@ const RETURN_DONE = {
 if (!Symbol.asyncIterator) {
 	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
 }
+const NO_FLAGS = {};
 
 export class RangeIterable {
 	constructor(sourceArray) {
@@ -21,33 +22,36 @@ export class RangeIterable {
 	map(func) {
 		let source = this;
 		let iterable = new RangeIterable();
-		iterable.iterate = (async) => {
-			let iterator = source[async ? Symbol.asyncIterator : Symbol.iterator]();
+		iterable.iterate = (options = NO_FLAGS) => {
+			const { async } = options;
+			let iterator =
+				source[async ? Symbol.asyncIterator : Symbol.iterator](options);
 			if (!async) source.isSync = true;
-			let i = 0;
+			let i = -1;
 			return {
 				next(resolvedResult) {
-					try {
-						let result;
-						do {
-							let iteratorResult;
+					let result;
+					do {
+						let iteratorResult;
+						try {
 							if (resolvedResult) {
 								iteratorResult = resolvedResult;
 								resolvedResult = null; // don't go in this branch on next iteration
 							} else {
+								i++;
 								iteratorResult = iterator.next();
 								if (iteratorResult.then) {
 									if (!async) {
 										this.throw(
 											new Error(
-												'Can not synchronously iterate with asynchronous values',
+												'Can not synchronously iterate with promises as iterator results',
 											),
 										);
 									}
 									return iteratorResult.then(
 										(iteratorResult) => this.next(iteratorResult),
 										(error) => {
-											this.throw(error);
+											return this.throw(error);
 										},
 									);
 								}
@@ -57,31 +61,47 @@ export class RangeIterable {
 								if (iterable.onDone) iterable.onDone();
 								return iteratorResult;
 							}
-							result = func.call(source, iteratorResult.value, i++);
-							if (result && result.then && async) {
-								// if async, wait for promise to resolve before returning iterator result
-								return result.then(
-									(result) =>
-										result === SKIP
-											? this.next()
-											: {
-													value: result,
-												},
-									(error) => {
-										this.throw(error);
-									},
-								);
+							try {
+								result = func.call(source, iteratorResult.value, i);
+								if (result && result.then && async) {
+									// if async, wait for promise to resolve before returning iterator result
+									return result.then(
+										(result) =>
+											result === SKIP
+												? this.next()
+												: {
+														value: result,
+													},
+										(error) => {
+											if (options.continueOnRecoverableError)
+												error.continueIteration = true;
+											return this.throw(error);
+										},
+									);
+								}
+							} catch (error) {
+								// if the error came from the user function, we can potentially mark it for continuing iteration
+								if (options.continueOnRecoverableError)
+									error.continueIteration = true;
+								throw error; // throw to next catch to handle
 							}
-						} while (result === SKIP);
-						if (result === DONE) {
-							return this.return();
+						} catch (error) {
+							if (iterable.mapError) {
+								// if we have mapError, we can use it to further handle errors
+								try {
+									result = iterable.mapError(error, i);
+								} catch (mapError) {
+									return this.throw(mapError);
+								}
+							} else return this.throw(error);
 						}
-						return {
-							value: result,
-						};
-					} catch (error) {
-						this.throw(error);
+					} while (result === SKIP);
+					if (result === DONE) {
+						return this.return();
 					}
+					return {
+						value: result,
+					};
 				},
 				return(value) {
 					if (!this.done) {
@@ -93,6 +113,21 @@ export class RangeIterable {
 					return RETURN_DONE;
 				},
 				throw(error) {
+					if (error.continueIteration) {
+						// if it's a recoverable error, we can return or throw without closing the iterator
+						if (iterable.returnRecoverableErrors)
+							try {
+								return {
+									value: iterable.returnRecoverableErrors(error),
+								};
+							} catch (error) {
+								// if this throws, we need to go back to closing the iterator
+								this.return();
+								throw error;
+							}
+						if (options.continueOnRecoverableError) throw error; // throw without closing iterator
+					}
+					// else we are done with the iterator (and can throw)
 					this.return();
 					throw error;
 				},
@@ -100,20 +135,30 @@ export class RangeIterable {
 		};
 		return iterable;
 	}
-	[Symbol.asyncIterator]() {
-		return (this.iterator = this.iterate(true));
+	[Symbol.asyncIterator](flags) {
+		if (flags) flags.async = true;
+		else flags = { async: true };
+		return (this.iterator = this.iterate(flags));
 	}
-	[Symbol.iterator]() {
-		return (this.iterator = this.iterate());
+	[Symbol.iterator](flags) {
+		return (this.iterator = this.iterate(flags));
 	}
 	filter(func) {
-		return this.map((element) => {
+		let iterable = this.map((element) => {
 			let result = func(element);
 			// handle promise
 			if (result?.then)
 				return result.then((result) => (result ? element : SKIP));
 			else return result ? element : SKIP;
 		});
+		let iterate = iterable.iterate;
+		iterable.iterate = (options) => {
+			// explicitly prevent continue on recoverable error with filter
+			if (options.continueOnRecoverableError)
+				options.continueOnRecoverableError = false;
+			return iterate(options);
+		};
+		return iterable;
 	}
 
 	forEach(callback) {
@@ -125,21 +170,23 @@ export class RangeIterable {
 	}
 	concat(secondIterable) {
 		let concatIterable = new RangeIterable();
-		concatIterable.iterate = (async) => {
-			let iterator = (this.iterator = this.iterate(async));
+		concatIterable.iterate = (options = NO_FLAGS) => {
+			let iterator = (this.iterator = this.iterate(options));
 			let isFirst = true;
 			function iteratorDone(result) {
 				if (isFirst) {
 					try {
 						isFirst = false;
 						iterator =
-							secondIterable[async ? Symbol.asyncIterator : Symbol.iterator]();
+							secondIterable[
+								options.async ? Symbol.asyncIterator : Symbol.iterator
+							]();
 						result = iterator.next();
 						if (concatIterable.onDone) {
 							if (result.then) {
-								if (!async)
+								if (!options.async)
 									throw new Error(
-										'Can not synchronously iterate with asynchronous values',
+										'Can not synchronously iterate with promises as iterator results',
 									);
 								result.then(
 									(result) => {
@@ -167,7 +214,7 @@ export class RangeIterable {
 						if (result.then) {
 							if (!async)
 								throw new Error(
-									'Can synchronously iterate with asynchronous values',
+									'Can not synchronously iterate with promises as iterator results',
 								);
 							return result.then((result) => {
 								if (result.done) return iteratorDone(result);
@@ -177,8 +224,7 @@ export class RangeIterable {
 						if (result.done) return iteratorDone(result);
 						return result;
 					} catch (error) {
-						this.return();
-						throw error;
+						this.throw(error);
 					}
 				},
 				return(value) {
@@ -191,6 +237,7 @@ export class RangeIterable {
 					return RETURN_DONE;
 				},
 				throw(error) {
+					if (options.continueOnRecoverableError) throw error;
 					this.return();
 					throw error;
 				},
@@ -201,8 +248,8 @@ export class RangeIterable {
 
 	flatMap(callback) {
 		let mappedIterable = new RangeIterable();
-		mappedIterable.iterate = (async) => {
-			let iterator = (this.iterator = this.iterate(async));
+		mappedIterable.iterate = (options = NO_FLAGS) => {
+			let iterator = (this.iterator = this.iterate(options));
 			let isFirst = true;
 			let currentSubIterator;
 			return {
@@ -216,9 +263,9 @@ export class RangeIterable {
 									resolvedResult = undefined;
 								} else result = currentSubIterator.next();
 								if (result.then) {
-									if (!async)
+									if (!options.async)
 										throw new Error(
-											'Can not synchronously iterate with asynchronous values',
+											'Can not synchronously iterate with promises as iterator results',
 										);
 									return result.then((result) => this.next(result));
 								}
@@ -228,9 +275,9 @@ export class RangeIterable {
 							}
 							let result = resolvedResult ?? iterator.next();
 							if (result.then) {
-								if (!async)
+								if (!options.async)
 									throw new Error(
-										'Can not synchronously iterate with asynchronous values',
+										'Can not synchronously iterate with promises as iterator results',
 									);
 								currentSubIterator = undefined;
 								return result.then((result) => this.next(result));
@@ -239,32 +286,47 @@ export class RangeIterable {
 								if (mappedIterable.onDone) mappedIterable.onDone();
 								return result;
 							}
-							let value = callback(result.value);
-							if (value?.then) {
-								if (!async)
-									throw new Error(
-										'Can not synchronously iterate with asynchronous values',
+							try {
+								let value = callback(result.value);
+								if (value?.then) {
+									if (!options.async)
+										throw new Error(
+											'Can not synchronously iterate with promises as iterator results',
+										);
+									return value.then(
+										(value) => {
+											if (
+												Array.isArray(value) ||
+												value instanceof RangeIterable
+											) {
+												currentSubIterator = value[Symbol.iterator]();
+												return this.next();
+											} else {
+												currentSubIterator = null;
+												return { value };
+											}
+										},
+										(error) => {
+											if (options.continueOnRecoverableError)
+												error.continueIteration = true;
+											this.throw(error);
+										},
 									);
-								return value.then((value) => {
-									if (Array.isArray(value) || value instanceof RangeIterable) {
-										currentSubIterator = value[Symbol.iterator]();
-										return this.next();
-									} else {
-										currentSubIterator = null;
-										return { value };
-									}
-								});
-							}
-							if (Array.isArray(value) || value instanceof RangeIterable)
-								currentSubIterator = value[Symbol.iterator]();
-							else {
-								currentSubIterator = null;
-								return { value };
+								}
+								if (Array.isArray(value) || value instanceof RangeIterable)
+									currentSubIterator = value[Symbol.iterator]();
+								else {
+									currentSubIterator = null;
+									return { value };
+								}
+							} catch (error) {
+								if (options.continueOnRecoverableError)
+									error.continueIteration = true;
+								throw error;
 							}
 						} while (true);
 					} catch (error) {
-						this.return();
-						throw error;
+						this.throw(error);
 					}
 				},
 				return() {
@@ -272,10 +334,12 @@ export class RangeIterable {
 					if (currentSubIterator) currentSubIterator.return();
 					return iterator.return();
 				},
-				throw() {
+				throw(error) {
+					if (options.continueOnRecoverableError) throw error;
 					if (mappedIterable.onDone) mappedIterable.onDone();
-					if (currentSubIterator) currentSubIterator.throw();
-					return iterator.throw();
+					if (currentSubIterator) currentSubIterator.return();
+					this.return();
+					throw error;
 				},
 			};
 		};
@@ -283,7 +347,7 @@ export class RangeIterable {
 	}
 
 	slice(start, end) {
-		return this.map((element, i) => {
+		let iterable = this.map((element, i) => {
 			if (i < start) return SKIP;
 			if (i >= end) {
 				DONE.value = element;
@@ -291,6 +355,27 @@ export class RangeIterable {
 			}
 			return element;
 		});
+		iterable.mapError = (error, i) => {
+			if (i < start) return SKIP;
+			if (i >= end) {
+				return DONE;
+			}
+			throw error;
+		};
+		return iterable;
+	}
+	mapCatch(catch_callback) {
+		let iterable = this.map((element) => {
+			return element;
+		});
+		let iterate = iterable.iterate;
+		iterable.iterate = (options = NO_FLAGS) => {
+			// we need to ensure the whole stack
+			// of iterables is set up to handle recoverable errors and continue iteration
+			return iterate({ ...options, continueOnRecoverableError: true });
+		};
+		iterable.returnRecoverableErrors = catch_callback;
+		return iterable;
 	}
 	next() {
 		if (!this.iterator) this.iterator = this.iterate();
