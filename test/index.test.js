@@ -24,7 +24,7 @@ import {
 	keyValueToBuffer,
 	levelup,
 	open,
-  version,
+	version,
 	TIMESTAMP_PLACEHOLDER,
 	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
@@ -74,15 +74,15 @@ describe('lmdb-js', function () {
 		}),
 	);
 	if (version.patch >= 90) {
-    describe(
-  		'Basic use with encryption',
-  		basicTests({
-  			compression: false,
-  			encryptionKey: 'Use this key to encrypt the data',
-  		}),
-  	);
-	  //describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
-  }
+		describe(
+			'Basic use with encryption',
+			basicTests({
+				compression: false,
+				encryptionKey: 'Use this key to encrypt the data',
+			}),
+		);
+		//describe('Check encrypted data', basicTests({ compression: false, encryptionKey: 'Use this key to encrypt the data', checkLast: true }));
+	}
 	describe('Basic use with JSON', basicTests({ encoding: 'json' }));
 	describe(
 		'Basic use with ordered-binary',
@@ -354,22 +354,22 @@ describe('lmdb-js', function () {
 					should.equal(db.get('key1'), 'done!');
 				}
 			});
-      if (version.patch >= 90)
-			it('repeated ifNoExists', async function () {
-				let keyBase =
-					'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f';
-				let result;
-				for (let i = 0; i < 500; i++) {
-					let key = keyBase + (i % 100);
-					result = db.ifNoExists(keyBase + i, () => {
-						db.put(keyBase + i, 'changed', 7);
-					});
-					if (i % 100 == 0) {
-						await result;
+			if (version.patch >= 90)
+				it('repeated ifNoExists', async function () {
+					let keyBase =
+						'c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f-c333f4e0-f692-4bca-ad45-f805923f974f';
+					let result;
+					for (let i = 0; i < 500; i++) {
+						let key = keyBase + (i % 100);
+						result = db.ifNoExists(keyBase + i, () => {
+							db.put(keyBase + i, 'changed', 7);
+						});
+						if (i % 100 == 0) {
+							await result;
+						}
 					}
-				}
-				await result;
-			});
+					await result;
+				});
 			it('string with compression and versions', async function () {
 				let str = expand('Hello world!');
 				await db.put('key1', str, 53252);
@@ -1942,6 +1942,42 @@ describe('lmdb-js', function () {
 		});
 	});
 	describe('RangeIterable', function () {
+		it('map iterate', async function () {
+			let a = new RangeIterable([1, 2, 3]).map((v) => v * 2);
+			let finished = 0;
+			a.onDone = () => {
+				finished++;
+			};
+			let all = [];
+			for (let v of a) {
+				all.push(v);
+			}
+			all.should.deep.equal([2, 4, 6]);
+			expect(finished).to.be.equal(1);
+			all = [];
+			finished = 0;
+			let flatMapped = a.flatMap((v) => [v, v + 1]);
+			for (let v of flatMapped) {
+				all.push(v);
+			}
+			all.should.deep.equal([2, 3, 4, 5, 6, 7]);
+			expect(finished).to.be.equal(1);
+			let flatMappedWithCaughtError = a
+				.flatMap((v) => {
+					if (v === 4) throw new Error('test');
+					return [v, v + 1];
+				})
+				.mapCatch((error) => {
+					return { error: error.toString() };
+				});
+			all = [];
+			finished = 0;
+			for (let v of flatMappedWithCaughtError) {
+				all.push(v);
+			}
+			all.should.deep.equal([2, 3, { error: 'Error: test' }, 6, 7]);
+			expect(finished).to.be.equal(1);
+		});
 		it('concat and iterate', async function () {
 			let a = new RangeIterable([1, 2, 3]);
 			let b = new RangeIterable([4, 5, 6]);
@@ -1950,6 +1986,37 @@ describe('lmdb-js', function () {
 				all.push(v);
 			}
 			all.should.deep.equal([1, 2, 3, 4, 5, 6]);
+			let aMapped = a.map((v) => v * 2);
+			all = [];
+			for (let v of aMapped.concat(b)) {
+				all.push(v);
+			}
+			all.should.deep.equal([2, 4, 6, 4, 5, 6]);
+			let aMappedWithError = a.map((v) => {
+				if (v === 2) throw new Error('test');
+				return v * 2;
+			});
+			let finished = 0;
+			aMappedWithError.onDone = () => {
+				finished++;
+			};
+			expect(() => {
+				for (let v of aMappedWithError.concat(b)) {
+					all.push(v);
+				}
+			}).to.throw();
+			expect(finished).to.be.equal(1);
+			let aMappedWithCaught = aMappedWithError.mapCatch((error) => {
+				return { error: error.toString() };
+			});
+			all = [];
+			finished = 0;
+			for (let v of aMappedWithCaught.concat(b)) {
+				all.push(v);
+				if (v.error) expect(finished).to.be.equal(0); // should not be finished until after the error
+			}
+			all.should.deep.equal([2, { error: 'Error: test' }, 6, 4, 5, 6]);
+			expect(finished).to.be.equal(1);
 		});
 	});
 	describe('mixed keys', function () {
@@ -1982,44 +2049,44 @@ describe('lmdb-js', function () {
 			await lastPromise;
 		});
 	});
-  if (version.patch >= 90) {
-	describe('Threads', function () {
-		this.timeout(1000000);
-		it('will run a group of threads with write transactions', function (done) {
-			var child = spawn('node', [
-				fileURLToPath(new URL('./threads.cjs', import.meta.url)),
-			]);
-			child.stdout.on('data', function (data) {
-				console.log(data.toString());
-			});
-			child.stderr.on('data', function (data) {
-				console.error(data.toString());
-			});
-			child.on('close', function (code) {
-				code.should.equal(0);
-				done();
-			});
-		});
-	});
-	describe('Read-only Threads', function () {
-		this.timeout(1000000);
-		it('will run a group of threads with read-only transactions', function (done) {
-			var child = spawn('node', [
-				fileURLToPath(new URL('./readonly-threads.cjs', import.meta.url)),
-			]);
-			child.stdout.on('data', function (data) {
-				console.log(data.toString());
-			});
-			child.stderr.on('data', function (data) {
-				console.error(data.toString());
-			});
-			child.on('close', function (code) {
-				code.should.equal(0);
-				done();
+	if (version.patch >= 90) {
+		describe('Threads', function () {
+			this.timeout(1000000);
+			it('will run a group of threads with write transactions', function (done) {
+				var child = spawn('node', [
+					fileURLToPath(new URL('./threads.cjs', import.meta.url)),
+				]);
+				child.stdout.on('data', function (data) {
+					console.log(data.toString());
+				});
+				child.stderr.on('data', function (data) {
+					console.error(data.toString());
+				});
+				child.on('close', function (code) {
+					code.should.equal(0);
+					done();
+				});
 			});
 		});
-	});
-  }
+		describe('Read-only Threads', function () {
+			this.timeout(1000000);
+			it('will run a group of threads with read-only transactions', function (done) {
+				var child = spawn('node', [
+					fileURLToPath(new URL('./readonly-threads.cjs', import.meta.url)),
+				]);
+				child.stdout.on('data', function (data) {
+					console.log(data.toString());
+				});
+				child.stderr.on('data', function (data) {
+					console.error(data.toString());
+				});
+				child.on('close', function (code) {
+					code.should.equal(0);
+					done();
+				});
+			});
+		});
+	}
 });
 
 function delay(ms) {
