@@ -77,7 +77,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 	return cursor;
 }
 
-int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
+int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count, MDB_ID2L* size_index )
 {
 	MDB_IDL ids = *ids_ref;
 	unsigned x, i;
@@ -148,15 +148,21 @@ int mdb_midl_insert( MDB_IDL* ids_ref, MDB_ID id, int insertion_count )
 				if (next_count == 1) {
 					// we can safely add the new count to the empty space
 					ids[x - 1] = -count; // update the count
+					if (size_index) mdb_mid2l_insert(size_index, &(MDB_ID2){.mid = count, .mptr = id});
 					return 0;
 				}
 			}
 		}
 		if (next_count > 1) {
+			if (size_index) mdb_mid2l_insert(size_index, &(MDB_ID2){.mid = count, .mptr = id});
 			ids[x - 1] = -count; // update the count
 		} else if (ids[x - 1] == 0) {
+			count = 1 - insertion_count;
+			if (size_index) mdb_mid2l_insert(size_index, &(MDB_ID2){.mid = count, .mptr = id});
 			ids[x - 1] = -1 - insertion_count; // we can switch to length-2 block in place
 		} else {
+			count = 1 - insertion_count;
+			if (size_index) mdb_mid2l_insert(size_index, &(MDB_ID2){.mid = count, .mptr = id});
 			id = -1 - insertion_count; // switching a single entry to a block size of 2
 			goto insert_id;
 		}
@@ -526,31 +532,40 @@ unsigned mdb_mid2l_search( MDB_ID2L ids, MDB_ID id )
 	unsigned cursor = 1;
 	int val = 0;
 	unsigned n = (unsigned)ids[0].mid;
-
+	unsigned end = n;
+	binary_search:
 	while( 0 < n ) {
 		unsigned pivot = n >> 1;
 		cursor = base + pivot + 1;
 		val = CMP( id, ids[cursor].mid );
+		unsigned x = cursor;
+		// skip past empty and block length entries
+		while(((intptr_t)ids[x].mid) <= 0) {
+			if (++x > end) { // reached the end, go to lower half
+				n = pivot;
+				val = 0;
+				end = cursor;
+				goto binary_search;
+			}
+		}
+		val = CMP( id, ids[x].mid );
 
 		if( val < 0 ) {
 			n = pivot;
 
+			end = cursor;
 		} else if ( val > 0 ) {
 			base = cursor;
 			n -= pivot + 1;
-
 		} else {
 			return cursor;
 		}
 	}
-
-	if( val > 0 ) {
-		++cursor;
-	}
+	if( val > 0 && (intptr_t)ids[cursor].mid > 0) ++cursor;
 	return cursor;
 }
 
-int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
+int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id, bool allow_duplicates )
 {
 	unsigned x, i;
 
@@ -563,20 +578,16 @@ int mdb_mid2l_insert( MDB_ID2L ids, MDB_ID2 *id )
 
 	if ( x <= ids[0].mid && ids[x].mid == id->mid ) {
 		/* duplicate */
-		return -1;
-	}
-
-	if ( ids[0].mid >= MDB_IDL_UM_MAX ) {
+		if (!allow_duplicates) return -1;
+	} else if (ids[0].mid >= MDB_IDL_UM_MAX) {
 		/* too big */
 		return -2;
-
-	} else {
-		/* insert id */
-		ids[0].mid++;
-		for (i=(unsigned)ids[0].mid; i>x; i--)
-			ids[i] = ids[i-1];
-		ids[x] = *id;
 	}
+	/* insert id */
+	ids[0].mid++;
+	for (i=(unsigned)ids[0].mid; i>x; i--)
+		ids[i] = ids[i-1];
+	ids[x] = *id;
 
 	return 0;
 }
