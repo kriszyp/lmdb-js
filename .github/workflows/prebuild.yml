@@ -39,7 +39,7 @@ jobs:
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
     runs-on:
-      label: windows-arm64
+      labels: windows-arm64
       group: arm64
     steps:
       - uses: actions/checkout@v3
