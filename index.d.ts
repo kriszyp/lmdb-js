@@ -59,6 +59,13 @@ declare namespace lmdb {
 		getMany(ids: K[], callback?: (error: any, values: V[]) => any): Promise<(V | undefined)[]>
 
 		/**
+		 * @experimental Asynchronously get a value by id.
+		 * @param ids
+		 * @param callback
+		 */
+		getAsync(id: K, options?: GetOptions, callback?: (value: V) => any): Promise<(V | undefined)[]>
+
+		/**
 		* Store the provided value, using the provided id/key
 		* @param id The key for the entry
 		* @param value The value to store
@@ -439,6 +446,7 @@ declare namespace lmdb {
 		filter(callback: (entry: T) => any): RangeIterable<T>
 		[Symbol.iterator]() : Iterator<T>
 		forEach(callback: (entry: T) => any): void
+		mapError<U>(callback: (error: Error) => U): RangeIterable<U>
 		onDone?: Function
 		asArray: T[]
 	}

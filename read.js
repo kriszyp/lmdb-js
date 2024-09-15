@@ -818,7 +818,7 @@ export function addReadMethods(
 
 		getMany(keys, callback) {
 			// this is an asynchronous get for multiple keys. It actually works by prefetching asynchronously,
-			// allowing a separate to absorb the potentially largest cost: hard page faults (and disk I/O).
+			// allowing a separate thread/task to absorb the potentially largest cost: hard page faults (and disk I/O).
 			// And then we just do standard sync gets (to deserialized data) to fulfil the callback/promise
 			// once the prefetch occurs
 			let promise = callback
