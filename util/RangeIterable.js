@@ -86,12 +86,12 @@ export class RangeIterable {
 								throw error; // throw to next catch to handle
 							}
 						} catch (error) {
-							if (iterable.mapError) {
-								// if we have mapError, we can use it to further handle errors
+							if (iterable.handleError) {
+								// if we have handleError, we can use it to further handle errors
 								try {
-									result = iterable.mapError(error, i);
-								} catch (mapError) {
-									return this.throw(mapError);
+									result = iterable.handleError(error, i);
+								} catch (error2) {
+									return this.throw(error2);
 								}
 							} else return this.throw(error);
 						}
@@ -212,7 +212,7 @@ export class RangeIterable {
 					try {
 						let result = iterator.next();
 						if (result.then) {
-							if (!async)
+							if (!options.async)
 								throw new Error(
 									'Can not synchronously iterate with promises as iterator results',
 								);
@@ -355,7 +355,7 @@ export class RangeIterable {
 			}
 			return element;
 		});
-		iterable.mapError = (error, i) => {
+		iterable.handleError = (error, i) => {
 			if (i < start) return SKIP;
 			if (i >= end) {
 				return DONE;
@@ -364,7 +364,7 @@ export class RangeIterable {
 		};
 		return iterable;
 	}
-	mapCatch(catch_callback) {
+	mapError(catch_callback) {
 		let iterable = this.map((element) => {
 			return element;
 		});

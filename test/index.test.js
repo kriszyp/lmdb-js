@@ -1967,7 +1967,7 @@ describe('lmdb-js', function () {
 					if (v === 4) throw new Error('test');
 					return [v, v + 1];
 				})
-				.mapCatch((error) => {
+				.mapError((error) => {
 					return { error: error.toString() };
 				});
 			all = [];
@@ -2006,7 +2006,7 @@ describe('lmdb-js', function () {
 				}
 			}).to.throw();
 			expect(finished).to.be.equal(1);
-			let aMappedWithCaught = aMappedWithError.mapCatch((error) => {
+			let aMappedWithCaught = aMappedWithError.mapError((error) => {
 				return { error: error.toString() };
 			});
 			all = [];
