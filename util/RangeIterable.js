@@ -136,7 +136,7 @@ export class RangeIterable {
 		return iterable;
 	}
 	[Symbol.asyncIterator](options) {
-		if (options) options.async = true;
+		if (options) options = { ...options, async: true };
 		else options = { async: true };
 		return (this.iterator = this.iterate(options));
 	}
@@ -155,7 +155,7 @@ export class RangeIterable {
 		iterable.iterate = (options) => {
 			// explicitly prevent continue on recoverable error with filter
 			if (options.continueOnRecoverableError)
-				options.continueOnRecoverableError = false;
+				options = { ...options, continueOnRecoverableError: false };
 			return iterate(options);
 		};
 		return iterable;
