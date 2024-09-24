@@ -1111,7 +1111,7 @@ class Batch extends Array {
 		this.push({ type: 'del', key });
 	}
 	clear() {
-		this.splice(0, this.length);
+		this.length = 0;
 	}
 	write(callback) {
 		return this.callback(this, callback);
