@@ -273,7 +273,11 @@ export class RangeIterable {
 									return result;
 								}
 							}
-							let result = resolvedResult ?? iterator.next();
+							let result;
+							if (resolvedResult != undefined) {
+								result = resolvedResult;
+								resolvedResult = undefined;
+							} else result = iterator.next();
 							if (result.then) {
 								if (!options.async)
 									throw new Error(
