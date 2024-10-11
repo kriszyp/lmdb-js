@@ -49,6 +49,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 20
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: arm64
       - run: npm install
       - run: npm run build
       - run: npm test
