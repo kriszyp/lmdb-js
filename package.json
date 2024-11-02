@@ -1,7 +1,7 @@
 {
   "name": "lmdb",
   "author": "Kris Zyp",
-  "version": "3.1.4",
+  "version": "3.1.5",
   "description": "Simple, efficient, scalable, high-performance LMDB interface",
   "license": "MIT",
   "repository": {
@@ -62,12 +62,12 @@
     "build-js": "rollup -c",
     "prepare": "rollup -c",
     "before-publish": "rollup -c && cpy index.d.ts . --rename=index.d.cts && prebuildify-ci download && node util/set-optional-deps.cjs && npm run test",
-    "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --tag-libc --napi --platform-packages --target 18.17.1",
-    "prebuild-libc": "prebuildify-platform-packages --debug --tag-libc --target 20.0.0 || true && prebuildify-platform-packages --debug --platform-packages --tag-libc --target 18.17.1 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 18.17.1",
-    "prebuild-macos": "prebuildify-platform-packages --debug --target 20.0.0 && prebuildify-platform-packages --debug --platform-packages --target 18.17.1 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --target 18.17.1",
-    "prebuild-win32": "prebuildify-platform-packages --debug --target 20.0.0 && prebuildify-platform-packages --debug --target 18.17.1 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --debug --napi --platform-packages --target 18.17.1",
-    "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 18.17.1",
-    "prebuildify": "prebuildify-platform-packages --debug --napi --target 18.17.1",
+    "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --tag-libc --napi --platform-packages --target 22.11.0",
+    "prebuild-libc": "prebuildify-platform-packages --debug --tag-libc --target 23.11.0 || true && prebuildify-platform-packages --debug --platform-packages --tag-libc --target 22.11.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 22.11.0",
+    "prebuild-macos": "prebuildify-platform-packages --debug --target 23.11.0 && prebuildify-platform-packages --debug --platform-packages --target 22.11.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --target 22.11.0",
+    "prebuild-win32": "prebuildify-platform-packages --debug --target 23.11.0 && prebuildify-platform-packages --debug --target 22.11.0 && set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --debug --napi --platform-packages --target 22.11.0",
+    "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 22.11.0",
+    "prebuildify": "prebuildify-platform-packages --debug --napi --target 22.11.0",
     "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish && node util/remove-optional-deps.cjs",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "recompile-v1": "node-gyp clean && set LMDB_DATA_V1=true&& node-gyp configure && set LMDB_DATA_V1=true&& node-gyp build",
@@ -79,10 +79,10 @@
   },
   "gypfile": true,
   "dependencies": {
-    "msgpackr": "^1.10.2",
+    "msgpackr": "^1.11.2",
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.2.2",
-    "ordered-binary": "^1.5.2",
+    "ordered-binary": "^1.5.3",
     "weak-lru-cache": "^1.2.2"
   },
   "devDependencies": {
