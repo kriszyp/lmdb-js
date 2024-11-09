@@ -41,10 +41,14 @@ jobs:
     runs-on: windows-arm64
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - name: Install Visual Studio Tools
+        uses: crazy-max/ghaction-chocolatey@v3
         with:
-          python-version: "3.12"
+          args: choco install python visualstudio2022-workload-vctools -y
+#      - name: Set up Python 3.12
+#        uses: actions/setup-python@v5
+#        with:
+#          python-version: "3.12"
       - name: Setup node
         uses: actions/setup-node@v3
         with:
