@@ -22,7 +22,7 @@ jobs:
       - run: npm test
         if: ${{ !contains(github.ref, '-v1') }}
       - run: npm run prebuild-macos
-        if: startsWith(github.ref, 'refs/tags/')
+        # if: startsWith(github.ref, 'refs/tags/')
       - run: npm run prebuild-macos
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -44,7 +44,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 16
       - run: npm install
       - run: npm run build
       - run: npm test
