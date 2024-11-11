@@ -64,7 +64,7 @@
     "before-publish": "rollup -c && cpy index.d.ts . --rename=index.d.cts && prebuildify-ci download && node util/set-optional-deps.cjs && npm run test",
     "prebuild-libc-musl": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --tag-libc --napi --platform-packages --target 22.11.0",
     "prebuild-libc": "prebuildify-platform-packages --debug --tag-libc --target 20.18.0 || true && prebuildify-platform-packages --debug --platform-packages --tag-libc --target 22.11.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 22.11.0",
-    "prebuild-macos": "prebuildify-platform-packages --debug --target 20.18.0 && prebuildify-platform-packages --debug --platform-packages --target 22.11.0 && ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --target 22.11.0",
+    "prebuild-macos": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --target 20.18.0",
     "prebuild-win32": "set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --debug --napi --platform-packages --target 20.18.0",
     "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 22.11.0",
     "prebuildify": "prebuildify-platform-packages --debug --napi --target 22.11.0",
