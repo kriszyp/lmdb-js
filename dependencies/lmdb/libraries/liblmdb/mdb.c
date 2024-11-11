@@ -4365,11 +4365,16 @@ mdb_freelist_save(MDB_txn *txn)
 
 		} else {
 			if (reserved_space > entry_size) {
-				fprintf(stderr, "reserved_space to large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
+				fprintf(stderr, "reserved_space too large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
 			}
 			mdb_tassert(txn, reserved_space <= entry_size);
 			reserved_space -= reserved_len;
 			if (reserved_space < 0) reserved_space = 0;
+      if (reserved_space > 0) {
+        fprintf(stderr, "reserved_space larger than allocated entry %u %u %u %u %u %u", reserved_space, mop_len, entry_size, mop[reserved_space - 1], id, pglast);
+        // if we are not at the beginning of the block, we need to zero out the previous block length
+        // mop[reserved_space - 1] = 0; // maybe do this?
+      }
 			mdb_tassert(txn, reserved_space == 0);
 		}
 		if (reserved_space < mop_len) {
