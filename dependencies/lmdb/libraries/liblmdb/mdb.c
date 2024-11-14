@@ -2956,8 +2956,13 @@ restart_search:
 						break;
 					}
 					goto fail;
-				} else
-					mdb_cassert(&m2, key.mv_size > 0);
+				} else {
+          if (key.mv_size == 0) {
+            fprintf(stderr, "Invalid zero size key\n");
+            rc = MDB_BAD_VALSIZE;
+            goto fail;
+          }
+        }
 				last = *(txnid_t *) key.mv_data;
 			}
 			if (rc == MDB_NOTFOUND) break;
