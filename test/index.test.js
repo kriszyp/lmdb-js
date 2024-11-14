@@ -523,6 +523,25 @@ describe('lmdb-js', function () {
 				}
 				count.should.equal(1);
 			});
+			it('forEach and filter', async function () {
+				let data1 = { foo: 1, bar: true };
+				let data2 = { foo: 2, bar: false };
+				db.put('key1', data1);
+				db.put('key2', data2);
+				await db.committed;
+				let count = 0;
+				db.getRange({ start: 'key', end: 'keyz' }).forEach((entry) => {
+					count++;
+				});
+				count.should.equal(2);
+				count = 0;
+				db.getRange({ start: 'key', end: 'keyz' })
+					.filter(() => true)
+					.forEach((entry) => {
+						count++;
+					});
+				count.should.equal(2);
+			});
 			it('getRange with arrays', async function () {
 				const keys = [
 					['foo', 0],
