@@ -428,8 +428,7 @@ describe('lmdb-js', function () {
 					while (random() < 0.95) text += additive;
 					if (random() < 0.4) promise = db.remove(i % 40);
 					else promise = db.put(i % 40, text);
-
-					if (i % 2 == 0) {
+					if (random() < 0.05) {
 						await promise;
 					}
 				}
