@@ -4309,7 +4309,10 @@ mdb_freelist_save(MDB_txn *txn)
 		txn->mt_loose_pgs = NULL;
 		txn->mt_loose_count = 0;
 		mop = env->me_pghead;
-		mop_len = mop[0];
+    if (mop_len != mop[0]) {
+      fprintf(stderr, "New free-space list does not match added number of loose pages, truncating additional loose pages, original length: %u, loose page count: %u, new total free-space count: %u\n", mop_len, count, mop[0]);
+      mop[0] = mop_len;
+    }
 	}
 
 	/* Fill in the reserved me_pghead records.  Everything is finally
@@ -4359,15 +4362,8 @@ mdb_freelist_save(MDB_txn *txn)
 		ssize_t save2 = 0;
 		ssize_t save = mop[start];
 		if (reserved_len > entry_size) {
-			// full blocks
-			// we have an extra overlapping byte to handle block length prefix. But don't use it if it is a page number
-			// because it could be preceded by a block length prefix, instead zero it out
-			save2 = mop[start + 1];
-			if (save2 > 0) {
-				mop[start + 1] = 0;
-			}
+			// these are full blocks, so not expecting to reach the end of our iteration and the start of the mop
 			reserved_space = start + 1;
-
 		} else {
 			if (reserved_space > entry_size) {
 				fprintf(stderr, "reserved_space too large %u %u %u %u %u %u", reserved_space, mop_len, entry_size, start_written, id, pglast);
@@ -4376,13 +4372,20 @@ mdb_freelist_save(MDB_txn *txn)
 			reserved_space -= reserved_len;
 			if (reserved_space < 0) reserved_space = 0;
       if (reserved_space > 0) {
+        // this shouldn't happen, it means that somehow something was written to the freelist that was not accounted for
         fprintf(stderr, "reserved_space larger than allocated entry %u %u %u %u %u %u", reserved_space, mop_len, entry_size, mop[reserved_space - 1], id, pglast);
-        // if we are not at the beginning of the block, we need to zero out the previous block length
-        // mop[reserved_space - 1] = 0; // maybe do this?
       }
-			mdb_tassert(txn, reserved_space == 0);
 		}
-		if (reserved_space < mop_len) {
+    if (start > 0) {
+      // we have an extra overlapping byte to handle block length prefix. But don't use it if it is a page number
+      // because it could be preceded by a block length prefix, instead zero it out
+      save2 = mop[start + 1];
+      if (save2 > 0) {
+        mop[start + 1] = 0;
+      }
+    }
+
+    if (reserved_space < mop_len) {
 			mop_len = reserved_space;
 		}
 		char do_write = env->me_freelist_written_start <= reserved_end && env->me_freelist_written_end >= start;
