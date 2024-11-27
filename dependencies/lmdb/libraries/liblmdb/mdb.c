@@ -2820,7 +2820,11 @@ restart_search:
 						mop[--i] = 0;
 					if (env->me_freelist_written_start > i || !env->me_freelist_written_start)
 						env->me_freelist_written_start = i;
-					goto search_done;
+					if (pgno == 0) {
+						fprintf(stderr, "found freespace entry pointing to root block of size %u at %u\n", block_size, i);
+						mdb_midl_print(stderr, mop);
+					} else
+						goto search_done;
 				} else if (block_size < best_fit_size || best_fit_size == 0) {
 					best_fit_start = i - 1;
 					best_fit_size = block_size;
@@ -2957,12 +2961,12 @@ restart_search:
 					}
 					goto fail;
 				} else {
-          if (key.mv_size == 0) {
-            fprintf(stderr, "Invalid zero size key\n");
-            rc = MDB_BAD_VALSIZE;
-            goto fail;
-          }
-        }
+		  if (key.mv_size == 0) {
+			fprintf(stderr, "Invalid zero size key\n");
+			rc = MDB_BAD_VALSIZE;
+			goto fail;
+		  }
+		}
 				last = *(txnid_t *) key.mv_data;
 			}
 			if (rc == MDB_NOTFOUND) break;
@@ -3017,13 +3021,18 @@ restart_search:
 		// for sequential writing (faster)
 		env->me_freelist_position = -best_fit_start;
 		pgno = mop[++best_fit_start];
-		mop[best_fit_start] += num; // update position
-		if (env->me_freelist_written_end < best_fit_start) env->me_freelist_written_end = best_fit_start;
-		//fprintf(stderr, "\nusing best fit size %u of %u\n", num, best_fit_size);
-		//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
+		if (pgno == 0) {
+			fprintf(stderr, "found best-fit freespace entry pointing to root block of size %u at %u\n", best_fit_size, best_fit_start);
+			mdb_midl_print(stderr, mop);
+		} else {
+			mop[best_fit_start] += num; // update position
+			if (env->me_freelist_written_end < best_fit_start) env->me_freelist_written_end = best_fit_start;
+			//fprintf(stderr, "\nusing best fit size %u of %u\n", num, best_fit_size);
+			//env->me_block_size_cache[best_fit_size] = 0; // clear this out of the cache (TODO: could move it)
 
-		i = 1; // indicate that we found something
-		goto search_done;
+			i = 1; // indicate that we found something
+			goto search_done;
+		}
 	}
 	/* Use new pages from the map when nothing suitable in the freeDB */
 	i = 0;
@@ -3283,13 +3292,13 @@ fprintf(stderr, "mdb_page_touch error\n");
 
 #ifdef _WIN32
 uint64_t get_time64() {
-    return GetTickCount64();
+	return GetTickCount64();
 }
 #else
 uint64_t get_time64() {
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return time.tv_sec * 1000000000ll + time.tv_nsec;
+	struct timespec time;
+	clock_gettime(CLOCK_MONOTONIC, &time);
+	return time.tv_sec * 1000000000ll + time.tv_nsec;
 }
 #endif
 
