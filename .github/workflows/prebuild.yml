@@ -58,12 +58,12 @@ jobs:
         with:
           files: prebuild-win32.tar
   build-centos-7:
-    if: startsWith(github.ref, 'refs/tags/')
+    #if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # workaround for terrible checkout bug: https://github.com/actions/checkout/issues/1809
-      ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node16
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+      ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node18
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node18
     runs-on: ubuntu-20.04
     container: quay.io/pypa/manylinux2014_x86_64
     steps:
@@ -71,7 +71,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
       - run: yum update -y && yum install -y python3
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --insecure --output aarch64-linux-musl-cross.tgz
       - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
