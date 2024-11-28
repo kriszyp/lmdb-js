@@ -72,7 +72,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: yum update -y && yum install -y python3
+      #- run: yum update -y && yum install -y python3
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/aarch64-linux-musl-cross.tgz --insecure --output aarch64-linux-musl-cross.tgz
       - run: tar -xf aarch64-linux-musl-cross.tgz && pwd && ls
       - run: curl https://raw.githubusercontent.com/kriszyp/musl-bins/main/armv7l-linux-musleabihf-cross.tgz --insecure --output armv7l-linux-musleabihf-cross.tgz
