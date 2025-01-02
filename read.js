@@ -401,17 +401,23 @@ export function addReadMethods(
 					keySize = this.writeKey(id, keyBytes, 4);
 				}
 			};
-			setKeyBytes();
-			let sharedBuffer = getUserSharedBuffer(
-				env.address,
-				keySize,
-				defaultBuffer,
-				options?.callback,
-			);
-			sharedBuffer.notify = () => {
+			let userSharedBuffers =
+				this._userSharedBuffers || (this._userSharedBuffers = new Map());
+			let sharedBuffer = userSharedBuffers.get(id.toString());
+			if (!sharedBuffer) {
 				setKeyBytes();
-				return notifyUserCallbacks(env.address, keySize);
-			};
+				sharedBuffer = getUserSharedBuffer(
+					env.address,
+					keySize,
+					defaultBuffer,
+					options?.callback,
+				);
+				userSharedBuffers.set(id.toString(), sharedBuffer);
+				sharedBuffer.notify = () => {
+					setKeyBytes();
+					return notifyUserCallbacks(env.address, keySize);
+				};
+			}
 			return sharedBuffer;
 		},
 
