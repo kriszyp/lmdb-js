@@ -24,26 +24,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      
-      - name: Install Python dependencies
-        if: matrix.os == 'macos-latest'
-        run: python -m pip install setuptools
-
-      - name: Install latest node-gyp
-        if: matrix.os == 'macos-latest'
-        run: npm i -g node-gyp
 
       - name: Install dependencies
         if: |
-          !(matrix.node == 22 && matrix.os == 'windows-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest')
         run: npm install
 
       - name: Build
         if: |
-          !(matrix.node == 22 && matrix.os == 'windows-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest')
         run: npm run build
 
       - name: Run tests
         if: |
-          !(matrix.node == 22 && matrix.os == 'windows-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest')
         run: npm test
