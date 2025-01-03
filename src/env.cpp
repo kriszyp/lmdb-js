@@ -1074,6 +1074,11 @@ ExtendedEnv::ExtendedEnv() {
 	pthread_mutex_init(&userBuffersLock, nullptr);
 }
 ExtendedEnv::~ExtendedEnv() {
+	// delete all user shared buffers refs
+	for (auto &buffer : userSharedBuffers) {
+		napi_delete_reference(buffer.second.env, buffer.second.buffer_ref);
+	}
+
 	pthread_mutex_destroy(&locksModificationLock);
 	pthread_mutex_destroy(&userBuffersLock);
 }
@@ -1085,14 +1090,13 @@ uint64_t ExtendedEnv::getNextTime() {
 uint64_t ExtendedEnv::getLastTime() {
 	return bswap_64(lastTime);
 }
+
 NAPI_FUNCTION(getUserSharedBuffer) {
 	ARGS(4)
 	GET_INT64_ARG(0)
 	EnvWrap* ew = (EnvWrap*) i64;
 	uint32_t size;
 	GET_UINT32_ARG(size, 1);
-	MDB_val default_buffer;
-	napi_get_arraybuffer_info(env, args[2], &default_buffer.mv_data, &default_buffer.mv_size);
 	ExtendedEnv* extend_env = (ExtendedEnv*) mdb_env_get_userctx(ew->env);
 	std::string key(ew->keyBuffer, size);
 	napi_value as_bool;
@@ -1101,23 +1105,37 @@ NAPI_FUNCTION(getUserSharedBuffer) {
 	napi_get_value_bool(env, as_bool, &has_callback);
 
 	// get a shared buffer with the key, starting value, and convert pointer to an array buffer
-	MDB_val buffer = extend_env->getUserSharedBuffer(key, default_buffer, args[3], has_callback, env, ew);
-	if (buffer.mv_data == default_buffer.mv_data) return args[2];
-	napi_value return_value;
-	napi_create_external_arraybuffer(env, buffer.mv_data, buffer.mv_size, cleanupLMDB, buffer.mv_data, &return_value);
-	return return_value;
+	napi_value buffer = extend_env->getUserSharedBuffer(key, args[2], args[3], has_callback, env, ew);
+	return buffer;
 }
-/*napi_finalize cleanup_callback = [](napi_env env, void* data, void* buffer_info) {
-	// Data belongs to LMDB, we shouldn't free it here
-}*/
-MDB_val ExtendedEnv::getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_value func, bool has_callback, napi_env env, EnvWrap* ew) {
+
+napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_buffer, napi_value func, bool has_callback, napi_env env, EnvWrap* ew) {
 	pthread_mutex_lock(&userBuffersLock);
+
 	auto resolution = userSharedBuffers.find(key);
 	if (resolution == userSharedBuffers.end()) {
+		void* default_buffer_data;
+		size_t default_buffer_size;
+		napi_get_arraybuffer_info(env, default_buffer, &default_buffer_data, &default_buffer_size);
+
+		// Create a copy of the input buffer
+		char* copied_data = new char[default_buffer_size];
+		memcpy(copied_data, default_buffer_data, default_buffer_size);
+
+		napi_value buffer_value;
+		napi_create_external_arraybuffer(env, copied_data, default_buffer_size, nullptr, nullptr, &buffer_value);
+
+		napi_ref buffer_ref;
+		napi_create_reference(env, buffer_value, 1, &buffer_ref);
+
 		user_buffer_t user_shared_buffer;
-		user_shared_buffer.buffer = default_buffer;
+		user_shared_buffer.buffer_ref = buffer_ref;
+		user_shared_buffer.env = env;
 		resolution = userSharedBuffers.emplace(key, user_shared_buffer).first;
+	} else {
+		napi_reference_ref(env, resolution->second.buffer_ref, nullptr);
 	}
+
 	if (has_callback) {
 		napi_threadsafe_function callback;
 		napi_value resource;
@@ -1130,10 +1148,15 @@ MDB_val ExtendedEnv::getUserSharedBuffer(std::string key, MDB_val default_buffer
 		napi_unref_threadsafe_function(env, callback);
 		resolution->second.callbacks.push_back(callback);
 	}
-	MDB_val buffer = resolution->second.buffer;
+
+	napi_value buffer_value;
+	napi_get_reference_value(env, resolution->second.buffer_ref, &buffer_value);
+
 	pthread_mutex_unlock(&userBuffersLock);
-	return buffer;
+
+	return buffer_value;
 }
+
 /**
  * Notify the user callbacks associated with a user buffer for a given key
  * @param key
