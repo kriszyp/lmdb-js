@@ -1113,12 +1113,15 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		size_t default_buffer_size;
 		napi_get_arraybuffer_info(env, default_buffer, &default_buffer_data, &default_buffer_size);
 
-		std::shared_ptr<char> buffer_data = std::make_shared<char>(default_buffer_size);
-		memcpy(buffer_data.get(), default_buffer_data, default_buffer_size);
+		char* buffer_data = new char[default_buffer_size];
+		memcpy(buffer_data, default_buffer_data, default_buffer_size);
+
+		MDB_val buffer;
+		buffer.mv_data = (void*)buffer_data;
+		buffer.mv_size = default_buffer_size;
 
 		user_buffer_t user_shared_buffer;
-		user_shared_buffer.data = buffer_data;
-		user_shared_buffer.size = default_buffer_size;
+		user_shared_buffer.buffer = buffer;
 		resolution = userSharedBuffers.emplace(key, user_shared_buffer).first;
 	}
 
@@ -1135,10 +1138,8 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		resolution->second.callbacks.push_back(callback);
 	}
 
-	// Get the raw pointer from the shared_ptr
-	char* buffer_data = resolution->second.data.get();
 	napi_value buffer_value;
-	napi_create_external_arraybuffer(env, buffer_data, resolution->second.size, nullptr, nullptr, &buffer_value);
+	napi_create_external_arraybuffer(env, resolution->second.buffer.mv_data, resolution->second.buffer.mv_size, nullptr, nullptr, &buffer_value);
 
 	pthread_mutex_unlock(&userBuffersLock);
 

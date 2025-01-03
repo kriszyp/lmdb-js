@@ -282,13 +282,10 @@ typedef struct callback_holder_t {
 	EnvWrap* ew;
 	std::vector<napi_threadsafe_function> callbacks;
 } callback_holder_t;
-
 typedef struct user_buffer_t {
-	std::shared_ptr<char> data;
-	size_t size;
+	MDB_val buffer;
 	std::vector<napi_threadsafe_function> callbacks;
 } user_buffer_t;
-
 class ExtendedEnv {
 public:
 	ExtendedEnv();
