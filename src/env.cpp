@@ -1074,11 +1074,6 @@ ExtendedEnv::ExtendedEnv() {
 	pthread_mutex_init(&userBuffersLock, nullptr);
 }
 ExtendedEnv::~ExtendedEnv() {
-	// delete all user shared buffers refs
-	for (auto &buffer : userSharedBuffers) {
-		napi_delete_reference(buffer.second.env, buffer.second.buffer_ref);
-	}
-
 	pthread_mutex_destroy(&locksModificationLock);
 	pthread_mutex_destroy(&userBuffersLock);
 }
@@ -1118,22 +1113,13 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		size_t default_buffer_size;
 		napi_get_arraybuffer_info(env, default_buffer, &default_buffer_data, &default_buffer_size);
 
-		// Create a copy of the input buffer
-		char* copied_data = new char[default_buffer_size];
-		memcpy(copied_data, default_buffer_data, default_buffer_size);
-
-		napi_value buffer_value;
-		napi_create_external_arraybuffer(env, copied_data, default_buffer_size, nullptr, nullptr, &buffer_value);
-
-		napi_ref buffer_ref;
-		napi_create_reference(env, buffer_value, 1, &buffer_ref);
+		std::shared_ptr<char> buffer_data = std::make_shared<char>(default_buffer_size);
+		memcpy(buffer_data.get(), default_buffer_data, default_buffer_size);
 
 		user_buffer_t user_shared_buffer;
-		user_shared_buffer.buffer_ref = buffer_ref;
-		user_shared_buffer.env = env;
+		user_shared_buffer.data = buffer_data;
+		user_shared_buffer.size = default_buffer_size;
 		resolution = userSharedBuffers.emplace(key, user_shared_buffer).first;
-	} else {
-		napi_reference_ref(env, resolution->second.buffer_ref, nullptr);
 	}
 
 	if (has_callback) {
@@ -1149,8 +1135,10 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		resolution->second.callbacks.push_back(callback);
 	}
 
+	// Get the raw pointer from the shared_ptr
+	char* buffer_data = resolution->second.data.get();
 	napi_value buffer_value;
-	napi_get_reference_value(env, resolution->second.buffer_ref, &buffer_value);
+	napi_create_external_arraybuffer(env, buffer_data, resolution->second.size, nullptr, nullptr, &buffer_value);
 
 	pthread_mutex_unlock(&userBuffersLock);
 

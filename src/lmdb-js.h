@@ -284,8 +284,8 @@ typedef struct callback_holder_t {
 } callback_holder_t;
 
 typedef struct user_buffer_t {
-	napi_env env;
-	napi_ref buffer_ref;
+	std::shared_ptr<char> data;
+	size_t size;
 	std::vector<napi_threadsafe_function> callbacks;
 } user_buffer_t;
 
