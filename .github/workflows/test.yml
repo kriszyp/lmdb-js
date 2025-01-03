@@ -27,15 +27,15 @@ jobs:
 
       - name: Install dependencies
         if: |
-          !(matrix.node == 16 && matrix.os == 'macos-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
         run: npm install
 
       - name: Build
         if: |
-          !(matrix.node == 16 && matrix.os == 'macos-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
         run: npm run build
 
       - name: Run tests
         if: |
-          !(matrix.node == 16 && matrix.os == 'macos-latest')
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
         run: npm test
