@@ -914,21 +914,21 @@ describe('lmdb-js', function () {
 				});
 			it('getUserSharedBuffer', function () {
 				let defaultIncrementer = new BigInt64Array(1);
-				defaultIncrementer[0] = 4n;
 				let incrementer = new BigInt64Array(
 					db.getUserSharedBuffer('incrementer-test', defaultIncrementer.buffer),
 				);
+				incrementer[0] = 4n;
 				should.equal(Atomics.add(incrementer, 0, 1n), 4n);
 				let secondDefaultIncrementer = new BigInt64Array(1); //should not get used
-				incrementer = new BigInt64Array( // should return same incrementer
+				let nextIncrementer = new BigInt64Array( // should return same incrementer
 					db.getUserSharedBuffer(
 						'incrementer-test',
 						secondDefaultIncrementer.buffer,
 					),
 				);
-				should.equal(defaultIncrementer[0], 5n);
-				should.equal(Atomics.add(incrementer, 0, 1n), 5n);
-				should.equal(defaultIncrementer[0], 6n);
+				should.equal(incrementer[0], 5n);
+				should.equal(Atomics.add(nextIncrementer, 0, 1n), 5n);
+				should.equal(incrementer[0], 6n);
 				should.equal(secondDefaultIncrementer[0], 0n);
 			});
 			it('getUserSharedBuffer with callbacks', async function () {
