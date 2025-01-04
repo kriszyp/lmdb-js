@@ -1,0 +1,41 @@
+name: Tests
+
+on: [pull_request]
+
+concurrency:
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  test:
+    name: Test on Node.js ${{ matrix.node }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [16, 18, 20, 22]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install dependencies
+        if: |
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
+        run: npm install
+
+      - name: Build
+        if: |
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
+        run: npm run build
+
+      - name: Run tests
+        if: |
+          !(matrix.node == 16 && matrix.os == 'macos-latest') || (matrix.node == 22 && matrix.os == 'windows-latest'))
+        run: npm test

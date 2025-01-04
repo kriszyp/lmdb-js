@@ -298,7 +298,7 @@ public:
 	pthread_mutex_t userBuffersLock;
 	uint64_t lastTime; // actually encoded as double
 	uint64_t previousTime; // actually encoded as double
-	MDB_val getUserSharedBuffer(std::string key, MDB_val default_buffer, napi_value func, bool has_callback, napi_env env, EnvWrap* ew);
+	napi_value getUserSharedBuffer(std::string key, napi_value default_buffer, napi_value func, bool has_callback, napi_env env, EnvWrap* ew);
 	bool notifyUserCallbacks(std::string key);
 	bool attemptLock(std::string key, napi_env env, napi_value func, bool has_callback, EnvWrap* ew);
 	bool unlock(std::string key, bool only_check);
