@@ -10357,6 +10357,11 @@ void
 mdb_cursor_close(MDB_cursor *mc)
 {
 	if (mc) {
+		if (!mc->mc_txn || !mc->mc_txn->mt_env) {
+	        fprintf(stderr, "cursor_close: mc->mc_txn or mc->mc_txn->mt_env is NULL, ensure that cursors are closed before the transaction is closed\n");
+			free(mc);
+			return;
+        }
 		MDB_CURSOR_UNREF(mc, 0);
 	}
 	if (mc && !mc->mc_backup) {
