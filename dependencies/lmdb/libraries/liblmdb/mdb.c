@@ -2886,7 +2886,19 @@ restart_search:
 				rc = mdb_cursor_get(&m2, &key, NULL, op);
 				op = MDB_NEXT; // now iterate forwards through the txns of free list
 				last = *(txnid_t *) key.mv_data;
-			} else {
+			} else if (!(MDB_USE_NEW_FREESPACE & env->me_flags)) {
+				if (env->me_freelist_end) { // if we are only reading forward, and we have already read the latest transactions, then nothing to do
+					break;
+				} else {
+					env->me_freelist_end = last = 1;
+					env->me_freelist_start = 1;
+					key.mv_data = &last; // start at the beginning of the freelist and read oldest txns first
+					key.mv_size = sizeof(last);
+					rc = mdb_cursor_get(&m2, &key, NULL, op);
+					op = MDB_NEXT; // now iterate forwards through the txns of free list
+					last = *(txnid_t *) key.mv_data;
+				}
+            } else {
 				// no more transactions to read going forward through newest, we are now going
 				// to switch to reading older transactions. However, first we set the op
 				// to forward to ensure that we fall into the switch into previous iterations below
@@ -2912,6 +2924,9 @@ restart_search:
 			// iterating forward from the freelist range to find newer transactions
 			if (last >= oldest || rc == MDB_NOTFOUND) {
 				env->me_freelist_end = oldest;
+				if (!(MDB_USE_NEW_FREESPACE & env->me_flags)) {
+                    break;
+                }
 				// no more newer transactions, go to the beginning of the range and look for older txns
 				op = MDB_SET_RANGE;
 				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
