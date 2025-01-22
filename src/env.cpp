@@ -1125,8 +1125,8 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		resolution = userSharedBuffers.emplace(key, user_shared_buffer).first;
 	}
 
+	napi_threadsafe_function callback = nullptr;
 	if (has_callback) {
-		napi_threadsafe_function callback;
 		napi_value resource;
 		napi_status status;
 		status = napi_create_object(env, &resource);
@@ -1138,11 +1138,38 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 		resolution->second.callbacks.push_back(callback);
 	}
 
+	// Create a struct to hold the callback info
+	struct CallbackInfo {
+		napi_threadsafe_function callback;
+		std::vector<napi_threadsafe_function>* callbacks;
+	};
+
+	auto* cb_info = new CallbackInfo{callback, &resolution->second.callbacks};
+
 	napi_value buffer_value;
-	napi_create_external_arraybuffer(env, resolution->second.buffer.mv_data, resolution->second.buffer.mv_size, nullptr, nullptr, &buffer_value);
+	napi_create_external_arraybuffer(
+		env,
+		resolution->second.buffer.mv_data,
+		resolution->second.buffer.mv_size,
+		// Finalizer callback
+		[](napi_env env, void* data, void* hint) {
+			auto* cb_info = static_cast<CallbackInfo*>(hint);
+			if (cb_info->callback) {
+				// Remove this callback from the vector
+				auto& callbacks = *cb_info->callbacks;
+				callbacks.erase(
+					std::remove(callbacks.begin(), callbacks.end(), cb_info->callback),
+					callbacks.end()
+				);
+				napi_release_threadsafe_function(cb_info->callback, napi_tsfn_release);
+			}
+			delete cb_info;
+		},
+		cb_info,
+		&buffer_value
+	);
 
 	pthread_mutex_unlock(&userBuffersLock);
-
 	return buffer_value;
 }
 
