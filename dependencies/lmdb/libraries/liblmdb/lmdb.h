@@ -378,6 +378,7 @@ typedef void (MDB_sum_func)(const MDB_val *src, MDB_val *dst, const MDB_val *key
 #define MDB_SAFE_RESTORE	0x800
 	/** Track metrics for this env */
 #define MDB_TRACK_METRICS	0x400
+	/** Use the newest free space first */
 #define MDB_USE_NEW_FREESPACE	0x200
 	/** Use the overlapping sync strategy */
 #define MDB_OVERLAPPINGSYNC_SYNC = 0x02
