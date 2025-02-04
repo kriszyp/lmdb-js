@@ -3007,8 +3007,10 @@ restart_search:
 		/* Merge in descending sorted order */
 		//fprintf(stderr, "Merging %u: ", last);
 		//mdb_midl_print(stderr, idl);
-		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0)
-			goto fail;
+		if ((rc = mdb_midl_xmerge(&mop, idl)) != 0) {
+			if (rc == -1) rc = 0; // ignore duplicate value errors and just ignore the duplicates
+			else goto fail;
+		}
 		if (mop != env->me_pghead) env->me_pghead = mop;
 		mop_len = mop[0];
 	}
