@@ -4438,9 +4438,10 @@ mdb_freelist_save(MDB_txn *txn)
 	}
 	// now check the updated freelist entries
 	if (rc == 0) {
+		MDB_IDL test_idl = mdb_midl_alloc(16);
 		key.mv_size = sizeof(start_written);
 		key.mv_data = &start_written;
-		rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET);
+		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET);
 		size_t last = 0;
 		while (rc == 0) {
 			if (key.mv_size != sizeof(start_written)) {
@@ -4450,10 +4451,18 @@ mdb_freelist_save(MDB_txn *txn)
 				rc = MDB_BAD_TXN;
 				break;
 			}
+			if (mdb_midl_xmerge(&test_idl, (MDB_ID *) data.mv_data)) {
+				fprintf(stderr, "freelist duplicates/overlaps in free list\n", start_written);
+				last_error = malloc(100);
+				sprintf(last_error, "freelist entry %u not in new free list\n", start_written);
+				rc = MDB_BAD_TXN;
+				break;
+			}
 			last = *(txnid_t *) key.mv_data;
 			if (last >= env->me_freelist_end) break;
-			rc = mdb_cursor_get(&mc, &key, NULL, MDB_NEXT);
+			rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT);
 		}
+		mdb_midl_free(test_idl);
 		if (rc == MDB_NOTFOUND) rc = 0;
 	}
 
