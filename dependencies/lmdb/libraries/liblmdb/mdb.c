@@ -4451,10 +4451,32 @@ mdb_freelist_save(MDB_txn *txn)
 				rc = MDB_BAD_TXN;
 				break;
 			}
-			if (mdb_midl_xmerge(&test_idl, (MDB_ID *) data.mv_data)) {
-				fprintf(stderr, "freelist duplicates/overlaps in free list\n", start_written);
+			if (rc = mdb_midl_xmerge(&test_idl, (MDB_ID *) data.mv_data)) {
+				last = *(txnid_t *) key.mv_data;
+				fprintf(stderr, "freelist duplicates/overlaps in free list %u %u %u %u %u %u %i %i %i %i %i %u %u\n", last, data.mv_size, start_written,
+						pglast, env->me_freelist_start, env->me_freelist_end,
+						freelist_written_start, env->me_freelist_written_start, freelist_written_end, env->me_freelist_written_end,
+						i, fl_writes[0], fl_writes[1]);
+				fprintf(stderr, "conflicting freelist to save:\n");
+				mdb_midl_print(stderr, test_idl);
+				fprintf(stderr, "from the original freelist to save:\n");
+				mdb_midl_print(stderr, pghead);
+				fprintf(stderr, "All the entries that we are saving to the freelist:\n");
+				// print out all the entries that we are saving to the freelist
+				test_idl = mdb_midl_alloc(16);
+				key.mv_size = sizeof(start_written);
+				key.mv_data = &start_written;
+				rc = mdb_cursor_get(&mc, &key, &data, MDB_SET);
+				size_t last = 0;
+				while (rc == 0) {
+					last = *(txnid_t *) key.mv_data;
+					fprintf(stderr, "entry %u:\n", last);
+					mdb_midl_print(stderr, (MDB_ID *) data.mv_data);
+					if (last >= env->me_freelist_end) break;
+					rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT);
+				}
 				last_error = malloc(100);
-				sprintf(last_error, "freelist entry %u not in new free list\n", start_written);
+				sprintf(last_error, "freelist entry %u had bad/duplicate entries, error code %u\n", last, rc);
 				rc = MDB_BAD_TXN;
 				break;
 			}
