@@ -4387,9 +4387,9 @@ mdb_freelist_save(MDB_txn *txn)
 				fprintf(stderr, "reserved_space larger than allocated entry %u %u %u %u %u %u", reserved_space, mop_len, entry_size, mop[reserved_space - 1], id, pglast);
 			}
 		}
-		if (start > 0) {
+		if (id < pglast) {
 			// we have an extra overlapping byte to handle block length prefix. But don't use it if it is a page number
-			// because it could be preceded by a block length prefix, instead zero it out
+			// because it could be preceded by a block length prefix, instead zero it out (only use that byte if it we are on the last block)
 			save2 = mop[start + 1];
 			if (save2 > 0) {
 				mop[start + 1] = 0;
