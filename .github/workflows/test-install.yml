@@ -4,7 +4,7 @@ on:
 
 jobs:
   build-alpine:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: node:18-alpine
     steps:
       - run: apk update && apk add --no-cache nodejs npm python3 py3-pip build-base

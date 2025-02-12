@@ -64,7 +64,7 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true # workaround for terrible checkout bug: https://github.com/actions/checkout/issues/1809
       ACTIONS_RUNNER_FORCED_INTERNAL_NODE_VERSION: node18
       ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node18
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: node:18
     steps:
       - uses: actions/checkout@v3
@@ -120,7 +120,7 @@ jobs:
           files: prebuild-linux.tar
   test-deno:
     if: ${{ !contains(github.ref, '-v1') }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: node:18
     steps:
       - run: echo "LMDB_DATA_V1 is $LMDB_DATA_V1"
@@ -141,7 +141,7 @@ jobs:
     #if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     #container: quay.io/pypa/manylinux_2_24_x86_64
     steps:
       - run: sudo apt-get update
