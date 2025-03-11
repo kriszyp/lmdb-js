@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { setExternals, setNativeFunctions, Dbi, version } from './native.js';
-import { arch, tmpdir, platform } from 'os';
+import { arch, tmpdir, platform, endianness } from 'os';
 import fs from 'fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
@@ -14,7 +14,7 @@ setExternals({
 		if (process.getMaxListeners() < process.listenerCount('exit') + 8)
 			process.setMaxListeners(process.listenerCount('exit') + 8);
 		process.on('exit', callback);
-	},
+	}, isLittleEndian: endianness() == 'LE'
 });
 export { toBufferKey as keyValueToBuffer, compareKeys, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
