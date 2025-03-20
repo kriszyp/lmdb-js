@@ -25,8 +25,25 @@ import { levelup } from './level.js';
 export { clearKeptObjects, version } from './native.js';
 import { nativeAddon } from './native.js';
 export let { noop } = nativeAddon;
-export const TIMESTAMP_PLACEHOLDER = new Uint8Array([1,1,1,1,0,0,0,0]);
-export const DIRECT_WRITE_PLACEHOLDER = new Uint8Array([1,1,1,2,0,0,0,0]);
+export const TIMESTAMP_PLACEHOLDER = (() => {
+	if (endianness() == 'BE') {
+		return new Uint8Array([0,0,0,0,1,1,1,1]);
+	} else {
+		return new Uint8Array([1,1,1,1,0,0,0,0]);
+	}
+})();
+export const DIRECT_WRITE_PLACEHOLDER = (() => {
+	if (endianness() == 'BE') {
+		return new Uint8Array([0,0,0,0,2,1,1,1]);
+	} else {
+		return new Uint8Array([1,1,1,2,0,0,0,0]);
+	}
+})();
+export function setSpecialWriteValue(destArray, placeholder, uint32Value) {
+	destArray.set(placeholder);
+	let uint32 = new Uint32Array(destArray.buffer, 0, 2);
+	endianness() == 'BE' ? uint32[0] = uint32Value : uint32[1] = uint32Value;
+}
 export { open, openAsClass, getLastVersion, allDbs, getLastTxnId } from './open.js';
 import { toBufferKey as keyValueToBuffer, compareKeys as compareKey, fromBufferKey as bufferToKeyValue } from 'ordered-binary';
 import { open, openAsClass, getLastVersion } from './open.js';
