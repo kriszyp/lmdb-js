@@ -744,8 +744,8 @@ export function addReadMethods(
 								if (store.encoding === 'binary') bytes = Buffer.from(bytes);
 							} else {
 								bytes = compression ? compression.getValueBytes : getValueBytes;
+								store.lastSize = lastSize;
 								if (lastSize > bytes.maxLength) {
-									store.lastSize = lastSize;
 									asSafeBuffer = store.encoding === 'binary';
 									try {
 										bytes = store._returnLargeBuffer(() =>
