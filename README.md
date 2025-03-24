@@ -315,6 +315,8 @@ rootDB.transaction(() => {
 });
 ```
 
+It is important to note that named databases will be added as entries to the root database. Consequently adding entries to the root database will be in the same key-value space as the metadata for named databases, and which can be confusing and mixing usage of entries in the root database with named databases is not recommended. 
+
 ### `getLastVersion(): number`
 This returns the version number of the last entry that was retrieved with `get` (assuming it was a versioned database). If you are using a database with `cache` enabled, use `getEntry` instead.
 
