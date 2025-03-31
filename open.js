@@ -1,5 +1,5 @@
 import { Compression, getAddress, arch, fs, path as pathModule, lmdbError, EventEmitter, MsgpackrEncoder, Env,
-	Dbi, tmpdir, os, nativeAddon, version } from './native.js';
+	Dbi, tmpdir, os, nativeAddon, version, isLittleEndian } from './native.js';
 import { CachingStore, setGetLastVersion } from './caching.js';
 import { addReadMethods, makeReusableBuffer } from './read.js';
 import { addWriteMethods } from './write.js';
@@ -410,14 +410,14 @@ export function openAsClass(path, options) {
 }
 
 export function getLastVersion() {
-	return keyBytesView.getFloat64(16, true);
+	return keyBytesView.getFloat64(16, isLittleEndian);
 }
 export function setLastVersion(version) {
-	return keyBytesView.setFloat64(16, version, true);
+	return keyBytesView.setFloat64(16, version, isLittleEndian);
 }
 
 export function getLastTxnId() {
-	return keyBytesView.getUint32(32, true);
+	return keyBytesView.getUint32(32, isLittleEndian);
 }
 
 const KEY_BUFFER_SIZE = 4096;

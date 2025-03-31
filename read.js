@@ -23,6 +23,7 @@ import {
 	notifyUserCallbacks,
 	attemptLock,
 	unlock,
+	isLittleEndian
 } from './native.js';
 import { saveKey } from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
@@ -108,11 +109,11 @@ export function addReadMethods(
 					);
 				if (rc == -30000)
 					// int32 overflow, read uint32
-					rc = this.lastSize = keyBytesView.getUint32(0, true);
+					rc = this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
 				else if (rc == -30001) {
 					// shared buffer
-					this.lastSize = keyBytesView.getUint32(0, true);
-					let bufferId = keyBytesView.getUint32(4, true);
+					this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
+					let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 					let bytes = getMMapBuffer(bufferId, this.lastSize);
 					return asSafeBuffer ? Buffer.from(bytes) : bytes;
 				} else throw lmdbError(rc);
@@ -624,7 +625,7 @@ export function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -645,7 +646,7 @@ export function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -736,8 +737,8 @@ export function addReadMethods(
 						}
 						if (includeValues) {
 							let value;
-							lastSize = keyBytesView.getUint32(0, true);
-							let bufferId = keyBytesView.getUint32(4, true);
+							lastSize = keyBytesView.getUint32(0, isLittleEndian);
+							let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 							let bytes;
 							if (bufferId) {
 								bytes = getMMapBuffer(bufferId, lastSize);
@@ -850,9 +851,9 @@ export function addReadMethods(
 				return; //undefined
 			}
 			return this.lastSize;
-			this.lastSize = keyBytesView.getUint32(0, true);
-			let bufferIndex = keyBytesView.getUint32(12, true);
-			lastOffset = keyBytesView.getUint32(8, true);
+			this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
+			let bufferIndex = keyBytesView.getUint32(12, isLittleEndian);
+			lastOffset = keyBytesView.getUint32(8, isLittleEndian);
 			let buffer = buffers[bufferIndex];
 			let startOffset;
 			if (
@@ -1001,7 +1002,7 @@ export function addReadMethods(
 		if (!buffer) {
 			buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 		}
-		let offset = keyBytesView.getUint32(8, true);
+		let offset = keyBytesView.getUint32(8, isLittleEndian);
 		return new Uint8Array(buffer, offset, size);
 	}
 	function renewReadTxn(store) {
@@ -1152,7 +1153,7 @@ export function recordReadInstruction(
 	uint32Instructions[(start >> 2) + 3] = length; // save the length
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
-	instructionsDataView.setFloat64(start, txnAddress, true);
+	instructionsDataView.setFloat64(start, txnAddress, isLittleEndian);
 	let callbackId = addReadCallback(() => {
 		let position = start >> 2;
 		let rc = thisInstructions[position];
