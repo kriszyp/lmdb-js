@@ -108,7 +108,7 @@ export class RangeIterable {
 						RETURN_DONE.value = value;
 						this.done = true;
 						if (iterable.onDone) iterable.onDone();
-						iterator.return();
+						iterator.return?.();
 					}
 					return RETURN_DONE;
 				},
