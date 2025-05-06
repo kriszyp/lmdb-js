@@ -1,12 +1,12 @@
-import { getAddress, orderedBinary } from './native.js';
+import { getAddress, orderedBinary, isLittleEndian } from './native.js';
 
 const REUSE_BUFFER_MODE = 512;
 const writeUint32Key = (key, target, start) => {
-	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true);
+	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, isLittleEndian);
 	return start + 4;
 };
 const readUint32Key = (target, start) => {
-	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true);
+	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, isLittleEndian);
 };
 const writeBufferKey = (key, target, start) => {
 	target.set(key, start);
@@ -70,7 +70,7 @@ function allocateSaveBuffer() {
 	saveDataAddress = saveBuffer.buffer.address;
 	// TODO: Conditionally only do this for key sequences?
 	saveDataView.setUint32(savePosition, 0xffffffff);
-	saveDataView.setFloat64(savePosition + 4, saveDataAddress, true); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
+	saveDataView.setFloat64(savePosition + 4, saveDataAddress, isLittleEndian); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
 	saveDataView = saveBuffer.dataView || (saveBuffer.dataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength));
 	savePosition = 0;
 }
@@ -103,7 +103,7 @@ export function saveKey(key, writeKey, saveTo, maxKeySize, flags) {
 		return saveKey(key, writeKey, saveTo, maxKeySize);
 	}
 	if (saveTo) {
-		saveDataView.setUint32(start, flags ? length | flags : length, true); // save the length
+		saveDataView.setUint32(start, flags ? length | flags : length, isLittleEndian); // save the length
 		saveTo.saveBuffer = saveBuffer;
 		savePosition = (savePosition + 12) & 0xfffffc;
 		return start + saveDataAddress;
