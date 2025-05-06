@@ -68,7 +68,7 @@
     "prebuild-win32": "set ENABLE_V8_FUNCTIONS=false&& prebuildify-platform-packages --debug --napi --platform-packages --target 20.18.0",
     "prebuild-libc-arm7": "ENABLE_V8_FUNCTIONS=false prebuildify-platform-packages --debug --napi --platform-packages --tag-libc --target 22.11.0",
     "prebuildify": "prebuildify-platform-packages --debug --napi --target 22.11.0",
-    "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish && node util/remove-optional-deps.cjs",
+    "full-publish": "cd prebuilds/win32-x64 && npm publish --access public && cd ../win32-arm64 && npm publish --access public && cd ../darwin-x64 && npm publish --access public && cd ../darwin-arm64 && npm publish --access public && cd ../linux-x64 && npm publish --access public && cd ../linux-arm64 && npm publish --access public  && cd ../linux-arm && npm publish --access public && cd ../.. && npm publish && node util/remove-optional-deps.cjs",
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "recompile-v1": "node-gyp clean && set LMDB_DATA_V1=true&& node-gyp configure && set LMDB_DATA_V1=true&& node-gyp build",
     "test": "mocha test/**.test.js --expose-gc --recursive",
