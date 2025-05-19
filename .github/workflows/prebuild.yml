@@ -166,11 +166,11 @@ jobs:
     #if: startsWith(github.ref, 'refs/tags/')
     env:
       LMDB_DATA_V1: ${{ contains(github.ref, '-v1') }}
-    runs-on: ubuntu-latest
-    container: ubuntu:17.04
+    runs-on: ubuntu-22.04
+    #container: quay.io/pypa/manylinux_2_24_x86_64
     steps:
-      - run: apt-get update
-      - run: apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu g++-arm-linux-gnueabihf
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-aarch64-linux-gnu g++-arm-linux-gnueabihf
       - run: ldd --version ldd
       - uses: actions/checkout@v3
       - name: Setup node
