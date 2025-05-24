@@ -12,6 +12,17 @@ using namespace Napi;
 #include <v8.h>
 #endif
 
+#if defined (__linux)
+#include <endian.h> // For __BYTE_ORDER, __BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define BE64_TO_HOST(x) (x)
+#else
+#define BE64_TO_HOST(x) bswap_64((x))
+#endif
+#else
+#define BE64_TO_HOST(x) bswap_64((x))
+#endif
+
 MDB_txn* ExtendedEnv::prefetchTxns[20];
 pthread_mutex_t* ExtendedEnv::prefetchTxnsLock;
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
@@ -1080,10 +1091,10 @@ ExtendedEnv::~ExtendedEnv() {
 uint64_t ExtendedEnv::getNextTime() {
 	uint64_t next_time_int = next_time_double();
 	if (next_time_int == lastTime) next_time_int++;
-	return bswap_64(lastTime = next_time_int);
+	return BE64_TO_HOST(lastTime = next_time_int);
 }
 uint64_t ExtendedEnv::getLastTime() {
-	return bswap_64(lastTime);
+	return BE64_TO_HOST(lastTime);
 }
 
 NAPI_FUNCTION(getUserSharedBuffer) {
