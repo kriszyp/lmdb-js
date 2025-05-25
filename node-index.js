@@ -1,17 +1,21 @@
 import { createRequire } from 'module';
 import { setRequire } from './open.js';
 import { nativeAddon, setNativeFunctions } from './native.js';
-export { nativeAddon } from './native.js'
+export { nativeAddon } from './native.js';
 let require = createRequire(import.meta.url);
 setRequire(require);
-export let v8AccelerationEnabled = false
+export let v8AccelerationEnabled = false;
 
 let versions = process.versions;
 if (!versions.deno && !process.isBun) {
-	let [ majorVersion, minorVersion ] = versions.node.split('.');
+	let [majorVersion, minorVersion] = versions.node.split('.');
 	if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 		let v8Funcs = {};
-		let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 8) && !process.env.DISABLE_TURBO_CALLS;
+		let fastApiCalls =
+			(majorVersion == 17 ||
+				majorVersion == 18 ||
+				(majorVersion == 16 && minorVersion > 8)) &&
+			!process.env.DISABLE_TURBO_CALLS;
 		if (fastApiCalls) {
 			require('v8').setFlagsFromString('--turbo-fast-api-calls');
 		}
@@ -24,9 +28,9 @@ if (!versions.deno && !process.isBun) {
 		nativeAddon.enableDirectV8(v8Funcs, false);
 		nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
 	}
-	nativeAddon.enableThreadSafeCalls();
 }
+nativeAddon.enableThreadSafeCalls();
 setNativeFunctions(nativeAddon);
 
-export * from './index.js'
-export { default } from './index.js'
+export * from './index.js';
+export { default } from './index.js';
