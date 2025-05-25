@@ -172,8 +172,10 @@ export const CachingStore = (Store, env) => {
 			return result;
 		}
 		remove(id, ifVersion) {
-			this.cache.delete(id);
-			return super.remove(id, ifVersion);
+			let result = super.remove(id, ifVersion);
+			if (result?.isSync) this.cache.delete(id);
+			else this.cache.set(id, { key: id, cache: this.cache }, -1);
+			return result;
 		}
 		removeSync(id, ifVersion) {
 			this.cache.delete(id);
