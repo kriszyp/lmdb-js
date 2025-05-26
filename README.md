@@ -609,5 +609,3 @@ This project has no funding needs. If you feel inclined to donate, donate to one
 * This library is built on top of [node-lmdb](https://github.com/Venemo/node-lmdb)
 * This library uses msgpackr for the default serialization of data [msgpackr](https://github.com/kriszyp/msgpackr)
 * cobase is built on top of this library: [cobase](https://github.com/DoctorEvidence/cobase)
-
-<a href="https://dev.doctorevidence.com/"><img src="./assets/powers-dre.png" width="203"/></a>
