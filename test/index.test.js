@@ -30,6 +30,7 @@ import {
 } from '../node-index.js';
 import { openAsClass } from '../open.js';
 import { RangeIterable } from '../util/RangeIterable.js';
+import { setSpecialWriteValue } from '../index.js';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
 // that is webstorm debugging)
@@ -1510,8 +1511,7 @@ describe('lmdb-js', function () {
 					}),
 				);
 				let value = Buffer.alloc(16, 3);
-				value.set(TIMESTAMP_PLACEHOLDER);
-				value[4] = 0;
+				setSpecialWriteValue(value, TIMESTAMP_PLACEHOLDER, 0);
 				await dbBinary.put(1, value, {
 					instructedWrite: true,
 				});
@@ -1523,8 +1523,7 @@ describe('lmdb-js', function () {
 				should.equal(returnedValue[9], 3);
 
 				value = Buffer.alloc(16, 3);
-				value.set(TIMESTAMP_PLACEHOLDER);
-				value[4] = 1; // assign previous
+				setSpecialWriteValue(value, TIMESTAMP_PLACEHOLDER, 1); // assign previous
 
 				await dbBinary.put(1, value, {
 					instructedWrite: true,
@@ -1653,8 +1652,7 @@ describe('lmdb-js', function () {
 				let returnedValue = dbBinary.get(1);
 				should.equal(returnedValue[2], 4);
 				value = Buffer.alloc(12, 3);
-				value.set(DIRECT_WRITE_PLACEHOLDER);
-				value[4] = 2;
+				setSpecialWriteValue(value, DIRECT_WRITE_PLACEHOLDER, 2);
 				value.set([1, 2, 3, 4], 8);
 
 				await dbBinary.put(1, value, {
@@ -1667,8 +1665,7 @@ describe('lmdb-js', function () {
 
 				// this should always trigger the full put operation
 				value = Buffer.alloc(18, 3);
-				value.set(DIRECT_WRITE_PLACEHOLDER);
-				value[4] = 2;
+				setSpecialWriteValue(value, DIRECT_WRITE_PLACEHOLDER, 2);
 				value.set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 8);
 
 				await dbBinary.put(1, value, {
@@ -1697,8 +1694,7 @@ describe('lmdb-js', function () {
 					let returnedValue = dbBinary.get(1);
 					let updated_byte = i % 200;
 					value = Buffer.alloc(32, updated_byte);
-					value.set(DIRECT_WRITE_PLACEHOLDER);
-					value[4] = 2;
+					setSpecialWriteValue(value, DIRECT_WRITE_PLACEHOLDER, 2);
 					let promise = dbBinary.put(1, value, {
 						instructedWrite: true,
 					});
@@ -1754,8 +1750,7 @@ describe('lmdb-js', function () {
 					let returnedValue = dbBinary.get(1);
 					let updated_byte = i % 200;
 					value = Buffer.alloc(16, updated_byte);
-					value.set(DIRECT_WRITE_PLACEHOLDER);
-					value[4] = 2;
+					setSpecialWriteValue(value, DIRECT_WRITE_PLACEHOLDER, 2);
 					let promise = dbBinary.put(1, value, {
 						instructedWrite: true,
 					});

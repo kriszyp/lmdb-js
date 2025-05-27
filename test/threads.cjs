@@ -58,7 +58,7 @@ if (isMainThread) {
 
 			setTimeout(() => {
 				worker.terminate();
-			}, 100);
+			}, 500);
 			if (messages.length === workerCount) {
 				db.close();
 				for (var i = 0; i < messages.length; i++) {
