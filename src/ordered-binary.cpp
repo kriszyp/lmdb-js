@@ -34,7 +34,7 @@ int compareFast(const MDB_val *a, const MDB_val *b) {
             bVal = *((uint8_t*) dataB);
         } else {
             aVal = ntohl(*dataA);
-            #if __BYTE_ORDER == __BIG_ENDIAN
+            #if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
             bVal = remaining == 2 ? *dataB & 0xffff0000 : *dataB & 0xffffff00;
             #else
             bVal = remaining == 2 ? (*((uint8_t*) dataB) << 24) + (*((uint8_t*) dataB + 1) << 16) :

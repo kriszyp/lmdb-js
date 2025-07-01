@@ -14,7 +14,7 @@ using namespace Napi;
 
 #if defined (__linux)
 #include <endian.h> // For __BYTE_ORDER, __BIG_ENDIAN
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define BE64_TO_HOST(x) (x)
 #else
 #define BE64_TO_HOST(x) bswap_64((x))
