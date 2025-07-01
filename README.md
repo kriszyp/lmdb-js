@@ -54,8 +54,7 @@ An LMDB database instance is created by using `open` export from the main module
 
 ```js
 import { open } from 'lmdb'; // or require
-let myDB = open({
-	path: 'my-db',
+let myDB = open('my-db', {
 	// any options go here, we can turn on compression like this:
 	compression: true,
 });
