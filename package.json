@@ -82,7 +82,7 @@
     "msgpackr": "^1.11.2",
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.2.2",
-    "ordered-binary": "^1.5.3",
+    "ordered-binary": "^1.6.0",
     "weak-lru-cache": "^1.2.2"
   },
   "devDependencies": {
