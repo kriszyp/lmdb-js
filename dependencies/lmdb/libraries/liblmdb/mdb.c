@@ -8464,7 +8464,10 @@ mdb_cursor_sibling(MDB_cursor *mc, int move_right)
 		DPRINTF(("just moving to %s index key %u",
 				move_right ? "right" : "left", mc->mc_ki[mc->mc_top]));
 	}
-	mdb_cassert(mc, IS_BRANCH(mc->mc_pg[mc->mc_top]));
+	if (!IS_BRANCH(mc->mc_pg[mc->mc_top])) {
+		last_error = "expected node to be branch, but was not";
+		return MDB_PROBLEM;
+	}
 
 	MDB_PAGE_UNREF(mc->mc_txn, op);
 
