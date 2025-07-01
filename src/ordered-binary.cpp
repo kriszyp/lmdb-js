@@ -34,9 +34,12 @@ int compareFast(const MDB_val *a, const MDB_val *b) {
             bVal = *((uint8_t*) dataB);
         } else {
             aVal = ntohl(*dataA);
+fprintf(stderr, "compare");
             #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        	fprintf(stderr, "big endian");
             bVal = remaining == 2 ? *dataB & 0xffff0000 : *dataB & 0xffffff00;
             #else
+        	fprintf(stderr, "little endian");
             bVal = remaining == 2 ? (*((uint8_t*) dataB) << 24) + (*((uint8_t*) dataB + 1) << 16) :
                 ntohl(*dataB & 0x00ffffff);
             #endif
