@@ -35,7 +35,7 @@ int compareFast(const MDB_val *a, const MDB_val *b) {
         } else {
             aVal = ntohl(*dataA);
 fprintf(stderr, "compare");
-            #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            #if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
         	fprintf(stderr, "big endian");
             bVal = remaining == 2 ? *dataB & 0xffff0000 : *dataB & 0xffffff00;
             #else
