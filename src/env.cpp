@@ -701,10 +701,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 			} else
 				callback_iter++;
 		}
-		if (buffer_iter->second.callbacks.size() == 0)
-			buffer_iter = extended_env->userSharedBuffers.erase(buffer_iter);
-		else
-			buffer_iter++;
+		buffer_iter++;
 	}
 	pthread_mutex_unlock(&extended_env->userBuffersLock);
 	pthread_mutex_lock(&extended_env->locksModificationLock);

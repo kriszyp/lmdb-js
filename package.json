@@ -110,5 +110,13 @@
     "useTabs": true,
     "singleQuote": true
   },
-  "optionalDependencies": {}
+  "optionalDependencies": {
+    "@lmdb/lmdb-darwin-arm64": "3.4.1",
+    "@lmdb/lmdb-darwin-x64": "3.4.1",
+    "@lmdb/lmdb-linux-arm": "3.4.1",
+    "@lmdb/lmdb-linux-arm64": "3.4.1",
+    "@lmdb/lmdb-linux-x64": "3.4.1",
+    "@lmdb/lmdb-win32-arm64": "3.4.1",
+    "@lmdb/lmdb-win32-x64": "3.4.1"
+  }
 }
