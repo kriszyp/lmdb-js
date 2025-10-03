@@ -4257,6 +4257,11 @@ mdb_freelist_save(MDB_txn *txn)
 				if (freelist_written_start <= end && freelist_written_end >= start) {
 					// we will reserve one entry for size and potentially one extra entry in case we are splitting an entry
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
+					if (data.mv_size <= 0) {
+						sprintf(last_error, "attempt to reserve freelist had a data entry with zero-size, last len %i\n", len);
+						return MDB_BAD_TXN;
+					}
+
 					//fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
 					rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
 					*(pgno_t*)data.mv_data = 0; // set the size of the entry to zero in case it doesn't get overwritten
@@ -4343,6 +4348,12 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_size = sizeof(id);
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
+		if (data.mv_size == 0) {
+			sprintf(last_error, "reserved freelist had a data entry with zero-size, last id %u\n", id);
+			rc = MDB_BAD_TXN;
+			break;
+		}
+
 		if (rc == MDB_NOTFOUND) {
 			if (freelist_written_start < mop_len) {
 				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %i %i %i %i %i %u %u\n", id, mop_len, start_written,
@@ -4448,6 +4459,11 @@ mdb_freelist_save(MDB_txn *txn)
 				fprintf(stderr, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
 				last_error = malloc(100);
 				sprintf(last_error, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
+				rc = MDB_BAD_TXN;
+				break;
+			}
+			if (data.mv_size == 0) {
+				sprintf(last_error, "updated freelist had a data entry with zero-size, last %u\n", last);
 				rc = MDB_BAD_TXN;
 				break;
 			}
