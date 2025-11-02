@@ -360,6 +360,7 @@ export function open(path, options) {
 								'copyBuffers',
 								'getStructures',
 								'saveStructures',
+								'useBigIntExtension',
 								'useFloat32',
 								'useRecords',
 								'structuredClone',
