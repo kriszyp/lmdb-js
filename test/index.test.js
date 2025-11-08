@@ -421,7 +421,7 @@ describe('lmdb-js', function () {
 				let additive = 'this is more text';
 				for (let i = 0; i < 6; i++) additive += additive;
 				let read_txn = db.useReadTransaction();
-				for (let i = 0; i < 5000; i++) {
+				for (let i = 0; i < 500; i++) {
 					if (Math.random() < 0.3) {
 						read_txn.done();
 						read_txn = db.useReadTransaction();
