@@ -4251,7 +4251,7 @@ mdb_freelist_save(MDB_txn *txn)
 				unsigned end = mop_len;
 				mop_len -= len;
 				unsigned start = mop_len > 0 ? mop_len - 1 : 0;
-				char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start;
+				char do_write = freelist_written_start <= end && freelist_written_end >= start;
 				fl_writes[i++] = do_write;
 				// determine if it is in the range of actively written pages
 				if (freelist_written_start <= end && freelist_written_end >= start) {
@@ -4303,9 +4303,11 @@ mdb_freelist_save(MDB_txn *txn)
 			mop[0] = 0;
 		}
 		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
-		//fprintf(stderr, "mop_len %u = mop[0] %u + txn->mt_loose_count %u, reserved_sape,", mop_len, (mop ? mop[0] : 0), txn->mt_loose_count, reserved_space);
-		if (freelist_written_start != env->me_freelist_written_start)
-		freelist_written_end = env->me_freelist_written_end;
+		if (txn->mt_loose_count > 0) {
+			// loose pages are appended to the end, so we have to expand the range to the end
+			env->me_freelist_written_end = mop_len;
+			env->me_freelist_written_start = 1;
+		}
 	} while(reserved_space != mop_len ||
 		 (start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
 		 freecnt < txn->mt_free_pgs[0] ||
@@ -4317,7 +4319,8 @@ mdb_freelist_save(MDB_txn *txn)
 	 */
 	if (txn->mt_loose_pgs) {
 		MDB_page *mp = txn->mt_loose_pgs;
-		if (!env->me_pghead) env->me_pghead = mdb_midl_alloc(1);
+		if (!env->me_pghead)
+			env->me_pghead = mdb_midl_alloc(1);
 		unsigned count = txn->mt_loose_count;
 		lost_loose += count;
 		for (; mp; mp = NEXT_LOOSE_PAGE(mp))

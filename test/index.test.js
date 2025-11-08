@@ -417,20 +417,36 @@ describe('lmdb-js', function () {
 				//await new Promise((resolve) => setTimeout(resolve, 3000));
 
 				let promise;
+				let deleting;
 				let additive = 'this is more text';
 				for (let i = 0; i < 6; i++) additive += additive;
 				let read_txn = db.useReadTransaction();
-				for (let i = 0; i < 500; i++) {
+				for (let i = 0; i < 5000; i++) {
 					if (Math.random() < 0.3) {
 						read_txn.done();
 						read_txn = db.useReadTransaction();
 					}
 					let text = 'this is a test';
 					while (random() < 0.95) text += additive;
-					if (random() < 0.4) promise = db.remove(i % 40);
-					else promise = db.put(i % 40, text);
+					if (random() < 0.4) promise = db.remove(random());
+					else promise = db.put(random(), text);
 					if (random() < 0.05) {
 						await promise;
+					}
+					if (random() < 0.0001) {
+						if (!deleting) {
+							deleting = true;
+							(async () => {
+								let j = 0;
+								console.log('deleting all entries');
+								for (let { key, value } of db.getRange({})) {
+									let promise = db.remove(key);
+									if (++j % 1000 === 0) await promise;
+								}
+								console.log('finished deleting all entries', j);
+								deleting = false;
+							})();
+						}
 					}
 				}
 				await promise;
