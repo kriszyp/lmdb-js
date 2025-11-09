@@ -881,7 +881,7 @@ describe('lmdb-js', function () {
 				should.equal(db2.doesExist(false, 3), true);
 				should.equal(db2.doesExist(false, 4), false);
 			});
-			it.skip('should iterate over keys without duplicates', async function () {
+			it('should iterate over keys without duplicates', async function () {
 				let lastKey;
 				for (let key of db2.getKeys({ start: 'k' })) {
 					if (key == lastKey) throw new Error('duplicate key returned');
