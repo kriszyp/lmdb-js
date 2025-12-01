@@ -83,7 +83,8 @@
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.2.2",
     "ordered-binary": "^1.5.3",
-    "weak-lru-cache": "^1.2.2"
+    "weak-lru-cache": "^1.2.2",
+    "@harperdb/extended-iterable": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^16.7.10",

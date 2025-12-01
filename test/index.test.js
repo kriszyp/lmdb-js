@@ -29,7 +29,7 @@ import {
 	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
 import { openAsClass } from '../open.js';
-import { RangeIterable } from '../util/RangeIterable.js';
+import { ExtendedIterable } from '@harperdb/extended-iterable';
 import { setSpecialWriteValue } from '../index.js';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness
@@ -1970,9 +1970,9 @@ describe('lmdb-js', function () {
 			db.close();
 		});
 	});
-	describe('RangeIterable', function () {
+	describe('ExtendedIterable', function () {
 		it('map iterate', async function () {
-			let a = new RangeIterable([1, 2, 3]).map((v) => v * 2);
+			let a = new ExtendedIterable([1, 2, 3]).map((v) => v * 2);
 			let finished = 0;
 			a.onDone = () => {
 				finished++;
@@ -2008,8 +2008,8 @@ describe('lmdb-js', function () {
 			expect(finished).to.be.equal(1);
 		});
 		it('concat and iterate', async function () {
-			let a = new RangeIterable([1, 2, 3]);
-			let b = new RangeIterable([4, 5, 6]);
+			let a = new ExtendedIterable([1, 2, 3]);
+			let b = new ExtendedIterable([4, 5, 6]);
 			let all = [];
 			for (let v of a.concat(b)) {
 				all.push(v);

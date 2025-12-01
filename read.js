@@ -1,4 +1,4 @@
-import { RangeIterable } from './util/RangeIterable.js';
+import { ExtendedIterable } from '@harperdb/extended-iterable';
 import {
 	getAddress,
 	Cursor,
@@ -356,6 +356,9 @@ export function addReadMethods(
 			}
 			return result;
 		},
+		getSync(id, options) {
+			return this.get(id, options);
+		},
 		getEntry(id, options) {
 			let value = this.get(id, options);
 			if (value !== undefined) {
@@ -512,7 +515,7 @@ export function addReadMethods(
 			return this.getRange(options).iterate();
 		},
 		getRange(options) {
-			let iterable = new RangeIterable();
+			let iterable = new ExtendedIterable();
 			let textDecoder = new TextDecoder();
 			if (!options) options = {};
 			let includeValues = options.values !== false;
