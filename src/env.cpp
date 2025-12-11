@@ -302,7 +302,10 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	option = options.Get("maxFreeSpaceToRetain");
 	if (option.IsNumber())
 		maxFreeSpaceToRetain = option.As<Number>();
-
+	unsigned int permissionsMode = 0664;
+	option = options.Get("permissionsMode");
+	if (option.IsNumber())
+		permissionsMode = option.As<Number>();
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	std::string encryptKey;
 	if (!encryptionKey.IsUndefined()) {
@@ -316,7 +319,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	}
 
 	napiEnv = info.Env();
-	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, maxFreeSpaceToLoad, maxFreeSpaceToRetain, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
+	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, maxFreeSpaceToLoad, maxFreeSpaceToRetain, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str(), permissionsMode);
 	//delete[] pathBytes;
 	if (rc != 0)
 		return throwLmdbError(info.Env(), rc);
@@ -324,7 +327,7 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
-		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey) {
+		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey, unsigned int permissionsMode) {
 	this->keyBuffer = keyBuffer;
 	this->compression = compression;
 	this->jsFlags = jsFlags;
@@ -376,7 +379,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
 	pthread_mutex_lock(envTracking->envsLock);
-	rc = mdb_env_open(env, path, flags, 0664);
+	rc = mdb_env_open(env, path, flags, permissionsMode);
 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
