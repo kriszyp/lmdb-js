@@ -1590,6 +1590,7 @@ typedef struct MDB_pgstate {
 	int 		mf_position;
 	int 		mf_written_start; /* start of modified entries in free-list */
 	int 		mf_written_end; /* start of modified entries in free-list */
+	int			mf_no_reverse_iteration; /* when modifying the free-list, don't iterate the free-list in reverse as it is not safe */
 } MDB_pgstate;
 /*<lmdb-js>*/
 struct MDB_last_map {
@@ -1654,6 +1655,7 @@ struct MDB_env {
 #	define		me_freelist_position	me_pgstate.mf_position
 #	define		me_freelist_written_start	me_pgstate.mf_written_start
 #	define		me_freelist_written_end	me_pgstate.mf_written_end
+#	define		me_freelist_no_reverse_iteration	me_pgstate.mf_no_reverse_iteration
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
 	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
@@ -2913,6 +2915,8 @@ restart_search:
 			if (last >= oldest || rc == MDB_NOTFOUND) {
 				env->me_freelist_end = oldest;
 				// no more newer transactions, go to the beginning of the range and look for older txns
+				// unless we are forbidden to use reverse iteration:
+				if (env->me_freelist_no_reverse_iteration) break;
 				op = MDB_SET_RANGE;
 				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
 				last = env->me_freelist_start - 1;
@@ -4291,7 +4295,9 @@ mdb_freelist_save(MDB_txn *txn)
 				total_room = head_room = 0;
 				mdb_tassert(txn, head_id >= env->me_freelist_start);
 				//fprintf(stderr, "Deleting free list record %u\n", head_id);
+				env->me_freelist_no_reverse_iteration = 1; // once we started deleting, could lead to unsafe reverse iteration
 				rc = mdb_cursor_del(&mc, 0);
+				env->me_freelist_no_reverse_iteration = 0; // restore reverse iteration
 				if (rc) {
 					last_error = "Attempting to delete free-space record";
 					return rc;
