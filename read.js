@@ -426,10 +426,15 @@ export function addReadMethods(
 			return attemptLock(env.address, keySize, callback);
 		},
 
+		// simplified API
+		tryLock(id, callback) {
+			return this.attemptLock(id, 0, callback);
+		},
+
 		unlock(id, version, onlyCheck) {
 			if (!env.address) throw new Error('Can not operate on a closed database');
 			keyBytes.dataView.setUint32(0, this.db.dbi);
-			keyBytes.dataView.setFloat64(4, version);
+			keyBytes.dataView.setFloat64(4, version ?? 0);
 			let keySize = this.writeKey(id, keyBytes, 12);
 			return unlock(env.address, keySize, onlyCheck);
 		},
