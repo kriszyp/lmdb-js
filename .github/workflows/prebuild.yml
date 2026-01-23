@@ -23,6 +23,8 @@ jobs:
         if: ${{ !contains(github.ref, '-v1') }}
       - run: npm run prebuild-macos
         # if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PREBUILD_ARCH: x64
       - run: npm run prebuild-macos
         if: startsWith(github.ref, 'refs/tags/')
         env:
