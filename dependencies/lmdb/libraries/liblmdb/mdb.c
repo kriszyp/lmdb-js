@@ -4297,7 +4297,6 @@ mdb_freelist_save(MDB_txn *txn)
 				//fprintf(stderr, "Deleting free list record %u\n", head_id);
 				env->me_freelist_no_reverse_iteration = 1; // once we started deleting, could lead to unsafe reverse iteration
 				rc = mdb_cursor_del(&mc, 0);
-				env->me_freelist_no_reverse_iteration = 0; // restore reverse iteration
 				if (rc) {
 					last_error = "Attempting to delete free-space record";
 					return rc;
@@ -4319,6 +4318,7 @@ mdb_freelist_save(MDB_txn *txn)
 		 freecnt < txn->mt_free_pgs[0] ||
 		 freelist_written_start != env->me_freelist_written_start ||
 		 freelist_written_end != env->me_freelist_written_end);
+	env->me_freelist_no_reverse_iteration = 0; // restore reverse iteration
 
 	/* Return loose page numbers to me_pghead, though usually none are
 	 * left at this point.	The pages themselves remain in dirty_list.
