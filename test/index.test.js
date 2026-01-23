@@ -29,7 +29,7 @@ import {
 	DIRECT_WRITE_PLACEHOLDER,
 } from '../node-index.js';
 import { openAsClass } from '../open.js';
-import { ExtendedIterable } from '@harperdb/extended-iterable';
+import { ExtendedIterable } from '@harperfast/extended-iterable';
 import { setSpecialWriteValue } from '../index.js';
 const require = createRequire(import.meta.url);
 // we don't always test CJS because it messes up debugging in webstorm (and I am not about to give the awesomeness

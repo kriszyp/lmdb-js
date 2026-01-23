@@ -1,4 +1,4 @@
-import { ExtendedIterable } from '@harperdb/extended-iterable';
+import { ExtendedIterable } from '@harperfast/extended-iterable';
 import {
 	getAddress,
 	Cursor,

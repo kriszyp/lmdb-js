@@ -32,7 +32,7 @@ export {
 export { ABORT, IF_EXISTS, asBinary } from './write.js';
 import { ABORT, IF_EXISTS, asBinary } from './write.js';
 export { levelup } from './level.js';
-export { SKIP } from '@harperdb/extended-iterable';
+export { SKIP } from '@harperfast/extended-iterable';
 import { levelup } from './level.js';
 export { clearKeptObjects, version } from './native.js';
 import { nativeAddon } from './native.js';
