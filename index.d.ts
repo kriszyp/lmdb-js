@@ -435,6 +435,10 @@ declare namespace lmdb {
 		start?: Key;
 		/** Ending key for a range **/
 		end?: Key;
+		/** Include the end key in the range **/
+		inclusiveEnd?: boolean;
+		/** Exclude the start key from the range **/
+		exclusiveStart?: boolean;
 		/** Iterate through the entries in reverse order **/
 		reverse?: boolean;
 		/** Include version numbers in each entry returned **/
