@@ -292,9 +292,9 @@ LMDB supports multiple databases per environment (an environment corresponds to 
 ```js
 import { open } from 'lmdb';
 let rootDB = open('all-my-data');
-let usersDB = myDB.openDB('users');
-let groupsDB = myDB.openDB('groups');
-let productsDB = myDB.openDB('products');
+let usersDB = rootDB.openDB('users');
+let groupsDB = rootDB.openDB('groups');
+let productsDB = rootDB.openDB('products');
 ```
 
 Each of the opened/returned databases has the same API as the default database for the environment. Each of the databases for one environment also share the same batch queue and automated transactions with each other, so immediately writing data from two databases with the same environment will be batched together in the same commit. For example:
