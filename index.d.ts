@@ -419,6 +419,8 @@ declare namespace lmdb {
 		encoder?: any;
 		/** This is the current decoder instance that is being used to deserialize data */
 		decoder?: any;
+		/** This is the current key encoder instance that is being used to de/serialize key */
+		keyEncoder?: any;
 	}
 	interface RootDatabaseOptionsWithPath extends RootDatabaseOptions {
 		path?: string;
