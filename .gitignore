@@ -48,6 +48,7 @@ yarn.lock
 
 package-lock.json
 yarn.lock
+deno.lock
 
 tests/db/
 test/db/

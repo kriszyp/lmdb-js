@@ -1,4 +1,4 @@
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import { setRequire } from './open.js';
 import { nativeAddon, setNativeFunctions } from './native.js';
 export { nativeAddon } from './native.js';
