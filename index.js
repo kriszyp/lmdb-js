@@ -1,7 +1,7 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { setExternals, setNativeFunctions, Dbi, version } from './native.js';
-import { arch, tmpdir, platform, endianness } from 'os';
-import fs from 'fs';
+import { arch, tmpdir, platform, endianness } from 'node:os';
+import fs from 'node:fs';
 import { Encoder as MsgpackrEncoder } from 'msgpackr';
 import { WeakLRUCache } from 'weak-lru-cache';
 import * as orderedBinary from 'ordered-binary';

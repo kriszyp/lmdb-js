@@ -1,20 +1,18 @@
 import chai from 'chai';
-import path, { dirname } from 'path';
+import path, { dirname } from 'node:path';
 import rimraf from 'rimraf';
 
 let should = chai.should();
 let expect = chai.expect;
-import { spawn } from 'child_process';
-import { unlinkSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { Worker } from 'worker_threads';
+import { spawn } from 'node:child_process';
+import { unlinkSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
 import { encoder as orderedBinaryEncoder } from 'ordered-binary/index.js';
-import inspector from 'inspector';
-//inspector.open(9229, null, true); debugger
 let nativeMethods,
 	dirName = dirname(fileURLToPath(import.meta.url));
 
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 import { createBufferForAddress, fs } from '../native.js';
 import {
 	ABORT,
