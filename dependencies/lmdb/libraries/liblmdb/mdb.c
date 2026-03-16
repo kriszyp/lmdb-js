@@ -4262,6 +4262,7 @@ mdb_freelist_save(MDB_txn *txn)
 					// we will reserve one entry for size and potentially one extra entry in case we are splitting an entry
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
 					if (data.mv_size <= 0) {
+						last_error = malloc(100);
 						sprintf(last_error, "attempt to reserve freelist had a data entry with zero-size, last len %i\n", len);
 						return MDB_BAD_TXN;
 					}
@@ -4358,6 +4359,7 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
 		if (data.mv_size == 0) {
+			last_error = malloc(100);
 			sprintf(last_error, "reserved freelist had a data entry with zero-size, last id %u\n", id);
 			rc = MDB_BAD_TXN;
 			break;
@@ -4472,6 +4474,7 @@ mdb_freelist_save(MDB_txn *txn)
 				break;
 			}
 			if (data.mv_size == 0) {
+				last_error = malloc(100);
 				sprintf(last_error, "updated freelist had a data entry with zero-size, last %u\n", last);
 				rc = MDB_BAD_TXN;
 				break;
