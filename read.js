@@ -765,7 +765,12 @@ export function addReadMethods(
 								} else bytes.length = lastSize;
 							}
 							if (store.decoder) {
-								value = store.decoder.decode(bytes, lastSize);
+								value = store.decoder.decode(
+									!store.decoderCopies && bytes.isGlobal
+										? Uint8ArraySlice.call(bytes, 0, lastSize)
+										: bytes,
+									lastSize,
+								);
 							} else if (store.encoding == 'binary')
 								value = bytes.isGlobal
 									? Uint8ArraySlice.call(bytes, 0, lastSize)
