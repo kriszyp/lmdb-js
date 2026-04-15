@@ -2767,7 +2767,7 @@ restart_search:
 		if (start > mop_len) {
 			start = 1;
 		}
-		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
+		if (mop_len && (ssize_t) mop[start - 1] < 0 && (ssize_t) mop[start] > 0) start++; // don't start in the middle of a length block
 		unsigned end = start + mop_len;
 		unsigned check_point = start + MAX_SCAN_SEGMENT;
 		if (check_point > mop_len) check_point = mop_len;
