@@ -70,7 +70,7 @@ unsigned mdb_midl_search( MDB_IDL ids, MDB_ID id )
 			base = cursor;
 			n -= pivot + 1;
 		} else {
-			return cursor;
+			return x;
 		}
 	}
 	if( val > 0 && (intptr_t)ids[cursor] > 0) ++cursor;
