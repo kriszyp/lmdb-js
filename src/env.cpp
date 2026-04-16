@@ -48,11 +48,13 @@ env_tracking_t* EnvWrap::initTracking() {
 static napi_ref testRef;
 static napi_env testRefEnv;
 void EnvWrap::cleanupEnvWraps(void* data) {
-	if (openEnvWraps)
-		delete openEnvWraps;
-	else
-		fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
-	openEnvWraps = nullptr;
+	// The cleanup-hook arg is the identity of the bookkeeping allocation for
+	// this thread's open env list.
+	auto* envWraps = (std::vector<EnvWrap*>*) data;
+	delete envWraps;
+	if (openEnvWraps == envWraps) {
+		openEnvWraps = nullptr;
+	}
 }
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
@@ -70,6 +72,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->writeWorker = nullptr;
 	this->readTxnRenewed = false;
     this->hasWrites = false;
+	this->cleanupHookRegistered = false;
 	this->lastReaderCheck = 0;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
@@ -246,7 +249,9 @@ static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int enc
 #endif
 
 void cleanup(void* data) {
-	((EnvWrap*) data)->closeEnv();
+	EnvWrap* envWrap = (EnvWrap*) data;
+	envWrap->cleanupHookRegistered = false;
+	envWrap->closeEnv();
 }
 
 Napi::Value EnvWrap::open(const CallbackInfo& info) {
@@ -323,7 +328,10 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	//delete[] pathBytes;
 	if (rc != 0)
 		return throwLmdbError(info.Env(), rc);
-	napi_add_env_cleanup_hook(napiEnv, cleanup, this);
+	if (!cleanupHookRegistered) {
+		napi_add_env_cleanup_hook(napiEnv, cleanup, this);
+		cleanupHookRegistered = true;
+	}
 	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
@@ -403,7 +411,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		) {
 		if (!openEnvWraps) {
 			openEnvWraps = new std::vector<EnvWrap*>;
-			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
+			// Register this exact vector pointer so repeated hook registrations use
+			// distinct (fun, arg) pairs per allocation.
+			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, openEnvWraps);
 		}
 		openEnvWraps->push_back(this);
 	}
@@ -727,7 +737,10 @@ void EnvWrap::closeEnv(bool hasLock) {
 			++ewRef;
 		}
 	}
-	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
+	if (cleanupHookRegistered) {
+		cleanupHookRegistered = false;
+		napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
+	}
 	cleanupStrayTxns();
 	if (!hasLock)
 		pthread_mutex_lock(envTracking->envsLock);
@@ -1383,4 +1396,3 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-

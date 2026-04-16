@@ -72,7 +72,7 @@
     "recompile": "node-gyp clean && node-gyp configure && node-gyp build",
     "recompile-v1": "node-gyp clean && set LMDB_DATA_V1=true&& node-gyp configure && set LMDB_DATA_V1=true&& node-gyp build",
     "test": "mocha test/**.test.js --expose-gc --recursive",
-    "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-env --allow-net --allow-import --allow-sys test/deno.ts",
+    "deno-test": "deno run --allow-ffi --allow-write --allow-read --allow-run --allow-env --allow-net --allow-import --allow-sys test/deno.ts",
     "test2": "mocha test/performance.js -u tdd",
     "test:types": "tsd",
     "benchmark": "node ./benchmark/index.js"

@@ -288,6 +288,41 @@ test('async transactions with async callbacks', async function () {
 		assert.equal(error.message, 'test2');
 	}
 });
+test('cleanup-hook lifecycle on exit', async function () {
+	// Run this in a child Deno process so the env cleanup hooks actually fire
+	// during process teardown. Mostly exercises in-process open/close behavior, not environment shutdown.
+	//
+	// Use `deno` CLI name here to match the repo's existing subprocess style,
+	// similar to the Node thread tests that spawn `node` against a sibling test file.
+	const command = new Deno.Command('deno', {
+		args: [
+			'run',
+			'--allow-ffi',
+			'--allow-write',
+			'--allow-read',
+			'--allow-env',
+			'--allow-import',
+			'--allow-sys',
+			'test/deno-cleanup-hook-exit.ts',
+		],
+		stdout: 'piped',
+		stderr: 'piped',
+	});
+	const { code, stdout, stderr } = await command.output();
+	const stdoutText = new TextDecoder().decode(stdout);
+	const stderrText = new TextDecoder().decode(stderr);
+
+	assert.equal(
+		code,
+		0,
+		`child exit failed\nstdout:\n${stdoutText}\nstderr:\n${stderrText}`,
+	);
+	// These substrings match the Deno panics we were fixing:
+	// - duplicate registration of cleanupEnvWraps with the same (fun, arg)
+	// - removal of cleanup(this) after that hook was no longer registered
+	assert.notInclude(stderrText, 'cleanup hook');
+	assert.notInclude(stderrText, 'panic');
+});
 function expand(str: string): string {
 	str = '(' + str + ')';
 	str = str + str;
