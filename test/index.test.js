@@ -2076,6 +2076,33 @@ describe('lmdb-js', function () {
 			await lastPromise;
 		});
 	});
+	describe('Renewing cursor snapshot release', function () {
+		it('releases an orphaned read snapshot once only renewing cursors remain', async function () {
+			let db = open({ path: path.join(testDirPath, 'renewing-release'), compression: false });
+			const N = 12;
+			for (let i = 0; i < N; i++) await db.put(`k${String(i).padStart(2, '0')}`, i);
+			await db.flushed;
+			// A non-renewing pin on the current shared read transaction (and a handle to it).
+			let txn = db.useReadTransaction();
+			// A snapshot:false (renewing) iterator; advancing it once attaches a renewing cursor to
+			// that same shared read transaction (refCount = pin + cursor, renewingRefCount = cursor).
+			let iterator = db.getRange({ snapshot: false })[Symbol.iterator]();
+			let first = iterator.next();
+			// Let resetReadTxn fire: refCount - renewingRefCount > 0, so the txn is orphaned.
+			await new Promise((resolve) => setTimeout(resolve, 20));
+			txn.notCurrent.should.equal(true);
+			// Release the non-renewing pin. Only the renewing cursor remains, which does not need a
+			// stable snapshot, so it must be released now rather than pinned until the (possibly
+			// suspended) iterator next iterates.
+			txn.done();
+			txn.isDone.should.equal(true);
+			// The renewing iterator must still reposition onto the current txn and read every entry.
+			let got = first.done ? [] : [first.value.key];
+			for (let r = iterator.next(); !r.done; r = iterator.next()) got.push(r.value.key);
+			got.should.deep.equal(Array.from({ length: N }, (_, i) => `k${String(i).padStart(2, '0')}`));
+			await db.close();
+		});
+	});
 	if (version.patch >= 90) {
 		describe('Threads', function () {
 			this.timeout(1000000);

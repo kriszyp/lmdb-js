@@ -590,6 +590,10 @@ export function addReadMethods(
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
+							// Track renewing cursors so that if this txn is orphaned (notCurrent) and its
+							// non-renewing refs later drain, we can release the snapshot instead of letting
+							// these cursors pin it (they don't need a stable snapshot). See Txn.done.
+							(txn.renewingCursors || (txn.renewingCursors = new Set())).add(cursor);
 						}
 					} catch (error) {
 						if (cursor) {
@@ -694,7 +698,10 @@ export function addReadMethods(
 				function finishCursor() {
 					if (!cursor || txn.isDone) return;
 					if (iterable.onDone) iterable.onDone();
-					if (cursorRenewId) txn.renewingRefCount--;
+					if (cursorRenewId) {
+						txn.renewingRefCount--;
+						txn.renewingCursors?.delete(cursor);
+					}
 					if (txn.refCount <= 1 && txn.notCurrent) {
 						cursor.close(); // this must be closed before the transaction is aborted or it can cause a
 						// segmentation fault
@@ -1084,6 +1091,22 @@ export function makeReusableBuffer(size) {
 Txn.prototype.done = function () {
 	this.refCount--;
 	if (this.refCount === 0 && this.notCurrent) {
+		this.abort();
+		this.isDone = true;
+	} else if (
+		this.notCurrent &&
+		!this.isDone &&
+		this.refCount > 0 &&
+		this.refCount === (this.renewingRefCount || 0)
+	) {
+		// The only remaining refs on this orphaned snapshot are renewing (snapshot:false)
+		// cursors, which don't need a stable snapshot. Release it now rather than letting
+		// them pin it until they next iterate (they may be suspended across an await).
+		// Close the cursors first — aborting a txn with attached open cursors is unsafe —
+		// then abort; their iterators re-acquire on the current read txn via the txn.isDone
+		// reposition path in the range iterator.
+		for (const cursor of this.renewingCursors) cursor.close();
+		this.renewingCursors.clear();
 		this.abort();
 		this.isDone = true;
 	} else if (this.refCount < 0)
