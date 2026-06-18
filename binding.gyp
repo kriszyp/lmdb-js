@@ -14,16 +14,16 @@
   "conditions": [
     ['OS=="win"', {
       "variables": {
-        "enable_fast_api_calls%": "<!(echo %ENABLE_FAST_API_CALLS%)",
-        "enable_v8%": "<!(echo %ENABLE_V8_FUNCTIONS%)",
-        "use_data_v1%": "<!(echo %LMDB_DATA_V1%)",
+        "enable_fast_api_calls%": "<!(node -p \"process.env.ENABLE_FAST_API_CALLS || 'true'\")",
+        "enable_v8%": "<!(node -p \"process.env.ENABLE_V8_FUNCTIONS || 'true'\")",
+        "use_data_v1%": "<!(node -p \"process.env.LMDB_DATA_V1 || 'false'\")",
       }
     }],
     ['OS!="win"', {
       "variables": {
-        "enable_fast_api_calls%": "<!(echo $ENABLE_FAST_API_CALLS)",
-        "enable_v8%": "<!(echo $ENABLE_V8_FUNCTIONS)",
-        "use_data_v1%": "<!(echo $LMDB_DATA_V1)",
+        "enable_fast_api_calls%": "<!(node -p \"process.env.ENABLE_FAST_API_CALLS || 'true'\")",
+        "enable_v8%": "<!(node -p \"process.env.ENABLE_V8_FUNCTIONS || 'true'\")",
+        "use_data_v1%": "<!(node -p \"process.env.LMDB_DATA_V1 || 'false'\")",
       }
     }]
   ],
