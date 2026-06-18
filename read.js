@@ -1067,6 +1067,17 @@ export function addReadMethods(
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
+			} else if (readTxn.renewingRefCount > 0 && !readTxn.isDone) {
+				// Only renewing (snapshot:false) cursors remain attached. Because resetReadTxn runs on
+				// a setTimeout(0) macrotask, a renewing cursor present here is one whose iterator is
+				// suspended across the tick (a synchronous scan can't hold a cursor across this reset).
+				// Rather than resetTxn-in-place and leave those cursors renewing against the reset txn,
+				// release the snapshot the same way Txn.done does for orphaned txns, so the suspended
+				// iterators cleanly reposition on a fresh read txn via the txn.isDone path. This is the
+				// sibling of the orphaned-snapshot release for the reset-in-place path.
+				readTxn.notCurrent = true;
+				readTxn.releaseToRenewingCursors();
+				readTxn = null;
 			} else if (readTxn.address && !readTxn.isDone) {
 				resetTxn(readTxn.address);
 			} else {
@@ -1102,15 +1113,22 @@ Txn.prototype.done = function () {
 		// The only remaining refs on this orphaned snapshot are renewing (snapshot:false)
 		// cursors, which don't need a stable snapshot. Release it now rather than letting
 		// them pin it until they next iterate (they may be suspended across an await).
-		// Close the cursors first — aborting a txn with attached open cursors is unsafe —
-		// then abort; their iterators re-acquire on the current read txn via the txn.isDone
-		// reposition path in the range iterator.
-		for (const cursor of this.renewingCursors) cursor.close();
-		this.renewingCursors.clear();
-		this.abort();
-		this.isDone = true;
+		this.releaseToRenewingCursors();
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
+};
+// Release the read snapshot held by an orphaned/reset txn whose only attached refs are renewing
+// (snapshot:false) cursors. Close those cursors first — aborting a txn with attached open cursors
+// is unsafe (segfault) — then abort, freeing the snapshot. Suspended iterators re-acquire on the
+// current read txn via the txn.isDone reposition path in the range iterator. Shared by Txn.done
+// (orphaned-then-drained path) and resetReadTxn (reset-while-renewing-cursors-attached path).
+Txn.prototype.releaseToRenewingCursors = function () {
+	if (this.renewingCursors) {
+		for (const cursor of this.renewingCursors) cursor.close();
+		this.renewingCursors.clear();
+	}
+	this.abort();
+	this.isDone = true;
 };
 Txn.prototype.use = function () {
 	this.refCount = (this.refCount || 0) + 1;

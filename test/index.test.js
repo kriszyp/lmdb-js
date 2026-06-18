@@ -2102,6 +2102,32 @@ describe('lmdb-js', function () {
 			got.should.deep.equal(Array.from({ length: N }, (_, i) => `k${String(i).padStart(2, '0')}`));
 			await db.close();
 		});
+		it('releases the read snapshot when a renewing iterator is suspended across a reset (no other refs)', async function () {
+			let db = open({ path: path.join(testDirPath, 'renewing-reset'), compression: false });
+			const N = 12;
+			for (let i = 0; i < N; i++) await db.put(`k${String(i).padStart(2, '0')}`, i);
+			await db.flushed;
+			// A snapshot:false (renewing) iterator with NO other ref on the shared read txn. Advancing
+			// it once attaches a renewing cursor (refCount === renewingRefCount === 1). This is the
+			// reset-in-place path of resetReadTxn — the sibling of the orphaned-snapshot release above.
+			let iterator = db.getRange({ snapshot: false })[Symbol.iterator]();
+			let first = iterator.next();
+			// Suspend across a resetReadTxn tick. With the fix the txn is released (cursors closed +
+			// aborted) rather than reset in place under the still-attached suspended cursor.
+			await new Promise((resolve) => setTimeout(resolve, 20));
+			// Mutate + flush after the reset so the old snapshot's pages would be reclaimed; a stranded
+			// cursor reading them would fault. The iterator must reposition onto the current txn.
+			for (let i = 0; i < N; i++) await db.put(`k${String(i).padStart(2, '0')}`, i + 100);
+			await db.flushed;
+			let got = first.done ? [] : [first.value.key];
+			for (let r = iterator.next(); !r.done; r = iterator.next()) got.push(r.value.key);
+			// Repositioning may legitimately re-yield the first key on the new snapshot; assert coverage
+			// rather than exact length, and assert no key was lost or corrupted.
+			let expected = Array.from({ length: N }, (_, i) => `k${String(i).padStart(2, '0')}`);
+			for (let key of expected) got.should.include(key);
+			got.every((k) => expected.includes(k)).should.equal(true);
+			await db.close();
+		});
 	});
 	if (version.patch >= 90) {
 		describe('Threads', function () {
