@@ -352,7 +352,7 @@ declare namespace lmdb {
 		new(name: string | null, options: DatabaseOptions): Database<V, K>;
 	}
 
-	type Key = Key[] | string | symbol | number | boolean | Uint8Array;
+	type Key = Key[] | null | string | symbol | number | bigint | boolean | Uint8Array;
 
 	interface DatabaseOptions {
 		name?: string;
