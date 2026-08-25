@@ -2130,14 +2130,15 @@ describe('lmdb-js', function () {
 		});
 	});
 	describe('User shared buffers on a closed database', function () {
-		// Without the guards these calls reach the native EnvWrap* (which env.address zeroes on
-		// close) and segfault the process rather than throwing.
 		it('getUserSharedBuffer throws instead of faulting', async function () {
 			let db = open({
 				path: path.join(testDirPath, 'shared-buffer-closed'),
 				compression: false,
 			});
-			db.getUserSharedBuffer('counter', new ArrayBuffer(8)).should.be.ok;
+			db.getUserSharedBuffer(
+				'counter',
+				new ArrayBuffer(8),
+			).byteLength.should.equal(8);
 			await db.close();
 			expect(() =>
 				db.getUserSharedBuffer('counter', new ArrayBuffer(8)),

@@ -413,7 +413,7 @@ export function addReadMethods(
 				options?.callback,
 			);
 			sharedBuffer.notify = () => {
-				// the buffer outlives the env, so this can be called after close
+				// the returned buffer outlives the env, so the guard above does not cover this
 				if (!env.address)
 					throw new Error('Can not operate on a closed database');
 				setKeyBytes();
