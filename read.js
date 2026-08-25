@@ -396,6 +396,7 @@ export function addReadMethods(
 		},
 
 		getUserSharedBuffer(id, defaultBuffer, options) {
+			if (!env.address) throw new Error('Can not operate on a closed database');
 			let keySize;
 			const setKeyBytes = () => {
 				if (options?.envKey) keySize = this.writeKey(id, keyBytes, 0);
@@ -412,6 +413,9 @@ export function addReadMethods(
 				options?.callback,
 			);
 			sharedBuffer.notify = () => {
+				// the buffer outlives the env, so this can be called after close
+				if (!env.address)
+					throw new Error('Can not operate on a closed database');
 				setKeyBytes();
 				return notifyUserCallbacks(env.address, keySize);
 			};
