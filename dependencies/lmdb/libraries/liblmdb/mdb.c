@@ -1886,7 +1886,47 @@ static char *const mdb_errstr[] = {
 	"MDB_EMPTY_TXN: Transaction was empty",
 };
 //<lmdb-js>
+#include <stdarg.h>
+
 static char* last_error = NULL;
+
+#ifdef _MSC_VER
+#define MDB_SET_LAST_ERROR(detail) ((void)InterlockedExchangePointer((PVOID volatile *)&last_error, (PVOID)(detail)))
+#define MDB_PEEK_LAST_ERROR() ((char *)ReadPointerAcquire((PVOID const volatile *)&last_error))
+#define MDB_TAKE_LAST_ERROR() ((char *)InterlockedExchangePointer((PVOID volatile *)&last_error, NULL))
+#else
+#define MDB_SET_LAST_ERROR(detail) __atomic_store_n(&last_error, (char *)(detail), __ATOMIC_RELEASE)
+#define MDB_PEEK_LAST_ERROR() __atomic_load_n(&last_error, __ATOMIC_ACQUIRE)
+#define MDB_TAKE_LAST_ERROR() __atomic_exchange_n(&last_error, NULL, __ATOMIC_ACQ_REL)
+#endif
+
+static void
+mdb_set_last_error_fmt(const char *format, ...)
+{
+	va_list args;
+	char *detail = malloc(300);
+	if (!detail)
+		return;
+	va_start(args, format);
+	vsnprintf(detail, 300, format, args);
+	va_end(args);
+	MDB_SET_LAST_ERROR(detail);
+}
+
+/* mdb_txn_renew re-wraps any pending detail on each failure, so a detail can exceed the buffer. */
+static char *
+mdb_error_with_detail(char *message)
+{
+	char *detail = MDB_PEEK_LAST_ERROR() ? MDB_TAKE_LAST_ERROR() : NULL;
+	char *error;
+	if (!detail)
+		return message;
+	error = malloc(300);
+	if (!error)
+		return message;
+	snprintf(error, 300, "%s: %s", message, detail);
+	return error;
+}
 //</lmdb-js>
 
 char *
@@ -1907,15 +1947,7 @@ mdb_strerror(int err)
 
 	if (err >= MDB_KEYEXIST && err <= MDB_LAST_ERRCODE) {
 		i = err - MDB_KEYEXIST;
-		if (last_error) {
-			char* error = malloc(300);
-			strcpy(error, mdb_errstr[i]);
-			strcat(error, ": ");
-			strcat(error, last_error);
-			last_error = NULL;
-			return error;
-		}
-		return mdb_errstr[i];
+		return mdb_error_with_detail(mdb_errstr[i]);
 	}
 
 #ifdef _WIN32
@@ -1932,15 +1964,7 @@ mdb_strerror(int err)
 	case EBUSY:		/* 16, CURRENT_DIRECTORY */
 	case EINVAL:	/* 22, BAD_COMMAND */
 	case ENOSPC:	/* 28, OUT_OF_PAPER */
-		if (last_error) {
-			char* error = malloc(300);
-			strcpy(error, strerror(err));
-			strcat(error, ": ");
-			strcat(error, last_error);
-			last_error = NULL;
-			return error;
-		}
-		return strerror(err);
+		return mdb_error_with_detail(strerror(err));
 	default:
 		;
 	}
@@ -1950,15 +1974,7 @@ mdb_strerror(int err)
 		NULL, err, 0, ptr, MSGSIZE, (va_list *)NULL);
 	return ptr;
 #else
-	if (last_error) {
-		char* error = malloc(300);
-		strcpy(error, strerror(err));
-		strcat(error, ": ");
-		strcat(error, last_error);
-		last_error = NULL;
-		return error;
-	}
-	return strerror(err);
+	return mdb_error_with_detail(strerror(err));
 #endif
 }
 
@@ -3243,7 +3259,7 @@ mdb_page_touch(MDB_cursor *mc)
 		MDB_ID2 mid, *dl = txn->mt_u.dirty_list;
 		pgno = mp->mp_pgno;
 		if (!txn->mt_parent) {
-			last_error = "mdb_page_touch no parent";
+			MDB_SET_LAST_ERROR("mdb_page_touch no parent");
 			rc = MDB_PROBLEM;
 			goto fail;
 		}
@@ -3565,11 +3581,10 @@ mdb_txn_renew0(MDB_txn *txn)
 				pthread_getspecific(env->me_txkey);
 			if (r) {
 				if (r->mr_pid != env->me_pid || r->mr_txnid != (txnid_t)-1) {
-					last_error = malloc(100);
 					if (r->mr_pid != env->me_pid)
-						sprintf(last_error, "The reader lock pid %u, txn %i, doesn't match env pid %u", r->mr_pid, r->mr_txnid, env->me_pid);
+						mdb_set_last_error_fmt("The reader lock pid %u, txn %i, doesn't match env pid %u", r->mr_pid, r->mr_txnid, env->me_pid);
 					else
-						sprintf(last_error, "The reader lock has a txn id %i", r->mr_txnid);
+						mdb_set_last_error_fmt("The reader lock has a txn id %i", r->mr_txnid);
 					return MDB_BAD_RSLOT;
 				}
 			} else {
@@ -3731,13 +3746,12 @@ mdb_txn_renew(MDB_txn *txn)
 
 	if (!txn || !F_ISSET(txn->mt_flags, MDB_TXN_RDONLY|MDB_TXN_FINISHED)) {
 		if (!txn)
-			last_error = "No transaction to renew";
+			MDB_SET_LAST_ERROR("No transaction to renew");
 		else if (F_ISSET(txn->mt_flags, MDB_TXN_RDONLY)) {
 			// Txn is already renewed, consider this as invalid for compatibility with v1
 			return EINVAL;
 		} else {
-			last_error = malloc(100);
-			sprintf(last_error, "Transaction flag was invalid for renew: %u", txn->mt_flags);
+			mdb_set_last_error_fmt("Transaction flag was invalid for renew: %u", txn->mt_flags);
 		}
 		return MDB_BAD_TXN; // if the transaction is not read-only, communicate this with a separate error code
 	}
@@ -3748,7 +3762,7 @@ mdb_txn_renew(MDB_txn *txn)
 			txn->mt_txnid, (txn->mt_flags & MDB_TXN_RDONLY) ? 'r' : 'w',
 			(void *)txn, (void *)txn->mt_env, txn->mt_dbs[MAIN_DBI].md_root));
 	} else {
-		last_error = mdb_strerror(rc);
+		MDB_SET_LAST_ERROR(mdb_strerror(rc));
 	}
 	return rc;
 }
@@ -4262,8 +4276,7 @@ mdb_freelist_save(MDB_txn *txn)
 					// we will reserve one entry for size and potentially one extra entry in case we are splitting an entry
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
 					if (data.mv_size <= 0) {
-						last_error = malloc(100);
-						sprintf(last_error, "attempt to reserve freelist had a data entry with zero-size, last len %i\n", len);
+						mdb_set_last_error_fmt("attempt to reserve freelist had a data entry with zero-size, last len %i\n", len);
 						return MDB_BAD_TXN;
 					}
 
@@ -4299,7 +4312,7 @@ mdb_freelist_save(MDB_txn *txn)
 				env->me_freelist_no_reverse_iteration = 1; // once we started deleting, could lead to unsafe reverse iteration
 				rc = mdb_cursor_del(&mc, 0);
 				if (rc) {
-					last_error = "Attempting to delete free-space record";
+					MDB_SET_LAST_ERROR("Attempting to delete free-space record");
 					return rc;
 				}
 			} while(1);
@@ -4359,8 +4372,7 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
 		if (data.mv_size == 0) {
-			last_error = malloc(100);
-			sprintf(last_error, "reserved freelist had a data entry with zero-size, last id %u\n", id);
+			mdb_set_last_error_fmt("reserved freelist had a data entry with zero-size, last id %u\n", id);
 			rc = MDB_BAD_TXN;
 			break;
 		}
@@ -4452,8 +4464,7 @@ mdb_freelist_save(MDB_txn *txn)
 		rc = mdb_cursor_get(&mc, &key, NULL, MDB_SET);
 		if (rc == 0 && key.mv_size != sizeof(txn->mt_txnid)) {
 			fprintf(stderr, "new freelist entry key wrong size %u\n", txn->mt_txnid);
-			last_error = malloc(100);
-			sprintf(last_error, "new freelist entry key wrong size %u\n", txn->mt_txnid);
+			mdb_set_last_error_fmt("new freelist entry key wrong size %u\n", txn->mt_txnid);
 			rc = MDB_BAD_TXN;
 		}
 		if (rc == MDB_NOTFOUND) rc = 0;
@@ -4468,14 +4479,12 @@ mdb_freelist_save(MDB_txn *txn)
 		while (rc == 0) {
 			if (key.mv_size != sizeof(start_written)) {
 				fprintf(stderr, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
-				last_error = malloc(100);
-				sprintf(last_error, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
+				mdb_set_last_error_fmt("updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
 				rc = MDB_BAD_TXN;
 				break;
 			}
 			if (data.mv_size == 0) {
-				last_error = malloc(100);
-				sprintf(last_error, "updated freelist had a data entry with zero-size, last %u\n", last);
+				mdb_set_last_error_fmt("updated freelist had a data entry with zero-size, last %u\n", last);
 				rc = MDB_BAD_TXN;
 				break;
 			}
@@ -4503,8 +4512,7 @@ mdb_freelist_save(MDB_txn *txn)
 					if (last >= env->me_freelist_end) break;
 					rc = mdb_cursor_get(&mc, &key, &data, MDB_NEXT);
 				}
-				last_error = malloc(100);
-				sprintf(last_error, "freelist entry %u had bad/duplicate entries, error code %u\n", last, rc);
+				mdb_set_last_error_fmt("freelist entry %u had bad/duplicate entries, error code %u\n", last, rc);
 				rc = MDB_BAD_TXN;
 				break;
 			}
@@ -4739,8 +4747,7 @@ retry_seek:
 						if (rc == EINTR)
 							goto retry_write;
 						fprintf(stderr, "Write error: %s position %u, size %u", strerror(rc), wpos, wsize);
-						last_error = malloc(100);
-						sprintf(last_error, "Attempting to write page at position %u, size %u, blocks %u, buffer sizes %i %i %i", wpos, wsize, n, iov[0].iov_len, iov[1].iov_len, iov[2].iov_len);
+						mdb_set_last_error_fmt("Attempting to write page at position %u, size %u, blocks %u, buffer sizes %i %i %i", wpos, wsize, n, iov[0].iov_len, iov[1].iov_len, iov[2].iov_len);
 					} else {
 						rc = EIO; /* TODO: Use which error code? */
 						DPUTS("short write, filesystem full?");
@@ -5070,8 +5077,7 @@ mdb_txn_commit(MDB_txn *txn)
 	if ((rc = mdb_page_flush(txn, 0)))
 		goto fail;
 	if ((unsigned)txn->mt_loose_count < txn->mt_u.dirty_list[0].mid) {
-		last_error = malloc(100);
-		sprintf(last_error, "The loose count %i is less than the size of the dirty list %u", txn->mt_loose_count, txn->mt_u.dirty_list[0].mid);
+		mdb_set_last_error_fmt("The loose count %i is less than the size of the dirty list %u", txn->mt_loose_count, txn->mt_u.dirty_list[0].mid);
 		rc = MDB_PROBLEM; /* mt_loose_pgs does not match dirty_list */
 		goto fail;
 	}
@@ -6815,7 +6821,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 #else
 	rc = pthread_mutex_init(&env->me_rpmutex, NULL);
 	if (rc) {
-		last_error = "Attempting to initialize mutex";
+		MDB_SET_LAST_ERROR("Attempting to initialize mutex");
 		goto leave;
 	}
 #endif
@@ -6905,7 +6911,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	if (!(flags & (MDB_RDONLY|MDB_NOLOCK))) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
 		if (rc) {
-			if (rc != 10) last_error = "Attempting to setup locks"; // lmdb-js uses 10 for existing environment found
+			if (rc != 10) MDB_SET_LAST_ERROR("Attempting to setup locks"); // lmdb-js uses 10 for existing environment found
 			goto leave;
 		}
 		if ((flags & MDB_PREVSNAPSHOT) && !excl) {
@@ -6920,7 +6926,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		(flags & MDB_RDONLY) ? MDB_O_RDONLY : MDB_O_RDWR,
 		mode, &env->me_fd);
 	if (rc) {
-		last_error = "Attempting to open main database file";
+		MDB_SET_LAST_ERROR("Attempting to open main database file");
 		goto leave;
 	}
 #ifdef _WIN32
@@ -6931,7 +6937,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 	if ((flags & (MDB_RDONLY|MDB_NOLOCK)) == MDB_RDONLY) {
 		rc = mdb_env_setup_locks(env, &fname, mode, &excl);
 		if (rc) {
-			last_error = "Attempting to setup locks after open";
+			MDB_SET_LAST_ERROR("Attempting to setup locks after open");
 			goto leave;
 		}
 	}
@@ -6943,7 +6949,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 		if (!(flags & (MDB_RDONLY|MDB_WRITEMAP))) {
 			rc = mdb_fopen(env, &fname, MDB_O_META, mode, &env->me_mfd);
 			if (rc) {
-				last_error = "Attempting to open sync file descriptor";
+				MDB_SET_LAST_ERROR("Attempting to open sync file descriptor");
 				goto leave;
 			}
 		}
@@ -6972,7 +6978,7 @@ mdb_env_open(MDB_env *env, const char *path, unsigned int flags, mdb_mode_t mode
 			}
 			rc = mdb_env_share_locks(env, &excl);
 			if (rc) {
-				last_error = "Attempting to setup shared locks";
+				MDB_SET_LAST_ERROR("Attempting to setup shared locks");
 				goto leave;
 			}
 		}
@@ -8272,7 +8278,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 			if (sl) {
 			x = mdb_midl_search(sl, pn);
 			if (! (x <= sl[0] && sl[x] == pn)) {
-				last_error = "mdb_ovpage_free spilled dirty";
+				MDB_SET_LAST_ERROR("mdb_ovpage_free spilled dirty");
 				return MDB_PROBLEM;
 			}
 			/* This page is no longer spilled */
@@ -8297,7 +8303,7 @@ mdb_ovpage_free(MDB_cursor *mc, MDB_page *mp)
 				dl[j] = ix;		/* Unsorted. OK when MDB_TXN_ERROR. */
 				fprintf(stderr, "mdb_ovpage_free: page not found in dirty list\n");
 				txn->mt_flags |= MDB_TXN_ERROR;
-				last_error = "mdb_ovpage_free remove dirty";
+				MDB_SET_LAST_ERROR("mdb_ovpage_free remove dirty");
 				return MDB_PROBLEM;
 			}
 		}
@@ -8380,20 +8386,18 @@ mdb_get_with_txn(MDB_txn *txn, MDB_dbi dbi,
 
 	if (!key || !data || !TXN_DBI_EXIST(txn, dbi, DB_USRVALID)) {
 		if (!key)
-			last_error = "No key was provided";
+			MDB_SET_LAST_ERROR("No key was provided");
 		else if (!data)
-			last_error = "No data was provided";
+			MDB_SET_LAST_ERROR("No data was provided");
 		else if (!txn) {
-			if (!last_error)
-				last_error = "No transaction available";
+			if (!MDB_PEEK_LAST_ERROR())
+				MDB_SET_LAST_ERROR("No transaction available");
 		} else if ((dbi)>=(txn)->mt_numdbs) {
 			MDB_meta *meta = mdb_env_pick_meta(txn->mt_env);
 			txn->mt_txnid = meta->mm_txnid;
-			last_error = malloc(140);
-			sprintf(last_error, "The dbi %u was out of range for the number of dbis (txn: %u id: %u, env: %u txnid: %u)", dbi, (txn)->mt_numdbs, txn->mt_txnid, txn->mt_env->me_numdbs, meta->mm_txnid);
+			mdb_set_last_error_fmt("The dbi %u was out of range for the number of dbis (txn: %u id: %u, env: %u txnid: %u)", dbi, (txn)->mt_numdbs, txn->mt_txnid, txn->mt_env->me_numdbs, meta->mm_txnid);
 		} else {
-			last_error = malloc(100);
-			sprintf(last_error, "The dbi %u flag was not valid for the txn: %u", dbi, (txn)->mt_dbflags[dbi]);
+			mdb_set_last_error_fmt("The dbi %u flag was not valid for the txn: %u", dbi, (txn)->mt_dbflags[dbi]);
 		}
 		return EINVAL;
 	}
@@ -8421,8 +8425,7 @@ mdb_direct_write(MDB_txn *txn, MDB_dbi dbi,
 	int rc = mdb_get_with_txn(txn, dbi, key, &existing_data, NULL);
 	if (rc == 0) {
 		if (data->mv_size > existing_data.mv_size) {
-			last_error = malloc(100);
-			sprintf(last_error, "Attempt to direct write beyond the size of the value");
+			mdb_set_last_error_fmt("Attempt to direct write beyond the size of the value");
 			return EINVAL;
 		}
 		MDB_env* env = txn->mt_env;
@@ -8493,7 +8496,7 @@ mdb_cursor_sibling(MDB_cursor *mc, int move_right)
 				move_right ? "right" : "left", mc->mc_ki[mc->mc_top]));
 	}
 	if (!IS_BRANCH(mc->mc_pg[mc->mc_top])) {
-		last_error = "expected node to be branch, but was not";
+		MDB_SET_LAST_ERROR("expected node to be branch, but was not");
 		return MDB_PROBLEM;
 	}
 
@@ -8589,7 +8592,7 @@ skip:
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
 		if (!mc->mc_xcursor) {
-			last_error = "Invalid dupdata flag with no mc_xcursor";
+			MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 			return MDB_BAD_TXN;
 		}
 		mdb_xcursor_init1(mc, leaf);
@@ -8678,7 +8681,7 @@ mdb_cursor_prev(MDB_cursor *mc, MDB_val *key, MDB_val *data, MDB_cursor_op op)
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
 		if (!mc->mc_xcursor) {
-			last_error = "Invalid dupdata flag with no mc_xcursor";
+			MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 			return MDB_BAD_TXN;
 		}
 		mdb_xcursor_init1(mc, leaf);
@@ -8845,7 +8848,7 @@ set1:
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
 		if (!mc->mc_xcursor) {
-			last_error = "Invalid dupdata flag with no mc_xcursor";
+			MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 			return MDB_BAD_TXN;
 		}
 		mdb_xcursor_init1(mc, leaf);
@@ -8931,7 +8934,7 @@ mdb_cursor_first(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
 		if (!mc->mc_xcursor) {
-			last_error = "Invalid dupdata flag with no mc_xcursor";
+			MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 			return MDB_BAD_TXN;
 		}
 		mdb_xcursor_init1(mc, leaf);
@@ -8980,7 +8983,7 @@ mdb_cursor_last(MDB_cursor *mc, MDB_val *key, MDB_val *data)
 
 	if (F_ISSET(leaf->mn_flags, F_DUPDATA)) {
 		if (!mc->mc_xcursor) {
-			last_error = "Invalid dupdata flag with no mc_xcursor";
+			MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 			return MDB_BAD_TXN;
 		}
 		mdb_xcursor_init1(mc, leaf);
@@ -9667,7 +9670,7 @@ put_sub:
 				xflags = MDB_CURRENT|MDB_NOSPILL;
 			} else {
 				if (!mc->mc_xcursor) {
-					last_error = "Invalid dupdata flag with no mc_xcursor";
+					MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 					return MDB_BAD_TXN;
 				}
 				mdb_xcursor_init1(mc, leaf);
@@ -9741,7 +9744,7 @@ put_sub:
 		return rc;
 bad_sub:
 		if (rc == MDB_KEYEXIST)	{/* should not happen, we deleted that item */
-			last_error = "should not happen, we deleted that item";
+			MDB_SET_LAST_ERROR("should not happen, we deleted that item");
 			rc = MDB_PROBLEM;
 		}
 	}
@@ -11226,7 +11229,7 @@ mdb_cursor_del0(MDB_cursor *mc)
 					 */
 					if (node->mn_flags & F_DUPDATA) {
 						if (!m3->mc_xcursor) {
-							last_error = "Invalid dupdata flag with no mc_xcursor";
+							MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 							rc = MDB_BAD_TXN;
 							goto fail;
 						}
@@ -11580,7 +11583,7 @@ mdb_page_split(MDB_cursor *mc, MDB_val *newkey, MDB_val *newdata, pgno_t newpgno
 	}
 	if (rc != MDB_SUCCESS) {
 		if (rc == MDB_NOTFOUND) { /* improper mdb_cursor_sibling() result */
-			last_error = "improper mdb_cursor_sibling() result";
+			MDB_SET_LAST_ERROR("improper mdb_cursor_sibling() result");
 			rc = MDB_PROBLEM;
 		}
 		goto done;
@@ -12779,7 +12782,7 @@ mdb_drop0(MDB_cursor *mc, int subs)
 							break;
 					} else if (subs && (ni->mn_flags & F_SUBDATA)) {
 						if (!mc->mc_xcursor) {
-							last_error = "Invalid dupdata flag with no mc_xcursor";
+							MDB_SET_LAST_ERROR("Invalid dupdata flag with no mc_xcursor");
 							return MDB_BAD_TXN;
 						}
 						mdb_xcursor_init1(mc, ni);
