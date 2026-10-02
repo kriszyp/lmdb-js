@@ -1887,6 +1887,17 @@ static char *const mdb_errstr[] = {
 };
 //<lmdb-js>
 static char* last_error = NULL;
+
+/* mdb_txn_renew re-wraps any pending detail on each failure, so a detail can exceed the buffer. */
+static char *
+mdb_error_with_detail(char *message)
+{
+	char *error = malloc(300);
+	if (error)
+		snprintf(error, 300, "%s: %s", message, last_error);
+	last_error = NULL;
+	return error ? error : message;
+}
 //</lmdb-js>
 
 char *
@@ -1907,14 +1918,8 @@ mdb_strerror(int err)
 
 	if (err >= MDB_KEYEXIST && err <= MDB_LAST_ERRCODE) {
 		i = err - MDB_KEYEXIST;
-		if (last_error) {
-			char* error = malloc(300);
-			strcpy(error, mdb_errstr[i]);
-			strcat(error, ": ");
-			strcat(error, last_error);
-			last_error = NULL;
-			return error;
-		}
+		if (last_error)
+			return mdb_error_with_detail(mdb_errstr[i]);
 		return mdb_errstr[i];
 	}
 
@@ -1932,14 +1937,8 @@ mdb_strerror(int err)
 	case EBUSY:		/* 16, CURRENT_DIRECTORY */
 	case EINVAL:	/* 22, BAD_COMMAND */
 	case ENOSPC:	/* 28, OUT_OF_PAPER */
-		if (last_error) {
-			char* error = malloc(300);
-			strcpy(error, strerror(err));
-			strcat(error, ": ");
-			strcat(error, last_error);
-			last_error = NULL;
-			return error;
-		}
+		if (last_error)
+			return mdb_error_with_detail(strerror(err));
 		return strerror(err);
 	default:
 		;
@@ -1950,14 +1949,8 @@ mdb_strerror(int err)
 		NULL, err, 0, ptr, MSGSIZE, (va_list *)NULL);
 	return ptr;
 #else
-	if (last_error) {
-		char* error = malloc(300);
-		strcpy(error, strerror(err));
-		strcat(error, ": ");
-		strcat(error, last_error);
-		last_error = NULL;
-		return error;
-	}
+	if (last_error)
+		return mdb_error_with_detail(strerror(err));
 	return strerror(err);
 #endif
 }
