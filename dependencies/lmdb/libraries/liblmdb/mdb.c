@@ -1888,13 +1888,11 @@ static char *const mdb_errstr[] = {
 //<lmdb-js>
 #include <stdarg.h>
 
-/* Pending detail for the next mdb_strerror call. Threads publish and take it concurrently,
- * so every access goes through these macros. */
 static char* last_error = NULL;
 
 #ifdef _MSC_VER
 #define MDB_SET_LAST_ERROR(detail) ((void)InterlockedExchangePointer((PVOID volatile *)&last_error, (PVOID)(detail)))
-#define MDB_PEEK_LAST_ERROR() ((char *)InterlockedCompareExchangePointer((PVOID volatile *)&last_error, NULL, NULL))
+#define MDB_PEEK_LAST_ERROR() ((char *)ReadPointerAcquire((PVOID const volatile *)&last_error))
 #define MDB_TAKE_LAST_ERROR() ((char *)InterlockedExchangePointer((PVOID volatile *)&last_error, NULL))
 #else
 #define MDB_SET_LAST_ERROR(detail) __atomic_store_n(&last_error, (char *)(detail), __ATOMIC_RELEASE)
@@ -1902,7 +1900,6 @@ static char* last_error = NULL;
 #define MDB_TAKE_LAST_ERROR() __atomic_exchange_n(&last_error, NULL, __ATOMIC_ACQ_REL)
 #endif
 
-/* Formatted in a private buffer and published only when complete. */
 static void
 mdb_set_last_error_fmt(const char *format, ...)
 {
@@ -1920,7 +1917,7 @@ mdb_set_last_error_fmt(const char *format, ...)
 static char *
 mdb_error_with_detail(char *message)
 {
-	char *detail = MDB_TAKE_LAST_ERROR();
+	char *detail = MDB_PEEK_LAST_ERROR() ? MDB_TAKE_LAST_ERROR() : NULL;
 	char *error;
 	if (!detail)
 		return message;
