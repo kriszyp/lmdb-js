@@ -1888,15 +1888,26 @@ static char *const mdb_errstr[] = {
 //<lmdb-js>
 static char* last_error = NULL;
 
-/* mdb_txn_renew re-wraps any pending detail on each failure, so a detail can exceed the buffer. */
+#ifdef _MSC_VER
+#define MDB_TAKE_LAST_ERROR() ((char *)InterlockedExchangePointer((PVOID volatile *)&last_error, NULL))
+#else
+#define MDB_TAKE_LAST_ERROR() __atomic_exchange_n(&last_error, NULL, __ATOMIC_ACQ_REL)
+#endif
+
+/* Taken in one exchange: another thread may consume last_error between a caller's check and here.
+ * mdb_txn_renew re-wraps any pending detail on each failure, so a detail can exceed the buffer. */
 static char *
 mdb_error_with_detail(char *message)
 {
-	char *error = malloc(300);
-	if (error)
-		snprintf(error, 300, "%s: %s", message, last_error);
-	last_error = NULL;
-	return error ? error : message;
+	char *detail = MDB_TAKE_LAST_ERROR();
+	char *error;
+	if (!detail)
+		return message;
+	error = malloc(300);
+	if (!error)
+		return message;
+	snprintf(error, 300, "%s: %s", message, detail);
+	return error;
 }
 //</lmdb-js>
 
