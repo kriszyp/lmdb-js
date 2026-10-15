@@ -13,6 +13,7 @@ const int INCLUSIVE_END = 0x8000;
 const int EXCLUSIVE_START = 0x10000;
 
 CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(info) {
+	info.This().As<Object>().TypeTag(&CURSOR_WRAP_TYPE_TAG);
 	this->keyType = LmdbKeyType::StringKey;
 	this->freeKey = nullptr;
 	this->endKey.mv_size = 0; // indicates no end key (yet)
@@ -22,6 +23,10 @@ CursorWrap::CursorWrap(const CallbackInfo& info) : Napi::ObjectWrap<CursorWrap>(
 	}
 
 	DbiWrap *dw;
+	if (!hasTypeTag(info[0], &DBI_WRAP_TYPE_TAG)) {
+		throwError(info.Env(), "Attempt to open a cursor on an invalid database");
+		return;
+	}
 	napi_unwrap(info.Env(), info[0], (void**)&dw);
 	int64_t tw_address = 0;
 	napi_get_value_int64(info.Env(), info[1], &tw_address);

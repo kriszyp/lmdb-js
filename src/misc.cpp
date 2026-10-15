@@ -1,4 +1,5 @@
 #include "lmdb-js.h"
+#include <random>
 #include <atomic>
 #include <string.h>
 #include <stdio.h>
@@ -423,6 +424,24 @@ Napi::Value throwLmdbError(Napi::Env env, int rc) {
 	error.Set("code", Number::New(env, rc));
 	error.ThrowAsJavaScriptException();
 	return env.Undefined();
+}
+
+static napi_type_tag randomTypeTag() {
+	std::random_device rd;
+	auto random64 = [&rd]() {
+		return (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd());
+	};
+	return { random64(), random64() };
+}
+
+const napi_type_tag ENV_WRAP_TYPE_TAG = randomTypeTag();
+const napi_type_tag TXN_WRAP_TYPE_TAG = randomTypeTag();
+const napi_type_tag DBI_WRAP_TYPE_TAG = randomTypeTag();
+const napi_type_tag CURSOR_WRAP_TYPE_TAG = randomTypeTag();
+const napi_type_tag COMPRESSION_TYPE_TAG = randomTypeTag();
+
+bool hasTypeTag(Napi::Value value, const napi_type_tag* tag) {
+	return value.IsObject() && value.As<Napi::Object>().CheckTypeTag(tag);
 }
 
 Napi::Value throwError(Napi::Env env, const char* message) {

@@ -57,6 +57,7 @@ void EnvWrap::cleanupEnvWraps(void* data) {
 	}
 }
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
+	info.This().As<Object>().TypeTag(&ENV_WRAP_TYPE_TAG);
 	int rc;
 	rc = mdb_env_create(&(this->env));
 
@@ -260,6 +261,12 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
+	if (!info[0].IsObject()) {
+		return throwError(info.Env(), "The open options must be an object.");
+	}
+	if (!info[1].IsNumber() || !info[2].IsNumber()) {
+		return throwError(info.Env(), "The open flags must be numbers.");
+	}
 	Object options = info[0].As<Object>();
 	int flags = info[1].As<Number>();
 	int jsFlags = info[2].As<Number>();
@@ -267,6 +274,9 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	Compression* compression = nullptr;
 	Napi::Value compressionOption = options.Get("compression");
 	if (compressionOption.IsObject()) {
+		if (!hasTypeTag(compressionOption, &COMPRESSION_TYPE_TAG)) {
+			return throwError(info.Env(), "The compression option must be a Compression instance.");
+		}
 		napi_unwrap(info.Env(), compressionOption, (void**)&compression);
 		this->compression = compression;
 	}
@@ -276,8 +286,11 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 		fprintf(stderr, "Invalid key buffer\n");
 	size_t keyBufferLength;
 	napi_get_buffer_info(info.Env(), keyBytesValue, &keyBuffer, &keyBufferLength);
-	String path = options.Get("path").As<String>();
-	std::string pathString = path.Utf8Value();
+	Napi::Value pathOption = options.Get("path");
+	if (!pathOption.IsString()) {
+		return throwError(info.Env(), "The path option must be a string.");
+	}
+	std::string pathString = pathOption.As<String>().Utf8Value();
 	// Parse the maxDbs option
 	int maxDbs = 12;
 	Napi::Value option = options.Get("maxDbs");
@@ -314,6 +327,9 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	std::string encryptKey;
 	if (!encryptionKey.IsUndefined()) {
+		if (!encryptionKey.IsString()) {
+			return throwError(info.Env(), "The encryptionKey option must be a string.");
+		}
 		encryptKey = encryptionKey.As<String>().Utf8Value();
 		if (encryptKey.length() != 32) {
 			return throwError(info.Env(), "Encryption key must be 32 bytes long");
@@ -700,9 +716,14 @@ void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks, bool relea
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+	if (!extended_env) {
+		mdb_env_close(env);
+		env = nullptr;
+		return;
+	}
 #ifdef MDB_OVERLAPPINGSYNC
 	// unlock any record locks held by this thread/EnvWrap
-	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
 	pthread_mutex_lock(&extended_env->userBuffersLock);
 	for (auto buffer_iter = extended_env->userSharedBuffers.begin(); buffer_iter != extended_env->userSharedBuffers.end();) {
 		for (auto callback_iter = buffer_iter->second.callbacks.begin(); callback_iter != buffer_iter->second.callbacks.end();) {
@@ -924,7 +945,8 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	if (!info[0].IsString()) {
 		return throwError(info.Env(), "Call env.copy(path, compact?, callback) with a file path.");
 	}
-	if (!info[info.Length() - 1].IsFunction()) {
+	unsigned int callbackIndex = info.Length() > 2 ? 2 : 1;
+	if (!info[callbackIndex].IsFunction()) {
 		return throwError(info.Env(), "Call env.copy(path, compact?, callback) with a file path.");
 	}
 
@@ -934,7 +956,7 @@ Napi::Value EnvWrap::copy(const CallbackInfo& info) {
 	}
 
 	CopyWorker* worker = new CopyWorker(
-		this->env, info[0].As<String>().Utf8Value(), flags, info[info.Length()	> 2 ? 2 : 1].As<Function>()
+		this->env, info[0].As<String>().Utf8Value(), flags, info[callbackIndex].As<Function>()
 	);
 	worker->Queue();
 	return info.Env().Undefined();
@@ -1135,7 +1157,11 @@ napi_value ExtendedEnv::getUserSharedBuffer(std::string key, napi_value default_
 	if (resolution == userSharedBuffers.end()) {
 		void* default_buffer_data;
 		size_t default_buffer_size;
-		napi_get_arraybuffer_info(env, default_buffer, &default_buffer_data, &default_buffer_size);
+		if (napi_get_arraybuffer_info(env, default_buffer, &default_buffer_data, &default_buffer_size) != napi_ok) {
+			pthread_mutex_unlock(&userBuffersLock);
+			throwError(env, "The default buffer must be an ArrayBuffer");
+			return nullptr;
+		}
 
 		char* buffer_data = new char[default_buffer_size];
 		memcpy(buffer_data, default_buffer_data, default_buffer_size);

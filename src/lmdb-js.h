@@ -195,6 +195,13 @@ int putWithVersion(MDB_txn* txn,
 Napi::Value throwLmdbError(Napi::Env env, int rc);
 Napi::Value throwError(Napi::Env env, const char* message);
 
+extern const napi_type_tag ENV_WRAP_TYPE_TAG;
+extern const napi_type_tag TXN_WRAP_TYPE_TAG;
+extern const napi_type_tag DBI_WRAP_TYPE_TAG;
+extern const napi_type_tag CURSOR_WRAP_TYPE_TAG;
+extern const napi_type_tag COMPRESSION_TYPE_TAG;
+bool hasTypeTag(Napi::Value value, const napi_type_tag* tag);
+
 class TxnWrap;
 class DbiWrap;
 class EnvWrap;
