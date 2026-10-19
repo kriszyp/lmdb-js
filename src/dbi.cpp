@@ -6,6 +6,7 @@ using namespace Napi;
 void setFlagFromValue(int *flags, int flag, const char *name, bool defaultValue, Object options);
 
 DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
+	info.This().As<Object>().TypeTag(&DBI_WRAP_TYPE_TAG);
 	this->dbi = 0;
 	this->keyType = LmdbKeyType::DefaultKey;
 	this->compression = nullptr;
@@ -13,9 +14,17 @@ DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
 	this->getFast = false;
 	this->ew = nullptr;
 	EnvWrap *ew;
+	if (!hasTypeTag(info[0], &ENV_WRAP_TYPE_TAG)) {
+		throwError(info.Env(), "Attempt to open a database on an invalid database environment");
+		return;
+	}
 	napi_unwrap(info.Env(), info[0], (void**) &ew);
 	this->env = ew->env;
 	this->ew = ew;
+	if (!info[1].IsNumber()) {
+		throwError(info.Env(), "The database flags must be a number");
+		return;
+	}
 	int flags = info[1].As<Number>();
 	char* nameBytes;
 	std::string name;
@@ -24,11 +33,19 @@ DbiWrap::DbiWrap(const Napi::CallbackInfo& info) : ObjectWrap<DbiWrap>(info) {
 		nameBytes = (char*) name.c_str();
 	} else
 		nameBytes = nullptr;
+	if (!info[3].IsNumber()) {
+		throwError(info.Env(), "The key type must be a number");
+		return;
+	}
 	LmdbKeyType keyType = (LmdbKeyType) info[3].As<Number>().Int32Value();
 	Compression* compression;
-	if (info[4].IsObject())
+	if (info[4].IsObject()) {
+		if (!hasTypeTag(info[4], &COMPRESSION_TYPE_TAG)) {
+			throwError(info.Env(), "The compression argument must be a Compression instance");
+			return;
+		}
 		napi_unwrap(info.Env(), info[4], (void**) &compression);
-	else
+	} else
 		compression = nullptr;
 	int rc = this->open(flags, nameBytes, flags & HAS_VERSIONS,
 		keyType, compression);

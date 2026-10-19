@@ -666,6 +666,9 @@ Value EnvWrap::startWriting(const Napi::CallbackInfo& info) {
 	if (!this->env) {
 		return throwError(info.Env(), "The environment is already closed.");
 	}
+	if (!info[0].IsNumber()) {
+		return throwError(info.Env(), "The instruction address must be a number.");
+	}
 	hasWrites = true;
 	size_t instructionAddress = info[0].As<Number>().Int64Value();
 	napi_value resource;

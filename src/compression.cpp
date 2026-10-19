@@ -6,6 +6,7 @@ using namespace Napi;
 
 thread_local LZ4_stream_t* Compression::stream = nullptr;
 Compression::Compression(const CallbackInfo& info) : ObjectWrap<Compression>(info) {
+	info.This().As<Object>().TypeTag(&COMPRESSION_TYPE_TAG);
 	unsigned int compressionThreshold = 1000;
 	char* dictionary = nullptr;
 	size_t dictSize = 0;
