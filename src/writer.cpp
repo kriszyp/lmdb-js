@@ -114,6 +114,11 @@ void WriteWorker::UnlockTxn() {
 	pthread_cond_signal(envForTxn->writingCond);
 	pthread_mutex_unlock(envForTxn->writingLock);
 }
+#ifdef _WIN32
+const uint64_t MAX_CALLBACK_WAIT = 8; // milliseconds
+#else
+const uint64_t MAX_CALLBACK_WAIT = 800; // 10 microsecond units
+#endif
 int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target) {
 	int rc;
 	if (!finishedProgress)
@@ -127,24 +132,29 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	if (envFlags & MDB_TRACK_METRICS)
 		start = get_time64();
 #endif
-	if (target) {
-		uint64_t delay = 1;
-		do {
-			cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
+	uint64_t delay = 1;
+	do {
+		cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
+		if (delay < MAX_CALLBACK_WAIT)
 			delay = delay << 1ll;
-			if ((*target & 0xf) || (allowCommit && finishedProgress)) {
-				// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
+		if (target ? (*target & 0xf) || (allowCommit && finishedProgress) : finishedProgress) {
+			// we are in position to continue writing or commit, so forward progress can be made without interrupting yet
 #ifdef MDB_TRACK_METRICS
-				if (envFlags & MDB_TRACK_METRICS)
-					envForTxn->timeTxnWaiting += get_time64() - start;
+			if (envFlags & MDB_TRACK_METRICS)
+				envForTxn->timeTxnWaiting += get_time64() - start;
 #endif
-				interruptionStatus = 0;
-				return 0;
-			}
-		} while(interruptionStatus != INTERRUPT_BATCH);
-	} else {
-		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
-    }
+			interruptionStatus = 0;
+			return 0;
+		}
+		if (interruptionStatus == 0) // JS code joined and then released our transaction
+			interruptionStatus = WORKER_WAITING;
+		if (allowCommit && interruptionStatus == WORKER_WAITING && JsThreadBlockedOnOtherEnv()) {
+			rc = YieldTxn(txn);
+			if (rc != 0)
+				return rc;
+			delay = 1;
+		}
+	} while(interruptionStatus != INTERRUPT_BATCH);
 #ifdef MDB_TRACK_METRICS
 	if (envFlags & MDB_TRACK_METRICS)
 		envForTxn->timeTxnWaiting += get_time64() - start;
@@ -174,6 +184,63 @@ int WriteWorker::WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* tar
 	} else
 		interruptionStatus = 0;
 	return 0;
+}
+bool WriteWorker::JsThreadBlockedOnOtherEnv() {
+	EnvWrap* blockedOn = envForTxn->jsThreadWrite->blockedOn.load();
+	return blockedOn && blockedOn != envForTxn;
+}
+// Commits the writes so far, releasing the write lock until our JS thread is no longer blocked on another environment's
+// write lock, and then starts a new transaction to continue the batch.
+int WriteWorker::YieldTxn(MDB_txn** txn) {
+	int rc = mdb_txn_commit(*txn);
+#ifdef MDB_EMPTY_TXN
+	if (rc == MDB_EMPTY_TXN)
+		rc = 0;
+#endif
+	if (rc != 0)
+		resultCode = rc; // the batch fails, but continues in a new transaction so the remaining instructions are consumed
+	this->txn = *txn = nullptr;
+	interruptionStatus = WORKER_YIELDED;
+	uint64_t delay = 1;
+	while (JsThreadBlockedOnOtherEnv()) {
+		cond_timedwait(envForTxn->writingCond, envForTxn->writingLock, delay);
+		if (delay < MAX_CALLBACK_WAIT)
+			delay = delay << 1ll;
+	}
+	rc = mdb_txn_begin(env, nullptr, 0, txn);
+	this->txn = *txn;
+	interruptionStatus = WORKER_WAITING;
+	pthread_cond_signal(envForTxn->writingCond); // write_progress may be waiting for our transaction
+	return rc;
+}
+static thread_local JsThreadWriteState* currentJsThreadWriteState = nullptr;
+JsThreadWriteState* JsThreadWriteState::add(EnvWrap* env) {
+	if (!currentJsThreadWriteState)
+		currentJsThreadWriteState = new JsThreadWriteState();
+	currentJsThreadWriteState->envs.push_back(env);
+	return currentJsThreadWriteState;
+}
+void JsThreadWriteState::remove(EnvWrap* env) {
+	envs.erase(std::remove(envs.begin(), envs.end(), env), envs.end());
+	if (envs.empty()) {
+		currentJsThreadWriteState = nullptr;
+		delete this;
+	}
+}
+WriteLockAcquisition::WriteLockAcquisition(EnvWrap* env) {
+	state = env ? env->jsThreadWrite : nullptr;
+	if (!state)
+		return;
+	previous = state->blockedOn.exchange(env);
+	// a writer may have checked our state just before we set it, so wake any that are waiting on us
+	for (EnvWrap* other : state->envs) {
+		if (other != env)
+			pthread_cond_signal(other->writingCond);
+	}
+}
+WriteLockAcquisition::~WriteLockAcquisition() {
+	if (state)
+		state->blockedOn = previous;
 }
 int WriteWorker::DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker) {
 	MDB_val key, value;
@@ -550,9 +617,12 @@ void write_progress(napi_env env,
 	if (worker->finishedProgress)
 		return;
 	auto envForTxn = worker->envForTxn;
-	pthread_mutex_lock(envForTxn->writingLock);
-	while(!worker->txn) // possible to jump in after an interrupted txn here
-		pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+	{
+		WriteLockAcquisition acquisition(envForTxn);
+		pthread_mutex_lock(envForTxn->writingLock);
+		while(!worker->txn) // possible to jump in after an interrupted or yielded txn here
+			pthread_cond_wait(envForTxn->writingCond, envForTxn->writingLock);
+	}
 	envForTxn->writeTxn = new TxnTracked(worker->txn, 0);
 	worker->finishedProgress = true;
 	napi_create_int32(env, worker->progressStatus, &arg);

@@ -76,6 +76,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->lastReaderCheck = 0;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
+	this->jsThreadWrite = JsThreadWriteState::add(this);
 	info.This().As<Object>().Set("address", Number::New(info.Env(), (size_t) this));
 	pthread_mutex_init(this->writingLock, nullptr);
 	cond_init(this->writingCond);
@@ -120,9 +121,9 @@ int checkExistingEnvs(mdb_filehandle_t fd, MDB_env* env) {
 EnvWrap::~EnvWrap() {
 	// Close if not closed already
 	closeEnv();
+	this->jsThreadWrite->remove(this);
 	pthread_mutex_destroy(this->writingLock);
 	pthread_cond_destroy(this->writingCond);
-	
 }
 
 void EnvWrap::cleanupStrayTxns() {
@@ -135,7 +136,10 @@ void EnvWrap::cleanupStrayTxns() {
 		fprintf(stderr, "Deleting running worker\n");
 		delete worker;
 	}*/
-	pthread_mutex_lock(writingLock);
+	{
+		WriteLockAcquisition acquisition(this);
+		pthread_mutex_lock(writingLock);
+	}
 	if (this->writeWorker) {
 		// signal that it is cancelled
 		this->writeWorker->env = nullptr;
@@ -947,6 +951,7 @@ Napi::Value EnvWrap::beginTxn(const CallbackInfo& info) {
 		unsigned int envFlags;
 		mdb_env_get_flags(env, &envFlags);
 		MDB_txn *txn;
+		WriteLockAcquisition acquisition(this->writeTxn ? nullptr : this);
 
 		if (this->writeTxn)
 			txn = this->writeTxn->txn;
