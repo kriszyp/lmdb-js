@@ -2173,6 +2173,38 @@ describe('lmdb-js', function () {
 				});
 			});
 		});
+		describe('Cross-environment writes', function () {
+			this.timeout(20000);
+			for (let overlappingSync of [false, true]) {
+				it(`will not deadlock async transaction callbacks with synchronous writes to another environment${overlappingSync ? ' with overlapping sync' : ''}`, function (done) {
+					var child = spawn(
+						'node',
+						[
+							fileURLToPath(
+								new URL('./cross-env-deadlock.cjs', import.meta.url),
+							),
+						],
+						{
+							env: {
+								...process.env,
+								OVERLAPPING_SYNC: String(overlappingSync),
+							},
+						},
+					);
+					// a deadlocked child can not exit on its own
+					let timeout = setTimeout(() => child.kill('SIGKILL'), 10000);
+					child.stderr.on('data', function (data) {
+						console.error(data.toString());
+					});
+					child.on('close', function (code, signal) {
+						clearTimeout(timeout);
+						expect(signal, 'deadlocked').to.equal(null);
+						code.should.equal(0);
+						done();
+					});
+				});
+			}
+		});
 		describe('Read-only Threads', function () {
 			this.timeout(1000000);
 			it('will run a group of threads with read-only transactions', function (done) {

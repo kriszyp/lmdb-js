@@ -2,6 +2,7 @@
 #define NODE_LMDB_H
 
 #include <vector>
+#include <atomic>
 #include <unordered_map>
 #include <algorithm>
 #include <ctime>
@@ -213,6 +214,7 @@ const int WORKER_WAITING = 9997;
 const int RESTART_WORKER_TXN = 9999;
 const int RESUME_BATCH = 9996;
 const int USER_HAS_LOCK = 9995;
+const int WORKER_YIELDED = 9994;
 const int SEPARATE_FLUSHED = 1;
 const int DELETE_ON_CLOSE = 2;
 const int OPEN_FAILED = 0x10000;
@@ -225,6 +227,8 @@ class WriteWorker {
 	MDB_txn* AcquireTxn(int* flags);
 	void UnlockTxn();
 	int WaitForCallbacks(MDB_txn** txn, bool allowCommit, uint32_t* target);
+	bool JsThreadBlockedOnOtherEnv();
+	int YieldTxn(MDB_txn** txn);
 	virtual void SendUpdate();
 	int interruptionStatus;
 	bool finishedProgress;
@@ -240,6 +244,24 @@ class WriteWorker {
 	MDB_env* env;
 	static int DoWrites(MDB_txn* txn, EnvWrap* envForTxn, uint32_t* instruction, WriteWorker* worker);
 	static bool threadSafeCallsEnabled;
+};
+// A native writer can hold its environment's write lock while it waits for callbacks on its JS thread. If that thread
+// blocks acquiring another environment's write lock, whose holder may in turn be waiting on a thread blocked on ours,
+// the writer must yield its lock. Each JS thread publishes the environment it is blocked on here.
+class JsThreadWriteState {
+  public:
+	std::atomic<EnvWrap*> blockedOn{nullptr};
+	std::vector<EnvWrap*> envs; // only accessed by the owning JS thread, which frees this when the last env is removed
+	static JsThreadWriteState* add(EnvWrap* env);
+	void remove(EnvWrap* env);
+};
+// Marks the current JS thread as blocked on the given environment's write lock for its lifetime (no-op for nullptr)
+class WriteLockAcquisition {
+	JsThreadWriteState* state;
+	EnvWrap* previous;
+  public:
+	WriteLockAcquisition(EnvWrap* env);
+	~WriteLockAcquisition();
 };
 class TxnTracked {
   public:
@@ -342,6 +364,7 @@ public:
 	TxnTracked *writeTxn;
 	pthread_mutex_t* writingLock;
 	pthread_cond_t* writingCond;
+	JsThreadWriteState* jsThreadWrite;
 	std::vector<AsyncWorker*> workers;
 #if ENABLE_V8_API
 	static std::unordered_map<void*, std::shared_ptr<v8::BackingStore>> backingStores;
