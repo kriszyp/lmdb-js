@@ -99,7 +99,8 @@
         ['runtime=="electron"', {
           "defines": ["NODE_RUNTIME_ELECTRON=1"]
         }],
-        ["enable_v8!='false'", {
+        # opt-in on Windows: its prebuilds omit the V8 API, which fails to link there on Node 22
+        ["enable_v8=='true' or (OS!='win' and enable_v8!='false')", {
           "defines": ["ENABLE_V8_API=1"],
         }],
         ["enable_fast_api_calls=='true'", {
