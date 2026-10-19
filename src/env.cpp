@@ -331,10 +331,14 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	std::string encryptKey;
 	if (!encryptionKey.IsUndefined()) {
-		if (!encryptionKey.IsString()) {
-			return throwError(info.Env(), "The encryptionKey option must be a string.");
+		if (encryptionKey.IsTypedArray() && encryptionKey.As<TypedArray>().TypedArrayType() == napi_uint8_array) {
+			Uint8Array keyBytes = encryptionKey.As<Uint8Array>();
+			encryptKey.assign((const char*) keyBytes.Data(), keyBytes.ElementLength());
+		} else if (encryptionKey.IsString()) {
+			encryptKey = encryptionKey.As<String>().Utf8Value();
+		} else {
+			return throwError(info.Env(), "The encryptionKey option must be a string or a Buffer.");
 		}
-		encryptKey = encryptionKey.As<String>().Utf8Value();
 		if (encryptKey.length() != 32) {
 			return throwError(info.Env(), "Encryption key must be 32 bytes long");
 		}
@@ -412,6 +416,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
 		delete extended_env;
+		mdb_env_set_userctx(env, nullptr);
 		#endif
 		if (rc == EXISTING_ENV_FOUND) {
 			mdb_env_close(env);
@@ -720,38 +725,35 @@ void notifyCallbacks(std::vector<napi_threadsafe_function> callbacks, bool relea
 void EnvWrap::closeEnv(bool hasLock) {
 	if (!env)
 		return;
-	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
-	if (!extended_env) {
-		mdb_env_close(env);
-		env = nullptr;
-		return;
-	}
 #ifdef MDB_OVERLAPPINGSYNC
-	// unlock any record locks held by this thread/EnvWrap
-	pthread_mutex_lock(&extended_env->userBuffersLock);
-	for (auto buffer_iter = extended_env->userSharedBuffers.begin(); buffer_iter != extended_env->userSharedBuffers.end();) {
-		for (auto callback_iter = buffer_iter->second.callbacks.begin(); callback_iter != buffer_iter->second.callbacks.end();) {
-			EnvWrap* context;
-			napi_get_threadsafe_function_context(*callback_iter, (void**) &context);
-			if (context == this) {
-				napi_release_threadsafe_function(*callback_iter, napi_tsfn_abort);
-				callback_iter = buffer_iter->second.callbacks.erase(callback_iter);
-			} else
-				callback_iter++;
+	// unlock any record locks held by this thread/EnvWrap; there is no ExtendedEnv if open never got that far
+	ExtendedEnv* extended_env = (ExtendedEnv*) mdb_env_get_userctx(env);
+	if (extended_env) {
+		pthread_mutex_lock(&extended_env->userBuffersLock);
+		for (auto buffer_iter = extended_env->userSharedBuffers.begin(); buffer_iter != extended_env->userSharedBuffers.end();) {
+			for (auto callback_iter = buffer_iter->second.callbacks.begin(); callback_iter != buffer_iter->second.callbacks.end();) {
+				EnvWrap* context;
+				napi_get_threadsafe_function_context(*callback_iter, (void**) &context);
+				if (context == this) {
+					napi_release_threadsafe_function(*callback_iter, napi_tsfn_abort);
+					callback_iter = buffer_iter->second.callbacks.erase(callback_iter);
+				} else
+					callback_iter++;
+			}
+			buffer_iter++;
 		}
-		buffer_iter++;
+		pthread_mutex_unlock(&extended_env->userBuffersLock);
+		pthread_mutex_lock(&extended_env->locksModificationLock);
+		auto it = extended_env->lockCallbacks.begin();
+		while (it != extended_env->lockCallbacks.end())
+		{
+			if (it->second.ew == this) {
+				notifyCallbacks(it->second.callbacks, true);
+				it = extended_env->lockCallbacks.erase(it);
+			} else ++it; // TODO: we may want to remove any thread safe functions that are no longer valid
+		}
+		pthread_mutex_unlock(&extended_env->locksModificationLock);
 	}
-	pthread_mutex_unlock(&extended_env->userBuffersLock);
-	pthread_mutex_lock(&extended_env->locksModificationLock);
-	auto it = extended_env->lockCallbacks.begin();
-	while (it != extended_env->lockCallbacks.end())
-	{
-		if (it->second.ew == this) {
-			notifyCallbacks(it->second.callbacks, true);
-			it = extended_env->lockCallbacks.erase(it);
-		} else ++it; // TODO: we may want to remove any thread safe functions that are no longer valid
-	}
-	pthread_mutex_unlock(&extended_env->locksModificationLock);
 #endif
 	if (openEnvWraps) {
 		for (auto ewRef = openEnvWraps->begin(); ewRef != openEnvWraps->end(); ) {
@@ -769,8 +771,10 @@ void EnvWrap::closeEnv(bool hasLock) {
 	cleanupStrayTxns();
 	if (!hasLock)
 		pthread_mutex_lock(envTracking->envsLock);
+	bool tracked = false;
 	for (auto envPath = envTracking->envs.begin(); envPath != envTracking->envs.end(); ) {
 		if (envPath->env == env) {
+			tracked = true;
 			envPath->count--;
             if (hasWrites)
                 envPath->hasWrites = true;
@@ -812,6 +816,11 @@ void EnvWrap::closeEnv(bool hasLock) {
 		}
 		++envPath;
 	}
+#ifdef MDB_OVERLAPPINGSYNC
+	// an env that never finished opening has no ExtendedEnv and, if untracked, is shared with nothing
+	if (!tracked && !extended_env)
+		mdb_env_close(env);
+#endif
 	if (!hasLock)
 		pthread_mutex_unlock(envTracking->envsLock);
 	env = nullptr;
