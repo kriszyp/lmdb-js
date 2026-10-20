@@ -12377,8 +12377,7 @@ mdb_env_set_userctx(MDB_env *env, void *ctx)
 {
 	if (!env)
 		return EINVAL;
-	if (ctx)
-		env->me_userctx = ctx;
+	env->me_userctx = ctx;
 	return MDB_SUCCESS;
 }
 
