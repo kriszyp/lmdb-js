@@ -298,6 +298,11 @@ NAPI_FUNCTION(getStringByBinary) {
 	return returnValue;
 }
 
+// Upper bound on the number of keys processed in a single prefetch call, to
+// guard against uncontrolled resource consumption (CWE-770) from unbounded
+// or malformed key arrays.
+#define MAX_PREFETCH_KEYS 1000000
+
 int DbiWrap::prefetch(uint32_t* keys) {
 	MDB_txn* txn = ExtendedEnv::getPrefetchReadTxn(ew->env);
 	MDB_val key;
@@ -307,6 +312,7 @@ int DbiWrap::prefetch(uint32_t* keys) {
 	bool findAllValues = flags & MDB_DUPSORT;
 	int effected = 0;
 	bool findDataValue = false;
+	uint32_t keyCount = 0;
 	MDB_cursor *cursor;
 	int rc = mdb_cursor_open(txn, dbi, &cursor);
 	if (rc) {
@@ -315,6 +321,8 @@ int DbiWrap::prefetch(uint32_t* keys) {
 	}
 
 	while((key.mv_size = *keys++) > 0) {
+		if (++keyCount > MAX_PREFETCH_KEYS)
+			break;
 		if (key.mv_size == 0xffffffff) {
 			// it is a pointer to a new buffer
 			keys = (uint32_t*) (size_t) *((double*) keys); // read as a double pointer
