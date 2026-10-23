@@ -1003,11 +1003,8 @@ export function addReadMethods(
 				this.status = 'closed';
 				if (callback) callback();
 			};
-			if (txnPromise) return txnPromise.then(doClose);
-			else {
-				doClose();
-				return Promise.resolve();
-			}
+			// doClose returns a promise while reads are outstanding, which the close must resolve through
+			return txnPromise ? txnPromise.then(doClose) : Promise.resolve(doClose());
 		},
 		getStats() {
 			let txn = env.writeTxn || (readTxnRenewed ? readTxn : renewReadTxn(this));
