@@ -2129,6 +2129,37 @@ describe('lmdb-js', function () {
 			await db.close();
 		});
 	});
+	describe('Close with reads in flight', function () {
+		// an environment with pending writes waits for them before closing, so only one that has not written
+		// reaches the outstanding-reads wait directly
+		async function openUnwritten(name) {
+			let writer = open({ path: path.join(testDirPath, name) });
+			await writer.put('key', 'value');
+			await writer.close();
+			return open({ path: path.join(testDirPath, name) });
+		}
+		it('resolves only once the environment has closed', async function () {
+			let db = await openUnwritten('close-read-in-flight');
+			db.prefetch(['key']);
+			let closing = db.close();
+			db.status.should.equal('closing');
+			await closing;
+			db.status.should.equal('closed');
+		});
+		it('a repeated close waits for the first', async function () {
+			let db = await openUnwritten('close-overlap');
+			db.prefetch(['key']);
+			let first = db.close();
+			let callbackStatus;
+			let second = db.close(() => (callbackStatus = db.status));
+			db.status.should.equal('closing');
+			await second;
+			db.status.should.equal('closed');
+			callbackStatus.should.equal('closed');
+			await first;
+			await db.close();
+		});
+	});
 	describe('User shared buffers on a closed database', function () {
 		it('getUserSharedBuffer throws instead of faulting', async function () {
 			let db = open({
