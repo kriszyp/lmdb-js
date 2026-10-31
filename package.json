@@ -84,7 +84,7 @@
     "node-addon-api": "^6.1.0",
     "node-gyp-build-optional-packages": "5.2.2",
     "ordered-binary": "^1.6.3",
-    "weak-lru-cache": "^1.2.2"
+    "weak-lru-cache": "^1.2.3"
   },
   "devDependencies": {
     "@midwayjs/deno-mocha": "^1.3.0",
