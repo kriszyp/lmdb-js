@@ -288,8 +288,7 @@ export function open(path, options) {
 				// TODO: LMDB is actually not entirely thread-safe when it comes to opening databases with
 				// read-only transactions since there is a race condition on setting the update dbis that
 				// occurs outside the lock
-				// make sure we are using a fresh read txn, so we don't want to share with a cursor txn: the
-				// commit below must not free a txn iterators still read
+				// a fresh read txn, so the commit below never frees one that iterators still read
 				this._commitReadTxn();
 				this.ensureReadTxn();
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);

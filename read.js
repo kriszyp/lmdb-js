@@ -475,6 +475,7 @@ export function addReadMethods(
 			if (readTxn) {
 				if (readTxn.refCount > 0) {
 					// iterators still read it, so Txn.done releases it instead
+					renewId++;
 					readTxn.notCurrent = true;
 					if (readTxn.refCount === (readTxn.renewingRefCount || 0))
 						readTxn.releaseToRenewingCursors();
