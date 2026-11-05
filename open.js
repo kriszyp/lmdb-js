@@ -534,7 +534,7 @@ export function open(path, options) {
 	const removeSync = LMDBStore.prototype.removeSync;
 	addReadMethods(LMDBStore, {
 		env,
-		remapping: Boolean(options.remapChunks) || is32Bit,
+		remapping: Boolean(flags & 0x4000000), // the env's MDB_REMAP_CHUNKS, which an existing env may set
 		maxKeySize,
 		keyBytes,
 		keyBytesView,

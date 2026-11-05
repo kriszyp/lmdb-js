@@ -2130,7 +2130,6 @@ describe('lmdb-js', function () {
 		});
 	});
 	describe('Parked cursor lifetime', function () {
-		// closing a cursor reads its read transaction, so none may outlive it (HarperFast/harper#3349)
 		const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
 		for (let remapChunks of [false, true]) {
 			it(`${remapChunks ? 'closes' : 'reuses'} a parked cursor across a read txn reset${remapChunks ? ' when remapping' : ''}`, async function () {
@@ -2148,6 +2147,19 @@ describe('lmdb-js', function () {
 				await db.close();
 			});
 		}
+		it('follows the remapping of an env it attaches to, not its own options', async function () {
+			let dbPath = path.join(testDirPath, 'parked-cursor-attached-remap');
+			let first = open({ path: dbPath, remapChunks: true, compression: false });
+			let db = open({ path: dbPath, compression: false });
+			await db.put(1, 'a');
+			await tick();
+			for (let _ of db.getRange({}));
+			should.exist(db.db.availableCursor);
+			await tick();
+			should.not.exist(db.db.availableCursor);
+			await db.close();
+			await first.close();
+		});
 		it('does not keep a cursor parked on a read txn once it is orphaned', async function () {
 			let db = open({ path: path.join(testDirPath, 'parked-cursor-orphan'), compression: false });
 			await db.put(1, 'a');
@@ -2156,6 +2168,7 @@ describe('lmdb-js', function () {
 			let holder = db.getRange({})[Symbol.iterator]();
 			holder.next();
 			for (let _ of db.getRange({}));
+			should.exist(db.db.availableCursor);
 			await tick();
 			holder.return();
 			should.equal(Boolean(db.db.availableCursor && db.db.cursorTxn?.isDone), false);
