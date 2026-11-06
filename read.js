@@ -47,13 +47,34 @@ let mmaps = [];
 
 export function addReadMethods(
 	LMDBStore,
-	{ maxKeySize, env, keyBytes, keyBytesView, getLastVersion, getLastTxnId },
+	{
+		maxKeySize,
+		env,
+		remapping,
+		keyBytes,
+		keyBytesView,
+		getLastVersion,
+		getLastTxnId,
+	},
 ) {
 	let readTxn,
 		readTxnRenewed,
 		asSafeBuffer = false;
 	let renewId = 1;
 	let outstandingReads = 0;
+	// mdb_cursor_close reads the cursor's txn (and, when remapping, its pages), so a parked cursor is
+	// closed before its read txn is orphaned or freed, or reset under remapping
+	const parkedCursorDbs = new Set();
+	function closeParkedCursor(db) {
+		db.availableCursor?.close();
+		db.availableCursor = null;
+		db.cursorTxn = null;
+		db.cursorParked = false;
+	}
+	function closeParkedCursors() {
+		for (const db of parkedCursorDbs) closeParkedCursor(db);
+		parkedCursorDbs.clear();
+	}
 	Object.assign(LMDBStore.prototype, {
 		getString(id, options) {
 			let txn =
@@ -450,9 +471,18 @@ export function addReadMethods(
 			resetReadTxn();
 		},
 		_commitReadTxn() {
+			closeParkedCursors();
 			if (readTxn) {
-				readTxn.isCommitted = true;
-				readTxn.commit();
+				if (readTxn.refCount > 0) {
+					// iterators still read it, so Txn.done releases it instead
+					renewId++;
+					readTxn.notCurrent = true;
+					if (readTxn.refCount === (readTxn.renewingRefCount || 0))
+						readTxn.releaseToRenewingCursors();
+				} else {
+					readTxn.isCommitted = true;
+					readTxn.commit();
+				}
 			}
 			lastReadTxnRef = null;
 			readTxnRenewed = null;
@@ -722,6 +752,10 @@ export function addReadMethods(
 							// try to reuse it
 							db.availableCursor = cursor;
 							db.cursorTxn = txn;
+							if (!db.cursorParked) {
+								db.cursorParked = true;
+								parkedCursorDbs.add(db);
+							}
 						}
 					}
 					cursor = null;
@@ -967,6 +1001,7 @@ export function addReadMethods(
 			let txnPromise;
 			if (this.isRoot) {
 				// if it is root, we need to abort and/or wait for transactions to finish
+				closeParkedCursors();
 				if (readTxn) {
 					try {
 						readTxn.abort();
@@ -999,7 +1034,11 @@ export function addReadMethods(
 					try {
 						env.close();
 					} catch (error) {}
-				} else this.db.close();
+				} else {
+					closeParkedCursor(this.db);
+					parkedCursorDbs.delete(this.db);
+					this.db.close();
+				}
 				this.status = 'closed';
 				if (callback) callback();
 			};
@@ -1064,6 +1103,7 @@ export function addReadMethods(
 		renewId++;
 		if (readTxnRenewed) {
 			readTxnRenewed = null;
+			if (remapping || readTxn.refCount > 0) closeParkedCursors();
 			if (readTxn.refCount - (readTxn.renewingRefCount || 0) > 0) {
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);

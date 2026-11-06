@@ -2129,6 +2129,115 @@ describe('lmdb-js', function () {
 			await db.close();
 		});
 	});
+	describe('Parked cursor lifetime', function () {
+		const tick = () => new Promise((resolve) => setTimeout(resolve, 5));
+		for (let remapChunks of [false, true]) {
+			it(`${remapChunks ? 'closes' : 'reuses'} a parked cursor across a read txn reset${remapChunks ? ' when remapping' : ''}`, async function () {
+				let db = open({ path: path.join(testDirPath, `parked-cursor-reset-${remapChunks}`), remapChunks, compression: false });
+				await db.put(1, 'a');
+				await db.put(2, 'b');
+				await tick();
+				for (let _ of db.getRange({}));
+				let parked = db.db.availableCursor;
+				should.exist(parked);
+				await tick();
+				if (remapChunks) should.not.exist(db.db.availableCursor);
+				else db.db.availableCursor.should.equal(parked);
+				Array.from(db.getKeys({ start: 2 })).should.deep.equal([2]);
+				await db.close();
+			});
+		}
+		it('follows the remapping of an env it attaches to, not its own options', async function () {
+			let dbPath = path.join(testDirPath, 'parked-cursor-attached-remap');
+			let first = open({ path: dbPath, remapChunks: true, compression: false });
+			let db = open({ path: dbPath, compression: false });
+			await db.put(1, 'a');
+			await tick();
+			for (let _ of db.getRange({}));
+			should.exist(db.db.availableCursor);
+			await tick();
+			should.not.exist(db.db.availableCursor);
+			await db.close();
+			await first.close();
+		});
+		it('does not keep a cursor parked on a read txn once it is orphaned', async function () {
+			let db = open({ path: path.join(testDirPath, 'parked-cursor-orphan'), compression: false });
+			await db.put(1, 'a');
+			await db.put(2, 'b');
+			await tick();
+			let holder = db.getRange({})[Symbol.iterator]();
+			holder.next();
+			for (let _ of db.getRange({}));
+			should.exist(db.db.availableCursor);
+			await tick();
+			holder.return();
+			should.equal(Boolean(db.db.availableCursor && db.db.cursorTxn?.isDone), false);
+			let renewing = db.getRange({ snapshot: false })[Symbol.iterator]();
+			await tick();
+			let keys = [];
+			for (let r = renewing.next(); !r.done; r = renewing.next()) keys.push(r.value.key);
+			keys.should.deep.equal([1, 2]);
+			await db.close();
+		});
+		it('does not keep a cursor parked on a read txn that opening a database commits', async function () {
+			let root = open({ path: path.join(testDirPath, 'parked-cursor-opendb'), maxDbs: 4, compression: false });
+			let a = root.openDB('a');
+			await a.put(1, 'x');
+			await a.put(2, 'y');
+			await tick();
+			for (let _ of a.getRange({}));
+			should.exist(a.db.availableCursor);
+			root.openDB('b');
+			should.not.exist(a.db.availableCursor);
+			Array.from(a.getKeys({ snapshot: false })).should.deep.equal([1, 2]);
+			await root.close();
+		});
+		it('keeps an iterator reading across a database opened in a write transaction', async function () {
+			let root = open({ path: path.join(testDirPath, 'iterator-across-opendb'), maxDbs: 4, compression: false });
+			let a = root.openDB('a');
+			for (let i = 0; i < 50; i++) a.put(i, 'x'.repeat(100));
+			await a.flushed;
+			await tick();
+			let iterator = a.getRange({})[Symbol.iterator]();
+			let keys = [iterator.next().value.key];
+			root.transactionSync(() => root.openDB('b'));
+			for (let r = iterator.next(); !r.done; r = iterator.next()) keys.push(r.value.key);
+			keys.should.deep.equal(Array.from({ length: 50 }, (_, i) => i));
+			await root.close();
+		});
+		it('opens a database read-only while an iterator holds the shared read txn', async function () {
+			let dbPath = path.join(testDirPath, 'iterator-across-readonly-opendb');
+			let writer = open({ path: dbPath, maxDbs: 4, compression: false });
+			let writerA = writer.openDB('a');
+			for (let i = 0; i < 20; i++) writerA.put(i, i);
+			writer.openDB('b').put('k', 'v');
+			await writer.flushed;
+			await writer.close();
+			let root = open({ path: dbPath, maxDbs: 4, readOnly: true, compression: false });
+			let a = root.openDB('a');
+			await tick();
+			let iterator = a.getRange({})[Symbol.iterator]();
+			let keys = [iterator.next().value.key];
+			let b = root.openDB('b');
+			should.equal(b.get('k'), 'v');
+			for (let r = iterator.next(); !r.done; r = iterator.next()) keys.push(r.value.key);
+			keys.should.deep.equal(Array.from({ length: 20 }, (_, i) => i));
+			await root.close();
+		});
+		it('closes a parked cursor before its store or root closes', async function () {
+			let root = open({ path: path.join(testDirPath, 'parked-cursor-close'), maxDbs: 4, compression: false });
+			let a = root.openDB('a');
+			await a.put(1, 'a');
+			for (let _ of a.getRange({}));
+			should.exist(a.db.availableCursor);
+			await a.close();
+			should.not.exist(a.db.availableCursor);
+			for (let _ of root.getKeys({}));
+			should.exist(root.db.availableCursor);
+			await root.close();
+			should.not.exist(root.db.availableCursor);
+		});
+	});
 	describe('Close with reads in flight', function () {
 		// an environment with pending writes waits for them before closing, so only one that has not written
 		// reaches the outstanding-reads wait directly
