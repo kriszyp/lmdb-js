@@ -2887,6 +2887,11 @@ restart_search:
 			m2.mc_db = &env->me_metas[(txn->mt_txnid-1) & 1]->mm_dbs[FREE_DBI];
 			m2.mc_dbflag = (unsigned char *)""; /* probably unnecessary */
 #endif
+			/* Nothing to load from an empty freeDB. It can be empty while this txn writes its first record into it
+			 * (mdb_freelist_save has made its root an empty leaf), and a cursor positioned on that leaf reads no key.
+			 * A compacted copy starts like that with a txnid above 1, so the reverse scan below would reach it. */
+			if (!m2.mc_db->md_entries)
+				break;
 //			fprintf(stderr,"loading more freespace, oldest %u: ", oldest);
 			if (!oldest) {
 				// if we need to load more, and we haven't already loaded the latest transactions, we need to load them now
