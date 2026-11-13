@@ -2269,6 +2269,41 @@ describe('lmdb-js', function () {
 			await db.close();
 		});
 	});
+	describe('Compacted copy', function () {
+		// A compacted copy starts with an empty freeDB and the source's txnid, so the first transaction that frees
+		// enough pages to need overflow pages for its free list reverse-scans a freeDB whose only page is the empty leaf
+		// mdb_freelist_save has just made its root. Dropping a named database frees its pages that way; before the fix
+		// it aborted the process in mdb_page_alloc.
+		it('can be emptied in one transaction when it holds values spanning several pages', async function () {
+			this.timeout(60000);
+			let options = { pageSize: 16384, maxDbs: 2 };
+			let named = (root) => root.openDB({ name: 'values', keyEncoding: 'binary', encoding: 'binary' });
+			let source = open({ path: path.join(testDirPath, 'compact-source'), ...options });
+			let values = named(source);
+			let seed = 1;
+			let random = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+			source.transactionSync(() => {
+				for (let i = 0; i < 20000; i++) {
+					let size = random() < 0.05 ? Math.floor(random() * 64 * 1024) + 2048 : 80;
+					values.putSync(Buffer.from('k' + String(i).padStart(7, '0')), Buffer.alloc(size, i & 255));
+				}
+			});
+			let copyPath = path.join(testDirPath, 'compact-copy');
+			// the copy is written as data.mdb in a directory that has to exist
+			fs.mkdirSync(copyPath, { recursive: true });
+			await source.backup(copyPath, true);
+			await source.close();
+			let copy = open({ path: copyPath, ...options });
+			let copied = named(copy);
+			copy.transactionSync(() => {
+				copied.clearSync();
+				copied.putSync(Buffer.from('after'), Buffer.from('clear'));
+			});
+			copied.getCount().should.equal(1);
+			copied.get(Buffer.from('after')).toString().should.equal('clear');
+			await copy.close();
+		});
+	});
 	describe('User shared buffers on a closed database', function () {
 		it('getUserSharedBuffer throws instead of faulting', async function () {
 			let db = open({
