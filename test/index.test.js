@@ -767,6 +767,47 @@ describe('lmdb-js', function () {
 				db2.getValuesCount('key0').should.equal(0);
 				db2.getCount({ start: 'key1', end: 'key3' }).should.equal(3);
 			});
+			it('should not decode keys for dupsort values in a synchronous write transaction', function () {
+				const key = 'write-transaction-values-sync';
+				db3.putSync(key, 1);
+				db3.putSync(key, 2);
+				const readKey = db3.readKey;
+				let readKeyCalls = 0;
+				db3.readKey = function (...args) {
+					readKeyCalls++;
+					return readKey.apply(this, args);
+				};
+				try {
+					const values = db3.transactionSync(() =>
+						Array.from(db3.getValues(key)),
+					);
+					values.should.deep.equal([1, 2]);
+					readKeyCalls.should.equal(0);
+				} finally {
+					db3.readKey = readKey;
+				}
+			});
+			it('should not decode keys for dupsort values in an asynchronous write transaction', async function () {
+				const key = 'write-transaction-values-async';
+				db3.putSync(key, 1);
+				db3.putSync(key, 2);
+				const readKey = db3.readKey;
+				let readKeyCalls = 0;
+				db3.readKey = function (...args) {
+					readKeyCalls++;
+					return readKey.apply(this, args);
+				};
+				try {
+					let values;
+					await db3.transaction(() => {
+						values = Array.from(db3.getValues(key));
+					});
+					values.should.deep.equal([1, 2]);
+					readKeyCalls.should.equal(0);
+				} finally {
+					db3.readKey = readKey;
+				}
+			});
 			it('should iterate over ordered-binary dupsort query with start/end', async function () {
 				db3.put('key1', 1);
 				db3.put('key1', 2);
