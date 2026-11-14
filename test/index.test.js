@@ -2269,6 +2269,21 @@ describe('lmdb-js', function () {
 			await db.close();
 		});
 	});
+	describe('Close releases the environment', function () {
+		it('does not accumulate file descriptors across open and close', async function () {
+			if (process.platform === 'win32') return this.skip();
+			let countFds = () => fs.readdirSync('/dev/fd').length;
+			let dbPath = path.join(testDirPath, 'close-fds');
+			await open({ path: dbPath }).close();
+			let before = countFds();
+			for (let i = 0; i < 20; i++) {
+				let db = open({ path: dbPath });
+				await db.put('key', i);
+				await db.close();
+			}
+			expect(countFds()).to.equal(before);
+		});
+	});
 	describe('Compacted copy', function () {
 		// A compacted copy starts with an empty freeDB and the source's txnid, so the first transaction that frees
 		// enough pages to need overflow pages for its free list reverse-scans a freeDB whose only page is the empty leaf
