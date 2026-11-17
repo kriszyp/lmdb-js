@@ -2240,18 +2240,25 @@ describe('lmdb-js', function () {
 	});
 	describe('Commit resolution with a transaction callback pending', function () {
 		const hold = new Int32Array(new SharedArrayBuffer(4));
-		// Commits a put and queues a transaction callback in the next batch, holding this thread until the put is
-		// committed, so that the callback's writer is the one that reports the put's commit
+		// The put's writer reports its commit while the next batch, which holds a transaction callback, is open and
+		// unwritten. Before the fix only that batch's writer could resolve the commit, from inside its transaction.
+		// The third result is whether the commit was resolved before that batch was written.
 		async function commitWithCallbackPending(db, key, value, callback) {
 			let committed = db.put(key, value);
-			await new Promise((resolve) => setImmediate(resolve)); // the put's batch has started
+			let resolved = false;
+			committed.then(() => (resolved = true));
+			await new Promise((resolve) => setImmediate(resolve));
+			// queued ahead of the immediate that writes the batch opened below
+			let resolvedWithBatchOpen = new Promise((resolve) =>
+				setImmediate(() => resolve(resolved)),
+			);
 			let transacted = db.transaction(() => callback(committed));
 			for (let i = 0; i < 2000 && db.get(key) !== value; i++) {
 				db.resetReadTxn();
 				Atomics.wait(hold, 0, 0, 1);
 			}
-			Atomics.wait(hold, 0, 0, 10); // the put's writer finishes
-			return [committed, transacted];
+			Atomics.wait(hold, 0, 0, 10);
+			return [committed, transacted, resolvedWithBatchOpen];
 		}
 		it('reads ranges on a read transaction from a commit listener', async function () {
 			let db = open({ path: path.join(testDirPath, 'commit-listener-range') });
@@ -2263,6 +2270,7 @@ describe('lmdb-js', function () {
 					Array.from(db.getRange({ start: 'key', end: 'kez' })).length,
 				);
 			});
+			let roundsWithBatchOpen = 0;
 			for (let round = 0; round < 5; round++) {
 				let results = await Promise.all(
 					await commitWithCallbackPending(db, 'key1', 'round' + round, () => {
@@ -2271,6 +2279,7 @@ describe('lmdb-js', function () {
 					}),
 				);
 				results[1].should.equal(round);
+				if (results[2]) roundsWithBatchOpen++;
 				// a listener's cursor on the writer's transaction is freed at commit and would be reused here
 				Array.from(
 					db.getRange({ start: 'key', end: 'kez' }),
@@ -2278,6 +2287,7 @@ describe('lmdb-js', function () {
 			}
 			listenerCounts.length.should.be.at.least(10);
 			listenerCounts.every((count) => count === 10).should.equal(true);
+			roundsWithBatchOpen.should.be.at.least(1);
 			await db.close();
 		});
 		it('resolves a commit that a later transaction callback awaits', async function () {
@@ -2476,11 +2486,14 @@ describe('lmdb-js', function () {
 					// glibc then overwrites memory as it is freed, so that using a freed cursor always crashes
 					{ env: { ...process.env, MALLOC_PERTURB_: '165' } },
 				);
+				// a child that waits on a commit that is never resolved can not exit on its own
+				let timeout = setTimeout(() => child.kill('SIGKILL'), 10000);
 				child.stderr.on('data', function (data) {
 					console.error(data.toString());
 				});
 				child.on('close', function (code, signal) {
-					expect(signal, 'crashed').to.equal(null);
+					clearTimeout(timeout);
+					expect(signal, 'crashed or hung').to.equal(null);
 					code.should.equal(0);
 					done();
 				});

@@ -1,6 +1,5 @@
-// A commit listener reads a range from every database while the next batch has a transaction callback pending, and
-// the environment is then closed. A cursor opened on the writer's transaction there is freed when that transaction
-// commits, so closing it with the environment crashes the process.
+// A cursor that a commit listener opens on the writer's transaction is freed when that transaction commits, so
+// closing it with the environment crashes the process. One such cursor per database makes the crash reliable.
 const path = require('path');
 const { open } = require('../dist/index.cjs');
 
@@ -28,9 +27,10 @@ async function run() {
 		for (const db of dbs) counts.push(Array.from(db.getRange({})).length);
 	});
 	const committed = root.put('committed', 1);
-	await new Promise((resolve) => setImmediate(resolve)); // the put's batch has started
+	await new Promise((resolve) => setImmediate(resolve));
 	const transacted = root.transaction(() => root.put('transacted', 1));
-	Atomics.wait(hold, 0, 0, 50); // the put commits before this thread serves its writer
+	// the put's writer has to report its commit while the batch with the transaction callback is still open
+	Atomics.wait(hold, 0, 0, 50);
 	await Promise.all([committed, transacted]);
 	for (let i = 0; i < 20; i++) await root.put('later' + i, i);
 	if (counts.length !== dbs.length || counts.some((count) => count !== 5))
