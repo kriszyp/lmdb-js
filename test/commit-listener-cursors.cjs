@@ -1,5 +1,5 @@
-// A cursor that a commit listener opens on the writer's transaction is freed when that transaction commits, so
-// closing it with the environment crashes the process. One such cursor per database makes the crash reliable.
+// A cursor that a commit listener opens on the writer's transaction is freed when that transaction commits, and
+// closing the environment then closes it again. The test runs this with one such cursor per database.
 const path = require('path');
 const { open } = require('../dist/index.cjs');
 

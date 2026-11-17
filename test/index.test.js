@@ -2240,8 +2240,8 @@ describe('lmdb-js', function () {
 	});
 	describe('Commit resolution with a transaction callback pending', function () {
 		const hold = new Int32Array(new SharedArrayBuffer(4));
-		// The put's writer reports its commit while the next batch, which holds a transaction callback, is open and
-		// unwritten. Before the fix only that batch's writer could resolve the commit, from inside its transaction.
+		// The put's commit has to be resolved by its own writer while the next batch, which holds a transaction
+		// callback, is open and unwritten: otherwise that batch's writer resolves it from inside its transaction.
 		async function commitWithCallbackPending(db, key, value, callback) {
 			let committed = db.put(key, value);
 			let resolved = false;
