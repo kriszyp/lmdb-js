@@ -428,6 +428,19 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 			goto fail;
 		}
 	}
+	#ifndef MDB_OVERLAPPINGSYNC
+	else {
+		// LMDB 0.9 (LMDB_DATA_V1) has no open callback, so checkExistingEnvs never runs;
+		// track the env here so that closeEnv will find it and close it
+		SharedEnv envRef;
+		envRef.dev = 0;
+		envRef.inode = 0;
+		envRef.env = env;
+		envRef.count = 1;
+		envRef.hasWrites = false;
+		envTracking->envs.push_back(envRef);
+	}
+	#endif
 	mdb_env_get_flags(env, (unsigned int*) &flags);
 	if ((jsFlags & DELETE_ON_CLOSE)
 	#ifdef MDB_OVERLAPPINGSYNC
