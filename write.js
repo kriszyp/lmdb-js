@@ -497,7 +497,10 @@ export function addWriteMethods(
 			if (dynamicBytes.uint32[dynamicBytes.position << 1] & TXN_DELIMITER)
 				queueCommitResolution(nextResolution);
 
-			resolveWrites(true);
+			// For status 2 the writer's transaction is already attached natively, and env.writeTxn is not set until
+			// executeTxnCallbacks. A commit listener or callback run in between would read through that transaction
+			// while accounting for the read transaction, so those commits are left to their own writer's call.
+			resolveWrites(true, status === 2);
 			switch (status) {
 				case 0:
 					for (let resolver of resolvers) {
@@ -536,7 +539,7 @@ export function addWriteMethods(
 		}
 	}
 	var TXN_DONE = TXN_COMMITTED | TXN_FAILED;
-	function resolveWrites(async) {
+	function resolveWrites(async, instructionsOnly) {
 		// clean up finished instructions
 		let instructionStatus;
 		while (
@@ -566,6 +569,15 @@ export function addWriteMethods(
 			lastPromisedResolution = unwrittenResolution;
 			unwrittenResolution = unwrittenResolution.next;
 		}
+		// The first unwritten instruction can be the start of a batch that is still open. A transaction that ended
+		// there has to be resolved by its own writer's call: the next call may be the next writer's status 2.
+		if (
+			async &&
+			unwrittenResolution.uint32[unwrittenResolution.flagPosition] &
+				TXN_DELIMITER
+		)
+			queueCommitResolution(unwrittenResolution);
+		if (instructionsOnly) return;
 		while (
 			txnResolution &&
 			(instructionStatus =

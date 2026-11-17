@@ -2238,6 +2238,89 @@ describe('lmdb-js', function () {
 			should.not.exist(root.db.availableCursor);
 		});
 	});
+	describe('Commit resolution with a transaction callback pending', function () {
+		const hold = new Int32Array(new SharedArrayBuffer(4));
+		// Commits a put and queues a transaction callback in the next batch, holding this thread until the put is
+		// committed, so that the callback's writer is the one that reports the put's commit
+		async function commitWithCallbackPending(db, key, value, callback) {
+			let committed = db.put(key, value);
+			await new Promise((resolve) => setImmediate(resolve)); // the put's batch has started
+			let transacted = db.transaction(() => callback(committed));
+			for (let i = 0; i < 2000 && db.get(key) !== value; i++) {
+				db.resetReadTxn();
+				Atomics.wait(hold, 0, 0, 1);
+			}
+			Atomics.wait(hold, 0, 0, 10); // the put's writer finishes
+			return [committed, transacted];
+		}
+		it('reads ranges on a read transaction from a commit listener', async function () {
+			let db = open({ path: path.join(testDirPath, 'commit-listener-range') });
+			for (let i = 0; i < 10; i++) db.put('key' + i, i);
+			await db.committed;
+			let listenerCounts = [];
+			db.on('aftercommit', () => {
+				listenerCounts.push(
+					Array.from(db.getRange({ start: 'key', end: 'kez' })).length,
+				);
+			});
+			for (let round = 0; round < 5; round++) {
+				let results = await Promise.all(
+					await commitWithCallbackPending(db, 'key1', 'round' + round, () => {
+						db.put('transacted', round);
+						return round;
+					}),
+				);
+				results[1].should.equal(round);
+				// a listener's cursor on the writer's transaction is freed at commit and would be reused here
+				Array.from(
+					db.getRange({ start: 'key', end: 'kez' }),
+				).length.should.equal(10);
+			}
+			listenerCounts.length.should.be.at.least(10);
+			listenerCounts.every((count) => count === 10).should.equal(true);
+			await db.close();
+		});
+		it('resolves a commit that a later transaction callback awaits', async function () {
+			let db = open({
+				path: path.join(testDirPath, 'commit-awaited-in-callback'),
+			});
+			await db.put('key', 0);
+			let results = await Promise.all(
+				await commitWithCallbackPending(db, 'key', 1, async (committed) => {
+					await committed;
+					db.put('transacted', 1);
+					return 'awaited';
+				}),
+			);
+			results[1].should.equal('awaited');
+			await db.committed;
+			db.get('transacted').should.equal(1);
+			await db.close();
+		});
+		it('runs a synchronous transaction from a commit listener', async function () {
+			let db = open({
+				path: path.join(testDirPath, 'commit-listener-sync-txn'),
+			});
+			await db.put('key', 0);
+			let listening = true;
+			db.on('aftercommit', () => {
+				if (!listening) return;
+				listening = false;
+				db.transactionSync(() => db.put('from-listener', 1));
+			});
+			let results = await Promise.all(
+				await commitWithCallbackPending(db, 'key', 1, () => {
+					db.put('transacted', 1);
+					return 'callback';
+				}),
+			);
+			results[1].should.equal('callback');
+			await db.committed;
+			db.get('from-listener').should.equal(1);
+			db.get('transacted').should.equal(1);
+			await db.close();
+		});
+	});
 	describe('Close with reads in flight', function () {
 		// an environment with pending writes waits for them before closing, so only one that has not written
 		// reaches the outstanding-reads wait directly
@@ -2379,6 +2462,29 @@ describe('lmdb-js', function () {
 					});
 				});
 			}
+		});
+		describe('Commit listener cursors', function () {
+			this.timeout(20000);
+			it('closes an environment whose commit listener read ranges while a transaction callback was pending', function (done) {
+				var child = spawn(
+					'node',
+					[
+						fileURLToPath(
+							new URL('./commit-listener-cursors.cjs', import.meta.url),
+						),
+					],
+					// glibc then overwrites memory as it is freed, so that using a freed cursor always crashes
+					{ env: { ...process.env, MALLOC_PERTURB_: '165' } },
+				);
+				child.stderr.on('data', function (data) {
+					console.error(data.toString());
+				});
+				child.on('close', function (code, signal) {
+					expect(signal, 'crashed').to.equal(null);
+					code.should.equal(0);
+					done();
+				});
+			});
 		});
 		describe('Read-only Threads', function () {
 			this.timeout(1000000);
