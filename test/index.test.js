@@ -2242,7 +2242,6 @@ describe('lmdb-js', function () {
 		const hold = new Int32Array(new SharedArrayBuffer(4));
 		// The put's writer reports its commit while the next batch, which holds a transaction callback, is open and
 		// unwritten. Before the fix only that batch's writer could resolve the commit, from inside its transaction.
-		// The third result is whether the commit was resolved before that batch was written.
 		async function commitWithCallbackPending(db, key, value, callback) {
 			let committed = db.put(key, value);
 			let resolved = false;
@@ -2483,7 +2482,7 @@ describe('lmdb-js', function () {
 							new URL('./commit-listener-cursors.cjs', import.meta.url),
 						),
 					],
-					// glibc then overwrites memory as it is freed, so that using a freed cursor always crashes
+					// glibc then overwrites memory as it is freed, so a freed cursor's transaction pointer is invalid
 					{ env: { ...process.env, MALLOC_PERTURB_: '165' } },
 				);
 				// a child that waits on a commit that is never resolved can not exit on its own
